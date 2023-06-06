@@ -13,8 +13,8 @@ namespace arb {
 // Post-synaptic spike events
 
 struct target_handle {
-    cell_local_size_type mech_id;    // mechanism type identifier (per cell group).
-    cell_local_size_type mech_index; // instance of the mechanism
+    cell_local_size_type mech_id = 0;    // mechanism type identifier (per cell group).
+    cell_local_size_type mech_index = 0; // instance of the mechanism
 
     target_handle() = default;
     target_handle(cell_local_size_type mech_id, cell_local_size_type mech_index):
@@ -54,8 +54,8 @@ inline arb_deliverable_event_stream make_event_stream_state(arb_deliverable_even
 using probe_handle = const arb_value_type*;
 
 struct raw_probe_info {
-    probe_handle handle;      // where the to-be-probed value sits
-    sample_size_type offset;  // offset into array to store raw probed value
+    probe_handle handle = nullptr; // where the to-be-probed value sits
+    sample_size_type offset = 0;   // offset into array to store raw probed value
 };
 
 struct sample_event {

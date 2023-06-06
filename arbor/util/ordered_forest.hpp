@@ -452,7 +452,7 @@ public:
         return *this;
     }
 
-    ordered_forest& operator=(ordered_forest&& other) {
+    ordered_forest& operator=(ordered_forest&& other) noexcept {
         if (this==&other) return *this;
         delete_node(first_);
 

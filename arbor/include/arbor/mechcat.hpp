@@ -45,8 +45,8 @@ public:
     using value_type = double;
 
     mechanism_catalogue();
-    mechanism_catalogue(mechanism_catalogue&& other);
-    mechanism_catalogue& operator=(mechanism_catalogue&& other);
+    mechanism_catalogue(mechanism_catalogue&& other) noexcept;
+    mechanism_catalogue& operator=(mechanism_catalogue&& other) noexcept;
 
     mechanism_catalogue(const mechanism_catalogue& other);
     mechanism_catalogue& operator=(const mechanism_catalogue& other);

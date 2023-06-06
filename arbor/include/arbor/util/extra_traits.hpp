@@ -7,7 +7,7 @@ namespace util {
 
 template <typename T>
 struct remove_cvref {
-    typedef std::remove_cv_t<std::remove_reference_t<T>> type;
+    using type = std::remove_cv_t<std::remove_reference_t<T>>;
 };
 
 template <typename T>

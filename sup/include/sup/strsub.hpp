@@ -21,7 +21,7 @@ namespace sup {
 
 // Stream-writing strsub(...):
 
-inline std::ostream& strsub(std::ostream& o, char c, const char* templ) {
+inline std::ostream& strsub(std::ostream& o, char, const char* templ) {
     return o << templ;
 }
 

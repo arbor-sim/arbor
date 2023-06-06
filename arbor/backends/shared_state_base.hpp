@@ -3,6 +3,8 @@
 #include <arbor/mechanism_abi.h>
 #include <arbor/common_types.hpp>
 
+#include "timestep_range.hpp"
+
 #include "backends/event.hpp"
 #include "backends/common_types.hpp"
 #include "fvm_layout.hpp"
@@ -28,7 +30,7 @@ struct shared_state_base {
 
     void begin_epoch(const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
                      const std::vector<std::vector<sample_event>>& samples,
-                     const timestep_range& dts) {
+                     const timestep_range&) {
         auto d = static_cast<D*>(this);
         // events
         auto& storage = d->storage;

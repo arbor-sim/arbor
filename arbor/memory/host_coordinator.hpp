@@ -24,7 +24,7 @@ class device_coordinator;
 
 namespace util {
     template <typename T, typename Allocator>
-    struct type_printer<host_coordinator<T,Allocator>>{
+    struct type_printer<host_coordinator<T, Allocator>>{
         static std::string print() {
             #if VERBOSE>1
             return util::white("host_coordinator") + "<" + type_printer<T>::print()
@@ -36,9 +36,9 @@ namespace util {
     };
 
     template <typename T, typename Allocator>
-    struct pretty_printer<host_coordinator<T,Allocator>>{
-        static std::string print(const host_coordinator<T,Allocator>& val) {
-            return type_printer<host_coordinator<T,Allocator>>::print();;
+    struct pretty_printer<host_coordinator<T, Allocator>>{
+        static std::string print(const host_coordinator<T, Allocator>& /*val*/) {
+            return type_printer<host_coordinator<T, Allocator>>::print();;
         }
     };
 } // namespace util

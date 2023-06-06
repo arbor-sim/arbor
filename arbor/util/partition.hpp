@@ -120,7 +120,7 @@ partition_range<SeqIter> partition_view(const Seq& r) {
  */
 
 struct partition_in_place_t {
-    constexpr partition_in_place_t() {}
+    constexpr partition_in_place_t() = default;
 };
 
 constexpr partition_in_place_t partition_in_place;

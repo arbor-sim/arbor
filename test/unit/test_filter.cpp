@@ -51,13 +51,13 @@ TEST(filter, const_sentinel) {
 }
 
 TEST(filter, modify_regular) {
-    int nums[] = {1, -2, 3, -4, -5};
+    std::array nums{1, -2, 3, -4, -5};
 
     for (auto& n: filter(nums, [](int i) { return i<0; })) {
         n *= n;
     }
 
-    int check[] = {1, 4, 3, 16, 25};
+    std::array check = {1, 4, 3, 16, 25};
     for (unsigned i = 0; i<5; ++i) {
         EXPECT_EQ(check[i], nums[i]);
     }

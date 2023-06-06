@@ -88,7 +88,7 @@ cell_cv_data_impl::cell_cv_data_impl(const cable_cell& cell, const locset& lset)
         }
 
         util::sort(cables);
-        util::append(cv_cables, std::move(cables));
+        util::append(cv_cables, cables);
         cv_cables_divs.push_back(cv_cables.size());
         ++cv_index;
     }
@@ -146,7 +146,7 @@ ARB_ARBOR_API std::optional<cell_cv_data> cv_data(const cable_cell& cell) {
 
 using impl_ptr = std::unique_ptr<cell_cv_data_impl, void (*)(cell_cv_data_impl*)>;
 impl_ptr make_impl(cell_cv_data_impl* c) {
-    return impl_ptr(c, [](cell_cv_data_impl* p){delete p;});
+    return {c, [](cell_cv_data_impl* p){delete p;}};
 }
 
 cell_cv_data::cell_cv_data(const cable_cell& cell, const locset& lset):

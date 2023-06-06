@@ -7,7 +7,6 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
-#include <arbor/symmetric_recipe.hpp>
 #include <arbor/context.hpp>
 
 #include "cell_group_factory.hpp"
@@ -173,6 +172,7 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(
     };
 
     std::vector<cell_kind> kinds;
+    kinds.reserve(kind_lists.size());
     for (auto l: kind_lists) {
         kinds.push_back(cell_kind(l.first));
     }
@@ -227,7 +227,7 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(
     // global all-to-all to gather a local copy of the global gid list on each node.
     auto global_gids = dist->gather_gids(local_gids);
 
-    return domain_decomposition(rec, ctx, groups);
+    return {rec, ctx, groups};
 }
 
 } // namespace arb

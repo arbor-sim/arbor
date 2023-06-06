@@ -1,5 +1,6 @@
 #include <atomic>
 #include <stdexcept>
+#include <cassert>
 
 #include <arbor/assert.hpp>
 #include <arbor/util/scope_exit.hpp>
@@ -137,8 +138,7 @@ task_system::task_system(int nthreads, bool bind):
     count_(nthreads),
     bind_(bind),
     q_(nthreads) {
-    if (nthreads <= 0)
-        throw std::runtime_error("Non-positive number of threads in thread pool");
+    if (nthreads <= 0) throw std::runtime_error("Non-positive number of threads in thread pool");
 
     for (unsigned p = 0; p<n_priority; ++p) {
         index_[p] = 0;
@@ -167,17 +167,17 @@ task_system::~task_system() {
 }
 
 void task_system::async(priority_task ptsk) {
-    if (ptsk.priority>=n_priority) {
+    assert(count_ != 0);
+    auto priority = ptsk.priority;
+    if (priority >= n_priority) {
         run(std::move(ptsk));
     }
     else {
-        arb_assert(ptsk.priority < (int)index_.size());
-        auto i = index_[ptsk.priority]++;
-
-        for (unsigned n = 0; n != count_; n++) {
-            if (q_[(i + n) % count_].try_push(ptsk)) return;
+        auto idx = index_[priority]++;
+        for (unsigned n = 0; n < count_; n++) {
+            if (q_[(idx + n) % count_].try_push(ptsk)) return;
         }
-        q_[i % count_].push(std::move(ptsk));
+        q_[idx % count_].push(std::move(ptsk));
     }
 }
 

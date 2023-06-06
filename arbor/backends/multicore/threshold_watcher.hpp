@@ -14,13 +14,13 @@ namespace multicore {
 class threshold_watcher {
 public:
     threshold_watcher() = default;
-    threshold_watcher(const execution_context& ctx) {}
+    threshold_watcher(const execution_context&) {}
 
     threshold_watcher(const arb_size_type num_cv,
                       const arb_index_type* src_to_spike,
                       const std::vector<arb_index_type>& cv_index,
                       const std::vector<arb_value_type>& thresholds,
-                      const execution_context& context):
+                      const execution_context&):
         src_to_spike_(src_to_spike),
         n_detectors_(cv_index.size()),
         cv_index_(cv_index),

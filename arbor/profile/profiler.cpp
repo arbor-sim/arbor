@@ -14,7 +14,6 @@ namespace arb {
 namespace profile {
 
 using timer_type = timer<>;
-using util::make_span;
 
 #ifdef ARB_HAVE_PROFILING
 namespace {
@@ -240,7 +239,7 @@ profile profiler::results() const {
     p.counts = std::vector<region_id_type>(nregions);
     for (auto& r: recorders_) {
         auto& accumulators = r.accumulators();
-        for (auto i: make_span(0, accumulators.size())) {
+        for (auto i: util::make_span(0, accumulators.size())) {
             p.times[i]  += accumulators[i].time;
             p.counts[i] += accumulators[i].count;
         }
@@ -276,10 +275,10 @@ profile_node make_profile_tree(const profile& p) {
 
     // Build a tree description of the regions and sub-regions in the profile.
     profile_node tree("root");
-    for (auto idx: make_span(0, p.names.size())) {
+    for (auto idx: util::make_span(0, p.names.size())) {
         profile_node* node = &tree;
         const auto depth  = names[idx].size();
-        for (auto i: make_span(0, depth-1)) {
+        for (auto i: util::make_span(0, depth-1)) {
             auto& node_name = names[idx][i];
             auto& kids = node->children;
 
@@ -421,10 +420,10 @@ ARB_ARBOR_API std::ostream& print_profiler_summary(std::ostream& os, double limi
 ARB_ARBOR_API void profiler_leave() {}
 ARB_ARBOR_API void profiler_enter(region_id_type) {}
 ARB_ARBOR_API profile profiler_summary();
-ARB_ARBOR_API profile profiler_summary() {return profile();}
+ARB_ARBOR_API profile profiler_summary() {return {};}
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string&) {return 0;}
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const profile&) {return o;}
-ARB_ARBOR_API std::ostream& profiler_print_summary(std::ostream& os, double limit) { return os; }
+ARB_ARBOR_API std::ostream& profiler_print_summary(std::ostream& os, double) { return os; }
 
 
 #endif // ARB_HAVE_PROFILING

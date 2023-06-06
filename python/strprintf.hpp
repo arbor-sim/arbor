@@ -95,9 +95,9 @@ std::string strprintf(const char* fmt, Args&&... args) {
             throw std::system_error(errno, std::generic_category());
         }
         else if ((unsigned)n<buffer.size()) {
-            return std::string(buffer.data(), n);
+            return {buffer.data(), static_cast<std::size_t>(n)};
         }
-        buffer.resize(2*n);
+        buffer.resize(2ull*n);
     }
 }
 

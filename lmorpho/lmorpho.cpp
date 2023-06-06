@@ -35,7 +35,7 @@ const char* usage_str =
 "    purkinje      Guinea pig Purkinje cells, basd on models and data\n"
 "                  from Rapp 1994 and Ascoli 2001.\n";
 
-int main(int argc, char** argv) {
+int main(int, char** argv) {
     // options
     int n_morph = 1;
     std::optional<unsigned> rng_seed = 0;

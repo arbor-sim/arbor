@@ -191,7 +191,7 @@ public:
         return nullptr;
     }
 
-    void deallocate(pointer p, size_type cnt) {
+    void deallocate(pointer p, size_type) {
         if (p) {
             free_policy(p);
         }
@@ -240,7 +240,7 @@ namespace util {
     template <>
     struct type_printer<impl::gpu::device_policy>{
         static std::string print() {
-            return std::string("device_policy");
+            return "device_policy";
         }
     };
 

@@ -1,5 +1,5 @@
 #define _POSIX_C_SOURCE 200809L
-#include <time.h>
+#include <ctime>
 
 // Keep implementation out of header in order to avoid
 // global namespace pollution from <time.h>.

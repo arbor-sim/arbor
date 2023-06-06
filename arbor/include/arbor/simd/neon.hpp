@@ -555,7 +555,7 @@ struct neon_double2 : implbase<neon_double2> {
     // coefficients
     // a0, ..., an by a0+x·(a1+x·(a2+...+x·an)...).
 
-    static inline float64x2_t horner(float64x2_t x, double a0) {
+    static inline float64x2_t horner(float64x2_t, double a0) {
         return broadcast(a0);
     }
 

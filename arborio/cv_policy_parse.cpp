@@ -68,10 +68,10 @@ eval_map {{"default",
            make_call<locset, region>([] (const locset& l, const region& r) { return arb::cv_policy{arb::cv_policy_explicit(l, r) }; },
                                      "'explicit' with two arguments (explicit (ls:locset) (reg:region))")},
           {"join",
-           make_fold<cv_policy>([](cv_policy l, cv_policy r) { return l + r; },
+           make_fold<cv_policy>([](const cv_policy& l, const cv_policy& r) { return l + r; },
                                 "'join' with at least 2 arguments: (join cv_policy cv_policy ...)")},
           {"replace",
-           make_fold<cv_policy>([](cv_policy l, cv_policy r) { return l | r; },
+           make_fold<cv_policy>([](const cv_policy& l, const cv_policy& r) { return l | r; },
                                 "'replace' with at least 2 arguments: (replace cv_policy cv_policy ...)")},
 };
 

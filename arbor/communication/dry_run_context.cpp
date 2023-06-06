@@ -16,14 +16,14 @@ struct dry_run_context_impl {
     explicit dry_run_context_impl(unsigned num_ranks, unsigned num_cells_per_tile):
         num_ranks_(num_ranks), num_cells_per_tile_(num_cells_per_tile) {};
     std::vector<spike>
-    remote_gather_spikes(const std::vector<spike>& local_spikes) const {
+    remote_gather_spikes(const std::vector<spike>& /*local_spikes*/) const {
         return {};
     }
     gathered_vector<spike>
     gather_spikes(const std::vector<spike>& local_spikes) const {
         using count_type = typename gathered_vector<spike>::count_type;
 
-        count_type local_size = local_spikes.size();
+        auto local_size = local_spikes.size();
 
         std::vector<spike> gathered_spikes;
         gathered_spikes.reserve(local_size*num_ranks_);
@@ -43,7 +43,7 @@ struct dry_run_context_impl {
             partition.push_back(static_cast<count_type>(i*local_size));
         }
 
-        return gathered_vector<spike>(std::move(gathered_spikes), std::move(partition));
+        return {std::move(gathered_spikes), std::move(partition)};
     }
     void remote_ctrl_send_continue(const epoch&) const {}
     void remote_ctrl_send_done() const {}
@@ -51,7 +51,7 @@ struct dry_run_context_impl {
     gather_gids(const std::vector<cell_gid_type>& local_gids) const {
         using count_type = typename gathered_vector<cell_gid_type>::count_type;
 
-        count_type local_size = local_gids.size();
+        auto local_size = local_gids.size();
 
         std::vector<cell_gid_type> gathered_gids;
         gathered_gids.reserve(local_size*num_ranks_);
@@ -71,7 +71,7 @@ struct dry_run_context_impl {
             partition.push_back(static_cast<count_type>(i*local_size));
         }
 
-        return gathered_vector<cell_gid_type>(std::move(gathered_gids), std::move(partition));
+        return {std::move(gathered_gids), std::move(partition)};
     }
 
     std::vector<std::vector<cell_gid_type>>
@@ -105,7 +105,7 @@ struct dry_run_context_impl {
     cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const {
         auto global_ranges = gather_cell_label_range(local_labels_and_gids.label_range);
         auto gids = gather_gids(local_labels_and_gids.gids);
-        return cell_labels_and_gids(global_ranges, gids.values());
+        return {global_ranges, gids.values()};
     }
 
     template <typename T>

@@ -2,7 +2,7 @@
 
 #include <arbor/export.hpp>
 
-typedef unsigned long long tick_type;
+using tick_type = unsigned long long;
 
 // Assuming POSIX monotonic clock is available; add
 // feature test if we need to fall back to generic or

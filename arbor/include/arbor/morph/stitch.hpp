@@ -32,11 +32,11 @@ struct mstitch {
     int tag;
 
     mstitch(std::string id, mpoint prox, mpoint dist, int tag = 0):
-        id(std::move(id)), prox(std::move(prox)), dist(std::move(dist)), tag(tag)
+        id(std::move(id)), prox(prox), dist(dist), tag(tag)
     {}
 
     mstitch(std::string id, mpoint dist, int tag = 0):
-        id(std::move(id)), dist(std::move(dist)), tag(tag)
+        id(std::move(id)), dist(dist), tag(tag)
     {}
 };
 
@@ -47,10 +47,10 @@ struct ARB_ARBOR_API stitch_builder {
     stitch_builder();
 
     stitch_builder(const stitch_builder&) = delete;
-    stitch_builder(stitch_builder&&);
+    stitch_builder(stitch_builder&&) noexcept;
 
     stitch_builder& operator=(const stitch_builder&) = delete;
-    stitch_builder& operator=(stitch_builder&&);
+    stitch_builder& operator=(stitch_builder&&) noexcept;
 
     // Make a new stitch in the morphology, return reference to self.
     //
@@ -78,7 +78,7 @@ struct ARB_ARBOR_API stitched_morphology {
     stitched_morphology(stitch_builder&&); // implicit
 
     stitched_morphology(const stitched_morphology&) = delete;
-    stitched_morphology(stitched_morphology&&);
+    stitched_morphology(stitched_morphology&&) noexcept;
 
     arb::morphology morphology() const;
     region stitch(const std::string& id) const;

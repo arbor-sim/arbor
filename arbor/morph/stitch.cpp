@@ -115,8 +115,8 @@ struct stitch_builder_impl {
 
 stitch_builder::stitch_builder(): impl_(new stitch_builder_impl) {}
 
-stitch_builder::stitch_builder(stitch_builder&&) = default;
-stitch_builder& stitch_builder::operator=(stitch_builder&&) = default;
+stitch_builder::stitch_builder(stitch_builder&&) noexcept = default;
+stitch_builder& stitch_builder::operator=(stitch_builder&&) noexcept = default;
 
 stitch_builder& stitch_builder::add(mstitch f, const std::string& parent_id, double along) {
     impl_->add(std::move(f), parent_id, along);
@@ -166,10 +166,10 @@ stitched_morphology::stitched_morphology(const stitch_builder& builder):
     impl_(new stitched_morphology_impl(*builder.impl_))
 {}
 
-stitched_morphology::stitched_morphology(stitched_morphology&& other) = default;
+stitched_morphology::stitched_morphology(stitched_morphology&& other) noexcept = default;
 
 arb::morphology stitched_morphology::morphology() const {
-    return arb::morphology(impl_->stree);
+    return {impl_->stree};
 }
 
 label_dict stitched_morphology::labels(const std::string& prefix) const {
@@ -206,7 +206,7 @@ std::vector<msize_t> stitched_morphology::segments(const std::string& id) const 
     auto seg_ids = util::transform_view(util::make_range(impl_->id_to_segs.equal_range(id)), util::second);
     if (seg_ids.empty()) throw no_such_stitch(id);
 
-    return std::vector<msize_t>(begin(seg_ids), end(seg_ids));
+    return {begin(seg_ids), end(seg_ids)};
 }
 
 stitched_morphology::~stitched_morphology() = default;

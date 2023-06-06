@@ -87,12 +87,12 @@ ARB_ARBOR_API mlocation_list support(mlocation_list);
 
 struct ARB_SYMBOL_VISIBLE mcable {
     // The id of the branch on which the cable lies.
-    msize_t branch;
+    msize_t branch = 0;
 
     // Relative location of the end points on the branch.
     // 0 ≤ prox_pos ≤ dist_pos ≤ 1
-    double prox_pos; // ∈ [0,1]
-    double dist_pos; // ∈ [0,1]
+    double prox_pos = 0; // ∈ [0,1]
+    double dist_pos = 0; // ∈ [0,1]
 
     friend mlocation prox_loc(const mcable& c) {
         return {c.branch, c.prox_pos};

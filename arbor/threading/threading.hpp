@@ -25,13 +25,13 @@ using std::condition_variable;
 using task = std::function<void()>;
 
 // Tasks with priority higher than max_async_task_priority will be run synchronously.
-constexpr int max_async_task_priority = 1;
+constexpr unsigned max_async_task_priority = 1;
 
 // Wrap task and priority; provide move/release/reset operations and reset on run()
 // to help ensure no wrapped task is run twice.
 struct priority_task {
     task t;
-    int priority = -1;
+    unsigned priority = 0;
 
     priority_task() = default;
     priority_task(task&& t, int priority): t(std::move(t)), priority(priority) {}
@@ -72,7 +72,7 @@ namespace impl {
 
 class ARB_ARBOR_API notification_queue {
     // Number of priority levels in notification queues.
-    static constexpr int n_priority = max_async_task_priority+1;
+    static constexpr unsigned n_priority = max_async_task_priority+1;
 
 public:
     // Tries to acquire the lock to get a task of a requested priority.
@@ -125,7 +125,7 @@ private:
 class ARB_ARBOR_API task_system {
 private:
     // Number of notification queues.
-    unsigned count_;
+    unsigned count_ = 1;
     // Attempt to bind threads?
     bool bind_ = false;
     // Worker threads.
@@ -143,7 +143,7 @@ private:
     static thread_local unsigned current_task_queue_;
 
     // Number of priority levels in notification queues.
-    static constexpr int n_priority = max_async_task_priority+1;
+    static constexpr unsigned n_priority = max_async_task_priority+1;
 
     // Notification queues containing n_priority deques representing
     // different priority levels.
@@ -246,14 +246,14 @@ private:
         void set(std::exception_ptr ex) {
             error_.store(true, std::memory_order_relaxed);
             lock ex_lock{mutex_};
-            exception_ = std::move(ex);
+            exception_ = ex;
         }
 
         // Clear exception state but return old state.
         // For consistency, this must only be called when there
         // are no tasks in flight that reference this exception state.
         std::exception_ptr reset() {
-            auto ex = std::move(exception_);
+            auto ex = exception_;
             error_.store(false, std::memory_order_relaxed);
             exception_ = nullptr;
             return ex;
@@ -294,7 +294,7 @@ public:
                 exception_status_(ex)
         {}
 
-        wrap(wrap&& other):
+        wrap(wrap&& other) noexcept:
                 f_(std::move(other.f_)),
                 counter_(other.counter_),
                 exception_status_(other.exception_status_)

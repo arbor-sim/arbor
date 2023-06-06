@@ -72,8 +72,10 @@ struct ARB_SYMBOL_VISIBLE any_ptr {
     }
 
     any_ptr& operator=(const any_ptr& other) noexcept {
-        type_ptr_ = other.type_ptr_;
-        ptr_ = other.ptr_;
+        if (&other != this) {
+          type_ptr_ = other.type_ptr_;
+          ptr_ = other.ptr_;
+        }
         return *this;
     }
 

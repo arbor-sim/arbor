@@ -16,7 +16,7 @@ struct local_spike_store_type {
     local_spike_store_type(const task_system_handle& ts): buffers_(ts) {};
 };
 
-thread_private_spike_store::thread_private_spike_store(thread_private_spike_store&& t):
+thread_private_spike_store::thread_private_spike_store(thread_private_spike_store&& t) noexcept:
     impl_(std::move(t.impl_))
 {}
 

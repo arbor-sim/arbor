@@ -10,6 +10,7 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/region.hpp>
+#include <utility>
 
 #include "util/cbrng.hpp"
 #include "util/partition.hpp"
@@ -37,11 +38,11 @@ ARB_ARBOR_API locset nil() {
     return locset{nil_{}};
 }
 
-mlocation_list thingify_(const nil_& x, const mprovider&) {
+mlocation_list thingify_(const nil_&, const mprovider&) {
     return {};
 }
 
-std::ostream& operator<<(std::ostream& o, const nil_& x) {
+std::ostream& operator<<(std::ostream& o, const nil_&) {
     return o << "(locset-nil)";
 }
 
@@ -113,7 +114,7 @@ mlocation_list thingify_(const terminal_&, const mprovider& p) {
     return locs;
 }
 
-std::ostream& operator<<(std::ostream& o, const terminal_& x) {
+std::ostream& operator<<(std::ostream& o, const terminal_&) {
     return o << "(terminal)";
 }
 
@@ -257,11 +258,11 @@ ARB_ARBOR_API locset root() {
     return locset{root_{}};
 }
 
-mlocation_list thingify_(const root_&, const mprovider& p) {
+mlocation_list thingify_(const root_&, const mprovider&) {
     return {mlocation{0, 0.}};
 }
 
-std::ostream& operator<<(std::ostream& o, const root_& x) {
+std::ostream& operator<<(std::ostream& o, const root_&) {
     return o << "(root)";
 }
 
@@ -277,7 +278,7 @@ mlocation_list thingify_(const segments_&, const mprovider& p) {
     return p.embedding().segment_ends();
 }
 
-std::ostream& operator<<(std::ostream& o, const segments_& x) {
+std::ostream& operator<<(std::ostream& o, const segments_&) {
     return o << "(segment-boundaries)";
 }
 
@@ -547,7 +548,6 @@ ARB_ARBOR_API locset uniform(arb::region reg, unsigned left, unsigned right, uin
 
 mlocation_list thingify_(const uniform_& u, const mprovider& p) {
     mlocation_list L;
-    auto morpho = p.morphology();
     auto embed = p.embedding();
 
     // Thingify the region and store relevant data
@@ -663,7 +663,7 @@ std::ostream& operator<<(std::ostream& o, const lsup_& x) {
 // are also in the region.
 
 struct lrestrict_: locset_tag {
-    explicit lrestrict_(const locset& l, const region& r): ls{l}, reg{r} {}
+    explicit lrestrict_(locset l, region r): ls{std::move(l)}, reg{std::move(r)} {}
     locset ls;
     region reg;
 };

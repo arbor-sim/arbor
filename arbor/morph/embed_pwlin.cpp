@@ -189,9 +189,10 @@ double embed_pwlin::integrate_ixa(const mcable& c) const {
 }
 
 // Integrate piecewise function over a cable:
-
-static pw_constant_fn restrict(const pw_constant_fn& g, double left, double right) {
+namespace {
+pw_constant_fn restrict(const pw_constant_fn& g, double left, double right) {
     return pw_zip_with(g, pw_elements<void>{{left, right}});
+}
 }
 
 double embed_pwlin::integrate_length(const mcable& c, const pw_constant_fn& g) const {
@@ -227,7 +228,7 @@ mcable_list data_cmp(const std::vector<pw_ratpoly<1, 0>>& f_on_branch, msize_t b
             continue;
         }
         if (op(left_val, val) && op(right_val, val)) {
-            L.push_back({bid, left, right});
+            L.emplace_back(mcable{bid, left, right});
             continue;
         }
 
@@ -235,11 +236,11 @@ mcable_list data_cmp(const std::vector<pw_ratpoly<1, 0>>& f_on_branch, msize_t b
         auto edge = math::lerp(left, right, cable_loc);
 
         if (op(left_val, val)) {
-            L.push_back({bid, left, edge});
+            L.emplace_back(mcable{bid, left, edge});
             continue;
         }
         if (!op(left_val, val)) {
-            L.push_back({bid, edge, right});
+            L.emplace_back(mcable{bid, edge, right});
             continue;
         }
     }

@@ -39,7 +39,7 @@ namespace util {
 
     template <typename T, typename Allocator>
     struct pretty_printer<device_coordinator<T,Allocator>>{
-        static std::string print(const device_coordinator<T,Allocator>& val) {
+        static std::string print(const device_coordinator<T,Allocator>&) {
             return type_printer<device_coordinator<T,Allocator>>::print();
         }
     };
@@ -60,10 +60,11 @@ public:
         return tmp;
     }
 
-protected:
     template <typename Other>
-    void operator =(Other&&) {}
+    const_device_reference& operator=(Other&&) = delete;
 
+
+protected:
     const_pointer pointer_;
 };
 
@@ -228,7 +229,7 @@ public:
     // generates compile time error if there is an attempt to copy from memory
     // that is managed by a coordinator for which there is no specialization
     template <class CoordOther>
-    void copy(const array_view<value_type, CoordOther>& from, view_type& to) {
+    void copy(const array_view<value_type, CoordOther>&, view_type&) {
         static_assert(true, "device_coordinator: unable to copy from other Coordinator");
     }
 

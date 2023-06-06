@@ -9,7 +9,7 @@
 
 namespace compat {
 
-constexpr bool using_intel_compiler(int major=0, int minor=0, int patchlevel=0) {
+constexpr bool using_intel_compiler(int=0, int=0, int=0) {
 #if defined(__INTEL_COMPILER)
     return __INTEL_COMPILER >= major*100 + minor &&
            __INTEL_COMPILER_UPDATE >= patchlevel;

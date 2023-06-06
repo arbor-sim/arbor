@@ -42,7 +42,7 @@ public:
         index_ += (index_ <= ev_spans_.size() ? 1 : 0);
     }
 
-    auto marked_events() {
+    auto marked_events() const {
         using std::begin;
         using std::end;
         if (empty()) {

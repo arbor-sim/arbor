@@ -11,6 +11,7 @@
 
 #include <arbor/s_expr.hpp>
 #include <arborio/export.hpp>
+#include <utility>
 
 namespace arborio {
 
@@ -32,7 +33,7 @@ ARB_ARBORIO_API parse_label_hopefully<arb::iexpr> parse_iexpr_expression(const s
 namespace literals {
 
 struct morph_from_string {
-    morph_from_string(const std::string& s): str{s} {}
+    morph_from_string(std::string s): str{std::move(s)} {}
     morph_from_string(const char* s): str{s} {}
 
     std::string str;
@@ -49,7 +50,7 @@ struct morph_from_string {
 };
 
 struct morph_from_label {
-    morph_from_label(const std::string& s): str{s} {}
+    morph_from_label(std::string s): str{std::move(s)} {}
     morph_from_label(const char* s): str{s} {}
 
     std::string str;

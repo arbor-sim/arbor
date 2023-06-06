@@ -1,0 +1,6 @@
+Checks: "-*,modernize-*,-modernize-use-trailing-return-type,-modernize-concat-nested-namespaces,-modernize-avoid-c-arrays,-modernize-use-nodiscard,bugprone-*,-bugprone-exception-escape,-bugprone-macro-parentheses,-bugprone-easily-swappable-parameters,-bugprone-narrowing-conversions,misc-*,-misc-throw-by-value-catch-by-reference,-misc-no-recursion,-misc-non-private-member-variables-in-classes,-misc-const-correctness,-misc-confusable-identifiers,clang-analyzer-core-*,performance-*"
+# WarningsAsErrors: "*"
+
+# IMPORTANT: Set HeaderFilterRegex as shown below.
+# Do not set it to '.*', for example.
+HeaderFilterRegex: ""

@@ -30,7 +30,7 @@ void cell_label_range::add_label(cell_tag_type label, lid_range range) {
     if (sizes_.empty()) throw arbor_internal_error("adding label to cell_label_range without cell");
     ++sizes_.back();
     labels_.push_back(std::move(label));
-    ranges_.push_back(std::move(range));
+    ranges_.push_back(range);
 }
 
 void cell_label_range::append(cell_label_range other) {
@@ -157,8 +157,8 @@ resolver::state_variant resolver::construct_state(lid_selection_policy pol) {
 	case lid_selection_policy::round_robin_halt:
         return round_robin_halt_state();
     case lid_selection_policy::assert_univalent:
-       return assert_univalent_state();
-    default: return assert_univalent_state();
+    default:
+        return assert_univalent_state();
     }
 }
 
@@ -169,8 +169,8 @@ resolver::state_variant resolver::construct_state(lid_selection_policy pol, cell
 	case lid_selection_policy::round_robin_halt:
         return round_robin_halt_state(state);
     case lid_selection_policy::assert_univalent:
-       return assert_univalent_state();
-    default: return assert_univalent_state();
+    default:
+        return assert_univalent_state();
     }
 }
 

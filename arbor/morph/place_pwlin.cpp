@@ -28,8 +28,9 @@ struct place_pwlin_data {
         segment_index(n_branch)
     {}
 };
+namespace {
 
-static mpoint interpolate_segment(const std::pair<double, double>& bounds, const msegment& seg, double pos) {
+mpoint interpolate_segment(const std::pair<double, double>& bounds, const msegment& seg, double pos) {
     if (bounds.first==bounds.second) {
         return seg.prox;
     }
@@ -46,41 +47,12 @@ static mpoint interpolate_segment(const std::pair<double, double>& bounds, const
 }
 
 template <typename Elem>
-static bool is_degenerate(const util::pw_elements<Elem>& pw) {
+bool is_degenerate(const util::pw_elements<Elem>& pw) {
     return  pw.bounds().second==0;
 }
 
-mpoint place_pwlin::at(mlocation loc) const {
-    const auto& pw_index = data_->segment_index.at(loc.branch);
-    double pos = is_degenerate(pw_index)? 0: loc.pos;
-
-    auto index = pw_index(pos);
-    return interpolate_segment(index.extent, data_->segments.at(index), pos);
-}
-
-std::vector<mpoint> place_pwlin::all_at(mlocation loc) const {
-    std::vector<mpoint> result;
-    const auto& pw_index = data_->segment_index.at(loc.branch);
-    double pos = is_degenerate(pw_index)? 0: loc.pos;
-
-    for (auto index: util::make_range(pw_index.equal_range(pos))) {
-        auto bounds = index.extent;
-        auto seg = data_->segments.at(index);
-
-        // Add both ends of zero length segment, if they differ.
-        if (bounds.first==bounds.second && seg.prox!=seg.dist) {
-            result.push_back(seg.prox);
-            result.push_back(seg.dist);
-        }
-        else {
-            result.push_back(interpolate_segment(bounds, seg, pos));
-        }
-    }
-    return result;
-}
-
 template <bool exclude_trivial>
-static std::vector<msegment> extent_segments_impl(const place_pwlin_data& data, const mextent& extent) {
+std::vector<msegment> extent_segments_impl(const place_pwlin_data& data, const mextent& extent) {
     std::vector<msegment> result;
 
     for (mcable c: extent) {
@@ -125,6 +97,37 @@ static std::vector<msegment> extent_segments_impl(const place_pwlin_data& data, 
 
     return result;
 }
+
+}
+mpoint place_pwlin::at(mlocation loc) const {
+    const auto& pw_index = data_->segment_index.at(loc.branch);
+    double pos = is_degenerate(pw_index)? 0: loc.pos;
+
+    auto index = pw_index(pos);
+    return interpolate_segment(index.extent, data_->segments.at(index), pos);
+}
+
+std::vector<mpoint> place_pwlin::all_at(mlocation loc) const {
+    std::vector<mpoint> result;
+    const auto& pw_index = data_->segment_index.at(loc.branch);
+    double pos = is_degenerate(pw_index)? 0: loc.pos;
+
+    for (auto index: util::make_range(pw_index.equal_range(pos))) {
+        auto bounds = index.extent;
+        auto seg = data_->segments.at(index);
+
+        // Add both ends of zero length segment, if they differ.
+        if (bounds.first==bounds.second && seg.prox!=seg.dist) {
+            result.push_back(seg.prox);
+            result.push_back(seg.dist);
+        }
+        else {
+            result.push_back(interpolate_segment(bounds, seg, pos));
+        }
+    }
+    return result;
+}
+
 
 std::vector<msegment> place_pwlin::all_segments(const mextent& extent) const {
     return extent_segments_impl<false>(*data_, extent);

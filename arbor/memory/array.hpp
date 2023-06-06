@@ -145,7 +145,7 @@ public:
     array(const array& other) :
         base(coordinator_type().allocate(other.size()))
     {
-        static_assert(impl::is_array_t<array>::value, "");
+        static_assert(impl::is_array_t<array>::value);
 #ifdef VERBOSE
         std::cerr << util::green("array(array&)")
                   << " " << util::type_printer<array>::print()
@@ -156,7 +156,7 @@ public:
     }
 
     // move constructor
-    array(array&& other) {
+    array(array&& other) noexcept {
 #ifdef VERBOSE
         std::cerr << util::green("array(array&&)")
                   << " " << util::type_printer<array>::print()
@@ -195,7 +195,7 @@ public:
         return *this;
     }
 
-    array& operator = (array&& other) {
+    array& operator=(array&& other) noexcept {
 #ifdef VERBOSE
         std::cerr << util::green("array operator=(array&&)")
                   << "\n  this  "  << util::pretty_printer<array>::print(*this)

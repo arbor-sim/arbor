@@ -94,15 +94,17 @@ void lif_cell_group::reset() {
 }
 
 // produce voltage V_m at t1, given cell state at t0 and no spikes in [t0, t1)
-static double
+namespace {
+double
 lif_decay(const lif_cell& cell, double t0, double t1) {
     return (cell.V_m - cell.E_L)*exp((t0 - t1)/cell.tau_m) + cell.E_L;
+}
 }
 
 // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
 // Parameter dt is ignored, since we make jumps between two consecutive spikes.
 void lif_cell_group::advance_cell(time_type tfinal,
-                                  time_type dt,
+                                  time_type /*dt*/,
                                   cell_gid_type lid,
                                   const event_lane_subrange& event_lanes) {
     const auto gid = gids_[lid];

@@ -67,12 +67,12 @@ std::string strprintf(const char* fmt, Args&&... args) {
     thread_local static std::vector<char> buffer(1024);
 
     for (;;) {
-        int n = std::snprintf(buffer.data(), buffer.size(), fmt, impl::sprintf_arg_translate(std::forward<Args>(args))...);
+        auto n = std::snprintf(buffer.data(), buffer.size(), fmt, impl::sprintf_arg_translate(std::forward<Args>(args))...);
         if (n<0) {
             throw std::system_error(errno, std::generic_category());
         }
         else if ((unsigned)n<buffer.size()) {
-            return std::string(buffer.data(), n);
+            return {buffer.data(), static_cast<std::size_t>(n)};
         }
         buffer.resize(2*n);
     }

@@ -11,11 +11,12 @@ using namespace std::literals;
 
 namespace arbenv {
 
-static std::optional<long long> read_env_integer_(const char* env_var, bool throw_on_err) {
+namespace {
+std::optional<long long> read_env_integer_(const char* env_var, bool throw_on_err) {
     const char* str = std::getenv(env_var);
     if (!str || !*str) return std::nullopt;
 
-    char* end = 0;
+    char* end = nullptr;
     errno = 0;
     long long v = std::strtoll(str, &end, 10);
     bool out_of_range = errno==ERANGE;
@@ -36,6 +37,7 @@ static std::optional<long long> read_env_integer_(const char* env_var, bool thro
     }
 
     return v;
+}
 }
 
 std::optional<long long> read_env_integer(const char* env_var) {

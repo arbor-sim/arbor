@@ -631,13 +631,13 @@ ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& 
         msize_t bid = site.branch;
 
         arb_assert(vrefs.proximal.loc.pos<vrefs.distal.loc.pos);
-        mcable rr_span  = mcable{bid, vrefs.proximal.loc.pos , vrefs.distal.loc.pos};
+        auto rr_span = mcable{bid, vrefs.proximal.loc.pos , vrefs.distal.loc.pos};
         double rr_resistance = embedding.integrate_ixa(rr_span, D.axial_resistivity[0].at(bid));
 
         // Note: site is not necessarily distal to the most proximal reference point.
         bool flip_rs = vrefs.proximal.loc.pos>site.pos;
-        mcable rs_span = flip_rs? mcable{bid, site.pos, vrefs.proximal.loc.pos}
-                                : mcable{bid, vrefs.proximal.loc.pos, site.pos};
+        auto rs_span = flip_rs ? mcable{bid, site.pos, vrefs.proximal.loc.pos}
+                               : mcable{bid, vrefs.proximal.loc.pos, site.pos};
 
         double rs_resistance = embedding.integrate_ixa(rs_span, D.axial_resistivity[0].at(bid));
         if (flip_rs) {

@@ -82,7 +82,7 @@ struct cell_local_label_type {
     cell_tag_type tag;
     lid_selection_policy policy;
 
-    cell_local_label_type(cell_tag_type tag, lid_selection_policy policy=lid_selection_policy::assert_univalent):
+    cell_local_label_type(cell_tag_type tag, lid_selection_policy policy=lid_selection_policy::assert_univalent) noexcept:
         tag(std::move(tag)), policy(policy) {}
 };
 

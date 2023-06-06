@@ -59,11 +59,11 @@ public:
         f_.construct(other.f_.cref());
     }
 
-    transform_iterator(transform_iterator&& other): inner_(std::move(other.inner_)) {
+    transform_iterator(transform_iterator&& other) noexcept: inner_(std::move(other.inner_)) {
         f_.construct(std::move(other.f_.ref()));
     }
 
-    transform_iterator& operator=(transform_iterator&& other) {
+    transform_iterator& operator=(transform_iterator&& other) noexcept {
         if (this!=&other) {
             inner_ = std::move(other.inner_);
             f_.construct(std::move(other.f_.ref()));

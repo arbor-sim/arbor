@@ -1,6 +1,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <arborio/neuroml.hpp>
@@ -42,19 +43,19 @@ struct ARB_ARBORIO_API neuroml_impl {
     xml_doc doc;
     std::string raw;
 
-    neuroml_impl() {}
+    neuroml_impl() = default;
 
-    explicit neuroml_impl(std::string text): raw{text} {
+    explicit neuroml_impl(std::string text): raw{std::move(text)} {
         auto res = doc.load_buffer_inplace(raw.data(), raw.size()+1);
         if (res.status) throw nml_parse_error{res.description()};
     }
 };
 
 neuroml::neuroml(): impl_(new neuroml_impl) {}
-neuroml::neuroml(std::string nml_document): impl_(new neuroml_impl{nml_document}) {}
+neuroml::neuroml(std::string nml_document): impl_(new neuroml_impl{std::move(nml_document)}) {}
 
-neuroml::neuroml(neuroml&&) = default;
-neuroml& neuroml::operator=(neuroml&&) = default;
+neuroml::neuroml(neuroml&&) noexcept = default;
+neuroml& neuroml::operator=(neuroml&&) noexcept = default;
 
 neuroml::~neuroml() = default;
 
@@ -63,7 +64,7 @@ std::vector<std::string> neuroml::cell_ids() const {
     std::vector<std::string> result;
     result.reserve(matches.size());
     for (const auto& it: matches) {
-        result.push_back(it.attribute().as_string());
+        result.emplace_back(it.attribute().as_string());
     }
     return result;
 }
@@ -73,7 +74,7 @@ std::vector<std::string> neuroml::morphology_ids() const {
     std::vector<std::string> result;
     result.reserve(matches.size());
     for (const auto& it: matches) {
-        result.push_back(it.attribute().as_string());
+        result.emplace_back(it.attribute().as_string());
     }
     return result;
 }

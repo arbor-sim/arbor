@@ -79,24 +79,21 @@ struct s_expr_lexer_error: public arb::arbor_internal_error {
     {}
 };
 
-static std::unordered_map<tok, const char*> tok_to_keyword = {
-    {tok::nil,    "nil"},
-};
-
-static std::unordered_map<std::string, tok> keyword_to_tok = {
-    {"nil",    tok::nil},
-};
+namespace {
+std::unordered_map<tok, const char*> tok_to_keyword = {{tok::nil,    "nil"}};
+std::unordered_map<std::string, tok> keyword_to_tok = {{"nil",    tok::nil}};
+}
 
 class lexer {
-    const char* line_start_;
-    const char* stream_;
-    unsigned line_;
+    const char* line_start_ = nullptr;
+    const char* stream_ = nullptr;
+    unsigned line_{0};
     token token_;
 
 public:
 
     lexer(const char* begin):
-        line_start_(begin), stream_(begin), line_(0)
+        line_start_(begin), stream_(begin)
     {
         // Prime the first token.
         parse();
@@ -115,7 +112,7 @@ public:
 private:
 
     src_location loc() const {
-        return src_location(line_+1, stream_-line_start_+1);
+        return {line_+1, static_cast<unsigned>(stream_-line_start_+1)};
     }
 
     bool empty() const {
@@ -268,7 +265,7 @@ private:
 
         symbol += c;
         ++stream_;
-        while(1) {
+        for(;;) {
             c = *stream_;
 
             if(is_valid_symbol_char(c)) {
@@ -321,7 +318,7 @@ private:
 
         str += c;
         ++stream_;
-        while(1) {
+        for(;;) {
             c = *stream_;
             if (std::isdigit(c)) {
                 str += c;
@@ -486,7 +483,7 @@ s_expr parse(lexer& L) {
             else if (t.kind == tok::lparen) {
                 auto e = parse(L);
                 if (e.is_atom() && e.atom().kind==tok::error) return e;
-                *n = {std::move(e), {}};
+                *n = {e, {}};
                 t = L.current();
             }
             else {

@@ -59,7 +59,7 @@ public:
     posix_path(Iter b, Iter e) { assign(b, e); }
 
     template <typename Source>
-    posix_path& operator=(Source&& source) { return assign(std::forward<Source>(source)); }
+    posix_path& operator=(Source&& source) { assign(std::forward<Source>(source)); return *this; }
 
     posix_path& assign(const posix_path& other) {
         p_ = other.p_;
@@ -177,27 +177,27 @@ public:
     }
 
     posix_path filename() const {
-        auto i = p_.rfind('/');
+        auto i = p_.rfind(preferred_separator);
         return i==std::string::npos? *this: posix_path(p_.substr(i+1));
     }
 
     bool has_filename() const {
         if (p_.empty()) return false;
 
-        auto i = p_.rfind('/');
+        auto i = p_.rfind(preferred_separator);
         return i==std::string::npos || i+1<p_.length();
     }
 
     posix_path parent_path() const {
-        auto i = p_.rfind('/');
+        auto i = p_.rfind(preferred_separator);
 
-        if (i==0) return posix_path("/");
-        else if (i==std::string::npos) return posix_path();
-        else return posix_path(p_.substr(0, i));
+        if (i==0) return {"/"};
+        else if (i==std::string::npos) return {};
+        else return {p_.substr(0, i)};
     }
 
     bool has_parent_path() const {
-        return p_.rfind('/')!=std::string::npos;
+        return p_.rfind(preferred_separator)!=std::string::npos;
     }
 
     // Non-member functions
@@ -253,7 +253,7 @@ public:
 
 protected:
     static bool is_separator(value_type c) {
-        return c=='/' || c==preferred_separator;
+        return c == preferred_separator;
     }
 
     std::string canonical() const {
@@ -262,7 +262,7 @@ protected:
         for (value_type c: p_) {
             if (is_separator(c)) {
                 if (!is_separator(prev)) {
-                    n += '/';
+                    n += preferred_separator;
                 }
             }
             else {
@@ -350,11 +350,11 @@ public:
     filesystem_error(const std::string& what_arg, std::error_code ec):
         std::system_error(ec, what_arg) {}
 
-    filesystem_error(const std::string& what_arg, const path& p1, std::error_code ec):
-        std::system_error(ec, what_arg), p1_(p1) {}
+    filesystem_error(const std::string& what_arg, path p1, std::error_code ec):
+        std::system_error(ec, what_arg), p1_(std::move(p1)) {}
 
-    filesystem_error(const std::string& what_arg, const path& p1, const path& p2, std::error_code ec):
-        std::system_error(ec, what_arg), p1_(p1), p2_(p2) {}
+    filesystem_error(const std::string& what_arg, path p1, path p2, std::error_code ec):
+        std::system_error(ec, what_arg), p1_(std::move(p1)), p2_(std::move(p2)) {}
 
     const path& path1() const { return p1_; }
     const path& path2() const { return p2_; }
@@ -507,8 +507,8 @@ struct directory_entry {
     directory_entry(const path& p, std::error_code& ec) { assign(p, ec); }
 
     // Set file type explicity: interface for directory_iterator.
-    directory_entry(const path& p, file_type type, std::error_code& ec):
-        path_(p), status_(type)
+    directory_entry(path p, file_type type, std::error_code& ec):
+        path_(std::move(p)), status_(type)
     {
         if (type==file_type::unknown) { // no information from readdir()
             refresh(ec);
@@ -533,7 +533,7 @@ struct directory_entry {
         refresh(ec);
     }
 
-    const sup::path& path() const noexcept { return path_; }
+    const sup::path& to_path() const noexcept { return path_; }
     operator const sup::path&() const noexcept { return path_; }
 
     bool is_block_file() const     { return sup::is_block_file(status_); }
@@ -639,7 +639,7 @@ private:
 
 using directory_iterator = posix_directory_iterator;
 inline directory_iterator begin(directory_iterator i) noexcept { return i; }
-inline directory_iterator end(const directory_iterator& i) noexcept { return directory_iterator{}; }
+inline directory_iterator end(const directory_iterator&) noexcept { return directory_iterator{}; }
 
 } // namespace sup
 

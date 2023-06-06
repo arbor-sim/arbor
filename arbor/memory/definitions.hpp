@@ -8,8 +8,8 @@ namespace arb {
 namespace memory {
 
 namespace types {
-    typedef std::ptrdiff_t  difference_type;
-    typedef std::size_t     size_type;
+    using difference_type = std::ptrdiff_t;
+    using size_type = std::size_t;
 } // namespace types
 
 namespace util {
@@ -19,8 +19,8 @@ namespace util {
 
     template <typename T>
     struct pretty_printer{
-        static std::string print(const T& val) {
-            return std::string("T()");
+        static std::string print(const T& /*val*/) {
+            return "T()";
         }
     };
 
@@ -53,7 +53,7 @@ namespace util {
 
     template <typename First, typename Second>
     struct pretty_printer<std::pair<First, Second>>{
-        typedef std::pair<First, Second> T;
+        using T = std::pair<First, Second>;
         static std::string print(const T& val) {
             std::stringstream str;
             str << type_printer<T>::print()
@@ -74,28 +74,28 @@ namespace util {
     template <>
     struct type_printer<float>{
         static std::string print() {
-            return std::string("float");
+            return "float";
         }
     };
 
     template <>
     struct type_printer<double>{
         static std::string print() {
-            return std::string("double");
+            return "double";
         }
     };
 
     template <>
     struct type_printer<size_t>{
         static std::string print() {
-            return std::string("size_t");
+            return "size_t";
         }
     };
 
     template <>
     struct type_printer<int>{
         static std::string print() {
-            return std::string("int");
+            return "int";
         }
     };
 

@@ -13,7 +13,7 @@
 
 namespace arb {
 
-tree::tree(std::vector<tree::int_type> parent_index) {
+tree::tree(const std::vector<tree::int_type>& parent_index) {
     // validate the input
     if(!is_minimal_degree(parent_index)) {
         throw std::domain_error(

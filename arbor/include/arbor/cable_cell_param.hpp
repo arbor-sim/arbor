@@ -249,8 +249,8 @@ struct ARB_SYMBOL_VISIBLE scaled_mechanism {
 
     explicit scaled_mechanism(TaggedMech m) : t_mech(std::move(m)) {}
 
-    scaled_mechanism& scale(std::string name, iexpr expr) {
-        scale_expr.insert_or_assign(name, expr);
+    scaled_mechanism& scale(const std::string& name, iexpr expr) {
+        scale_expr.insert_or_assign(name, std::move(expr));
         return *this;
     }
 };

@@ -39,9 +39,9 @@ void mprovider::init() {
 // provided label_dict, and the maps updated accordingly. Post-initialization,
 // label_dict_ptr will be null, and concrete regions/locsets will only be retrieved
 // from the maps established during initialization.
-
+namespace {
 template <typename RegOrLocMap, typename LabelDictMap>
-static const auto& try_lookup(const mprovider& provider, const std::string& name, RegOrLocMap& map, const LabelDictMap* dict_ptr) {
+const auto& try_lookup(const mprovider& provider, const std::string& name, RegOrLocMap& map, const LabelDictMap* dict_ptr) {
     auto it = map.find(name);
     if (it==map.end()) {
         if (dict_ptr) {
@@ -64,6 +64,7 @@ static const auto& try_lookup(const mprovider& provider, const std::string& name
     else {
         return it->second.value();
     }
+}
 }
 
 const mextent& mprovider::region(const std::string& name) const {

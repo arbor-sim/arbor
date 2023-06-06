@@ -109,12 +109,11 @@ ARB_ARBOR_API meter_report make_meter_report(const meter_manager& manager, conte
     meter_report report;
 
     // Add the times to the meter outputs
-    report.meters.push_back(measurement("time", "s", manager.times(), ctx));
+    report.meters.emplace_back("time", "s", manager.times(), ctx);
 
     // Gather the meter outputs.
     for (auto& m: manager.meters()) {
-        report.meters.push_back(
-            measurement(m->name(), m->units(), m->measurements(), ctx));
+        report.meters.emplace_back(m->name(), m->units(), m->measurements(), ctx);
     }
 
     // Gather a vector with the names of the node that each rank is running on.

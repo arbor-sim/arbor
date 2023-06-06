@@ -83,7 +83,7 @@ public:
 
 private:
     struct interface {
-        virtual ~interface() {}
+        virtual ~interface() = default;
         virtual std::unique_ptr<interface> clone() = 0;
         virtual std::ostream& print(std::ostream&) = 0;
         virtual mlocation_list thingify(const mprovider&) = 0;
@@ -96,15 +96,15 @@ private:
         explicit wrap(const Impl& impl): wrapped(impl) {}
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
 
-        virtual std::unique_ptr<interface> clone() override {
+         std::unique_ptr<interface> clone() override {
             return std::unique_ptr<interface>(new wrap<Impl>(wrapped));
         }
 
-        virtual mlocation_list thingify(const mprovider& m) override {
+         mlocation_list thingify(const mprovider& m) override {
             return thingify_(wrapped, m);
         }
 
-        virtual std::ostream& print(std::ostream& o) override {
+         std::ostream& print(std::ostream& o) override {
             return o << wrapped;
         }
 
