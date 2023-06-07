@@ -427,8 +427,9 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     // map control volume ids to global cell ids
     std::vector<arb_index_type> cv_to_gid(D.geometry.cv_to_cell.size());
-    std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(), cv_to_gid.begin(),
-        [&gids](auto i){return gids[i]; });
+    std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(),
+                   cv_to_gid.begin(),
+                   [&gids](auto i){return gids[i]; });
 
     // Create shared cell state.
     // Shared state vectors should accommodate each mechanism's data alignment requests.
@@ -438,46 +439,16 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
             [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
 
     auto d_info = get_detector_info(max_detector, ncell, cells, D, context_);
-    const auto ncv = D.size();
     state_ = std::make_unique<shared_state>(context_.thread_pool,
                                             ncell,
-                                            ncv,
                                             std::move(cv_to_cell),
-                                            D.init_membrane_potential,
-                                            D.temperature_K,
-                                            D.diam_um,
+                                            D,
                                             std::move(src_to_spike),
                                             d_info,
+                                            mech_data.ions,
+                                            mech_data.stimuli,
                                             data_alignment? data_alignment: 1u,
                                             seed_);
-    state_->solver =
-        {D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area};
-
-    // Instantiate mechanisms, ions, and stimuli.
-    auto mk_diff_solver = [&](const auto& fd) {
-        // TODO(TH) _all_ solvers should share their RO data, ie everything below D here.
-        return std::make_unique<typename backend::ion_state::solver_type>(D.geometry.cv_parent,
-                                                                          D.geometry.cell_cv_divs,
-                                                                          fd,
-                                                                          D.cv_area);
-    };
-
-    for (const auto& [ion, data]: mech_data.ions) {
-        if (auto charge = value_by_key(global_props.ion_species, ion)) {
-            if (data.is_diffusive) {
-                state_->add_ion(ion, *charge, data, mk_diff_solver(data.face_diffusivity));
-            } else {
-                state_->add_ion(ion, *charge, data, nullptr);
-            }
-        }
-        else {
-            throw cable_cell_error("unrecognized ion '"+ion+"' in mechanism");
-        }
-    }
-
-    if (!mech_data.stimuli.cv.empty()) {
-        state_->configure_stimulus(mech_data.stimuli);
-    }
 
     fvm_info.target_handles.resize(mech_data.n_target);
 

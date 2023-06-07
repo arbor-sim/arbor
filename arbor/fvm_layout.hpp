@@ -256,6 +256,9 @@ struct fvm_ion_config {
     // diffusivity
     bool is_diffusive = false;
     std::vector<value_type> face_diffusivity;
+
+    // charge
+    int charge;
 };
 
 struct fvm_stimulus_config {

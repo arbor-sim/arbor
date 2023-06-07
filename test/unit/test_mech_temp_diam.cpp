@@ -35,11 +35,12 @@ void run_celsius_test() {
 
     std::vector<arb_value_type> temp(ncv, temperature_K);
     std::vector<arb_value_type> diam(ncv, 1.);
+    std::vector<arb_value_type> area(ncv, 10.);
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
     auto shared_state = std::make_unique<typename backend::shared_state>(thread_pool, ncell, ncv, cv_to_cell,
-                                                                         vinit, temp, diam,
+                                                                         vinit, temp, diam, area,
                                                                          src_to_spike,
                                                                          fvm_detector_info{},
                                                                          celsius_test->data_alignment());
@@ -83,45 +84,41 @@ void run_diam_test() {
     std::vector<arb_index_type> cv_to_cell(ncv, 0);
 
     auto instance = cat.instance(backend::kind, "diam_test");
-    auto& celsius_test = instance.mech;
+    auto mech = instance.mech.get();
 
     std::vector<arb_value_type> temp(ncv, 300.);
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_value_type> diam(ncv);
-    std::vector<arb_index_type> src_to_spike = {};
+    std::vector<arb_value_type> area(ncv);
+    std::vector<arb_index_type> src_to_spike;
 
     mechanism_layout layout;
-    mechanism_overrides overrides;
-
     layout.weight.assign(ncv, 1.);
 
     for (arb_size_type i = 0; i < ncv; ++i) {
-        diam[i] = i*2 + 0.1;
+        diam[i] =   i*2.0 + 0.1;
+        area[i] = i*i*4.0 + 0.2;
         layout.cv.push_back(i);
     }
 
     auto shared_state = std::make_unique<typename backend::shared_state>(thread_pool, ncell, ncv, cv_to_cell,
-                                                                         vinit, temp, diam,
+                                                                         vinit, temp, diam, area,
                                                                          src_to_spike,
                                                                          fvm_detector_info{},
-                                                                         celsius_test->data_alignment());
+                                                                         mech->data_alignment());
 
-    shared_state->instantiate(*celsius_test, 0, overrides, layout, {});
+    shared_state->instantiate(*mech, 0, mechanism_overrides{}, layout, {});
     shared_state->reset();
 
     // expect 0 value in state 'd' after init:
+    mech->initialize();
+    EXPECT_EQ(std::vector(ncv, -23.0), mechanism_field(mech, "d"));
+    EXPECT_EQ(std::vector(ncv, -42.0), mechanism_field(mech, "a"));
 
-    celsius_test->initialize();
-    std::vector<arb_value_type> expected_d_values(ncv, 0.);
-
-    EXPECT_EQ(expected_d_values, mechanism_field(celsius_test.get(), "d"));
-
-    // expect original diam values in state 'd' after state update:
-
-    celsius_test->update_state();
-    expected_d_values = diam;
-
-    EXPECT_EQ(expected_d_values, mechanism_field(celsius_test.get(), "d"));
+    // expect original values in state 'd' and 'a' after state update:
+    mech->update_state();
+    EXPECT_EQ(diam, mechanism_field(mech, "d"));
+    EXPECT_EQ(area, mechanism_field(mech, "a"));
 }
 
 TEST(mech_temperature, celsius) {

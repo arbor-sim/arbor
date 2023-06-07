@@ -140,6 +140,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                    "arb_value_type * __restrict__ {0}vec_g             __attribute__((unused)) = params_.vec_g;\\\n"
                                    "arb_value_type * __restrict__ {0}temperature_degC  __attribute__((unused)) = params_.temperature_degC;\\\n"
                                    "arb_value_type * __restrict__ {0}diam_um           __attribute__((unused)) = params_.diam_um;\\\n"
+                                   "arb_value_type * __restrict__ {0}area_um2          __attribute__((unused)) = params_.area_um2;\\\n"
                                    "arb_value_type * __restrict__ {0}time_since_spike  __attribute__((unused)) = params_.time_since_spike;\\\n"
                                    "arb_index_type * __restrict__ {0}node_index        __attribute__((unused)) = params_.node_index;\\\n"
                                    "arb_index_type * __restrict__ {0}peer_index        __attribute__((unused)) = params_.peer_index;\\\n"

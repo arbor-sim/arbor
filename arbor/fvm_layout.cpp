@@ -815,7 +815,8 @@ struct fvm_ion_build_data {
     }
 };
 
-using fvm_mechanism_config_map = std::unordered_map<std::string, fvm_mechanism_config>;
+using fvm_mechanism_config_map = std::map<std::string, fvm_mechanism_config>;
+using fvm_ion_config_map = std::unordered_map<std::string, fvm_ion_config>;
 using fvm_ion_map = std::unordered_map<std::string, fvm_ion_build_data>;
 using ion_species_map = std::unordered_map<std::string, int>;
 
@@ -844,67 +845,73 @@ struct cell_build_data {
 };
 
 // Construct all voltage mechs; very similar to density yet with some extra constraints.
-fvm_mechanism_config_map
+void
 make_voltage_mechanism_config(const region_assignment<voltage_process>& assignments,
-                              const cell_build_data& data);
+                              const cell_build_data& data,
+                              fvm_mechanism_config_map&);
 
 // Construct all density mechs
-fvm_mechanism_config_map
+void
 make_density_mechanism_config(const region_assignment<density>& assignments,
                               const cell_build_data& data,
-                              fvm_ion_map& ion_build_data);
+                              fvm_ion_map& ion_build_data,
+                              fvm_mechanism_config_map&);
 
 // Construct synapses (=point mechs); return
-// * configs
 // * have post_events?
 // * number of targets
-std::tuple<fvm_mechanism_config_map, bool, std::size_t>
+std::tuple<bool, std::size_t>
 make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<synapse>>& synapses,
                             const cell_build_data& data,
-                            fvm_ion_map& ion_build_data);
+                            fvm_ion_map& ion_build_data,
+                            fvm_mechanism_config_map&);
 
 // Consume ion_build_data and return all ion_configs
-std::unordered_map<std::string, fvm_ion_config>
+void
 make_ion_config(fvm_ion_map ion_build_data,
                 const std::unordered_map<std::string, cable_cell_ion_data>& dflt,
                 const region_assignment<init_int_concentration>&  initial_iconc_map,
                 const region_assignment<init_ext_concentration>&  initial_econc_map,
                 const region_assignment<init_reversal_potential>& initial_rvpot_map,
-                const cell_build_data& data);
+                const cell_build_data& data,
+                fvm_ion_config_map&);
 
 // Build stimulus from list of i_clamps
-fvm_stimulus_config
+void
 make_stimulus_config(const mlocation_map<i_clamp>& stimuli,
-                     const cell_build_data& data);
+                     const cell_build_data& data,
+                     fvm_stimulus_config&);
 
 // Two-step builder for GJ connections; needs all junction mechanisms ('left'
 // and 'right' part) and their connections (gj_conns).
-fvm_mechanism_config_map
+void
 make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<junction>>& junctions,
                          const std::vector<fvm_gap_junction>& gj_conns,
                          const cell_build_data& data,
-                         fvm_ion_map& ion_build_data);
+                         fvm_ion_map& ion_build_data,
+                         fvm_mechanism_config_map&);
 
-// Build reversal potential configs. Returns
-// * config
-// * set of ions where eX is written.
-std::tuple<fvm_mechanism_config_map, std::unordered_set<std::string>>
+// Build reversal potential configs. Returns { X | X ion && eX is written }
+std::unordered_set<std::string>
 make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_desc>& method,
                              const std::unordered_map<std::string, fvm_ion_config>& ions,
-                             const cell_build_data& data);
+                             const cell_build_data& data,
+                             fvm_mechanism_config_map&);
 
-fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
-                                            const cable_cell& cell,
-                                            const std::vector<fvm_gap_junction>& gj_conns,
-                                            const fvm_cv_discretization& D,
-                                            arb_size_type cell_idx);
+fvm_mechanism_data
+fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
+                         const cable_cell& cell,
+                         const std::vector<fvm_gap_junction>& gj_conns,
+                         const fvm_cv_discretization& D,
+                         arb_size_type cell_idx);
 
-ARB_ARBOR_API fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
-                                                          const std::vector<cable_cell>& cells,
-                                                          const std::vector<cell_gid_type>& gids,
-                                                          const std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>>& gj_conns,
-                                                          const fvm_cv_discretization& D,
-                                                          const execution_context& ctx) {
+ARB_ARBOR_API fvm_mechanism_data
+fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
+                         const std::vector<cable_cell>& cells,
+                         const std::vector<cell_gid_type>& gids,
+                         const std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>>& gj_conns,
+                         const fvm_cv_discretization& D,
+                         const execution_context& ctx) {
     std::vector<fvm_mechanism_data> cell_mech(cells.size());
     threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(), [&] (int i) {
         cell_mech[i] = fvm_build_mechanism_data(gprop, cells[i], gj_conns.at(gids[i]), D, i);
@@ -913,6 +920,14 @@ ARB_ARBOR_API fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_globa
     fvm_mechanism_data combined;
     for (auto cell_idx: count_along(cells)) {
         append(combined, cell_mech[cell_idx]);
+    }
+    for (auto& [ion, data]: combined.ions) {
+        if (auto charge = util::value_by_key(gprop.ion_species, ion)) {
+            data.charge = *charge;
+        }
+        else {
+            throw cable_cell_error("unrecognized ion '"+ion+"' in mechanism.");
+        }
     }
     return combined;
 }
@@ -984,37 +999,34 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
     fvm_mechanism_data M;
     // Voltage mechanisms
-    if (!voltage_processes.empty())
-    {
-        const auto& configs = make_voltage_mechanism_config(voltage_processes, data);
-        M.mechanisms.insert(configs.begin(), configs.end());
+    if (!voltage_processes.empty()) {
+        make_voltage_mechanism_config(voltage_processes, data, M.mechanisms);
     }
     // Density mechanisms
     if (!density_mechanisms.empty()) {
-        const auto& configs = make_density_mechanism_config(density_mechanisms, data, ion_build_data);
-        M.mechanisms.insert(configs.begin(), configs.end());
+        make_density_mechanism_config(density_mechanisms, data, ion_build_data, M.mechanisms);
     }
     // Synapses:
     if (!point_processes.empty()) {
-        const auto& [configs,
-                     post_events,
-                     n_targets] = make_point_mechanism_config(point_processes, data, ion_build_data);
+        const auto& [post_events,
+                     n_targets] = make_point_mechanism_config(point_processes,
+                                                              data,
+                                                              ion_build_data,
+                                                              M.mechanisms);
         M.n_target += n_targets;
-        M.mechanisms.insert(configs.begin(), configs.end());
         M.post_events = post_events;
     }
     // Gap junctions
     if (!junction_processes.empty()) {
-        const auto& configs = make_gj_mechanism_config(junction_processes,
-                                                       gj_conns,
-                                                       data,
-                                                       ion_build_data);
-        M.mechanisms.insert(configs.begin(), configs.end());
+        make_gj_mechanism_config(junction_processes,
+                                 gj_conns,
+                                 data,
+                                 ion_build_data,
+                                 M.mechanisms);
     }
     // Stimuli
     if (!stimuli.empty()) {
-        auto config = make_stimulus_config(stimuli, data);
-        if (!config.cv.empty()) M.stimuli = std::move(config);
+        make_stimulus_config(stimuli, data, M.stimuli);
     }
 
     // Ions:
@@ -1022,13 +1034,13 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         auto ion_data = dflt.ion_data;
         ion_data.insert(global_dflt.ion_data.begin(),
                         global_dflt.ion_data.end());
-        const auto& configs = make_ion_config(std::move(ion_build_data),
-                                              ion_data,
-                                              int_concentration,
-                                              ext_concentration,
-                                              rev_potential,
-                                              data);
-        M.ions.insert(configs.begin(), configs.end());
+        make_ion_config(std::move(ion_build_data),
+                        ion_data,
+                        int_concentration,
+                        ext_concentration,
+                        rev_potential,
+                        data,
+                        M.ions);
     }
     // Reversal potentials
     {
@@ -1036,8 +1048,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         auto method = dflt.reversal_potential_method;
         method.insert(global_dflt.reversal_potential_method.begin(),
                       global_dflt.reversal_potential_method.end());
-        const auto& [configs, written] = make_revpot_mechanism_config(method, M.ions, data);
-        M.mechanisms.insert(configs.begin(), configs.end());
+        auto written = make_revpot_mechanism_config(method, M.ions, data, M.mechanisms);
         for (const auto& ion: written) M.ions[ion].revpot_written = true;
     }
 
@@ -1105,10 +1116,11 @@ auto ordered_parameters(const mechanism_info& info) {
     return result;
 }
 
-fvm_mechanism_config_map
+void
 make_voltage_mechanism_config(const region_assignment<voltage_process>& assignments,
-                              const cell_build_data& data) {
-    fvm_mechanism_config_map result;
+                              const cell_build_data& data,
+                                  fvm_mechanism_config_map& result) {
+
     std::unordered_set<mcable> voltage_support;
     for (const auto& [name, cables]: assignments) {
         const auto& info = data.catalogue[name];
@@ -1149,15 +1161,13 @@ make_voltage_mechanism_config(const region_assignment<voltage_process>& assignme
         }
         if (!config.cv.empty()) result.emplace(name, std::move(config));
     }
-    return result;
 }
 
-fvm_mechanism_config_map
+void
 make_density_mechanism_config(const region_assignment<density>& assignments,
                               const cell_build_data& data,
-                              fvm_ion_map& ion_build_data) {
-    fvm_mechanism_config_map result;
-
+                              fvm_ion_map& ion_build_data,
+                              fvm_mechanism_config_map& result) {
     for (const auto& [name, cables]: assignments) {
         const auto& info = data.catalogue[name];
         auto config = make_mechanism_config(info, arb_mechanism_kind_density);
@@ -1215,24 +1225,22 @@ make_density_mechanism_config(const region_assignment<density>& assignments,
         }
         if (!config.cv.empty()) result[name] = std::move(config);
     }
-    return result;
 }
 
 // Make fvm_ion_config s from intermediate products
-std::unordered_map<std::string, fvm_ion_config>
+void
 make_ion_config(fvm_ion_map build_data,
                 const std::unordered_map<std::string, cable_cell_ion_data>& ion_data,
                 const region_assignment<init_int_concentration>&  initial_iconc_map,
                 const region_assignment<init_ext_concentration>&  initial_econc_map,
                 const region_assignment<init_reversal_potential>& initial_rvpot_map,
-                const cell_build_data& data) {
+                const cell_build_data& data,
+                fvm_ion_config_map& result) {
     auto pw_times = [](const auto& mask, const auto& cable, const auto& pwb) {
         return pw_zip_with(pw_over_cable(mask, cable, 1.),
                            pwb,
                            [](const auto&, double a, double b) { return a*b; });
     };
-
-    std::unordered_map<std::string, fvm_ion_config> result;
 
     for (const auto& [ion, build_data]: build_data) {
         fvm_ion_config config;
@@ -1302,14 +1310,13 @@ make_ion_config(fvm_ion_map build_data,
         config.iconc_written = build_data.write_xi;
         if (!config.cv.empty()) result[ion] = std::move(config);
     }
-    return result;
 }
 
-fvm_stimulus_config
+void
 make_stimulus_config(const mlocation_map<i_clamp>& stimuli,
-                     const cell_build_data& data) {
+                     const cell_build_data& data,
+                     fvm_stimulus_config& out) {
     fvm_stimulus_config result;
-
     std::vector<arb_size_type> stimuli_cv;
     assign_by(stimuli_cv,
               stimuli,
@@ -1354,16 +1361,15 @@ make_stimulus_config(const mlocation_map<i_clamp>& stimuli,
     std::unique_copy(result.cv.begin(), result.cv.end(),
                      std::back_inserter(result.cv_unique));
     result.cv_unique.shrink_to_fit();
-
-    return result;
+    if (!result.cv.empty()) out = std::move(result);
 }
 
-std::tuple<fvm_mechanism_config_map,
-           bool,
+std::tuple<bool,
            std::size_t>
 make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<synapse>>& synapses,
                             const cell_build_data& data,
-                            fvm_ion_map& ion_build_data) {
+                            fvm_ion_map& ion_build_data,
+                            fvm_mechanism_config_map& result) {
     struct synapse_instance {
         arb_size_type cv;
         std::size_t param_values_offset;
@@ -1379,7 +1385,6 @@ make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<
 
     bool post_events = false;
     std::size_t n_target = 0;
-    fvm_mechanism_config_map result;
     for (const auto& [name, synapse]: synapses) {
         const auto& info = data.catalogue[name];
 
@@ -1497,14 +1502,15 @@ make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<
         if (!config.cv.empty()) result[name] = std::move(config);
     }
 
-    return {result, post_events, n_target};
+    return {post_events, n_target};
 }
 
-fvm_mechanism_config_map
+void
 make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<junction>>& junctions,
                          const std::vector<fvm_gap_junction>& gj_conns,
                          const cell_build_data& data,
-                         fvm_ion_map& ion_build_data) {
+                         fvm_ion_map& ion_build_data,
+                         fvm_mechanism_config_map& result) {
     // Gap-junction mechanisms are handled differently from point mechanisms.
     // There is a separate mechanism instance at the local site of every gap-junction connection,
     // meaning there can be multiple gap-junction mechanism instances of the same type (name) per
@@ -1525,7 +1531,6 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
         std::vector<arb_value_type> param_values; // overridden parameter values.
     };
 
-    fvm_mechanism_config_map result;
     std::unordered_map<cell_lid_type, junction_desc> lid_junction_desc;
     for (const auto& [name, placements]: junctions) {
         const auto& info = data.catalogue[name];
@@ -1577,24 +1582,20 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
     }
 
     // Remove empty fvm_mechanism_config.
-    // Note that this is _ok_ to do while iterating since erase preseves ordering.
+    // Note that this is _ok_ to do while iterating since erase preserves ordering.
     // Today I learned. ;)
     for (auto it = result.begin(); it != result.end(); ) {
         if (it->second.cv.empty()) it = result.erase(it);
         else ++it;
     }
-
-    return result;
 }
 
-std::tuple<std::unordered_map<std::string,
-                              fvm_mechanism_config>,
-           std::unordered_set<std::string>>
+std::unordered_set<std::string>
 make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_desc>& method,
                              const std::unordered_map<std::string, fvm_ion_config>& ions,
-                             const cell_build_data& data) {
+                             const cell_build_data& data,
+                             fvm_mechanism_config_map& result) {
     std::unordered_map<std::string, mechanism_desc> revpot_tbl;
-    fvm_mechanism_config_map result;
     std::unordered_set<std::string> written;
 
     for (const auto& ion: util::keys(data.ion_species)) {
@@ -1666,7 +1667,7 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_des
         }
     }
 
-    return {result, written};
+    return written;
 }
 
 } // namespace arb

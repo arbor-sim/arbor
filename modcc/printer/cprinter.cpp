@@ -258,6 +258,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_g                        = pp->vec_g;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}temperature_degC             = pp->temperature_degC;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}diam_um                      = pp->diam_um;\\\n"
+                                   "[[maybe_unused]] arb_value_type * __restrict__ {0}area_um2                     = pp->area_um2;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}time_since_spike             = pp->time_since_spike;\\\n"
                                    "[[maybe_unused]] arb_index_type * __restrict__ {0}node_index                   = pp->node_index;\\\n"
                                    "[[maybe_unused]] arb_index_type * __restrict__ {0}peer_index                   = pp->peer_index;\\\n"
