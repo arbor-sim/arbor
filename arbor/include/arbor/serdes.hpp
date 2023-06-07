@@ -205,22 +205,22 @@ ARB_ARBOR_API void serialize(serializer& ser, const K& k, unsigned long v) {
 }
 
 template<typename K>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const float v) {
+ARB_ARBOR_API void serialize(serializer& ser, const K& k, float v) {
     ser.write(to_key(k), double{v});
 }
 
 template<typename K>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const double v) {
+ARB_ARBOR_API void serialize(serializer& ser, const K& k, double v) {
     ser.write(to_key(k), v);
 }
 
 template<typename K>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const bool v) {
+ARB_ARBOR_API void serialize(serializer& ser, const K& k, bool v) {
     ser.write(to_key(k), static_cast<long long>(v));
 }
 
 template<typename K>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const unsigned long long v) {
+ARB_ARBOR_API void serialize(serializer& ser, const K& k, unsigned long long v) {
     ser.write(to_key(k), v);
 }
 

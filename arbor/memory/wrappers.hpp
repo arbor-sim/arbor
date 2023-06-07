@@ -172,7 +172,7 @@ void serialize(::arb::serializer ser, const K& k, const device_vector<T>& vs) {
 
 template<typename K,
          typename V>
-void serialize(::arb::serializer ser, const K& k, host_vector<V>& hvs) {
+void deserialize(::arb::serializer ser, const K& k, host_vector<V>& hvs) {
     ser.begin_read_array(to_key(k));
     for (int ix = 0;; ++ix) {
         auto q = ser.next_key();

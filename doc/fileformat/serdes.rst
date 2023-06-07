@@ -89,7 +89,7 @@ A storage engine is used to construct the serializer and is responsible for
 writing out the data to whatever format and location required. Currently Arbor
 offers a JSON engine in ``arborio/json_serdes.hpp`` which produces a JSON value
 in memory. The serializer is polymorphic in the actual engine, which is only
-require to implement the following interface.
+required to implement the following interface.
 
    .. code:: c++
 
@@ -257,6 +257,6 @@ When dealing with polymorphism, add a trampoline like this
         struct D: B {
             ARB_SERDES_ENABLE(D, ...);
 
-            virtual void serialize(serializer& s, const std::string&) const override { serialize(s, k, *this); };
-            virtual void deserialize(serializer& s, const std::string&) override { deserialize(s, k, *this); };
+            virtual void serialize(serializer& s, const std::string& k) const override { serialize(s, k, *this); };
+            virtual void deserialize(serializer& s, const std::string& k) override { deserialize(s, k, *this); };
         };
