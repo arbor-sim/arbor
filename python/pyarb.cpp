@@ -28,8 +28,8 @@ void register_profiler(pybind11::module& m);
 void register_recipe(pybind11::module& m);
 void register_schedules(pybind11::module& m);
 void register_simulation(pybind11::module& m, pyarb_global_ptr);
-void register_single_cell(pybind11::module& m);
 void register_arborenv(pybind11::module& m);
+void register_single_cell(pybind11::module& m);
 
 #ifdef ARB_MPI_ENABLED
 void register_mpi(pybind11::module& m);
