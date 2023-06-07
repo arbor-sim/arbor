@@ -46,5 +46,14 @@ std::string read_file_or_buffer(py::object fn) {
     }
 }
 
+template<typename T>
+std::unordered_map<std::string, T> dict_to_map(pybind11::dict d) {
+    std::unordered_map<std::string, T> result;
+    for (const auto& [k, v]: d) {
+        result[k.cast<std::string>()] = v.cast<T>();
+    }
+    return result;
+}
+
 }
 }

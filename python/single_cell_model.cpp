@@ -243,14 +243,14 @@ void register_single_cell(pybind11::module& m) {
                                const label_dict_proxy& l) -> single_cell_model {
             return single_cell_model(arb::cable_cell({m}, d, l.dict));
         }),
-             "tree"_a, "decor"_a, "labels"_a,
+             "tree"_a, "decor"_a, "labels"_a=arb::decor{},
              "Build single cell model from cable cell components")
         .def(pybind11::init([](const arb::morphology& m,
                                const arb::decor& d,
                                const label_dict_proxy& l) -> single_cell_model {
             return single_cell_model(arb::cable_cell(m, d, l.dict));
         }),
-             "morph"_a, "decor"_a, "labels"_a,
+             "morph"_a, "decor"_a, "labels"_a=arb::decor{},
              "Build single cell model from cable cell components")
         .def(pybind11::init<arb::cable_cell>(),
             "cell"_a, "Initialise a single cell model for a cable cell.")

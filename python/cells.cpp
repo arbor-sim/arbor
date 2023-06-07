@@ -38,6 +38,7 @@
 #include "pybind11/pytypes.h"
 #include "schedule.hpp"
 #include "strprintf.hpp"
+#include "util.hpp"
 
 namespace pyarb {
 
@@ -86,15 +87,6 @@ std::string to_string(const arb::cable_cell_global_properties& props) {
 //
 // cv_policy helpers
 //
-
-std::unordered_map<std::string, double> dict_to_params(pybind11::dict d) {
-    std::unordered_map<std::string, double> result;
-    for (const auto& [k, v]: d) {
-        result[k.cast<std::string>()] = v.cast<double>();
-    }
-    return result;
-}
-
 
 arb::cv_policy make_cv_policy_single(const std::string& reg) {
     return arb::cv_policy_single(arborio::parse_region_expression(reg).unwrap());
@@ -480,7 +472,7 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init([](const std::string& name) {return arb::density(name);}))
         .def(pybind11::init([](arb::mechanism_desc mech) {return arb::density(mech);}))
         .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::density(name, params);}))
-        .def(pybind11::init([](const std::string& name, pybind11::kwargs parms) {return arb::density(name, dict_to_params(parms));}))
+        .def(pybind11::init([](const std::string& name, pybind11::kwargs parms) {return arb::density(name, util::dict_to_map<double>(parms));}))
         .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::density(mech, params);}))
         .def_readonly("mech", &arb::density::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";})
@@ -492,6 +484,7 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init([](arb::mechanism_desc mech) {return arb::voltage_process(mech);}))
         .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(name, params);}))
         .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(mech, params);}))
+        .def(pybind11::init([](const std::string& name, pybind11::kwargs parms) {return arb::voltage_process(name, util::dict_to_map<double>(parms));}))
         .def_readonly("mech", &arb::voltage_process::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::voltage_process& d){return "<arbor.voltage_process " + mechanism_desc_str(d.mech) + ">";})
         .def("__str__", [](const arb::voltage_process& d){return "<arbor.voltage_process " + mechanism_desc_str(d.mech) + ">";});
@@ -506,8 +499,16 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init(
             [](arb::density dens, const std::unordered_map<std::string, std::string>& scales) {
                 auto s = arb::scaled_mechanism<arb::density>(std::move(dens));
-                for (const auto& it: scales) {
-                    s.scale(it.first, arborio::parse_iexpr_expression(it.second).unwrap());
+                for (const auto& [k, v]: scales) {
+                    s.scale(k, arborio::parse_iexpr_expression(v).unwrap());
+                }
+                return s;
+            }))
+        .def(pybind11::init(
+            [](arb::density dens, pybind11::kwargs scales) {
+                auto s = arb::scaled_mechanism<arb::density>(std::move(dens));
+                for (const auto& [k, v]: util::dict_to_map<std::string>(scales)) {
+                    s.scale(k, arborio::parse_iexpr_expression(v).unwrap());
                 }
                 return s;
             }))
@@ -535,6 +536,7 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init([](const std::string& name) {return arb::synapse(name);}))
         .def(pybind11::init([](arb::mechanism_desc mech) {return arb::synapse(mech);}))
         .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::synapse(name, params);}))
+        .def(pybind11::init([](const std::string& name, pybind11::kwargs parms) {return arb::synapse(name, util::dict_to_map<double>(parms));}))
         .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::synapse(mech, params);}))
         .def_readonly("mech", &arb::synapse::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::synapse& s){return "<arbor.synapse " + mechanism_desc_str(s.mech) + ">";})
@@ -547,6 +549,7 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init([](const std::string& name) {return arb::junction(name);}))
         .def(pybind11::init([](arb::mechanism_desc mech) {return arb::junction(mech);}))
         .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::junction(name, params);}))
+        .def(pybind11::init([](const std::string& name, pybind11::kwargs parms) {return arb::junction(name, util::dict_to_map<double>(parms));}))
         .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::junction(mech, params);}))
         .def_readonly("mech", &arb::junction::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::junction& j){return "<arbor.junction " + mechanism_desc_str(j.mech) + ">";})
