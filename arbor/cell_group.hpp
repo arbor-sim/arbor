@@ -57,8 +57,8 @@ public:
 using cell_group_ptr = std::unique_ptr<cell_group>;
 
 template<typename K>
-void serialize(serializer& s, const K& k, const cell_group& v) { v.t_serialize(s, to_key(k)); }
+void serialize(serializer& s, const K& k, const cell_group& v) { v.t_serialize(s, to_serdes_key(k)); }
 template<typename K>
-void deserialize(serializer& s, const K& k, cell_group& v) { v.t_deserialize(s, to_key(k)); }
+void deserialize(serializer& s, const K& k, cell_group& v) { v.t_deserialize(s, to_serdes_key(k)); }
 
 } // namespace arb

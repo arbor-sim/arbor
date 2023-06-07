@@ -41,14 +41,14 @@ template <typename K>
 ARB_ARBOR_API void serialize(::arb::serializer& ser,
                   const K& k,
                   const empty_schedule& t) {
-    ser.begin_write_map(::arb::to_key(k));
+    ser.begin_write_map(::arb::to_serdes_key(k));
     ser.end_write_map();
 }
 template <typename K>
 ARB_ARBOR_API void deserialize(::arb::serializer& ser,
                         const K& k,
                         empty_schedule& t) {
-    ser.begin_read_map(::arb::to_key(k));
+    ser.begin_read_map(::arb::to_serdes_key(k));
     ser.end_read_map();
 }
     
@@ -163,12 +163,10 @@ template<typename K>
 void serialize(serializer&, const K&, const explicit_schedule_impl&);
 template<typename K>
 void serialize(serializer&, const K&, const regular_schedule_impl&);
-template<typename K>
-void serialize(serializer&, const K&, const empty_schedule&);
 // These are custom.
 template<typename K, typename R>
 void serialize(serializer& ser, const K& k, const poisson_schedule_impl<R>& t) {
-    ser.begin_read_map(to_key(k));
+    ser.begin_read_map(to_serdes_key(k));
     ARB_SERDES_WRITE(tstart_);
     ARB_SERDES_WRITE(tstop_);
     ser.end_read_map();
@@ -178,12 +176,10 @@ template<typename K>
 void deserialize(serializer&, const K&, explicit_schedule_impl&);
 template<typename K>
 void deserialize(serializer&, const K&, regular_schedule_impl&);
-template<typename K>
-void deserialize(serializer&, const K&, empty_schedule&);
 // These are custom to get the reset in.
 template<typename K, typename R>
 void deserialize(serializer& ser, const K& k, poisson_schedule_impl<R>& t) {
-    ser.begin_read_map(to_key(k));
+    ser.begin_read_map(to_serdes_key(k));
     ARB_SERDES_READ(tstart_);
     ARB_SERDES_READ(tstop_);
     ser.end_read_map();
@@ -220,9 +216,9 @@ public:
     void reset() { impl_->reset(); }
 
     template<typename K>
-    friend ARB_ARBOR_API void serialize(serializer& s, const K& k, const schedule& v) { v.impl_->serialize(s, to_key(k)); }
+    friend ARB_ARBOR_API void serialize(serializer& s, const K& k, const schedule& v) { v.impl_->serialize(s, to_serdes_key(k)); }
     template<typename K>
-    friend ARB_ARBOR_API void deserialize(serializer& s, const K& k, schedule& v) { v.impl_->deserialize(s, to_key(k
+    friend ARB_ARBOR_API void deserialize(serializer& s, const K& k, schedule& v) { v.impl_->deserialize(s, to_serdes_key(k
 )); }
 
 private:

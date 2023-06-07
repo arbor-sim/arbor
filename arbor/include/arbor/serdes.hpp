@@ -24,10 +24,10 @@ struct ARB_SYMBOL_VISIBLE illegal_key_type: serdes_error {
 };
 
 // Handling keys
-using key_type = std::string;
+using serdes_key_type = std::string;
 
 template <typename K>
-key_type to_key(K&& key) {
+serdes_key_type to_serdes_key(K&& key) {
     using T = std::decay_t<std::remove_cv_t<std::remove_reference_t<K>>>;
     if constexpr (std::is_same_v<std::string, T>) {
         return key;
@@ -41,7 +41,7 @@ key_type to_key(K&& key) {
 }
 
 template <typename K>
-void from_key(K& key, const key_type& k) {
+void from_serdes_key(K& key, const serdes_key_type& k) {
     using T = std::decay_t<std::remove_cv_t<std::remove_reference_t<K>>>;
     if constexpr (std::is_same_v<std::string, T>) {
         key = k;
@@ -59,60 +59,58 @@ void from_key(K& key, const key_type& k) {
 
 struct ARB_SYMBOL_VISIBLE null_error: serdes_error {
     template<typename K>
-    null_error(const K& k): serdes_error{"Trying to deref a null pointer for key " + to_key(k)} {}
+    null_error(const K& k): serdes_error{"Trying to deref a null pointer for key " + to_serdes_key(k)} {}
 };
 
 struct serializer {
     template <typename I>
     serializer(I& i): wrapped{std::make_unique<wrapper<I>>(i)} {}
 
-    void begin_write_map(const key_type& k) { wrapped->begin_write_map(k); }
+    void begin_write_map(const serdes_key_type& k) { wrapped->begin_write_map(k); }
     void end_write_map() { wrapped->end_write_map(); }
-    void begin_write_array(const key_type& k) { wrapped->begin_write_array(k); }
+    void begin_write_array(const serdes_key_type& k) { wrapped->begin_write_array(k); }
     void end_write_array() { wrapped->end_write_array(); }
 
-    void begin_read_map(const key_type& k) { wrapped->begin_read_map(k); }
+    void begin_read_map(const serdes_key_type& k) { wrapped->begin_read_map(k); }
     void end_read_map() { wrapped->end_read_map(); }
-    void begin_read_array(const key_type& k) { wrapped->begin_read_array(k); }
+    void begin_read_array(const serdes_key_type& k) { wrapped->begin_read_array(k); }
     void end_read_array() { wrapped->end_read_array(); }
 
-    void write(const key_type& k, std::string v) { wrapped->write(k, v); }
-    void write(const key_type& k, double v) { wrapped->write(k, v); }
-    void write(const key_type& k, long long v) { wrapped->write(k, v); }
-    void write(const key_type& k, unsigned long long v) { wrapped->write(k, v); };
+    void write(const serdes_key_type& k, std::string v) { wrapped->write(k, v); }
+    void write(const serdes_key_type& k, double v) { wrapped->write(k, v); }
+    void write(const serdes_key_type& k, long long v) { wrapped->write(k, v); }
+    void write(const serdes_key_type& k, unsigned long long v) { wrapped->write(k, v); };
 
-    void read(const key_type& k, std::string& v) { wrapped->read(k, v); };
-    void read(const key_type& k, long long& v) { wrapped->read(k, v); };
-    void read(const key_type& k, unsigned long long& v) { wrapped->read(k, v); };
-    void read(const key_type& k, double& v) { wrapped->read(k, v); };
+    void read(const serdes_key_type& k, std::string& v) { wrapped->read(k, v); };
+    void read(const serdes_key_type& k, long long& v) { wrapped->read(k, v); };
+    void read(const serdes_key_type& k, unsigned long long& v) { wrapped->read(k, v); };
+    void read(const serdes_key_type& k, double& v) { wrapped->read(k, v); };
 
-    std::optional<key_type> next_key() { return wrapped->next_key(); }
+    std::optional<serdes_key_type> next_key() { return wrapped->next_key(); }
 
 private:
     struct interface {
-        virtual void write(const key_type&, std::string) = 0;
-        virtual void write(const key_type&, double) = 0;
-        virtual void write(const key_type&, long long) = 0;
-        virtual void write(const key_type&, unsigned long long) = 0;
+        virtual void write(const serdes_key_type&, std::string) = 0;
+        virtual void write(const serdes_key_type&, double) = 0;
+        virtual void write(const serdes_key_type&, long long) = 0;
+        virtual void write(const serdes_key_type&, unsigned long long) = 0;
 
-        virtual void read(const key_type&, std::string&) = 0;
-        virtual void read(const key_type&, double&) = 0;
-        virtual void read(const key_type&, long long&) = 0;
-        virtual void read(const key_type&, unsigned long long&) = 0;
+        virtual void read(const serdes_key_type&, std::string&) = 0;
+        virtual void read(const serdes_key_type&, double&) = 0;
+        virtual void read(const serdes_key_type&, long long&) = 0;
+        virtual void read(const serdes_key_type&, unsigned long long&) = 0;
 
-        virtual std::optional<key_type> next_key() = 0;
+        virtual std::optional<serdes_key_type> next_key() = 0;
 
-        virtual void begin_write_map(const key_type&) = 0;
+        virtual void begin_write_map(const serdes_key_type&) = 0;
         virtual void end_write_map() = 0;
-        virtual void begin_write_array(const key_type&) = 0;
+        virtual void begin_write_array(const serdes_key_type&) = 0;
         virtual void end_write_array() = 0;
 
-        virtual void begin_read_map(const key_type&) = 0;
+        virtual void begin_read_map(const serdes_key_type&) = 0;
         virtual void end_read_map() = 0;
-        virtual void begin_read_array(const key_type&) = 0;
+        virtual void begin_read_array(const serdes_key_type&) = 0;
         virtual void end_read_array() = 0;
-
-        virtual ~interface() = default;
     };
 
     template <typename I>
@@ -120,31 +118,29 @@ private:
         wrapper(I& i): inner(i) {}
         I& inner;
 
-        void write(const key_type& k, std::string v) override { inner.write(k, v); }
-        void write(const key_type& k, double v) override { inner.write(k, v); }
-        void write(const key_type& k, long long v) override { inner.write(k, v); }
-        void write(const key_type& k, unsigned long long v) override { inner.write(k, v); };
+        void write(const serdes_key_type& k, std::string v) override { inner.write(k, v); }
+        void write(const serdes_key_type& k, double v) override { inner.write(k, v); }
+        void write(const serdes_key_type& k, long long v) override { inner.write(k, v); }
+        void write(const serdes_key_type& k, unsigned long long v) override { inner.write(k, v); };
 
-        void read(const key_type& k, std::string& v) override { inner.read(k, v); };
-        void read(const key_type& k, long long& v) override { inner.read(k, v); };
-        void read(const key_type& k, unsigned long long& v) override { inner.read(k, v); };
-        void read(const key_type& k, double& v) override { inner.read(k, v); };
+        void read(const serdes_key_type& k, std::string& v) override { inner.read(k, v); };
+        void read(const serdes_key_type& k, long long& v) override { inner.read(k, v); };
+        void read(const serdes_key_type& k, unsigned long long& v) override { inner.read(k, v); };
+        void read(const serdes_key_type& k, double& v) override { inner.read(k, v); };
 
-        std::optional<key_type> next_key() override { return inner.next_key(); }
+        std::optional<serdes_key_type> next_key() override { return inner.next_key(); }
 
-        void begin_write_map(const key_type& k) override { inner.begin_write_map(k); }
+        void begin_write_map(const serdes_key_type& k) override { inner.begin_write_map(k); }
         void end_write_map() override { inner.end_write_map(); }
 
-        void begin_write_array(const key_type& k) override { inner.begin_write_array(k); }
+        void begin_write_array(const serdes_key_type& k) override { inner.begin_write_array(k); }
         void end_write_array() override { inner.end_write_array(); }
 
-        void begin_read_map(const key_type& k) override { inner.begin_read_map(k); }
+        void begin_read_map(const serdes_key_type& k) override { inner.begin_read_map(k); }
         void end_read_map() override { inner.end_read_map(); }
 
-        void begin_read_array(const key_type& k) override { inner.begin_read_array(k); }
+        void begin_read_array(const serdes_key_type& k) override { inner.begin_read_array(k); }
         void end_read_array() override { inner.end_read_array(); }
-
-        virtual ~wrapper() = default;
     };
 
     std::unique_ptr<interface> wrapped;
@@ -153,23 +149,23 @@ private:
 // the actual interface
 template<typename K>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::string& v) {
-    ser.write(to_key(k), v);
+    ser.write(to_serdes_key(k), v);
 }
 
 template<typename K>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, std::string_view v) {
-    ser.write(to_key(k), std::string{v});
+    ser.write(to_serdes_key(k), std::string{v});
 }
 
 template<typename K>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, const char* v) {
-    ser.write(to_key(k), std::string{v});
+    ser.write(to_serdes_key(k), std::string{v});
 }
 
 template<typename K, typename P>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, P* p) {
     if (!p) throw null_error{k};
-    serialize(ser, to_key(k), *p);
+    serialize(ser, to_serdes_key(k), *p);
 }
 
 template<typename K, typename P>
@@ -186,49 +182,49 @@ ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::shared_ptr<
 
 template<typename K>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, long v) {
-    ser.write(to_key(k), static_cast<long long>(v));
+    ser.write(to_serdes_key(k), static_cast<long long>(v));
 }
 
 template<typename K>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, int v) {
-    ser.write(to_key(k), static_cast<long long>(v));
+    ser.write(to_serdes_key(k), static_cast<long long>(v));
 }
 
 template<typename K>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, unsigned v) {
-    ser.write(to_key(k), static_cast<unsigned long long>(v));
+    ser.write(to_serdes_key(k), static_cast<unsigned long long>(v));
 }
 
 template<typename K>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, unsigned long v) {
-    ser.write(to_key(k), static_cast<unsigned long long>(v));
+    ser.write(to_serdes_key(k), static_cast<unsigned long long>(v));
 }
 
 template<typename K>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, const float v) {
-    ser.write(to_key(k), double{v});
+    ser.write(to_serdes_key(k), double{v});
 }
 
 template<typename K>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, const double v) {
-    ser.write(to_key(k), v);
+    ser.write(to_serdes_key(k), v);
 }
 
 template<typename K>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, const bool v) {
-    ser.write(to_key(k), static_cast<long long>(v));
+    ser.write(to_serdes_key(k), static_cast<long long>(v));
 }
 
 template<typename K>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, const unsigned long long v) {
-    ser.write(to_key(k), v);
+    ser.write(to_serdes_key(k), v);
 }
 
 template <typename K,
           typename Q,
           typename V>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::unordered_map<Q, V>& v) {
-    ser.begin_write_map(to_key(k));
+    ser.begin_write_map(to_serdes_key(k));
     for (const auto& [q, w]: v) serialize(ser, q, w);
     ser.end_write_map();
 }
@@ -237,7 +233,7 @@ template <typename K,
           typename Q,
           typename V>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::map<Q, V>& v) {
-    ser.begin_write_map(to_key(k));
+    ser.begin_write_map(to_serdes_key(k));
     for (const auto& [q, w]: v) serialize(ser, q, w);
     ser.end_write_map();
 }
@@ -246,7 +242,7 @@ template <typename K,
           typename V,
           typename A>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::vector<V, A>& vs) {
-    ser.begin_write_array(to_key(k));
+    ser.begin_write_array(to_serdes_key(k));
     for (std::size_t ix = 0; ix < vs.size(); ++ix) serialize(ser, ix, vs[ix]);
     ser.end_write_array();
 }
@@ -255,7 +251,7 @@ template <typename K,
           typename V,
           size_t N>
 ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::array<V, N>& vs) {
-    ser.begin_write_array(to_key(k));
+    ser.begin_write_array(to_serdes_key(k));
     for (std::size_t ix = 0; ix < vs.size(); ++ix) serialize(ser, ix, vs[ix]);
     ser.end_write_array();
 }
@@ -263,13 +259,13 @@ ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::array<V, N>
 // Reading
 template<typename K>
 ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::string& v) {
-    ser.read(to_key(k), v);
+    ser.read(to_serdes_key(k), v);
 }
 
 template<typename K, typename P>
 ARB_ARBOR_API void deserialize(serializer& ser, const K& k, P* p) {
     if (!p) throw null_error{k};
-    deserialize(ser, to_key(k), *p);
+    deserialize(ser, to_serdes_key(k), *p);
 }
 
 template<typename K, typename P>
@@ -287,52 +283,52 @@ ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::shared_ptr<P>& 
 template<typename K>
 ARB_ARBOR_API void deserialize(serializer& ser, const K& k, long& v) {
     long long tmp;
-    ser.read(to_key(k), tmp);
+    ser.read(to_serdes_key(k), tmp);
     v = tmp;
 }
 
 template<typename K>
 ARB_ARBOR_API void deserialize(serializer& ser, const K& k, int& v) {
     long long tmp;
-    ser.read(to_key(k), tmp);
+    ser.read(to_serdes_key(k), tmp);
     v = tmp;
 }
 
 template<typename K>
 ARB_ARBOR_API void deserialize(serializer& ser, const K& k, unsigned& v) {
     unsigned long long tmp;
-    ser.read(to_key(k), tmp);
+    ser.read(to_serdes_key(k), tmp);
     v = tmp;
 }
 
 template<typename K>
 ARB_ARBOR_API void deserialize(serializer& ser, const K& k, unsigned long& v) {
     unsigned long long tmp;
-    ser.read(to_key(k), tmp);
+    ser.read(to_serdes_key(k), tmp);
     v = tmp;
 }
 
 template<typename K>
 ARB_ARBOR_API void deserialize(serializer& ser, const K& k, unsigned long long& v) {
-    ser.read(to_key(k), v);
+    ser.read(to_serdes_key(k), v);
 }
 
 template<typename K>
 ARB_ARBOR_API void deserialize(serializer& ser, const K& k, float& v) {
     double tmp;
-    ser.read(to_key(k), tmp);
+    ser.read(to_serdes_key(k), tmp);
     v = tmp;
 }
 
 template<typename K>
 ARB_ARBOR_API void deserialize(serializer& ser, const K& k, double& v) {
-    ser.read(to_key(k), v);
+    ser.read(to_serdes_key(k), v);
 }
 
 template<typename K>
 ARB_ARBOR_API void deserialize(serializer& ser, const K& k, bool& v) {
     long long tmp;
-    ser.read(to_key(k), tmp);
+    ser.read(to_serdes_key(k), tmp);
     v = tmp;
 }
 
@@ -340,12 +336,12 @@ template <typename K,
           typename Q,
           typename V>
 ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::unordered_map<Q, V>& vs) {
-    ser.begin_read_map(to_key(k));
+    ser.begin_read_map(to_serdes_key(k));
     for (;;) {
         auto q = ser.next_key();
         if (!q) break;
         typename std::remove_cv_t<Q> key;
-        from_key(key, *q);
+        from_serdes_key(key, *q);
         if (!vs.count(key)) vs[key] = {}; // NOTE Must be default constructible anyhow
         deserialize(ser, *q, vs[key]);
     }
@@ -356,12 +352,12 @@ template <typename K,
           typename Q,
           typename V>
 ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::map<Q, V>& vs) {
-    ser.begin_read_map(to_key(k));
+    ser.begin_read_map(to_serdes_key(k));
     for (;;) {
         auto q = ser.next_key();
         if (!q) break;
         typename std::remove_cv_t<Q> key;
-        from_key(key, *q);
+        from_serdes_key(key, *q);
         if (!vs.count(key)) vs[key] = {}; // NOTE Must be default constructible anyhow
         deserialize(ser, *q, vs[key]);
     }
@@ -372,7 +368,7 @@ template <typename K,
           typename V,
           typename A>
 ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::vector<V, A>& vs) {
-    ser.begin_read_array(to_key(k));
+    ser.begin_read_array(to_serdes_key(k));
     for (std::size_t ix = 0;; ++ix) {
         auto q = ser.next_key();
         if (!q) break;
@@ -386,7 +382,7 @@ template <typename K,
           typename V,
           size_t N>
 ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::array<V, N>& vs) {
-    ser.begin_read_array(to_key(k));
+    ser.begin_read_array(to_serdes_key(k));
     for (std::size_t ix = 0; ix < vs.size(); ++ix) deserialize(ser, ix, vs[ix]);
     ser.end_read_array();
 }
@@ -445,7 +441,7 @@ ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::array<V, N>& vs
     friend ARB_ARBOR_API void serialize(::arb::serializer& ser,          \
                       const K& k,                                        \
                       const T& t) {                                      \
-        ser.begin_write_map(::arb::to_key(k));                           \
+        ser.begin_write_map(::arb::to_serdes_key(k));                           \
         ARB_SERDES_EXPAND(ARB_SERDES_PUT(ARB_SERDES_WRITE, __VA_ARGS__)) \
         ser.end_write_map();                                             \
     }                                                                    \
@@ -453,7 +449,7 @@ ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::array<V, N>& vs
     friend ARB_ARBOR_API void deserialize(::arb::serializer& ser,        \
                             const K& k,                                  \
                             T& t) {                                      \
-        ser.begin_read_map(::arb::to_key(k));                            \
+        ser.begin_read_map(::arb::to_serdes_key(k));                            \
         ARB_SERDES_EXPAND(ARB_SERDES_PUT(ARB_SERDES_READ, __VA_ARGS__))  \
         ser.end_read_map();                                              \
     }

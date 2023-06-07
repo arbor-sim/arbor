@@ -40,14 +40,6 @@ struct ARB_ARBOR_API ion_state {
     using solver_type = arb::gpu::diffusion_state<arb_value_type, arb_index_type>;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
-    // ARB_SERDES_ENABLE(ion_state,
-                      // node_index_,
-                      // write_Xi_, write_eX_, write_Xo_,
-                      // iX_, eX_, Xi_, Xd_, Xo_, gX_,
-                      // init_Xi_, init_Xo_, init_eX_,
-                      // reset_Xi_, reset_Xo_,
-                      // charge);
-
     // Xd and gX are the only things that persists
     ARB_SERDES_ENABLE(ion_state, Xd_, gX_);
 
@@ -156,23 +148,6 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
                       dt_intdom,
                       dt_cv,
                       deliverable_events);
-
-    struct mech_storage {
-        mech_storage() = default;
-        mech_storage(task_system_handle tp) : deliverable_events_(tp) {}
-
-        array data_;
-        iarray indices_;
-        std::vector<arb_value_type>  globals_;
-        std::vector<arb_value_type*> parameters_;
-        std::vector<arb_value_type*> state_vars_;
-        std::vector<arb_ion_state>   ion_states_;
-        memory::device_vector<arb_value_type*> parameters_d_;
-        memory::device_vector<arb_value_type*> state_vars_d_;
-        memory::device_vector<arb_ion_state>   ion_states_d_;
-        random_numbers random_numbers_;
-        deliverable_event_stream deliverable_events_;
-    };
 
     task_system_handle thread_pool;
 
