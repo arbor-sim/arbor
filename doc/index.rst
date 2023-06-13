@@ -1,7 +1,7 @@
 Arbor
 =====
 
-|ci| |pythonwheels| |zlatest| |gitter|
+|ci| |pythonwheels| |zlatest| |gitter| |matrix|
 
 .. |ci| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml/badge.svg
     :target: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml
@@ -11,6 +11,9 @@ Arbor
 
 .. |gitter| image:: https://badges.gitter.im/arbor-sim/community.svg
     :target: https://gitter.im/arbor-sim/community
+
+.. |matrix| image:: https://matrix.to/img/matrix-badge.svg
+    :target: https://matrix.to/#/#arbor-sim_community:gitter.im
 
 Welcome to the documentation for Arbor, the multi-compartment neural network simulation library.
 
@@ -125,6 +128,7 @@ A full list of our software attributions can be found `here <https://github.com/
    install/index
    tutorial/index
    ecosystem/index
+   contrib/index
 
 .. toctree::
    :caption: Concepts:
@@ -167,18 +171,6 @@ A full list of our software attributions can be found `here <https://github.com/
    cpp/index
    dev/index
 
-.. toctree::
-   :caption: Contributing:
-   :maxdepth: 1
-
-   contrib/index
-   contrib/pr
-   contrib/coding-style
-   contrib/doc
-   contrib/example
-   contrib/test
-   contrib/release
-   contrib/dependency-management
 
 .. meta::
    :google-site-verification: KbkW8d9MLsBFZz8Ry0tfcQRkHsgxzkECCahcyRSjWDo

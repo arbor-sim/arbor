@@ -17,20 +17,16 @@
 #include <arbor/util/any_ptr.hpp>
 
 #include "backends/event.hpp"
+#include "backends/common_types.hpp"
 #include "backends/threshold_crossing.hpp"
 #include "execution_context.hpp"
 #include "sampler_map.hpp"
+#include "timestep_range.hpp"
 #include "util/meta.hpp"
 #include "util/range.hpp"
 #include "util/transform.hpp"
 
 namespace arb {
-
-struct fvm_integration_result {
-    util::range<const threshold_crossing*> crossings;
-    util::range<const arb_value_type*> sample_time;
-    util::range<const arb_value_type*> sample_value;
-};
 
 // A sample for a probe may be derived from multiple 'raw' sampled
 // values from the backend.
@@ -195,11 +191,9 @@ struct probe_association_map {
 };
 
 struct fvm_initialization_data {
-    // Map from gid to integration domain id
-    std::vector<arb_index_type> cell_to_intdom;
-
     // Handles for accessing lowered cell.
     std::vector<target_handle> target_handles;
+    std::unordered_map<unsigned, arb_size_type> num_targets_per_mech_id;
 
     // Maps probe ids to probe handles and tags.
     probe_association_map probe_map;
@@ -224,10 +218,9 @@ struct fvm_lowered_cell {
         const recipe& rec) = 0;
 
     virtual fvm_integration_result integrate(
-        arb_value_type tfinal,
-        arb_value_type max_dt,
-        std::vector<deliverable_event> staged_events,
-        std::vector<sample_event> staged_samples) = 0;
+        const timestep_range& dts,
+        const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
+        const std::vector<std::vector<sample_event>>& staged_samples) = 0;
 
     virtual arb_value_type time() const = 0;
 

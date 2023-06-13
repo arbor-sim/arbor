@@ -49,7 +49,6 @@ public:
 
     fvm_lowered_cell_impl(execution_context ctx, arb_seed_type seed = 0):
         context_(ctx),
-        threshold_watcher_(ctx),
         seed_{seed}
     {};
 
@@ -60,19 +59,11 @@ public:
         const recipe& rec) override;
 
     fvm_integration_result integrate(
-        value_type tfinal,
-        value_type max_dt,
-        std::vector<deliverable_event> staged_events,
-        std::vector<sample_event> staged_samples) override;
+        const timestep_range& dts,
+        const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
+        const std::vector<std::vector<sample_event>>& staged_samples) override;
 
-    // Generates indom index for every gid, guarantees that gids belonging to the same supercell are in the same intdom
-    // Fills cell_to_intdom map; returns number of intdoms
-    arb_size_type fvm_intdom(
-        const recipe& rec,
-        const std::vector<cell_gid_type>& gids,
-        std::vector<arb_index_type>& cell_to_intdom);
-
-    value_type time() const override { return tmin_; }
+    value_type time() const override { return state_->time; }
 
     //Exposed for testing purposes
     std::vector<mechanism_ptr>& mechanisms() {
@@ -83,20 +74,11 @@ private:
     // Host or GPU-side back-end dependent storage.
     using array               = typename backend::array;
     using shared_state        = typename backend::shared_state;
-    using sample_event_stream = typename backend::sample_event_stream;
-    using threshold_watcher   = typename backend::threshold_watcher;
 
     execution_context context_;
 
     std::unique_ptr<shared_state> state_; // Cell state shared across mechanisms.
 
-    // TODO: Can we move the backend-dependent data structures below into state_?
-    sample_event_stream sample_events_;
-    array sample_time_;
-    array sample_value_;
-    threshold_watcher threshold_watcher_;
-
-    value_type tmin_ = 0;
     std::vector<mechanism_ptr> mechanisms_; // excludes reversal potential calculators.
     std::vector<mechanism_ptr> revpot_mechanisms_;
     std::vector<mechanism_ptr> voltage_mechanisms_;
@@ -110,27 +92,10 @@ private:
     // Flag indicating that at least one of the mechanisms implements the post_events procedure
     bool post_events_ = false;
 
-    // Host-side views/copies and local state.
-    decltype(backend::host_view(sample_time_)) sample_time_host_;
-    decltype(backend::host_view(sample_value_)) sample_value_host_;
-
     void update_ion_state();
 
     // Throw if absolute value of membrane voltage exceeds bounds.
     void assert_voltage_bounded(arb_value_type bound);
-
-    // Throw if any cell time not equal to tmin_
-    void assert_tmin();
-
-    // Assign tmin_ and call assert_tmin() if assertions on.
-    void set_tmin(value_type t) {
-        tmin_ = t;
-        arb_assert((assert_tmin(), true));
-    }
-
-    static unsigned dt_steps(value_type t0, value_type t1, value_type dt) {
-        return t0>=t1? 0: 1+(unsigned)((t1-t0)/dt);
-    }
 
     // Sets the GPU used for CUDA calls from the thread that calls it.
     // The GPU will be the one in the execution context context_.
@@ -153,20 +118,8 @@ private:
 };
 
 template <typename Backend>
-void fvm_lowered_cell_impl<Backend>::assert_tmin() {
-    auto time_minmax = state_->time_bounds();
-    if (time_minmax.first != time_minmax.second) {
-        throw arbor_internal_error("fvm_lowered_cell: inconsistent times across cells");
-    }
-    if (time_minmax.first != tmin_) {
-        throw arbor_internal_error("fvm_lowered_cell: out of synchronziation with cell state time");
-    }
-}
-
-template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::reset() {
     state_->reset();
-    set_tmin(0);
 
     for (auto& m: voltage_mechanisms_) {
         m->initialize();
@@ -200,100 +153,74 @@ void fvm_lowered_cell_impl<Backend>::reset() {
 
     // NOTE: Threshold watcher reset must come after the voltage values are set,
     // as voltage is implicitly read by watcher to set initial state.
-    threshold_watcher_.reset(state_->voltage);
+    state_->reset_thresholds();
 }
 
 template <typename Backend>
 fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
-    value_type tfinal,
-    value_type dt_max,
-    std::vector<deliverable_event> staged_events,
-    std::vector<sample_event> staged_samples)
+    const timestep_range& dts,
+    const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
+    const std::vector<std::vector<sample_event>>& staged_samples)
 {
+    arb_assert(state_->time == dts.t_begin());
     set_gpu();
 
     // Integration setup
     PE(advance:integrate:setup);
-    threshold_watcher_.clear_crossings();
-
-    auto n_samples = staged_samples.size();
-    if (sample_time_.size() < n_samples) {
-        sample_time_ = array(n_samples);
-        sample_value_ = array(n_samples);
-    }
-
-    auto& events = state_->deliverable_events;
-    events.init(std::move(staged_events));
-    sample_events_.init(std::move(staged_samples));
-
-    arb_assert((assert_tmin(), true));
-    unsigned remaining_steps = dt_steps(tmin_, tfinal, dt_max);
+    // Push samples and events down to the state and reset the spike thresholds.
+    state_->begin_epoch(staged_events_per_mech_id, staged_samples, dts);
     PL();
 
-    // TODO: Consider devolving more of this to back-end routines (e.g.
-    // per-compartment dt probably not a win on GPU), possibly rumbling
-    // complete fvm state into shared state object.
-    while (remaining_steps) {
-        // Update any required reversal potentials based on ionic concs.
+    // loop over timesteps
+    for (const auto& ts : dts) {
+        state_->update_time_to(ts);
+        arb_assert(state_->time == ts.t_begin());
 
+        // Update integration step time information visible to mechanisms.
+        for (auto& m: mechanisms_) {
+            m->set_dt(state_->dt);
+        }
+        for (auto& m: revpot_mechanisms_) {
+            m->set_dt(state_->dt);
+        }
+        for (auto& m: voltage_mechanisms_) {
+            m->set_dt(state_->dt);
+        }
+
+        // Update any required reversal potentials based on ionic concentrations
         for (auto& m: revpot_mechanisms_) {
             m->update_current();
         }
 
-        // Deliver events and accumulate mechanism current contributions.
-
-        PE(advance:integrate:events);
-        state_->deliverable_events.mark_until_after(state_->time);
-        PL();
-
         PE(advance:integrate:current:zero);
         state_->zero_currents();
         PL();
+
+        // Deliver events and accumulate mechanism current contributions.
+
+        // Mark all events due before (but not including) the end of this time step (state_->time_to) for delivery
+        state_->mark_events();
         for (auto& m: mechanisms_) {
-            auto state = events.marked_events();
-            arb_deliverable_event_stream events;
-            events.n_streams = state.n;
-            events.begin     = state.begin_offset;
-            events.end       = state.end_offset;
-            events.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
-            m->deliver_events(events);
+            // apply the events and drop them afterwards
+            state_->deliver_events(*m);
             m->update_current();
         }
 
-        PE(advance:integrate:events);
-        events.drop_marked_events();
-
-        // Update event list and integration step times.
-
-        state_->update_time_to(dt_max, tfinal);
-        events.event_time_if_before(state_->time_to);
-        state_->set_dt();
-        PL();
-
         // Add stimulus current contributions.
-        // (Note: performed after dt, time_to calculation, in case we
-        // want to use mean current contributions as opposed to point
-        // sample.)
-
+        // NOTE: performed after dt, time_to calculation, in case we want to
+        // use mean current contributions as opposed to point sample.
         PE(advance:integrate:stimuli)
         state_->add_stimulus_current();
         PL();
 
         // Take samples at cell time if sample time in this step interval.
-
         PE(advance:integrate:samples);
-        sample_events_.mark_until(state_->time_to);
-        state_->take_samples(sample_events_.marked_events(), sample_time_, sample_value_);
-        sample_events_.drop_marked_events();
+        state_->take_samples();
         PL();
 
-        // Integrate voltage / solve cable eq
-        PE(advance:integrate:voltage);
-        state_->integrate_voltage();
-        PL();
-        // Compute ionic diffusion effects
-        PE(advance:integrate:diffusion);
-        state_->integrate_diffusion();
+        // Integrate voltage and diffusion
+        PE(advance:integrate:cable);
+        state_->integrate_cable_state();
         PL();
 
         // Integrate mechanism state for density
@@ -319,7 +246,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Update time and test for spike threshold crossings.
         PE(advance:integrate:threshold);
-        threshold_watcher_.test(&state_->time_since_spike);
+        state_->test_thresholds();
         PL();
 
         PE(advance:integrate:post)
@@ -330,37 +257,18 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
         PL();
 
-        std::swap(state_->time_to, state_->time);
+        // Advance epoch
+        state_->next_time_step();
 
         // Check for non-physical solutions:
-
         if (check_voltage_mV_) {
             PE(advance:integrate:physicalcheck);
             assert_voltage_bounded(check_voltage_mV_.value());
             PL();
         }
-
-        // Check for end of integration.
-
-        PE(advance:integrate:stepsupdate);
-        if (!--remaining_steps) {
-            tmin_ = state_->time_bounds().first;
-            remaining_steps = dt_steps(tmin_, tfinal, dt_max);
-        }
-        PL();
     }
 
-    set_tmin(tfinal);
-
-    const auto& crossings = threshold_watcher_.crossings();
-    sample_time_host_ = backend::host_view(sample_time_);
-    sample_value_host_ = backend::host_view(sample_value_);
-
-    return fvm_integration_result{
-        util::range_pointer_view(crossings),
-        util::range_pointer_view(sample_time_host_),
-        util::range_pointer_view(sample_value_host_)
-    };
+    return state_->get_integration_result();
 }
 
 template <typename Backend>
@@ -378,10 +286,26 @@ void fvm_lowered_cell_impl<Backend>::assert_voltage_bounded(arb_value_type bound
         return;
     }
 
-    auto t_minmax = state_->time_bounds();
     throw range_check_failure(
-        util::pprintf("voltage solution out of bounds for t in [{}, {}]", t_minmax.first, t_minmax.second),
+        util::pprintf("voltage solution out of bounds for at t = {}", state_->time),
         v_minmax.first<-bound? v_minmax.first: v_minmax.second);
+}
+
+inline
+fvm_detector_info get_detector_info(arb_size_type max,
+                                    arb_size_type ncell,
+                                    const std::vector<cable_cell>& cells,
+                                    const fvm_cv_discretization& D,
+                                    execution_context ctx) {
+    std::vector<arb_index_type> cv;
+    std::vector<arb_value_type> threshold;
+    for (auto cell_idx: util::make_span(ncell)) {
+        for (auto entry: cells[cell_idx].detectors()) {
+            cv.push_back(D.geometry.location_cv(cell_idx, entry.loc, cv_prefer::cv_empty));
+            threshold.push_back(entry.item.threshold);
+        }
+    }
+    return { max, std::move(cv), std::move(threshold), ctx };
 }
 
 template <typename Backend>
@@ -462,18 +386,11 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     check_voltage_mV_ = global_props.membrane_voltage_limit_mV;
 
-    auto nintdom = fvm_intdom(rec, gids, fvm_info.cell_to_intdom);
-
     // Discretize cells, build matrix.
 
     fvm_cv_discretization D = fvm_cv_discretize(cells, global_props.default_parameters, context_);
 
-    std::vector<index_type> cv_to_intdom(D.size());
-    std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(), cv_to_intdom.begin(),
-                   [&fvm_info](index_type i){ return fvm_info.cell_to_intdom[i]; });
-
     arb_assert(D.n_cell() == ncell);
-    sample_events_ = sample_event_stream(nintdom);
 
     // Discretize and build gap junction info.
 
@@ -505,8 +422,9 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     // map control volume ids to global cell ids
     std::vector<arb_index_type> cv_to_gid(D.geometry.cv_to_cell.size());
-    std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(), cv_to_gid.begin(),
-        [&gids](auto i){return gids[i]; });
+    std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(),
+                   cv_to_gid.begin(),
+                   [&gids](auto i){return gids[i]; });
 
     // Create shared cell state.
     // Shared state vectors should accommodate each mechanism's data alignment requests.
@@ -515,40 +433,17 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         util::transform_view(keys(mech_data.mechanisms),
             [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
 
-    state_ = std::make_unique<shared_state>(
-                nintdom, ncell, max_detector, cv_to_intdom, std::move(cv_to_cell),
-                D.init_membrane_potential, D.temperature_K, D.diam_um, std::move(src_to_spike),
-                data_alignment? data_alignment: 1u, seed_);
-
-    state_->solver =
-        {D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area, fvm_info.cell_to_intdom};
-
-    // Instantiate mechanisms, ions, and stimuli.
-    auto mk_diff_solver = [&](const auto& fd) {
-        // TODO(TH) _all_ solvers should share their RO data, ie everything below D here.
-        return std::make_unique<typename backend::ion_state::solver_type>(D.geometry.cv_parent,
-                                                                          D.geometry.cell_cv_divs,
-                                                                          fd,
-                                                                          D.cv_area,
-                                                                          fvm_info.cell_to_intdom);
-    };
-
-    for (const auto& [ion, data]: mech_data.ions) {
-        if (auto charge = value_by_key(global_props.ion_species, ion)) {
-            if (data.is_diffusive) {
-                state_->add_ion(ion, *charge, data, mk_diff_solver(data.face_diffusivity));
-            } else {
-                state_->add_ion(ion, *charge, data, nullptr);
-            }
-        }
-        else {
-            throw cable_cell_error("unrecognized ion '"+ion+"' in mechanism");
-        }
-    }
-
-    if (!mech_data.stimuli.cv.empty()) {
-        state_->configure_stimulus(mech_data.stimuli);
-    }
+    auto d_info = get_detector_info(max_detector, ncell, cells, D, context_);
+    state_ = std::make_unique<shared_state>(context_.thread_pool,
+                                            ncell,
+                                            std::move(cv_to_cell),
+                                            D,
+                                            std::move(src_to_spike),
+                                            d_info,
+                                            mech_data.ions,
+                                            mech_data.stimuli,
+                                            data_alignment? data_alignment: 1u,
+                                            seed_);
 
     fvm_info.target_handles.resize(mech_data.n_target);
 
@@ -587,7 +482,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
                 if (config.target.empty()) continue;
 
-                target_handle handle(mech_id, i, cv_to_intdom[cv]);
+                target_handle handle(mech_id, i);
                 if (config.multiplicity.empty()) {
                     fvm_info.target_handles[config.target[i]] = handle;
                 }
@@ -597,6 +492,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
                     }
                 }
             }
+            fvm_info.num_targets_per_mech_id[mech_id] = config.target.size();
             break;
         case arb_mechanism_kind_gap_junction:
             // Junction mechanism contributions are in [nA] (µS * mV); CV area A in [µm^2].
@@ -652,19 +548,10 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     }
 
 
-    std::vector<index_type> detector_cv;
-    std::vector<value_type> detector_threshold;
     std::vector<fvm_probe_data> probe_data;
 
     for (auto cell_idx: make_span(ncell)) {
         cell_gid_type gid = gids[cell_idx];
-
-        // Collect detectors, probe handles.
-        for (auto entry: cells[cell_idx].detectors()) {
-            detector_cv.push_back(D.geometry.location_cv(cell_idx, entry.loc, cv_prefer::cv_empty));
-            detector_threshold.push_back(entry.item.threshold);
-        }
-
         std::vector<probe_info> rec_probes = rec.get_probes(gid);
         for (cell_lid_type i: count_along(rec_probes)) {
             probe_info& pi = rec_probes[i];
@@ -682,52 +569,8 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         }
     }
 
-    threshold_watcher_ = backend::voltage_watcher(*state_, detector_cv, detector_threshold, context_);
-
     reset();
-
     return fvm_info;
-}
-
-template <typename Backend>
-arb_size_type fvm_lowered_cell_impl<Backend>::fvm_intdom(
-        const recipe& rec,
-        const std::vector<cell_gid_type>& gids,
-        std::vector<arb_index_type>& cell_to_intdom) {
-
-    cell_to_intdom.resize(gids.size());
-
-    std::unordered_map<cell_gid_type, cell_size_type> gid_to_loc;
-    for (auto i: util::count_along(gids)) {
-        gid_to_loc[gids[i]] = i;
-    }
-
-    std::unordered_set<cell_gid_type> visited;
-    std::queue<cell_gid_type> intdomq;
-    cell_size_type intdom_id = 0;
-
-    for (auto gid: gids) {
-        if (visited.count(gid)) continue;
-        visited.insert(gid);
-
-        intdomq.push(gid);
-        while (!intdomq.empty()) {
-            auto g = intdomq.front();
-            intdomq.pop();
-
-            cell_to_intdom[gid_to_loc[g]] = intdom_id;
-
-            for (const auto& gj: rec.gap_junctions_on(g)) {
-                if (!visited.count(gj.peer.gid)) {
-                    visited.insert(gj.peer.gid);
-                    intdomq.push(gj.peer.gid);
-                }
-            }
-        }
-        intdom_id++;
-    }
-
-    return intdom_id;
 }
 
 // Resolution of probe addresses into a specific fvm_probe_data draws upon data
@@ -1020,62 +863,82 @@ void resolve_probe(const cable_probe_density_state_cell& p, probe_resolution_dat
     R.result.push_back(std::move(r));
 }
 
+inline
+auto point_info_of(cell_lid_type target,
+                   int mech_index,
+                   const mlocation_map<synapse>& instances,
+                   const std::vector<arb_index_type>& multiplicity) {
+
+    auto opt_i = util::binary_search_index(instances, target, [](auto& item) { return item.lid; });
+    if (!opt_i) throw arbor_internal_error("inconsistent mechanism state");
+
+    return cable_probe_point_info {target,
+                                   multiplicity.empty() ? 1u: multiplicity.at(mech_index),
+                                   instances[*opt_i].loc};
+}
+
 template <typename B>
 void resolve_probe(const cable_probe_point_state& p, probe_resolution_data<B>& R) {
     arb_assert(R.handles.size()==R.M.target_divs.back());
     arb_assert(R.handles.size()==R.M.n_target);
 
-    const arb_value_type* data = R.mechanism_state(p.mechanism, p.state);
+    const auto& mech   = p.mechanism;
+    const auto& state  = p.state;
+    const auto& target = p.target;
+    const auto& data   = R.mechanism_state(mech, state);
+    const auto  mech_id = R.mech_instance_by_name.at(mech)->mechanism_id();
+    const auto& synapses = R.cell.synapses();
+    if (!synapses.count(mech)) return;
     if (!data) return;
 
     // Convert cell-local target number to cellgroup target number.
-    auto cg_target = p.target + R.M.target_divs[R.cell_idx];
-    if (cg_target>=R.M.target_divs.at(R.cell_idx+1)) return;
+    const auto& divs = R.M.target_divs;
+    auto cell = R.cell_idx;
+    auto cg  = target + divs.at(cell);
+    if (cg >= divs.at(cell + 1)) return;
 
-    if (R.handles[cg_target].mech_id!=R.mech_instance_by_name.at(p.mechanism)->mechanism_id()) return;
-    auto mech_index = R.handles[cg_target].mech_index;
-
-    auto& multiplicity = R.M.mechanisms.at(p.mechanism).multiplicity;
-    auto& placed_instances = R.cell.synapses().at(p.mechanism);
-
-    auto opt_i = util::binary_search_index(placed_instances, p.target, [](auto& item) { return item.lid; });
-    if (!opt_i) throw arbor_internal_error("inconsistent mechanism state");
-    mlocation loc = placed_instances[*opt_i].loc;
-
-    cable_probe_point_info metadata{p.target, multiplicity.empty()? 1u: multiplicity.at(mech_index), loc};
-
-    R.result.push_back(fvm_probe_scalar{{data+mech_index}, metadata});
+    const auto& handle = R.handles.at(cg);
+    if (handle.mech_id != mech_id) return;
+    auto mech_index = handle.mech_index;
+    R.result.push_back(fvm_probe_scalar{{data + mech_index},
+                       point_info_of(target,
+                                     mech_index,
+                                     synapses.at(mech),
+                                     R.M.mechanisms.at(mech).multiplicity)});
 }
 
 template <typename B>
 void resolve_probe(const cable_probe_point_state_cell& p, probe_resolution_data<B>& R) {
-    const arb_value_type* data = R.mechanism_state(p.mechanism, p.state);
+    const auto& mech  = p.mechanism;
+    const auto& state = p.state;
+    const auto& data  = R.mechanism_state(mech, state);
+
     if (!data) return;
 
-    unsigned id = R.mech_instance_by_name.at(p.mechanism)->mechanism_id();
-    auto& multiplicity = R.M.mechanisms.at(p.mechanism).multiplicity;
-    auto& placed_instances = R.cell.synapses().at(p.mechanism);
+    auto mech_id = R.mech_instance_by_name.at(mech)->mechanism_id();
+    const auto& multiplicity = R.M.mechanisms.at(mech).multiplicity;
 
-    std::size_t cell_targets_base = R.M.target_divs[R.cell_idx];
-    std::size_t cell_targets_end = R.M.target_divs[R.cell_idx+1];
+    const auto& synapses = R.cell.synapses();
+    if (!synapses.count(mech)) return;
+    const auto& placed_instances = synapses.at(mech);
+
+    auto cell_targets_beg = R.M.target_divs.at(R.cell_idx);
+    auto cell_targets_end = R.M.target_divs.at(R.cell_idx + 1);
 
     fvm_probe_multi r;
     std::vector<cable_probe_point_info> metadata;
 
-    for (auto target: util::make_span(cell_targets_base, cell_targets_end)) {
-        if (R.handles[target].mech_id!=id) continue;
+    for (auto target: util::make_span(cell_targets_beg, cell_targets_end)) {
+        const auto& handle = R.handles.at(target);
+        if (handle.mech_id != mech_id) continue;
 
-        auto mech_index = R.handles[target].mech_index;
-        r.raw_handles.push_back(data+mech_index);
+        auto mech_index = handle.mech_index;
+        r.raw_handles.push_back(data + mech_index);
 
-        auto cell_target = target-cell_targets_base; // Convert to cell-local target index.
-
-        auto opt_i = util::binary_search_index(placed_instances, cell_target, [](auto& item) { return item.lid; });
-        if (!opt_i) throw arbor_internal_error("inconsistent mechanism state");
-        mlocation loc = placed_instances[*opt_i].loc;
-
-        metadata.push_back(cable_probe_point_info{
-            cell_lid_type(cell_target), multiplicity.empty()? 1u: multiplicity.at(mech_index), loc});
+        metadata.push_back(point_info_of(target - cell_targets_beg, // Convert to cell-local target index.
+                                         mech_index,
+                                         placed_instances,
+                                         multiplicity));
     }
 
     r.metadata = std::move(metadata);

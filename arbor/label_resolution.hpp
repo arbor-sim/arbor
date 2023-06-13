@@ -40,7 +40,6 @@ public:
     const auto& labels() const { return labels_; }
     const auto& ranges() const { return ranges_; }
 
-
 private:
     // The number of labels associated with each cell.
     std::vector<cell_size_type> sizes_;
@@ -80,8 +79,8 @@ public:
     label_resolution_map() = default;
     explicit label_resolution_map(const cell_labels_and_gids&);
 
-    const range_set& at(const cell_gid_type& gid, const cell_tag_type& tag) const;
-    std::size_t count(const cell_gid_type& gid, const cell_tag_type& tag) const;
+    const range_set& at(cell_gid_type gid, const cell_tag_type& tag) const;
+    std::size_t count(cell_gid_type gid, const cell_tag_type& tag) const;
 
 private:
     std::unordered_map<cell_gid_type, std::unordered_map<cell_tag_type, range_set>> map;
@@ -113,13 +112,17 @@ struct ARB_ARBOR_API assert_univalent_state {
 struct ARB_ARBOR_API resolver {
     resolver(const label_resolution_map* label_map): label_map_(label_map) {}
     cell_lid_type resolve(const cell_global_label_type& iden);
+    cell_lid_type resolve(cell_gid_type gid, const cell_local_label_type& lid);
 
     using state_variant = std::variant<round_robin_state, round_robin_halt_state, assert_univalent_state>;
 
+private:
+    template<typename K, typename V>
+    using map = std::unordered_map<K, V>;
     state_variant construct_state(lid_selection_policy pol);
     state_variant construct_state(lid_selection_policy pol, cell_lid_type state);
 
     const label_resolution_map* label_map_;
-    std::unordered_map<cell_gid_type, std::unordered_map<cell_tag_type, std::unordered_map <lid_selection_policy, state_variant>>> state_map_;
+    map<cell_gid_type, map<cell_tag_type, map<lid_selection_policy, state_variant>>> state_map_;
 };
 } // namespace arb

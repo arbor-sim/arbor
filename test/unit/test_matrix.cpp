@@ -24,7 +24,7 @@ using vvec = std::vector<value_type>;
 TEST(matrix, construct_from_parent_only)
 {
     std::vector<index_type> p = {0,0,1};
-    solver_type m(p, {0, 3}, vvec(3), vvec(3), vvec(3), {0});
+    solver_type m(p, {0, 3}, vvec(3), vvec(3), vvec(3));
     EXPECT_EQ(m.num_cells(), 1u);
     EXPECT_EQ(m.size(), 3u);
     EXPECT_EQ(p.size(), 3u);
@@ -42,7 +42,7 @@ TEST(matrix, solve_host)
 
     // trivial case : 1x1 matrix
     {
-        solver_type m({0}, {0,1}, vvec(1), vvec(1), vvec(1), {0});
+        solver_type m({0}, {0,1}, vvec(1), vvec(1), vvec(1));
         fill(m.d,  2);
         fill(m.u, -1);
         array x({1});
@@ -56,7 +56,7 @@ TEST(matrix, solve_host)
         for(auto n : make_span(2, 1001)) {
             auto p = std::vector<index_type>(n);
             std::iota(p.begin()+1, p.end(), 0);
-            solver_type m(p, {0, n}, vvec(n), vvec(n), vvec(n), {0});
+            solver_type m(p, {0, n}, vvec(n), vvec(n), vvec(n));
 
             EXPECT_EQ(m.size(), (unsigned)n);
             EXPECT_EQ(m.num_cells(), 1u);
@@ -78,37 +78,7 @@ TEST(matrix, solve_host)
     }
 }
 
-TEST(matrix, zero_diagonal)
-{
-    // Combined matrix may have zero-blocks, corresponding to a zero dt.
-    // Zero-blocks are indicated by zero value in the diagonal (the off-diagonal
-    // elements should be ignored).
-    // These submatrices should leave the rhs as-is when solved.
-
-    using util::assign;
-
-    // Three matrices, sizes 3, 3 and 2, with no branching.
-    std::vector<index_type> p = {0, 0, 1, 3, 3, 5, 5};
-    std::vector<index_type> c = {0, 3, 5, 7};
-    std::vector<index_type> i = {0, 1, 2};
-    solver_type m(p, c, vvec(7), vvec(7), vvec(7), i);
-
-    EXPECT_EQ(7u, m.size());
-    EXPECT_EQ(3u, m.num_cells());
-
-    assign(m.d,   vvec({2,  3,  2, 0,  0,  4,  5}));
-    assign(m.u,   vvec({0, -1, -1, 0, -1,  0, -2}));
-
-    // Expected solution:
-    std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};
-
-    auto x = vvec({3,  5,  7, 7,  8, 16, 32});
-    m.solve(x);
-
-    EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
-}
-
-TEST(matrix, zero_diagonal_assembled)
+TEST(matrix, solve_multi_matrix)
 {
     // Use assemble method to construct same zero-diagonal
     // test case from CV data.
@@ -122,15 +92,15 @@ TEST(matrix, zero_diagonal_assembled)
     // These submatrices should leave the rhs as-is when solved.
 
     // Three matrices, sizes 3, 3 and 2, with no branching.
+    // parent index:
     std::vector<index_type> p = {0, 0, 1, 3, 3, 5, 5};
+    // cell divisipn index:
     std::vector<index_type> c = {0, 3, 5, 7};
-    std::vector<index_type> s = {0, 1, 2};
+
+    value_type dt = 1e-3;
 
     // Face conductances.
     vvec g = {0, 1, 1, 0, 1, 0, 2};
-
-    // dt of 1e-3.
-    array dt(3, 1.0e-3);
 
     // Capacitances.
     vvec Cm = {1, 1, 1, 1, 1, 2, 3};
@@ -151,19 +121,9 @@ TEST(matrix, zero_diagonal_assembled)
     // Expected solution:
     // x = [ 4 5 6 7 8 9 10 ]
 
-    solver_type m(p, c, Cm, g, area, s);
+    solver_type m(p, c, Cm, g, area);
     std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};
 
     m.solve(v, dt, i, mg);
-    EXPECT_TRUE(testing::seq_almost_eq<double>(expected, v));
-
-    // Set dt of 2nd (middle) submatrix to zero. Solution
-    // should then return voltage values for that submatrix.
-
-    dt[1] = 0;
-    v = vvec{0.0, 0.0, 0.0, -20.0, -30.0, 0.0, 0.0};
-    m.solve(v, dt, i, mg);
-    expected = {4, 5, 6, -20, -30, 9, 10};
-
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected, v));
 }

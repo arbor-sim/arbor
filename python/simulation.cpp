@@ -77,6 +77,8 @@ public:
         }
     }
 
+    void set_remote_spike_filter(const arb::spike_predicate& p) { return sim_->set_remote_spike_filter(p); }
+
     void reset() {
         sim_->reset();
         spike_record_.clear();
@@ -98,10 +100,6 @@ public:
 
     arb::time_type run(arb::time_type tfinal, arb::time_type dt) {
         return sim_->run(tfinal, dt);
-    }
-
-    void set_binning_policy(arb::binning_kind policy, arb::time_type bin_interval) {
-        sim_->set_binning_policy(policy, bin_interval);
     }
 
     void record(spike_recording policy) {
@@ -144,7 +142,7 @@ public:
         return result;
     }
 
-    arb::sampler_association_handle sample(arb::cell_member_type probeset_id, const pyarb::schedule_shim_base& sched, arb::sampling_policy policy) {
+    arb::sampler_association_handle sample(arb::cell_member_type probeset_id, const pyarb::schedule_shim_base& sched) {
         std::shared_ptr<sample_recorder_vec> recorders{new sample_recorder_vec};
 
         for (const arb::probe_metadata& pm: sim_->get_probe_metadata(probeset_id)) {
@@ -155,7 +153,7 @@ public:
         // is kept in sampler_map_; the two copies share the same recorder data.
 
         sampler_callback cb{std::move(recorders)};
-        auto sah = sim_->add_sampler(arb::one_probe(probeset_id), sched.schedule(), cb, policy);
+        auto sah = sim_->add_sampler(arb::one_probe(probeset_id), sched.schedule(), cb);
         sampler_map_.insert({sah, cb});
 
         return sah;
@@ -188,10 +186,6 @@ public:
 void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
     using namespace pybind11::literals;
 
-    py::enum_<arb::sampling_policy>(m, "sampling_policy")
-       .value("lax", arb::sampling_policy::lax)
-       .value("exact", arb::sampling_policy::exact);
-
     py::enum_<spike_recording>(m, "spike_recording")
        .value("off", spike_recording::off)
        .value("local", spike_recording::local)
@@ -210,7 +204,7 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
                               const std::optional<arb::domain_decomposition>& decomp,
                               std::uint64_t seed) {
                 try {
-                    auto ctx = ctx_ ? ctx_ : std::make_shared<context_shim>(arb::make_context());
+                    auto ctx = ctx_ ? ctx_ : std::make_shared<context_shim>(make_context_shim());
                     auto dec = decomp.value_or(arb::partition_load_balance(py_recipe_shim(rec), ctx->context));
                     return new simulation_shim(rec, *ctx, dec, seed, global_ptr);
                 }
@@ -227,6 +221,12 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
              pybind11::arg_v("context", pybind11::none(), "Execution context"),
              pybind11::arg_v("domains", pybind11::none(), "Domain decomposition"),
              pybind11::arg_v("seed", 0u, "Random number generator seed"))
+        .def("set_remote_spike_filter",
+                      &simulation_shim::set_remote_spike_filter,
+                      "pred"_a,
+                      "Add a callback to filter spikes going out over external connections. `pred` is"
+                      "a callable on the `spike` type. **Caution**: This will be extremely slow; use C++ "
+                      "if you want to make use of this.")
         .def("update", &simulation_shim::update,
              pybind11::call_guard<pybind11::gil_scoped_release>(),
              "Rebuild the connection table from recipe::connections_on and the event"
@@ -242,9 +242,6 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Run the simulation from current simulation time to tfinal [ms], with maximum time step size dt [ms].",
             "tfinal"_a, "dt"_a=0.025)
-        .def("set_binning_policy", &simulation_shim::set_binning_policy,
-            "Set the binning policy for event delivery, and the binning time interval if applicable [ms].",
-             "policy"_a, "bin_interval"_a)
         .def("record", &simulation_shim::record,
             "Disable or enable local or global spike recording.")
         .def("spikes", &simulation_shim::spikes,
@@ -255,7 +252,7 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
         .def("sample", &simulation_shim::sample,
             "Record data from probes with given probeset_id according to supplied schedule.\n"
             "Returns handle for retrieving data or removing the sampling.",
-            "probeset_id"_a, "schedule"_a, "policy"_a = arb::sampling_policy::lax)
+            "probeset_id"_a, "schedule"_a)
         .def("samples", &simulation_shim::samples,
             "Retrieve sample data as a list, one element per probe associated with the query.",
             "handle"_a)

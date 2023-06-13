@@ -101,5 +101,9 @@ struct ARB_SYMBOL_VISIBLE mpi_error: std::system_error {
         std::system_error(mpi_err, mpi_error_category(), what_arg) {}
 };
 
+struct ARB_SYMBOL_VISIBLE mpi_inter_comm_required: std::runtime_error {
+    mpi_inter_comm_required(): std::runtime_error{"Expected  an MPI intercommunicator, was given something else."} {}
+};
+
 } // namespace arb
 

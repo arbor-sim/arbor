@@ -32,9 +32,6 @@ public:
 
     using metadata_array = memory::device_vector<level_metadata>;
 
-    // Maps control volume to integration domain
-    iarray cv_to_intdom;
-
     array d;     // [μS]
     array u;     // [μS]
     array rhs;   // [nA]
@@ -93,8 +90,7 @@ public:
                  const std::vector<size_type>& cell_cv_divs,
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& face_conductance,
-                 const std::vector<value_type>& area,
-                 const std::vector<size_type>& cell_intdom)
+                 const std::vector<value_type>& area)
     {
         using util::make_span;
         constexpr unsigned npos = unsigned(-1);
@@ -405,21 +401,14 @@ public:
             util::fill(util::subrange_view(cv_to_cell_tmp, cv_span), ci);
             ++ci;
         }
-        std::vector<size_type> cv_to_intdom_tmp(matrix_size);
-        for (auto i = 0ul; i < cv_to_cell_tmp.size(); ++i) {
-            cv_to_intdom_tmp[i] = cell_intdom[cv_to_cell_tmp[i]];
-        }
-        cv_to_intdom = memory::make_const_view(cv_to_intdom_tmp);
-
     }
 
     // Assemble the matrix
     // Afterwards the diagonal and RHS will have been set given dt, voltage, current, and conductivity.
-    //   dt_intdom [ms] (per integration domain)
     //   voltage [mV]
     //   current density [A/m²]
     //   conductivity [kS/m²]
-    void assemble(const_view dt_intdom, const_view voltage, const_view current, const_view conductivity) {
+    void assemble(const T dt, const_view voltage, const_view current, const_view conductivity) {
         assemble_matrix_fine(
             d.data(),
             rhs.data(),
@@ -429,8 +418,7 @@ public:
             conductivity.data(),
             cv_capacitance.data(),
             cv_area.data(),
-            cv_to_intdom.data(),
-            dt_intdom.data(),
+            dt,
             perm.data(),
             size());
     }
@@ -449,6 +437,13 @@ public:
                           max_branches_per_level);
         // unpermute the solution
         packed_to_flat(rhs, to);
+    }
+
+
+    void solve(array& voltage,
+               const T dt, const_view current, const_view conductivity) {
+        assemble(dt, voltage, current, conductivity);
+        solve(voltage);
     }
 
     std::size_t size() const { return matrix_size; }

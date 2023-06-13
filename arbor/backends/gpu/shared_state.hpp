@@ -9,12 +9,18 @@
 #include <arbor/fvm_types.hpp>
 
 #include "fvm_layout.hpp"
+#include "timestep_range.hpp"
 
+#include "threading/threading.hpp"
+
+#include "backends/common_types.hpp"
+#include "backends/shared_state_base.hpp"
 #include "backends/gpu/rand.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/stimulus.hpp"
 #include "backends/gpu/diffusion_state.hpp"
 #include "backends/gpu/matrix_state_fine.hpp"
+#include "backends/gpu/threshold_watcher.hpp"
 
 namespace arb {
 namespace gpu {
@@ -101,20 +107,22 @@ struct ARB_ARBOR_API istim_state {
     void reset();
 
     // Contribute to current density:
-    void add_current(const array& time, const iarray& cv_to_intdom, array& current_density);
+    void add_current(const arb_value_type time, array& current_density);
 
     // Number of stimuli:
     std::size_t size() const;
 
     // Construct state from i_clamp data; references to shared state vectors are used to initialize ppack.
-    istim_state(const fvm_stimulus_config& stim_data);
+    istim_state(const fvm_stimulus_config& stim_data, unsigned);
 
     istim_state() = default;
 };
 
-struct ARB_ARBOR_API shared_state {
-
+struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_state> {
     struct mech_storage {
+        mech_storage() = default;
+        mech_storage(task_system_handle tp) : deliverable_events_(tp) {}
+
         array data_;
         iarray indices_;
         std::vector<arb_value_type>  globals_;
@@ -125,7 +133,10 @@ struct ARB_ARBOR_API shared_state {
         memory::device_vector<arb_value_type*> state_vars_d_;
         memory::device_vector<arb_ion_state>   ion_states_d_;
         random_numbers random_numbers_;
+        deliverable_event_stream deliverable_events_;
     };
+
+    task_system_handle thread_pool;
 
     using cable_solver = arb::gpu::matrix_state_fine<arb_value_type, arb_index_type>;
     cable_solver solver;
@@ -136,45 +147,80 @@ struct ARB_ARBOR_API shared_state {
     arb_size_type n_detector = 0; // Max number of detectors on all cells.
     arb_size_type n_cv = 0;       // Total number of CVs.
 
-    iarray cv_to_intdom;     // Maps CV index to intdom index.
-    iarray cv_to_cell;       // Maps CV index to cell index.
-    array time;              // Maps intdom index to integration start time [ms].
-    array time_to;           // Maps intdom index to integration stop time [ms].
-    array dt_intdom;         // Maps intdom index to (stop time) - (start time) [ms].
-    array dt_cv;             // Maps CV index to dt [ms].
-    array voltage;           // Maps CV index to membrane voltage [mV].
-    array current_density;   // Maps CV index to current density [A/m²].
-    array conductivity;      // Maps CV index to membrane conductivity [kS/m²].
+    iarray cv_to_cell;            // Maps CV index to cell index.
+    arb_value_type time;          // integration start time [ms].
+    arb_value_type time_to;       // integration end time [ms]
+    arb_value_type dt;            // dt [ms].
+    array voltage;                // Maps CV index to membrane voltage [mV].
+    array current_density;        // Maps CV index to current density [A/m²].
+    array conductivity;           // Maps CV index to membrane conductivity [kS/m²].
 
-    array init_voltage;      // Maps CV index to initial membrane voltage [mV].
-    array temperature_degC;  // Maps CV to local temperature (read only) [°C].
-    array diam_um;           // Maps CV to local diameter (read only) [µm].
+    array init_voltage;           // Maps CV index to initial membrane voltage [mV].
+    array temperature_degC;       // Maps CV to local temperature (read only) [°C].
+    array diam_um;                // Maps CV to local diameter (read only) [µm].
+    array area_um2;               // Maps CV to local diameter (read only) [µm²].
 
-    array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
-    iarray src_to_spike;      // Maps spike source index to spike index
+    array time_since_spike;       // Stores time since last spike on any detector, organized by cell.
+    iarray src_to_spike;          // Maps spike source index to spike index
 
-    arb_seed_type cbprng_seed; // random number generator seed
+    arb_seed_type cbprng_seed;    // random number generator seed
+
+    sample_event_stream sample_events;
+    array sample_time;
+    array sample_value;
+    threshold_watcher watcher;
+
+    // Host-side views/copies and local state.
+    memory::host_vector<arb_value_type> sample_time_host;
+    memory::host_vector<arb_value_type> sample_value_host;
 
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
-    deliverable_event_stream deliverable_events;
     std::unordered_map<unsigned, mech_storage> storage;
 
     shared_state() = default;
 
-    shared_state(
-        arb_size_type n_intdom,
-        arb_size_type n_cell,
-        arb_size_type n_detector,
-        const std::vector<arb_index_type>& cv_to_intdom_vec,
-        const std::vector<arb_index_type>& cv_to_cell_vec,
-        const std::vector<arb_value_type>& init_membrane_potential,
-        const std::vector<arb_value_type>& temperature_K,
-        const std::vector<arb_value_type>& diam,
-        const std::vector<arb_index_type>& src_to_spike,
-        unsigned, // align parameter ignored
-        arb_seed_type cbprng_seed_ = 0u
-    );
+    shared_state(task_system_handle tp,
+                 arb_size_type n_cell,
+                 const std::vector<arb_index_type>& cv_to_cell_vec,
+                 const fvm_cv_discretization& D,
+                 const std::vector<arb_index_type>& src_to_spike,
+                 const fvm_detector_info& detector,
+                 const std::unordered_map<std::string, fvm_ion_config>& ions,
+                 const fvm_stimulus_config& stims,
+                 unsigned align,
+                 arb_seed_type cbprng_seed_ = 0u)
+        : shared_state{std::move(tp),
+                       n_cell,
+                       (arb_size_type) D.size(),
+                       cv_to_cell_vec,
+                       D.init_membrane_potential,
+                       D.temperature_K,
+                       D.diam_um,
+                       D.cv_area,
+                       src_to_spike,
+                       detector,
+                       align,
+                       cbprng_seed_}
+    {
+        configure_stimulus(stims);
+        configure_solver(D);
+        add_ions(D, ions);
+    }
+
+
+    shared_state(task_system_handle tp,
+                 arb_size_type n_cell,
+                 arb_size_type n_cv,
+                 const std::vector<arb_index_type>& cv_to_cell_vec,
+                 const std::vector<arb_value_type>& init_membrane_potential,
+                 const std::vector<arb_value_type>& temperature_K,
+                 const std::vector<arb_value_type>& diam,
+                 const std::vector<arb_value_type>& area,
+                 const std::vector<arb_index_type>& src_to_spike,
+                 const fvm_detector_info& detector,
+                 unsigned, // align parameter ignored
+                 arb_seed_type cbprng_seed_ = 0u);
 
     // Setup a mechanism and tie its backing store to this object
     void instantiate(mechanism&,
@@ -185,48 +231,22 @@ struct ARB_ARBOR_API shared_state {
 
     void update_prng_state(mechanism&);
 
-    // Note: returned pointer points to device memory.
-    const arb_value_type* mechanism_state_data(const mechanism& m, const std::string& key);
-
-    void add_ion(
-        const std::string& ion_name,
-        int charge,
-        const fvm_ion_config& ion_data,
-        ion_state::solver_ptr solver=nullptr);
-
-    void configure_stimulus(const fvm_stimulus_config&);
-
     void zero_currents();
-
-    void ions_init_concentration();
-
-    // Set time_to to earliest of time+dt_step and tmax.
-    void update_time_to(arb_value_type dt_step, arb_value_type tmax);
-
-    // Set the per-intdom and per-compartment dt from time_to - time.
-    void set_dt();
-
-    // Update stimulus state and add current contributions.
-    void add_stimulus_current();
-
-    // Integrate by matrix solve.
-    void integrate_voltage();
-    void integrate_diffusion();
-
-    // Return minimum and maximum time value [ms] across cells.
-    std::pair<arb_value_type, arb_value_type> time_bounds() const;
 
     // Return minimum and maximum voltage value [mV] across cells.
     // (Used for solution bounds checking.)
     std::pair<arb_value_type, arb_value_type> voltage_bounds() const;
 
     // Take samples according to marked events in a sample_event_stream.
-    void take_samples(
-        const sample_event_stream::state& s,
-        array& sample_time,
-        array& sample_value);
+    void take_samples();
 
+    // Reset internal state
     void reset();
+
+    void update_sample_views() {
+        sample_time_host  = memory::on_host(sample_time);
+        sample_value_host = memory::on_host(sample_value);
+    }
 };
 
 // For debugging only

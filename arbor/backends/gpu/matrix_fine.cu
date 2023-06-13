@@ -26,8 +26,7 @@ void assemble_matrix_fine(
         const T* __restrict__ const conductivity,
         const T* __restrict__ const cv_capacitance,
         const T* __restrict__ const area,
-        const I* __restrict__ const cv_to_intdom,
-        const T* __restrict__ const dt_intdom,
+        const T dt,
         const I* __restrict__ const perm,
         unsigned n)
 {
@@ -36,16 +35,11 @@ void assemble_matrix_fine(
         // The 1e-3 is a constant of proportionality required to ensure that the
         // conductance (gi) values have units μS (micro-Siemens).
         // See the model documentation in docs/model for more information.
-        const auto dt = dt_intdom[cv_to_intdom[tid]];
-        const auto p = dt > 0;
         const auto pid = perm[tid];
         const auto area_factor = T(1e-3)*area[tid];
         const auto gi = T(1e-3)*cv_capacitance[tid]/dt + area_factor*conductivity[tid];
-        const auto r_d = gi + invariant_d[tid];
-        const auto r_rhs = gi*voltage[tid] - area_factor*current[tid];
-
-        d[pid]   = p ? r_d : 0;
-        rhs[pid] = p ? r_rhs : voltage[tid];
+        d[pid] = gi + invariant_d[tid];
+        rhs[pid] = gi*voltage[tid] - area_factor*current[tid];
     }
 }
 
@@ -221,17 +215,13 @@ ARB_ARBOR_API void assemble_matrix_fine(
     const arb_value_type* conductivity,
     const arb_value_type* cv_capacitance,
     const arb_value_type* area,
-    const arb_index_type* cv_to_intdom,
-    const arb_value_type* dt_intdom,
+    const arb_value_type  dt,
     const arb_index_type* perm,
     unsigned n)
 {
-    const unsigned block_dim = 128;
-    const unsigned num_blocks = impl::block_count(n, block_dim);
-
-    kernels::assemble_matrix_fine<<<num_blocks, block_dim>>>(
+    launch_1d(n, 128, kernels::assemble_matrix_fine<arb_value_type, arb_index_type>,
         d, rhs, invariant_d, voltage, current, conductivity, cv_capacitance, area,
-        cv_to_intdom, dt_intdom, perm, n);
+        dt, perm, n);
 }
 
 // Example:
@@ -264,7 +254,7 @@ ARB_ARBOR_API void solve_matrix_fine(
     unsigned num_blocks,                   // number of blocks
     unsigned blocksize)                    // size of each block
 {
-    kernels::solve_matrix_fine<<<num_blocks, blocksize>>>(
+    launch(num_blocks, blocksize, kernels::solve_matrix_fine<arb_value_type>,
         rhs, d, u, level_meta, level_lengths, level_parents, block_index,
         num_cells);
 }

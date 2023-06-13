@@ -32,9 +32,6 @@ public:
 
     using metadata_array = memory::device_vector<level_metadata>;
 
-    // Maps control volume to integration domain
-    iarray cv_to_intdom;
-
     array d;     // [μS]
     array u;     // [μS]
     array rhs;   // [nA]
@@ -91,8 +88,7 @@ public:
     diffusion_state(const std::vector<size_type>& p,
                     const std::vector<size_type>& cell_cv_divs,
                     const std::vector<value_type>& face_diffusivity,
-                    const std::vector<value_type>& area,
-                    const std::vector<size_type>& cell_intdom) {
+                    const std::vector<value_type>& area) {
         using util::make_span;
         constexpr unsigned npos = unsigned(-1);
 
@@ -397,20 +393,15 @@ public:
             util::fill(util::subrange_view(cv_to_cell_tmp, cv_span), ci);
             ++ci;
         }
-        std::vector<size_type> cv_to_intdom_tmp(matrix_size);
-        for (auto i = 0ul; i < cv_to_cell_tmp.size(); ++i) {
-            cv_to_intdom_tmp[i] = cell_intdom[cv_to_cell_tmp[i]];
-        }
-        cv_to_intdom = memory::make_const_view(cv_to_intdom_tmp);
     }
 
     // Assemble the matrix
     // Afterwards the diagonal and RHS will have been set given dt, voltage, current, and conductivity.
-    //   dt_intdom [ms] (per integration domain)
+    //   dt [ms] (scalar)
     //   voltage [mV]
     //   current density [A/m²]
     //   conductivity [kS/m²]
-    void assemble(const_view dt_intdom, const_view concentration, const_view voltage, const_view current, const_view conductivity, arb_value_type q) {
+    void assemble(const value_type dt, const_view concentration, const_view voltage, const_view current, const_view conductivity, arb_value_type q) {
         assemble_diffusion(d.data(),
                            rhs.data(),
                            invariant_d.data(),
@@ -420,8 +411,7 @@ public:
                            q,
                            conductivity.data(),
                            cv_area.data(),
-                           cv_to_intdom.data(),
-                           dt_intdom.data(),
+                           dt,
                            perm.data(),
                            size());
     }
@@ -440,6 +430,16 @@ public:
                         max_branches_per_level);
         // unpermute the solution
         packed_to_flat(rhs, to);
+    }
+
+    void solve(array& concentration,
+               const value_type dt,
+               const_view voltage,
+               const_view current,
+               const_view conductivity,
+               arb_value_type q) {
+        assemble(dt, concentration, voltage, current, conductivity, q);
+        solve(concentration);
     }
 
     std::size_t size() const { return matrix_size; }

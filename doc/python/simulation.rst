@@ -66,10 +66,13 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     .. function:: simulation(recipe, domain_decomposition, context, seed)
 
-        Initialize the model described by an :py:class:`arbor.recipe`, with cells and network
-        distributed according to :py:class:`arbor.domain_decomposition`, computational resources
-        described by :py:class:`arbor.context` and with a seed value for generating reproducible
+        Initialize the model described by an :py:class:`~arbor.recipe`, with cells and network
+        distributed according to :py:class:`~arbor.domain_decomposition`, computational resources
+        described by :py:class:`~arbor.context` and with a seed value for generating reproducible
         random numbers (optional, default value: `0`).
+
+        When constructed with a single argument, a :py:class:`~arbor.recipe`, a local context is
+        automatically created with :py:func:`~arbor.env.default_allocation()`.
 
     **Updating Model State:**
 
@@ -98,14 +101,6 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
         :param dt: The time step size [ms].
 
-    .. function:: set_binning_policy(policy, bin_interval)
-
-        Set the binning ``policy`` for event delivery, and the binning time interval ``bin_interval`` if applicable [ms].
-
-        :param policy: The binning policy of type :py:class:`binning`.
-
-        :param bin_interval: The binning time interval [ms].
-
     **Recording spike data:**
 
     .. function:: record(policy)
@@ -125,12 +120,10 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     **Sampling probes:**
 
-    .. function:: sample(probeset_id, schedule, policy)
+    .. function:: sample(probeset_id, schedule)
 
         Set up a sampling schedule for the probes associated with the supplied probeset_id of type :py:class:`cell_member`.
         The schedule is any schedule object, as might be used with an event generator — see :ref:`pyrecipe` for details.
-        The policy is of type :py:class:`sampling_policy`. It can be omitted, in which case the sampling will accord with the
-        ``sampling_policy.lax`` policy.
 
         The method returns a :term:`handle` which can be used in turn to retrieve the sampled data from the simulator or to
         remove the corresponding sampling process.
@@ -176,22 +169,6 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
 **Types:**
 
-.. class:: binning
-
-    Enumeration for event time binning policy.
-
-    .. attribute:: none
-
-        No binning policy.
-
-    .. attribute:: regular
-
-        Round time down to multiple of binning interval.
-
-    .. attribute:: following
-
-        Round times down to previous event if within binning interval.
-
 .. class:: spike_recording
 
     Enumeration for spike recording policy.
@@ -208,19 +185,6 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
         Record all generated spikes from cells on all MPI ranks.
 
-.. class:: sampling_policy
-
-    Enumeration for determining sampling policy.
-
-    .. attribute:: lax
-
-        Sampling times may not be exactly as requested in the sampling schedule, but
-        the process of sampling is guaranteed not to disturb the simulation progress or results.
-
-    .. attribute:: exact
-
-        Interrupt the progress of the simulation as required to retrieve probe samples at exactly
-        those times requested by the sampling schedule.
 
 Recording spikes
 ----------------
@@ -327,9 +291,9 @@ Example
 
     sim = arbor.simulation(recipe, decomp, context)
 
-    # Sample probeset id (0, 0) (first probeset id on cell 0) every 0.1 ms with exact sample timing:
+    # Sample probeset id (0, 0) (first probeset id on cell 0) every 0.1 ms
 
-    handle = sim.sample((0, 0), arbor.regular_schedule(0.1), arbor.sampling_policy.exact)
+    handle = sim.sample((0, 0), arbor.regular_schedule(0.1))
 
     # Run simulation and retrieve sample data from the first probe associated with the handle.
 

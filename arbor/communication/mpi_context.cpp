@@ -8,29 +8,43 @@
 #include <string>
 #include <vector>
 
-#include <mpi.h>
-
 #include <arbor/spike.hpp>
+#include <arbor/communication/remote.hpp>
+#include <arbor/util/scope_exit.hpp>
 
 #include "communication/mpi.hpp"
 #include "distributed_context.hpp"
 #include "label_resolution.hpp"
+#include "affinity.hpp"
 
 namespace arb {
 
 // Throws arb::mpi::mpi_error if MPI calls fail.
 struct mpi_context_impl {
-    int size_;
-    int rank_;
-    MPI_Comm comm_;
+    int size_ = -1;
+    int rank_ = -1;
+    MPI_Comm comm_ = MPI_COMM_NULL;
 
-    explicit mpi_context_impl(MPI_Comm comm): comm_(comm) {
+    explicit mpi_context_impl(MPI_Comm comm, bool bind=false): comm_(comm) {
         size_ = mpi::size(comm_);
         rank_ = mpi::rank(comm_);
+        if (bind) {
+            MPI_Comm local;
+            MPI_OR_THROW(MPI_Comm_split_type, comm, MPI_COMM_TYPE_SHARED, rank_, MPI_INFO_NULL, &local);
+            auto mpi_guard = util::on_scope_exit([&] { MPI_Comm_free(&local); });
+            set_affinity(mpi::rank(local),
+                         mpi::size(local),
+                         affinity_kind::process);
+        }
     }
 
-    gathered_vector<arb::spike>
-    gather_spikes(const std::vector<arb::spike>& local_spikes) const {
+    std::vector<spike>
+    remote_gather_spikes(const std::vector<spike>& local_spikes) const {
+        return {};
+    }
+
+    gathered_vector<spike>
+    gather_spikes(const std::vector<spike>& local_spikes) const {
         return mpi::gather_all_with_partition(local_spikes, comm_);
     }
 
@@ -88,11 +102,76 @@ struct mpi_context_impl {
     void barrier() const {
         mpi::barrier(comm_);
     }
+    void remote_ctrl_send_continue(const epoch&) const {}
+    void remote_ctrl_send_done() const {}
 };
 
 template <>
-std::shared_ptr<distributed_context> make_mpi_context(MPI_Comm comm) {
-    return std::make_shared<distributed_context>(mpi_context_impl(comm));
+std::shared_ptr<distributed_context> make_mpi_context(MPI_Comm comm, bool bind) {
+    return std::make_shared<distributed_context>(mpi_context_impl(comm, bind));
+}
+
+struct remote_context_impl {
+    mpi_context_impl mpi_;
+    MPI_Comm portal_ = MPI_COMM_NULL;
+
+    explicit remote_context_impl(MPI_Comm comm, MPI_Comm portal):
+        mpi_{comm}, portal_{portal} {}
+
+    std::vector<spike>
+    remote_gather_spikes(const std::vector<spike>& local_spikes) const {
+        // Static sanity checks to ensure we can bit-cast spike <> remote::spike
+        static_assert((sizeof(cell_member_type) == sizeof(remote::arb_cell_id))
+                   && (offsetof(cell_member_type, gid) == offsetof(remote::arb_cell_id, gid))
+                   && (offsetof(cell_member_type, index) == offsetof(remote::arb_cell_id, lid))
+                   && std::is_same_v<cell_gid_type, remote::arb_gid_type>
+                   && std::is_same_v<cell_lid_type, remote::arb_lid_type>,
+                      "Remote cell identifier has diverged from Arbor's internal type.");
+        static_assert((sizeof(spike) == sizeof(remote::arb_spike))
+                    && (offsetof(spike, source) == offsetof(remote::arb_spike, source))
+                    && (offsetof(spike, time) == offsetof(remote::arb_spike, time))
+                    && std::is_same_v<time_type, remote::arb_time_type>,
+                      "Remote spike type is diverged from Arbor's internal type.");
+        return mpi::gather_all(local_spikes, portal_);
+    }
+
+    gathered_vector<spike>
+    gather_spikes(const std::vector<spike>& local_spikes) const { return mpi_.gather_spikes(local_spikes); }
+
+    gathered_vector<cell_gid_type>
+    gather_gids(const std::vector<cell_gid_type>& local_gids) const { return mpi_.gather_gids(local_gids); }
+
+    std::vector<std::vector<cell_gid_type>>
+    gather_gj_connections(const std::vector<std::vector<cell_gid_type>>& local_connections) const {
+        return mpi_.gather_gj_connections(local_connections);
+    }
+
+    cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
+        return mpi_.gather_cell_label_range(local_ranges);
+    }
+
+    cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const {
+        return mpi_.gather_cell_labels_and_gids(local_labels_and_gids);
+    }
+
+    template <typename T> std::vector<T> gather(T value, int root) const { return mpi_.gather(value, root); }
+    std::string name() const { return "MPIRemote"; }
+    int id() const { return mpi_.id(); }
+    int size() const { return mpi_.size(); }
+    template <typename T> T min(T value) const { return mpi_.min(value); }
+    template <typename T> T max(T value) const { return mpi_.max(value); }
+    template <typename T> T sum(T value) const { return mpi_.sum(value); }
+    void barrier() const { mpi_.barrier(); }
+    void remote_ctrl_send_continue(const epoch& e) const { remote::exchange_ctrl(remote::msg_epoch{e.t0, e.t1}, portal_); }
+    void remote_ctrl_send_done() const { remote::exchange_ctrl(remote::msg_done{}, portal_); }
+};
+
+template <>
+std::shared_ptr<distributed_context> make_remote_context(MPI_Comm comm, MPI_Comm remote) {
+    int is_inter = 0;
+    MPI_Comm_test_inter(remote, &is_inter);
+    if (!is_inter) throw mpi_inter_comm_required{};
+    return std::make_shared<distributed_context>(remote_context_impl(comm, remote));
 }
 
 } // namespace arb

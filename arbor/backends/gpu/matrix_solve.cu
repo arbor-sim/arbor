@@ -94,12 +94,8 @@ ARB_ARBOR_API void solve_matrix_flat(
     const arb_index_type* cell_cv_divs,
     int num_mtx)
 {
-    constexpr unsigned block_dim = 128;
-    const unsigned grid_dim = impl::block_count(num_mtx, block_dim);
-    kernels::solve_matrix_flat
-        <arb_value_type, arb_index_type>
-        <<<grid_dim, block_dim>>>
-        (rhs, d, u, p, cell_cv_divs, num_mtx);
+    launch_1d(num_mtx, 128, kernels::solve_matrix_flat<arb_value_type, arb_index_type>,
+        rhs, d, u, p, cell_cv_divs, num_mtx);
 }
 
 void solve_matrix_interleaved(
@@ -112,10 +108,9 @@ void solve_matrix_interleaved(
     int num_mtx)
 {
     constexpr unsigned block_dim = impl::matrices_per_block();
-    const unsigned grid_dim = impl::block_count(num_mtx, block_dim);
-    kernels::solve_matrix_interleaved<arb_value_type, arb_index_type, block_dim>
-        <<<grid_dim, block_dim>>>
-        (rhs, d, u, p, sizes, padded_size, num_mtx);
+    launch_1d(num_mtx, block_dim,
+        kernels::solve_matrix_interleaved<arb_value_type, arb_index_type, block_dim>,
+        rhs, d, u, p, sizes, padded_size, num_mtx);
 }
 
 } // namespace gpu

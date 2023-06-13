@@ -126,7 +126,8 @@ class ARB_ARBOR_API task_system {
 private:
     // Number of notification queues.
     unsigned count_;
-
+    // Attempt to bind threads?
+    bool bind_ = false;
     // Worker threads.
     std::vector<std::thread> threads_;
 
@@ -161,7 +162,8 @@ public:
     task_system();
 
     // Create nthreads-1 new std::threads running run_tasks_loop(tid)
-    task_system(int nthreads);
+    task_system(int nthreads, bool bind_threads=false);
+
 
     task_system(const task_system&) = delete;
     task_system& operator=(const task_system&) = delete;
@@ -198,8 +200,8 @@ public:
     // point here is that while the thread is waiting for other tasks to finish, it
     // is not executing the run_tasks_loop, but the task_group::wait() loop which
     // doesn't use pop but always try_pop.
-    // `i` is the thread idx, used to select the thread's personal notification queue.
-    void run_tasks_loop(int i);
+    // `index` is used to select the thread's personal notification queue.
+    void run_tasks_loop(int index);
 
     // Public interface: try to dequeue and run a single task with at least the
     // requested priority level. Will return without executing a task if no tasks

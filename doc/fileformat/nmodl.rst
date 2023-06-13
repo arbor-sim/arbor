@@ -41,6 +41,7 @@ quantity                                         identifier                     
 voltage                                          v / v_peer                                           mV
 temperature                                      celsius                                              °C
 diameter (cross-sectional)                       diam                                                 µm
+area (lateral)                                   area                                                 µm²
 
 current_density (density mechanisms)             identifier defined using ``NONSPECIFIC_CURRENT``     mA/cm²
 conductivity (density mechanisms)                identifier inferred from current_density equation    S/cm²
@@ -92,17 +93,28 @@ Ions
 Special variables
 -----------------
 
-* Arbor exposes some parameters from the simulation to the NMODL mechanisms.
-  These include ``v``, ``diam``, and ``celsius`` in addition to the previously
-  mentioned ion parameters.
-* These special variables should not be ``ASSIGNED`` or ``CONSTANT``, they are
-  ``PARAMETER``. This is different from NEURON where a built-in variable is
-  declared ``ASSIGNED`` to make it accessible.
-* ``diam`` and ``celsius`` are set from the simulation side.
-* ``v`` is a reserved variable name and can be read but not written in NMODL.
-* ``dt``, ``time``, and ``area`` are not exposed to NMODL mechanisms.
-* ``NONSPECIFIC_CURRENTS`` should not be ``PARAMETER``, ``ASSIGNED`` or ``CONSTANT``.
-  They just need to be declared in the NEURON block.
+Arbor exposes some read-only variables from the simulation to the NMODL mechanisms.
+These special variables must be added to the ``PARAMETER`` block to make them accessible.
+(This is different from NEURON where a built-in variable is declared ``ASSIGNED`` to make it accessible.)
+They are also reserved words and must not be used for other purposes.
+
+The list of special variables is:
+- ``v`` membrane voltage on current CV in mV,
+- ``diam`` CV diameter (cross-section) in µm,
+- ``area`` CV lateral (ie cylindrical mantle) surface area in µm²,
+- ``celsius`` CV temperature in Celsius
+
+Variables declared by ``NONSPECIFIC_CURRENT`` or ``USEION ... READ ... WRITE
+...`` should not be added to ``PARAMETER``, ``ASSIGNED`` or ``CONSTANT``.
+They are visible after their declaration and potentially writable.
+  
+Both ``diam`` and ``celsius`` are set from the simulation side via the cell
+description. The CV surface area ``area`` is computed from the discretisation
+and the morphology. The membrane potential ``v`` can be written by a special
+``VOLTAGE_PROCESS``. For all other mechanism kinds ``v`` is read-only and is
+evolved by Arbor through the cable model.
+
+Neither the timestep ``dt`` nor the current ``time`` are exposed to NMODL mechanisms.
 
 Functions, procedures and blocks
 --------------------------------
@@ -111,7 +123,7 @@ Functions, procedures and blocks
 * The return variable of ``FUNCTION`` has to always be set. ``if`` without associated
   ``else`` can break that if users are not careful.
 * Any non-``LOCAL`` variables used in a ``PROCEDURE`` or ``FUNCTION`` need to be passed
-  as arguments.
+  as arguments. This includes global variables like ``v``.
 
 Unsupported features
 --------------------
@@ -127,7 +139,9 @@ Unsupported features
 * ``derivimplicit`` solving method is not supported, use ``cnexp`` instead.
 * ``VERBATIM`` blocks are not supported.
 * ``LOCAL`` variables outside blocks are not supported.
+* free standing blocks are not supported.
 * ``INDEPENDENT`` variables are not supported.
+* arrays and pointers are not supported by Arbor.
 
 .. _arbornmodl:
 
@@ -177,6 +191,8 @@ Arbor-specific features
   relu(x)             rectified linear function                 :math:`max(0, x)`
   tanh(x)             hyperbolic tangent                        :math:`tanh(x)`
   ==================  ========================================  =========
+
+.. _formatnmodl_voltageproc:
 
 Voltage Processes
 -----------------

@@ -148,13 +148,13 @@ Thus, we have all ingredients to create the recipe
 
 .. literalinclude:: ../../python/example/calcium_stdp.py
    :language: python
-   :lines: 136-137
+   :lines: 135-136
 
 Now, we need to initialize the simulation, register a probe and run the simulation:
 
 .. literalinclude:: ../../python/example/calcium_stdp.py
    :language: python
-   :lines: 139-154
+   :lines: 138-153
 
 Since we are interested in the long-term average value, we only query the probe at the end of the
 simulation.
@@ -164,14 +164,14 @@ transition probabilies from initial DOWN state to final UP state and vice versa.
 
 .. literalinclude:: ../../python/example/calcium_stdp.py
    :language: python
-   :lines: 156-174
+   :lines: 155-173
 
 Since we need to run our simulation for each time lag case anew, we spawn a bunch of threads to
 carry out the work in parallel:
 
 .. literalinclude:: ../../python/example/calcium_stdp.py
    :language: python
-   :lines: 177-178
+   :lines: 176-177
 
 The collected results can then be plotted:
 

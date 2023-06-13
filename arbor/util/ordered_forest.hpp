@@ -573,8 +573,7 @@ private:
         auto copy_children = [&](auto& self, const auto& from, auto& to) -> void {
             sibling_iterator j;
             for (auto i = other.child_begin(from); i!=other.child_end(from); ++i) {
-                // TODO: explicit `this` required for g++6; remove when g++6 deprecated.
-                j = j? this->insert_after(j, *i): sibling_iterator(this->push_child(to, *i));
+                j = j? insert_after(j, *i): sibling_iterator(push_child(to, *i));
                 self(self, i, j);
             }
         };

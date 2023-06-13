@@ -36,6 +36,7 @@ public:
         if (mech_.abi_version != ARB_MECH_ABI_VERSION) throw unsupported_abi_error{mech_.abi_version};
         state_prof_id   = profile::profiler_region_id("advance:integrate:state:"+internal_name());
         current_prof_id = profile::profiler_region_id("advance:integrate:current:"+internal_name());
+        deliver_prof_id = profile::profiler_region_id("advance:integrate:event:"+internal_name());
     }
     mechanism() = default;
     mechanism(const mechanism&) = delete;
@@ -57,13 +58,39 @@ public:
     // the result must be instantiated.
     mechanism_ptr clone() const { return std::make_unique<mechanism>(mech_, iface_); }
 
+    void set_dt(arb_value_type dt) { ppack_.dt = dt; }
+
     // Forward to interface methods
-    void initialize()     { iface_.init_mechanism(&ppack_); }
-    void update_current() { prof_enter(current_prof_id); iface_.compute_currents(&ppack_); prof_exit(); }
-    void update_state()   { prof_enter(state_prof_id);   iface_.advance_state(&ppack_);    prof_exit(); }
-    void update_ions()    { iface_.write_ions(&ppack_); }
-    void post_event()     { iface_.post_event(&ppack_); }
-    void deliver_events(arb_deliverable_event_stream& stream) { iface_.apply_events(&ppack_, &stream); }
+
+    void initialize() {
+        iface_.init_mechanism(&ppack_);
+    }
+
+    void update_current() {
+        prof_enter(current_prof_id);
+        iface_.compute_currents(&ppack_);
+        prof_exit();
+    }
+
+    void update_state() {
+        prof_enter(state_prof_id);
+        iface_.advance_state(&ppack_);
+        prof_exit();
+    }
+
+    void update_ions() {
+        iface_.write_ions(&ppack_);
+    }
+
+    void post_event() {
+        iface_.post_event(&ppack_);
+    }
+
+    void deliver_events(arb_deliverable_event_stream& stream) {
+        prof_enter(deliver_prof_id);
+        iface_.apply_events(&ppack_, &stream);
+        prof_exit();
+    }
 
     // Per-cell group identifier for an instantiated mechanism.
     unsigned mechanism_id() const { return ppack_.mechanism_id; }
@@ -86,6 +113,7 @@ private:
 #endif
     profile::region_id_type state_prof_id;
     profile::region_id_type current_prof_id;
+    profile::region_id_type deliver_prof_id;
 };
 
 struct mechanism_layout {

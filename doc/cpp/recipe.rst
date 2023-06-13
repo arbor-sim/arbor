@@ -80,6 +80,17 @@ Recipe
 
         By default returns an empty list.
 
+    .. cpp:function:: virtual std::vector<ext_cell_connection> external_connections_on(cell_gid_type gid) const
+
+        Returns a list of all the **incoming** connections for `gid` from a
+        remote simulation. Each connection ``con`` should have a valid synapse
+        label ``con.dest`` on the post-synaptic target `gid`, and a valid source
+        label ``con.source.lid`` on the remote pre-synaptic source ``con.source.rid``.
+        See :cpp:type:`ext_cell_connection`.
+
+        By default returns an empty list.
+
+
     .. cpp:function:: virtual std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const
 
         Returns a list of all the gap junctions connected to `gid`.

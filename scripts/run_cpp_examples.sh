@@ -26,7 +26,7 @@ check () {
     fi
 }
 
-for ex in bench brunel gap_junctions generators lfp ring single-cell "probe-demo v" plasticity ou voltage-clamp
+for ex in bench brunel gap_junctions generators lfp ring busyring single-cell "probe-demo v" plasticity ou voltage-clamp
 do
     echo "   - $ex"
     dir=`echo $ex | tr ' ' '_'`
@@ -36,10 +36,25 @@ do
     cd -
 done
 
+# MPI only examples
+if [[ $PREFIX = mpirun* ]]
+then
+    for ex in remote
+    do
+        echo "   - $ex"
+        dir=`echo $ex | tr ' ' '_'`
+        mkdir -p $out/$dir
+        cd $out/$dir
+        $PREFIX/$ex > stdout.txt 2> stderr.txt
+        cd -
+    done
+fi
+
 # Do some sanity checks.
 check brunel 6998
 check bench 972
 check ring 94
+check busyring 9
 check gap_junctions 30
 
 exit $ok

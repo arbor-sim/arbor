@@ -56,15 +56,8 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     array values(n, 0);
     values[5] = 3.;
 
-    // the values are tied to two 'cells' with independent times:
-    // compartments [0, 5] -> cell 0
-    // compartments [6, 9] -> cell 1
-    iarray cell_index(n, 0);
-    for (unsigned i = 6; i<n; ++i) {
-        cell_index[i] = 1;
-    }
-    array time_before(2, 0.);
-    array time_after(2, 0.);
+    arb_value_type time_before = 0;
+    arb_value_type time_after = 0;
 
     iarray src_to_spike(src_to_spike_vec.size());
     memory::copy(src_to_spike_vec, src_to_spike);
@@ -76,9 +69,13 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     list expected;
 
     // create the watch
-    backend::threshold_watcher watch(cell_index.data(), src_to_spike.data(),
-                                     &time_before, &time_after, 
-                                     values.size(), index, thresh, context);
+    backend::threshold_watcher watch(
+            values.size(),
+            src_to_spike.data(),
+            index,
+            thresh,
+            context);
+
     watch.reset(values);
 
     // initially the first and third watch should not be spiking
@@ -89,8 +86,8 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
 
     // test again at t=1, with unchanged values
     //  - nothing should change
-    memory::fill(time_after, 1.);
-    watch.test(&time_since_spike);
+    time_after = 1.;
+    watch.test(time_since_spike, time_before, time_after);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_TRUE(watch.is_crossed(1));
     EXPECT_FALSE(watch.is_crossed(2));
@@ -104,9 +101,9 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     // test at t=2, with all values set to zero
     //  - 2nd watch should now stop spiking
     memory::fill(values, 0.);
-    memory::copy(time_after, time_before);
-    memory::fill(time_after, 2.);
-    watch.test(&time_since_spike);
+    time_before = time_after;
+    time_after = 2.;
+    watch.test(time_since_spike, time_before, time_after);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
     EXPECT_FALSE(watch.is_crossed(2));
@@ -115,23 +112,22 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     // test at t=(2.5, 3), with all values set to 4.
     //  - all watches should now be spiking
     memory::fill(values, 4.);
-    memory::copy(time_after, time_before);
-    time_after[0] = 2.5;
-    time_after[1] = 3.0;
-    watch.test(&time_since_spike);
+    time_before = time_after;
+    time_after = 3.0;
+    watch.test(time_since_spike, time_before, time_after);
     EXPECT_TRUE(watch.is_crossed(0));
     EXPECT_TRUE(watch.is_crossed(1));
     EXPECT_TRUE(watch.is_crossed(2));
     EXPECT_EQ(watch.crossings().size(), 3u);
 
     // record the expected spikes
-    expected.push_back({0u, 2.125f}); // 2. + (2.5-2)*(1./4.)
-    expected.push_back({1u, 2.250f}); // 2. + (2.5-2)*(2./4.)
-    expected.push_back({2u, 2.750f}); // 2. + (3.0-2)*(3./4.)
+    expected.push_back({0u, 2.25f}); // 2. + (3-2)*(1./4.)
+    expected.push_back({1u, 2.50f}); // 2. + (3-2)*(2./4.)
+    expected.push_back({2u, 2.750f}); // 2. + (3-2)*(3./4.)
 
     memory::copy(time_since_spike, time_since_spike_vec);
-    EXPECT_EQ(0.375, time_since_spike_vec[src_to_spike[0]]); // 2.5 - 2.125
-    EXPECT_EQ(0.250, time_since_spike_vec[src_to_spike[1]]); // 2.5 - 2.250
+    EXPECT_EQ(0.750, time_since_spike_vec[src_to_spike[0]]); // 3.0 - 2.25
+    EXPECT_EQ(0.500, time_since_spike_vec[src_to_spike[1]]); // 3.0 - 2.50
     EXPECT_EQ(0.250, time_since_spike_vec[src_to_spike[2]]); // 3.0 - 2.750
     for (auto i: empty_slots) {
         EXPECT_EQ(-1.0, time_since_spike_vec[i]);
@@ -140,9 +136,9 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     // test at t=4, with all values set to 0.
     //  - all watches should stop spiking
     memory::fill(values, 0.);
-    memory::copy(time_after, time_before);
-    memory::fill(time_after, 4.);
-    watch.test(&time_since_spike);
+    time_before = time_after;
+    time_after = 4;
+    watch.test(time_since_spike, time_before, time_after);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
     EXPECT_FALSE(watch.is_crossed(2));
@@ -156,9 +152,9 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     // test at t=5, with value on 3rd watch set to 6
     //  - watch 3 should be spiking
     values[index[2]] = 6.;
-    memory::copy(time_after, time_before);
-    memory::fill(time_after, 5.);
-    watch.test(&time_since_spike);
+    time_before = time_after;
+    time_after = 5;
+    watch.test(time_since_spike, time_before, time_after);
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
     EXPECT_TRUE(watch.is_crossed(2));
@@ -198,7 +194,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     //
     memory::fill(values, 0);
     values[index[0]] = 10.; // first watch should be intialized to spiking state
-    memory::fill(time_before, 0.);
+    time_before = 0;
     watch.reset(values);
     EXPECT_EQ(watch.crossings().size(), 0u);
     EXPECT_TRUE(watch.is_crossed(0));
@@ -218,6 +214,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher_interpolation) {
     dict.set("mid", arb::ls::on_branches(0.5));
 
     arb::proc_allocation resources;
+    resources.num_threads = 1;
     resources.gpu_id = GPU_ID;
     auto context = arb::make_context(resources);
 

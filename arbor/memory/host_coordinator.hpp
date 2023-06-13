@@ -156,6 +156,30 @@ public:
         gpu_memcpy_h2d(to.data(), from.data(), from.size()*sizeof(value_type));
     }
 
+    template<typename LHS, typename RHS>
+    void copy_async(LHS&& lhs, RHS&& rhs) {
+        copy(std::forward<LHS>(lhs), std::forward<RHS>(rhs));
+    }
+
+    // copy memory from host to device
+    template <class Alloc>
+    void copy_async(
+        const_view_type from,
+        array_view<value_type, device_coordinator<value_type, Alloc>> to)
+    {
+        arb_assert(from.size()==to.size());
+
+        #ifdef VERBOSE
+        std::cerr << util::type_printer<host_coordinator>::print()
+                  << "::" + util::blue("copy") << "(host2deviceAsync, " << from.size()
+                  << " [" << from.size()*sizeof(value_type) << " bytes])"
+                  << " " << util::print_pointer(from.data()) << util::yellow(" -> ")
+                  << util::print_pointer(to.data()) << std::endl;
+        #endif
+
+        gpu_memcpy_h2d_async(to.data(), from.data(), from.size()*sizeof(value_type));
+    }
+
     // set all values in a range to val
     void set(view_type rng, value_type val) {
         #ifdef VERBOSE

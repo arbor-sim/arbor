@@ -24,6 +24,20 @@ using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 using shared_state = backend::shared_state;
 ACCESS_BIND(std::unique_ptr<shared_state> fvm_cell::*, private_state_ptr, &fvm_cell::state_)
 
+// Creates an instance of a mechanism on a single compartment cell.
+// Performs a single time step of size dt, and verifies that the values
+// of the mechanisms variables match the expected pre and post values.
+//
+//  mech_name
+//      name of the mechanism from the unit test catalogue
+//  state_variables
+//      the names of the mechanism variables to test
+//  t0_values (optionally empty)
+//      expected initial values of each variable
+//  t1_values
+//      expected value of each variable after the time step
+//  dt
+//      size of the time step
 template <typename backend>
 void run_test(std::string mech_name,
         std::vector<std::string> state_variables,
@@ -31,22 +45,30 @@ void run_test(std::string mech_name,
         std::vector<arb_value_type> t1_values,
         arb_value_type dt) {
 
+    auto thread_pool = std::make_shared<arb::threading::task_system>();
+
     auto cat = make_unit_test_catalogue();
 
+    // Create a single compartment cell
     arb_size_type ncell = 1;
     arb_size_type ncv = 1;
-    std::vector<arb_index_type> cv_to_intdom(ncv, 0);
+    std::vector<arb_index_type> cv_to_cell(ncv, 0);
 
     auto instance = cat.instance(backend::kind, mech_name);
-    auto& test = instance.mech;
+    auto& mech = instance.mech;
 
     std::vector<arb_value_type> temp(ncv, 300.);
     std::vector<arb_value_type> diam(ncv, 1.);
+    std::vector<arb_value_type> area(ncv, 10.);
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
-    auto shared_state = std::make_unique<typename backend::shared_state>(
-            ncell, ncell, 0, cv_to_intdom, cv_to_intdom, vinit, temp, diam, src_to_spike, test->data_alignment());
+    // Create the fvm shared state for the simple cell.
+    auto shared_state = std::make_unique<typename backend::shared_state>(thread_pool, ncell, ncv, cv_to_cell,
+                                                                         vinit, temp, diam, area,
+                                                                         src_to_spike,
+                                                                         fvm_detector_info{},
+                                                                         mech->data_alignment());
 
     mechanism_layout layout;
     mechanism_overrides overrides;
@@ -56,28 +78,32 @@ void run_test(std::string mech_name,
         layout.cv.push_back(i);
     }
 
-    shared_state->instantiate(*test, 0, overrides, layout, {});
+    shared_state->instantiate(*mech, 0, overrides, layout, {});
     shared_state->reset();
 
-    test->initialize();
+    mech->initialize();
 
+    // Test the expected initial values if provided.
     if (!t0_values.empty()) {
         for (unsigned i = 0; i < state_variables.size(); i++) {
             for (unsigned j = 0; j < ncv; j++) {
-                EXPECT_NEAR(t0_values[i], mechanism_field(test.get(), state_variables[i]).at(j), 1e-6);
+                EXPECT_NEAR(t0_values[i], mechanism_field(mech.get(), state_variables[i]).at(j), 1e-6);
             }
         }
     }
 
-    shared_state->update_time_to(dt, dt);
-    shared_state->set_dt();
+    // TODO: here is the gotcha!
+    // Perform time step
+    shared_state->update_time_to(timestep_range(dt, dt)[0]);
+    mech->set_dt(shared_state->dt);
 
-    test->update_state();
+    mech->update_state();
 
+    // Test the values of state variables
     if (!t1_values.empty()) {
         for (unsigned i = 0; i < state_variables.size(); i++) {
             for (unsigned j = 0; j < ncv; j++) {
-                EXPECT_NEAR(t1_values[i], mechanism_field(test.get(), state_variables[i]).at(j), 1e-6);
+                EXPECT_NEAR(t1_values[i], mechanism_field(mech.get(), state_variables[i]).at(j), 1e-6);
             }
         }
     }

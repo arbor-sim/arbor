@@ -132,7 +132,7 @@ Cable cells
 
     Set the default value for the temperature (``K``).
 
-    .. property:: axial_resisitivity
+    .. property:: axial_resistivity
 
     Set the default value for the membrane axial resisitivity. (``Ω·cm``)
 

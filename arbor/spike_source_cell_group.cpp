@@ -78,7 +78,7 @@ void spike_source_cell_group::clear_spikes() {
     spikes_.clear();
 }
 
-void spike_source_cell_group::add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function, sampling_policy) {}
+void spike_source_cell_group::add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function) {}
 
 } // namespace arb
 

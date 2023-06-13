@@ -119,17 +119,12 @@ Class documentation
         Run the simulation from current simulation time to :cpp:any:`tfinal`,
         with maximum time step size :cpp:any:`dt`.
 
-    .. cpp:function:: void set_binning_policy(binning_kind policy, time_type bin_interval)
-
-        Set event binning policy on all our groups.
-
     **I/O:**
 
     .. cpp:function:: sampler_association_handle add_sampler(\
                         cell_member_predicate probeset_ids,\
                         schedule sched,\
-                        sampler_function f,\
-                        sampling_policy policy = sampling_policy::lax)
+                        sampler_function f)
 
         Note: sampler functions may be invoked from a different thread than that
         which called :cpp:func:`run`.
