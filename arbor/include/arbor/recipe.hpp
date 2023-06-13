@@ -64,33 +64,6 @@ struct gap_junction_connection {
         peer(std::move(peer)), local(std::move(local)), weight(g) {}
 };
 
-
-struct ARB_ARBOR_API has_external_synapses {
-};
-
-struct ARB_ARBOR_API has_probes {
-    virtual std::vector<probe_info> get_probes(cell_gid_type gid) const {
-        return {};
-    }
-    virtual ~has_probes() {}
-};
-
-struct ARB_ARBOR_API has_generators {
-    virtual std::vector<event_generator> event_generators(cell_gid_type) const {
-        return {};
-    }
-    virtual ~has_generators() {}
-};
-
-// Toppings allow updating a simulation
-struct ARB_ARBOR_API connectivity:
-        public has_synapses,
-               has_external_synapses,
-               has_generators {
-    virtual ~connectivity() {}
-};
-
->>>>>>> origin/master
 // Recipes allow building a simulation by lazy queries
 struct ARB_ARBOR_API recipe {
     // number of cells to build
@@ -110,7 +83,7 @@ struct ARB_ARBOR_API recipe {
     // list of generators on this gid
     virtual std::vector<event_generator> event_generators(cell_gid_type) const { return {}; }
     // list of external connection on this gid
-    virtual std::vector<ext_cell_connection> external_connections_on(cell_gid_type) const {  return {}; }
+    virtual std::vector<ext_cell_connection> external_connections_on(cell_gid_type) const { return {}; }
 
     virtual ~recipe() {}
 };

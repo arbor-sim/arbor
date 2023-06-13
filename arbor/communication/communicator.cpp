@@ -174,14 +174,16 @@ void communicator::update_connections(const recipe& rec,
     auto src_domain = src_domains.begin();
     auto target_resolver = resolver(&target_resolution_map);
 
-    for (const auto& cell: gid_infos) {
-        auto index = cell.index_on_domain;
+    for (const auto index: util::make_span(num_local_cells_)) {
+        const auto tgt_gid = gids[index];
         auto sources = std::unordered_map<cell_gid_type, label_map>{};
-        for (const auto& c: cell.conns) {
-            auto sgid = c.source.gid;
-            if (!sources.count(sgid)) sources.emplace(sgid, label_map{sgid, rec});
-            auto src_lid = sources.at(sgid).resolve(c.source);
-            auto tgt_lid = target_resolver.resolve({cell.gid, c.dest});
+        for (const auto cidx: util::make_span(part_connections[index], part_connections[index+1])) {
+            const auto& conn = gid_connections[cidx];
+            auto src_gid = conn.source.gid;
+            if (!sources.count(src_gid)) sources.emplace(src_gid, label_map{src_gid, rec});
+            if(is_external(src_gid)) throw arb::source_gid_exceeds_limit(tgt_gid, src_gid);
+            auto src_lid = sources.at(src_gid).resolve(conn.source);
+            auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
             auto offset  = offsets[*src_domain]++;
             ++src_domain;
             connections_[offset] = {{src_gid, src_lid}, tgt_lid, conn.weight, conn.delay, index};
