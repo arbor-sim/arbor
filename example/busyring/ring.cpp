@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
         auto params = read_options(argc, argv);
 
         arb::proc_allocation resources;
-        resources.num_threads = arbenv::default_concurrency();
+        resources.num_threads = 1; //arbenv::default_concurrency();
         resources.bind_threads = params.bind_threads;
 
 #ifdef ARB_MPI_ENABLED
@@ -223,8 +223,8 @@ int main(int argc, char** argv) {
 
         // Create an instance of our recipe.
         ring_recipe recipe(params);
-        cell_stats stats(recipe);
-        if (root) std::cout << stats << "\n";
+        // cell_stats stats(recipe);
+        // if (root) std::cout << stats << "\n";
         // Make decomposition
         auto decomp = arb::partition_load_balance(recipe, context, {{arb::cell_kind::cable, params.hint}});
         // Construct the model.

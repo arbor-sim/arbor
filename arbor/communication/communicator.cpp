@@ -157,7 +157,6 @@ void communicator::update_connections(const recipe& rec,
     // Construct the connections.
     // The loop above gave the information required to construct in place
     // the connections as partitioned by the domain of their source gid.
-    connections_.resize(n_cons);
     util::make_partition(connection_part_, src_counts);
     auto n_cons = gid_connections.size();
     auto n_ext_cons = gid_ext_connections.size();

@@ -518,7 +518,7 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
 }
 
 void cable_cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids,
-                                   schedule sched, sampler_function fn, sampling_policy policy) {
+                                   schedule sched, sampler_function fn) {
     std::lock_guard<std::mutex> guard(sampler_mex_);
 
     std::vector<cell_member_type> probeset =
