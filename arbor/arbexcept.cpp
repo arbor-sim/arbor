@@ -9,7 +9,7 @@
 
 #include <execinfo.h>
 
-#if 1
+#if 0
 void* operator new(std::size_t size) {
     void* trace[100];
     char buff[1024*1024] = {0};

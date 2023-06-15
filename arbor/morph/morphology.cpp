@@ -93,9 +93,9 @@ morphology_impl::morphology_impl(const segment_tree& tree) {
     if (!nsamp) return;
 
     // Generate branches.
-    auto B = impl::branches_from_segment_tree(tree);
-    branches_ = std::move(B.second);
-    branch_parents_ = std::move(B.first);
+    auto [bp, b] = impl::branches_from_segment_tree(tree);
+    branch_parents_ = std::move(bp);
+    branches_ = std::move(b);
     auto nbranch = branches_.size();
 
     // Generate branch tree.

@@ -11,18 +11,18 @@
     "record": false,
     "spikes": false,
     "dt": 0.1,
-    "depth": 6,
+    "depth": 2,
     "complex": true,
     "branch-probs": [
         1,
         0.5
     ],
     "compartments": [
-        20,
+        10,
         2
     ],
     "lengths": [
-        200,
+        40,
         20
     ]
 }
