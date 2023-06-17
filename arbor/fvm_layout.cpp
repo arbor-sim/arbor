@@ -443,17 +443,18 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
 }
 
 ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells,
-    const cable_cell_parameter_set& global_defaults,
-    const arb::execution_context& ctx)
+                                                      const cable_cell_parameter_set& global_defaults,
+                                                      const arb::execution_context& ctx)
 {
     std::vector<fvm_cv_discretization> cell_disc(cells.size());
     threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(),
-          [&] (int i) { cell_disc[i]=fvm_cv_discretize(cells[i], global_defaults);});
+          [&] (int i) { cell_disc[i] = fvm_cv_discretize(cells[i], global_defaults);});
 
     fvm_cv_discretization combined;
     for (auto cell_idx: count_along(cells)) {
         append(combined, cell_disc[cell_idx]);
     }
+    combined.shrink_to_fit();
     return combined;
 }
 
