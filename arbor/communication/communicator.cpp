@@ -122,11 +122,13 @@ void communicator::update_connections(const recipe& rec,
     part_ext_connections.push_back(0);
     std::vector<unsigned> src_domains;
     std::vector<cell_size_type> src_counts(num_domains_);
+    std::unordered_map<cell_gid_type, std::size_t> used;
     for (const auto gid: gids) {
         // Local
         const auto& conns = rec.connections_on(gid);
         for (const auto& conn: conns) {
             const auto sgid = conn.source.gid;
+            used[sgid] += 1;
             if (sgid >= num_total_cells_) throw arb::bad_connection_source_gid(gid, sgid, num_total_cells_);
             const auto src = dom_dec.gid_domain(sgid);
             src_domains.push_back(src);
@@ -142,8 +144,13 @@ void communicator::update_connections(const recipe& rec,
         part_ext_connections.push_back(gid_ext_connections.size());
     }
 
-
+    // Construct a label resolver for a given gid.
+    //
+    // We could take care not to fetch sources from connected cells for those
+    // gids that are local to or group. But, that doesn't seem to be worth the
+    // extra effort.
     struct label_map {
+        std::size_t used = 0;
         std::unique_ptr<label_resolution_map> map;
         resolver res;
 
@@ -151,7 +158,9 @@ void communicator::update_connections(const recipe& rec,
             map{std::make_unique<label_resolution_map>(cell_labels_and_gids{get_sources(gid, rec), {gid}})},
             res{map.get()}
                 {}
-        cell_lid_type resolve(const cell_global_label_type& lbl) { return res.resolve(lbl); }
+        cell_lid_type resolve(const cell_global_label_type& lbl) { used += 1; return res.resolve(lbl); }
+        void reset() { res.reset(); }
+        void clear() { res.clear(); map->clear(); }
     };
 
     // Construct the connections.
@@ -172,10 +181,9 @@ void communicator::update_connections(const recipe& rec,
     std::size_t ext = 0;
     auto src_domain = src_domains.begin();
     auto target_resolver = resolver(&target_resolution_map);
-
+    auto sources = std::unordered_map<cell_gid_type, label_map>{};
     for (const auto index: util::make_span(num_local_cells_)) {
         const auto tgt_gid = gids[index];
-        auto sources = std::unordered_map<cell_gid_type, label_map>{};
         for (const auto cidx: util::make_span(part_connections[index], part_connections[index+1])) {
             const auto& conn = gid_connections[cidx];
             auto src_gid = conn.source.gid;
@@ -195,6 +203,15 @@ void communicator::update_connections(const recipe& rec,
             auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
             ext_connections_[ext] = {src, tgt_lid, conn.weight, conn.delay, index};
             ++ext;
+        }
+        for (auto& [k, v]: sources) {
+            // To save a bit of peak memory, clear what we don't need anymore.
+            if (v.used >= used[k]) {
+                v.clear();
+            }
+            else {
+                v.reset();
+            }
         }
     }
     PL();

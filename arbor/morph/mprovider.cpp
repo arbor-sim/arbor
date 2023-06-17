@@ -10,28 +10,6 @@
 #include <arbor/util/expected.hpp>
 
 namespace arb {
-
-void mprovider::init() {
-    // Evaluate each named region or locset in provided dictionary
-    // to populate concrete regions_, locsets_ maps.
-
-    if (!label_dict_ptr) return;
-
-    for (const auto& pair: label_dict_ptr->regions()) {
-        (void)(this->region(pair.first));
-    }
-
-    for (const auto& pair: label_dict_ptr->locsets()) {
-        (void)(this->locset(pair.first));
-    }
-
-    for (const auto& pair: label_dict_ptr->iexpressions()) {
-        (void)(this->iexpr(pair.first));
-    }
-
-    label_dict_ptr = nullptr;
-}
-
 // Evaluation of a named region or locset requires the recursive evaluation of
 // any component regions or locsets in its definition.
 //
@@ -39,24 +17,18 @@ void mprovider::init() {
 // provided label_dict, and the maps updated accordingly. Post-initialization,
 // label_dict_ptr will be null, and concrete regions/locsets will only be retrieved
 // from the maps established during initialization.
+//
+// NOTE: This is _recursive_ since the call to _thingify_ will use _regions_ and ilk.
+// This is also why we need to tuck away the label_dict inside this class.
 
-template <typename RegOrLocMap, typename LabelDictMap>
-static const auto& try_lookup(const mprovider& provider, const std::string& name, RegOrLocMap& map, const LabelDictMap* dict_ptr) {
+template <typename ConcreteMap, typename LabelMap>
+static const auto& try_lookup(const mprovider& provider, const std::string& name, ConcreteMap& map, const LabelMap& dict) {
     auto it = map.find(name);
     if (it==map.end()) {
-        if (dict_ptr) {
-            map.emplace(name, util::unexpect);
-
-            auto it = dict_ptr->find(name);
-            if (it==dict_ptr->end()) {
-                throw unbound_name(name);
-            }
-
-            return (map[name] = thingify(it->second, provider)).value();
-        }
-        else {
-            throw unbound_name(name);
-        }
+        map.emplace(name, util::unexpect);
+        auto it = dict.find(name);
+        if (it==dict.end()) throw unbound_name(name);
+        return (map[name] = thingify(it->second, provider)).value();
     }
     else if (!it->second) {
         throw circular_definition(name);
@@ -66,19 +38,65 @@ static const auto& try_lookup(const mprovider& provider, const std::string& name
     }
 }
 
+template <typename ConcreteMap>
+static const auto& try_lookup(const mprovider& provider, const std::string& name, ConcreteMap& map) {
+    auto it = map.find(name);
+    if (it==map.end()) {
+        throw unbound_name(name);
+    }
+    else if (!it->second) {
+        throw circular_definition(name);
+    }
+    else {
+        return it->second.value();
+    }
+}
+
+mprovider::mprovider(arb::morphology m, const label_dict* ldptr):
+    morphology_(m),
+    embedding_(m),
+    label_dict_ptr(ldptr) {
+    // Evaluate each named region or locset in provided dictionary
+    // to populate concrete regions_, locsets_ maps.
+    if (label_dict_ptr) {
+        for (const auto& pair: label_dict_ptr->regions()) {
+            (void)(this->region(pair.first));
+        }
+
+        for (const auto& pair: label_dict_ptr->locsets()) {
+            (void)(this->locset(pair.first));
+        }
+
+        for (const auto& pair: label_dict_ptr->iexpressions()) {
+            (void)(this->iexpr(pair.first));
+        }
+        label_dict_ptr = nullptr;
+    }
+}
+
+
 const mextent& mprovider::region(const std::string& name) const {
-    const auto* regions_ptr = label_dict_ptr? &(label_dict_ptr->regions()): nullptr;
-    return try_lookup(*this, name, regions_, regions_ptr);
+    if (label_dict_ptr) {
+        return try_lookup(*this, name, regions_, label_dict_ptr->regions());
+    } else {
+        return try_lookup(*this, name, regions_);
+    }
 }
 
 const mlocation_list& mprovider::locset(const std::string& name) const {
-    const auto* locsets_ptr = label_dict_ptr? &(label_dict_ptr->locsets()): nullptr;
-    return try_lookup(*this, name, locsets_, locsets_ptr);
+    if (label_dict_ptr) {
+        return try_lookup(*this, name, locsets_, label_dict_ptr->locsets());
+    } else {
+        return try_lookup(*this, name, locsets_);
+    }
 }
 
 const iexpr_ptr& mprovider::iexpr(const std::string& name) const {
-    const auto* locsets_ptr = label_dict_ptr ? &(label_dict_ptr->iexpressions()) : nullptr;
-    return try_lookup(*this, name, iexpressions_, locsets_ptr);
+    if (label_dict_ptr) {
+        return try_lookup(*this, name, iexpressions_, label_dict_ptr->iexpressions());
+    } else {
+        return try_lookup(*this, name, iexpressions_);
+    }
 }
 
 } // namespace arb

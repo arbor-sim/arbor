@@ -18,6 +18,32 @@ namespace profile {
 using timer_type = timer<>;
 using util::make_span;
 
+#ifdef ARB_LOG_MEMORY
+void* operator new(std::size_t size) {
+    void* trace[100];
+    char buff[1024*1024] = {0};
+    auto n_frame = backtrace(trace, 100);
+    auto frames = backtrace_symbols(trace, n_frame);
+    auto out = buff;
+    out += snprintf(buff, 1024, "%zu", size);
+    for(int i = 0; i < n_frame; ++i) {
+        *out++ = ':';
+        auto frame = frames[i];
+        for (int field = 0; field < 3; ++field) {
+            while (*frame && *frame != ' ') frame++;
+            while (*frame && *frame == ' ') frame++;
+        }
+        if (*frame) {
+            while (*frame && *frame != ' ') *out++ = *frame++;
+        }
+    }
+    *out++ = '\n';
+    std::cerr << buff;
+    free(frames);
+    return malloc(size);
+}
+#endif
+
 #ifdef ARB_HAVE_PROFILING
 namespace {
     // Check whether a string describes a valid profiler region name.

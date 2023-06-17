@@ -82,6 +82,8 @@ public:
     const range_set& at(cell_gid_type gid, const cell_tag_type& tag) const;
     std::size_t count(cell_gid_type gid, const cell_tag_type& tag) const;
 
+    void clear() { map.clear(); }
+
 private:
     std::unordered_map<cell_gid_type, std::unordered_map<cell_tag_type, range_set>> map;
 };
@@ -115,6 +117,16 @@ struct ARB_ARBOR_API resolver {
     cell_lid_type resolve(cell_gid_type gid, const cell_local_label_type& lid);
 
     using state_variant = std::variant<round_robin_state, round_robin_halt_state, assert_univalent_state>;
+
+    void reset() {
+        for (auto& [gid, tags]: state_map_) {
+            for (auto& [tag, states]: tags) {
+                states.clear();
+            }
+        }
+    }
+
+    void clear() { state_map_.clear(); }
 
 private:
     template<typename K, typename V>
