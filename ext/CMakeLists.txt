@@ -22,6 +22,7 @@ endif()
 add_library(ext-tinyopt INTERFACE)
 target_include_directories(ext-tinyopt INTERFACE tinyopt/include)
 
+add_subdirectory(unordered_dense)
 
 # functionality for adding external projects
 

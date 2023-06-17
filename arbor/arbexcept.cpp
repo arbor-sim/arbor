@@ -7,8 +7,6 @@
 #include "util/unwind.hpp"
 #include "util/strprintf.hpp"
 
-#include <execinfo.h>
-
 namespace arb {
 
 using arb::util::pprintf;

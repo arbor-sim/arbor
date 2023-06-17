@@ -12,11 +12,11 @@
 
 #include <sys/resource.h>
 
-namespace arb {
-namespace profile {
-
-using timer_type = timer<>;
-using util::make_span;
+#define ARB_LOG_MEMORY
+#ifdef ARB_LOG_MEMORY
+#include <execinfo.h>
+#include <iostream>
+#endif
 
 #ifdef ARB_LOG_MEMORY
 void* operator new(std::size_t size) {
@@ -43,6 +43,12 @@ void* operator new(std::size_t size) {
     return malloc(size);
 }
 #endif
+
+namespace arb {
+namespace profile {
+
+using timer_type = timer<>;
+using util::make_span;
 
 #ifdef ARB_HAVE_PROFILING
 namespace {

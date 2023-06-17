@@ -273,6 +273,10 @@ add_subdirectory(ext)
 install(TARGETS ext-hwloc EXPORT arbor-targets)
 install(TARGETS ext-random123 EXPORT arbor-targets)
 
+find_package(unordered_dense CONFIG REQUIRED)
+target_link_libraries(arbor-public-deps INTERFACE unordered_dense::unordered_dense)
+install(TARGETS unordered_dense EXPORT arbor-targets)
+
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
 
