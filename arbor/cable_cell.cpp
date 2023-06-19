@@ -90,12 +90,12 @@ struct cable_cell_impl {
     // The placeable label to lid_range map
     dynamic_typed_map<constant_type<std::unordered_multimap<cell_tag_type, lid_range>>::type> labeled_lid_ranges;
 
-    cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
-        provider(m, labels),
-        dictionary(labels),
-        decorations(decorations)
+    cable_cell_impl(const arb::morphology m, const label_dict labels, decor decorations):
+        provider(std::move(m), labels),
+        dictionary(std::move(labels)),
+        decorations(std::move(decorations))
     {
-        init(decorations);
+        init();
     }
 
     cable_cell_impl(): cable_cell_impl({},{},{}) {}
@@ -104,7 +104,7 @@ struct cable_cell_impl {
 
     cable_cell_impl(cable_cell_impl&& other) = default;
 
-    void init(const decor&);
+    void init();
 
     template <typename T>
     mlocation_map<T>& get_location_map(const T&) {
@@ -218,7 +218,7 @@ impl_ptr make_impl(cable_cell_impl* c) {
     return impl_ptr(c, [](cable_cell_impl* p){delete p;});
 }
 
-void cable_cell_impl::init(const decor& d) {
+void cable_cell_impl::init() {
     struct rcache {
         std::string region = "";
         mextent cables = {};
@@ -226,7 +226,7 @@ void cable_cell_impl::init(const decor& d) {
 
     auto rc = rcache{};
 
-    for (const auto& [where, what]: d.paintings()) {
+    for (const auto& [where, what]: decorations.paintings()) {
         auto region = region_to_string(where);
         // Try to cache with a lookback of one since most models paint one
         // region in direct succession. We also key on the stringy view of
@@ -257,7 +257,7 @@ void cable_cell_impl::init(const decor& d) {
 
     auto lc = lcache{};
 
-    for (const auto& [where, what, label]: d.placements()) {
+    for (const auto& [where, what, label]: decorations.placements()) {
         auto locset = locset_to_string(where);
         // Try to cache with a lookback of one since most models place to one
         // locset in direct succession. We also key on the stringy view of
@@ -275,8 +275,8 @@ void cable_cell_impl::init(const decor& d) {
     }
 }
 
-cable_cell::cable_cell(const arb::morphology& m, const decor& decorations, const label_dict& dictionary):
-    impl_(make_impl(new cable_cell_impl(m, dictionary, decorations)))
+cable_cell::cable_cell(arb::morphology m, decor d, label_dict l):
+    impl_(make_impl(new cable_cell_impl(std::move(m), std::move(l), std::move(d))))
 {}
 
 cable_cell::cable_cell(): impl_(make_impl(new cable_cell_impl())) {}

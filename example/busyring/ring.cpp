@@ -430,7 +430,7 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
 
     decor.set_default(arb::cv_policy_every_segment());
 
-    return {arb::morphology(tree), decor};
+    return {arb::morphology(std::move(tree)), std::move(decor)};
 }
 
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {

@@ -125,20 +125,21 @@ s_expr mksexp(const decor& d) {
         s << x;
         return parse_s_expr(s.str());
     };
-    std::vector<s_expr> decorations;
+    std::vector<s_expr> result;
     for (const auto& p: d.defaults().serialize()) {
-        decorations.push_back(std::visit([&](auto& x)
+        result.push_back(std::visit([&](auto& x)
             { return slist("default"_symbol, mksexp(x)); }, p));
     }
     for (const auto& p: d.paintings()) {
-        decorations.push_back(std::visit([&](auto& x)
+        result.push_back(std::visit([&](auto& x)
             { return slist("paint"_symbol, round_trip(p.first), mksexp(x)); }, p.second));
     }
     for (const auto& p: d.placements()) {
-        decorations.push_back(std::visit([&](auto& x)
+        result.push_back(std::visit([&](auto& x)
             { return slist("place"_symbol, round_trip(std::get<0>(p)), mksexp(x), s_expr(std::get<2>(p))); }, std::get<1>(p)));
     }
-    return {"decor"_symbol, slist_range(decorations)};
+    std::sort(result.begin(), result.end());
+    return {"decor"_symbol, slist_range(result)};
 }
 s_expr mksexp(const label_dict& dict) {
     auto round_trip = [](auto& x) {
@@ -146,17 +147,26 @@ s_expr mksexp(const label_dict& dict) {
         s << x;
         return parse_s_expr(s.str());
     };
-    auto defs = slist();
-    for (auto& r: dict.locsets()) {
-        defs = s_expr(slist("locset-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
+    std::vector<s_expr> result;
+    std::vector<std::pair<std::string, locset>> ls;
+    for (const auto& [k, v]: dict.locsets()) ls.push_back({k, v});
+    std::sort(ls.begin(), ls.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    for (auto& [k, v]: ls) {
+        result.push_back(slist("locset-def"_symbol, s_expr(k), round_trip(v)));
     }
-    for (auto& r: dict.regions()) {
-        defs = s_expr(slist("region-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
+    std::vector<std::pair<std::string, region>> rg;
+    for (const auto& [k, v]: dict.regions()) rg.push_back({k, v});
+    std::sort(rg.begin(), rg.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    for (auto& [k, v]: rg) {
+        result.push_back(slist("region-def"_symbol, s_expr(k), round_trip(v)));
     }
-    for (auto& r: dict.iexpressions()) {
-        defs = s_expr(slist("iexpr-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
+    std::vector<std::pair<std::string, iexpr>> ie;
+    for (const auto& [k, v]: dict.iexpressions()) ie.push_back({k, v});
+    std::sort(ie.begin(), ie.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    for (auto& [k, v]: ie) {
+        result.push_back(slist("iexpr-def"_symbol, s_expr(k), round_trip(v)));
     }
-    return {"label-dict"_symbol, std::move(defs)};
+    return {"label-dict"_symbol, slist_range(result)};
 }
 s_expr mksexp(const morphology& morph) {
     // s-expression representation of branch i in the morphology
