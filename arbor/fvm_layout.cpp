@@ -16,6 +16,7 @@
 #include <arbor/morph/mcable_map.hpp>
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/morphology.hpp>
+#include <arbor/containers.hpp>
 
 #include "fvm_layout.hpp"
 #include "threading/threading.hpp"
@@ -251,48 +252,22 @@ ARB_ARBOR_API fvm_cv_discretization& append(fvm_cv_discretization& dczn, const f
 // FVM discretization
 // ------------------
 
-ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global_dflt) {
-    const auto& dflt = cell.default_parameters();
-    fvm_cv_discretization D;
-
-    D.geometry = cv_geometry(cell,
-        dflt.discretization? dflt.discretization->cv_boundary_points(cell):
-        global_dflt.discretization? global_dflt.discretization->cv_boundary_points(cell):
-        default_cv_policy().cv_boundary_points(cell));
-
-    if (D.geometry.empty()) return D;
-
-    auto n_cv = D.geometry.size();
-    D.face_conductance.resize(n_cv);
-    D.cv_area.resize(n_cv);
-    D.cv_capacitance.resize(n_cv);
-    D.init_membrane_potential.resize(n_cv);
-    D.temperature_K.resize(n_cv);
-    D.diam_um.resize(n_cv);
-
-    double dflt_resistivity = *(dflt.axial_resistivity | global_dflt.axial_resistivity);
-    double dflt_capacitance = *(dflt.membrane_capacitance | global_dflt.membrane_capacitance);
-    double dflt_potential =   *(dflt.init_membrane_potential | global_dflt.init_membrane_potential);
-    double dflt_temperature = *(dflt.temperature_K | global_dflt.temperature_K);
-
-    const auto& assignments = cell.region_assignments();
-    const auto& resistivity = assignments.get<axial_resistivity>();
-    const auto& capacitance = assignments.get<membrane_capacitance>();
-    const auto& potential   = assignments.get<init_membrane_potential>();
-    const auto& temperature = assignments.get<temperature_K>();
-    const auto& diffusivity = assignments.get<ion_diffusivity>();
-
-    // Set up for ion diffusivity
-    std::unordered_map<std::string, mcable_map<double>> inverse_diffusivity;
+// Set up for ion diffusivity
+template<typename T>
+auto make_diffusive_ions(const T& diffusivity,
+                         const std::unordered_map<std::string, cable_cell_ion_data>& glbl,
+                         const std::unordered_map<std::string, cable_cell_ion_data>& dflt,
+                         std::size_t n_branch, std::size_t n_cv) {
+    uo_map<std::string, mcable_map<double>> inverse_diffusivity;
     std::unordered_map<std::string, fvm_diffusion_info> diffusive_ions;
 
     // Collect all eglible ions: those where any cable has finite diffusivity
-    for (const auto& [ion, data]: global_dflt.ion_data) {
+    for (const auto& [ion, data]: glbl) {
         if (data.diffusivity.value_or(0.0) != 0.0) {
             diffusive_ions[ion] = {};
         }
     }
-    for (const auto& [ion, data]: dflt.ion_data) {
+    for (const auto& [ion, data]: dflt) {
         if (data.diffusivity.value_or(0.0) != 0.0) {
             diffusive_ions[ion] = {};
         }
@@ -319,11 +294,11 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
             }
         }
         arb_value_type def = 0.0;
-        if (auto data = util::value_by_key(global_dflt.ion_data, ion);
+        if (auto data = util::value_by_key(glbl, ion);
             data && data->diffusivity) {
             def = data->diffusivity.value();
         }
-        if (auto data = util::value_by_key(dflt.ion_data, ion);
+        if (auto data = util::value_by_key(dflt, ion);
             data && data->diffusivity) {
             def = data->diffusivity.value();
         }
@@ -334,9 +309,8 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
 
         // Write inverse diffusivity / diffuse resistivity map
         auto& id = data.axial_inv_diffusivity;
-        id.resize(1);
-        msize_t n_branch = D.geometry.n_branch(0);
         id.reserve(n_branch);
+        id.resize(1);
         for (msize_t i = 0; i<n_branch; ++i) {
             auto pw = pw_over_cable(id_map, mcable{i, 0., 1.}, 1.0/def);
             id[0].push_back(pw);
@@ -344,6 +318,42 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
         // Prepare conductivity map
         data.face_diffusivity.resize(n_cv);
     }
+    return diffusive_ions;
+}
+
+
+ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global_dflt) {
+    const auto& dflt = cell.default_parameters();
+    fvm_cv_discretization D;
+
+    D.geometry = cv_geometry(cell,
+        dflt.discretization? dflt.discretization->cv_boundary_points(cell):
+        global_dflt.discretization? global_dflt.discretization->cv_boundary_points(cell):
+        default_cv_policy().cv_boundary_points(cell));
+
+    if (D.geometry.empty()) return D;
+
+    auto n_cv = D.geometry.size();
+    D.face_conductance.resize(n_cv);
+    D.cv_area.resize(n_cv);
+    D.cv_capacitance.resize(n_cv);
+    D.init_membrane_potential.resize(n_cv);
+    D.temperature_K.resize(n_cv);
+    D.diam_um.resize(n_cv);
+
+    double dflt_resistivity = *(dflt.axial_resistivity | global_dflt.axial_resistivity);
+    double dflt_capacitance = *(dflt.membrane_capacitance | global_dflt.membrane_capacitance);
+    double dflt_potential   = *(dflt.init_membrane_potential | global_dflt.init_membrane_potential);
+    double dflt_temperature = *(dflt.temperature_K | global_dflt.temperature_K);
+
+    const auto& assignments = cell.region_assignments();
+    const auto& resistivity = assignments.get<axial_resistivity>();
+    const auto& capacitance = assignments.get<membrane_capacitance>();
+    const auto& potential   = assignments.get<init_membrane_potential>();
+    const auto& temperature = assignments.get<temperature_K>();
+    const auto& diffusivity = assignments.get<ion_diffusivity>();
+
+    auto diffusive_ions = make_diffusive_ions(diffusivity, global_dflt.ion_data, dflt.ion_data, D.geometry.n_branch(0), n_cv);
 
     D.axial_resistivity.resize(1);
     msize_t n_branch = D.geometry.n_branch(0);
@@ -1073,7 +1083,7 @@ apply_parameters_on_cv(fvm_mechanism_config& config,
             if (!area_on_cable) continue;
             area += area_on_cable;
             const auto branch = cable.branch;
-            for (std::size_t i = 0; i< n_param; ++i) {
+            for (std::size_t i = 0; i < n_param; ++i) {
                 auto pw = pw_over_cable(param_maps[i],
                                         cable,
                                         0.,
@@ -1099,9 +1109,10 @@ apply_parameters_on_cv(fvm_mechanism_config& config,
 auto make_mechanism_config(const mechanism_info& info,
                            arb_mechanism_kind expected) {
     if (info.kind != expected) {
-        throw make_cc_error("Expected {} mechanism, got {}.",
+        throw make_cc_error("Expected {} mechanism, got {} ({}).",
                             arb_mechanism_kind_str(expected),
-                            arb_mechanism_kind_str(info.kind));
+                            arb_mechanism_kind_str(info.kind),
+                            info.kind);
     }
     fvm_mechanism_config result;
     result.kind = expected;
@@ -1516,7 +1527,7 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
     // There is a separate mechanism instance at the local site of every gap-junction connection,
     // meaning there can be multiple gap-junction mechanism instances of the same type (name) per
     // lid.
-    // As a result, building fvm_mechanism_config per junction mechanism is split into 2 phases.
+    // As a result, building fvm_mechanism_config per junction mechanism is split info 2 phases.
     // (1) For every type (name) of gap-junction mechanism used on the cell, an fvm_mechanism_config
     //     object is constructed and only the kind and parameter names are set. The object is
     //     stored in the `junction_configs` map. Another map `lid_junction_desc` containing the
@@ -1605,7 +1616,7 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_des
         const auto& name = revpot.name();
         const auto& values = revpot.values();
 
-        mechanism_info info = data.catalogue[name];
+        const auto& info = data.catalogue[name];
         verify_mechanism(data.ion_species, data.D.diffusive_ions, info, revpot);
 
         bool writes_this_revpot = false;
