@@ -103,12 +103,7 @@ void communicator::update_connections(const recipe& rec,
     // Also the count of presynaptic sources from each domain
     //   -> src_counts: array with one entry for each domain
 
-    // Record all the gid in a flat vector.
-
-    PE(init:communicator:update:collect_gids);
-    std::vector<cell_gid_type> gids; gids.reserve(num_local_cells_);
-    for (const auto& g: dom_dec.groups()) util::append(gids, g.gids);
-    PL();
+    // Record all the gids in a flat vector.
 
     // Build the connection information for local cells.
     PE(init:communicator:update:gid_connections);
@@ -123,25 +118,27 @@ void communicator::update_connections(const recipe& rec,
     std::vector<unsigned> src_domains;
     std::vector<cell_size_type> src_counts(num_domains_);
     std::unordered_map<cell_gid_type, std::size_t> used;
-    for (const auto gid: gids) {
-        // Local
-        const auto& conns = rec.connections_on(gid);
-        for (const auto& conn: conns) {
-            const auto sgid = conn.source.gid;
-            used[sgid] += 1;
-            if (sgid >= num_total_cells_) throw arb::bad_connection_source_gid(gid, sgid, num_total_cells_);
-            const auto src = dom_dec.gid_domain(sgid);
-            src_domains.push_back(src);
-            src_counts[src]++;
-            gid_connections.emplace_back(conn);
+    for (const auto& group: dom_dec.groups()) {
+        for (const auto gid: group.gids) {
+            // Local
+            const auto& conns = rec.connections_on(gid);
+            for (const auto& conn: conns) {
+                const auto sgid = conn.source.gid;
+                used[sgid] += 1;
+                if (sgid >= num_total_cells_) throw arb::bad_connection_source_gid(gid, sgid, num_total_cells_);
+                const auto src = dom_dec.gid_domain(sgid);
+                src_domains.push_back(src);
+                src_counts[src]++;
+                gid_connections.emplace_back(conn);
+            }
+            part_connections.push_back(gid_connections.size());
+            // Remote
+            const auto& ext_conns = rec.external_connections_on(gid);
+            for (const auto& conn: ext_conns) {
+                gid_ext_connections.emplace_back(conn);
+            }
+            part_ext_connections.push_back(gid_ext_connections.size());
         }
-        part_connections.push_back(gid_connections.size());
-        // Remote
-        const auto& ext_conns = rec.external_connections_on(gid);
-        for (const auto& conn: ext_conns) {
-            gid_ext_connections.emplace_back(conn);
-        }
-        part_ext_connections.push_back(gid_ext_connections.size());
     }
 
     // Construct a label resolver for a given gid.
@@ -182,36 +179,39 @@ void communicator::update_connections(const recipe& rec,
     auto src_domain = src_domains.begin();
     auto target_resolver = resolver(&target_resolution_map);
     auto sources = std::unordered_map<cell_gid_type, label_map>{};
-    for (const auto index: util::make_span(num_local_cells_)) {
-        const auto tgt_gid = gids[index];
-        for (const auto cidx: util::make_span(part_connections[index], part_connections[index+1])) {
-            const auto& conn = gid_connections[cidx];
-            auto src_gid = conn.source.gid;
-            if (!sources.count(src_gid)) sources.emplace(src_gid, label_map{src_gid, rec});
-            if(is_external(src_gid)) throw arb::source_gid_exceeds_limit(tgt_gid, src_gid);
-            auto src_lid = sources.at(src_gid).resolve(conn.source);
-            auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
-            auto offset  = offsets[*src_domain]++;
-            ++src_domain;
-            connections_[offset] = {{src_gid, src_lid}, tgt_lid, conn.weight, conn.delay, index};
-        }
-        for (const auto cidx: util::make_span(part_ext_connections[index], part_ext_connections[index+1])) {
-            const auto& conn = gid_ext_connections[cidx];
-            auto src = global_cell_of(conn.source);
-            auto src_gid = conn.source.rid;
-            if(is_external(src_gid)) throw arb::source_gid_exceeds_limit(tgt_gid, src_gid);
-            auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
-            ext_connections_[ext] = {src, tgt_lid, conn.weight, conn.delay, index};
-            ++ext;
-        }
-        for (auto& [k, v]: sources) {
-            // To save a bit of peak memory, clear what we don't need anymore.
-            if (v.used >= used[k]) {
-                v.clear();
+    cell_size_type index = 0;
+    for (const auto& group: dom_dec.groups()) {
+        for (const auto& tgt_gid: group.gids) {
+            for (const auto cidx: util::make_span(part_connections[index], part_connections[index+1])) {
+                const auto& conn = gid_connections[cidx];
+                auto src_gid = conn.source.gid;
+                if (!sources.count(src_gid)) sources.emplace(src_gid, label_map{src_gid, rec});
+                if(is_external(src_gid)) throw arb::source_gid_exceeds_limit(tgt_gid, src_gid);
+                auto src_lid = sources.at(src_gid).resolve(conn.source);
+                auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
+                auto offset  = offsets[*src_domain]++;
+                ++src_domain;
+                connections_[offset] = {{src_gid, src_lid}, tgt_lid, conn.weight, conn.delay, index};
             }
-            else {
-                v.reset();
+            for (const auto cidx: util::make_span(part_ext_connections[index], part_ext_connections[index+1])) {
+                const auto& conn = gid_ext_connections[cidx];
+                auto src = global_cell_of(conn.source);
+                auto src_gid = conn.source.rid;
+                if(is_external(src_gid)) throw arb::source_gid_exceeds_limit(tgt_gid, src_gid);
+                auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
+                ext_connections_[ext] = {src, tgt_lid, conn.weight, conn.delay, index};
+                ++ext;
             }
+            for (auto& [k, v]: sources) {
+                // To save a bit of peak memory, clear what we don't need anymore.
+                if (v.used >= used[k]) {
+                    v.clear();
+                }
+                else {
+                    v.reset();
+                }
+            }
+            ++index;
         }
     }
     PL();
