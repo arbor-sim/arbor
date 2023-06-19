@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <stdexcept>
+#include <set>
 
 #include <arbor/context.hpp>
 #include <arbor/domdecexcept.hpp>
@@ -77,6 +78,7 @@ namespace {
         cell_kind get_cell_kind(cell_gid_type gid) const override {
             return cell_kind::cable;
         }
+
         std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
             switch (gid) {
                 case 0:  return {gap_junction_connection({13, "gj"}, {"gj"}, 0.1)};
@@ -346,22 +348,59 @@ TEST(domain_decomposition, hints) {
     EXPECT_EQ(expected_ss_groups, ss_groups);
 }
 
+std::set<cell_gid_type> set_of(const std::vector<cell_gid_type>& vec) {
+    return std::set(vec.begin(), vec.end());
+}
+
+// Check GJ invariants: If cell I is in group A and I is gj-connected to cell J
+// then J is also in A
+bool check_gj_invariants(const domain_decomposition& ddc,
+                         std::map<cell_gid_type, std::set<cell_gid_type>> gj_conns) {
+    for (int ix = 0; ix < ddc.num_groups(); ++ix) {
+        const auto group = set_of(ddc.group(ix).gids);
+        for (auto gid: group) {
+            for (auto peer: gj_conns[gid]) {
+                if (!group.count(peer)) return false;
+            }
+        } 
+    }
+    return true;
+}
+
 TEST(domain_decomposition, gj_recipe) {
     proc_allocation resources;
     resources.num_threads = 1;
     resources.gpu_id = -1;
     auto ctx = make_context(resources);
 
-    auto recipes = {gap_recipe(false), gap_recipe(true)};
-    for (const auto& R: recipes) {
-        const auto D0 = partition_load_balance(R, ctx);
-        EXPECT_EQ(9u, D0.num_groups());
+    std::map<cell_gid_type, std::set<cell_gid_type>> gj_full = {{0, {13}},
+                                                                {2, {7}},
+                                                                {3, {8}},
+                                                                {4, {8, 9}},
+                                                                {7, {2, 11}},
+                                                                {8, {3, 4}},
+                                                                {9, {4}},
+                                                                {11, {7}},
+                                                                {13, {0}}};
 
-        std::vector<std::vector<cell_gid_type>> expected_groups0 =
+    std::map<cell_gid_type, std::set<cell_gid_type>> gj_part = {{0, {13}},
+                                                                {2, {7}},
+                                                                {3, {8}},
+                                                                {4, {9}},
+                                                                {8, {4}},
+                                                                {11, {7}}};
+
+    auto recipes = {std::pair{gap_recipe(false), gj_part}, std::pair{gap_recipe(true), gj_full}};
+    for (const auto& [R, G]: recipes) {
+        auto D0 = partition_load_balance(R, ctx);
+        EXPECT_EQ(9u, D0.num_groups());
+        EXPECT_TRUE(check_gj_invariants(D0, G));
+        std::set<std::set<cell_gid_type>> expected_groups0 =
             {{1}, {5}, {6}, {10}, {12}, {14}, {0, 13}, {2, 7, 11}, {3, 4, 8, 9}};
 
-        for (unsigned i = 0; i < 9u; i++) {
-            EXPECT_EQ(expected_groups0[i], D0.group(i).gids);
+        for (int ix = 0; ix < D0.num_groups(); ++ix) {
+            const auto& group = std::set(D0.group(ix).gids.begin(), D0.group(ix).gids.end());
+            EXPECT_EQ(expected_groups0.count(group), 1);
         }
 
         // Test different group_hints
@@ -371,12 +410,12 @@ TEST(domain_decomposition, gj_recipe) {
 
         const auto D1 = partition_load_balance(R, ctx, hints);
         EXPECT_EQ(5u, D1.num_groups());
+        EXPECT_TRUE(check_gj_invariants(D1, G));
+        std::set<std::set<cell_gid_type>> expected_groups1 =
+            {{10, 5, 6}, {12, 14}, {0, 13, 1}, {2, 7, 11}, {3, 4, 8, 9}};
 
-         std::vector<std::vector<cell_gid_type>> expected_groups1 =
-            {{1, 5, 6}, {10, 12, 14}, {0, 13}, {2, 7, 11}, {3, 4, 8, 9}};
-
-        for (unsigned i = 0; i < 5u; i++) {
-            EXPECT_EQ(expected_groups1[i], D1.group(i).gids);
+        for (int ix = 0; ix < D1.num_groups(); ++ix) {
+            EXPECT_EQ(expected_groups1.count(set_of(D1.group(ix).gids)), 1);
         }
 
         hints[cell_kind::cable].cpu_group_size = 20;
@@ -384,11 +423,11 @@ TEST(domain_decomposition, gj_recipe) {
 
         const auto D2 = partition_load_balance(R, ctx, hints);
         EXPECT_EQ(1u, D2.num_groups());
-
-        std::vector<cell_gid_type> expected_groups2 =
+        EXPECT_TRUE(check_gj_invariants(D2, G));
+        std::set<cell_gid_type> expected_groups2 =
             {1, 5, 6, 10, 12, 14, 0, 13, 2, 7, 11, 3, 4, 8, 9};
 
-        EXPECT_EQ(expected_groups2, D2.group(0).gids);
+        EXPECT_EQ(expected_groups2, set_of(D2.group(0).gids));
     }
 }
 
@@ -408,12 +447,19 @@ TEST(domain_decomposition, unidirectional_gj_recipe) {
                 {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)},
                 {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)}
             };
+        std::map<cell_gid_type, std::set<cell_gid_type>> gj = {{0, {1}},
+                                                               {2, {4}},
+                                                               {3, {0, 5}},
+                                                               {5, {4}},
+                                                               {6, {4}}};
         auto R = custom_gap_recipe(gj_conns.size(), gj_conns);
         const auto D = partition_load_balance(R, ctx);
         std::vector<cell_gid_type> expected_group = {0, 1, 2, 3, 4, 5, 6};
 
         EXPECT_EQ(1u, D.num_groups());
+        EXPECT_TRUE(check_gj_invariants(D, gj));
         EXPECT_EQ(expected_group, D.group(0).gids);
+
     }
     {
         std::vector<std::vector<gap_junction_connection>> gj_conns =
@@ -429,10 +475,18 @@ TEST(domain_decomposition, unidirectional_gj_recipe) {
                 {gap_junction_connection({7, "gj"}, {"gj"}, 0.1)},
                 {gap_junction_connection({8, "gj"}, {"gj"}, 0.1)}
             };
+        std::map<cell_gid_type, std::set<cell_gid_type>> gj = {{1, {3}},
+                                                               {2, {0}},
+                                                               {3, {0, 1}},
+                                                               {5, {4}},
+                                                               {7, {9}},
+                                                               {8, {7}},
+                                                               {9, {8}}};
+
         auto R = custom_gap_recipe(gj_conns.size(), gj_conns);
         const auto D = partition_load_balance(R, ctx);
-        std::vector<std::vector<cell_gid_type>> expected_groups = {{6}, {0, 1, 2, 3}, {4, 5}, {7, 8, 9}};
-
+        std::vector<std::vector<cell_gid_type>> expected_groups = {{0, 1, 2, 3}, {4, 5}, {6}, {7, 8, 9}};
+        EXPECT_TRUE(check_gj_invariants(D, gj));
         EXPECT_EQ(expected_groups.size(), D.num_groups());
         for (unsigned i=0; i < expected_groups.size(); ++i) {
             EXPECT_EQ(expected_groups[i], D.group(i).gids);
@@ -454,8 +508,13 @@ TEST(domain_decomposition, unidirectional_gj_recipe) {
             };
         auto R = custom_gap_recipe(gj_conns.size(), gj_conns);
         const auto D = partition_load_balance(R, ctx);
-        std::vector<std::vector<cell_gid_type>> expected_groups = {{1}, {2}, {9}, {0, 8}, {3, 4, 5, 6, 7}};
 
+        std::map<cell_gid_type, std::set<cell_gid_type>> gj = {{3, {4}},
+                                                               {6, {5, 7}},
+                                                               {7, {5, 4}},
+                                                               {8, {0}}};
+        std::vector<std::vector<cell_gid_type>> expected_groups = {{0, 8}, {1}, {2},  {3, 4, 5, 6, 7}, {9}};
+        EXPECT_TRUE(check_gj_invariants(D, gj));
         EXPECT_EQ(expected_groups.size(), D.num_groups());
         for (unsigned i=0; i < expected_groups.size(); ++i) {
             EXPECT_EQ(expected_groups[i], D.group(i).gids);
