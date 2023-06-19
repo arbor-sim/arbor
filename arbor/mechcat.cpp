@@ -292,10 +292,7 @@ struct catalogue_state {
 
         // Update global parameter values in info for derived mechanism.
 
-        for (const auto& kv: global_params) {
-            const auto& param = kv.first;
-            const auto& value = kv.second;
-
+        for (const auto& [param, value]: global_params) {
             if (auto* p = ptr_by_key(new_info->globals, param)) {
                 if (!p->valid(value)) {
                     return unexpected_exception_ptr(invalid_parameter_value(name, param, value));
@@ -309,27 +306,27 @@ struct catalogue_state {
             new_info->globals.at(param).default_value = value;
         }
 
-        for (const auto& kv: ion_remap_vec) {
-            if (!new_info->ions.count(kv.first)) {
-                return unexpected_exception_ptr(invalid_ion_remap(name, kv.first, kv.second));
+        for (const auto& [ion, values]: ion_remap_vec) {
+            if (!new_info->ions.count(ion)) {
+                return unexpected_exception_ptr(invalid_ion_remap(name, ion, values));
             }
         }
 
         // Update ion dependencies in info to reflect the requested ion remapping.
 
         string_map<ion_dependency> new_ions;
-        for (const auto& kv: new_info->ions) {
-            if (auto* new_ion = ptr_by_key(ion_remap_map, kv.first)) {
-                if (!new_ions.insert({*new_ion, kv.second}).second) {
-                    return unexpected_exception_ptr(invalid_ion_remap(name, kv.first, *new_ion));
+        for (const auto& [ion, values]: new_info->ions) {
+            if (auto* new_ion = ptr_by_key(ion_remap_map, ion)) {
+                if (!new_ions.insert({*new_ion, values}).second) {
+                    return unexpected_exception_ptr(invalid_ion_remap(name, ion, *new_ion));
                 }
             }
             else {
-                if (!new_ions.insert(kv).second) {
+                if (!new_ions.insert(ion, values).second) {
                     // (find offending remap to report in exception)
                     for (const auto& entry: ion_remap_map) {
-                        if (entry.second==kv.first) {
-                            return unexpected_exception_ptr(invalid_ion_remap(name, kv.first, entry.second));
+                        if (entry.second == ion) {
+                            return unexpected_exception_ptr(invalid_ion_remap(name, ion, entry.second));
                         }
                     }
                     throw arbor_internal_error("inconsistent catalogue ion remap state");
