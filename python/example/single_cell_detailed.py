@@ -56,7 +56,7 @@ decor.paint('"soma"', Vm=-50)
 # Paint density mechanisms.
 decor.paint('"all"', density("pas"))
 decor.paint('"custom"', density("hh"))
-decor.paint('"dend"', density("Ih", {"gbar": 0.001}))
+decor.paint('"dend"', density("Ih", gbar=0.001))
 # Place stimuli and detectors.
 decor.place('"root"', arbor.iclamp(10, 1, current=2), "iclamp0")
 decor.place('"root"', arbor.iclamp(30, 1, current=2), "iclamp1")

@@ -55,7 +55,7 @@ decor = (
     # Paint density mechanisms.
     .paint('"all"', density("pas"))
     .paint('"custom"', density("hh"))
-    .paint('"dend"', density("Ih", {"gbar": 0.001}))
+    .paint('"dend"', density("Ih", gbar=0.001}))
     # Place stimuli and detectors.
     .place('"root"', arbor.iclamp(10, 1, current=2), "iclamp0")
     .place('"root"', arbor.iclamp(30, 1, current=2), "iclamp1")
