@@ -2,8 +2,6 @@
 
 #include <unordered_map>
 #include <vector>
-#include <ankerl/unordered_dense.h>
-
 #include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
@@ -131,7 +129,7 @@ struct ARB_ARBOR_API resolver {
 
 private:
     template<typename K, typename V>
-    using map = ankerl::unordered_dense::map<K, V>;
+    using map = std::unordered_map<K, V>;
     state_variant construct_state(lid_selection_policy pol);
     state_variant construct_state(lid_selection_policy pol, cell_lid_type state);
 

@@ -16,7 +16,6 @@
 #include <arbor/morph/mcable_map.hpp>
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/morphology.hpp>
-#include <arbor/containers.hpp>
 
 #include "fvm_layout.hpp"
 #include "threading/threading.hpp"
@@ -258,7 +257,7 @@ auto make_diffusive_ions(const T& diffusivity,
                          const std::unordered_map<std::string, cable_cell_ion_data>& glbl,
                          const std::unordered_map<std::string, cable_cell_ion_data>& dflt,
                          std::size_t n_branch, std::size_t n_cv) {
-    uo_map<std::string, mcable_map<double>> inverse_diffusivity;
+    std::unordered_map<std::string, mcable_map<double>> inverse_diffusivity;
     std::unordered_map<std::string, fvm_diffusion_info> diffusive_ions;
 
     // Collect all eglible ions: those where any cable has finite diffusivity
