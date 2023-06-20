@@ -1,9 +1,9 @@
 {
     "name": "run_n=2045_d=10-complex=true",
-    "num-cells": 64,
+    "num-cells": 128,
     "synapses": 8,
     "min-delay": 5,
-    "duration": 0.0,
+    "duration": 0.2,
     "ring-size": 4,
     "event-weight": 0.2,
     "event-freq": 0.2,
