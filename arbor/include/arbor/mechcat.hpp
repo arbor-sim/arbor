@@ -60,7 +60,7 @@ public:
     bool is_derived(const std::string& name) const;
 
     // Read-only access to mechanism info.
-    mechanism_info operator[](const std::string& name) const;
+    const mechanism_info& operator[](const std::string& name) const;
 
     // Read-only access to mechanism fingerprint.
     const mechanism_fingerprint& fingerprint(const std::string& name) const;

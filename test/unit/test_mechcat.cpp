@@ -246,12 +246,12 @@ TEST(mechcat, names) {
         EXPECT_EQ(names, expect);
     }
 
-    // Deriving names does not add to catalogue
+    // Deriving names adds to catalogue
     {
         auto cat = build_fake_catalogue();
         auto info   = cat["burble/quux=3,xyzzy=4"];
         auto names  = cat.mechanism_names();
-        auto expect = std::vector<std::string>{"bleeble", "burble", "fleeb", "fleeb1", "fleeb2", "fleeb3", "special_fleeb"};
+        auto expect = std::vector<std::string>{"bleeble", "burble", "burble/quux=3,xyzzy=4", "fleeb", "fleeb1", "fleeb2", "fleeb3", "special_fleeb"};
         std::sort(names.begin(), names.end());
         EXPECT_EQ(names, expect);
     }
