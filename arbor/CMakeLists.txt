@@ -98,6 +98,10 @@ if(ARB_WITH_MPI)
         communication/mpi_context.cpp)
 endif()
 
+if(ARB_LOG_MEMORY)
+    set_source_files_properties(profile/profiler.cpp COMPILE_DEFINITIONS ARB_LOG_MEMORY)
+endif()
+
 # Add special target for private include directory, for use by arbor target
 # and arbor unit tests. Private headers are also used for the other binaries
 # until the process of splitting our private and public headers is complete.

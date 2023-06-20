@@ -48,6 +48,11 @@ option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 option(ARB_USE_HWLOC "request support for thread pinning via HWLOC" OFF)
 mark_as_advanced(ARB_USE_HWLOC)
 
+# Log all memory allocations
+
+option(ARB_LOG_MEMORY "Log every call to `new`" OFF)
+mark_as_advanced(ARB_LOG_MEMORY)
+
 # Use externally built modcc?
 
 set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
@@ -272,10 +277,6 @@ endif()
 add_subdirectory(ext)
 install(TARGETS ext-hwloc EXPORT arbor-targets)
 install(TARGETS ext-random123 EXPORT arbor-targets)
-
-find_package(unordered_dense CONFIG REQUIRED)
-target_link_libraries(arbor-public-deps INTERFACE unordered_dense::unordered_dense)
-install(TARGETS unordered_dense EXPORT arbor-targets)
 
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.

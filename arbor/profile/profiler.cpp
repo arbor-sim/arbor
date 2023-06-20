@@ -12,13 +12,10 @@
 
 #include <sys/resource.h>
 
-#define ARB_LOG_MEMORY
 #ifdef ARB_LOG_MEMORY
 #include <execinfo.h>
 #include <iostream>
-#endif
 
-#ifdef ARB_LOG_MEMORY
 void* operator new(std::size_t size) {
     void* trace[100];
     char buff[1024*1024] = {0};

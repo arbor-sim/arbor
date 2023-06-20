@@ -26,6 +26,3 @@
 	path = ext/pugixml
 	url = https://github.com/zeux/pugixml.git
 	branch = master
-[submodule "ext/unordered_dense"]
-	path = ext/unordered_dense
-	url = https://github.com/martinus/unordered_dense.git
