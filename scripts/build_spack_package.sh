@@ -31,7 +31,8 @@ SPACK_REPO=https://github.com/spack/spack
 SPACK_CUSTOM_REPO=custom_repo
 
 SPACK_VERSION=$2 # latest_release or develop
-SPACK_BRANCH=develop # only used for develop
+#SPACK_BRANCH=develop # only used for develop
+SPACK_BRANCH=releases/v0.20 # fix to a the last stable release of spack
 
 case $SPACK_VERSION in
     "develop")
