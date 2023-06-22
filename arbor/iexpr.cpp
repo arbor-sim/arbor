@@ -664,4 +664,10 @@ std::ostream& operator<<(std::ostream& o, const iexpr& e) {
     return o;
 }
 
+std::string to_string(const iexpr& e) {
+    std::stringstream ss;
+    ss << e;
+    return ss.str();
+}
+
 }  // namespace arb

@@ -207,7 +207,6 @@ void register_cells(pybind11::module& m) {
         .def("__repr__", [](const arb::benchmark_cell&){return "<arbor.benchmark_cell>";})
         .def("__str__",  [](const arb::benchmark_cell&){return "<arbor.benchmark_cell>";});
 
-
     // arb::lif_cell
 
     pybind11::class_<arb::lif_cell> lif_cell(m, "lif_cell",
@@ -430,7 +429,8 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::init_membrane_potential> membrane_potential(m, "membrane_potential", "Setting the initial membrane voltage.");
     membrane_potential
         .def(pybind11::init([](double v) -> arb::init_membrane_potential { return {v}; }))
-        .def("__repr__", [](const arb::init_membrane_potential& d){return "Vm=" + std::to_string(d.value);});
+        .def("__repr__", [](const arb::init_membrane_potential& d){
+            return "Vm=" + std::to_string(d.value) + (d.scale ? " * " + arb::to_string(*d.scale) : "");});
 
     pybind11::class_<arb::membrane_capacitance> membrane_capacitance(m, "membrane_capacitance", "Setting the membrane capacitance.");
     membrane_capacitance
@@ -845,14 +845,51 @@ void register_cells(pybind11::module& m) {
         .def("paint",
             [](arb::decor& dec,
                const char* region,
-               optional<double> Vm, optional<double> cm,
-               optional<double> rL, optional<double> tempK)
-            {
+               optional<std::variant<double, std::tuple<double, std::string>>> Vm,
+               optional<std::variant<double, std::tuple<double, std::string>>> cm,
+               optional<std::variant<double, std::tuple<double, std::string>>> rL,
+               optional<std::variant<double, std::tuple<double, std::string>>> tempK) {
                 auto r = arborio::parse_region_expression(region).unwrap();
-                if (Vm) dec.paint(r, arb::init_membrane_potential{*Vm});
-                if (cm) dec.paint(r, arb::membrane_capacitance{*cm});
-                if (rL) dec.paint(r, arb::axial_resistivity{*rL});
-                if (tempK) dec.paint(r, arb::temperature_K{*tempK});
+                if (Vm) {
+                    if (std::holds_alternative<double>(*Vm)) {
+                        dec.paint(r, arb::init_membrane_potential{std::get<double>(*Vm)});
+                    }
+                    else {
+                        const auto& [v, s] = std::get<std::tuple<double, std::string>>(*Vm);
+                        auto ie = arborio::parse_iexpr_expression(s).unwrap();
+                        dec.paint(r, arb::init_membrane_potential{v, ie});
+                    }
+                }
+                if (cm) {
+                    if (std::holds_alternative<double>(*cm)) {
+                        dec.paint(r, arb::membrane_capacitance{std::get<double>(*cm)});
+                    }
+                    else {
+                        const auto& [v, s] = std::get<std::tuple<double, std::string>>(*cm);
+                        auto ie = arborio::parse_iexpr_expression(s).unwrap();
+                        dec.paint(r, arb::membrane_capacitance{v, ie});
+                    }
+                }
+                if (rL) {
+                    if (std::holds_alternative<double>(*rL)) {
+                        dec.paint(r, arb::axial_resistivity{std::get<double>(*rL)});
+                    }
+                    else {
+                        const auto& [v, s] = std::get<std::tuple<double, std::string>>(*rL);
+                        auto ie = arborio::parse_iexpr_expression(s).unwrap();
+                        dec.paint(r, arb::axial_resistivity{v, ie});
+                    }
+                }
+                if (tempK) {
+                    if (std::holds_alternative<double>(*tempK)) {
+                        dec.paint(r, arb::temperature_K{std::get<double>(*tempK)});
+                    }
+                    else {
+                        const auto& [v, s] = std::get<std::tuple<double, std::string>>(*tempK);
+                        auto ie = arborio::parse_iexpr_expression(s).unwrap();
+                        dec.paint(r, arb::temperature_K{v, ie});
+                    }
+                }
                 return dec;
             },
             pybind11::arg("region"),

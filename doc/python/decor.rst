@@ -71,17 +71,19 @@ Cable cell decoration
 
     .. method:: paint(region, Vm=None, cm=None, rL=None, tempK=None)
 
-        Set cable properties on a region.
+        Set cable properties on a region. If a pair of float ``v`` and a string
+        ``s`` is given, the secound item ``s`` will be interpreted as an inhomogeneous
+        expression by which ``s`` is scaled.
 
         :param str region: description of the region.
         :param Vm: Initial membrane voltage [mV].
-        :type Vm: float or None
+        :type Vm: float, (float, str), or None
         :param cm: Membrane capacitance [F/m²].
-        :type cm: float or None
+        :type cm: float, (float, str), or None
         :param rL: Axial resistivity of cable [Ω·cm].
-        :type rL: float or None
+        :type rL: float, (float, str), or None
         :param tempK: Temperature [Kelvin].
-        :type tempK: float or None
+        :type tempK: float, (float, str), or None
 
         .. code-block:: Python
 
@@ -94,15 +96,17 @@ Cable cell decoration
     .. method:: paint(region, name, int_con=None, ext_con=None, rev_pot=None)
         :noindex:
 
-        Set ion species properties initial conditions on a region.
+        Set ion species properties initial conditions on a region. If a pair of
+        float ``v`` and a string ``s`` is given, the secound item ``s`` will be
+        interpreted as an inhomogeneous expression by which ``s`` is scaled.
 
         :param str name: name of the ion species.
-        :param float int_con: initial internal concentration [mM].
-        :type int_con: float or None.
-        :param float ext_con: initial external concentration [mM].
-        :type ext_con: float or None.
-        :param float rev_pot: reversal potential [mV].
-        :type rev_pot: float or None
+        :param int_con: initial internal concentration [mM].
+        :type int_con: float, (float, str), or None.
+        :param ext_con: initial external concentration [mM].
+        :type ext_con: float, (float, str), or None.
+        :param rev_pot: reversal potential [mV].
+        :type rev_pot: float, (float, str), or None
 
     .. method:: paint(region, density)
         :noindex:

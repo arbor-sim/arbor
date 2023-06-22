@@ -5,9 +5,7 @@
 # the compiled part of the wrapper from the _arbor namespace.
 
 from ._arbor import *  # noqa: F403
-from . import _arbor as A
 
-from pint import UnitRegistry as U
 
 # Parse VERSION file for the Arbor version string.
 def get_version():
@@ -23,10 +21,3 @@ __config__ = config()  # noqa:F405
 
 # Remove get_version from arbor module.
 del get_version
-
-class spike_source_cell(A.spike_source_cell):
-    def __init__(self, *args):
-        super().__init__(self, *args)
-
-    def test():
-        pass
