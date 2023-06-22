@@ -120,7 +120,7 @@ private:
 
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const iexpr& e);
 
-std::string to_string(const iexpr&);
+ARB_ARBOR_API std::string to_string(const iexpr&);
 
 ARB_ARBOR_API inline iexpr operator+(iexpr a, iexpr b) { return iexpr::add(std::move(a), std::move(b)); }
 
