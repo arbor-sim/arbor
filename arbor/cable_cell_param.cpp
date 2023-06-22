@@ -129,24 +129,31 @@ decor& decor::set_default(defaultable what) {
             [this] (auto&& p) {
                 using T = std::decay_t<decltype(p)>;
                 if constexpr (std::is_same_v<init_membrane_potential, T>) {
+                    if (p.scale) throw cable_cell_error{"Default values cannot have a scale."};
                     defaults_.init_membrane_potential = p.value;
                 }
                 else if constexpr (std::is_same_v<axial_resistivity, T>) {
+                    if (p.scale) throw cable_cell_error{"Default values cannot have a scale."};
                     defaults_.axial_resistivity = p.value;
                 }
                 else if constexpr (std::is_same_v<temperature_K, T>) {
+                    if (p.scale) throw cable_cell_error{"Default values cannot have a scale."};
                     defaults_.temperature_K = p.value;
                 }
                 else if constexpr (std::is_same_v<membrane_capacitance, T>) {
+                    if (p.scale) throw cable_cell_error{"Default values cannot have a scale."};
                     defaults_.membrane_capacitance = p.value;
                 }
                 else if constexpr (std::is_same_v<init_int_concentration, T>) {
+                    if (p.scale) throw cable_cell_error{"Default values cannot have a scale."};
                     defaults_.ion_data[p.ion].init_int_concentration = p.value;
                 }
                 else if constexpr (std::is_same_v<init_ext_concentration, T>) {
+                    if (p.scale) throw cable_cell_error{"Default values cannot have a scale."};
                     defaults_.ion_data[p.ion].init_ext_concentration = p.value;
                 }
                 else if constexpr (std::is_same_v<init_reversal_potential, T>) {
+                    if (p.scale) throw cable_cell_error{"Default values cannot have a scale."};
                     defaults_.ion_data[p.ion].init_reversal_potential = p.value;
                 }
                 else if constexpr (std::is_same_v<ion_reversal_potential_method, T>) {
@@ -156,6 +163,7 @@ decor& decor::set_default(defaultable what) {
                     defaults_.discretization = std::forward<cv_policy>(p);
                 }
                 else if constexpr (std::is_same_v<ion_diffusivity, T>) {
+                    if (p.scale) throw cable_cell_error{"Default values cannot have a scale."};
                     defaults_.ion_data[p.ion].diffusivity = p.value;
                 }
             },

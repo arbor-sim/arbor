@@ -1869,3 +1869,88 @@ TEST(fvm_layout, iinterp) {
         EXPECT_EQ(-fc2, I.distal_coef);
     }
 }
+
+TEST(fvm_layout, inhomogeneous_parameters) {
+    struct param_at {
+        double area;
+        double capacitance;
+        double diameter;
+    };
+
+    auto tree = segment_tree{};
+    auto parn = mnpos;
+    parn = tree.append(parn, { 0.,  0., 0., 1.0}, {10.,  0.,  0., 1},    1); // const diam
+    parn = tree.append(parn, {10.,  0., 0., 0.5}, {10., 20.,  0., 0.5},  1); // left turn, discontinous diam
+    parn = tree.append(parn, {10., 20., 0., 0.5}, {10., 20., 10., 0.25}, 1); // turn up, constant taper
+    auto morph = morphology{tree};
+
+    auto param = neuron_parameter_defaults;
+    param.membrane_capacitance = 42.0;
+    param.discretization = cv_policy_fixed_per_branch{30};
+
+    auto expected = std::vector<param_at>{{8.37758,385.369,2},       // constant
+                                          {8.37758,385.369,2},
+                                          {8.37758,385.369,2},
+                                          {8.37758,385.369,2},
+                                          {8.37758,385.369,2},
+                                          {8.37758,385.369,2},
+                                          {8.37758,385.369,2},
+                                          {6.28319,144.513,1.5},     // discontinuity
+                                          {4.18879,96.3422,1},       // constant 1
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.15453,95.5541,0.99182}, // taper
+                                          {3.91076,83.951, 0.933625},
+                                          {3.63142,72.3863,0.866937},
+                                          {3.35208,61.6783,0.80025},
+                                          {3.07274,51.8269,0.733562},
+                                          {2.7934, 42.8321,0.666875},
+                                          {2.51406,34.694, 0.600187},
+                                          {2.23472,27.4126,0.5335},};
+
+    // No scaling applied
+    // capacitance scales with CV area
+    {
+        auto decor = arb::decor{}
+            .set_default(membrane_capacitance{23.0});
+        auto D = fvm_cv_discretize({morph, decor}, param);
+        for (unsigned ix = 0; ix < D.size(); ++ix) {
+            EXPECT_NEAR(D.cv_area[ix]*23.0, D.cv_capacitance[ix], 1e-6);
+        }
+    }
+    // We can paint a scale
+    // capacitance scales with CV area and diameter
+    // NOTE the diameter is evaluated at a _different_ spot (CV center!)
+    {
+        auto decor = arb::decor{}
+            .set_default(membrane_capacitance{23.0})
+            .paint(reg::tagged(1), membrane_capacitance{23.0, iexpr::diameter()});
+        auto D = fvm_cv_discretize({morph, decor}, param);
+        EXPECT_EQ(D.size(), 30ul);
+        for (unsigned ix = 0; ix < D.size(); ++ix) {
+            auto& p = expected[ix];
+            EXPECT_NEAR(D.diam_um[ix], p.diameter, 1e-3);
+            EXPECT_NEAR(D.cv_capacitance[ix], p.capacitance, 1e-3);
+            EXPECT_NEAR(D.cv_area[ix], p.area, 1e-3);
+        }
+    }
+
+    // Defaults do not have a scale
+    {
+        auto decor = arb::decor{};
+        EXPECT_THROW(decor.set_default(membrane_capacitance{23.0, iexpr::diameter()}), arb::cable_cell_error);
+
+    }
+}
+

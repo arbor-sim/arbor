@@ -207,6 +207,7 @@ void register_cells(pybind11::module& m) {
         .def("__repr__", [](const arb::benchmark_cell&){return "<arbor.benchmark_cell>";})
         .def("__str__",  [](const arb::benchmark_cell&){return "<arbor.benchmark_cell>";});
 
+
     // arb::lif_cell
 
     pybind11::class_<arb::lif_cell> lif_cell(m, "lif_cell",

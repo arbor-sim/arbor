@@ -36,17 +36,24 @@ static arb::util::unique_any convert_cell(pybind11::object o) {
     using pybind11::isinstance;
     using pybind11::cast;
 
-    if (isinstance<arb::spike_source_cell>(o)) {
-        return arb::util::unique_any(cast<arb::spike_source_cell>(o));
+    try {
+        if (isinstance<arb::spike_source_cell>(o)) {
+            return arb::util::unique_any(cast<arb::spike_source_cell>(o));
+        }
+        if (isinstance<arb::benchmark_cell>(o)) {
+            return arb::util::unique_any(cast<arb::benchmark_cell>(o));
+        }
+        if (isinstance<arb::lif_cell>(o)) {
+            return arb::util::unique_any(cast<arb::lif_cell>(o));
+        }
+        if (isinstance<arb::cable_cell>(o)) {
+            return arb::util::unique_any(cast<arb::cable_cell>(o));
+        }
     }
-    if (isinstance<arb::benchmark_cell>(o)) {
-        return arb::util::unique_any(cast<arb::benchmark_cell>(o));
-    }
-    if (isinstance<arb::lif_cell>(o)) {
-        return arb::util::unique_any(cast<arb::lif_cell>(o));
-    }
-    if (isinstance<arb::cable_cell>(o)) {
-        return arb::util::unique_any(cast<arb::cable_cell>(o));
+    catch (const pybind11::cast_error& e) {
+        throw pyarb_error("recipe.cell_description returned \""
+                          + std::string(pybind11::str(o))
+                          + "\" which does not describe a known Arbor cell type");
     }
 
     throw pyarb_error("recipe.cell_description returned \""
