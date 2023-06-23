@@ -7,6 +7,7 @@
 
 #include "merge_events.hpp"
 #include "util/rangeutil.hpp"
+#include "util/tourney_tree.hpp"
 
 namespace arb {
 void merge_cell_events(
@@ -209,7 +210,7 @@ TEST(merge_events, tourney_seq)
 
     std::vector<event_span> spans = {g1.events(0, terminal_time),
                                      g2.events(0, terminal_time)};
-    impl::tourney_tree tree(spans);
+    tourney_tree tree(spans);
 
     pse_vector lf;
     while (!tree.empty()) {
@@ -265,7 +266,7 @@ TEST(merge_events, tourney_poisson)
     for (auto& gen: generators) {
         spans.emplace_back(gen.events(t0, tfinal));
     }
-    impl::tourney_tree tree(spans);
+    tourney_tree tree(spans);
     pse_vector lf;
     while (!tree.empty()) {
         lf.push_back(tree.head());

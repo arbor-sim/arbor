@@ -2,26 +2,24 @@ NEURON {
     SUFFIX diam_test
 }
 
-PARAMETER {
-    diam
-}
+PARAMETER { diam area }
 
 STATE {
     d
-}
-
-ASSIGNED {
+    a
 }
 
 BREAKPOINT {
-    SOLVE states
+    SOLVE state
 }
 
-DERIVATIVE states {
+DERIVATIVE state {
     d = diam
+    a = area
 }
 
 INITIAL {
-    d = 0
+    d = -23.0
+    a = -42.0
 }
 

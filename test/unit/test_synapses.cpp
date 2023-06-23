@@ -92,11 +92,12 @@ TEST(synapses, syn_basic_state) {
     shared_state state(thread_pool,
                        num_cells,
                        num_comp,
-                       std::vector<index_type>(num_comp, 0),
-                       std::vector<value_type>(num_comp, -65),
-                       std::vector<value_type>(num_comp, temp_K),
-                       std::vector<value_type>(num_comp, 1.),
-                       std::vector<index_type>(0),
+                       std::vector<index_type>(num_comp, 0),      // cv -> cell
+                       std::vector<value_type>(num_comp, -65),    // U_m
+                       std::vector<value_type>(num_comp, temp_K), // T
+                       std::vector<value_type>(num_comp, 1.),     // diameter
+                       std::vector<value_type>(num_comp, 10.),    // area
+                       std::vector<index_type>(0),                // src -> spike
                        fvm_detector_info{},
                        align);
 

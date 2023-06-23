@@ -18,7 +18,7 @@ if(ARB_USE_BUNDLED_PYBIND11)
   # instead of using find_package.
   add_subdirectory(${pb11_src_dir} pybind11)
 else()
-  find_package(pybind11 2.8.1 REQUIRED)
+  find_package(pybind11 2.10.0 REQUIRED)
 endif()
 
 set(pyarb_source
@@ -43,11 +43,12 @@ set(pyarb_source
     env.cpp
 )
 
-set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_BINARY="${CMAKE_INSTALL_BINDIR}"       APPEND)
-set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_LIB="${CMAKE_INSTALL_LIBDIR}"          APPEND)
-set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_DATA="${CMAKE_INSTALL_DATAROOTDIR}"    APPEND)
-set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_CXX_COMPILER="${CMAKE_CXX_COMPILER}"   APPEND)
-set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_PREFIX="${CMAKE_INSTALL_PREFIX}"       APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_BINARY="${CMAKE_INSTALL_BINDIR}"         APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_LIB="${CMAKE_INSTALL_LIBDIR}"            APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_DATA="${CMAKE_INSTALL_DATAROOTDIR}"      APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_CXX_COMPILER="${CMAKE_CXX_COMPILER}"     APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_PREFIX="${CMAKE_INSTALL_PREFIX}"         APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_PYTHON_LIB_PATH="${ARB_PYTHON_LIB_PATH}" APPEND)
 
 # compile the pyarb sources into an object library that will be
 # use by both the Python wrapper target (pyarb) and for the

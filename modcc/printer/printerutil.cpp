@@ -240,6 +240,10 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
         v.data_var = "diam_um";
         v.readonly = true;
         break;
+    case sourceKind::area:
+        v.data_var = "area_um2";
+        v.readonly = true;
+        break;
     default:
         throw compiler_exception(pprintf("unrecognized indexed data source: %", sym), sym->location());
     }

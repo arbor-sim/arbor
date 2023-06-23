@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <utility>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
@@ -64,6 +65,15 @@ std::optional<T> py2optional(pybind11::object o, const char* msg) {
     }
 
     return o.is_none()? std::nullopt: std::optional<T>(std::move(value));
+}
+
+template <typename T, typename F>
+std::optional<T> optional_when(T o, F&& pred) {
+    if (pred(std::forward<T>(o))) {
+      return {std::forward<T>(o)};
+    } else {
+      return {};
+    }
 }
 
 // Attempt to cast a Python object to a C++ type T.

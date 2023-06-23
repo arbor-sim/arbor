@@ -427,8 +427,9 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     // map control volume ids to global cell ids
     std::vector<arb_index_type> cv_to_gid(D.geometry.cv_to_cell.size());
-    std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(), cv_to_gid.begin(),
-        [&gids](auto i){return gids[i]; });
+    std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(),
+                   cv_to_gid.begin(),
+                   [&gids](auto i){return gids[i]; });
 
     // Create shared cell state.
     // Shared state vectors should accommodate each mechanism's data alignment requests.
@@ -438,46 +439,16 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
             [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
 
     auto d_info = get_detector_info(max_detector, ncell, cells, D, context_);
-    const auto ncv = D.size();
     state_ = std::make_unique<shared_state>(context_.thread_pool,
                                             ncell,
-                                            ncv,
                                             std::move(cv_to_cell),
-                                            D.init_membrane_potential,
-                                            D.temperature_K,
-                                            D.diam_um,
+                                            D,
                                             std::move(src_to_spike),
                                             d_info,
+                                            mech_data.ions,
+                                            mech_data.stimuli,
                                             data_alignment? data_alignment: 1u,
                                             seed_);
-    state_->solver =
-        {D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area};
-
-    // Instantiate mechanisms, ions, and stimuli.
-    auto mk_diff_solver = [&](const auto& fd) {
-        // TODO(TH) _all_ solvers should share their RO data, ie everything below D here.
-        return std::make_unique<typename backend::ion_state::solver_type>(D.geometry.cv_parent,
-                                                                          D.geometry.cell_cv_divs,
-                                                                          fd,
-                                                                          D.cv_area);
-    };
-
-    for (const auto& [ion, data]: mech_data.ions) {
-        if (auto charge = value_by_key(global_props.ion_species, ion)) {
-            if (data.is_diffusive) {
-                state_->add_ion(ion, *charge, data, mk_diff_solver(data.face_diffusivity));
-            } else {
-                state_->add_ion(ion, *charge, data, nullptr);
-            }
-        }
-        else {
-            throw cable_cell_error("unrecognized ion '"+ion+"' in mechanism");
-        }
-    }
-
-    if (!mech_data.stimuli.cv.empty()) {
-        state_->configure_stimulus(mech_data.stimuli);
-    }
 
     fvm_info.target_handles.resize(mech_data.n_target);
 
@@ -897,62 +868,82 @@ void resolve_probe(const cable_probe_density_state_cell& p, probe_resolution_dat
     R.result.push_back(std::move(r));
 }
 
+inline
+auto point_info_of(cell_lid_type target,
+                   int mech_index,
+                   const mlocation_map<synapse>& instances,
+                   const std::vector<arb_index_type>& multiplicity) {
+
+    auto opt_i = util::binary_search_index(instances, target, [](auto& item) { return item.lid; });
+    if (!opt_i) throw arbor_internal_error("inconsistent mechanism state");
+
+    return cable_probe_point_info {target,
+                                   multiplicity.empty() ? 1u: multiplicity.at(mech_index),
+                                   instances[*opt_i].loc};
+}
+
 template <typename B>
 void resolve_probe(const cable_probe_point_state& p, probe_resolution_data<B>& R) {
     arb_assert(R.handles.size()==R.M.target_divs.back());
     arb_assert(R.handles.size()==R.M.n_target);
 
-    const arb_value_type* data = R.mechanism_state(p.mechanism, p.state);
+    const auto& mech   = p.mechanism;
+    const auto& state  = p.state;
+    const auto& target = p.target;
+    const auto& data   = R.mechanism_state(mech, state);
+    const auto  mech_id = R.mech_instance_by_name.at(mech)->mechanism_id();
+    const auto& synapses = R.cell.synapses();
+    if (!synapses.count(mech)) return;
     if (!data) return;
 
     // Convert cell-local target number to cellgroup target number.
-    auto cg_target = p.target + R.M.target_divs[R.cell_idx];
-    if (cg_target>=R.M.target_divs.at(R.cell_idx+1)) return;
+    const auto& divs = R.M.target_divs;
+    auto cell = R.cell_idx;
+    auto cg  = target + divs.at(cell);
+    if (cg >= divs.at(cell + 1)) return;
 
-    if (R.handles[cg_target].mech_id!=R.mech_instance_by_name.at(p.mechanism)->mechanism_id()) return;
-    auto mech_index = R.handles[cg_target].mech_index;
-
-    auto& multiplicity = R.M.mechanisms.at(p.mechanism).multiplicity;
-    auto& placed_instances = R.cell.synapses().at(p.mechanism);
-
-    auto opt_i = util::binary_search_index(placed_instances, p.target, [](auto& item) { return item.lid; });
-    if (!opt_i) throw arbor_internal_error("inconsistent mechanism state");
-    mlocation loc = placed_instances[*opt_i].loc;
-
-    cable_probe_point_info metadata{p.target, multiplicity.empty()? 1u: multiplicity.at(mech_index), loc};
-
-    R.result.push_back(fvm_probe_scalar{{data+mech_index}, metadata});
+    const auto& handle = R.handles.at(cg);
+    if (handle.mech_id != mech_id) return;
+    auto mech_index = handle.mech_index;
+    R.result.push_back(fvm_probe_scalar{{data + mech_index},
+                       point_info_of(target,
+                                     mech_index,
+                                     synapses.at(mech),
+                                     R.M.mechanisms.at(mech).multiplicity)});
 }
 
 template <typename B>
 void resolve_probe(const cable_probe_point_state_cell& p, probe_resolution_data<B>& R) {
-    const arb_value_type* data = R.mechanism_state(p.mechanism, p.state);
+    const auto& mech  = p.mechanism;
+    const auto& state = p.state;
+    const auto& data  = R.mechanism_state(mech, state);
+
     if (!data) return;
 
-    unsigned id = R.mech_instance_by_name.at(p.mechanism)->mechanism_id();
-    auto& multiplicity = R.M.mechanisms.at(p.mechanism).multiplicity;
-    auto& placed_instances = R.cell.synapses().at(p.mechanism);
+    auto mech_id = R.mech_instance_by_name.at(mech)->mechanism_id();
+    const auto& multiplicity = R.M.mechanisms.at(mech).multiplicity;
 
-    std::size_t cell_targets_base = R.M.target_divs[R.cell_idx];
-    std::size_t cell_targets_end = R.M.target_divs[R.cell_idx+1];
+    const auto& synapses = R.cell.synapses();
+    if (!synapses.count(mech)) return;
+    const auto& placed_instances = synapses.at(mech);
+
+    auto cell_targets_beg = R.M.target_divs.at(R.cell_idx);
+    auto cell_targets_end = R.M.target_divs.at(R.cell_idx + 1);
 
     fvm_probe_multi r;
     std::vector<cable_probe_point_info> metadata;
 
-    for (auto target: util::make_span(cell_targets_base, cell_targets_end)) {
-        if (R.handles[target].mech_id!=id) continue;
+    for (auto target: util::make_span(cell_targets_beg, cell_targets_end)) {
+        const auto& handle = R.handles.at(target);
+        if (handle.mech_id != mech_id) continue;
 
-        auto mech_index = R.handles[target].mech_index;
-        r.raw_handles.push_back(data+mech_index);
+        auto mech_index = handle.mech_index;
+        r.raw_handles.push_back(data + mech_index);
 
-        auto cell_target = target-cell_targets_base; // Convert to cell-local target index.
-
-        auto opt_i = util::binary_search_index(placed_instances, cell_target, [](auto& item) { return item.lid; });
-        if (!opt_i) throw arbor_internal_error("inconsistent mechanism state");
-        mlocation loc = placed_instances[*opt_i].loc;
-
-        metadata.push_back(cable_probe_point_info{
-            cell_lid_type(cell_target), multiplicity.empty()? 1u: multiplicity.at(mech_index), loc});
+        metadata.push_back(point_info_of(target - cell_targets_beg, // Convert to cell-local target index.
+                                         mech_index,
+                                         placed_instances,
+                                         multiplicity));
     }
 
     r.metadata = std::move(metadata);

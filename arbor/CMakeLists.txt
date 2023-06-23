@@ -61,6 +61,7 @@ set(arbor_sources
     tree.cpp
     util/dylib.cpp
     util/hostname.cpp
+    util/tourney_tree.cpp
     util/unwind.cpp
     version.cpp
 )

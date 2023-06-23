@@ -32,7 +32,7 @@ examine the recipe in detail: how to create one, and why it is needed.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 74-114
+   :lines: 74-109
 
 Let's go through the recipe point by point.
 
@@ -88,7 +88,7 @@ Now we can instantiate a ``single_recipe`` object.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 113-114
+   :lines: 112-113
 
 The simulation
 **************
@@ -100,7 +100,7 @@ This was handled by the :class:`arbor.single_cell_model` object in the original 
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 116-123
+   :lines: 115-122
 
 We would like to get a list of the spikes on the cell during the runtime of the simulation, and we would like
 to plot the voltage registered by the probe on the "custom_terminal" locset.
@@ -117,7 +117,7 @@ We can now run the simulation we just instantiated for a duration of 100 ms with
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 125-126
+   :lines: 124-125
 
 The results
 ***********
@@ -129,13 +129,13 @@ We can print the times of the spikes:
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 128-132
+   :lines: 127-131
 
 The probe results, again, warrant some more explanation:
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 134-138
+   :lines: 133-137
 
 ``sim.samples()`` takes a ``handle`` of the probe we wish to examine. It returns a list
 of ``(data, meta)`` terms: ``data`` being the time and value series of the probed quantity; and
@@ -148,7 +148,7 @@ We plot the results using pandas and seaborn as we did in the original example, 
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 140-
+   :lines: 139-
 
 The following plot is generated. Identical to the plot of the original example.
 

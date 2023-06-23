@@ -21,32 +21,36 @@ Step **(11)** is changed to generate a network with five hundred cells.
 
 .. literalinclude:: ../../python/example/network_ring_mpi.py
    :language: python
-   :lines: 124-126
+   :lines: 122-124
 
 The hardware context
 ********************
 
 An :ref:`execution context <modelcontext>` describes the hardware resources on which the simulation will run.
 It contains the thread pool used to parallelise work on the local CPU, and optionally describes GPU resources
-and the MPI communicator for distributed simulations. In some other examples, the :class:`arbor.single_cell_model`
-object created the execution context :class:`arbor.context` behind the scenes. The details of the execution
-context can be customized by the user. We may specify the number of threads in the thread pool; determine the
-id of the GPU to be used; or create our own MPI communicator.
+and the MPI communicator for distributed simulations. In some Arbor tutorials, the :class:`arbor.single_cell_model` or
+:class:`arbor.simulation` objects created the execution context :class:`arbor.context` behind the scenes. The details
+of the execution context can be customized by the user. We may specify the number of threads in the thread pool;
+determine the id of the GPU to be used; or create our own MPI communicator.
 
-The configuration of the context will need to be changed to reflect the change in hardware.
-First of all, we scrap setting `threads="avail_threads"` and instead use 
-`MPI <https://en.wikipedia.org/wiki/Message_Passing_Interface#Overview>`_ to distribute the work over nodes, cores and threads.
+The configuration of the context will need to be added to reflect the change in hardware. We will use
+`MPI <https://en.wikipedia.org/wiki/Message_Passing_Interface#Overview>`_ to distribute the work over
+nodes, cores and threads.
 
 Step **(12)** uses the Arbor-built-in :py:class:`MPI communicator <arbor.mpi_comm>`, which is identical to the
 ``MPI_COMM_WORLD`` communicator you'll know if you are familiar with MPI. The :py:class:`arbor.context` takes a
 communicator for its ``mpi`` parameter. Note that you can also pass in communicators created with ``mpi4py``.
 We print both the communicator and context to observe how Arbor configures their defaults.
 
+.. note::
+   
+   If you use GPUs in combination with MPI, consider using :py:class:`~arbor.env.find_private_gpu`.
+
 Step **(13)** creates the simulation using the recipe and the context created in the previous step.
 
 .. literalinclude:: ../../python/example/network_ring_mpi.py
    :language: python
-   :lines: 128-136
+   :lines: 126-134
 
 The execution
 *************
@@ -55,7 +59,7 @@ Step **(16)** runs the simulation. Since we have more cells this time, which are
 
 .. literalinclude:: ../../python/example/network_ring_mpi.py
    :language: python
-   :lines: 145-147
+   :lines: 143-145
 
 An important change in the execution is how the script is run. Whereas normally you run the Python script by passing
 it as an argument to the ``python`` command, you need to use ``srun`` or ``mpirun`` (depending on your MPI
@@ -89,7 +93,7 @@ analyse them later. We query :py:attr:`arbor.context.rank` to generate a unique 
 
 .. literalinclude:: ../../python/example/network_ring_mpi.py
    :language: python
-   :lines: 149-
+   :lines: 147-
 
 In a second script, ``network_ring_mpi_plot.py``, we load the results stored to disk into a pandas table, and plot the concatenated table as before:
 

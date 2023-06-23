@@ -76,12 +76,7 @@ struct ARB_ARBOR_API ion_state {
 
     ion_state() = default;
 
-    ion_state(
-        int charge,
-        const fvm_ion_config& ion_data,
-        unsigned align,
-        solver_ptr ptr
-    );
+    ion_state(const fvm_ion_config& ion_data, unsigned align, solver_ptr ptr);
 
     // Set ion concentrations to weighted proportion of default concentrations.
     void init_concentration();
@@ -164,6 +159,7 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
     array init_voltage;       // Maps CV index to initial membrane voltage [mV].
     array temperature_degC;   // Maps CV to local temperature (read only) [°C].
     array diam_um;            // Maps CV to local diameter (read only) [µm].
+    array area_um2;           // Maps CV to local lateral surface area (read only) [µm²].
 
     array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
     iarray src_to_spike;      // Maps spike source index to spike index
@@ -192,10 +188,39 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
                  const std::vector<arb_value_type>& init_membrane_potential,
                  const std::vector<arb_value_type>& temperature_K,
                  const std::vector<arb_value_type>& diam,
+                 const std::vector<arb_value_type>& area,
                  const std::vector<arb_index_type>& src_to_spike,
                  const fvm_detector_info& detector,
                  unsigned align,
                  arb_seed_type cbprng_seed_ = 0u);
+
+    shared_state(task_system_handle tp,
+                 arb_size_type n_cell,
+                 std::vector<arb_index_type> cv_to_cell_vec,
+                 const fvm_cv_discretization& D,
+                 std::vector<arb_index_type> src_to_spike,
+                 const fvm_detector_info& detector,
+                 std::unordered_map<std::string, fvm_ion_config> ions,
+                 const fvm_stimulus_config& stims,
+                 unsigned align,
+                 arb_seed_type cbprng_seed_ = 0u)
+        : shared_state{std::move(tp),
+                       n_cell,
+                       D.size(),
+                       cv_to_cell_vec,
+                       D.init_membrane_potential,
+                       D.temperature_K,
+                       D.diam_um,
+                       D.cv_area,
+                       src_to_spike,
+                       detector,
+                       align,
+                       cbprng_seed_}
+    {
+        configure_stimulus(stims);
+        configure_solver(D);
+        add_ions(D, ions);
+    }
 
     // Setup a mechanism and tie its backing store to this object
     void instantiate(mechanism&,
