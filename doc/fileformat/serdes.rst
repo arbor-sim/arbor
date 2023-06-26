@@ -90,7 +90,7 @@ A storage engine is used to construct the serializer and is responsible for
 writing out the data to whatever format and location required. Currently Arbor
 offers a JSON engine in ``arborio/json_serdes.hpp`` which produces a JSON value
 in memory. The serializer is polymorphic in the actual engine, which is only
-require to implement the following interface.
+required to implement the following interface.
 
 .. code:: c++
 
