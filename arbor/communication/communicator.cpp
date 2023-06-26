@@ -36,21 +36,21 @@ communicator::communicator(const recipe& rec,
 constexpr inline
 bool is_external(cell_gid_type c) {
     // index of the MSB of cell_gid_type in bits
-    constexpr auto msb = 1 << (std::numeric_limits<cell_gid_type>::digits - 1);
+    constexpr auto msb = static_cast<cell_gid_type>(1 << (std::numeric_limits<cell_gid_type>::digits - 1));
     // If set, we are external
     return bool(c & msb);
 }
 
 constexpr inline
 cell_member_type global_cell_of(const cell_remote_label_type& c) {
-    constexpr auto msb = 1 << (std::numeric_limits<cell_gid_type>::digits - 1);
+    constexpr auto msb = static_cast<cell_gid_type>(1 << (std::numeric_limits<cell_gid_type>::digits - 1));
     // set the MSB
     return {c.rid | msb, c.index};
 }
 
 constexpr inline
 cell_member_type global_cell_of(const cell_member_type& c) {
-    constexpr auto msb = 1 << (std::numeric_limits<cell_gid_type>::digits - 1);
+    constexpr auto msb = static_cast<cell_gid_type>(1 << (std::numeric_limits<cell_gid_type>::digits - 1));
     // set the MSB
     return {c.gid | msb, c.index};
 }

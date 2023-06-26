@@ -110,7 +110,7 @@ namespace arb {
 namespace util {
 
 using pw_size_type = unsigned;
-constexpr pw_size_type pw_npos = -1;
+constexpr pw_size_type pw_npos = static_cast<pw_size_type>(-1);
 
 template <typename X = void>
 struct pw_element {

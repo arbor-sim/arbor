@@ -664,39 +664,39 @@ TEST(region, thingify_moderate_morphologies) {
         EXPECT_TRUE(region_eq(mp, radius_gt(reg_c_, 2), cl{{0,0.55,0.7},{2,0,0.5},{3,0.1,0.375},{3,0.9,1}}));
         EXPECT_TRUE(region_eq(mp, radius_gt(reg_d_, 2), cl{{0,0.55,0.7},{2,0,0.5},{3,0.1,0.375},{3,0.75,0.9}}));
 
-        // Test restriction
+        // Test restrict_toion
 
         {
             using ll = mlocation_list;
             // two empty inputs -> empty output
-            EXPECT_TRUE(locset_eq(mp, ls::restrict(ll{}, {}),                  ll{}));
+            EXPECT_TRUE(locset_eq(mp, ls::restrict_to(ll{}, {}),                  ll{}));
             // empty locset + non-empty region -> empty output
-            EXPECT_TRUE(locset_eq(mp, ls::restrict(ll{}, reg::all()),          ll{}));
+            EXPECT_TRUE(locset_eq(mp, ls::restrict_to(ll{}, reg::all()),          ll{}));
             // non-empty locset + empty region -> empty output
-            EXPECT_TRUE(locset_eq(mp, ls::restrict(ll{{0,0.4}, {3, 0.1}}, {}), ll{}));
+            EXPECT_TRUE(locset_eq(mp, ls::restrict_to(ll{{0,0.4}, {3, 0.1}}, {}), ll{}));
 
             ll locs{{0,0.4}, {3,0.1}};
             // none of locs in region -> empty output
-            EXPECT_TRUE(locset_eq(mp, ls::restrict(locs, branch(1)), ll{}));
+            EXPECT_TRUE(locset_eq(mp, ls::restrict_to(locs, branch(1)), ll{}));
             // some but not all locs in region -> correct subset
-            EXPECT_TRUE(locset_eq(mp, ls::restrict(locs, branch(0)), ll{{0,0.4}}));
+            EXPECT_TRUE(locset_eq(mp, ls::restrict_to(locs, branch(0)), ll{{0,0.4}}));
             // all locs in region -> locs in output
-            EXPECT_TRUE(locset_eq(mp, ls::restrict(locs, join(branch(0), branch(3))), locs));
+            EXPECT_TRUE(locset_eq(mp, ls::restrict_to(locs, join(branch(0), branch(3))), locs));
             // all locs in region -> locs in output
-            EXPECT_TRUE(locset_eq(mp, ls::restrict(locs, join(branch(0), branch(1), branch(3))), locs));
+            EXPECT_TRUE(locset_eq(mp, ls::restrict_to(locs, join(branch(0), branch(1), branch(3))), locs));
             // should also work with non-ordered input locset
             std::reverse(locs.begin(), locs.end());
-            EXPECT_TRUE(locset_eq(mp, ls::restrict(locs, join(branch(0), branch(3))), locs));
+            EXPECT_TRUE(locset_eq(mp, ls::restrict_to(locs, join(branch(0), branch(3))), locs));
 
             mlocation loc{1,0.5};
             // location at end of cable
-            EXPECT_TRUE(locset_eq(mp, ls::restrict(loc, cable(1, 0.2, 0.5)), loc));
+            EXPECT_TRUE(locset_eq(mp, ls::restrict_to(loc, cable(1, 0.2, 0.5)), loc));
             // location at start of cable
-            EXPECT_TRUE(locset_eq(mp, ls::restrict(loc, cable(1, 0.5, 0.7)), loc));
+            EXPECT_TRUE(locset_eq(mp, ls::restrict_to(loc, cable(1, 0.5, 0.7)), loc));
             // location in zero-length cable
-            EXPECT_TRUE(locset_eq(mp, ls::restrict(loc, cable(1, 0.5, 0.5)), loc));
+            EXPECT_TRUE(locset_eq(mp, ls::restrict_to(loc, cable(1, 0.5, 0.5)), loc));
             // location between cable end points
-            EXPECT_TRUE(locset_eq(mp, ls::restrict(loc, cable(1, 0.2, 0.7)), loc));
+            EXPECT_TRUE(locset_eq(mp, ls::restrict_to(loc, cable(1, 0.2, 0.7)), loc));
         }
 
 

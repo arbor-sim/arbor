@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
                 { to::action(enable_simd), to::flag,                     "-s", "--simd" },
                 { popt.simd,                                             "-S", "--simd-abi" },
                 { to::set(popt.trace_codegen), to::flag,                 "-T", "--trace-codegen"},
-                { {to::action(add_target, to::keywords(targetKindMap))}, "-t", "--target" },
+                { to::action(add_target, to::keywords(targetKindMap)),   "-t", "--target" },
                 { to::action(help), to::flag, to::exit,                  "-h", "--help" }
         };
 

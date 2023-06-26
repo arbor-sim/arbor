@@ -686,12 +686,12 @@ mlocation_list thingify_(const lrestrict_& P, const mprovider& p) {
     return L;
 }
 
-ARB_ARBOR_API locset restrict(locset ls, region reg) {
+ARB_ARBOR_API locset restrict_to(locset ls, region reg) {
     return locset{lrestrict_{std::move(ls), std::move(reg)}};
 }
 
 std::ostream& operator<<(std::ostream& o, const lrestrict_& x) {
-    return o << "(restrict " << x.ls << " " << x.reg << ")";
+    return o << "(restrict_to " << x.ls << " " << x.reg << ")";
 }
 
 } // namespace ls
