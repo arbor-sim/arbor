@@ -152,6 +152,7 @@ namespace {
 TEST(domain_decomposition, homogenous_population)
 {
     proc_allocation resources;
+    resources.num_threads = 1;
     resources.gpu_id = arbenv::default_gpu();
 
     if (resources.has_gpu()) {
@@ -219,6 +220,7 @@ TEST(domain_decomposition, homogenous_population)
 TEST(domain_decomposition, heterogenous_population)
 {
     proc_allocation resources;
+    resources.num_threads = 1;
     resources.gpu_id = arbenv::default_gpu();
 
     if (resources.has_gpu()) {

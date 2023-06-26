@@ -9,6 +9,8 @@
 #include <iterator>
 #include <ostream>
 #include <numeric>
+#include <cstring>
+#include <type_traits>
 
 #include "util/meta.hpp"
 #include "util/range.hpp"
@@ -80,6 +82,18 @@ template <typename Seq, typename V>
 void fill(Seq&& seq, const V& value) {
     auto canon = canonical_view(seq);
     std::fill(canon.begin(), canon.end(), value);
+}
+
+// Zero a container, specialised for contiguous sequences
+// i.e.: Array, Vector, String.
+
+template <typename Seq,
+          typename = std::enable_if_t<std::is_trivially_copyable_v<typename sequence_traits<Seq&&>::value_type>
+                                  && sequence_traits<Seq&&>::is_contiguous>>
+void zero(Seq& vs) {
+    // NOTE: All contiguous containers have `data` and `size` methods.
+    using T = typename sequence_traits<Seq&&>::value_type;
+    std::memset(vs.data(), 0x0, vs.size()*sizeof(T));
 }
 
 // Append sequence to a container

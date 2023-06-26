@@ -272,7 +272,7 @@ To be runnable in a simulation, we also need to make sure the appropriate mechan
 .. literalinclude:: ../../python/example/single_cell_bluepyopt_l5pc.py
    :language: python
    :dedent:
-   :lines: 51-92
+   :lines: 51-91
 
 If we want to run a model with mechanism catalogues that are not built into Arbor, we can specify a mapping of catalogue name to folder with the NMODL files in the argument ``ext_catalogues`` of the JSON/ACC exporter. We can then load the catalogue with an appropriate prefix analogous to the built-in ones using ``arbor.load_catalogue('<name>-catalogue.so', '<name>::')`` and use it with the exported model. Here, ``<name>-catalogue.so`` is the compiled output of ``arbor-build-catalogue <name> <path/to/nmodl>``. To use such a mechanism catalogue in a BluePyOpt optimisation, ``<name>-catalogue.so`` must be available in the same folder as the NMODL files at runtime. It is then sufficient, to supply the same ``ext_catalogues`` dictionary as used in the JSON/ACC exporter to the ``ephys.simulators.ArbSimulator`` at its construction.
 
@@ -284,7 +284,7 @@ We can now run a simulation with
 .. literalinclude:: ../../python/example/single_cell_bluepyopt_l5pc.py
    :language: python
    :dedent:
-   :lines: 94-96,100-104
+   :lines: 93-103
 
 and visualise the voltage trace for the measurement on the apical dendrite of the layer-5 pyramidal cell that is available through ``sim.samples(handle)``. 
 

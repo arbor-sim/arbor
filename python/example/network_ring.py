@@ -121,9 +121,13 @@ class ring_recipe(arbor.recipe):
 ncells = 4
 recipe = ring_recipe(ncells)
 
-# (12) Create an execution context using all locally available threads and simulation
-ctx = arbor.context(threads="avail_threads")
-sim = arbor.simulation(recipe, ctx)
+# (12) Create a simulation using the default settings:
+# - Use all threads available
+# - Use round-robin distribution of cells across groups with one cell per group
+# - Use GPU if present
+# - No MPI
+# Other constructors of simulation can be used to change all of these.
+sim = arbor.simulation(recipe)
 
 # (13) Set spike generators to record
 sim.record(arbor.spike_recording.all)

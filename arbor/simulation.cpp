@@ -72,7 +72,7 @@ ARB_ARBOR_API void merge_cell_events(
         PL();
 
         PE(communication:enqueue:tree);
-        tree_merge_events(spanbuf, new_events);
+        merge_events(spanbuf, new_events);
         PL();
 
         old_events = old_split.second;

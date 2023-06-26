@@ -53,15 +53,16 @@ pybind11::dict config() {
     dict[pybind11::str("bundled")] = pybind11::bool_(false);
 #endif
 
-    dict[pybind11::str("version")]       = pybind11::str(ARB_VERSION);
-    dict[pybind11::str("source")]        = pybind11::str(ARB_SOURCE_ID);
-    dict[pybind11::str("build_config")]  = pybind11::str(ARB_BUILD_CONFIG);
-    dict[pybind11::str("arch")]          = pybind11::str(ARB_ARCH);
-    dict[pybind11::str("prefix")]        = pybind11::str(ARB_PREFIX);
-    dict[pybind11::str("binary_path")]   = pybind11::str(ARB_BINARY);
-    dict[pybind11::str("lib_path")]      = pybind11::str(ARB_LIB);
-    dict[pybind11::str("data_path")]     = pybind11::str(ARB_DATA);
-    dict[pybind11::str("CXX")]           = pybind11::str(ARB_CXX_COMPILER);
+    dict[pybind11::str("version")]         = pybind11::str(ARB_VERSION);
+    dict[pybind11::str("source")]          = pybind11::str(ARB_SOURCE_ID);
+    dict[pybind11::str("build_config")]    = pybind11::str(ARB_BUILD_CONFIG);
+    dict[pybind11::str("arch")]            = pybind11::str(ARB_ARCH);
+    dict[pybind11::str("prefix")]          = pybind11::str(ARB_PREFIX);
+    dict[pybind11::str("python_lib_path")] = pybind11::str(ARB_PYTHON_LIB_PATH);
+    dict[pybind11::str("binary_path")]     = pybind11::str(ARB_BINARY);
+    dict[pybind11::str("lib_path")]        = pybind11::str(ARB_LIB);
+    dict[pybind11::str("data_path")]       = pybind11::str(ARB_DATA);
+    dict[pybind11::str("CXX")]             = pybind11::str(ARB_CXX_COMPILER);
     {
 #define mk_tok(x) #x
 #define mk_ver(M, m, p) mk_tok(M) "." mk_tok(m) "." mk_tok(p)
@@ -72,6 +73,7 @@ pybind11::dict config() {
 #undef mk_ver
 #undef mk_tok
     }
+    dict[pybind11::str("timestamp")]       = pybind11::str(std::string(__DATE__) + " " + __TIME__);
     return dict;
 }
 

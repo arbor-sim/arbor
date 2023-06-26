@@ -214,6 +214,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher_interpolation) {
     dict.set("mid", arb::ls::on_branches(0.5));
 
     arb::proc_allocation resources;
+    resources.num_threads = 1;
     resources.gpu_id = GPU_ID;
     auto context = arb::make_context(resources);
 

@@ -278,8 +278,8 @@ tree::iarray tree::minimize_depth() {
 
     auto u = front;
 
-    // find the furhtest node from this node
-    std::fill(seen.begin(), seen.end(), 0);
+    // find the furthest node from this node
+    util::zero(seen);
     queue.push(u);
     seen[u] = 1;
     front = queue.front();

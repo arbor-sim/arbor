@@ -174,6 +174,7 @@ shared_state::shared_state(task_system_handle tp,
                            const std::vector<arb_value_type>& init_membrane_potential,
                            const std::vector<arb_value_type>& temperature_K,
                            const std::vector<arb_value_type>& diam,
+                           const std::vector<arb_value_type>& area,
                            const std::vector<arb_index_type>& src_to_spike_,
                            const fvm_detector_info& detector_info,
                            unsigned, // align parameter ignored
@@ -188,6 +189,7 @@ shared_state::shared_state(task_system_handle tp,
     init_voltage(make_const_view(init_membrane_potential)),
     temperature_degC(make_const_view(temperature_K)),
     diam_um(make_const_view(diam)),
+    area_um2(make_const_view(area)),
     time_since_spike(n_cell*n_detector),
     src_to_spike(make_const_view(src_to_spike_)),
     cbprng_seed(cbprng_seed_),
@@ -233,6 +235,7 @@ void shared_state::instantiate(mechanism& m,
     m.ppack_.vec_g            = conductivity.data();
     m.ppack_.temperature_degC = temperature_degC.data();
     m.ppack_.diam_um          = diam_um.data();
+    m.ppack_.area_um2         = area_um2.data();
     m.ppack_.time_since_spike = time_since_spike.data();
     m.ppack_.n_detectors      = n_detector;
 
@@ -389,26 +392,25 @@ void shared_state::take_samples() {
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s) {
     using io::csv;
 
-    o << " n_cv         " << s.n_cv << "\n";
-    o << " time         " << s.time << "\n";
-    o << " time_to      " << s.time_to << "\n";
-    o << " voltage      " << s.voltage << "\n";
-    o << " init_voltage " << s.init_voltage << "\n";
-    o << " temperature  " << s.temperature_degC << "\n";
-    o << " diameter     " << s.diam_um << "\n";
-    o << " current      " << s.current_density << "\n";
-    o << " conductivity " << s.conductivity << "\n";
-    for (auto& ki: s.ion_data) {
-        auto& kn = ki.first;
-        auto& i = ki.second;
-        o << " " << kn << "/current_density        " << csv(i.iX_) << "\n";
-        o << " " << kn << "/reversal_potential     " << csv(i.eX_) << "\n";
-        o << " " << kn << "/internal_concentration " << csv(i.Xi_) << "\n";
-        o << " " << kn << "/external_concentration " << csv(i.Xo_) << "\n";
-        o << " " << kn << "/intconc_initial        " << csv(i.init_Xi_) << "\n";
-        o << " " << kn << "/extconc_initial        " << csv(i.init_Xo_) << "\n";
-        o << " " << kn << "/revpot_initial         " << csv(i.init_eX_) << "\n";
-        o << " " << kn << "/node_index             " << csv(i.node_index_) << "\n";
+    o << " n_cv         " << s.n_cv << "\n"
+      << " time         " << s.time << "\n"
+      << " time_to      " << s.time_to << "\n"
+      << " voltage      " << s.voltage << "\n"
+      << " init_voltage " << s.init_voltage << "\n"
+      << " temperature  " << s.temperature_degC << "\n"
+      << " diameter     " << s.diam_um << "\n"
+      << " area         " << s.area_um2 << "\n"
+      << " current      " << s.current_density << "\n"
+      << " conductivity " << s.conductivity << "\n";
+    for (auto& [kn, i]: s.ion_data) {
+        o << " " << kn << "/current_density        " << csv(i.iX_) << "\n"
+          << " " << kn << "/reversal_potential     " << csv(i.eX_) << "\n"
+          << " " << kn << "/internal_concentration " << csv(i.Xi_) << "\n"
+          << " " << kn << "/external_concentration " << csv(i.Xo_) << "\n"
+          << " " << kn << "/intconc_initial        " << csv(i.init_Xi_) << "\n"
+          << " " << kn << "/extconc_initial        " << csv(i.init_Xo_) << "\n"
+          << " " << kn << "/revpot_initial         " << csv(i.init_eX_) << "\n"
+          << " " << kn << "/node_index             " << csv(i.node_index_) << "\n";
     }
     return o;
 }

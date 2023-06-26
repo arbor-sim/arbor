@@ -645,7 +645,7 @@ void register_cells(pybind11::module& m) {
         .def_property("temperature",
                       [](const arb::cable_cell_global_properties& props) { return props.default_parameters.temperature_K; },
                       [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.temperature_K = u; })
-        .def_property("axial_resisitivity",
+        .def_property("axial_resistivity",
                       [](const arb::cable_cell_global_properties& props) { return props.default_parameters.axial_resistivity; },
                       [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.axial_resistivity = u; })
         .def("set_property",

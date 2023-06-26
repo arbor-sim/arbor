@@ -88,6 +88,11 @@ struct embed_pwlin_data {
         area(n_branch),
         ixa(n_branch)
     {}
+
+    embed_pwlin_data(const embed_pwlin_data&) = delete;
+    embed_pwlin_data(embed_pwlin_data&&) = delete;
+    embed_pwlin_data& operator=(const embed_pwlin_data&) = delete;
+    embed_pwlin_data& operator=(embed_pwlin_data&&) = delete;
 };
 
 // Interpolation
@@ -127,13 +132,15 @@ double integrate(const pw_constant_fn& g, const pw_ratpoly<p, q>& f) {
 template <unsigned p, unsigned q>
 double integrate(const pw_constant_fn& g, const pw_elements<pw_ratpoly<p, q>>& fs) {
     double sum = 0;
-    for (auto&& [extent, pw_pair]: pw_zip_range(g, fs)) {
-        auto [left, right] = extent;
-        if (left==right) continue;
+    if (!fs.empty()) {
+        for (auto&& [extent, pw_pair]: pw_zip_range(g, fs)) {
+            auto [left, right] = extent;
+            if (left==right) continue;
 
-        double gval = pw_pair.first;
-        pw_ratpoly<p, q> f = pw_pair.second;
-        sum += gval*(interpolate(right, f)-interpolate(left, f));
+            double gval = pw_pair.first;
+            pw_ratpoly<p, q> f = pw_pair.second;
+            sum += gval*(interpolate(right, f)-interpolate(left, f));
+        }
     }
     return sum;
 }
@@ -270,8 +277,8 @@ mcable_list embed_pwlin::projection_cmp(msize_t bid, double val, comp_op op) con
 // Initialization, creation of geometric data.
 
 embed_pwlin::embed_pwlin(const arb::morphology& m) {
-    constexpr double pi = math::pi<double>;
-    msize_t n_branch = m.num_branches();
+    constexpr auto pi = math::pi<double>;
+    auto n_branch = m.num_branches();
     data_ = std::make_shared<embed_pwlin_data>(n_branch);
 
     if (!n_branch) return;
@@ -400,7 +407,6 @@ embed_pwlin::embed_pwlin(const arb::morphology& m) {
             auto [left, right] = ixa_pw.bounds();
             data_->ixa[bid].push_back(left, right, ixa_pw);
         }
-
         arb_assert((data_->radius[bid].size()>0));
         if (branch_length!=0) {
             arb_assert((data_->radius[bid].bounds()==std::pair<double, double>(0., 1.)));

@@ -50,11 +50,12 @@ TEST(abi, multicore_initialisation) {
     std::vector<arb_index_type> cv_to_cell(ncv, 0);
     std::vector<arb_value_type> temp(ncv, 23);
     std::vector<arb_value_type> diam(ncv, 1.);
+    std::vector<arb_value_type> area(ncv, 10.);
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
     arb::multicore::shared_state shared_state(thread_pool, ncell, ncv, cv_to_cell,
-                                              vinit, temp, diam, src_to_spike,
+                                              vinit, temp, diam, area, src_to_spike,
                                               arb::fvm_detector_info{},
                                               mech.data_alignment());
 
@@ -130,11 +131,12 @@ TEST(abi, multicore_null) {
     std::vector<arb_index_type> cv_to_cell(ncv, 0);
     std::vector<arb_value_type> temp(ncv, 23);
     std::vector<arb_value_type> diam(ncv, 1.);
+    std::vector<arb_value_type> area(ncv, 10.);
     std::vector<arb_value_type> vinit(ncv, -65);
     std::vector<arb_index_type> src_to_spike = {};
 
     arb::multicore::shared_state shared_state(thread_pool, ncell, ncv, cv_to_cell,
-                                              vinit, temp, diam, src_to_spike,
+                                              vinit, temp, diam, area, src_to_spike,
                                               arb::fvm_detector_info{},
                                               mech.data_alignment());
 

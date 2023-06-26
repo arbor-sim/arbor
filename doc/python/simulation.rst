@@ -66,10 +66,13 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     .. function:: simulation(recipe, domain_decomposition, context, seed)
 
-        Initialize the model described by an :py:class:`arbor.recipe`, with cells and network
-        distributed according to :py:class:`arbor.domain_decomposition`, computational resources
-        described by :py:class:`arbor.context` and with a seed value for generating reproducible
+        Initialize the model described by an :py:class:`~arbor.recipe`, with cells and network
+        distributed according to :py:class:`~arbor.domain_decomposition`, computational resources
+        described by :py:class:`~arbor.context` and with a seed value for generating reproducible
         random numbers (optional, default value: `0`).
+
+        When constructed with a single argument, a :py:class:`~arbor.recipe`, a local context is
+        automatically created with :py:func:`~arbor.env.default_allocation()`.
 
     **Updating Model State:**
 

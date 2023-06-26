@@ -211,6 +211,10 @@ fully formed to the interface. At this point:
 
     [Array] CV diameter
 
+  .. c:member:: arb_value_type* area_um2
+
+    [Array] CV lateral surface area in :math:`\mu m^2`
+
   .. c:member:: arb_value_type* time_since_spike
 
     Times since last spike; one entry per cell and detector.

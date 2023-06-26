@@ -160,22 +160,23 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
     arb_size_type n_detector = 0; // Max number of detectors on all cells.
     arb_size_type n_cv = 0;       // Total number of CVs.
 
-    iarray cv_to_cell;       // Maps CV index to cell index.
-    arb_value_type time;     // integration start time [ms].
-    arb_value_type time_to;  // integration end time [ms]
-    arb_value_type dt;       // dt [ms].
-    array voltage;           // Maps CV index to membrane voltage [mV].
-    array current_density;   // Maps CV index to current density [A/m²].
-    array conductivity;      // Maps CV index to membrane conductivity [kS/m²].
+    iarray cv_to_cell;            // Maps CV index to cell index.
+    arb_value_type time;          // integration start time [ms].
+    arb_value_type time_to;       // integration end time [ms]
+    arb_value_type dt;            // dt [ms].
+    array voltage;                // Maps CV index to membrane voltage [mV].
+    array current_density;        // Maps CV index to current density [A/m²].
+    array conductivity;           // Maps CV index to membrane conductivity [kS/m²].
 
-    array init_voltage;      // Maps CV index to initial membrane voltage [mV].
-    array temperature_degC;  // Maps CV to local temperature (read only) [°C].
-    array diam_um;           // Maps CV to local diameter (read only) [µm].
+    array init_voltage;           // Maps CV index to initial membrane voltage [mV].
+    array temperature_degC;       // Maps CV to local temperature (read only) [°C].
+    array diam_um;                // Maps CV to local diameter (read only) [µm].
+    array area_um2;               // Maps CV to local diameter (read only) [µm²].
 
-    array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
-    iarray src_to_spike;      // Maps spike source index to spike index
+    array time_since_spike;       // Stores time since last spike on any detector, organized by cell.
+    iarray src_to_spike;          // Maps spike source index to spike index
 
-    arb_seed_type cbprng_seed; // random number generator seed
+    arb_seed_type cbprng_seed;    // random number generator seed
 
     sample_event_stream sample_events;
     array sample_time;
@@ -194,11 +195,41 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
 
     shared_state(task_system_handle tp,
                  arb_size_type n_cell,
+                 const std::vector<arb_index_type>& cv_to_cell_vec,
+                 const fvm_cv_discretization& D,
+                 const std::vector<arb_index_type>& src_to_spike,
+                 const fvm_detector_info& detector,
+                 const std::unordered_map<std::string, fvm_ion_config>& ions,
+                 const fvm_stimulus_config& stims,
+                 unsigned align,
+                 arb_seed_type cbprng_seed_ = 0u)
+        : shared_state{std::move(tp),
+                       n_cell,
+                       (arb_size_type) D.size(),
+                       cv_to_cell_vec,
+                       D.init_membrane_potential,
+                       D.temperature_K,
+                       D.diam_um,
+                       D.cv_area,
+                       src_to_spike,
+                       detector,
+                       align,
+                       cbprng_seed_}
+    {
+        configure_stimulus(stims);
+        configure_solver(D);
+        add_ions(D, ions);
+    }
+
+
+    shared_state(task_system_handle tp,
+                 arb_size_type n_cell,
                  arb_size_type n_cv,
                  const std::vector<arb_index_type>& cv_to_cell_vec,
                  const std::vector<arb_value_type>& init_membrane_potential,
                  const std::vector<arb_value_type>& temperature_K,
                  const std::vector<arb_value_type>& diam,
+                 const std::vector<arb_value_type>& area,
                  const std::vector<arb_index_type>& src_to_spike,
                  const fvm_detector_info& detector,
                  unsigned, // align parameter ignored
