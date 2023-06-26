@@ -36,9 +36,9 @@ labels = arbor.label_dict(
         "root": "(root)",
         "terminal": "(terminal)",
         # Add a label for the terminal locations in the "custom" region:
-        "custom_terminal": '(restrict (locset "terminal") (region "custom"))',
+        "custom_terminal": '(restrict-to (locset "terminal") (region "custom"))',
         # Add a label for the terminal locations in the "axon" region:
-        "axon_terminal": '(restrict (locset "terminal") (region "axon"))',
+        "axon_terminal": '(restrict-to (locset "terminal") (region "axon"))',
     }
 ).add_swc_tags()
 
