@@ -1,0 +1,43 @@
+{
+ "checkpoints": [
+  "setup",
+  "model-init",
+  "model-simulate"
+ ],
+ "hosts": [
+  "arapiles"
+ ],
+ "meters": [
+  {
+   "measurements": [
+    [
+     7.023e-06
+    ],
+    [
+     0.0066556340000000005
+    ],
+    [
+     1.2484271100000002
+    ]
+   ],
+   "name": "time",
+   "units": "s"
+  },
+  {
+   "measurements": [
+    [
+     976.0
+    ],
+    [
+     3666800.0
+    ],
+    [
+     1013424.0
+    ]
+   ],
+   "name": "memory",
+   "units": "B"
+  }
+ ],
+ "num_domains": 1
+}

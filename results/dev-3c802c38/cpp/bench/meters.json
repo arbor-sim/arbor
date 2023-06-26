@@ -1,0 +1,50 @@
+{
+ "checkpoints": [
+  "recipe-build",
+  "domain-decomp",
+  "model-build",
+  "model-run"
+ ],
+ "hosts": [
+  "arapiles"
+ ],
+ "meters": [
+  {
+   "measurements": [
+    [
+     8.820000000000001e-07
+    ],
+    [
+     0.00019986500000000003
+    ],
+    [
+     0.8968255390000001
+    ],
+    [
+     0.43842478100000004
+    ]
+   ],
+   "name": "time",
+   "units": "s"
+  },
+  {
+   "measurements": [
+    [
+     112.0
+    ],
+    [
+     120688.0
+    ],
+    [
+     126457616.0
+    ],
+    [
+     26936768.0
+    ]
+   ],
+   "name": "memory",
+   "units": "B"
+  }
+ ],
+ "num_domains": 1
+}

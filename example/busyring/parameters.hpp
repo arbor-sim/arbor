@@ -34,9 +34,9 @@ struct ring_params {
 
     std::string name = "default";
     unsigned num_cells = 5000;
-    unsigned ring_size = 10;
+    unsigned ring_size = 5;
     double min_delay = 5;
-    double duration = 100;
+    double duration = 200;
     double dt = 0.025;
     float event_weight = 0.05;
     bool record_voltage = false;
