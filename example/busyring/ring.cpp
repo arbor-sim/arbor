@@ -56,7 +56,6 @@ public:
         num_cells_(params.num_cells),
         min_delay_(params.min_delay),
         event_weight_(params.event_weight),
-        event_freq_(params.event_freq),
         params_(params)
     {
         gprop.default_parameters = arb::neuron_parameter_defaults;
@@ -115,12 +114,7 @@ public:
     // This generates a single event that will kick start the spiking on the sub-ring.
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         if (gid%params_.ring_size == 0) {
-            if (event_freq_ > 0) {
-                return {arb::regular_generator({"p"}, event_weight_, 0.0, event_freq_)};
-            }
-            else {
-                return {arb::explicit_generator({"p"}, event_weight_, std::vector<float>{1.0f})};
-            }
+            return {arb::explicit_generator({"p"}, event_weight_, std::vector<float>{1.0f})};
         } else {
             return {};
         }
@@ -136,7 +130,6 @@ private:
     cell_size_type num_cells_;
     double min_delay_;
     float event_weight_;
-    float event_freq_;
     ring_params params_;
 
     arb::cable_cell_global_properties gprop;
@@ -333,12 +326,7 @@ double interp(const std::array<T,2>& r, unsigned i, unsigned n) {
     return r[0] + p*(r1-r0);
 }
 
-arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& params) {
-    using arb::reg::tagged;
-    using arb::reg::all;
-    using arb::ls::location;
-    using arb::ls::uniform;
-
+arb::segment_tree generate_morphology(arb::cell_gid_type gid, const cell_parameters& params) {
     arb::segment_tree tree;
 
     double soma_radius = 12.6157/2.0;
@@ -386,7 +374,17 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
         dist_from_soma += l;
     }
 
+    return tree;
+}
+
+arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& params) {
     using arb::reg::tagged;
+    using arb::reg::all;
+    using arb::ls::location;
+    using arb::ls::uniform;
+
+    arb::segment_tree tree = generate_morphology(gid, params);
+
     auto rall  = arb::reg::all();
     auto soma = tagged(1);
     auto axon = tagged(2);

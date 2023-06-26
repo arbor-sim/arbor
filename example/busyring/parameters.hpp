@@ -33,13 +33,12 @@ struct ring_params {
     ring_params() = default;
 
     std::string name = "default";
-    unsigned num_cells = 10;
+    unsigned num_cells = 5000;
     unsigned ring_size = 10;
-    double min_delay = 10;
+    double min_delay = 5;
     double duration = 100;
     double dt = 0.025;
-    float event_weight = 0.025;
-    float event_freq = 1.0;
+    float event_weight = 0.05;
     bool record_voltage = false;
     bool record_spikes  = true;
     bool bind_threads = false;
@@ -83,7 +82,6 @@ ring_params read_options(int argc, char** argv) {
     param_from_json(params.dt, "dt", json);
     param_from_json(params.min_delay, "min-delay", json);
     param_from_json(params.event_weight, "event-weight", json);
-    param_from_json(params.event_freq, "event-freq", json);
     param_from_json(params.record_voltage, "record", json);
     param_from_json(params.record_spikes,  "spikes", json);
     param_from_json(params.cell.complex_cell, "complex", json);
