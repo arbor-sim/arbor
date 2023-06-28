@@ -61,15 +61,15 @@ build-backend = "scikit_build_core.build"
 
 [tool.cibuildwheel]
 build-frontend = "build"
-build = ["cp3*-*linux_x86_64","cp3*-*linux_aarch64","cp3*-macosx_x86_64","cp3*-macosx_arm64"]
+build = ["cp3*-*linux*","cp3*-macosx*"]
 skip = ["cp36*", "pp*", "*musllinux*"]
 test-command = "python -m unittest discover -v -s {project}/python"
 before-build = "python -m pip install pip --upgrade"
 before-test = "python -m pip install pip --upgrade"
 
 [tool.cibuildwheel.macos]
-archs = ["x86_64", "arm64"]
-before-all = ["export CC=$(brew --prefix llvm@15)/bin/clang", "export CXX=$(brew --prefix llvm@15)/bin/clang++"]
+archs = ["universal2"]
+# before-all = ["export CC=$(brew --prefix llvm@15)/bin/clang", "export CXX=$(brew --prefix llvm@15)/bin/clang++"]
 
 [tool.cibuildwheel.macos.environment]
 MACOSX_DEPLOYMENT_TARGET = "10.15"
