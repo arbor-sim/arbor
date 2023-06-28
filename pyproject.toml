@@ -69,15 +69,13 @@ before-test = "python -m pip install pip --upgrade"
 
 [tool.cibuildwheel.macos]
 archs = ["universal2"]
-before-all = ["export CC=$(brew --prefix llvm@15)/bin/clang", "export CXX=$(brew --prefix llvm@15)/bin/clang++"]
+before-all = ["export CC=$(brew --prefix llvm@15)/bin/clang", "export CXX=$(brew --prefix llvm@15)/bin/clang++", "echo $CXX"]
 
 [tool.cibuildwheel.macos.environment]
 MACOSX_DEPLOYMENT_TARGET = "10.15"
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
-manylinux-x86_64-image = "manylinux2014"
-repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && python /project/scripts/patchwheel.py {dest_dir}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
