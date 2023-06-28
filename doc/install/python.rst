@@ -106,7 +106,7 @@ The following flags can be used to configure the installation:
 
 .. note::
 
-   There are more, advanced flags that can be set. We are using ``scikit-build``
+   There are more, advanced flags that can be set. We are using ``scikit-build-cire``
    and ``CMake`` under the hood, so all flags and options valid in ``CMake`` can
    be used in this fashion.
 
