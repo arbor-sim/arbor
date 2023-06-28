@@ -37,11 +37,7 @@ option(ARBDEV_COLOR "Always produce ANSI-colored output (GNU/Clang only)." OFF)
 
 # Specify target architecture.
 
-if(DEFINED ENV{CIBUILDWHEEL} AND APPLE)
-    # don't set native
-else()
-    set(ARB_ARCH "native" CACHE STRING "Target architecture for arbor libraries")
-endif()
+set(ARB_ARCH "native" CACHE STRING "Target architecture for arbor libraries")
 
 # Perform explicit vectorization?
 
