@@ -88,6 +88,8 @@ jobs:
         run: python3 -m unittest discover -v -s python
       - name: Run Python examples
         run: scripts/run_python_examples.sh
+      - name: Test executables
+        run: scripts/test_executables.sh
       - uses: actions/upload-artifact@v3
         with:
           name: dist

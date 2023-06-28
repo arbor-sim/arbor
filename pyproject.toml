@@ -61,15 +61,15 @@ build-backend = "scikit_build_core.build"
 
 [tool.cibuildwheel]
 build-frontend = "build"
-build = ["cp3*-manylinux_x86_64","cp3*-macosx_universal2"]#,"cp3*-musllinux_x86_64","cp3*-musllinux_aarch64"]
-skip = "cp36-*"
+build = ["cp3*-*linux_x86_64","cp3*-*linux_aarch64","cp3*-macosx_x86_64","cp3*-macosx_arm64"]
+skip = ["cp36*", "pp*", "*musllinux*"]
 test-command = "python3 -m unittest discover -v -s {project}/python"
 
 [tool.cibuildwheel.macos]
-archs = ["x86_64", "universal2", "arm64"]
+archs = ["x86_64", "arm64"]
 
 [tool.cibuildwheel.macos.environment]
-MACOSX_DEPLOYMENT_TARGET = "10.15"
+MACOSX_DEPLOYMENT_TARGET = "11.0"
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]

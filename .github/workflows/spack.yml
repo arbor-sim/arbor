@@ -34,4 +34,4 @@ jobs:
       - name: Run Python examples
         run: scripts/run_python_examples.sh
       - name: Test executables
-        run: ./scripts/test_executables.sh
+        run: scripts/test_executables.sh
