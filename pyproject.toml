@@ -69,7 +69,7 @@ before-test = "python -m pip install pip --upgrade"
 
 [tool.cibuildwheel.macos]
 archs = ["universal2"]
-before-all = ["export CC=$(brew --prefix llvm@15)/bin/clang", "export CXX=$(brew --prefix llvm@15)/bin/clang++", "echo $CXX"]
+before-build = ["export CC=$(brew --prefix llvm@15)/bin/clang", "export CXX=$(brew --prefix llvm@15)/bin/clang++", "echo $CXX"]
 
 [tool.cibuildwheel.macos.environment]
 MACOSX_DEPLOYMENT_TARGET = "10.15"
