@@ -48,7 +48,7 @@ jobs:
             os:    "ubuntu-22.04",
             cc:    "gcc-12",
             cxx:   "g++-12",
-            py:    "3.10",
+            py:    "3.11",
             cmake: "3.22.x",
             mpi:   "ON",
             simd:  "OFF"
@@ -58,7 +58,7 @@ jobs:
             os:    "ubuntu-22.04",
             cc:    "gcc-12",
             cxx:   "g++-12",
-            py:    "3.10",
+            py:    "3.11",
             cmake: "3.22.x",
             mpi:   "OFF",
             simd:  "ON"
@@ -68,17 +68,17 @@ jobs:
             os:    "ubuntu-22.04",
             cc:    "clang-14",
             cxx:   "clang++-14",
-            py:    "3.10",
+            py:    "3.11",
             cmake: "3.22.x",
             mpi:   "ON",
             simd:  "OFF"
           }
         - {
             name:  "MacOS Max",
-            os:    "macos-12",
+            os:    "macos-13",
             cc:    "clang",
             cxx:   "clang++",
-            py:    "3.10",
+            py:    "3.11",
             cmake: "3.22.x",
             mpi:   "ON",
             simd:  "OFF"
@@ -189,10 +189,8 @@ jobs:
         run:  mpirun -n 4 -oversubscribe python -m unittest discover -v -s python
       # - name: Run Python examples (plotting leads to time outs on macos, the step under testpip is enough)
       #   run: scripts/run_python_examples.sh
-      - name: Build and test a catalogue
-        run: |
-          arbor-build-catalogue -v default mechanisms/default
-          ./scripts/test-catalogue.py ./default-catalogue.so
+      - name: Test executables
+        run: ./scripts/test_executables.sh
   testpip:
     name: "Pip build test + Python examples test"
     runs-on: ${{ matrix.os }}
@@ -224,6 +222,8 @@ jobs:
         run: python -m unittest discover -v -s python
       - name: Run Python examples
         run: scripts/run_python_examples.sh
+      - name: Test executables
+        run: scripts/test_executables.sh
   testdocs:
     name: "Docs build test"
     runs-on: ${{ matrix.os }}
