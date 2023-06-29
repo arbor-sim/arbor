@@ -440,16 +440,16 @@ CMake ``ARB_WITH_PYTHON`` option:
 By default ``ARB_WITH_PYTHON=OFF``. When this option is turned on, a Python module called :py:mod:`arbor` is built.
 
 A specific version of Python can be set when configuring with CMake using the
-``PYTHON_EXECUTABLE`` variable. For example, to use Python 3.8 installed on a Linux
-system with the executable in ``/usr/bin/python.8``:
+``PYTHON_EXECUTABLE`` variable. For example, to use Python 3.11 installed on a Linux
+system with the executable in ``/usr/bin/python3.11``:
 
 .. code-block:: bash
 
-    cmake .. -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python.8
+    cmake .. -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python3.11
 
 By default the Python package will be installed in the appropriate sub-directory
 inside ``CMAKE_INSTALL_PREFIX``, determined by querying Python's sysconfig library.
-For example ``${CMAKE_INSTALL_PREFIX}/lib/python.9/site-packages/``.
+For example ``${CMAKE_INSTALL_PREFIX}/lib/python3.10/site-packages/``.
 
 To install the module in a different location, independent of ``CMAKE_INSTALL_PREFIX``,
 use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is to be installed.
