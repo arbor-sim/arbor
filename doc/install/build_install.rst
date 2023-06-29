@@ -176,7 +176,7 @@ For the (optional) python bindings Arbor uses `pybind11 <https://github.com/pybi
 JSON parsing is faciliated through `nlohmann json <https://github.com/nlohmann/json>`_.
 
 There are two ways to obtain these libraries. The default way is to use them from the
-system, e.g., installed via ``apt install python-pybind11`` and ``apt install nlohmann-json3-dev``
+system, e.g., installed via ``apt install python3-pybind11`` and ``apt install nlohmann-json3-dev``
 for a Debian based distribution.
 
 The other possiblity is to use versions of these dependencies that are bundled with Arbor
