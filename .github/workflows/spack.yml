@@ -25,8 +25,13 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.spack-cache
-          key: arbor-cache-${{ matrix.os }}-${{ github.run_id }}
-          restore-keys: arbor-cache-${{ matrix.os }}-
+          key: spack-cache-${{ matrix.os }}-${{ github.run_id }}
+          restore-keys: spack-cache-${{ matrix.os }}-
 
       - name: Build Arbor's Spack package against the develop branch
         run: arbor/scripts/build_spack_package.sh arbor develop
+
+      - name: Run Python examples
+        run: scripts/run_python_examples.sh
+      - name: Test executables
+        run: scripts/test_executables.sh

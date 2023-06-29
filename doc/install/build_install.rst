@@ -440,16 +440,16 @@ CMake ``ARB_WITH_PYTHON`` option:
 By default ``ARB_WITH_PYTHON=OFF``. When this option is turned on, a Python module called :py:mod:`arbor` is built.
 
 A specific version of Python can be set when configuring with CMake using the
-``PYTHON_EXECUTABLE`` variable. For example, to use Python 3.8 installed on a Linux
-system with the executable in ``/usr/bin/python3.8``:
+``PYTHON_EXECUTABLE`` variable. For example, to use Python 3.11 installed on a Linux
+system with the executable in ``/usr/bin/python3.11``:
 
 .. code-block:: bash
 
-    cmake .. -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python3.8
+    cmake .. -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python3.11
 
 By default the Python package will be installed in the appropriate sub-directory
 inside ``CMAKE_INSTALL_PREFIX``, determined by querying Python's sysconfig library.
-For example ``${CMAKE_INSTALL_PREFIX}/lib/python3.9/site-packages/``.
+For example ``${CMAKE_INSTALL_PREFIX}/lib/python3.10/site-packages/``.
 
 To install the module in a different location, independent of ``CMAKE_INSTALL_PREFIX``,
 use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is to be installed.
@@ -463,10 +463,10 @@ use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is t
     Therefore, correct installation of the Python package to any other location using ``CMAKE_INSTALL_PREFIX``,
     such as user directory (e.g. `~/.local`), a Python or Conda virtual environment, may result in installation to a wrong path.
 
-    ``python3 -m site --user-site`` (for user installations) or a path from ``python3 -c 'import site; print(site.getsitepackages())'``
+    ``python -m site --user-site`` (for user installations) or a path from ``python -c 'import site; print(site.getsitepackages())'``
     (for virtual environment installation) can be used in combination with ``ARB_PYTHON_LIB_PATH``.
 
-    In addition, installation via ``pip`` or ``python setup.py`` is guaranteed to find the right path. Please refer to the
+    In addition, installation via ``pip`` is guaranteed to find the right path. Please refer to the
     :ref:`Python installation instruction <in_python_custom>`.
 
 
@@ -475,20 +475,18 @@ use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is t
     # A demonstration using ARB_PYTHON_LIB_PATH
 
     # Set up your venv.
-    mkdir myenv
-    cd myenv/
-    python3 -m venv env
+    python -m venv env
     source env/bin/activate
 
     # Install dependencies
-    pip3 install numpy
+    pip install numpy
 
     # Obtain arbor
     git clone --recursive git@github.com:arbor-sim/arbor.git
 
     # Manually set the prefix under which the python package will be installed.
     # In this case, the first directory found by querying Python's list of site-package directories.
-    pyprefix=`python3 -c 'import site; print(site.getsitepackages()[0])'`
+    pyprefix=`python -c 'import site; print(site.getsitepackages()[0])'`
 
     # Setup CMake
     mkdir build
@@ -502,7 +500,7 @@ use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is t
     make install
 
     # Test it out!
-    python -c "import arbor; print(arbor.__config__)"
+    python -c "import arbor; arbor.print_config()"
 
 
 The Arbor Python wrapper has optional support for mpi4py, though
@@ -516,15 +514,14 @@ variable before configuring and building Arbor:
 .. code-block:: bash
 
     # search for path tp python's site-package mpi4py
-    for p in `python3 -c 'import sys; print("\n".join(sys.path))'`; do echo ===== $p; ls $p | grep mpi4py; done
-
-    ===== /path/to/python3/site-packages
+    $ for p in `python -c 'import sys; print("\n".join(sys.path))'`; do echo ===== $p; ls $p | grep mpi4py; done
+    ===== /path/to/python/site-packages
     mpi4py
 
     # set CPATH and run cmake
-    export CPATH="/path/to/python3/site-packages/mpi4py/include/:$CPATH"
+    $ export CPATH="/path/to/python/site-packages/mpi4py/include/:$CPATH"
 
-    cmake -DARB_WITH_PYTHON=ON -DARB_WITH_MPI=ON
+    $ cmake -DARB_WITH_PYTHON=ON -DARB_WITH_MPI=ON
 
 .. _install-neuroml:
 
