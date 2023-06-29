@@ -22,7 +22,11 @@ The easiest way to get Arbor is with
 
 .. code-block:: bash
 
-    pip3 install arbor
+    # Recommended but optional: install Arbor in a virtual environment
+    python -m venv arbor_env
+    source arbor_env/bin/activate
+    # Download and install Arbor
+    pip install arbor
 
 To test that Arbor is available, try the following in a Python interpreter
 to see information about the version and enabled features:
@@ -30,8 +34,7 @@ to see information about the version and enabled features:
 .. code-block:: python
 
     >>> import arbor
-    >>> print(arbor.__version__)
-    >>> print(arbor.__config__)
+    >>> arbor.print_config()
 
 You are now ready to use Arbor! You can continue reading these documentation pages, have a look at the
 :ref:`Python API reference<pyoverview>`, or visit the :ref:`tutorial`.
@@ -57,7 +60,7 @@ the master branch in our git repository, you can run:
 
 .. code-block:: bash
 
-    pip3 install git+https://github.com/arbor-sim/arbor.git
+    pip install git+https://github.com/arbor-sim/arbor.git
 
 If you want to work on Arbor's code, you can get a copy of our repo and point `pip` at the local directory:
 
@@ -66,7 +69,7 @@ If you want to work on Arbor's code, you can get a copy of our repo and point `p
     # get your copy of the Arbor source
     git clone https://github.com/arbor-sim/arbor.git --recursive
     # make your changes and then instruct pip to build and install the local source
-    pip3 install ./arbor/
+    pip install ./arbor/
 
 Every time you make changes to the code, you'll have to repeat the second step.
 
@@ -80,12 +83,6 @@ The options and flags are the same :ref:`as documented for the CMAKE build <quic
 To enable more, they must be placed in the ``CMAKE_ARGS`` environment variable.
 The simplest way to do this is by prepending the ``pip`` command with ``CMAKE_ARGS=""``,
 where you place the arguments separated by space inside the quotes.
-
-.. Note::
-
-   If you run into build issues while experimenting with build options, be sure
-   to remove the ``_skbuild`` directory. If you had Arbor installed already,
-   you may need to remove it first before you can (re)compile it with the flags you need.
 
 The following flags can be used to configure the installation:
 
@@ -106,17 +103,9 @@ The following flags can be used to configure the installation:
 
 .. note::
 
-   There are more, advanced flags that can be set. We are using ``scikit-build-cire``
+   There are more, advanced flags that can be set. We are using ``scikit-build-core``
    and ``CMake`` under the hood, so all flags and options valid in ``CMake`` can
    be used in this fashion.
-
-   Allthough the
-   `scikit-build documentation <https://scikit-build.readthedocs.io/en/latest/usage.html#environment-variable-configuration>`_
-   mentions that you can also pass the build options with ``--install-option=""``,
-   this will cause ``pip`` to build all dependencies, including all build-dependencies,
-   instead of downloading them from PyPI.
-   ``CMAKE_ARGS=""`` saves you the build time, and also downloading and setting up the dependencies they in turn require to be present.
-   Setting ``CMAKE_ARGS=""`` is in addition compatible with build front-ends like `build <https://pypa-build.readthedocs.io>`_.
 
    Detailed instructions on how to install using CMake are in the :ref:`Python
    configuration <install-python>` section of the :ref:`installation guide
@@ -130,40 +119,40 @@ In the examples below we assume you are installing from a local copy.
 
 .. code-block:: bash
 
-    pip3 install ./arbor
+    pip install ./arbor
 
 **With MPI support**. This might require loading an MPI module or setting the ``CC`` and ``CXX``
 :ref:`environment variables <install-mpi>`:
 
 .. code-block:: bash
 
-    CMAKE_ARGS="-DARB_WITH_MPI=ON" pip3 install ./arbor
+    CMAKE_ARGS="-DARB_WITH_MPI=ON" pip install ./arbor
 
 **Compile with** :ref:`vectorization <install-vectorize>` on a system with a SkyLake
 :ref:`architecture <install-architecture>`:
 
 .. code-block:: bash
 
-    CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=skylake" pip3 install ./arbor
+    CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=skylake" pip install ./arbor
     
 **Enable NVIDIA GPUs (compiled with nvcc)**. This requires the :ref:`CUDA toolkit <install-gpu>`:
 
 .. code-block:: bash
 
-    CMAKE_ARGS="-DARB_GPU=cuda" pip3 install ./arbor
+    CMAKE_ARGS="-DARB_GPU=cuda" pip install ./arbor
 
 **Enable NVIDIA GPUs (compiled with clang)**. This also requires the :ref:`CUDA toolkit <install-gpu>`:
 
 .. code-block:: bash
 
-    CMAKE_ARGS="-DARB_GPU=cuda-clang" pip3 install ./arbor
+    CMAKE_ARGS="-DARB_GPU=cuda-clang" pip install ./arbor
 
 **Enable AMD GPUs (compiled with hipcc)**. This requires setting the ``CC`` and ``CXX``
 :ref:`environment variables <install-gpu>`:
 
 .. code-block:: bash
 
-    CC=clang CXX=hipcc CMAKE_ARGS="-DARB_GPU=hip" pip3 install ./arbor
+    CC=clang CXX=hipcc CMAKE_ARGS="-DARB_GPU=hip" pip install ./arbor
 
 Note on performance
 -------------------
