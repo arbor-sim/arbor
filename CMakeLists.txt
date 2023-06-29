@@ -296,13 +296,21 @@ set(arbor_supported_components)
 # Target microarchitecture for building arbor libraries, tests and examples
 #---------------------------------------------------------------------------
 
+set_sve_length(ARB_HAS_SVE_2 ARB_SVE_LENGTH_2)
+if (ARB_HAS_SVE_2)
+    message(STATUS "SVE detected with vector size = ${ARB_SVE_LENGTH_2} bits")
+    set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_LENGTH_2}")
+else()
+    set(ARB_CXX_SVE_FLAGS "")
+endif()
+
 # Set the full set of target flags in ARB_CXX_FLAGS_TARGET_FULL, which
 # will include target-specific -march flags if ARB_ARCH is not "none".
 if(ARB_ARCH STREQUAL "none")
-    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET})
+    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXX_SVE_FLAGS})
 else()
     set_arch_target(ARB_CXXOPT_ARCH ${ARB_ARCH})
-    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH})
+    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH} ${ARB_CXX_SVE_FLAGS})
 endif()
 
 # Compile with `-fvisibility=hidden` to ensure that the symbols of the generated

@@ -1,0 +1,79 @@
+#pragma once
+
+// SVE SIMD intrinsics implementation with fixed sizes (VLS_SVE)
+
+#ifdef __ARM_FEATURE_SVE
+
+#include <arm_sve.h>
+#include <cmath>
+#include <cstdint>
+#include <immintrin.h>
+
+#include <arbor/simd/approx.hpp>
+#include <arbor/simd/implbase.hpp>
+
+namespace arb {
+namespace simd {
+namespace detail {
+
+// forward declarations
+struct sve_vls_int;
+struct sve_vls_double;
+struct sve_vls_mask;
+
+// Check required compiler features for VLS_SVE
+#if (!defined(__ARM_FEATURE_SVE_BITS) || __ARM_FEATURE_SVE_BITS != @ARB_SVE_LENGTH_2@)
+#error "Vector length specific scalable vector extension (VLS_SVE) not enabled - "
+"did you compile with -msve-vector-bits=@ARB_SVE_LENGTH_2@?" 
+#endif
+#if (!defined(__ARM_FEATURE_SVE_VECTOR_OPERATORS) || __ARM_FEATURE_SVE_VECTOR_OPERATORS != 1)
+#error "Vector length specific scalable vector extension (VLS_SVE) vector attributes not enabled - "
+"did you compile with -msve-vector-bits=@ARB_SVE_LENGTH_2@?" 
+#endif
+#if (!defined(__ARM_FEATURE_SVE_PREDICATE_OPERATORS) || __ARM_FEATURE_SVE_PREDICATE_OPERATORS != 1)
+#error "Vector length specific scalable vector extension (VLS_SVE) bool vector attributes not enabled - "
+"did you compile with -msve-vector-bits=@ARB_SVE_LENGTH_2@?" 
+#endif
+
+// sized types are obtained by type attribute
+using fvint64_t = svint64_t __attribute__((arm_sve_bits(@ARB_SVE_LENGTH_2@)));
+using fvfloat64_t = svfloat64_t __attribute__((arm_sve_bits(@ARB_SVE_LENGTH_2@)));
+using fvbool_t = svbool_t __attribute__((arm_sve_bits(@ARB_SVE_LENGTH_2@)));
+
+// number of elements in a vector
+static constexpr sve_vls_width = @ARB_SVE_LENGTH_2@/64;
+
+// specialization of traits
+
+template <>
+struct simd_traits<sve_vls_mask> {
+    static constexpr unsigned width = sve_vls_width;
+    static constexpr unsigned min_align = 2;
+    using scalar_type = bool;
+    using vector_type = fvbool_t;
+    using mask_impl = sve_vls_mask;
+};
+
+template <>
+struct simd_traits<sve_vls_int> {
+    static constexpr unsigned width = sve_vls_width;
+    static constexpr unsigned min_align = 16;
+    using scalar_type = std::int32_t;
+    using vector_type = fvint64_t;
+    using mask_impl = sve_vls_mask;
+};
+
+template <>
+struct simd_traits<sve_vls_double> {
+    static constexpr unsigned width = sve_vls_width;
+    static constexpr unsigned min_align = 16;
+    using scalar_type = double;
+    using vector_type = fvfloat64_t;
+    using mask_impl = sve_vls_mask;
+};
+
+} // namespace detail
+} // namespace simd
+} // namespace arb
+
+#endif  // def __ARM_FEATURE_SVE

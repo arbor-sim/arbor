@@ -147,4 +147,12 @@ export_visibility(arbor)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/export.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arbor)
 
+configure_file(
+    ${PROJECT_SOURCE_DIR}/cmake/sve_vls_traits.hpp.in
+    ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/simd/sve_vls_traits.hpp
+    @ONLY)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/simd/sve_vls_traits.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arbor/simd)
+
 install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
