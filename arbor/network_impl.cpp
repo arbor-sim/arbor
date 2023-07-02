@@ -1,7 +1,9 @@
-#include "network_generation.hpp"
+#include "network_impl.hpp"
 #include "cell_group_factory.hpp"
 #include "communication/distributed_for_each.hpp"
+#include "label_resolution.hpp"
 #include "network_impl.hpp"
+#include "threading/threading.hpp"
 #include "util/range.hpp"
 #include "util/spatial_tree.hpp"
 
@@ -10,6 +12,7 @@
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/domain_decomposition.hpp>
 #include <arbor/lif_cell.hpp>
 #include <arbor/morph/place_pwlin.hpp>
 #include <arbor/spike_source_cell.hpp>
@@ -18,16 +21,35 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
+#include <vector>
 
 namespace arb {
 
 namespace {
+// We only need minimal hash collisions and good spread over the hash range, because this will be
+// used as input for random123, which then provides all desired hash properties.
+// std::hash is implementation dependent, so we define our own for reproducibility.
+
+std::uint64_t simple_string_hash(const std::string_view& s) {
+    // use fnv1a hash algorithm
+    constexpr std::uint64_t prime = 1099511628211ull;
+    std::uint64_t h = 14695981039346656037ull;
+
+    for (auto c: s) {
+        h ^= c;
+        h *= prime;
+    }
+
+    return h;
+}
+
 struct distributed_site_info {
     cell_gid_type gid = 0;
     cell_lid_type lid = 0;
@@ -38,7 +60,6 @@ struct distributed_site_info {
     network_hash_type hash = 0;
 };
 
-
 struct site_mapping {
     std::vector<distributed_site_info> sites;
     std::vector<char> labels;
@@ -48,7 +69,7 @@ struct site_mapping {
 
     inline std::size_t size() const { return sites.size(); }
 
-    void insert(const network_site_info& s) {
+    void insert(const network_full_site_info& s) {
         const auto insert_pair = label_map.insert({std::string(s.label), labels.size()});
         // append label if not contained in labels
         if (insert_pair.second) {
@@ -64,10 +85,10 @@ struct site_mapping {
             s.hash});
     }
 
-    network_site_info get_site(std::size_t idx) const {
+    network_full_site_info get_site(std::size_t idx) const {
         const auto& s = this->sites.at(idx);
 
-        network_site_info info;
+        network_full_site_info info;
         info.gid = s.gid;
         info.lid = s.lid;
         info.kind = s.kind;
@@ -80,9 +101,28 @@ struct site_mapping {
     }
 };
 
-}  // namespace
+void push_back(std::vector<connection>& vec,
+    const network_full_site_info& src,
+    const network_full_site_info& dest,
+    double weight,
+    double delay) {
+    vec.emplace_back(connection({src.gid, src.lid}, {dest.gid, dest.lid}, weight, delay));
+}
 
-std::vector<connection> generate_network_connections(const recipe& rec,
+void push_back(std::vector<network_connection_info>& vec,
+    const network_full_site_info& src,
+    const network_full_site_info& dest,
+    double weight,
+    double delay) {
+    vec.emplace_back(network_connection_info{
+        network_site_info{
+            src.gid, src.kind, std::string(src.label), src.location, src.global_location},
+        network_site_info{
+            dest.gid, dest.kind, std::string(dest.label), dest.location, dest.global_location}});
+}
+
+template <typename ConnectionType>
+std::vector<ConnectionType> generate_network_connections(const recipe& rec,
     const context& ctx,
     const domain_decomposition& dom_dec) {
     const auto description_opt = rec.network_description();
@@ -93,6 +133,7 @@ std::vector<connection> generate_network_connections(const recipe& rec,
     const auto& description = description_opt.value();
 
     site_mapping src_sites, dest_sites;
+    std::mutex src_sites_mutex, dest_sites_mutex;
 
     const auto selection_ptr = thingify(description.selection, description.dict);
     const auto weight_ptr = thingify(description.weight, description.dict);
@@ -107,51 +148,54 @@ std::vector<connection> generate_network_connections(const recipe& rec,
         switch (group.kind) {
         case cell_kind::cable: {
             // We need access to morphology, so the cell is create directly
-            cable_cell cell;
-            for (const auto& gid: group.gids) {
-                try {
-                    cell = util::any_cast<cable_cell&&>(rec.get_cell_description(gid));
-                }
-                catch (std::bad_any_cast&) {
-                    throw bad_cell_description(rec.get_cell_kind(gid), gid);
-                }
-
-                auto lid_to_label = [](const std::unordered_multimap<cell_tag_type, lid_range>& map,
-                                        cell_lid_type lid) -> const cell_tag_type& {
-                    for (const auto& [label, range]: map) {
-                        if (lid >= range.begin && lid < range.end) return label;
+            threading::parallel_for::apply(
+                0, group.gids.size(), ctx->thread_pool.get(), [&](int i) {
+                    const auto gid = group.gids[i];
+                    cable_cell cell;
+                    try {
+                        cell = util::any_cast<cable_cell&&>(rec.get_cell_description(gid));
                     }
-                    throw arbor_internal_error("unkown lid");
-                };
+                    catch (std::bad_any_cast&) {
+                        throw bad_cell_description(rec.get_cell_kind(gid), gid);
+                    }
 
-                place_pwlin location_resolver(cell.morphology(), rec.get_cell_isometry(gid));
+                    auto lid_to_label =
+                        [](const std::unordered_multimap<cell_tag_type, lid_range>& map,
+                            cell_lid_type lid) -> const cell_tag_type& {
+                        for (const auto& [label, range]: map) {
+                            if (lid >= range.begin && lid < range.end) return label;
+                        }
+                        throw arbor_internal_error("unkown lid");
+                    };
 
-                // check all synapses of cell for potential destination
+                    place_pwlin location_resolver(cell.morphology(), rec.get_cell_isometry(gid));
 
-                for (const auto& [_, placed_synapses]: cell.synapses()) {
-                    for (const auto& p_syn: placed_synapses) {
-                        // TODO check if tag correct
-                        const auto& label = lid_to_label(cell.synapse_ranges(), p_syn.lid);
+                    // check all synapses of cell for potential destination
 
-                        if (selection.select_destination(cell_kind::cable, gid, label)) {
-                            const mpoint point = location_resolver.at(p_syn.loc);
-                            dest_sites.insert(
-                                {gid, p_syn.lid, cell_kind::cable, label, p_syn.loc, point});
+                    for (const auto& [_, placed_synapses]: cell.synapses()) {
+                        for (const auto& p_syn: placed_synapses) {
+                            const auto& label = lid_to_label(cell.synapse_ranges(), p_syn.lid);
+
+                            if (selection.select_destination(cell_kind::cable, gid, label)) {
+                                const mpoint point = location_resolver.at(p_syn.loc);
+                                std::lock_guard<std::mutex> guard(dest_sites_mutex);
+                                dest_sites.insert(
+                                    {gid, p_syn.lid, cell_kind::cable, label, p_syn.loc, point});
+                            }
                         }
                     }
-                }
 
-                // check all detectors of cell for potential source
-                for (const auto& p_det: cell.detectors()) {
-                    // TODO check if tag correct
-                    const auto& label = lid_to_label(cell.detector_ranges(), p_det.lid);
-                    if (selection.select_source(cell_kind::cable, gid, label)) {
-                        const mpoint point = location_resolver.at(p_det.loc);
-                        src_sites.insert(
-                            {gid, p_det.lid, cell_kind::cable, label, p_det.loc, point});
+                    // check all detectors of cell for potential source
+                    for (const auto& p_det: cell.detectors()) {
+                        const auto& label = lid_to_label(cell.detector_ranges(), p_det.lid);
+                        if (selection.select_source(cell_kind::cable, gid, label)) {
+                            const mpoint point = location_resolver.at(p_det.loc);
+                            std::lock_guard<std::mutex> guard(src_sites_mutex);
+                            src_sites.insert(
+                                {gid, p_det.lid, cell_kind::cable, label, p_det.loc, point});
+                        }
                     }
-                }
-            }
+                });
         } break;
         default: {
             // Assuming all other cell types do not have a morphology. We can use label resolution
@@ -179,6 +223,7 @@ std::vector<connection> generate_network_connections(const recipe& rec,
                     const auto& range = sources.ranges().at(j);
                     for (auto lid = range.begin; lid < range.end; ++lid) {
                         if (selection.select_source(group.kind, gid, label)) {
+                            std::lock_guard<std::mutex> guard(src_sites_mutex);
                             src_sites.insert({gid, lid, group.kind, label, {0, 0.0}, point});
                         }
                     }
@@ -192,6 +237,7 @@ std::vector<connection> generate_network_connections(const recipe& rec,
                     const auto& range = destinations.ranges().at(j);
                     for (auto lid = range.begin; lid < range.end; ++lid) {
                         if (selection.select_destination(group.kind, gid, label)) {
+                            std::lock_guard<std::mutex> guard(dest_sites_mutex);
                             dest_sites.insert({gid, lid, group.kind, label, {0, 0.0}, point});
                         }
                     }
@@ -206,27 +252,30 @@ std::vector<connection> generate_network_connections(const recipe& rec,
     }
 
     // create octree
-    std::vector<network_site_info> network_dest_sites;
+    std::vector<network_full_site_info> network_dest_sites;
     network_dest_sites.reserve(dest_sites.size());
-    for(std::size_t i = 0; i < dest_sites.size(); ++i) {
+    for (std::size_t i = 0; i < dest_sites.size(); ++i) {
         network_dest_sites.emplace_back(dest_sites.get_site(i));
     }
     const std::size_t max_depth = selection.max_distance().has_value() ? 10 : 1;
     const std::size_t max_leaf_size = 100;
-    spatial_tree<network_site_info, 3> local_dest_tree(max_depth,
+    spatial_tree<network_full_site_info, 3> local_dest_tree(max_depth,
         max_leaf_size,
         std::move(network_dest_sites),
-        [](const network_site_info& info) -> spatial_tree<network_site_info, 3>::point_type {
+        [](const network_full_site_info& info)
+            -> spatial_tree<network_full_site_info, 3>::point_type {
             return {info.global_location.x, info.global_location.y, info.global_location.z};
         });
 
     // select connections
-    std::vector<connection> connections;
+    std::vector<ConnectionType> connections;
+    std::mutex connections_mutex;
 
     auto sample_sources = [&](const util::range<distributed_site_info*>& source_range,
                               const util::range<char*>& label_range) {
-        for (const auto& s: source_range) {
-            network_site_info src;
+        threading::parallel_for::apply(0, source_range.size(), ctx->thread_pool.get(), [&](int i) {
+            const auto& s = source_range[i];
+            network_full_site_info src;
             src.gid = s.gid;
             src.lid = s.lid;
             src.kind = s.kind;
@@ -235,12 +284,13 @@ std::vector<connection> generate_network_connections(const recipe& rec,
             src.global_location = s.global_location;
             src.hash = s.hash;
 
-            auto sample = [&](const network_site_info& dest) {
+            auto sample = [&](const network_full_site_info& dest) {
                 if (selection.select_connection(src, dest)) {
-                    connections.emplace_back(connection({src.gid, src.lid},
-                        {dest.gid, dest.lid},
-                        weight.get(src, dest),
-                        delay.get(src, dest)));
+                    const auto w = weight.get(src, dest);
+                    const auto d = delay.get(src, dest);
+
+                    std::lock_guard<std::mutex> guard(connections_mutex);
+                    push_back(connections, src, dest, w, d);
                 }
             };
 
@@ -256,10 +306,60 @@ std::vector<connection> generate_network_connections(const recipe& rec,
                     sample);
             }
             else { local_dest_tree.for_each(sample); }
-        }
+        });
     };
 
     distributed_for_each(sample_sources, distributed, src_sites.sites, src_sites.labels);
+
+    return connections;
+}
+
+}  // namespace
+
+
+
+network_full_site_info::network_full_site_info(cell_gid_type gid,
+    cell_lid_type lid,
+    cell_kind kind,
+    std::string_view label,
+    mlocation location,
+    mpoint global_location):
+    gid(gid),
+    lid(lid),
+    kind(kind),
+    label(std::move(label)),
+    location(location),
+    global_location(global_location) {
+
+    std::uint64_t label_hash = simple_string_hash(this->label);
+    static_assert(sizeof(decltype(mlocation::pos)) == sizeof(std::uint64_t));
+    std::uint64_t loc_pos_hash = *reinterpret_cast<const std::uint64_t*>(&location.pos);
+
+    // Initial seed. Changes will affect reproducibility of generated network connections.
+    constexpr std::uint64_t seed = 984293;
+
+    using rand_type = r123::Threefry4x64;
+    const rand_type::ctr_type seed_input = {{seed, 2 * seed, 3 * seed, 4 * seed}};
+    const rand_type::key_type key = {{gid, label_hash, location.branch, loc_pos_hash}};
+
+    rand_type gen;
+    hash = gen(seed_input, key)[0];
+}
+
+std::vector<connection> generate_connections(const recipe& rec,
+    const context& ctx,
+    const domain_decomposition& dom_dec) {
+    return generate_network_connections<connection>(rec, ctx, dom_dec);
+}
+
+ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(const recipe& rec,
+    const context& ctx,
+    const domain_decomposition& dom_dec) {
+    auto connections = generate_network_connections<network_connection_info>(rec, ctx, dom_dec);
+
+    // generated connections may have different orer each time due to multi-threading.
+    // sort before returning to user for reproducibility.
+    std::sort(connections.begin(), connections.end());
 
     return connections;
 }

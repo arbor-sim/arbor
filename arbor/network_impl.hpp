@@ -21,11 +21,30 @@
 
 namespace arb {
 
+struct network_full_site_info {
+    network_full_site_info() = default;
+
+    network_full_site_info(cell_gid_type gid,
+        cell_lid_type lid,
+        cell_kind kind,
+        std::string_view label,
+        mlocation location,
+        mpoint global_location);
+
+    cell_gid_type gid;
+    cell_lid_type lid;
+    cell_kind kind;
+    std::string_view label;
+    mlocation location;
+    mpoint global_location;
+    network_hash_type hash;
+};
+
 struct network_selection_impl {
     virtual std::optional<double> max_distance() const { return std::nullopt; }
 
-    virtual bool select_connection(const network_site_info& src,
-        const network_site_info& dest) const = 0;
+    virtual bool select_connection(const network_full_site_info& src,
+        const network_full_site_info& dest) const = 0;
 
     virtual bool select_source(cell_kind kind,
         cell_gid_type gid,
@@ -50,7 +69,7 @@ inline std::shared_ptr<network_selection_impl> thingify(network_selection s,
 
 
 struct network_value_impl {
-    virtual double get(const network_site_info& src, const network_site_info& dest) const = 0;
+    virtual double get(const network_full_site_info& src, const network_full_site_info& dest) const = 0;
 
     virtual void initialize(const network_label_dict& dict) {};
 
@@ -64,5 +83,9 @@ inline std::shared_ptr<network_value_impl> thingify(network_value v,
     v.impl_->initialize(dict);
     return v.impl_;
 }
+
+std::vector<connection> generate_connections(const recipe& rec,
+    const context& ctx,
+    const domain_decomposition& dom_dec);
 
 }  // namespace arb

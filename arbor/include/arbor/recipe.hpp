@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
+#include <arbor/context.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/export.hpp>
 #include <arbor/morph/isometry.hpp>

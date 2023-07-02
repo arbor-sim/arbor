@@ -10,7 +10,7 @@
 using namespace arb;
 
 namespace {
-std::vector<network_site_info> test_sites = {
+std::vector<network_full_site_info> test_sites = {
     {0, 0, cell_kind::cable, "a", {1, 0.5}, {0.0, 0.0, 0.0}},
     {1, 0, cell_kind::benchmark, "b", {0, 0.0}, {1.0, 0.0, 0.0}},
     {2, 0, cell_kind::lif, "c", {0, 0.0}, {2.0, 0.0, 0.0}},
@@ -433,7 +433,7 @@ TEST(network_selection, random_seed) {
 TEST(network_selection, random_reproducibility) {
     const auto s = thingify(network_selection::random(42, 0.5), network_label_dict());
 
-    std::vector<network_site_info> sites = {
+    std::vector<network_full_site_info> sites = {
         {0, 0, cell_kind::cable, "a", {1, 0.5}, {1.2, 2.3, 3.4}},
         {0, 1, cell_kind::cable, "b", {0, 0.1}, {-1.0, 0.5, 0.7}},
         {1, 0, cell_kind::benchmark, "c", {0, 0.0}, {20.5, -59.5, 5.0}},
@@ -450,8 +450,8 @@ TEST(network_selection, random_reproducibility) {
 }
 
 TEST(network_selection, custom) {
-    auto inter_cell_func = [](const network_site_info& src, const network_site_info& dest) {
-        return src.gid != dest.gid;
+    auto inter_cell_func = [](const network_connection_info& c) {
+        return c.src.gid != c.dest.gid;
     };
     const auto s = thingify(network_selection::custom(inter_cell_func), network_label_dict());
     const auto s_ref = thingify(network_selection::inter_cell(), network_label_dict());
@@ -557,7 +557,7 @@ TEST(network_value, uniform_distribution) {
 TEST(network_value, uniform_distribution_reproducibility) {
     const auto v = thingify(network_value::uniform_distribution(42, {-5.0, 3.0}), network_label_dict());
 
-    std::vector<network_site_info> sites = {
+    std::vector<network_full_site_info> sites = {
         {0, 0, cell_kind::cable, "a", {1, 0.5}, {1.2, 2.3, 3.4}},
         {0, 1, cell_kind::cable, "b", {0, 0.1}, {-1.0, 0.5, 0.7}},
         {1, 0, cell_kind::benchmark, "c", {0, 0.0}, {20.5, -59.5, 5.0}},
@@ -610,7 +610,7 @@ TEST(network_value, normal_distribution_reproducibility) {
     const double std_dev = 3.0;
     const auto v = thingify(network_value::normal_distribution(42, mean, std_dev), network_label_dict());
 
-    std::vector<network_site_info> sites = {
+    std::vector<network_full_site_info> sites = {
         {0, 0, cell_kind::cable, "a", {1, 0.5}, {1.2, 2.3, 3.4}},
         {0, 1, cell_kind::cable, "b", {0, 0.1}, {-1.0, 0.5, 0.7}},
         {1, 0, cell_kind::benchmark, "c", {0, 0.0}, {20.5, -59.5, 5.0}},
@@ -674,7 +674,7 @@ TEST(network_value, truncated_normal_distribution_reproducibility) {
         network_value::truncated_normal_distribution(42, mean, std_dev, {lower_bound, upper_bound}),
         network_label_dict());
 
-    std::vector<network_site_info> sites = {
+    std::vector<network_full_site_info> sites = {
         {0, 0, cell_kind::cable, "a", {1, 0.5}, {1.2, 2.3, 3.4}},
         {0, 1, cell_kind::cable, "b", {0, 0.1}, {-1.0, 0.5, 0.7}},
         {1, 0, cell_kind::benchmark, "c", {0, 0.0}, {20.5, -59.5, 5.0}},
@@ -701,8 +701,8 @@ TEST(network_value, truncated_normal_distribution_reproducibility) {
 }
 
 TEST(network_value, custom) {
-    auto func = [](const network_site_info& src, const network_site_info& dest) {
-        return src.global_location.x + dest.global_location.x;
+    auto func = [](const network_connection_info& c) {
+        return c.src.global_location.x + c.dest.global_location.x;
     };
 
     const auto v = thingify(network_value::custom(func), network_label_dict());

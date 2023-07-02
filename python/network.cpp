@@ -4,7 +4,9 @@
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
 
+#include <arbor/load_balance.hpp>
 #include <arbor/network.hpp>
+#include <arbor/network_generation.hpp>
 #include <arbor/util/any_visitor.hpp>
 #include <arborio/label_parse.hpp>
 #include <arborio/networkio.hpp>
@@ -14,9 +16,11 @@
 #include <variant>
 #include <functional>
 
+#include "context.hpp"
 #include "error.hpp"
-#include "util.hpp"
+#include "recipe.hpp"
 #include "strprintf.hpp"
+#include "util.hpp"
 
 namespace py = pybind11;
 
@@ -28,32 +32,32 @@ void register_network(py::module& m) {
     py::class_<arb::network_site_info> network_site_info(
         m, "network_site_info", "Identifies a network site to connect to / from");
     network_site_info.def_readwrite("gid", &arb::network_site_info::gid)
-        .def_readwrite("lid", &arb::network_site_info::lid)
         .def_readwrite("kind", &arb::network_site_info::kind)
         .def_readwrite("label", &arb::network_site_info::label)
         .def_readwrite("location", &arb::network_site_info::location)
         .def_readwrite("global_location", &arb::network_site_info::global_location)
-        .def("__repr__", [](const arb::network_site_info& s) {
-            return util::pprintf("<arbor.network_site_info: lid {}, kind {}, label \"{}\", "
-                                 "location {}, global_location {}>",
-                s.lid,
-                s.kind,
-                s.label,
-                s.location,
-                s.global_location);
-        });
+        .def("__repr__", [](const arb::network_site_info& s) { return util::pprintf("{}", s); })
+        .def("__str__", [](const arb::network_site_info& s) { return util::pprintf("{}", s); });
+
+    py::class_<arb::network_connection_info> network_connection_info(
+        m, "network_connection_info", "Identifies a network connection");
+    network_connection_info.def_readwrite("src", &arb::network_connection_info::src)
+        .def_readwrite("dest", &arb::network_connection_info::dest)
+        .def("__repr__", [](const arb::network_connection_info& c) { return util::pprintf("{}", c); })
+        .def("__str__", [](const arb::network_connection_info& c) { return util::pprintf("{}", c); });
 
     py::class_<arb::network_selection> network_selection(
         m, "network_selection", "Network selection.");
+
     network_selection
         .def_static("custom",
             [](arb::network_selection::custom_func_type func) {
                 return arb::network_selection::custom(
-                    [=](const arb::network_site_info& src, const arb::network_site_info& dest) {
+                    [=](const arb::network_connection_info& c) {
                         return try_catch_pyexception(
                             [&]() {
                                 pybind11::gil_scoped_acquire guard;
-                                return func(src, dest);
+                                return func(c);
                             },
                             "Python error already thrown");
                     });
@@ -69,11 +73,11 @@ void register_network(py::module& m) {
         .def_static("custom",
             [](arb::network_value::custom_func_type func) {
                 return arb::network_value::custom(
-                    [=](const arb::network_site_info& src, const arb::network_site_info& dest) {
+                    [=](const arb::network_connection_info& c) {
                         return try_catch_pyexception(
                             [&]() {
                                 pybind11::gil_scoped_acquire guard;
-                                return func(src, dest);
+                                return func(c);
                             },
                             "Python error already thrown");
                     });
@@ -134,6 +138,24 @@ void register_network(py::module& m) {
         "delay"_a,
         "dict"_a,
         "Construct network description.");
+
+    m.def(
+        "generate_network_connections",
+        [](const std::shared_ptr<py_recipe>& rec,
+            std::shared_ptr<context_shim> ctx,
+            std::optional<arb::domain_decomposition> decomp) {
+            py_recipe_shim rec_shim(rec);
+
+            if (!ctx) ctx = std::make_shared<context_shim>(arb::make_context());
+            if (!decomp) decomp = arb::partition_load_balance(rec_shim, ctx->context);
+
+            return generate_network_connections(rec_shim, ctx->context, decomp.value());
+        },
+        "recipe"_a,
+        pybind11::arg_v("context", pybind11::none(), "Execution context"),
+        pybind11::arg_v("decomp", pybind11::none(), "Domain decomposition"),
+        "Generate network connections from the network description in the recipe. Will only "
+        "generate connections with local gids in the domain composition as destination.");
 }
 
 }  // namespace pyarb

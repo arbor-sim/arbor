@@ -4,6 +4,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/export.hpp>
 #include <arbor/morph/primitives.hpp>
+#include <arbor/util/lexcmp_def.hpp>
 
 #include <array>
 #include <cstdint>
@@ -24,23 +25,26 @@ namespace arb {
 using network_hash_type = std::uint64_t;
 
 struct ARB_SYMBOL_VISIBLE network_site_info {
-    network_site_info() = default;
-
-    network_site_info(cell_gid_type gid,
-        cell_lid_type lid,
-        cell_kind kind,
-        std::string_view label,
-        mlocation location,
-        mpoint global_location);
-
     cell_gid_type gid;
-    cell_lid_type lid;
     cell_kind kind;
-    std::string_view label;
+    cell_tag_type label;
     mlocation location;
     mpoint global_location;
-    network_hash_type hash;
+
+    ARB_ARBOR_API friend std::ostream& operator<<(std::ostream& os, const network_site_info& s);
 };
+
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(network_site_info,
+    (a.gid, a.kind, a.label, a.location, a.global_location),
+    (b.gid, a.kind, b.label, b.location, b.global_location))
+
+struct ARB_SYMBOL_VISIBLE network_connection_info {
+    network_site_info src, dest;
+
+    ARB_ARBOR_API friend std::ostream& operator<<(std::ostream& os, const network_connection_info& s);
+};
+
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(network_connection_info, (a.src, a.dest), (b.src, b.dest))
 
 struct network_selection_impl;
 
@@ -52,8 +56,7 @@ class ARB_SYMBOL_VISIBLE network_selection;
 
 class ARB_SYMBOL_VISIBLE network_value {
 public:
-    using custom_func_type =
-        std::function<double(const network_site_info& src, const network_site_info& dest)>;
+    using custom_func_type = std::function<double(const network_connection_info&)>;
 
     network_value() { *this = network_value::scalar(0.0); }
 
@@ -147,8 +150,7 @@ ARB_ARBOR_API inline network_value operator-(network_value a) {
 
 class ARB_SYMBOL_VISIBLE network_selection {
 public:
-    using custom_func_type =
-        std::function<bool(const network_site_info& src, const network_site_info& dest)>;
+    using custom_func_type = std::function<bool(const network_connection_info&)>;
 
     network_selection() { *this = network_selection::none(); }
 
@@ -247,7 +249,6 @@ private:
     ns_map selections_;
     nv_map values_;
 };
-
 
 struct network_description {
     network_selection selection;

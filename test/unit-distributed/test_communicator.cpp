@@ -647,7 +647,7 @@ TEST(communicator, all2all)
             auto c = connections[i*n_local+j];
             EXPECT_EQ(i, c.source.gid);
             EXPECT_EQ(0u, c.source.index);
-            EXPECT_EQ(i, c.destination);
+            EXPECT_EQ(i, c.destination.index);
         }
     }
 
@@ -704,7 +704,7 @@ TEST(communicator, mini_network)
             auto c = connections[i*22 + j];
             EXPECT_EQ(ex_source_gids[j], c.source.gid);
             EXPECT_EQ(ex_source_lids[j], c.source.index);
-            EXPECT_EQ(ex_target_lids[i%2][j], c.destination);
+            EXPECT_EQ(ex_target_lids[i%2][j], c.destination.index);
         }
     }
 }

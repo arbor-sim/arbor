@@ -13,12 +13,12 @@
 #include "connection.hpp"
 #include "distributed_context.hpp"
 #include "execution_context.hpp"
+#include "network_impl.hpp"
 #include "profile/profiler_macro.hpp"
 #include "threading/threading.hpp"
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
-#include "network_generation.hpp"
 
 #include "communication/communicator.hpp"
 
@@ -45,7 +45,7 @@ void communicator::update_connections(const recipe& rec,
 
 
     // Construct connections from high-level specification
-    auto generated_connections = generate_network_connections(rec, ctx_, dom_dec);
+    auto generated_connections = generate_connections(rec, ctx_, dom_dec);
 
     // For caching information about each cell
     struct gid_info {
