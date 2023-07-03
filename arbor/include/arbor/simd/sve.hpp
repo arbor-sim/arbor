@@ -453,7 +453,7 @@ struct sve_double {
 
         // Compute n and g.
 
-        auto n = svrintz_f64_z(svptrue_b64(), add(mul(broadcast(ln2inv), x), broadcast(0.5)));
+        auto n = svrintm_f64_z(svptrue_b64(), add(mul(broadcast(ln2inv), x), broadcast(0.5)));
 
         auto g = fma(n, broadcast(-ln2C1), x);
         g = fma(n, broadcast(-ln2C2), g);

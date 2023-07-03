@@ -42,7 +42,7 @@ set(ARB_ARCH "native" CACHE STRING "Target architecture for arbor libraries")
 # Perform explicit vectorization?
 
 option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
-set(ARB_SVE_WIDTH "8" CACHE STRING "Default SVE vector length measured in doubles")
+set(ARB_SVE_WIDTH "2" CACHE STRING "Default SVE vector length measured in doubles")
 mark_as_advanced(ARB_SVE_WIDTH)
 
 # Support for Thread pinning
@@ -234,7 +234,7 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 # for the libmodcc library.
 
 add_library(modcc-private-deps INTERFACE)
-target_compile_definitions(modcc-private-deps INTERFACE ARB_SVE_WIDTH=${ARB_SVE_WIDTH})
+#target_compile_definitions(modcc-private-deps INTERFACE ARB_SVE_WIDTH=${ARB_SVE_WIDTH})
 
 # Add scripts and supporting CMake for setting up external catalogues
 
@@ -296,11 +296,12 @@ set(arbor_supported_components)
 # Target microarchitecture for building arbor libraries, tests and examples
 #---------------------------------------------------------------------------
 
-set_sve_length(ARB_HAS_SVE_2 ARB_SVE_LENGTH_2)
-if (ARB_HAS_SVE_2)
-    message(STATUS "SVE detected with vector size = ${ARB_SVE_LENGTH_2} bits")
-    set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_LENGTH_2}")
+set_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
+if (ARB_HAS_SVE)
+    message(STATUS "SVE detected with vector size = ${ARB_SVE_BITS} bits")
+    set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
 else()
+    message(STATUS "NO SVE detected")
     set(ARB_CXX_SVE_FLAGS "")
 endif()
 

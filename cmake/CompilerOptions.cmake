@@ -100,7 +100,9 @@ function(set_arch_target optvar arch)
         # Correct compiler option unfortunately depends upon the target architecture family.
         # Extract this information from running the configured compiler with --verbose.
 
+        message("here are the additional cmake flags: ${CMAKE_CXX_FLAGS}")
         try_compile(ignore ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/cmake/dummy.cpp COMPILE_DEFINITIONS --verbose OUTPUT_VARIABLE cc_out)
+        message("here is what the compiler said: ${cc_out}")
         string(REPLACE "\n" ";" cc_out "${cc_out}")
         set(target)
         foreach(line ${cc_out})
@@ -158,6 +160,7 @@ function(set_sve_length has_sve sve_length)
         set("${has_sve}" ON PARENT_SCOPE)
     endif()
     set("${sve_length}" "${out_var}" PARENT_SCOPE)
+
 endfunction()
 
 function(export_visibility target)
