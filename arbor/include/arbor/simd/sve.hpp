@@ -33,7 +33,7 @@ template<> struct is_sve<svbool_t>    : std::true_type {};
 
 template <>
 struct simd_traits<sve_mask> {
-    static constexpr unsigned width = ARB_SVE_WIDTH;
+    static constexpr unsigned width = 2;
     using scalar_type = bool;
     using vector_type = svbool_t;
     using mask_impl = sve_mask;
@@ -43,7 +43,7 @@ struct simd_traits<sve_mask> {
 
 template <>
 struct simd_traits<sve_double> {
-    static constexpr unsigned width = ARB_SVE_WIDTH;
+    static constexpr unsigned width = 2;
     using scalar_type = double;
     using vector_type = svfloat64_t;
     using mask_impl = sve_mask;
@@ -53,7 +53,7 @@ struct simd_traits<sve_double> {
 
 template <>
 struct simd_traits<sve_int> {
-    static constexpr unsigned width = ARB_SVE_WIDTH;
+    static constexpr unsigned width = 2;
     using scalar_type = int32_t;
     using vector_type = svint64_t;
     using mask_impl = sve_mask;

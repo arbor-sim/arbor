@@ -52,7 +52,6 @@ std::unordered_map<std::string, enum simd_spec::simd_abi> simdAbiMap = {
     {"none",        simd_spec::none},
     {"neon",        simd_spec::neon},
     {"vls_sve",     simd_spec::vls_sve},
-    //{"sve", simd_spec::sve},
     {"avx",         simd_spec::avx},
     {"avx2",        simd_spec::avx2},
     {"avx512",      simd_spec::avx512},

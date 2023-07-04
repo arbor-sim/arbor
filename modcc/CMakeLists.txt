@@ -31,7 +31,6 @@ set(modcc_sources modcc.cpp)
 
 add_library(libmodcc STATIC ${libmodcc_sources})
 target_link_libraries(libmodcc PUBLIC arbor-public-headers)
-target_link_libraries(libmodcc PRIVATE modcc-private-deps)
 
 if (ARB_USE_BUNDLED_FMT)
     target_include_directories(libmodcc
@@ -77,7 +76,6 @@ if (NOT ARB_WITH_EXTERNAL_MODCC)
     endif()
 
     target_link_libraries(modcc PRIVATE libmodcc ext-tinyopt)
-    target_link_libraries(modcc PRIVATE modcc-private-deps)
     set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC})
     install(TARGETS modcc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
