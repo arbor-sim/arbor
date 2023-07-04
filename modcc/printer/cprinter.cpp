@@ -184,11 +184,23 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
             "using S::indirect;\n"
             "using S::assign;\n";
 
+        std::string abi = "S::simd_abi::";
+        switch (opt.simd.abi) {
+        case simd_spec::avx:     abi += "avx";     break;
+        case simd_spec::avx2:    abi += "avx2";    break;
+        case simd_spec::avx512:  abi += "avx512";  break;
+        case simd_spec::neon:    abi += "neon";    break;
+        case simd_spec::sve:     abi += "sve";     break;
+        case simd_spec::vls_sve: abi += "vls_sve"; break;
+        case simd_spec::native:  abi += "native";  break;
+        default:
+            abi += "default_abi"; break;
+        }
         out << "static constexpr unsigned vector_length_ = ";
         if (opt.simd.size == no_size) {
-            out << "S::simd_abi::native_width<arb_value_type>::value;\n";
+            out << "S::simd_abi::width<" << abi << ">::value;\n";
         } else {
-            out << opt.simd.size << ";\n";
+            out << "S::simd_abi::width<" << abi << ", " << opt.simd.size << ">::value;\n";
         }
 
         //out << "static constexpr unsigned simd_width_ = ";
@@ -198,17 +210,6 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         //    out << opt.simd.width << ";\n";
         //}
 
-        std::string abi = "S::simd_abi::";
-        switch (opt.simd.abi) {
-        case simd_spec::avx:     abi += "avx";     break;
-        case simd_spec::avx2:    abi += "avx2";    break;
-        case simd_spec::avx512:  abi += "avx512";  break;
-        case simd_spec::neon:    abi += "neon";    break;
-        case simd_spec::vls_sve: abi += "vls_sve"; break;
-        case simd_spec::native:  abi += "native";  break;
-        default:
-            abi += "default_abi"; break;
-        }
 
         out <<
             "using simd_value = S::simd<arb_value_type, vector_length_, " << abi << ">;\n"

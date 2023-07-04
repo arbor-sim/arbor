@@ -287,13 +287,20 @@ set(arbor_supported_components)
 # Target microarchitecture for building arbor libraries, tests and examples
 #---------------------------------------------------------------------------
 
-set_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
-if (ARB_HAS_SVE)
-    message(STATUS "SVE detected with vector size = ${ARB_SVE_BITS} bits")
-    set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
+set(ARB_SVE_WIDTH "auto" CACHE STRING "Default SVE vector length in bits. Default: auto (detection during configure time).")
+mark_as_advanced(ARB_SVE_WIDTH)
+if (ARB_SVE_WIDTH STREQUAL "auto")
+    get_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
+    if (ARB_HAS_SVE)
+        message(STATUS "SVE detected with vector size = ${ARB_SVE_BITS} bits")
+        set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
+    else()
+        message(STATUS "NO SVE detected")
+        set(ARB_CXX_SVE_FLAGS "")
+    endif()
 else()
-    message(STATUS "NO SVE detected")
-    set(ARB_CXX_SVE_FLAGS "")
+    set(ARB_SVE_BITS ${ARB_SVE_WIDTH})
+    set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
 endif()
 
 # Set the full set of target flags in ARB_CXX_FLAGS_TARGET_FULL, which

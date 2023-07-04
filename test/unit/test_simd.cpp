@@ -7,6 +7,7 @@
 
 #include <arbor/simd/avx.hpp>
 #include <arbor/simd/neon.hpp>
+#include <arbor/simd/sve.hpp>
 #include <arbor/simd/vls_sve.hpp>
 #include <arbor/simd/simd.hpp>
 #include <arbor/util/compat.hpp>
@@ -1903,6 +1904,12 @@ typedef ::testing::Types<
                   simd_t<simd_mask<double, 2, simd_abi::neon>, double, 2>>,
 #endif
 #ifdef __ARM_FEATURE_SVE
+    simd_types_t< simd_t<     simd<double, 0, simd_abi::sve>, double, 2>,
+                  simd_t<     simd<int,    0, simd_abi::sve>, int,    2>,
+                  simd_t<simd_mask<double, 0, simd_abi::sve>, bool,   2>>,
+    simd_types_t< simd_t<     simd<double, 0, simd_abi::sve>, double, ::arb::simd::detail::max_sve_width>,
+                  simd_t<     simd<int,    0, simd_abi::sve>, int,    ::arb::simd::detail::max_sve_width>,
+                  simd_t<simd_mask<double, 0, simd_abi::sve>, bool,   ::arb::simd::detail::max_sve_width>>,
     simd_types_t< simd_t<     simd<double, ::arb::simd::detail::vls_sve_width, simd_abi::vls_sve>,
                                    double, ::arb::simd::detail::vls_sve_width>,
                   simd_t<     simd<int,    ::arb::simd::detail::vls_sve_width, simd_abi::vls_sve>,

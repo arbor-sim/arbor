@@ -142,7 +142,7 @@ function(set_arch_target optvar arch)
 endfunction()
 
 # Set ${has_sve} and ${sve_length} in parent scope according to auto detection.
-function(set_sve_length has_sve sve_length)
+function(get_sve_length has_sve sve_length)
     try_run(run_var cc_var ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/cmake/sve_length.cpp RUN_OUTPUT_VARIABLE out_var)
 
     if(NOT cc_var)

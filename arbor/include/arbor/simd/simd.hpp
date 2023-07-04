@@ -955,6 +955,44 @@ namespace simd_abi {
             typename generic<Value, N>::type,
             typename native<Value, N>::type>::type;
     };
+
+    template<template<class, unsigned> class Abi, typename V, int k, typename = void>
+    struct has_abi : std::false_type {};
+
+    template<template<class, unsigned> class Abi, typename V, int k>
+    struct has_abi<Abi,V,k,std::void_t<decltype(Abi<V,k>{})>> : std::true_type {};
+
+    template <template<class, unsigned> class Abi, int k = 64>
+    struct width;
+
+    template <template<class, unsigned> class Abi, int k>
+    struct width {
+        static_assert( k%2 == 0 );
+        static constexpr int value = has_abi<Abi, double, k>::value ? k : width<Abi, k/2>::value;
+    };
+
+    template <template<class, unsigned> class Abi>
+    struct width<Abi, 1> {
+        static constexpr int value = has_abi<Abi, double, 1>::value ? 1 : width<Abi, 0>::value;
+    };
+
+    template <template<class, unsigned> class Abi>
+    struct width<Abi, 0> {
+        static constexpr int value = 0;
+    };
+
+    template <int k>
+    struct width<native, k> {
+        static constexpr int value = native_width<double,k>::value;
+    };
+
+    //static_assert(has_abi<generic,double,16>::value);
+    //static_assert(has_abi<avx,double,4>::value);
+    //static_assert(width<avx>::value == 4);
+    //static_assert(width<avx,16>::value == 4);
+    //static_assert(width<generic,16>::value == 16);
+    //static_assert(width<default_abi,16>::value == 16);
+    //static_assert(width<native>::value == 4);
 }
 
 template <typename Value, unsigned N, template <class, unsigned> class Abi>

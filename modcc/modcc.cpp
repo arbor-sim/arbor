@@ -51,6 +51,7 @@ std::unordered_map<std::string, targetKind> targetKindMap = {
 std::unordered_map<std::string, enum simd_spec::simd_abi> simdAbiMap = {
     {"none",        simd_spec::none},
     {"neon",        simd_spec::neon},
+    {"sve",         simd_spec::sve},
     {"vls_sve",     simd_spec::vls_sve},
     {"avx",         simd_spec::avx},
     {"avx2",        simd_spec::avx2},
