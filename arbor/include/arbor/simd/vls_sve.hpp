@@ -6,11 +6,47 @@
 #include <cmath>
 #include <cstdint>
 
-#include <arbor/simd/vls_sve_traits.hpp>
+#include <arbor/simd/vls_sve_bits.hpp>
+#include <arbor/simd/approx.hpp>
+#include <arbor/simd/implbase.hpp>
 
 namespace arb {
 namespace simd {
 namespace detail {
+
+// forward declarations
+struct vls_sve_int;
+struct vls_sve_double;
+struct vls_sve_mask;
+
+// specialization of traits
+
+template <>
+struct simd_traits<vls_sve_mask> {
+    static constexpr unsigned width = vls_sve_width;
+    static constexpr unsigned min_align = 2;
+    using scalar_type = bool;
+    using vector_type = fvbool_t;
+    using mask_impl = vls_sve_mask;
+};
+
+template <>
+struct simd_traits<vls_sve_int> {
+    static constexpr unsigned width = vls_sve_width;
+    static constexpr unsigned min_align = 16;
+    using scalar_type = std::int32_t;
+    using vector_type = fvint64_t;
+    using mask_impl = vls_sve_mask;
+};
+
+template <>
+struct simd_traits<vls_sve_double> {
+    static constexpr unsigned width = vls_sve_width;
+    static constexpr unsigned min_align = 16;
+    using scalar_type = double;
+    using vector_type = fvfloat64_t;
+    using mask_impl = vls_sve_mask;
+};
 
 struct vls_sve_mask : public implbase<vls_sve_mask> {
 

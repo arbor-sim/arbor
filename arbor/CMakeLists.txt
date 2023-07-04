@@ -148,11 +148,11 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/export.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arbor)
 
 configure_file(
-    ${PROJECT_SOURCE_DIR}/cmake/vls_sve_traits.hpp.in
-    ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/simd/vls_sve_traits.hpp
+    ${PROJECT_SOURCE_DIR}/cmake/vls_sve_bits.hpp.in
+    ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/simd/vls_sve_bits.hpp
     @ONLY)
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/simd/sve_vls_traits.hpp
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/simd/vls_sve_bits.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arbor/simd)
 
 configure_file(
