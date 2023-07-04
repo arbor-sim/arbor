@@ -196,26 +196,12 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
         default:
             abi += "default_abi"; break;
         }
-        out << "static constexpr unsigned vector_length_ = ";
-        if (opt.simd.size == no_size) {
-            out << "S::simd_abi::width<" << abi << ">::value;\n";
-        } else {
-            out << "S::simd_abi::width<" << abi << ", " << opt.simd.size << ">::value;\n";
-        }
-
-        //out << "static constexpr unsigned simd_width_ = ";
-        //if (opt.simd.width == no_size) {
-        //    out << " vector_length_ ? vector_length_ : " << opt.simd.default_width << ";\n";
-        //} else {
-        //    out << opt.simd.width << ";\n";
-        //}
-
 
         out <<
-            "using simd_value = S::simd<arb_value_type, vector_length_, " << abi << ">;\n"
-            "using simd_index = S::simd<arb_index_type, vector_length_, " << abi << ">;\n"
-            "using simd_mask  = S::simd_mask<arb_value_type, vector_length_, "<< abi << ">;\n"
-            "static constexpr unsigned simd_width_ = S::width(simd_value{});\n"
+            "using simd_value = S::simd<arb_value_type, " << opt.simd.size << ", " << abi << ">;\n"
+            "using simd_index = S::simd<arb_index_type, " << opt.simd.size << ", " << abi << ">;\n"
+            "using simd_mask  = S::simd_mask<arb_value_type, " << opt.simd.size << ", "<< abi << ">;\n"
+            "static constexpr unsigned simd_width_ = " << opt.simd.width << ";\n"
             "static constexpr unsigned min_align_ = std::max(S::min_align(simd_value{}), S::min_align(simd_index{}));\n"
             "\n"
             "inline simd_value safeinv(simd_value x) {\n"

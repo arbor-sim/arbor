@@ -87,10 +87,6 @@ std::ostream& operator<<(std::ostream& out, const table_prefix& tb) {
 std::ostream& operator<<(std::ostream& out, simd_spec simd) {
     std::stringstream s;
     s << key_by_value(simdAbiMap, simd.abi);
-    s << simd.size;
-    //if (simd.width!=0) {
-    //    s << '/' << simd.width;
-    //}
     return out << s.str();
 }
 
