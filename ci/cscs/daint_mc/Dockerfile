@@ -8,7 +8,7 @@ COPY . /arbor.src
 RUN mkdir -p /arbor.src/build \
   && cd /arbor.src/build \
   && cmake .. \
-     -DGNinja \
+     -GNinja \
      -DCMAKE_BUILD_TYPE=Release \
      -DARB_WITH_ASSERTIONS=ON \
      -DARB_VECTORIZE=ON \
