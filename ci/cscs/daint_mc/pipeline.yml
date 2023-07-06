@@ -8,6 +8,7 @@ stages:
 
 build-base:
   extends: .container-builder-dynamic-name
+  stage: build_base
   variables:
     DOCKERFILE: ci/cscs/daint_mc/Dockerfile.base
     PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/base/arbor_daint_mc_base_image
