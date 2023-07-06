@@ -35,6 +35,7 @@ test-single-node:
     - build/bin/unit-local
     - build/bin/unit
     - scripts/run_cpp_examples.sh
+    - export PYTHONPATH=/arbor.src/build/python
     - python -m unittest discover -v -s python
   variables:
     SLURM_JOB_PARTITION: normal
@@ -51,6 +52,7 @@ test-distributed:
   script:
     - cd /arbor.src
     - build/bin/unit-mpi
+    - export PYTHONPATH=/arbor.src/build/python
     - python -m unittest discover -v -s python
   variables:
     SLURM_JOB_PARTITION: normal
