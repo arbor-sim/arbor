@@ -35,10 +35,11 @@ test-single-node:
     - build/bin/unit-local
     - build/bin/unit
     - scripts/run_cpp_examples.sh
-    - export PATH=$PATH:/arbor.src/scripts
+    - export PATH=$PATH:/arbor.src/scripts:/arbor.src/build/bin
     - export PYTHONPATH=/arbor.src/build/python
     - test_executables.sh
     - python -m unittest discover -v -s python
+    - run_python_examples.sh
   variables:
     SLURM_JOB_PARTITION: normal
     SLURM_JOB_NUM_NODES: 1
@@ -54,9 +55,10 @@ test-distributed:
   script:
     - cd /arbor.src
     - build/bin/unit-mpi
-    - export PATH=$PATH:/arbor.src/scripts
-    - export PYTHONPATH=/arbor.src/build/python
-    - python -m unittest discover -v -s python
+    - scripts/run_cpp_examples.sh
+      #- export PATH=$PATH:/arbor.src/scripts
+      #- export PYTHONPATH=/arbor.src/build/python
+      #- python -m unittest discover -v -s python
   variables:
     SLURM_JOB_PARTITION: normal
     SLURM_JOB_NUM_NODES: 2
