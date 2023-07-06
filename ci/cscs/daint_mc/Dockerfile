@@ -12,6 +12,7 @@ RUN mkdir -p /arbor.src/build \
      -DCMAKE_BUILD_TYPE=Release \
      -DARB_WITH_ASSERTIONS=ON \
      -DARB_VECTORIZE=ON \
+     -DARB_WITH_PYTHON=ON \
   && ninja -j${NUM_PROCS} tests examples pyarb
     
      
