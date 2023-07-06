@@ -31,7 +31,9 @@ test_job:
   image: $PERSIST_IMAGE_NAME
   script:
     - cd /arbor.src/build
-    - unit-local
+    - bin/unit-modcc
+    - bin/unit-local
+    - bin/unit
   variables:
     SLURM_JOB_NUM_NODES: 1
     SLURM_PARTITION: normal
