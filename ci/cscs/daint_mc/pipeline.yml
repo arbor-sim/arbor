@@ -6,6 +6,9 @@ stages:
   - build      # build stage is running on Kubernetes cluster
   - test       # test stage is runnung on slurm cluster
 
+variables:
+  PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/software/arbor_daint_mc:$CI_COMMIT_SHORT_SHA
+
 build-base:
   extends: .container-builder-dynamic-name
   stage: build_base
@@ -19,13 +22,12 @@ build-arbor:
   stage: build
   variables:
     DOCKERFILE: ci/cscs/daint_mc/Dockerfile
-    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/software/arbor_daint_mc:$CI_COMMIT_SHORT_SHA
     DOCKER_BUILD_ARGS: '["BASE_IMG=$BASE_IMAGE"]'
     GIT_SUBMODULE_STRATEGY: recursive
 
 test_job:
-  stage: test
   extends: .container-runner-daint-mc
+  stage: test
   image: $PERSIST_IMAGE_NAME
   script:
     - cd /arbor.src/build
