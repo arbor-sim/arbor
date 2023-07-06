@@ -1,0 +1,38 @@
+include:
+  - remote: 'https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.ci-ext.yml'
+
+stages:
+  - build_base # build stage is running on Kubernetes cluster
+  - build      # build stage is running on Kubernetes cluster
+  - test       # test stage is runnung on slurm cluster
+
+build-base:
+  extends: .container-builder-dynamic-name
+  variables:
+    DOCKERFILE: ci/cscs/daint_mc/Dockerfile.base
+    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/base/arbor_daint_mc_base_image
+    WATCH_FILECHANGES: 'ci/cscs/daint_mc/Dockerfile.base'
+
+build-arbor:
+  extends: .container-builder
+  stage: build
+  variables:
+    DOCKERFILE: ci/cscs/daint_mc/Dockerfile
+    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/software/arbor_daint_mc:$CI_COMMIT_SHORT_SHA
+    DOCKER_BUILD_ARGS: '["BASE_IMG=$BASE_IMAGE"]'
+    GIT_SUBMODULE_STRATEGY: recursive
+
+test_job:
+  stage: test
+  extends: .container-runner-daint-mc
+  image: $PERSIST_IMAGE_NAME
+  script:
+    - cd /arbor.src/build
+    - unit-local
+  variables:
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_PARTITION: normal
+    SLURM_NTASKS: 1
+    SLURM_CPUS_PER_TASK: 36
+    SLURM_TIMELIMIT: "00:10:00"
+    USE_MPI: "NO"
