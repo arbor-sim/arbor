@@ -5,10 +5,6 @@
 
 from spack.package import *
 
-DEVVERSION = None
-with open("VERSION", "r") as file:
-    DEVVERSION = file.readline().strip()
-
 
 class Arbor(CMakePackage, CudaPackage):
     """Arbor is a high-performance library for computational neuroscience
@@ -20,7 +16,7 @@ class Arbor(CMakePackage, CudaPackage):
     maintainers = ["thorstenhater", "brenthuisman", "haampie"]
 
     version("master", branch="master", submodules=True)
-    version(DEVVERSION)
+    version("dev")
     version(
         "0.8.1",
         sha256="caebf96676ace6a9c50436541c420ca4bb53f0639dcab825de6fa370aacf6baa",
