@@ -24,12 +24,12 @@ cd "$TMP_DIR"
 git clone -c feature.manyFiles=true https://github.com/spack/spack.git
 # ./spack/bin/spack install libelf
 . spack/share/spack/setup-env.sh
-cp ./spack/package.py spack/var/spack/repos/builtin/packages/arbor/
+cp ${ARBOR_SOURCE}/spack/package.py spack/var/spack/repos/builtin/packages/arbor/
 
 spack env create -d ./spack_env
 spacktivate ./spack_env
 spack add arbor
 ARBOR_VERSION=$(cat "$ARBOR_SOURCE/VERSION")
-spack develop --path "$ARBOR_SOURCE" --no-clone arbor@${ARBOR_VERSION} +python
+spack develop --path ${ARBOR_SOURCE} --no-clone arbor@${ARBOR_VERSION} +python
 spack concretize -f
 spack install
