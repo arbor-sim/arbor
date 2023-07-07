@@ -6,7 +6,7 @@
 from spack.package import *
 
 DEVVERSION = None
-with open('../VERSION', 'r') as file:
+with open('VERSION', 'r') as file:
     DEVVERSION = file.readline().strip()
 
 class Arbor(CMakePackage, CudaPackage):
