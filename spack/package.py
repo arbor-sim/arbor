@@ -16,6 +16,7 @@ class Arbor(CMakePackage, CudaPackage):
     maintainers = ["thorstenhater", "brenthuisman", "haampie"]
 
     version("master", branch="master", submodules=True)
+    version("0.8.2-dev")
     version(
         "0.8.1",
         sha256="caebf96676ace6a9c50436541c420ca4bb53f0639dcab825de6fa370aacf6baa",
