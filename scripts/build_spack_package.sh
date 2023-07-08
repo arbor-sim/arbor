@@ -20,16 +20,46 @@ cleanup() {
 TMP_DIR=$(mktemp -d)
 ARBOR_SOURCE=$1
 
-cd "$TMP_DIR"
-git clone -c feature.manyFiles=true https://github.com/spack/spack.git
-# ./spack/bin/spack install libelf
-. spack/share/spack/setup-env.sh
-cp ${ARBOR_SOURCE}/spack/package.py spack/var/spack/repos/builtin/packages/arbor/
+ARBOR_DIR=$TMP_DIR/arbor
+mkdir $ARBOR_DIR
+cp -r $ARBOR_SOURCE/* $ARBOR_DIR
 
-spack env create -d ./spack_env
-spacktivate ./spack_env
-spack add arbor
-ARBOR_VERSION=$(cat "$ARBOR_SOURCE/VERSION")
-spack develop --path ${ARBOR_SOURCE} --no-clone arbor@${ARBOR_VERSION} +python
-spack concretize -f
-spack install
+cd "$TMP_DIR"
+
+SPACK_DIR=spack
+SPACK_REPO=https://github.com/spack/spack
+SPACK_CUSTOM_REPO=custom_repo
+
+SPACK_VERSION=$2 # latest_release or develop
+SPACK_BRANCH=develop # only used for develop
+
+case $SPACK_VERSION in
+    "develop")
+        git clone --depth 1 --branch $SPACK_BRANCH $SPACK_REPO $SPACK_DIR
+        ;;
+    "latest_release")
+        wget "$(curl -sH "Accept: application/vnd.github.v3+json" https://api.github.com/repos/spack/spack/releases/latest | grep browser_download_url |  cut -d '"' -f 4)"
+        tar xfz spack*.tar.gz
+        ln -s spack*/ $SPACK_DIR
+        ;;
+    *)
+        echo "SPACK_VERSION" must be \"latest_release\" or \"develop\"
+        exit 1
+esac
+
+mkdir ~/.spack
+cp $ARBOR_DIR/spack/config.yaml ~/.spack
+
+source $SPACK_DIR/share/spack/setup-env.sh
+spack repo create $SPACK_CUSTOM_REPO
+
+mkdir -p $SPACK_CUSTOM_REPO/packages/arbor
+spack repo add $SPACK_CUSTOM_REPO
+
+# to make use of the cached installations
+spack reindex
+
+cp $ARBOR_DIR/spack/package.py $SPACK_CUSTOM_REPO/packages/arbor
+cd $ARBOR_DIR
+ARBOR_VERSION=$(cat "$ARBOR_DIR/VERSION")
+spack dev-build arbor@${ARBOR_VERSION} +python
