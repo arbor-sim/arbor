@@ -35,12 +35,11 @@ test-single-node:
     - build/bin/unit-local
     - build/bin/unit
     - scripts/run_cpp_examples.sh
-
     - python -m venv --system-site-packages /arbor.install
     - source /arbor.install/bin/activate
     - python -m unittest discover -v -s python
     - scripts/run_python_examples.sh
-    - test_executables.sh
+    - scripts/test_executables.sh
     - deactivate
   variables:
     SLURM_JOB_PARTITION: normal
@@ -50,21 +49,22 @@ test-single-node:
     SLURM_TIMELIMIT: "00:30:00"
     USE_MPI: "NO"
 
-#test-distributed:
-#  extends: .container-runner-daint-mc
-#  stage: test
-#  image: $PERSIST_IMAGE_NAME
-#  script:
-#    - cd /arbor.src
-#    - build/bin/unit-mpi
-#    - scripts/run_cpp_examples.sh
-#      #- export PATH=$PATH:/arbor.src/scripts
-#      #- export PYTHONPATH=/arbor.src/build/python
-#      #- python -m unittest discover -v -s python
-#  variables:
-#    SLURM_JOB_PARTITION: normal
-#    SLURM_JOB_NUM_NODES: 2
-#    SLURM_NTASKS: 4
-#    SLURM_CPUS_PER_TASK: 18
-#    SLURM_TIMELIMIT: "00:30:00"
-#    USE_MPI: "YES"
+test-distributed:
+  extends: .container-runner-daint-mc
+  stage: test
+  image: $PERSIST_IMAGE_NAME
+  script:
+    - cd /arbor.src
+    - build/bin/unit-mpi
+    - scripts/run_cpp_examples.sh
+    - python -m venv --system-site-packages /arbor.install
+    - source /arbor.install/bin/activate
+    - scripts/run_python_examples.sh
+    - deactivate
+  variables:
+    SLURM_JOB_PARTITION: normal
+    SLURM_JOB_NUM_NODES: 2
+    SLURM_NTASKS: 4
+    SLURM_CPUS_PER_TASK: 18
+    SLURM_TIMELIMIT: "00:30:00"
+    USE_MPI: "YES"
