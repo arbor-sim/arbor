@@ -18,7 +18,8 @@ RUN mkdir -p /arbor.src/build \
      -DARB_USE_HWLOC=ON \
      -DARB_WITH_MPI=ON \
      -DARB_GPU=cuda\
-     -DCMAKE_CUDA_ARCHITECTURES=60
+     -DCMAKE_CUDA_ARCHITECTURES=60 \
+     -DARB_USE_GPU_RNG=ON \
   && ninja -j${NUM_PROCS} tests examples pyarb \
   && ninja install
 
