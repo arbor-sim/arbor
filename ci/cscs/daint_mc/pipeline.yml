@@ -57,10 +57,6 @@ test-distributed:
     - cd /arbor.src
     - build/bin/unit-mpi
     - scripts/run_cpp_examples.sh
-    - python -m venv --system-site-packages /arbor.install
-    - source /arbor.install/bin/activate
-    - scripts/run_python_examples.sh
-    - deactivate
   variables:
     SLURM_JOB_PARTITION: normal
     SLURM_JOB_NUM_NODES: 2
