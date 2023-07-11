@@ -11,6 +11,7 @@ RUN mkdir -p /arbor.src/build \
      -GNinja \
      -DCMAKE_INSTALL_PREFIX=/arbor.install \
      -DCMAKE_BUILD_TYPE=Release \
+     -DCMAKE_CXX_FLAGS="-march=znver2" \
      -DARB_ARCH=none \
      -DARB_WITH_ASSERTIONS=ON \
      -DARB_WITH_PROFILING=ON \
