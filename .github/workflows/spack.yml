@@ -17,7 +17,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-            path: arbor
+          path: arbor
+          submodules: recursive
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
