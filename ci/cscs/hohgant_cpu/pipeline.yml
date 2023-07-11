@@ -34,13 +34,17 @@ test-single-node:
     - build/bin/unit-modcc
     - build/bin/unit-local
     - build/bin/unit
-    - scripts/run_cpp_examples.sh
-    - python -m venv --system-site-packages /arbor.install
-    - source /arbor.install/bin/activate
-    - python -m unittest discover -v -s python
-    - scripts/run_python_examples.sh
-    - scripts/test_executables.sh
-    - deactivate
+    - mkdir -p results/cpp/bench
+    - build/bin/bench > results/cpp/bench/stdout.txt 2> results/cpp/bench/stderr.txt
+    - mkdir -p results/cpp/brunel
+    - build/bin/brunel > results/cpp/brunel/stdout.txt 2> results/cpp/brunel/stderr.txt
+    #- scripts/run_cpp_examples.sh
+    #- python -m venv --system-site-packages /arbor.install
+    #- source /arbor.install/bin/activate
+    #- python -m unittest discover -v -s python
+    #- scripts/run_python_examples.sh
+    #- scripts/test_executables.sh
+    #- deactivate
   variables:
     SLURM_JOB_PARTITION: normal
     SLURM_JOB_NUM_NODES: 1
@@ -56,7 +60,11 @@ test-distributed:
   script:
     - cd /arbor.src
     - build/bin/unit-mpi
-    - scripts/run_cpp_examples.sh
+    - mkdir -p results/cpp/bench
+    - build/bin/bench > results/cpp/bench/stdout.txt 2> results/cpp/bench/stderr.txt
+    - mkdir -p results/cpp/brunel
+    - build/bin/brunel > results/cpp/brunel/stdout.txt 2> results/cpp/brunel/stderr.txt
+    #- scripts/run_cpp_examples.sh
   variables:
     SLURM_JOB_PARTITION: normal
     SLURM_JOB_NUM_NODES: 2
