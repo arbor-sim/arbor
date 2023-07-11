@@ -34,10 +34,6 @@ test-single-node:
     - build/bin/unit-modcc
     - build/bin/unit-local
     - build/bin/unit
-    - mkdir -p results/cpp/bench
-    - build/bin/bench > results/cpp/bench/stdout.txt 2> results/cpp/bench/stderr.txt
-    - mkdir -p results/cpp/brunel
-    - build/bin/brunel > results/cpp/brunel/stdout.txt 2> results/cpp/brunel/stderr.txt
     #- scripts/run_cpp_examples.sh
     #- python -m venv --system-site-packages /arbor.install
     #- source /arbor.install/bin/activate
@@ -53,6 +49,38 @@ test-single-node:
     SLURM_TIMELIMIT: "00:30:00"
     USE_MPI: "NO"
 
+bench-single-node:
+  extends: .container-runner-hohgant-zen2
+  stage: test
+  image: $PERSIST_IMAGE_NAME
+  script:
+    - cd /arbor.src
+    - mkdir -p results/cpp/bench
+    - build/bin/bench > results/cpp/bench/stdout.txt 2> results/cpp/bench/stderr.txt
+  variables:
+    SLURM_JOB_PARTITION: normal
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_NTASKS: 1
+    SLURM_CPUS_PER_TASK: 128
+    SLURM_TIMELIMIT: "00:30:00"
+    USE_MPI: "NO"
+
+brunel-single-node:
+  extends: .container-runner-hohgant-zen2
+  stage: test
+  image: $PERSIST_IMAGE_NAME
+  script:
+    - cd /arbor.src
+    - mkdir -p results/cpp/brunel
+    - build/bin/brunel > results/cpp/brunel/stdout.txt 2> results/cpp/brunel/stderr.txt
+  variables:
+    SLURM_JOB_PARTITION: normal
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_NTASKS: 1
+    SLURM_CPUS_PER_TASK: 128
+    SLURM_TIMELIMIT: "00:30:00"
+    USE_MPI: "NO"
+
 test-distributed:
   extends: .container-runner-hohgant-zen2
   stage: test
@@ -60,10 +88,6 @@ test-distributed:
   script:
     - cd /arbor.src
     - build/bin/unit-mpi
-    - mkdir -p results/cpp/bench
-    - build/bin/bench > results/cpp/bench/stdout.txt 2> results/cpp/bench/stderr.txt
-    - mkdir -p results/cpp/brunel
-    - build/bin/brunel > results/cpp/brunel/stdout.txt 2> results/cpp/brunel/stderr.txt
     #- scripts/run_cpp_examples.sh
   variables:
     SLURM_JOB_PARTITION: normal
