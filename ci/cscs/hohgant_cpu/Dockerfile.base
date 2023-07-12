@@ -2,7 +2,7 @@ FROM docker.io/finkandreas/spack:0.19.2-ubuntu22.04 as builder
 
 ARG NUM_PROCS
 
-RUN spack-install-helper daint-mc \
+RUN spack-install-helper hohgant-cpu \
     "git" \
     "meson" \
     "ninja" \
