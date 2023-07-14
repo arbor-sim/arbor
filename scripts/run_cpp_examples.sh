@@ -61,7 +61,7 @@ execute_example() {
     echo -n "   - ${example}: "
 
     # skip marked examples if we are in distributed mode
-    local skip=${skip_local[$example]:-}
+    local skip=${skip_local[$example]+"${skip_local[$example]}"}
     if [[ $distributed == 0 && -n ${skip} ]]; then
         echo "skipped"
         return
@@ -72,7 +72,7 @@ execute_example() {
     ${PREFIX}/${example} > ${path}/stdout.txt 2> ${path}/stderr.txt
 
     # get the expected output if it exists and compare it to the actual output
-    local expected=${expected_outputs[$example]:-}
+    local expected=${expected_outputs[$example]+"${expected_outputs[$example]}"}
     if [[ -n ${expected} ]]; then
         actual=$(grep -Eo '[0-9]+ spikes' ${path}/stdout.txt || echo "N/A")
         if [[ $distributed == 1 && "$actual" == "N/A" ]]; then
