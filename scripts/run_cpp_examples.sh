@@ -21,6 +21,7 @@ PREFIX=" `pwd`/build/bin"
 tag=dev-`git rev-parse --short HEAD`
 out="results/$tag/cpp/"
 ok=0
+example=""
 
 # List of all examples
 all_examples=(
@@ -55,7 +56,7 @@ declare -A expected_outputs=(
 
 # Function to execute an example
 execute_example() {
-    local example="${1}"
+    example="${1}"
     local dir=`echo ${example} | tr ' ' '_'`
     local path="${out}${dir}"
     echo -n "   - ${example}: "
