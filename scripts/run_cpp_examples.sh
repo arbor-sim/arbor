@@ -3,58 +3,137 @@
 
 set -Eeuo pipefail
 
-if [[ "$#" -gt 1 ]]; then
-    echo "usage: run_cpp_examples.sh <prefix, e.g., mpirun -n 4 -oversubscribe>"
-    exit 1
-fi
+# Function to print the script's synopsis
+print_synopsis() {
+    echo "Usage: $(basename "$0") [-d] [--with=example] [prefix]"
+    echo "  -d              Toggle distributed mode (optional). Does not expect result"
+    echo "                  files to be available to every process."
+    echo "  --with=example  Select an example (optional). If omitted all examples will run."
+    echo "  prefix          Prefix value (optional). Will toggle distributed mode if it"
+    echo "                  starts with mpirun*."
+}
 
-PREFIX="${1:-} `pwd`/build/bin"
+# Default values
+distributed=0
+examples=()
+prefix=""
+PREFIX=" `pwd`/build/bin"
 tag=dev-`git rev-parse --short HEAD`
 out="results/$tag/cpp/"
-
 ok=0
-check () {
-    prog=$1
-    expected="$2 spikes"
-    actual=$(grep -Eo '[0-9]+ spikes' $out/$prog/stdout.txt || echo "N/A")
-    if [ "$actual" == "N/A" ] || [ "$expected" == "$actual" ]
-    then
-        echo "   - $prog: OK"
-    else
-        echo "   - $prog: ERROR wrong number of spikes: $expected ./. $actual"
-        ok=1
+
+# List of all examples
+all_examples=(
+    "bench"
+    "brunel"
+    "gap_junctions"
+    "generators"
+    "lfp"
+    "ring"
+    "busyring"
+    "single-cell"
+    "probe-demo v"
+    "plasticity"
+    "ou"
+    "voltage-clamp"
+    "remote"
+)
+
+# Mark examples not suitable for local execution
+declare -A skip_local=(
+    ["remote"]=1
+)
+
+# Lookup table for expected spike count
+declare -A expected_outputs=(
+    ["brunel"]=6998
+    ["bench"]=972
+    ["ring"]=94
+    ["busyring"]=35000
+    ["gap_junctions"]=30
+)
+
+# Function to execute an example
+execute_example() {
+    local example="${1}"
+    local dir=`echo ${example} | tr ' ' '_'`
+    local path="${out}${dir}"
+
+    # skip marked examples if we are in remote mode
+    if [[ $distributed == 0 && ${skip_local[${example}]+abc} ]]; then
+        echo "   - ${example}: skipped"
+        return
+    fi
+
+    # run the example and redirect its output
+    mkdir -p ${path}
+    ${PREFIX}/${example} > ${path}/stdout.txt 2> ${path}/stderr.txt
+
+    # get the expected output if it exists and compare it to the actual output
+    local expected=${expected_outputs[$example]:-}
+    if [[ -n ${expected} ]]; then
+        if [[ $distributed == 0 || -f "${path}/stdout.txt" ]]; then
+            actual=$(grep -Eo '[0-9]+ spikes' ${path}/stdout.txt || echo "N/A")
+            if [ "$expected spikes" == "$actual" ]; then
+                echo "   - ${example}: OK"
+            else
+                echo "   - ${example}: ERROR wrong number of spikes: $expected ./. $actual"
+                ok=1
+            fi
+        fi
     fi
 }
 
-for ex in bench brunel gap_junctions generators lfp ring busyring single-cell "probe-demo v" plasticity ou voltage-clamp
-do
-    echo "   - $ex"
-    dir=`echo $ex | tr ' ' '_'`
-    mkdir -p $out/$dir
-    cd $out/$dir
-    $PREFIX/$ex > stdout.txt 2> stderr.txt
-    cd -
+# Argument parsing
+while [[ $# -gt 0 ]]; do
+    key="$1"
+
+    case $key in
+        -d)
+        distributed=1
+        shift
+        ;;
+        --with=*)
+        example="${key#*=}"
+        if [[ " ${all_examples[@]} " =~ " $example " ]]; then
+            examples+=("$example")
+        else
+            echo "Error: Invalid example '$example'"
+            print_synopsis
+            exit 1
+        fi
+        shift
+        ;;
+        *)
+        if [[ $key == -* ]]; then
+            echo "Error: Invalid argument '$key'"
+            print_synopsis
+            exit 1
+        fi
+        prefix="$key"
+        shift
+        ;;
+    esac
 done
 
-# MPI only examples
-if [[ $PREFIX = mpirun* ]]
-then
-    for ex in remote
-    do
-        echo "   - $ex"
-        dir=`echo $ex | tr ' ' '_'`
-        mkdir -p $out/$dir
-        cd $out/$dir
-        $PREFIX/$ex > stdout.txt 2> stderr.txt
-        cd -
-    done
+# If --with=example was not used, add all entries from all_examples to examples
+if [[ ${#examples[@]} -eq 0 ]]; then
+    examples=("${all_examples[@]}")
 fi
 
-# Do some sanity checks.
-check brunel 6998
-check bench 972
-check ring 94
-check busyring 35000
-check gap_junctions 30
+## Set distributed to true if prefix is not empty
+#if [[ -n $prefix ]]; then
+# Set distributed to true if prefix starts with mpirun
+if [[ $prefix == mpirun* ]]; then
+    distributed=1
+fi
+
+# Concatenate full prefix
+PREFIX="${prefix}${PREFIX}"
+
+# Execute the selected examples
+for example in "${examples[@]}"; do
+    execute_example "${example}"
+done
 
 exit $ok

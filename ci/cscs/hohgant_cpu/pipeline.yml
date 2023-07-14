@@ -46,7 +46,7 @@ test-single-node:
     SLURM_JOB_NUM_NODES: 1
     SLURM_NTASKS: 1
     SLURM_CPUS_PER_TASK: 128
-    SLURM_TIMELIMIT: "00:30:00"
+    SLURM_TIMELIMIT: "00:10:00"
     USE_MPI: "NO"
 
 bench-single-node:
@@ -55,14 +55,13 @@ bench-single-node:
   image: $PERSIST_IMAGE_NAME
   script:
     - cd /arbor.src
-    - mkdir -p results/cpp/bench
-    - build/bin/bench > results/cpp/bench/stdout.txt 2> results/cpp/bench/stderr.txt
+    - scripts/run_cpp_examples.sh --with=bench
   variables:
     SLURM_JOB_PARTITION: normal
     SLURM_JOB_NUM_NODES: 1
     SLURM_NTASKS: 1
     SLURM_CPUS_PER_TASK: 128
-    SLURM_TIMELIMIT: "00:30:00"
+    SLURM_TIMELIMIT: "00:10:00"
     USE_MPI: "NO"
 
 brunel-single-node:
@@ -71,15 +70,15 @@ brunel-single-node:
   image: $PERSIST_IMAGE_NAME
   script:
     - cd /arbor.src
-    - mkdir -p results/cpp/brunel
-    - build/bin/brunel > results/cpp/brunel/stdout.txt 2> results/cpp/brunel/stderr.txt
+    - scripts/run_cpp_examples.sh --with=brunel
   variables:
     SLURM_JOB_PARTITION: normal
     SLURM_JOB_NUM_NODES: 1
     SLURM_NTASKS: 1
     SLURM_CPUS_PER_TASK: 128
-    SLURM_TIMELIMIT: "00:30:00"
+    SLURM_TIMELIMIT: "00:10:00"
     USE_MPI: "NO"
+
 
 test-distributed:
   extends: .container-runner-hohgant-zen2
@@ -88,11 +87,55 @@ test-distributed:
   script:
     - cd /arbor.src
     - build/bin/unit-mpi
-    #- scripts/run_cpp_examples.sh
   variables:
     SLURM_JOB_PARTITION: normal
     SLURM_JOB_NUM_NODES: 2
     SLURM_NTASKS: 4
     SLURM_CPUS_PER_TASK: 64
-    SLURM_TIMELIMIT: "00:30:00"
+    SLURM_TIMELIMIT: "00:10:00"
+    USE_MPI: "YES"
+
+bench-distributed:
+  extends: .container-runner-hohgant-zen2
+  stage: test
+  image: $PERSIST_IMAGE_NAME
+  script:
+    - cd /arbor.src
+    - scripts/run_cpp_examples.sh --with=bench -d
+  variables:
+    SLURM_JOB_PARTITION: normal
+    SLURM_JOB_NUM_NODES: 2
+    SLURM_NTASKS: 4
+    SLURM_CPUS_PER_TASK: 64
+    SLURM_TIMELIMIT: "00:10:00"
+    USE_MPI: "YES"
+
+brunel-distributed:
+  extends: .container-runner-hohgant-zen2
+  stage: test
+  image: $PERSIST_IMAGE_NAME
+  script:
+    - cd /arbor.src
+    - scripts/run_cpp_examples.sh --with=brunel -d
+  variables:
+    SLURM_JOB_PARTITION: normal
+    SLURM_JOB_NUM_NODES: 2
+    SLURM_NTASKS: 4
+    SLURM_CPUS_PER_TASK: 64
+    SLURM_TIMELIMIT: "00:10:00"
+    USE_MPI: "YES"
+
+remote-distributed:
+  extends: .container-runner-hohgant-zen2
+  stage: test
+  image: $PERSIST_IMAGE_NAME
+  script:
+    - cd /arbor.src
+    - scripts/run_cpp_examples.sh --with=remote -d
+  variables:
+    SLURM_JOB_PARTITION: normal
+    SLURM_JOB_NUM_NODES: 2
+    SLURM_NTASKS: 4
+    SLURM_CPUS_PER_TASK: 64
+    SLURM_TIMELIMIT: "00:10:00"
     USE_MPI: "YES"
