@@ -21,7 +21,6 @@ PREFIX=" `pwd`/build/bin"
 tag=dev-`git rev-parse --short HEAD`
 out="results/$tag/cpp/"
 ok=0
-example=""
 
 # List of all examples
 all_examples=(
@@ -41,39 +40,54 @@ all_examples=(
 )
 
 # Mark examples not suitable for local execution
-declare -A skip_local=(
-    ["remote"]=1
+skip_local=(
+    "remote"
 )
 
 # Lookup table for expected spike count
-declare -A expected_outputs=(
-    ["brunel"]=6998
-    ["bench"]=972
-    ["ring"]=94
-    ["busyring"]=35000
-    ["gap_junctions"]=30
+expected_outputs=(
+    972
+    6998
+    "30"
+    ""
+    ""
+    94
+    3500
+    ""
+    ""
+    ""
+    ""
+    ""
+    ""
 )
 
 # Function to execute an example
 execute_example() {
-    example="${1}"
+    local example="${1}"
     local dir=`echo ${example} | tr ' ' '_'`
     local path="${out}${dir}"
     echo -n "   - ${example}: "
 
     # skip marked examples if we are in distributed mode
-    local skip=${skip_local[$example]+"${skip_local[$example]}"}
-    if [[ $distributed == 0 && -n ${skip} ]]; then
-        echo "skipped"
-        return
-    fi
+    for ex in "${skip_local[@]}"; do
+        if [[ $ex == $example ]]; then
+            echo "skipped"
+            return
+        fi
+    done
 
     # run the example and redirect its output
     mkdir -p ${path}
     ${PREFIX}/${example} > ${path}/stdout.txt 2> ${path}/stderr.txt
 
     # get the expected output if it exists and compare it to the actual output
-    local expected=${expected_outputs[$example]+"${expected_outputs[$example]}"}
+    local expected=""
+    for i in "${!all_examples[@]}"; do
+        if [[ ${all_examples[$i]} == $example ]]; then
+            expected=${expected_outputs[$i]}
+            break
+        fi
+    done
     if [[ -n ${expected} ]]; then
         actual=$(grep -Eo '[0-9]+ spikes' ${path}/stdout.txt || echo "N/A")
         if [[ $distributed == 1 && "$actual" == "N/A" ]]; then
