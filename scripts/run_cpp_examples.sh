@@ -58,10 +58,12 @@ execute_example() {
     local example="${1}"
     local dir=`echo ${example} | tr ' ' '_'`
     local path="${out}${dir}"
+    echo -n "   - ${example}: "
 
-    # skip marked examples if we are in remote mode
-    if [[ $distributed == 0 && ${skip_local[${example}]+abc} ]]; then
-        echo "   - ${example}: skipped"
+    # skip marked examples if we are in distributed mode
+    local skip=${skip_local[$example]:-}
+    if [[ $distributed == 0 && -n ${skip} ]]; then
+        echo "skipped"
         return
     fi
 
@@ -72,15 +74,17 @@ execute_example() {
     # get the expected output if it exists and compare it to the actual output
     local expected=${expected_outputs[$example]:-}
     if [[ -n ${expected} ]]; then
-        if [[ $distributed == 0 || -f "${path}/stdout.txt" ]]; then
-            actual=$(grep -Eo '[0-9]+ spikes' ${path}/stdout.txt || echo "N/A")
-            if [ "$expected spikes" == "$actual" ]; then
-                echo "   - ${example}: OK"
-            else
-                echo "   - ${example}: ERROR wrong number of spikes: $expected ./. $actual"
-                ok=1
-            fi
+        actual=$(grep -Eo '[0-9]+ spikes' ${path}/stdout.txt || echo "N/A")
+        if [[ $distributed == 1 && "$actual" == "N/A" ]]; then
+            echo "check skipped on remote rank"
+        elif [ "$expected spikes" == "$actual" ]; then
+            echo "OK"
+        else
+            echo "ERROR wrong number of spikes: $expected ./. $actual"
+            ok=1
         fi
+    else
+        echo "OK (nothing to check)"
     fi
 }
 
