@@ -18,7 +18,7 @@ namespace util {
 // View over the keys (first elements) in a sequence of pairs or tuples.
 
 template <typename Seq>
-auto keys(Seq&& m) {
+auto keys(Seq&& m) -> decltype(util::transform_view(std::forward<Seq>(m), util::first)) {
     return util::transform_view(std::forward<Seq>(m), util::first);
 }
 

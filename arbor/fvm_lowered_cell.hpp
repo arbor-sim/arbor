@@ -185,7 +185,7 @@ struct probe_association_map {
     }
 
     // Return range of fvm_probe_data values associated with probeset_id.
-    auto data_on(cell_member_type probeset_id) const {
+    auto data_on(cell_member_type probeset_id) const -> decltype(util::transform_view(util::make_range(data.equal_range(probeset_id)), util::second)) {
         return util::transform_view(util::make_range(data.equal_range(probeset_id)), util::second);
     }
 };
