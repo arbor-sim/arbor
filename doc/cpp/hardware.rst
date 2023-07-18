@@ -199,9 +199,9 @@ libarbor
 The core Arbor library *libarbor* provides an API for:
 
 * prescribing which hardware resources are to be used by a
-simulation using :cpp:class:`arb::proc_allocation`.
+  simulation using :cpp:class:`arb::proc_allocation`.
 * opaque handles to hardware resources used by simulations called
-:cpp:class:`arb::context`.
+  :cpp:class:`arb::context`.
 
 .. cpp:namespace:: arb
 
