@@ -82,8 +82,11 @@ class Arbor(CMakePackage, CudaPackage):
     # misc dependencies
     depends_on("fmt@7.1:", when="@0.5.3:")  # required by the modcc compiler
     depends_on("fmt@9.1:", when="@0.7.1:")
+    depends_on("fmt@10.0:", when="@0.8.2:")
     depends_on("googletest@1.12.1", type="test", when="@0.7.1:")
+    depends_on("googletest@1.13.0", type="test", when="@0.8.2:")
     depends_on("pugixml@1.11:", when="@0.7.1:")
+    depends_on("pugixml@1.13:", when="@0.8.2:")
     depends_on("nlohmann-json")
     depends_on("random123")
     with when("+cuda"):
@@ -102,6 +105,7 @@ class Arbor(CMakePackage, CudaPackage):
         depends_on("py-pybind11@2.6:", type=("build"))
         depends_on("py-pybind11@2.8.1:", when="@0.5.3:", type=("build"))
         depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type=("build"))
+        depends_on("py-pybind11@2.10.3:", when="@0.8.2:", type=("build"))
 
     # sphinx based documentation
     depends_on("python@3.7:", when="+doc", type="build")
