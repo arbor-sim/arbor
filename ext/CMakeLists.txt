@@ -88,7 +88,11 @@ add_external_cmake_project(
     LIB libbenchmark.a
     CMAKE_ARGS
         "-DCMAKE_BUILD_TYPE=release"
-        "-DBUILD_SHARED_LIBS=OFF")
+        "-DBUILD_SHARED_LIBS=OFF"
+        "-DBENCHMARK_USE_BUNDLED_GTEST=OFF"
+        "-DBENCHMARK_ENABLE_GTEST_TESTS=OFF"
+        "-DBENCHMARK_ENABLE_ASSEMBLY_TEST=OFF"
+        "-DBENCHMARK_ENABLE_TESTING=OFF")
 
 # Google Test framework:
 

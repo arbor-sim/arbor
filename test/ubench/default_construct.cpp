@@ -81,7 +81,8 @@ void bench_container(benchmark::State& state) {
     std::size_t n = state.range(0);
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(Fn(n));
+        auto result = Fn(n);
+        benchmark::DoNotOptimize(result);
     }
 
     // check!
