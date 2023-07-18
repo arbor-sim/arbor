@@ -115,11 +115,11 @@ similarly
                                     weight,
                                     delay)]]
 
-Note that Arbor now recognizes two sets of ``GID``: An external and an internal
+Note that Arbor now recognizes two sets of ``GID``\: An external and an internal
 set. This allows both Arbor and the coupled simulation to keep their own
 numbering schemes. However, internally Arbor will tag external cells and spikes
-by setting their ``GID``s'  most significant bit. This _halves_ the effecively
-available ``GID``s.
+by setting their ``GID``\s'  most significant bit. This _halves_ the effecively
+available ``GID``\s.
 
 To consume external spike events, a specialised ``context`` must be created by
 calling
