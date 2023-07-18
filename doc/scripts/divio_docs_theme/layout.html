@@ -40,14 +40,8 @@
 
   {% endif %}
 
+  <link rel="preload" href="{{ pathto('_static/fonts/fontawesome-webfont.woff2', 1) }}" as="font" type="font/woff2" crossorigin />
 
-  <link rel="preload" href="{{ pathto('_static/fonts/fontawesome-webfont.woff2?v=4.7.0', 1) }}" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="{{ pathto('_static/pygments.css', 1) }}" type="text/css" />
-  <link rel="stylesheet" href="{{ pathto('_static/css/divio.css', 1) }}" type="text/css" />
-
-  <link rel="apple-touch-icon" href="{{ pathto('_static/favicon.png', 1) }}">
-  <link rel="icon" type="image/png" href="{{ pathto('_static/favicon.png', 1) }}">
-  <!--[if IE]><link rel="shortcut icon" href="{{ pathto('_static/favicon.png', 1) }}"><![endif]-->
   {%- for css in css_files %}
     {%- if css|attr("rel") %}
       <link rel="{{ css.rel }}" href="{{ pathto(css.filename, 1) }}" type="text/css"{% if css.title is not none %} title="{{ css.title }}"{% endif %} />
@@ -131,7 +125,7 @@
         <div class="header-title-wrap">
             <a class="header-title" href="{{ pathto(master_doc) }}">{{ project }}</a>{% if READTHEDOCS %} v: {{ current_version }}{% endif %}
         </div>
-        <a class="logo-link" target="_blank" href="{{ pathto(master_doc) }}"><img src="{{ pathto(logo_url,1) }}" class="logo" alt="{{ project }}"/></a>
+        <a class="logo-link" target="_blank" href="{{ pathto(master_doc) }}"><img src="{{ pathto('_static/' + logo_url,1) }}" class="logo" alt="{{ project }}"/></a>
     </div>
 
           {% include "breadcrumbs.html" %}
