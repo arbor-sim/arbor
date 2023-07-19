@@ -61,5 +61,5 @@ spack reindex
 
 cp $ARBOR_DIR/spack/package.py $SPACK_CUSTOM_REPO/packages/arbor
 cd $ARBOR_DIR
-spack dev-build arbor +python
+spack dev-build arbor +python --fresh
 spack load arbor
