@@ -45,14 +45,14 @@ Update tags/versions and test
    - Double check that all examples/tutorials/etc are covered by CI
    - Check Python/pip/PyPi metadata and scripts, e.g. ``setup.py``, ``pyproject.toml``
 
-#. Create new temp-branch ending in ``-rc``. E.g. ``v0.6-rc``
+#. Create new temp-branch ending in ``-rc``. E.g. ``v0.9.0-rc``
 #. Bump the ``VERSION`` file:
 
    - For as long as `scikit-build-core` does not support loading fields from external files, also bump in `pyproject.toml`
    - See also :ref:`dev-version`
    - Append ``-rc``. (Make sure there's no ``-dev``)
 
-#. Create a draft PR. Tag and push with ``-rc``. E.g. ``v0.6-rc``
+#. Create a draft PR. Tag and push with ``-rc``. E.g. ``v0.9.0-rc``
 
    - on cmdline: ``git tag -a TAGNAME``
    - ``git push upstream refs/tags/TAGNAME``
@@ -126,7 +126,7 @@ Post Release
 
 #. Update Zenodo with authors and changelog created in previous step and submit.
 
-#. Make a new PR setting ``VERSION`` to the next with a trailing ``-dev``. E.g. if you just release ``3.14``, change ``VERSION`` to ``3.15-dev``
+#. Make a new PR setting ``VERSION`` to the next with a trailing ``-dev``. E.g. if you just released ``3.14.15``, change ``VERSION`` to ``3.15.16-dev``. Make the number portion always consists of a 3-tuple. Shorter versions are uninstallable by Spack (``spack install arbor@0.8`` will install v0.8.1, due to anything short than a 3-tuple being interpreted as a version range). 
 
    - Update ``spack/package.py``. The checksum of the targz is the sha256sum.
    - Include changes such as to ``CITATIONS``, ``doc/index.rst`` in postrel PR. Copy Zenodo BibTex export to ``CITATIONS``.

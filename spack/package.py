@@ -21,26 +21,25 @@ class Arbor(CMakePackage, CudaPackage):
     url = "https://github.com/arbor-sim/arbor/releases/download/v0.8.1/arbor-v0.8.1-full.tar.gz"
     maintainers = ["thorstenhater", "brenthuisman", "haampie"]
 
-    version("master", branch="master", submodules=True)
-    if DEVVERSION:
-        version(DEVVERSION)
+    version("master", branch="master")
+    version("develop")
     version(
         "0.8.1",
         sha256="caebf96676ace6a9c50436541c420ca4bb53f0639dcab825de6fa370aacf6baa",
         url="https://github.com/arbor-sim/arbor/releases/download/v0.8.1/arbor-v0.8.1-full.tar.gz",
     )
     version(
-        "0.8",
+        "0.8.0",
         sha256="18df5600308841616996a9de93b55a105be0f59692daa5febd3a65aae5bc2c5d",
         url="https://github.com/arbor-sim/arbor/releases/download/v0.8/arbor-v0.8-full.tar.gz",
     )
     version(
-        "0.7",
+        "0.7.0",
         sha256="c3a6b7193946aee882bb85f9c38beac74209842ee94e80840968997ba3b84543",
         url="https://github.com/arbor-sim/arbor/releases/download/v0.7/arbor-v0.7-full.tar.gz",
     )
     version(
-        "0.6",
+        "0.6.0",
         sha256="4cd333b18effc8833428ddc0b99e7dc976804771bc85da90034c272c7019e1e8",
         url="https://github.com/arbor-sim/arbor/releases/download/v0.6/arbor-v0.6-full.tar.gz",
     )
