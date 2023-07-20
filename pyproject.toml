@@ -55,6 +55,7 @@ changelog = "https://github.com/arbor-sim/arbor/releases"
 [build-system]
 requires = [
     "scikit-build-core",
+    "looseversion",
 ]
 build-backend = "scikit_build_core.build"
 
