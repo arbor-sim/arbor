@@ -63,3 +63,4 @@ cp $ARBOR_DIR/spack/package.py $SPACK_CUSTOM_REPO/packages/arbor
 cd $ARBOR_DIR
 spack dev-build arbor@develop +python
 spack load arbor
+scripts/run_python_examples.sh

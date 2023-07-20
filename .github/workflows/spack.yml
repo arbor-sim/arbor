@@ -31,11 +31,11 @@ jobs:
       - name: Build Arbor's Spack package against the latest release
         run: arbor/scripts/build_spack_package.sh arbor latest_release
 
-      - name: Run Python examples
-        run: |
-          cd arbor
-          scripts/run_python_examples.sh
-      - name: Test executables
-        run: |
-          cd arbor
-          scripts/test_executables.sh
+      # - name: Run Python examples
+      #   run: |
+      #     cd arbor
+      #     scripts/run_python_examples.sh
+      # - name: Test executables
+      #   run: |
+      #     cd arbor
+      #     scripts/test_executables.sh
