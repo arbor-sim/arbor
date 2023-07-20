@@ -131,3 +131,8 @@ class Arbor(CMakePackage, CudaPackage):
         args.append("-DARB_CXX_FLAGS_TARGET=" + opt_flags)
 
         return args
+
+    @run_after('install', when=+python)
+    @on_package_attributes(run_tests=True)
+    def install_test(self):
+        python('-c', 'import arbor')
