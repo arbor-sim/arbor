@@ -15,6 +15,9 @@ $PREFIX python3 -m pip install -r python/example/example_requirements.txt -U
 runpyex () {
   echo "=== Executing $1 ======================================"
   $PREFIX python3 python/example/$*
+  if [[ ! -z "$GITHUB_ACTIONS" ]]; then
+    echo "### Example $1: OK." >> $GITHUB_STEP_SUMMARY
+  fi
 }
 
 runpyex brunel.py -n 400 -m 100 -e 20 -p 0.1 -w 1.2 -d 1 -g 0.5 -l 5 -t 100 -s 1 -G 50 -S 123

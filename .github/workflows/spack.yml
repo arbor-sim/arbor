@@ -28,19 +28,6 @@ jobs:
           key: spack-cache-${{ matrix.os }}-${{ github.run_id }}
           restore-keys: spack-cache-${{ matrix.os }}-
 
-      - name: Build Arbor's Spack package against the latest release
+      - name: Build and test Arbor on latest Spack release
         id: setup_spack
         run: arbor/scripts/build_spack_package.sh arbor latest_release
-
-      - name: Run Python examples
-        run: |
-          source ${{ steps.setup_spack.outputs.SOURCE_SPACK }}
-          spack load arbor
-          cd arbor
-          scripts/run_python_examples.sh
-      - name: Test executables
-        run: |
-          source ${{ steps.setup_spack.outputs.SOURCE_SPACK }}
-          spack load arbor
-          cd arbor
-          scripts/test_executables.sh

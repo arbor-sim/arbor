@@ -50,10 +50,6 @@ esac
 mkdir ~/.spack
 cp $ARBOR_DIR/spack/config.yaml ~/.spack
 
-if [[ ! -z "$GITHUB_ACTIONS" ]]; then
-  echo "SOURCE_SPACK=`realpath $SPACK_DIR/share/spack/setup-env.sh`" >> "$GITHUB_OUTPUT"
-fi
-
 source $SPACK_DIR/share/spack/setup-env.sh
 spack repo create $SPACK_CUSTOM_REPO
 
@@ -66,3 +62,9 @@ spack reindex
 cp $ARBOR_DIR/spack/package.py $SPACK_CUSTOM_REPO/packages/arbor
 cd $ARBOR_DIR
 spack dev-build arbor@develop +python
+
+if [[ ! -z "$GITHUB_ACTIONS" ]]; then
+  spack load arbor
+  scripts/run_python_examples.sh >> $GITHUB_STEP_SUMMARY
+  scripts/test_executables.sh >> $GITHUB_STEP_SUMMARY
+fi
