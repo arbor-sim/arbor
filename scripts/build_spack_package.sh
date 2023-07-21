@@ -51,7 +51,7 @@ mkdir ~/.spack
 cp $ARBOR_DIR/spack/config.yaml ~/.spack
 
 if [[ ! -z "$GITHUB_ACTIONS" ]]; then
-  echo SOURCE_SPACK=`realpath $SPACK_DIR/share/spack/setup-env.sh` >> "$GITHUB_OUTPUT"
+  echo "SOURCE_SPACK=`realpath $SPACK_DIR/share/spack/setup-env.sh`" >> "$GITHUB_OUTPUT"
 fi
 
 source $SPACK_DIR/share/spack/setup-env.sh
