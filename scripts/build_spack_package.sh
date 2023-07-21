@@ -67,4 +67,6 @@ if [[ ! -z "$GITHUB_ACTIONS" ]]; then
   spack load arbor
   scripts/run_python_examples.sh >> $GITHUB_STEP_SUMMARY
   scripts/test_executables.sh >> $GITHUB_STEP_SUMMARY
+  ## make sure there's no Arbor in cache.
+  spack uninstall -faR arbor
 fi
