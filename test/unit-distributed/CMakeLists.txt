@@ -3,6 +3,7 @@ set(unit-distributed_sources
     test_domain_decomposition.cpp
     test_communicator.cpp
     test_mpi.cpp
+    test_distributed_for_each.cpp
 
     # unit test driver
     test.cpp

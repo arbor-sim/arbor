@@ -1,11 +1,12 @@
 #pragma once
 
-#include <type_traits>
-#include <cstddef>
+#include <algorithm>
 #include <array>
-#include <memory>
+#include <cstddef>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
+#include <type_traits>
 #include <utility>
 
 #include "distributed_context.hpp"
@@ -42,7 +43,7 @@ void for_each_in_tuple_pair(FUNC&& func, std::tuple<T1...>& t1, std::tuple<T2...
 template <typename FUNC, typename... ARGS>
 void distributed_for_each(FUNC&& func,
     const distributed_context& distributed,
-    const std::vector<ARGS>&... args) {
+    const util::range<ARGS>&... args) {
 
     static_assert(sizeof...(args) > 0);
     auto arg_tuple = std::forward_as_tuple(args...);
@@ -83,8 +84,22 @@ void distributed_for_each(FUNC&& func,
     // compute maximum buffer size between ranks, such that we only allocate once
     const std::size_t max_buffer_size = distributed.max(buffer_size);
 
-    // exit if all vectors on all ranks are empty
-    if (max_buffer_size == info.size() * sizeof(vec_info)) return;
+    std::tuple<util::range<typename std::remove_reference_t<decltype(args)>::value_type*>...>
+        ranges;
+
+    if (max_buffer_size == info.size() * sizeof(vec_info)) {
+        // if all empty, call function with empty ranges for each step and exit
+        impl::for_each_in_tuple_pair(
+            [&](std::size_t i, auto&& vec, auto&& r) {
+                using T = typename std::remove_reference_t<decltype(vec)>::value_type;
+                r = util::range<T*>(nullptr, nullptr);
+            },
+            arg_tuple,
+            ranges);
+
+        for (std::size_t step = 0; step < distributed.size(); ++step) { std::apply(func, ranges); }
+        return;
+    }
 
     // use malloc for std::max_align_t alignment
     auto deleter = [](char* ptr) { std::free(ptr); };
@@ -99,11 +114,10 @@ void distributed_for_each(FUNC&& func,
     impl::for_each_in_tuple(
         [&](std::size_t i, auto&& vec) {
             using T = typename std::remove_reference_t<decltype(vec)>::value_type;
-            std::memcpy(buffer.get() + info[i].offset, vec.data(), vec.size() * sizeof(T));
+            std::copy(vec.begin(), vec.end(), (T*)(buffer.get() + info[i].offset));
         },
         arg_tuple);
 
-    std::tuple<util::range<ARGS*>...> ranges;
 
     const auto my_rank = distributed.id();
     const auto left_rank = my_rank == 0 ? distributed.size() - 1 : my_rank - 1;
