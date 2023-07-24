@@ -11,13 +11,7 @@ import matplotlib as M
 import matplotlib.pyplot as P
 import numbers
 from functools import reduce
-from distutils.version import LooseVersion
 from itertools import chain, islice, cycle
-
-# Run-time check for matplot lib version for line style functionality.
-if LooseVersion(M.__version__)<LooseVersion("1.5.0"):
-    logging.critical("require matplotlib version ≥ 1.5.0")
-    sys.exit(1)
 
 # Read timeseries data from multiple files, plot each in one panel, with common
 # time axis, and optionally sharing a vertical axis as governed by the configuration.
