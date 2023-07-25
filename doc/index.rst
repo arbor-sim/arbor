@@ -126,10 +126,10 @@ A full list of our software attributions can be found `here <https://github.com/
    :maxdepth: 1
 
    install/index
+   features/index
    tutorial/index
    ecosystem/index
    contrib/index
-   features/index
 
 .. toctree::
    :caption: Concepts:
