@@ -15,20 +15,20 @@ config = A.config()
 prefix = Path(config["prefix"])
 CXX = Path(config["CXX"])
 if not CXX.exists():
-    try:
-        # Example <>/lib/python3.10/site-packages/arbor
-        altern = "c++"
-        print(
-            f"Warning: prefix '{CXX}' does not exist, falling back to '{altern}'.",
-            file=sys.stderr,
-        )
-        CXX = altern
-    except:
+    # Example <>/lib/python3.10/site-packages/arbor
+    altern = "c++"
+    from shutil import which
+    if which(altern) == None:
         print(
             f"Error: Neither prefix '{CXX}' nor fallback '{altern}' exist. Please provide a path to a C++ compiler with --cxx",
             file=sys.stderr,
         )
         exit(-1)
+    print(
+        f"Warning: prefix '{CXX}' does not exist, falling back to '{altern}'.",
+        file=sys.stderr,
+    )
+    CXX = altern
 
 
 def parse_arguments():
