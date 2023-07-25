@@ -311,8 +311,8 @@ with TemporaryDirectory() as tmp:
 
     cmake_cmd = "cmake .."
     make_cmd = "make"
-    # if verbose:
-    make_cmd += " VERBOSE=1"
+    if verbose:
+        make_cmd += " VERBOSE=1"
     try:
         sp.run(cmake_cmd, shell=True, check=True, capture_output = True, text = True)
         sp.run(make_cmd, shell=True, check=True, capture_output = True, text = True)
