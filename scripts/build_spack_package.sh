@@ -61,12 +61,14 @@ spack reindex
 
 cp $ARBOR_DIR/spack/package.py $SPACK_CUSTOM_REPO/packages/arbor
 cd $ARBOR_DIR
-spack dev-build arbor@develop +python
+spack dev-build arbor@develop +python --test root
 
 if [[ ! -z "$GITHUB_ACTIONS" ]]; then
+  ## Spack runs Spack tests in the Spack build env.
+  ## Below tests are meant to verify install actually happened correctly, including pip install of packages
   spack load arbor
-  scripts/run_python_examples.sh >> $GITHUB_STEP_SUMMARY
-  scripts/test_executables.sh >> $GITHUB_STEP_SUMMARY
+  scripts/run_python_examples.sh
+  scripts/test_executables.sh
   ## make sure there's no Arbor in cache.
   spack uninstall -yafR arbor
 fi
