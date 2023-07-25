@@ -19,6 +19,10 @@ Features include:
 * :ref:`LFPyKit integration <tutorial_lfpykit>`: extract extracellular signals from an Arbor cable cell.
 * :ref:`Faster NMODL programming guide <formatnmodl-faster>`: helps users write NMODL with performance and fewer bugs in mind.
 * `Nascent SONATA format support <https://github.com/arbor-sim/arbor-sonata>`_. The Allen mechanism database :ref:`is already included in Arbor <mechanisms_builtins>`, so currently, with some manual work executing Allen models is already possible, see :ref:`tutorialsinglecellallen`.
+* :ref:`Axial Diffusion <https://github.com/arbor-sim/arbor/blob/master/doc/dev/axial-diff.tex>`_: ions can now propagate along the dendrite by diffusion and be received by other synapses, modifying their weight upon reception.Xd can be read from and written to by NMODL density and point mechanisms.
+* :ref:`Gap Junction Mechanisms <mechanisms-junction>`.
+* :ref:`Mechanism ABI <extending-catalogues>`, allowing for users to package their mechanism catalogues.
+* :ref:`Built-in profiler <pyprofiler>`, which enables users to quickly understand where their experiment is spending most of its time.
 
 Modelling
 ---------
