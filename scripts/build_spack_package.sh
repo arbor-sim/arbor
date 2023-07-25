@@ -61,7 +61,7 @@ spack reindex
 
 cp $ARBOR_DIR/spack/package.py $SPACK_CUSTOM_REPO/packages/arbor
 cd $ARBOR_DIR
-spack dev-build arbor@develop +python --test root
+spack dev-build --test root arbor@develop +python
 
 if [[ ! -z "$GITHUB_ACTIONS" ]]; then
   ## Spack runs Spack tests in the Spack build env.
