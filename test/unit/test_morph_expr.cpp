@@ -664,7 +664,7 @@ TEST(region, thingify_moderate_morphologies) {
         EXPECT_TRUE(region_eq(mp, radius_gt(reg_c_, 2), cl{{0,0.55,0.7},{2,0,0.5},{3,0.1,0.375},{3,0.9,1}}));
         EXPECT_TRUE(region_eq(mp, radius_gt(reg_d_, 2), cl{{0,0.55,0.7},{2,0,0.5},{3,0.1,0.375},{3,0.75,0.9}}));
 
-        // Test restrict_toion
+        // Test restrict_to
 
         {
             using ll = mlocation_list;
