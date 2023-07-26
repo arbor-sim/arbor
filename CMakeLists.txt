@@ -114,7 +114,7 @@ include(ErrorTarget)  # reguired for add_error_target
 
 # Set release as the default build type (CMake default is debug.)
 
-if (NOT CMAKE_BUILD_TYPE)
+if (NOT CMAKE_BUILD_TYPE AND NOT BUILD_TESTING)
     set(CMAKE_BUILD_TYPE release CACHE STRING "Choose the type of build." FORCE)
     # Set the possible values of build type for cmake-gui
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
