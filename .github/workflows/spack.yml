@@ -29,11 +29,11 @@ jobs:
           key: spack-cache-${{ matrix.os }}-${{ matrix.spack-version }}-${{ github.run_id }}
           restore-keys: spack-cache-${{ matrix.os }}-${{ matrix.spack-version }}-
       - name: Get Spack (develop)
-        if: ${{ matrix.config.spack-version == "develop" }}
+        if: ${{ matrix.config.spack-version == develop }}
         run: |
           git clone -c feature.manyFiles=true --depth 1 https://github.com/spack/spack.git
       - name: Get Spack (latest_release)
-        if: ${{ matrix.config.spack-version == "latest_release" }}
+        if: ${{ matrix.config.spack-version == latest_release }}
         run: |
           wget "$(curl -sH "Accept: application/vnd.github.v3+json" https://api.github.com/repos/spack/spack/releases/latest | grep browser_download_url |  cut -d '"' -f 4)"
           tar xfz spack*.tar.gz
