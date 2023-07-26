@@ -213,7 +213,7 @@ locsets = {
     "distint_in": "(sum (location 1 0.5) (location 2 0.7) (location 5 0.1))",
     "proxint_in": "(sum (location 1 0.8) (location 2 0.3))",
     "loctest": "(distal (complete (join (branch 1) (branch 0))))",
-    "restrict": "(restrict  (terminal) (tag 3))",
+    "restrict": "(restrict-to  (terminal) (tag 3))",
     "proximal_translate": "(proximal-translate (terminal) 10)",
     "distal_translate_single": "(distal-translate (location 0 0.5) 5)",
     "distal_translate_multi": "(distal-translate (location 0 0.5) 15)",
@@ -255,8 +255,8 @@ tutorial_regions = {
 tutorial_locsets = {
     "root": "(root)",
     "terminal": "(terminal)",
-    "custom_terminal": '(restrict (locset "terminal") (region "custom"))',
-    "axon_terminal": '(restrict (locset "terminal") (region "axon"))',
+    "custom_terminal": '(restrict-to (locset "terminal") (region "custom"))',
+    "axon_terminal": '(restrict-to (locset "terminal") (region "axon"))',
 }
 
 tutorial_labels = {**tutorial_regions, **tutorial_locsets}

@@ -335,7 +335,7 @@ Locset expressions
     Refer to a locset by its label. For example, ``(locset "synapse-sites")`` could be used in an expression to refer
     to a locset with the name ``"synapse-sites"``.
 
-.. label:: (restrict locations:locset reg:region)
+.. label:: (restrict-to locations:locset reg:region)
 
     The set of locations in the locset ``loc`` that are in the region ``reg``.
 
@@ -347,7 +347,7 @@ Locset expressions
 
       .. code-block:: lisp
 
-        (restrict (terminal) (tag 3))
+        (restrict-to (terminal) (tag 3))
 
 
 .. label:: (join lhs:locset rhs:locset [...locset])
@@ -869,7 +869,7 @@ the regions, locsets or iexpr defined in the label dictionary by referring to th
       'dend': '(tag 3)',  # dend is every cable with tab 3 in the morphology
       'root': '(root)',   # typically the start of the soma is at the root of the cell.
       'stim_site': '(location 0 0.5)', # site for the stimulus, in the middle of branch 0.
-      'axon_end': '(restrict (terminal) (region "axon"))',  # end of the axon.
+      'axon_end': '(restrict-to (terminal) (region "axon"))',  # end of the axon.
       'rad_expr': '(radius 0.5)'  # iexpr evaluating the radius scaled by 0.5
     })
 
