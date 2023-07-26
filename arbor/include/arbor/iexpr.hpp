@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <ostream>
+#include <optional>
 
 #include <arbor/export.hpp>
 #include <arbor/morph/locset.hpp>
