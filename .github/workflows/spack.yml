@@ -60,7 +60,7 @@ jobs:
           scripts/run_python_examples.sh
           scripts/test_executables.sh
           spack uninstall -yafR arbor
-      - name: Spack Failure: upload logs
+      - name: Failure, upload logs
         uses: actions/upload-artifact@v3
         if: ${{ failure() }}
         with:
