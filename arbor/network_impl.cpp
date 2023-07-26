@@ -118,7 +118,9 @@ void push_back(std::vector<network_connection_info>& vec,
         network_site_info{
             src.gid, src.kind, std::string(src.label), src.location, src.global_location},
         network_site_info{
-            dest.gid, dest.kind, std::string(dest.label), dest.location, dest.global_location}});
+            dest.gid, dest.kind, std::string(dest.label), dest.location, dest.global_location},
+        weight,
+        delay});
 }
 
 template <typename ConnectionType>

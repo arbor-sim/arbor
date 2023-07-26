@@ -43,8 +43,12 @@ void register_network(py::module& m) {
         m, "network_connection_info", "Identifies a network connection");
     network_connection_info.def_readwrite("src", &arb::network_connection_info::src)
         .def_readwrite("dest", &arb::network_connection_info::dest)
-        .def("__repr__", [](const arb::network_connection_info& c) { return util::pprintf("{}", c); })
-        .def("__str__", [](const arb::network_connection_info& c) { return util::pprintf("{}", c); });
+        .def_readwrite("weight", &arb::network_connection_info::weight)
+        .def_readwrite("delay", &arb::network_connection_info::delay)
+        .def("__repr__",
+            [](const arb::network_connection_info& c) { return util::pprintf("{}", c); })
+        .def("__str__",
+            [](const arb::network_connection_info& c) { return util::pprintf("{}", c); });
 
     py::class_<arb::network_selection> network_selection(
         m, "network_selection", "Network selection.");

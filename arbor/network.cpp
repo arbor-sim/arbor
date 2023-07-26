@@ -1534,6 +1534,8 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& os, const network_connectio
 
     os << "<arbor.network_connection_info: src " << s.src;
     os << ", dest " << s.dest;
+    os << ", weight " << s.weight;
+    os << ", delay " << s.delay;
     os << ">";
     return os;
 }

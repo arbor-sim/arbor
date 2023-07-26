@@ -40,6 +40,7 @@ ARB_DEFINE_LEXICOGRAPHIC_ORDERING(network_site_info,
 
 struct ARB_SYMBOL_VISIBLE network_connection_info {
     network_site_info src, dest;
+    double weight, delay;
 
     ARB_ARBOR_API friend std::ostream& operator<<(std::ostream& os, const network_connection_info& s);
 };
