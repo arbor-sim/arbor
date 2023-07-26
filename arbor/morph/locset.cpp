@@ -691,7 +691,7 @@ ARB_ARBOR_API locset restrict_to(locset ls, region reg) {
 }
 
 std::ostream& operator<<(std::ostream& o, const lrestrict_& x) {
-    return o << "(restrict_to " << x.ls << " " << x.reg << ")";
+    return o << "(restrict-to " << x.ls << " " << x.reg << ")";
 }
 
 } // namespace ls
