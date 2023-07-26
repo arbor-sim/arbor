@@ -12,17 +12,17 @@ Features include:
 * `Nascent SONATA format support <https://github.com/arbor-sim/arbor-sonata>`_. The Allen mechanism database :ref:`is already included in Arbor <mechanisms_builtins>`, so currently, with some manual work executing Allen models is already possible, see :ref:`tutorialsinglecellallen`.
 * :ref:`Voltage Processes <formatnmodl_voltageproc>` in the form of a mechanism kind. Useful for e.g. implementing voltage clamps.
 * :ref:`Stochastic Differential Equations <tutorial_calcium_stpd_curve>`: both point and density mechanisms may now use white noise as part of the state updates, turning the ODEs effectively into SDEs.
-* :ref:`Mutable connection table <interconnectivity-mut>`: the connection table can be redefined between successive simulation function calls.
+* :ref:`Mutable connection table <interconnectivity-mut>`: the connection table can be redefined between successive phases of simulation.
 * :ref:`Edit morphologies <morph-edit>` using Arbor API, useful for e.g. merging segment trees.
 * `BluePyOpt integration <https://github.com/BlueBrain/BluePyOpt/releases/tag/1.14.0>`_. Parameter optimization using BluePyOpt can be done through an Arbor backend and exported to an Arbor cable cell, see :ref:`this tutorial <tutorialsinglecellbluepyopt>`.
 * :ref:`Wide range of cable cell probes<pycablecell-probesample-api>`, :ref:`plus LIF cell probes <pycablecell-probesample-lif>`.
-* :ref:`Inhomogeneous parameters <cablecell-scaled-mechs>`: enables :ref:`painting of scaled density mechanisms <labels-iexpr>`, e.g. with the distance from the root. (nmodl: ``iexpr``.)
+* :ref:`Inhomogeneous parameters <cablecell-scaled-mechs>`: enables :ref:`painting of scaled density mechanisms <labels-iexpr>`, e.g. scale with the distance from the root. (nmodl: ``iexpr``.)
 * :ref:`LFPyKit integration <tutorial_lfpykit>`: extract extracellular signals from an Arbor cable cell.
-* :ref:`Faster NMODL programming guide <formatnmodl-faster>`: helps users write NMODL with performance and fewer bugs in mind.
 * :ref:`Axial Diffusion <cablecell-ions-diffusion>`: ions can now propagate along the dendrite by diffusion and be received by other synapses, modifying their weight upon reception.Xd can be read from and written to by NMODL density and point mechanisms. See `this LaTeX file <https://github.com/arbor-sim/arbor/blob/master/doc/dev/axial-diff.tex>`_ for a mathematical description of Arbor's implementation.
 * :ref:`Gap Junction Mechanisms <mechanisms-junction>`.
 * :ref:`Mechanism ABI <extending-catalogues>`, allowing for users to package their mechanism catalogues.
 * :ref:`Built-in profiler <pyprofiler>`, which enables users to quickly understand where their experiment is spending most of its time.
+* :ref:`Faster NMODL programming guide <formatnmodl-faster>`: helps users write NMODL with performance and fewer bugs in mind.
 
 Modelling
 ---------
