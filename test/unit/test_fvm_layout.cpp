@@ -1935,7 +1935,7 @@ TEST(fvm_layout, inhomogeneous_parameters) {
     {
         auto decor = arb::decor{}
             .set_default(membrane_capacitance{23.0})
-            .paint(reg::tagged(1), membrane_capacitance{23.0, iexpr::diameter()});
+            .paint(reg::tagged(1), membrane_capacitance{23.0*iexpr::diameter()});
         auto D = fvm_cv_discretize({morph, decor}, param);
         EXPECT_EQ(D.size(), 30ul);
         for (unsigned ix = 0; ix < D.size(); ++ix) {
@@ -1949,8 +1949,7 @@ TEST(fvm_layout, inhomogeneous_parameters) {
     // Defaults do not have a scale
     {
         auto decor = arb::decor{};
-        EXPECT_THROW(decor.set_default(membrane_capacitance{23.0, iexpr::diameter()}), arb::cable_cell_error);
-
+        EXPECT_THROW(decor.set_default(membrane_capacitance{23.0*iexpr::diameter()}), arb::cable_cell_error);
     }
 }
 

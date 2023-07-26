@@ -17,6 +17,8 @@
 #include <arbor/util/any_visitor.hpp>
 #include <arbor/math.hpp>
 
+#include <iostream>
+
 namespace arb {
 
 namespace iexpr_impl {
@@ -337,6 +339,12 @@ struct log: public iexpr_interface {
 iexpr::iexpr(double value) { *this = iexpr::scalar(value); }
 
 iexpr iexpr::scalar(double value) { return iexpr(iexpr_type::scalar, std::make_tuple(value)); }
+
+std::optional<double> iexpr::get_scalar() {
+    std::cerr << args_.type().name() << '\n';
+    if (type_ == iexpr_type::scalar) return std::get<0>(std::any_cast<std::tuple<double>>(args_));
+    return {};
+}
 
 iexpr iexpr::pi() { return iexpr::scalar(math::pi<double>); }
 

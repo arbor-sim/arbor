@@ -320,15 +320,7 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
         // Treat specific assignments
         if (auto map = diffusivity.find(ion); map != diffusivity.end()) {
             for (const auto& [k, v]: map->second) {
-                if (v.value <= 0.0) {
-                    throw make_cc_error("Illegal diffusivity '{}' for ion '{}' at '{}'.", v.value, ion, k);
-                }
-                if (v.scale){
-                    id_map.insert(k, {1.0/v.value, iexpr::div(1.0, *v.scale)});
-                }
-                else {
-                    id_map.insert(k, {1.0/v.value, {}});
-                }
+                id_map.insert(k, {1.0/v.value, {}});
             }
         }
         arb_value_type def = 0.0;
@@ -352,19 +344,7 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
         id.reserve(n_branch);
         for (msize_t i = 0; i<n_branch; ++i) {
             auto cable = mcable{i, 0., 1.};
-            auto scale_param = [&](const auto&,
-                                   const inv_diff& par) {
-                if (par.scale) {
-                    auto ie = thingify(*par.scale, provider);
-                    auto sc = ie->eval(provider, cable);
-                    return par.value * sc;
-                }
-                else {
-                    return par.value;
-                }
-            };
-
-            auto pw = pw_over_cable(id_map, cable, 1.0/def, scale_param);
+            auto pw = pw_over_cable(id_map, cable, 1.0/def);
             id[0].push_back(pw);
         }
         // Prepare conductivity map
@@ -379,14 +359,9 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
         auto cable = mcable{i, 0., 1.};
         auto scale_param = [&](const auto&,
                                const axial_resistivity& par) {
-            if (par.scale) {
-                auto ie = thingify(*par.scale, provider);
-                auto sc = ie->eval(provider, cable);
-                return par.value * sc;
-            }
-            else {
-                return par.value;
-            }
+            auto ie = thingify(par.value, provider);
+            auto sc = ie->eval(provider, cable);
+            return sc;
         };
         ax_res_0.emplace_back(pw_over_cable(resistivity, cable, dflt_resistivity, scale_param));
     }
@@ -442,16 +417,10 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
         double cv_length = 0;
 
         for (mcable cable: cv_cables) {
-            auto scale_param = [&](const auto&,
-                                   const auto& par) {
-                if (par.scale) {
-                    auto ie = thingify(*par.scale, provider);
-                    auto sc = ie->eval(provider, cable);
-                    return par.value * sc;
-                }
-                else {
-                    return par.value;
-                }
+            auto scale_param = [&](const auto&, const auto& par) {
+                auto ie = thingify(par.value, provider);
+                auto sc = ie->eval(provider, cable);
+                return sc;
             };
 
             auto pw_capacitance = pw_over_cable(capacitance, cable, dflt_capacitance, scale_param);
@@ -1335,14 +1304,9 @@ make_ion_config(fvm_ion_map build_data,
             for (const mcable& cable: data.D.geometry.cables(cv)) {
                 auto scale_param = [&](const auto&,
                                    const auto& par) {
-                    if (par.scale) {
-                        auto ie = thingify(*par.scale, provider);
-                        auto sc = ie->eval(provider, cable);
-                        return par.value * sc;
-                    }
-                    else {
-                        return par.value;
-                    }
+                    auto ie = thingify(par.value, provider);
+                    auto sc = ie->eval(provider, cable);
+                    return sc;
                 };
 
                 auto branch = cable.branch;

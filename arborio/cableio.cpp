@@ -38,29 +38,34 @@ cableio_version_error::cableio_version_error(const std::string& version):
 
 
 // Define s-expr makers for various types
+s_expr mksexp(const iexpr& j) {
+    std::stringstream s;
+    s << j;
+    return parse_s_expr(s.str());
+}
 s_expr mksexp(const init_membrane_potential& p) {
-    return slist("membrane-potential"_symbol, p.value);
+    return slist("membrane-potential"_symbol, mksexp(p.value));
 }
 s_expr mksexp(const axial_resistivity& r) {
-    return slist("axial-resistivity"_symbol, r.value);
+    return slist("axial-resistivity"_symbol, mksexp(r.value));
 }
 s_expr mksexp(const temperature_K& t) {
-    return slist("temperature-kelvin"_symbol, t.value);
+    return slist("temperature-kelvin"_symbol, mksexp(t.value));
 }
 s_expr mksexp(const membrane_capacitance& c) {
-    return slist("membrane-capacitance"_symbol, c.value);
+    return slist("membrane-capacitance"_symbol, mksexp(c.value));
 }
 s_expr mksexp(const init_int_concentration& c) {
-    return slist("ion-internal-concentration"_symbol, s_expr(c.ion), c.value);
+    return slist("ion-internal-concentration"_symbol, s_expr(c.ion), mksexp(c.value));
 }
 s_expr mksexp(const init_ext_concentration& c) {
-    return slist("ion-external-concentration"_symbol, s_expr(c.ion), c.value);
+    return slist("ion-external-concentration"_symbol, s_expr(c.ion), mksexp(c.value));
 }
 s_expr mksexp(const init_reversal_potential& c) {
-    return slist("ion-reversal-potential"_symbol, s_expr(c.ion), c.value);
+    return slist("ion-reversal-potential"_symbol, s_expr(c.ion), mksexp(c.value));
 }
 s_expr mksexp(const ion_diffusivity& c) {
-    return slist("ion-diffusivity"_symbol, s_expr(c.ion), c.value);
+    return slist("ion-diffusivity"_symbol, s_expr(c.ion), mksexp(c.value));
 }
 s_expr mksexp(const i_clamp& c) {
     std::vector<s_expr> evlps;
@@ -92,11 +97,6 @@ s_expr mksexp(const density& j) {
 }
 s_expr mksexp(const voltage_process& j) {
     return slist("voltage-process"_symbol, mksexp(j.mech));
-}
-s_expr mksexp(const iexpr& j) {
-    std::stringstream s;
-    s << j;
-    return parse_s_expr(s.str());
 }
 template <typename TaggedMech>
 s_expr mksexp(const scaled_mechanism<TaggedMech>& j) {
@@ -222,11 +222,17 @@ using branch_tuple   = std::tuple<int,int,std::vector<arb::msegment>>;
 using version_tuple  = std::tuple<std::string>;
 
 // Define makers for defaultables, paintables, placeables
-#define ARBIO_DEFINE_SINGLE_ARG(name) arb::name make_##name(double val) { return arb::name{val}; }
-#define ARBIO_DEFINE_DOUBLE_ARG(name) arb::name make_##name(const std::string& ion, double val) { return arb::name{ion, val};}
+#define ARBIO_DEFINE_ION_ARG(name) arb::name make_##name(const std::string& ion, double val) { return arb::name{ion, val};}
+#define ARBIO_DEFINE_IEXPR_ION_ARG(name) arb::name make_##name(const std::string& ion, iexpr val) { return arb::name{ion, val};}
+#define ARBIO_DEFINE_IEXPR_ARG(name) arb::name make_##name(iexpr val) { return arb::name{val}; }
 
-ARB_PP_FOREACH(ARBIO_DEFINE_SINGLE_ARG, init_membrane_potential, temperature_K, axial_resistivity, membrane_capacitance, threshold_detector)
-ARB_PP_FOREACH(ARBIO_DEFINE_DOUBLE_ARG, init_int_concentration, init_ext_concentration, init_reversal_potential, ion_diffusivity)
+ARB_PP_FOREACH(ARBIO_DEFINE_IEXPR_ION_ARG, init_membrane_potential,temperature_K, axial_resistivity, membrane_capacitance, threshold_detector)
+ARB_PP_FOREACH(ARBIO_DEFINE_IEXPR_ARG, ion_diffusivity)
+ARB_PP_FOREACH(ARBIO_DEFINE_DOUBLE_ARG, init_int_concentration, init_ext_concentration, init_reversal_potential)
+
+#undef ARBIO_DEFINE_ION_ARG
+#undef ARBIO_DEFINE_IEXPR_ARG
+#undef ARBIO_DEFINE_IEXPR_ION_ARG
 
 std::vector<arb::i_clamp::envelope_point> make_envelope(const std::vector<std::variant<envelope_tuple>>& vec) {
     std::vector<arb::i_clamp::envelope_point> envlp;
@@ -642,7 +648,7 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_
 }
 
 eval_map named_evals{
-    {"membrane-potential", make_call<double>(make_init_membrane_potential,
+    {"membrane-potential", make_call<iexpr>(make_init_membrane_potential,
         "'membrane-potential' with 1 argument (val:real)")},
     {"temperature-kelvin", make_call<double>(make_temperature_K,
         "'temperature-kelvin' with 1 argument (val:real)")},
