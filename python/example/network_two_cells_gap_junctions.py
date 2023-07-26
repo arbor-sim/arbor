@@ -88,8 +88,8 @@ class TwoCellsWithGapJunction(arbor.recipe):
             .set_property(cm=self.cm)
             .set_property(rL=self.rL)
             # add a gap junction mechanism at the "gj_site" location and label that specific mechanism on that location "gj_label"
-            .place('"gj_site"', arbor.junction("gj", {"g": self.gj_g}), "gj_label")
-            .paint('"cell"', arbor.density(f"pas/e={self.Vms[gid]}", {"g": self.g}))
+            .place('"gj_site"', arbor.junction("gj", g=self.gj_g), "gj_label")
+            .paint('"cell"', arbor.density(f"pas/e={self.Vms[gid]}", g=self.g))
         )
 
         if self.cv_policy_max_extent is not None:

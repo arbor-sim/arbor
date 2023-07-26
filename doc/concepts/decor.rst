@@ -351,13 +351,13 @@ A point mechanism (synapse) can form the target of a :term:`connection` on a cel
     expsyn = arbor.mechanism('expsyn')
 
     # Wrap the 'expsyn' mechanism in a `synapse` object and add it to the decor.
-    decor.place('"syn_loc_0"', arbor.synapse(expsyn))
+    decor.place('"syn_loc_0"', arbor.synapse(expsyn), "My_Synapse_1")
 
     # Create an 'expsyn' mechanism with default parameter values as a `synapse` object, and add it to the decor.
-    decor.place('"syn_loc_1"', arbor.synapse("expsyn"))
+    decor.place('"syn_loc_1"', arbor.synapse("expsyn"), "My_Synapse_2")
 
     # Create an 'expsyn' mechanism with modified 'tau' parameter as a `synapse` object, and add it to the decor.
-    decor.place('"syn_loc_2"', arbor.synapse("expsyn", {"tau": 1.0}))
+    decor.place('"syn_loc_2"', arbor.synapse("expsyn", {"tau": 1.0}), "My_Synapse_3")
 
 
 .. _cablecell-threshold-detectors:
@@ -408,10 +408,10 @@ on two separate cells.
     gj = arbor.mechanism("gj", {"g": 2.0})
 
     # Wrap the 'gj' mechanism in a `junction` object and add it to the decor.
-    decor.place('"gj_loc_0"', arbor.junction(gj))
+    decor.place('"gj_loc_0"', arbor.junction(gj), "My_Gap_Junction_1")
 
     # Create a 'gj' mechanism with modified 'g' parameter as a `junction` object, and add it to the decor.
-    decor.place('"gj_loc_1"', arbor.junction("gj", {"g": 1.5}))
+    decor.place('"gj_loc_1"', arbor.junction("gj", {"g": 1.5}), "My_Gap_Junction_2")
 
 .. _cablecell-stimuli:
 

@@ -30,7 +30,7 @@ Cable cell mechanisms
     If global parameters change, we are effectively defining a new type
     of mechanism, so global parameter information is encoded in the
     name.
-    Range parameters are set using a dictionary of name-value pairs.
+    Range parameters are set using a dictionary of name-value pairs or as kwargs.
 
     .. code-block:: Python
 
@@ -46,7 +46,11 @@ Cable cell mechanisms
         pas_2 = arbor.mechanism('pas/e=-45')
 
         # A passive leaky channel with custom reversal potential (global), and custom conductance (range).
-        pas_3 = arbor.mechanism('pas/e=-45', {'g', 0.1})
+        pas_3a = arbor.mechanism('pas/e=-45', {'g', 0.1})
+
+        # A passive leaky channel with custom reversal potential (global), and custom conductance (range)
+        # written as keyword args.
+        pas_3b = arbor.mechanism('pas/e=-45', g=0.1)
 
         # This is an equivalent to pas_3, using set method to specify range parameters.
         pas_4 = arbor.mechanism('pas/e=-45')
