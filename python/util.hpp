@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fstream>
+#include <string>
 
 #include <pybind11/pybind11.h>
 
@@ -50,7 +51,9 @@ template<typename T>
 std::unordered_map<std::string, T> dict_to_map(pybind11::dict d) {
     std::unordered_map<std::string, T> result;
     for (const auto& [k, v]: d) {
-        result[k.cast<std::string>()] = v.cast<T>();
+        std::string key = k.cast<std::string>();
+        T val = v.cast<T>();
+        result[key] = val;
     }
     return result;
 }

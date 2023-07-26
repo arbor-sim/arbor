@@ -50,7 +50,7 @@ Cable cell mechanisms
 
         # A passive leaky channel with custom reversal potential (global), and custom conductance (range)
         # written as keyword args.
-        pas_3b = arbor.mechanism('pas/e=-45', {'g', 0.1})
+        pas_3b = arbor.mechanism('pas/e=-45', g=0.1)
 
         # This is an equivalent to pas_3, using set method to specify range parameters.
         pas_4 = arbor.mechanism('pas/e=-45')
