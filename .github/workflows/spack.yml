@@ -69,6 +69,7 @@ jobs:
           ls ./arbor
           source spack/share/spack/setup-env.sh
           spack load arbor
+          cd ./arbor
           scripts/run_python_examples.sh
           scripts/test_executables.sh
           spack uninstall -yafR arbor
