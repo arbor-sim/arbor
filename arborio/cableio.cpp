@@ -669,7 +669,7 @@ eval_map named_evals{
     ARBIO_ADD_ION_EVAL("ion-reversal-potential", make_init_reversal_potential, double),
     ARBIO_ADD_ION_EVAL("ion-reversal-potential", make_init_reversal_potential, iexpr),
     ARBIO_ADD_ION_EVAL("ion-diffusivity", make_ion_diffusivity, double),
-
+    // Intentionally left out! ARBIO_ADD_ION_EVAL("ion-diffusivity", make_ion_diffusivity, iexpr),
     {"envelope", make_arg_vec_call<envelope_tuple>(make_envelope,
         "'envelope' with one or more pairs of start time and amplitude (start:real amplitude:real)")},
     {"envelope-pulse", make_call<double, double, double>(make_envelope_pulse,

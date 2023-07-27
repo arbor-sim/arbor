@@ -29,6 +29,8 @@
 #include "util/unique.hpp"
 #include "util/strprintf.hpp"
 
+#include <iostream>
+
 namespace arb {
 
 using util::assign;
@@ -284,59 +286,49 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
     const auto& diffusivity = assignments.get<ion_diffusivity>();
     const auto& provider    = cell.provider();
 
-    // Set up for ion diffusivity
-    std::unordered_map<std::string, fvm_diffusion_info> diffusive_ions;
-
     struct inv_diff {
-        double value;
-        std::optional<iexpr> scale;
+        iexpr value;
     };
 
+    // Set up for ion diffusivity
+    std::unordered_map<std::string, fvm_diffusion_info> diffusive_ions;
     std::unordered_map<std::string, mcable_map<inv_diff>> inverse_diffusivity;
 
     // Collect all eglible ions: those where any cable has finite diffusivity
     for (const auto& [ion, data]: global_dflt.ion_data) {
-        if (data.diffusivity.value_or(0.0) != 0.0) {
-            diffusive_ions[ion] = {};
+        if (auto d = data.diffusivity.value_or(0.0); d != 0.0) {
+            diffusive_ions[ion] = {d};
         }
     }
     for (const auto& [ion, data]: dflt.ion_data) {
-        if (data.diffusivity.value_or(0.0) != 0.0) {
-            diffusive_ions[ion] = {};
+        if (auto d = data.diffusivity.value_or(0.0); d != 0.0) {
+            diffusive_ions[ion] = {d};
         }
     }
     for (const auto& [ion, data]: diffusivity) {
+         // 'Finite' diffusivity iff not NAN or 0.0 or a complex expression.
         auto diffusive = std::any_of(data.begin(),
                                      data.end(),
-                                     [](const auto& kv) { return kv.second.value != 0.0; });
+                                     [](const auto& kv) {
+                                         const auto& v = kv.second.value.get_scalar();
+                                         return !v || *v != 0.0 || *v == *v;
+                                     });
         if (diffusive) {
-            diffusive_ions[ion] = {};
+            // Provide a (non-sensical) default.
+            if (!diffusive_ions.count(ion)) diffusive_ions[ion] = {NAN};
+            auto& inv = inverse_diffusivity[ion];
+            for (const auto& [k, v]: data) inv.insert(k, {1.0/v.value});
         }
     }
 
     // Remap diffusivity to resistivity
     for (auto& [ion, data]: diffusive_ions) {
         auto& id_map = inverse_diffusivity[ion];
-        // Treat specific assignments
-        if (auto map = diffusivity.find(ion); map != diffusivity.end()) {
-            for (const auto& [k, v]: map->second) {
-                id_map.insert(k, {1.0/v.value, {}});
-            }
-        }
-        arb_value_type def = 0.0;
-        if (auto data = util::value_by_key(global_dflt.ion_data, ion);
-            data && data->diffusivity) {
-            def = data->diffusivity.value();
-        }
-        if (auto data = util::value_by_key(dflt.ion_data, ion);
-            data && data->diffusivity) {
-            def = data->diffusivity.value();
-        }
-        if (def <= 0.0) {
+        arb_value_type def = data.default_value;
+        if (def <= 0.0 || std::isnan(def)) {
             throw make_cc_error("Illegal global diffusivity '{}' for ion '{}'; possibly unset."
                                 " Please define a positive global or cell default.", def, ion);
         }
-
         // Write inverse diffusivity / diffuse resistivity map
         auto& id = data.axial_inv_diffusivity;
         id.resize(1);
@@ -344,7 +336,17 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
         id.reserve(n_branch);
         for (msize_t i = 0; i<n_branch; ++i) {
             auto cable = mcable{i, 0., 1.};
-            auto pw = pw_over_cable(id_map, cable, 1.0/def);
+            auto scale_param = [&, ion=ion](const auto&,
+                                   const inv_diff& par) {
+                auto ie = thingify(par.value, provider);
+                auto sc = ie->eval(provider, cable);
+                if (def <= 0.0 || std::isnan(def)) {
+                    throw make_cc_error("Illegal diffusivity '{}' for ion '{}' at cable {}."
+                                        " Please check your expressions.", sc, ion, cable);
+                }
+                return sc;
+            };
+            auto pw = pw_over_cable(id_map, cable, 1.0/def, scale_param);
             id[0].push_back(pw);
         }
         // Prepare conductivity map

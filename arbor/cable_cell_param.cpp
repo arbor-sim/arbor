@@ -163,7 +163,8 @@ decor& decor::set_default(defaultable what) {
                     defaults_.discretization = std::forward<cv_policy>(p);
                 }
                 else if constexpr (std::is_same_v<ion_diffusivity, T>) {
-                    defaults_.ion_data[p.ion].diffusivity = p.value;
+                    if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
+                    defaults_.ion_data[p.ion].diffusivity = p.value.get_scalar();
                 }
             },
             what);

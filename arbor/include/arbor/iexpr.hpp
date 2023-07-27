@@ -111,7 +111,7 @@ struct ARB_SYMBOL_VISIBLE iexpr {
 
     static iexpr named(std::string name);
 
-    std::optional<double> get_scalar();
+    std::optional<double> get_scalar() const;
 
 private:
     iexpr(iexpr_type type, std::any args): type_(type), args_(std::move(args)) {}

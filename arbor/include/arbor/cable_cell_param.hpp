@@ -118,7 +118,7 @@ struct ARB_SYMBOL_VISIBLE init_int_concentration {
 
 struct ARB_SYMBOL_VISIBLE ion_diffusivity {
     std::string ion = "";
-    double value = NAN;         // [m^2/s]
+    iexpr value = NAN;         // [m^2/s]
 };
 
 struct ARB_SYMBOL_VISIBLE init_ext_concentration {
