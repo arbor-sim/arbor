@@ -54,6 +54,12 @@ jobs:
           spack dev-build --test root arbor@develop +python
       - name: Build Arbor and run uni tests
         run: |
+          pwd
+          ls
+          ls ./arbor
+          cd ~/arbor
+          pwd
+          ls
           source spack/share/spack/setup-env.sh
           spack load arbor
           scripts/run_python_examples.sh
