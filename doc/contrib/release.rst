@@ -48,6 +48,7 @@ Update tags/versions and test
 #. Create new temp-branch ending in ``-rc``. E.g. ``v0.6-rc``
 #. Bump the ``VERSION`` file:
 
+   - For as long as `scikit-build-core` does not support loading fields from external files, also bump in `pyproject.toml`
    - See also :ref:`dev-version`
    - Append ``-rc``. (Make sure there's no ``-dev``)
 

@@ -294,7 +294,7 @@ public:
     }
 
     expression_ptr clone() const override;
-
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
 
     void symbol(Symbol* sym) { symbol_ = sym; }
@@ -326,6 +326,7 @@ protected:
 // an identifier for a derivative
 class ARB_LIBMODCC_API DerivativeExpression : public IdentifierExpression {
 public:
+
     DerivativeExpression(Location loc, std::string const& name)
     :   IdentifierExpression(loc, name)
     {}
@@ -336,6 +337,7 @@ public:
 
     expression_ptr clone() const override;
 
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
 
     DerivativeExpression* is_derivative() override { return this; }
@@ -363,6 +365,7 @@ public:
     }
 
     // do nothing for number semantic analysis
+    using Expression::semantic;
     void semantic(scope_ptr scp) override {};
     expression_ptr clone() const override;
 
@@ -393,6 +396,7 @@ public:
     }
 
     // do nothing for number semantic analysis
+    using Expression::semantic;
     void semantic(scope_ptr scp) override {};
     expression_ptr clone() const override;
 
@@ -424,6 +428,7 @@ public:
 
     bool add_variable(Token name);
     LocalDeclaration* is_local_declaration() override {return this;}
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
     std::vector<Symbol*>& symbols() {return symbols_;}
     std::map<std::string, Token>& variables() {return vars_;}
@@ -449,6 +454,7 @@ public:
 
     bool add_variable(Token name);
     ArgumentExpression* is_argument() override {return this;}
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
     Token   token()  {return token_;}
     std::string const& name()  {return name_;}
@@ -710,7 +716,7 @@ public:
     }
 
     expression_ptr clone() const override;
-
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
     void accept(Visitor *v) override;
 
@@ -752,7 +758,7 @@ public:
     }
 
     expression_ptr clone() const override;
-
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
     void accept(Visitor *v) override;
 
@@ -810,7 +816,7 @@ public:
     bool is_nested() const {
         return is_nested_;
     }
-
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
     void accept(Visitor* v) override;
 
@@ -841,6 +847,7 @@ public:
     std::string to_string() const override;
 
     void replace_condition(expression_ptr&& other);
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
 
     void accept(Visitor* v) override;
@@ -894,6 +901,7 @@ public:
     ReactionExpression* is_reaction() override {return this;}
 
     std::string to_string() const override;
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
     expression_ptr clone() const override;
     void accept(Visitor *v) override;
@@ -927,6 +935,7 @@ public:
     CompartmentExpression* is_compartment() override {return this;}
 
     std::string to_string() const override;
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
     expression_ptr clone() const override;
     void accept(Visitor *v) override;
@@ -958,6 +967,7 @@ public:
     std::string to_string() const override {
         return pprintf("% %", coeff()->to_string(), ident()->to_string());
     }
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
     expression_ptr clone() const override;
     void accept(Visitor *v) override;
@@ -991,6 +1001,7 @@ public:
     StoichExpression* is_stoich() override {return this;}
 
     std::string to_string() const override;
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
     expression_ptr clone() const override;
     void accept(Visitor *v) override;
@@ -1015,7 +1026,7 @@ public:
 
     std::string& name() { return spelling_; }
     std::string const& name() const { return spelling_; }
-
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
     expression_ptr clone() const override;
 
@@ -1150,7 +1161,7 @@ public:
                           expression_ptr&& body)
     :   ProcedureExpression(loc, std::move(name), std::move(args), std::move(body), procedureKind::net_receive)
     {}
-
+    using Expression::semantic;
     void semantic(scope_type::symbol_map &scp) override;
     NetReceiveExpression* is_net_receive() override {return this;}
     /// hard code the kind
@@ -1171,7 +1182,7 @@ public:
                           expression_ptr&& body)
             :   ProcedureExpression(loc, std::move(name), std::move(args), std::move(body), procedureKind::post_event)
     {}
-
+    using Expression::semantic;
     void semantic(scope_type::symbol_map &scp) override;
     PostEventExpression* is_post_event() override {return this;}
     /// hard code the kind
@@ -1216,6 +1227,7 @@ public:
     }
 
     FunctionExpression* is_function() override {return this;}
+    using Expression::semantic;
     void semantic(scope_type::symbol_map&) override;
     std::string to_string() const override;
     void accept(Visitor *v) override;
@@ -1253,6 +1265,7 @@ public:
     UnaryExpression* is_unary() override {return this;};
     Expression* expression() {return expression_.get();}
     const Expression* expression() const {return expression_.get();}
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
     void accept(Visitor *v) override;
     void replace_expression(expression_ptr&& other);
@@ -1453,6 +1466,7 @@ public:
     const Expression* lhs() const {return lhs_.get();}
     const Expression* rhs() const {return rhs_.get();}
     BinaryExpression* is_binary() override {return this;}
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
     expression_ptr clone() const override;
     void replace_rhs(expression_ptr&& other);
@@ -1468,7 +1482,7 @@ public:
     {}
 
     AssignmentExpression* is_assignment() override {return this;}
-
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
 
     void accept(Visitor *v) override;
@@ -1482,7 +1496,7 @@ public:
 
     ConserveExpression* is_conserve() override {return this;}
     expression_ptr clone() const override;
-
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
 
     void accept(Visitor *v) override;
@@ -1496,7 +1510,7 @@ public:
 
     LinearExpression* is_linear() override {return this;}
     expression_ptr clone() const override;
-
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
 
     void accept(Visitor *v) override;
@@ -1593,6 +1607,7 @@ public:
 
     std::string to_string() const override;
     void accept(Visitor *v) override;
+    using Expression::semantic;
     void semantic(scope_ptr scp) override;
     expression_ptr clone() const override;
 

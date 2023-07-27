@@ -36,9 +36,9 @@ labels = arbor.label_dict(
         "root": "(root)",
         "terminal": "(terminal)",
         # Add a label for the terminal locations in the "custom" region:
-        "custom_terminal": '(restrict (locset "terminal") (region "custom"))',
+        "custom_terminal": '(restrict-to (locset "terminal") (region "custom"))',
         # Add a label for the terminal locations in the "axon" region:
-        "axon_terminal": '(restrict (locset "terminal") (region "axon"))',
+        "axon_terminal": '(restrict-to (locset "terminal") (region "axon"))',
     }
 ).add_swc_tags()
 
@@ -56,7 +56,7 @@ decor.paint('"soma"', Vm=-50)
 # Paint density mechanisms.
 decor.paint('"all"', density("pas"))
 decor.paint('"custom"', density("hh"))
-decor.paint('"dend"', density("Ih", {"gbar": 0.001}))
+decor.paint('"dend"', density("Ih", gbar=0.001))
 # Place stimuli and detectors.
 decor.place('"root"', arbor.iclamp(10, 1, current=2), "iclamp0")
 decor.place('"root"', arbor.iclamp(30, 1, current=2), "iclamp1")

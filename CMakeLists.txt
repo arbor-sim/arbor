@@ -19,11 +19,13 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Have LTO where possible, ie add -flto
 check_ipo_supported(RESULT HAVE_LTO OUTPUT ERR_LTO)
-if(HAVE_LTO AND NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
-  message (STATUS "LTO support found, enabling")
-  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-else()
-  message(STATUS "No LTO: ${ERR_LTO}")
+if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+  if(HAVE_LTO)
+    message (STATUS "LTO support found, enabling")
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+  else()
+    message(STATUS "No LTO: ${ERR_LTO}")
+  endif()
 endif()
 
 # Turn on this option to force the compilers to produce color output when output is

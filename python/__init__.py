@@ -16,6 +16,33 @@ def get_version():
         return version_file.read().strip()
 
 
+def modcc():
+    import os
+    import sys
+    import subprocess
+
+    sys.exit(
+        subprocess.call(
+            [os.path.join(os.path.dirname(__file__), "bin", "modcc"), *sys.argv[1:]]
+        )
+    )
+
+
+def build_catalogue():
+    import os
+    import sys
+    import subprocess
+
+    sys.exit(
+        subprocess.call(
+            [
+                os.path.join(os.path.dirname(__file__), "bin", "arbor-build-catalogue"),
+                *sys.argv[1:],
+            ]
+        )
+    )
+
+
 __version__ = get_version()
 __config__ = config()  # noqa:F405
 

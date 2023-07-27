@@ -30,7 +30,7 @@ at the same locations at our `GitHub Releases page <https://github.com/arbor-sim
 These versions are self-contained and ready for launch.
 
 To get a feel for the workflow with Arbor-GUI, you can
-take a look at [the tutorial](https://docs.arbor-sim.org/en/latest/tutorial/single_cell_gui.html).
+take a look at :ref:`the tutorial <tutorialgui>`.
 
 The source code is available `at GitHub <https://github.com/arbor-sim/gui>`_.
 We welcome bug reports and feature requests, please use the issue

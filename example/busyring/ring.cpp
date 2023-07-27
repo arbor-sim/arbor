@@ -56,7 +56,6 @@ public:
         num_cells_(params.num_cells),
         min_delay_(params.min_delay),
         event_weight_(params.event_weight),
-        event_freq_(params.event_freq),
         params_(params)
     {
         gprop.default_parameters = arb::neuron_parameter_defaults;
@@ -115,12 +114,7 @@ public:
     // This generates a single event that will kick start the spiking on the sub-ring.
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         if (gid%params_.ring_size == 0) {
-            if (event_freq_ > 0) {
-                return {arb::regular_generator({"p"}, event_weight_, 0.0, event_freq_)};
-            }
-            else {
-                return {arb::explicit_generator({"p"}, event_weight_, std::vector<float>{1.0f})};
-            }
+            return {arb::explicit_generator({"p"}, event_weight_, std::vector<float>{1.0f})};
         } else {
             return {};
         }
@@ -136,7 +130,6 @@ private:
     cell_size_type num_cells_;
     double min_delay_;
     float event_weight_;
-    float event_freq_;
     ring_params params_;
 
     arb::cable_cell_global_properties gprop;
@@ -333,12 +326,7 @@ double interp(const std::array<T,2>& r, unsigned i, unsigned n) {
     return r[0] + p*(r1-r0);
 }
 
-arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& params) {
-    using arb::reg::tagged;
-    using arb::reg::all;
-    using arb::ls::location;
-    using arb::ls::uniform;
-
+arb::segment_tree generate_morphology(arb::cell_gid_type gid, const cell_parameters& params) {
     arb::segment_tree tree;
 
     double soma_radius = 12.6157/2.0;
@@ -386,7 +374,17 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
         dist_from_soma += l;
     }
 
+    return tree;
+}
+
+arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& params) {
     using arb::reg::tagged;
+    using arb::reg::all;
+    using arb::ls::location;
+    using arb::ls::uniform;
+
+    arb::segment_tree tree = generate_morphology(gid, params);
+
     auto rall  = arb::reg::all();
     auto soma = tagged(1);
     auto axon = tagged(2);
@@ -434,55 +432,10 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
 }
 
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
-    arb::segment_tree tree;
-
-    // Add soma.
-    double soma_radius = 12.6157/2.0;
-    int soma_tag = 1;
-    tree.append(arb::mnpos, {0, 0,-soma_radius, soma_radius}, {0, 0, soma_radius, soma_radius}, soma_tag); // For area of 500 μm².
-
-    std::vector<std::vector<unsigned>> levels;
-    levels.push_back({0});
-
-    // Standard mersenne_twister_engine seeded with gid.
-    std::mt19937 gen(gid);
-    std::uniform_real_distribution<double> dis(0, 1);
-
-    double dend_radius = 0.5; // Diameter of 1 μm for each cable.
-    int dend_tag = 3;
-
-    double dist_from_soma = soma_radius;
-    for (unsigned i=0; i<params.max_depth; ++i) {
-        // Branch prob at this level.
-        double bp = interp(params.branch_probs, i, params.max_depth);
-        // Length at this level.
-        double l = interp(params.lengths, i, params.max_depth);
-        // Number of compartments at this level.
-        unsigned nc = std::round(interp(params.compartments, i, params.max_depth));
-
-        std::vector<unsigned> sec_ids;
-        for (unsigned sec: levels[i]) {
-            for (unsigned j=0; j<2; ++j) {
-                if (dis(gen)<bp) {
-                    auto z = dist_from_soma;
-                    auto dz = l/nc;
-                    auto p = sec;
-                    for (unsigned k=1; k<nc; ++k) {
-                        p = tree.append(p, {0,0,z+(k+1)*dz, dend_radius}, dend_tag);
-                    }
-                    sec_ids.push_back(p);
-                }
-            }
-        }
-        if (sec_ids.empty()) {
-            break;
-        }
-        levels.push_back(sec_ids);
-
-        dist_from_soma += l;
-    }
-
     using arb::reg::tagged;
+
+    arb::segment_tree tree = generate_morphology(gid, params);
+
     auto soma = tagged(1);
     auto dnds = join(tagged(3), tagged(4));
     auto syns = arb::ls::uniform(arb::reg::all(), 0, params.synapses-2, gid);

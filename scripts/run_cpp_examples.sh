@@ -5,7 +5,7 @@ set -Eeuo pipefail
 
 if [[ "$#" -gt 1 ]]; then
     echo "usage: run_cpp_examples.sh <prefix, e.g., mpirun -n 4 -oversubscribe>"
-	exit 1
+    exit 1
 fi
 
 PREFIX="${1:-} `pwd`/build/bin"
@@ -54,7 +54,7 @@ fi
 check brunel 6998
 check bench 972
 check ring 94
-check busyring 9
+check busyring 35000
 check gap_junctions 30
 
 exit $ok
