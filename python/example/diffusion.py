@@ -38,7 +38,7 @@ _ = tree.append(s, A.mpoint(3, 0, 0, 1), A.mpoint(33, 0, 0, 1), tag=3)
 
 dec = A.decor()
 dec.set_ion("na", int_con=0.0, diff=0.005)
-dec.place("(location 0 0.5)", A.synapse("inject/x=na", alpha=200.0), "Zap")
+dec.place("(location 0 0.5)", A.synapse("inject/x=na", {"alpha":200.0}), "Zap")
 dec.paint("(all)", A.density("decay/x=na"))
 dec.discretization(A.cv_policy("(max-extent 5)"))
 
