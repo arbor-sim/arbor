@@ -48,7 +48,7 @@ public:
         arb_assert(num_events == base::ev_data_.size());
     }
 
-    ARB_SERDES_ENABLE(event_stream<Event>, ev_data_, ev_spans_);
+    ARB_SERDES_ENABLE(event_stream<Event>, ev_data_, ev_spans_, index_);
 };
 
 } // namespace multicore
