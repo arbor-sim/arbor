@@ -441,7 +441,7 @@ ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::array<V, N>& vs
     friend ARB_ARBOR_API void serialize(::arb::serializer& ser,          \
                       const K& k,                                        \
                       const T& t) {                                      \
-        ser.begin_write_map(::arb::to_serdes_key(k));                           \
+        ser.begin_write_map(::arb::to_serdes_key(k));                    \
         ARB_SERDES_EXPAND(ARB_SERDES_PUT(ARB_SERDES_WRITE, __VA_ARGS__)) \
         ser.end_write_map();                                             \
     }                                                                    \
@@ -449,7 +449,25 @@ ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::array<V, N>& vs
     friend ARB_ARBOR_API void deserialize(::arb::serializer& ser,        \
                             const K& k,                                  \
                             T& t) {                                      \
-        ser.begin_read_map(::arb::to_serdes_key(k));                            \
+        ser.begin_read_map(::arb::to_serdes_key(k));                     \
+        ARB_SERDES_EXPAND(ARB_SERDES_PUT(ARB_SERDES_READ, __VA_ARGS__))  \
+        ser.end_read_map();                                              \
+    }
+
+#define ARB_SERDES_ENABLE_EXT(T, ...)                                    \
+    template <typename K>                                                \
+    ARB_ARBOR_API void serialize(::arb::serializer& ser,                 \
+                      const K& k,                                        \
+                      const T& t) {                                      \
+        ser.begin_write_map(::arb::to_serdes_key(k));                    \
+        ARB_SERDES_EXPAND(ARB_SERDES_PUT(ARB_SERDES_WRITE, __VA_ARGS__)) \
+        ser.end_write_map();                                             \
+    }                                                                    \
+    template <typename K>                                                \
+    ARB_ARBOR_API void deserialize(::arb::serializer& ser,               \
+                            const K& k,                                  \
+                            T& t) {                                      \
+        ser.begin_read_map(::arb::to_serdes_key(k));                     \
         ARB_SERDES_EXPAND(ARB_SERDES_PUT(ARB_SERDES_READ, __VA_ARGS__))  \
         ser.end_read_map();                                              \
     }

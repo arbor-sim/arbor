@@ -132,7 +132,9 @@ struct mech_storage {
     memory::device_vector<arb_value_type*> state_vars_d_;
     memory::device_vector<arb_ion_state>   ion_states_d_;
     random_numbers random_numbers_;
-    ARB_SERDES_ENABLE(mech_storage, data_, random_numbers_);
+    deliverable_event_stream deliverable_events_;
+
+    ARB_SERDES_ENABLE(mech_storage, data_, random_numbers_, deliverable_events_);
 };
 
 struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_state> {
@@ -145,9 +147,7 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
                       conductivity,
                       time_since_spike,
                       time, time_to,
-                      dt_intdom,
-                      dt_cv,
-                      deliverable_events);
+                      dt);
 
     task_system_handle thread_pool;
 

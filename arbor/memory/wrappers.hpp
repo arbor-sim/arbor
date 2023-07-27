@@ -156,7 +156,7 @@ auto on_gpu(const C& c) -> device_vector<typename C::value_type> {
 template<typename K,
          typename T>
 void serialize(::arb::serializer ser, const K& k, const host_vector<T>& hvs) {
-    ser.begin_write_array(to_key(k));
+    ser.begin_write_array(to_serdes_key(k));
     for (int ix = 0; ix < hvs.size(); ++ix) serialize(ser, ix, hvs[ix]);
     ser.end_write_array();
 }
@@ -165,25 +165,23 @@ template<typename K,
          typename T>
 void serialize(::arb::serializer ser, const K& k, const device_vector<T>& vs) {
     auto hvs = on_host(vs);
-    ser.begin_write_array(to_key(k));
-    for (int ix = 0; ix < hvs.size(); ++ix) serialize(ser, ix, hvs[ix]);
+    ser.begin_write_array(to_serdes_key(k));
+    for (size_t ix = 0; ix < hvs.size(); ++ix) serialize(ser, ix, hvs[ix]);
     ser.end_write_array();
 }
 
 template<typename K,
          typename V>
 void deserialize(::arb::serializer ser, const K& k, host_vector<V>& hvs) {
-    ser.begin_read_array(to_key(k));
+    ser.begin_read_array(to_serdes_key(k));
     for (int ix = 0;; ++ix) {
         auto q = ser.next_key();
         if (!q) break;
         if (ix < hvs.size()) {
-            deserialize(ser, ix, hvs[ix]);
+            deserialize(ser, std::to_string(ix), hvs[ix]);
         }
         else {
-            V val;
-            deserialize(ser, ix, val);
-            hvs.emplace_back(std::move(val));
+            throw std::runtime_error("Size mismatch");
         }
     }
     ser.end_read_array();
@@ -193,17 +191,15 @@ template<typename K,
          typename V>
 void deserialize(::arb::serializer ser, const K& k, device_vector<V>& vs) {
     auto hvs = on_host(vs);
-    ser.begin_read_array(to_key(k));
+    ser.begin_read_array(to_serdes_key(k));
     for (int ix = 0;; ++ix) {
         auto q = ser.next_key();
         if (!q) break;
         if (ix < hvs.size()) {
-            deserialize(ser, ix, hvs[ix]);
+            deserialize(ser, std::to_string(ix), hvs[ix]);
         }
         else {
-            V val;
-            deserialize(ser, ix, val);
-            hvs.emplace_back(std::move(val));
+            throw std::runtime_error("Size mismatch");
         }
     }
     ser.end_read_array();

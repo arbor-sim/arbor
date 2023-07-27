@@ -9,6 +9,9 @@
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
 #include "threading/threading.hpp"
+#include <arbor/mechanism_abi.h>
+
+ARB_SERDES_ENABLE_EXT(arb_deliverable_event_data, mech_index, weight);
 
 namespace arb {
 namespace gpu {
@@ -83,6 +86,8 @@ public:
 
         arb_assert(num_events == base::ev_data_.size());
     }
+
+    ARB_SERDES_ENABLE(event_stream<Event>, ev_data_/*, device_ev_data_*/, ev_spans_, offsets_, index_);
 
 private:
     template<typename D>
