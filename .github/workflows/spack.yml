@@ -51,22 +51,22 @@ jobs:
           cp arbor/spack/package.py custom_repo/packages/arbor
       - name: Build Arbor and run unit tests through Spack
         run: |
-          echo "pwd"
+          echo "CMD: pwd"
           pwd
-          echo "ls"
+          echo "CMD: ls"
           ls
-          echo "ls ./arbor"
+          echo "CMD: ls ./arbor"
           ls ./arbor
-          echo "cd ~/arbor"
-          cd ~/arbor
-          echo "pwd"
-          pwd
-          echo "ls"
-          ls
           source spack/share/spack/setup-env.sh
           spack dev-build --test root arbor@develop +python
       - name: Load Arbor and verify installation, Python Examples.
         run: |
+          echo "CMD: pwd"
+          pwd
+          echo "CMD: ls"
+          ls
+          echo "CMD: ls ./arbor"
+          ls ./arbor
           source spack/share/spack/setup-env.sh
           spack load arbor
           scripts/run_python_examples.sh
