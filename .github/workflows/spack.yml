@@ -51,11 +51,17 @@ jobs:
           cp arbor/spack/package.py custom_repo/packages/arbor
       - name: Build Arbor and run unit tests through Spack
         run: |
+          echo "pwd"
           pwd
+          echo "ls"
           ls
+          echo "ls ./arbor"
           ls ./arbor
+          echo "cd ~/arbor"
           cd ~/arbor
+          echo "pwd"
           pwd
+          echo "ls"
           ls
           source spack/share/spack/setup-env.sh
           spack dev-build --test root arbor@develop +python
