@@ -43,8 +43,7 @@ std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, con
 
 // Ion state methods:
 
-ion_state::ion_state(int charge,
-                     const fvm_ion_config& ion_data,
+ion_state::ion_state(const fvm_ion_config& ion_data,
                      unsigned, // alignment/padding ignored.
                      solver_ptr ptr):
     write_eX_(ion_data.revpot_written),
@@ -62,7 +61,7 @@ ion_state::ion_state(int charge,
     reset_Xi_(make_const_view(ion_data.reset_iconc)),
     reset_Xo_(make_const_view(ion_data.reset_econc)),
     init_eX_(make_const_view(ion_data.init_revpot)),
-    charge(1u, charge),
+    charge(1u, static_cast<arb_value_type>(ion_data.charge)),
     solver(std::move(ptr)) {
     arb_assert(node_index_.size()==init_Xi_.size());
     arb_assert(node_index_.size()==init_Xo_.size());

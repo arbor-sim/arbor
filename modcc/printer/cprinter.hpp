@@ -21,7 +21,7 @@ public:
     void visit(Expression* e) override {
         throw compiler_exception("CPrinter cannot translate expression "+e->to_string());
     }
-
+    using Visitor::visit;
     void visit(BlockExpression*) override;
     void visit(CallExpression*) override;
     void visit(IdentifierExpression*) override;
@@ -79,7 +79,7 @@ public:
     void save_scalar_names(const std::unordered_set<std::string>& scalars) {
         scalars_ = scalars;
     }
-
+    using Visitor::visit;
     void visit(BlockExpression*) override;
     void visit(CallExpression*) override;
     void visit(IdentifierExpression*) override;

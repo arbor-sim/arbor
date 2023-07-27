@@ -191,7 +191,7 @@ The first extra recording of the ``bAP`` protocol is located at 660 µm from the
 
    (distal-translate (on-components 0.5 (region "soma")) 660)
 
-and since we're only interested in the apical dendrite, we can wrap this in ``(restrict ... (region "apic"))``.
+and since we're only interested in the apical dendrite, we can wrap this in ``(restrict-to ... (region "apic"))``.
 
 Unfortunately, for this particular morphology, this does not result in a concrete location as can be seen in the Arbor GUI below (Locset A, violet, is empty). Alternatively, the method :func:`arbor.cable_cell.locations` will also return an empty list of concrete locations for this expression. To obtain a valid location instead, we can replace ``(on-components 0.5 (region "soma"))`` by the proximal boundary of the apical dendrite with ``(proximal (region "apic"))`` (Locset B, orange). The restrict operation to the apical region is no longer necessary. But now, the resulting concrete location is non-unique.
 

@@ -831,15 +831,17 @@ void resolve_probe(const cable_probe_stimulus_current_cell& p, probe_resolution_
 
 template <typename B>
 void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>& R) {
-    const arb_value_type* data = R.mechanism_state(p.mechanism, p.state);
+    const auto& mech = p.mechanism;
+    if (!R.mech_instance_by_name.count(mech)) return;
+    const arb_value_type* data = R.mechanism_state(mech, p.state);
     if (!data) return;
 
-    auto support = R.mechanism_support(p.mechanism);
+    auto support = R.mechanism_support(mech);
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
         if (!support.intersects(loc)) continue;
 
         arb_index_type cv = R.D.geometry.location_cv(R.cell_idx, loc, cv_prefer::cv_nonempty);
-        auto opt_i = util::binary_search_index(R.M.mechanisms.at(p.mechanism).cv, cv);
+        auto opt_i = util::binary_search_index(R.M.mechanisms.at(mech).cv, cv);
         if (!opt_i) continue;
 
         R.result.push_back(fvm_probe_scalar{{data+*opt_i}, loc});
@@ -854,6 +856,7 @@ void resolve_probe(const cable_probe_density_state_cell& p, probe_resolution_dat
     if (!data) return;
 
     mextent support = R.mechanism_support(p.mechanism);
+    if (!R.M.mechanisms.count(p.mechanism)) return;
     auto& mech_cvs = R.M.mechanisms.at(p.mechanism).cv;
     mcable_list cables;
 
@@ -896,6 +899,7 @@ void resolve_probe(const cable_probe_point_state& p, probe_resolution_data<B>& R
     const auto& state  = p.state;
     const auto& target = p.target;
     const auto& data   = R.mechanism_state(mech, state);
+    if (!R.mech_instance_by_name.count(mech)) return;
     const auto  mech_id = R.mech_instance_by_name.at(mech)->mechanism_id();
     const auto& synapses = R.cell.synapses();
     if (!synapses.count(mech)) return;
@@ -924,7 +928,7 @@ void resolve_probe(const cable_probe_point_state_cell& p, probe_resolution_data<
     const auto& data  = R.mechanism_state(mech, state);
 
     if (!data) return;
-
+    if (!R.mech_instance_by_name.count(mech)) return;
     auto mech_id = R.mech_instance_by_name.at(mech)->mechanism_id();
     const auto& multiplicity = R.M.mechanisms.at(mech).multiplicity;
 
@@ -969,7 +973,6 @@ void resolve_probe(const cable_probe_ion_current_density& p, probe_resolution_da
 template <typename B>
 void resolve_probe(const cable_probe_ion_current_cell& p, probe_resolution_data<B>& R) {
     if (!R.state->ion_data.count(p.ion)) return;
-
     auto& ion_cvs = R.M.ions.at(p.ion).cv;
     const arb_value_type* src = R.state->ion_data.at(p.ion).iX_.data();
 

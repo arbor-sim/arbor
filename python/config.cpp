@@ -83,8 +83,8 @@ void print_config(const pybind11::dict &d) {
 
     for (auto x: d) {
         s << "     "
-        << std::left << std::setw(7) << x.first << ": "
-        << std::right << std::setw(10) << x.second << "\n";
+        << std::left << std::setw(15) << x.first << ": "
+        << std::right << std::setw(20) << x.second << "\n";
     }
 
     pybind11::print(s.str());
@@ -94,6 +94,6 @@ void print_config(const pybind11::dict &d) {
 void register_config(pybind11::module &m) {
 
     m.def("config", &config, "Get Arbor's configuration.")
-     .def("print_config", [](const pybind11::dict& d){return print_config(d);}, "Print Arbor's configuration.");
+     .def("print_config", [](){print_config(config());}, "Print Arbor's configuration.");
 }
 } // namespace pyarb
