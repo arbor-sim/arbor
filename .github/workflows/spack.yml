@@ -14,6 +14,7 @@ jobs:
         os: [ubuntu-22.04]
         python-version: ['3.10']
         spack-version: ['develop', 'latest_release']
+      fail-fast: false
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -50,16 +51,16 @@ jobs:
           cp arbor/spack/package.py custom_repo/packages/arbor
       - name: Build Arbor and run unit tests through Spack
         run: |
-          source spack/share/spack/setup-env.sh
-          spack dev-build --test root arbor@develop +python
-      - name: Build Arbor and run uni tests
-        run: |
           pwd
           ls
           ls ./arbor
           cd ~/arbor
           pwd
           ls
+          source spack/share/spack/setup-env.sh
+          spack dev-build --test root arbor@develop +python
+      - name: Load Arbor and verify installation, Python Examples.
+        run: |
           source spack/share/spack/setup-env.sh
           spack load arbor
           scripts/run_python_examples.sh
