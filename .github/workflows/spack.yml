@@ -61,6 +61,7 @@ jobs:
           cd arbor
           scripts/run_python_examples.sh
           scripts/test_executables.sh
+      - name: Remove Arbor
           spack uninstall -yafR arbor
       - name: Failure, upload logs
         uses: actions/upload-artifact@v3
