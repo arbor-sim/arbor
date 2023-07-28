@@ -9,6 +9,7 @@
 
 #include <Random123/threefry.h>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/common_types.hpp>
@@ -145,20 +146,28 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
     const auto& weight = *weight_ptr;
     const auto& delay = *delay_ptr;
 
-    // populate network sites for source and destination
+    std::unordered_map<cell_kind, std::vector<cell_gid_type>> gids_by_kind;
+
     for (const auto& group: dom_dec.groups()) {
-        switch (group.kind) {
-        case cell_kind::cable: {
-            // We need access to morphology, so the cell is create directly
+        auto& gids = gids_by_kind[group.kind];
+        for (const auto& gid: group.gids) { gids.emplace_back(gid); }
+    }
+
+    for (const auto& [kind, gids]: gids_by_kind) {
+        // populate network sites for source and destination
+        if (kind == cell_kind::cable) {
+            const auto& cable_gids = gids;
             threading::parallel_for::apply(
-                0, group.gids.size(), ctx->thread_pool.get(), [&](int i) {
-                    const auto gid = group.gids[i];
+                0, cable_gids.size(), ctx->thread_pool.get(), [&](int i) {
+                    const auto gid = cable_gids[i];
+                    const auto kind = rec.get_cell_kind(gid);
+                    // We need access to morphology, so the cell is create directly
                     cable_cell cell;
                     try {
                         cell = util::any_cast<cable_cell&&>(rec.get_cell_description(gid));
                     }
                     catch (std::bad_any_cast&) {
-                        throw bad_cell_description(rec.get_cell_kind(gid), gid);
+                        throw bad_cell_description(kind, gid);
                     }
 
                     auto lid_to_label =
@@ -198,20 +207,20 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
                         }
                     }
                 });
-        } break;
-        default: {
-            // Assuming all other cell types do not have a morphology. We can use label resolution
-            // through factory and set local position to 0.
-            auto factory = cell_kind_implementation(group.kind, group.backend, *ctx, 0);
+        }
+        else {
+            // Assuming all other cell types do not have a morphology. We can use label
+            // resolution through factory and set local position to 0.
+            auto factory = cell_kind_implementation(kind, backend_kind::multicore, *ctx, 0);
 
             // We only need the label ranges
             cell_label_range sources, destinations;
-            std::ignore = factory(group.gids, rec, sources, destinations);
+            std::ignore = factory(gids, rec, sources, destinations);
 
             std::size_t source_label_offset = 0;
             std::size_t destination_label_offset = 0;
-            for (std::size_t i = 0; i < group.gids.size(); ++i) {
-                const auto gid = group.gids[i];
+            for (std::size_t i = 0; i < gids.size(); ++i) {
+                const auto gid = gids[i];
                 const auto iso = rec.get_cell_isometry(gid);
                 const auto point = iso.apply(mpoint{0.0, 0.0, 0.0, 0.0});
                 const auto num_source_labels = sources.sizes().at(i);
@@ -224,9 +233,9 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
                     const auto& label = sources.labels().at(j);
                     const auto& range = sources.ranges().at(j);
                     for (auto lid = range.begin; lid < range.end; ++lid) {
-                        if (selection.select_source(group.kind, gid, label)) {
+                        if (selection.select_source(kind, gid, label)) {
                             std::lock_guard<std::mutex> guard(src_sites_mutex);
-                            src_sites.insert({gid, lid, group.kind, label, {0, 0.0}, point});
+                            src_sites.insert({gid, lid, kind, label, {0, 0.0}, point});
                         }
                     }
                 }
@@ -238,9 +247,9 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
                     const auto& label = destinations.labels().at(j);
                     const auto& range = destinations.ranges().at(j);
                     for (auto lid = range.begin; lid < range.end; ++lid) {
-                        if (selection.select_destination(group.kind, gid, label)) {
+                        if (selection.select_destination(kind, gid, label)) {
                             std::lock_guard<std::mutex> guard(dest_sites_mutex);
-                            dest_sites.insert({gid, lid, group.kind, label, {0, 0.0}, point});
+                            dest_sites.insert({gid, lid, kind, label, {0, 0.0}, point});
                         }
                     }
                 }
@@ -248,8 +257,6 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
                 source_label_offset += num_source_labels;
                 destination_label_offset += num_destination_labels;
             }
-
-        } break;
         }
     }
 
@@ -322,8 +329,6 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
 }
 
 }  // namespace
-
-
 
 network_full_site_info::network_full_site_info(cell_gid_type gid,
     cell_lid_type lid,
