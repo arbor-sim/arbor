@@ -41,7 +41,7 @@ struct ARB_ARBOR_API ion_state {
     using solver_ptr  = std::unique_ptr<solver_type>;
 
     // Xd and gX are the only things that persists
-    ARB_SERDES_ENABLE(ion_state, Xd_, gX_);
+    // ARB_SERDES_ENABLE(ion_state, Xd_, gX_);
 
     bool write_eX_;          // is eX written?
     bool write_Xo_;          // is Xo written?
@@ -120,6 +120,8 @@ struct ARB_ARBOR_API istim_state {
 };
 
 struct mech_storage {
+    mech_storage() = default;
+    mech_storage(task_system_handle tp) : deliverable_events_(tp) {}
     array data_;
     iarray indices_;
     std::vector<arb_value_type>  globals_;
@@ -132,18 +134,19 @@ struct mech_storage {
     random_numbers random_numbers_;
     deliverable_event_stream deliverable_events_;
 
-    ARB_SERDES_ENABLE(mech_storage, data_, random_numbers_, deliverable_events_);
+    // ARB_SERDES_ENABLE(mech_storage, data_, random_numbers_, deliverable_events_);
+    // ARB_SERDES_ENABLE(mech_storage, data_);
 };
 
 struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_state> {
     // A bit more light-weight
     ARB_SERDES_ENABLE(shared_state,
-                      cbprng_seed,
-                      ion_data,
-                      storage,
-                      voltage,
-                      conductivity,
-                      time_since_spike,
+                      //cbprng_seed,
+                      // ion_data,
+                      // storage,
+                      // voltage,
+                      // conductivity,
+                      // time_since_spike,
                       time, time_to,
                       dt);
 
@@ -196,7 +199,7 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
                  const std::vector<arb_index_type>& cv_to_cell_vec,
                  const fvm_cv_discretization& D,
                  const std::vector<arb_index_type>& src_to_spike,
-                 const fvm_detector_info& detector,
+                 const fvm_detector_info& detector_info,
                  const std::unordered_map<std::string, fvm_ion_config>& ions,
                  const fvm_stimulus_config& stims,
                  unsigned align,
@@ -210,7 +213,7 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
                        D.diam_um,
                        D.cv_area,
                        src_to_spike,
-                       detector,
+                       detector_info,
                        align,
                        cbprng_seed_}
     {
@@ -229,7 +232,7 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
                  const std::vector<arb_value_type>& diam,
                  const std::vector<arb_value_type>& area,
                  const std::vector<arb_index_type>& src_to_spike,
-                 const fvm_detector_info& detector,
+                 const fvm_detector_info& detector_info,
                  unsigned, // align parameter ignored
                  arb_seed_type cbprng_seed_ = 0u);
 

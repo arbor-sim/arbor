@@ -21,6 +21,7 @@ struct target_handle {
 
     target_handle(cell_local_size_type mech_id, cell_local_size_type mech_index):
         mech_id(mech_id), mech_index(mech_index) {}
+
     ARB_SERDES_ENABLE(target_handle, mech_id, mech_index);
 };
 

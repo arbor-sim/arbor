@@ -174,7 +174,7 @@ template<typename K,
          typename V>
 void deserialize(::arb::serializer ser, const K& k, host_vector<V>& hvs) {
     ser.begin_read_array(to_serdes_key(k));
-    for (int ix = 0;; ++ix) {
+    for (size_t ix = 0;; ++ix) {
         auto q = ser.next_key();
         if (!q) break;
         if (ix < hvs.size()) {
@@ -192,7 +192,7 @@ template<typename K,
 void deserialize(::arb::serializer ser, const K& k, device_vector<V>& vs) {
     auto hvs = on_host(vs);
     ser.begin_read_array(to_serdes_key(k));
-    for (int ix = 0;; ++ix) {
+    for (size_t ix = 0;; ++ix) {
         auto q = ser.next_key();
         if (!q) break;
         if (ix < hvs.size()) {

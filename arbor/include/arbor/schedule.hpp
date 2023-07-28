@@ -15,7 +15,6 @@
 #include <arbor/serdes.hpp>
 
 // Time schedules for probe–sampler associations.
-
 namespace arb {
 
 using time_event_span = std::pair<const time_type*, const time_type*>;
@@ -28,33 +27,33 @@ inline time_event_span as_time_event_span(const std::vector<time_type>& v) {
 
 // Default schedule is empty.
 
-class empty_schedule {
+class ARB_ARBOR_API empty_schedule {
 public:
     void reset() {}
     time_event_span events(time_type t0, time_type t1) {
         static time_type no_time;
         return {&no_time, &no_time};
     }
+
+    template<typename K>
+    friend ARB_ARBOR_API void serialize(::arb::serializer& ser,
+                                        const K& k,
+                                        const arb::empty_schedule& t) {
+        ser.begin_write_map(::arb::to_serdes_key(k));
+        ser.end_write_map();
+    }
+
+    template<typename K>
+    friend ARB_ARBOR_API void deserialize(::arb::serializer& ser,
+                                          const K& k,
+                                          arb::empty_schedule& t) {
+        ser.begin_read_map(::arb::to_serdes_key(k));
+        ser.end_read_map();
+    }
 };
 
-template <typename K>
-ARB_ARBOR_API void serialize(::arb::serializer& ser,
-                  const K& k,
-                  const empty_schedule& t) {
-    ser.begin_write_map(::arb::to_serdes_key(k));
-    ser.end_write_map();
-}
-template <typename K>
-ARB_ARBOR_API void deserialize(::arb::serializer& ser,
-                        const K& k,
-                        empty_schedule& t) {
-    ser.begin_read_map(::arb::to_serdes_key(k));
-    ser.end_read_map();
-}
-    
 // Schedule at k·dt for integral k≥0 within the interval [t0, t1).
-class ARB_ARBOR_API regular_schedule_impl {
-public:
+struct ARB_ARBOR_API regular_schedule_impl {
     explicit regular_schedule_impl(time_type t0, time_type dt, time_type t1):
         t0_(t0), t1_(t1), dt_(dt), oodt_(1./dt)
     {
@@ -74,8 +73,7 @@ private:
 };
 
 // Schedule at times given explicitly via a provided sorted sequence.
-class ARB_ARBOR_API explicit_schedule_impl {
-public:
+struct ARB_ARBOR_API explicit_schedule_impl {
     explicit_schedule_impl(const explicit_schedule_impl&) = default;
     explicit_schedule_impl(explicit_schedule_impl&&) = default;
 
@@ -158,33 +156,11 @@ public:
 // and `events(t2, t3)` are made without an intervening call to `reset()`,
 // then 0 ≤ _t0_ ≤ _t1_ ≤ _t2_ ≤ _t3_.
 
-// Forward decls ... friend is weird.
 template<typename K>
-void serialize(serializer&, const K&, const explicit_schedule_impl&);
+void serialize(serializer& s, const K& k, const explicit_schedule_impl&);
 template<typename K>
-void serialize(serializer&, const K&, const regular_schedule_impl&);
-// These are custom.
-template<typename K, typename R>
-void serialize(serializer& ser, const K& k, const poisson_schedule_impl<R>& t) {
-    ser.begin_read_map(to_serdes_key(k));
-    ARB_SERDES_WRITE(tstart_);
-    ARB_SERDES_WRITE(tstop_);
-    ser.end_read_map();
-}
+void deserialize(serializer& s, const K& k, explicit_schedule_impl&);
 
-template<typename K>
-void deserialize(serializer&, const K&, explicit_schedule_impl&);
-template<typename K>
-void deserialize(serializer&, const K&, regular_schedule_impl&);
-// These are custom to get the reset in.
-template<typename K, typename R>
-void deserialize(serializer& ser, const K& k, poisson_schedule_impl<R>& t) {
-    ser.begin_read_map(to_serdes_key(k));
-    ARB_SERDES_READ(tstart_);
-    ARB_SERDES_READ(tstop_);
-    ser.end_read_map();
-    t.reset();
-}
 
 class schedule {
 public:
@@ -243,8 +219,8 @@ private:
         virtual time_event_span events(time_type t0, time_type t1) override { return wrapped.events(t0, t1); }
         virtual void reset() override { wrapped.reset(); }
         virtual iface_ptr clone() override { return std::make_unique<wrap<Impl>>(wrapped); }
-        virtual void serialize(serializer& s, const std::string& k) const override { ::arb::serialize(s, k, wrapped); }
-        virtual void deserialize(serializer& s, const std::string& k) override { ::arb::deserialize(s, k, wrapped); }
+        virtual void serialize(serializer& s, const std::string& k) const override { serialize(s, k, wrapped); }
+        virtual void deserialize(serializer& s, const std::string& k) override { deserialize(s, k, wrapped); }
 
         Impl wrapped;
     };
@@ -283,3 +259,38 @@ inline schedule poisson_schedule(time_type tstart, time_type rate_kHz, const Ran
 }
 
 } // namespace arb
+
+template <typename K>
+ARB_ARBOR_API void serialize(::arb::serializer& ser,
+                  const K& k,
+                  const arb::empty_schedule& t) {
+    ser.begin_write_map(::arb::to_serdes_key(k));
+    ser.end_write_map();
+}
+
+template <typename K>
+ARB_ARBOR_API void deserialize(::arb::serializer& ser,
+                        const K& k,
+                        arb::empty_schedule& t) {
+    ser.begin_read_map(::arb::to_serdes_key(k));
+    ser.end_read_map();
+}
+
+// These are custom to get the reset in.
+template<typename K, typename R>
+void serialize(::arb::serializer& ser, const K& k, const ::arb::poisson_schedule_impl<R>& t) {
+    ser.begin_write_map(to_serdes_key(k));
+    ARB_SERDES_WRITE(tstart_);
+    ARB_SERDES_WRITE(tstop_);
+    ser.end_write_map();
+    t.reset();
+}
+
+template<typename K, typename R>
+void deserialize(::arb::serializer& ser, const K& k, ::arb::poisson_schedule_impl<R>& t) {
+    ser.begin_read_map(to_serdes_key(k));
+    ARB_SERDES_READ(tstart_);
+    ARB_SERDES_READ(tstop_);
+    ser.end_read_map();
+    t.reset();
+}
