@@ -230,7 +230,7 @@ std::vector<expression_ptr> SystemSolver::generate_solution_assignments(std::vec
     for (unsigned i = 0; i < nrow; ++i) {
         const symge::sym_row& row = A_[i];
         unsigned rhs_col = A_.augcol();
-        unsigned lhs_col = -1;
+        unsigned lhs_col = static_cast<unsigned>(-1);
         for (unsigned r = 0; r < A_.nrow(); ++r) {
             if (row[r]) {
                 lhs_col = r;

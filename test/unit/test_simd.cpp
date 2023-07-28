@@ -1761,7 +1761,7 @@ TYPED_TEST_P(sizeless_api, arithmetic) {
     }
     // cmp_eq
     {
-        indirect(m, N) = cmp_eq(av, bv);
+        indirect(m, N) = arb::simd::cmp_eq(av, bv);
         for (unsigned i = 0; i<N; ++i) {
             expected_m[i] = a[i] == b[i];
         }

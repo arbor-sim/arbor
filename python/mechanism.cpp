@@ -228,6 +228,24 @@ void register_mechanisms(pybind11::module& m) {
             "(as defined in NMODL) is used.\n\n"
             "Example overriding a global parameter:\n"
             "  m = arbor.mechanism('nernst/R=8.3145,F=96485')")
+        // allow construction of a description with parameters provided in kwargs:
+        //      mech = arbor.mechanism('mech_name', param1=1.2, param2=3.14)
+        .def(pybind11::init(
+            [](const char* name, pybind11::kwargs kws) {
+                arb::mechanism_desc md(name);
+                auto params = util::dict_to_map<double>(kws);
+                for (const auto& [k, v]: params) md.set(k, v);
+                return md;
+            }),
+            "name"_a, "The name of the mechanism",
+            "Example usage setting parameters:\n"
+            "  m = arbor.mechanism('expsyn', tau=1.4})\n"
+            "will create parameters for the 'expsyn' mechanism, with the provided value\n"
+            "for 'tau' overrides the default. If a parameter is not set, the default\n"
+            "(as defined in NMODL) is used.\n\n"
+            "Example overriding a global parameter:\n"
+            "  m = arbor.mechanism('nernst/R=8.3145,F=96485')")
+
         .def("set",
             [](arb::mechanism_desc& md, std::string name, double value) {
                 md.set(name, value);

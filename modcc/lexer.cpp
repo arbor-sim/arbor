@@ -270,9 +270,7 @@ Token Lexer::parse() {
                 return t;
         }
     }
-
-    // return the token
-    return t;
+    // unreachable!
 }
 
 Token Lexer::peek() {
