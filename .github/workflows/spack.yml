@@ -49,12 +49,11 @@ jobs:
           spack repo add custom_repo
           spack reindex
           cp arbor/spack/package.py custom_repo/packages/arbor
-      - name: Build Arbor and run unit tests through Spack
+      - name: Build Arbor
         run: |
           source spack/share/spack/setup-env.sh
           cd arbor
           spack dev-build arbor@develop +python
-        ## spack dev-build --test root arbor@develop +python
       - name: Load Arbor and verify installation, Python Examples.
         run: |
           source spack/share/spack/setup-env.sh
