@@ -11,7 +11,7 @@ if [[ ! -z "$GITHUB_ACTIONS" ]]; then
 fi
 
 echo "=== Executing a-b-c test ======================================"
-arbor-build-catalogue --cxx=c++ cat python/example/cat
+arbor-build-catalogue cat python/example/cat
 ./scripts/test-catalogue.py ./cat-catalogue.so
 if [[ ! -z "$GITHUB_ACTIONS" ]]; then
   echo "### a-b-c: OK." >> $GITHUB_STEP_SUMMARY
