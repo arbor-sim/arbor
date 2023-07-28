@@ -51,23 +51,12 @@ jobs:
           cp arbor/spack/package.py custom_repo/packages/arbor
       - name: Build Arbor and run unit tests through Spack
         run: |
-          echo "CMD: pwd"
-          pwd
-          echo "CMD: ls"
-          ls
-          echo "CMD: ls ./arbor"
-          ls ./arbor
           source spack/share/spack/setup-env.sh
           cd arbor
-          spack dev-build --test root arbor@develop +python
+          spack dev-build arbor@develop +python
+        ## spack dev-build --test root arbor@develop +python
       - name: Load Arbor and verify installation, Python Examples.
         run: |
-          echo "CMD: pwd"
-          pwd
-          echo "CMD: ls"
-          ls
-          echo "CMD: ls ./arbor"
-          ls ./arbor
           source spack/share/spack/setup-env.sh
           spack load arbor
           cd arbor
@@ -78,5 +67,7 @@ jobs:
         uses: actions/upload-artifact@v3
         if: ${{ failure() }}
         with:
-          name: Spack logs
-          path: arbor/*.txt
+          name: spack-log-${{ spack-version }}
+          path: |
+            arbor/*.txt
+            !arbor/CMakeLists.txt

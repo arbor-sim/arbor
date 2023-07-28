@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # checks out Spack and Arbor and builds it with the package.py from Arbor's repo
 # Spack can be the latest release or the develop branch
+# Also runs unit tests.
 
 set -Eeuo pipefail
 
@@ -62,13 +63,3 @@ spack reindex
 cp $ARBOR_DIR/spack/package.py $SPACK_CUSTOM_REPO/packages/arbor
 cd $ARBOR_DIR
 spack dev-build --test root arbor@develop +python
-
-if [[ ! -z "$GITHUB_ACTIONS" ]]; then
-  ## Spack runs Spack tests in the Spack build env.
-  ## Below tests are meant to verify install actually happened correctly, including pip install of packages
-  spack load arbor
-  scripts/run_python_examples.sh
-  scripts/test_executables.sh
-  ## make sure there's no Arbor in cache.
-  spack uninstall -yafR arbor
-fi
