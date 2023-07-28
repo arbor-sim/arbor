@@ -5,12 +5,6 @@
 
 from spack.package import *
 
-try:
-    with open("VERSION", "r") as file:
-        DEVVERSION = file.readline().strip()
-except:
-    DEVVERSION = None
-
 
 class Arbor(CMakePackage, CudaPackage):
     """Arbor is a high-performance library for computational neuroscience
