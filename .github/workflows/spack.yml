@@ -58,6 +58,7 @@ jobs:
           echo "CMD: ls ./arbor"
           ls ./arbor
           source spack/share/spack/setup-env.sh
+          cd arbor
           spack dev-build --test root arbor@develop +python
       - name: Load Arbor and verify installation, Python Examples.
         run: |
@@ -69,7 +70,7 @@ jobs:
           ls ./arbor
           source spack/share/spack/setup-env.sh
           spack load arbor
-          cd ./arbor
+          cd arbor
           scripts/run_python_examples.sh
           scripts/test_executables.sh
           spack uninstall -yafR arbor
