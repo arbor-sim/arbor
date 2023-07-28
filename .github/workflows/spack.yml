@@ -67,7 +67,7 @@ jobs:
         uses: actions/upload-artifact@v3
         if: ${{ failure() }}
         with:
-          name: spack-log-${{ spack-version }}
+          name: spack-log-${{ matrix.spack-version }}
           path: |
             arbor/*.txt
             !arbor/CMakeLists.txt
