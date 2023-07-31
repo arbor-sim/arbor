@@ -51,9 +51,6 @@ struct ARB_ARBOR_API ion_state {
     using solver_type = diffusion_solver;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
-    // Xd and gX are the only things that persist
-    ARB_SERDES_ENABLE(ion_state, Xd_, gX_);
-
     unsigned alignment = 1; // Alignment and padding multiple.
 
     bool write_eX_;          // is eX written?
@@ -92,6 +89,24 @@ struct ARB_ARBOR_API ion_state {
     void reset();
 };
 
+struct mech_storage {
+    array data_;
+    iarray indices_;
+    std::size_t value_width_padded;
+    constraint_partition constraints_;
+    std::vector<arb_value_type>  globals_;
+    std::vector<arb_value_type*> parameters_;
+    std::vector<arb_value_type*> state_vars_;
+    std::vector<arb_ion_state>   ion_states_;
+
+    std::array<std::vector<arb_value_type*>, cbprng::cache_size()> random_numbers_;
+    std::vector<arb_size_type> gid_;
+    std::vector<arb_size_type> idx_;
+    cbprng::counter_type random_number_update_counter_ = 0u;
+
+    deliverable_event_stream deliverable_events_;
+};
+
 struct ARB_ARBOR_API istim_state {
     unsigned alignment = 1; // Alignment and padding multiple.
 
@@ -124,39 +139,8 @@ struct ARB_ARBOR_API istim_state {
     istim_state() = default;
 };
 
-struct mech_storage {
-    array data_;
-    iarray indices_;
-    std::size_t value_width_padded;
-    constraint_partition constraints_;
-    std::vector<arb_value_type>  globals_;
-    std::vector<arb_value_type*> parameters_;
-    std::vector<arb_value_type*> state_vars_;
-    std::vector<arb_ion_state>   ion_states_;
-
-    std::array<std::vector<arb_value_type*>, cbprng::cache_size()> random_numbers_;
-    std::vector<arb_size_type> gid_;
-    std::vector<arb_size_type> idx_;
-    cbprng::counter_type random_number_update_counter_ = 0u;
-
-    deliverable_event_stream deliverable_events_;
-
-    ARB_SERDES_ENABLE(mech_storage, data_, indices_, random_numbers_, random_number_update_counter_);
-};
-
 struct ARB_ARBOR_API shared_state:
         public shared_state_base<shared_state, array, ion_state> {
-
-    // A bit more light-weight
-    ARB_SERDES_ENABLE(shared_state,
-                      cbprng_seed,
-                      ion_data,
-                      //storage,
-                      voltage,
-                      conductivity,
-                      time_since_spike,
-                      time, time_to,
-                      dt);
 
     cable_solver solver;
 
@@ -269,7 +253,22 @@ struct ARB_ARBOR_API shared_state:
 
 // For debugging only:
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const shared_state& s);
-
-
 } // namespace multicore
+
+// Xd and gX are the only things that persist
+ARB_SERDES_ENABLE_EXT(multicore::ion_state, Xd_, gX_);
+ARB_SERDES_ENABLE_EXT(multicore::mech_storage,
+                      data_,
+                      // TODO(serdes) ion_states_,
+                      random_numbers_,
+                      random_number_update_counter_);
+ARB_SERDES_ENABLE_EXT(multicore::shared_state,
+                      cbprng_seed,
+                      ion_data,
+                      storage,
+                      voltage,
+                      conductivity,
+                      time_since_spike,
+                      time, time_to,
+                      dt);
 } // namespace arb
