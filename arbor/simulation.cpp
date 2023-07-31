@@ -11,6 +11,7 @@
 #include <arbor/schedule.hpp>
 #include <arbor/simulation.hpp>
 
+#include "epoch.hpp"
 #include "cell_group.hpp"
 #include "cell_group_factory.hpp"
 #include "communication/communicator.hpp"
@@ -159,7 +160,7 @@ public:
 
     friend void deserialize(serializer& ser, const std::string& k, simulation_state& t) {
         ARB_SERDES_READ(t_interval_);
-        ARB_SERDES_READ(epoch_);
+        // ARB_SERDES_READ(epoch_);
         ARB_SERDES_READ(pending_events_);
         ARB_SERDES_READ(event_lanes_);
         ARB_SERDES_READ(cell_groups_);

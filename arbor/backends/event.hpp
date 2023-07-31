@@ -25,6 +25,15 @@ struct target_handle {
     ARB_SERDES_ENABLE(target_handle, mech_id, mech_index);
 };
 
+}
+
+template<typename K>
+void serialize(arb::serializer &ser, const K &k, const arb::target_handle&);
+template<typename K>
+void deserialize(arb::serializer &ser, const K &k, arb::target_handle&);
+
+namespace arb {
+
 struct deliverable_event {
     time_type time = 0;
     float weight = 0;

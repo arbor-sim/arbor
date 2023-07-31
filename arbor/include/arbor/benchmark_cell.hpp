@@ -3,6 +3,11 @@
 #include <arbor/export.hpp>
 #include <arbor/schedule.hpp>
 
+template<typename K>
+void serialize(arb::serializer& s, const K& k, const arb::schedule&);
+template<typename K>
+void deserialize(arb::serializer& s, const K& k, arb::schedule&);
+
 namespace arb {
 
 // Cell description returned by recipe::cell_description(gid) for cells with

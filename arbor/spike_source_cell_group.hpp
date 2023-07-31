@@ -37,8 +37,8 @@ public:
 
     ARB_SERDES_ENABLE(spike_source_cell_group, spikes_, gids_, time_sequences_);
 
-    virtual void t_serialize(serializer& ser, const std::string& k) const override { serialize(ser, k, *this); }
-    virtual void t_deserialize(serializer& ser, const std::string& k) override { deserialize(ser, k, *this); }
+    virtual void t_serialize(serializer& ser, const std::string& k) const override;
+    virtual void t_deserialize(serializer& ser, const std::string& k) override;
 
 private:
     std::vector<spike> spikes_;

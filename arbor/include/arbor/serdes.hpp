@@ -112,6 +112,8 @@ private:
         virtual void end_read_map() = 0;
         virtual void begin_read_array(const serdes_key_type&) = 0;
         virtual void end_read_array() = 0;
+
+        virtual ~interface(){}
     };
 
     template <typename I>
@@ -146,7 +148,6 @@ private:
 
     std::unique_ptr<interface> wrapped = nullptr;
 };
-} // arb
 
 // The actual interface. This needs to go to the global namespace as
 // A) friend in a class is just weird that way (it puts the defined function into the global namespace)
@@ -255,6 +256,14 @@ ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const std::vect
 }
 
 template <typename K,
+          typename V>
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const std::vector<V>& vs) {
+    ser.begin_write_array(arb::to_serdes_key(k));
+    for (std::size_t ix = 0; ix < vs.size(); ++ix) serialize(ser, ix, vs[ix]);
+    ser.end_write_array();
+}
+
+template <typename K,
           typename V,
           size_t N>
 ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const std::array<V, N>& vs) {
@@ -349,7 +358,7 @@ ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, std::unordere
         auto q = ser.next_key();
         if (!q) break;
         typename std::remove_cv_t<Q> key;
-        from_serdes_key(key, *q);
+        arb::from_serdes_key(key, *q);
         if (!vs.count(key)) vs[key] = {}; // NOTE Must be default constructible anyhow
         deserialize(ser, *q, vs[key]);
     }
@@ -365,7 +374,7 @@ ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, std::map<Q, V
         auto q = ser.next_key();
         if (!q) break;
         typename std::remove_cv_t<Q> key;
-        from_serdes_key(key, *q);
+        arb::from_serdes_key(key, *q);
         if (!vs.count(key)) vs[key] = {}; // NOTE Must be default constructible anyhow
         deserialize(ser, *q, vs[key]);
     }
@@ -496,6 +505,11 @@ ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, std::array<V,
        t = static_cast<T>(tmp);                                          \
     }
 
+
+// #define ARB_SERDES_ENABLE(T, ...)
+// #define ARB_SERDES_ENABLE_EXT(T, ...)
+// #define ARB_SERDES_ENABLE_ENUM(T)
+
 // from common_types
 ARB_SERDES_ENABLE_EXT(arb::cell_member_type, gid, index);
 ARB_SERDES_ENABLE_ENUM(arb::lid_selection_policy);
@@ -503,3 +517,4 @@ ARB_SERDES_ENABLE_EXT(arb::cell_local_label_type, tag, policy);
 ARB_SERDES_ENABLE_EXT(arb::cell_global_label_type, gid, label);
 ARB_SERDES_ENABLE_ENUM(arb::backend_kind);
 ARB_SERDES_ENABLE_ENUM(arb::cell_kind);
+} // arb

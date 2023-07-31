@@ -151,7 +151,7 @@ struct ARB_ARBOR_API shared_state:
     ARB_SERDES_ENABLE(shared_state,
                       cbprng_seed,
                       ion_data,
-                      storage,
+                      //storage,
                       voltage,
                       conductivity,
                       time_since_spike,

@@ -21,7 +21,8 @@ struct basic_spike {
     basic_spike(id_type s, time_type t):
         source(std::move(s)), time(t)
     {}
-    ARB_SERDES_ENABLE(basic_spike, source, time);
+
+    ARB_SERDES_ENABLE(basic_spike<I>, source, time);
 };
 
 /// Standard specialization:

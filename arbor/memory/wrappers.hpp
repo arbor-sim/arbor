@@ -152,10 +152,11 @@ auto on_gpu(const C& c) -> device_vector<typename C::value_type> {
     using T = typename C::value_type;
     return device_vector<T>(make_const_view(c));
 }
-
+} // namespace memory
+  //
 template<typename K,
          typename T>
-void serialize(::arb::serializer ser, const K& k, const host_vector<T>& hvs) {
+void serialize(::arb::serializer ser, const K& k, const memory::host_vector<T>& hvs) {
     ser.begin_write_array(to_serdes_key(k));
     for (int ix = 0; ix < hvs.size(); ++ix) serialize(ser, ix, hvs[ix]);
     ser.end_write_array();
@@ -163,7 +164,7 @@ void serialize(::arb::serializer ser, const K& k, const host_vector<T>& hvs) {
 
 template<typename K,
          typename T>
-void serialize(::arb::serializer ser, const K& k, const device_vector<T>& vs) {
+void serialize(::arb::serializer ser, const K& k, const memory::device_vector<T>& vs) {
     auto hvs = on_host(vs);
     ser.begin_write_array(to_serdes_key(k));
     for (size_t ix = 0; ix < hvs.size(); ++ix) serialize(ser, ix, hvs[ix]);
@@ -172,7 +173,7 @@ void serialize(::arb::serializer ser, const K& k, const device_vector<T>& vs) {
 
 template<typename K,
          typename V>
-void deserialize(::arb::serializer ser, const K& k, host_vector<V>& hvs) {
+void deserialize(::arb::serializer ser, const K& k, memory::host_vector<V>& hvs) {
     ser.begin_read_array(to_serdes_key(k));
     for (size_t ix = 0;; ++ix) {
         auto q = ser.next_key();
@@ -189,7 +190,7 @@ void deserialize(::arb::serializer ser, const K& k, host_vector<V>& hvs) {
 
 template<typename K,
          typename V>
-void deserialize(::arb::serializer ser, const K& k, device_vector<V>& vs) {
+void deserialize(::arb::serializer ser, const K& k, memory::device_vector<V>& vs) {
     auto hvs = on_host(vs);
     ser.begin_read_array(to_serdes_key(k));
     for (size_t ix = 0;; ++ix) {
@@ -206,6 +207,4 @@ void deserialize(::arb::serializer ser, const K& k, device_vector<V>& vs) {
     vs = on_gpu(hvs);
 }
 
-
-} // namespace memory
 } // namespace arb

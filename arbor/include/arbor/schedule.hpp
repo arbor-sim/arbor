@@ -27,28 +27,11 @@ inline time_event_span as_time_event_span(const std::vector<time_type>& v) {
 
 // Default schedule is empty.
 
-class ARB_ARBOR_API empty_schedule {
-public:
+struct ARB_ARBOR_API empty_schedule {
     void reset() {}
     time_event_span events(time_type t0, time_type t1) {
         static time_type no_time;
         return {&no_time, &no_time};
-    }
-
-    template<typename K>
-    friend ARB_ARBOR_API void serialize(::arb::serializer& ser,
-                                        const K& k,
-                                        const arb::empty_schedule& t) {
-        ser.begin_write_map(::arb::to_serdes_key(k));
-        ser.end_write_map();
-    }
-
-    template<typename K>
-    friend ARB_ARBOR_API void deserialize(::arb::serializer& ser,
-                                          const K& k,
-                                          arb::empty_schedule& t) {
-        ser.begin_read_map(::arb::to_serdes_key(k));
-        ser.end_read_map();
     }
 };
 
@@ -157,10 +140,48 @@ public:
 // then 0 ≤ _t0_ ≤ _t1_ ≤ _t2_ ≤ _t3_.
 
 template<typename K>
-void serialize(serializer& s, const K& k, const explicit_schedule_impl&);
+void serialize(arb::serializer& s, const K& k, const arb::explicit_schedule_impl&);
 template<typename K>
-void deserialize(serializer& s, const K& k, explicit_schedule_impl&);
+void deserialize(arb::serializer& s, const K& k, arb::explicit_schedule_impl&);
 
+template<typename K>
+void serialize(arb::serializer& s, const K& k, const arb::regular_schedule_impl&);
+template<typename K>
+void deserialize(arb::serializer& s, const K& k, arb::regular_schedule_impl&);
+
+template <typename K>
+ARB_ARBOR_API void serialize(::arb::serializer& ser,
+                  const K& k,
+                  const arb::empty_schedule& t) {
+    ser.begin_write_map(::arb::to_serdes_key(k));
+    ser.end_write_map();
+}
+
+template <typename K>
+ARB_ARBOR_API void deserialize(::arb::serializer& ser,
+                        const K& k,
+                        arb::empty_schedule& t) {
+    ser.begin_read_map(::arb::to_serdes_key(k));
+    ser.end_read_map();
+}
+
+// These are custom to get the reset in.
+template<typename K, typename R>
+void serialize(::arb::serializer& ser, const K& k, const ::arb::poisson_schedule_impl<R>& t) {
+    ser.begin_write_map(arb::to_serdes_key(k));
+    ARB_SERDES_WRITE(tstart_);
+    ARB_SERDES_WRITE(tstop_);
+    ser.end_write_map();
+}
+
+template<typename K, typename R>
+void deserialize(::arb::serializer& ser, const K& k, ::arb::poisson_schedule_impl<R>& t) {
+    ser.begin_read_map(arb::to_serdes_key(k));
+    ARB_SERDES_READ(tstart_);
+    ARB_SERDES_READ(tstop_);
+    ser.end_read_map();
+    t.reset();
+}
 
 class schedule {
 public:
@@ -192,9 +213,9 @@ public:
     void reset() { impl_->reset(); }
 
     template<typename K>
-    friend ARB_ARBOR_API void serialize(serializer& s, const K& k, const schedule& v) { v.impl_->serialize(s, to_serdes_key(k)); }
+    friend ARB_ARBOR_API void serialize(serializer& s, const K& k, const schedule& v) { v.impl_->t_serialize(s, to_serdes_key(k)); }
     template<typename K>
-    friend ARB_ARBOR_API void deserialize(serializer& s, const K& k, schedule& v) { v.impl_->deserialize(s, to_serdes_key(k
+    friend ARB_ARBOR_API void deserialize(serializer& s, const K& k, schedule& v) { v.impl_->t_deserialize(s, to_serdes_key(k
 )); }
 
 private:
@@ -204,8 +225,8 @@ private:
         virtual void reset() = 0;
         virtual std::unique_ptr<interface> clone() = 0;
         virtual ~interface() {}
-        virtual void serialize(serializer&, const std::string&k) const = 0;
-        virtual void deserialize(serializer&, const std::string&k) = 0;
+        virtual void t_serialize(serializer&, const std::string&k) const = 0;
+        virtual void t_deserialize(serializer&, const std::string&k) = 0;
     };
 
     using iface_ptr = std::unique_ptr<interface> ;
@@ -219,8 +240,8 @@ private:
         virtual time_event_span events(time_type t0, time_type t1) override { return wrapped.events(t0, t1); }
         virtual void reset() override { wrapped.reset(); }
         virtual iface_ptr clone() override { return std::make_unique<wrap<Impl>>(wrapped); }
-        virtual void serialize(serializer& s, const std::string& k) const override { serialize(s, k, wrapped); }
-        virtual void deserialize(serializer& s, const std::string& k) override { deserialize(s, k, wrapped); }
+        virtual void t_serialize(serializer& s, const std::string& k) const override { serialize(s, k, wrapped); }
+        virtual void t_deserialize(serializer& s, const std::string& k) override { deserialize(s, k, wrapped); }
 
         Impl wrapped;
     };
@@ -259,38 +280,3 @@ inline schedule poisson_schedule(time_type tstart, time_type rate_kHz, const Ran
 }
 
 } // namespace arb
-
-template <typename K>
-ARB_ARBOR_API void serialize(::arb::serializer& ser,
-                  const K& k,
-                  const arb::empty_schedule& t) {
-    ser.begin_write_map(::arb::to_serdes_key(k));
-    ser.end_write_map();
-}
-
-template <typename K>
-ARB_ARBOR_API void deserialize(::arb::serializer& ser,
-                        const K& k,
-                        arb::empty_schedule& t) {
-    ser.begin_read_map(::arb::to_serdes_key(k));
-    ser.end_read_map();
-}
-
-// These are custom to get the reset in.
-template<typename K, typename R>
-void serialize(::arb::serializer& ser, const K& k, const ::arb::poisson_schedule_impl<R>& t) {
-    ser.begin_write_map(to_serdes_key(k));
-    ARB_SERDES_WRITE(tstart_);
-    ARB_SERDES_WRITE(tstop_);
-    ser.end_write_map();
-    t.reset();
-}
-
-template<typename K, typename R>
-void deserialize(::arb::serializer& ser, const K& k, ::arb::poisson_schedule_impl<R>& t) {
-    ser.begin_read_map(to_serdes_key(k));
-    ARB_SERDES_READ(tstart_);
-    ARB_SERDES_READ(tstop_);
-    ser.end_read_map();
-    t.reset();
-}
