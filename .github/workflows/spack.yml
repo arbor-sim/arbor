@@ -62,6 +62,8 @@ jobs:
           scripts/run_python_examples.sh
           scripts/test_executables.sh
       - name: Remove Arbor
+        run: |
+          source spack/share/spack/setup-env.sh
           spack uninstall -yafR arbor
       - name: Failure, upload logs
         uses: actions/upload-artifact@v3
