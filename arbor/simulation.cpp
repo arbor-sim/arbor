@@ -160,7 +160,7 @@ public:
 
     friend void deserialize(serializer& ser, const std::string& k, simulation_state& t) {
         ARB_SERDES_READ(t_interval_);
-        // ARB_SERDES_READ(epoch_);
+        ARB_SERDES_READ(epoch_);
         ARB_SERDES_READ(pending_events_);
         ARB_SERDES_READ(event_lanes_);
         ARB_SERDES_READ(cell_groups_);
@@ -175,6 +175,7 @@ public:
         t.local_spikes_[1].insert(tmp);
         ser.end_read_array();
     }
+
 private:
     // Record last computed epoch (integration interval).
     epoch epoch_;

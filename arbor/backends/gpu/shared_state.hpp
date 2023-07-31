@@ -41,7 +41,7 @@ struct ARB_ARBOR_API ion_state {
     using solver_ptr  = std::unique_ptr<solver_type>;
 
     // Xd and gX are the only things that persists
-    // ARB_SERDES_ENABLE(ion_state, Xd_, gX_);
+    ARB_SERDES_ENABLE(ion_state, Xd_, gX_);
 
     bool write_eX_;          // is eX written?
     bool write_Xo_;          // is Xo written?
@@ -134,19 +134,18 @@ struct mech_storage {
     random_numbers random_numbers_;
     deliverable_event_stream deliverable_events_;
 
-    // ARB_SERDES_ENABLE(mech_storage, data_, random_numbers_, deliverable_events_);
-    // ARB_SERDES_ENABLE(mech_storage, data_);
+    ARB_SERDES_ENABLE(mech_storage, data_, random_numbers_, deliverable_events_);
 };
 
 struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_state> {
     // A bit more light-weight
     ARB_SERDES_ENABLE(shared_state,
-                      //cbprng_seed,
-                      // ion_data,
-                      // storage,
-                      // voltage,
-                      // conductivity,
-                      // time_since_spike,
+                      cbprng_seed,
+                      ion_data,
+                      storage,
+                      voltage,
+                      conductivity,
+                      time_since_spike,
                       time, time_to,
                       dt);
 

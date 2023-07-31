@@ -4,6 +4,9 @@
 #include <arbor/gpu/gpu_common.hpp>
 #include <arbor/gpu/math_cu.hpp>
 
+#include "stimulus.hpp"
+
+
 namespace arb {
 namespace gpu {
 

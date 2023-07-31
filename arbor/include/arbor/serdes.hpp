@@ -87,7 +87,9 @@ struct serializer {
     void read(const serdes_key_type& k, unsigned long long& v) { wrapped->read(k, v); };
     void read(const serdes_key_type& k, double& v) { wrapped->read(k, v); };
 
-    std::optional<serdes_key_type> next_key() { return this->wrapped->next_key(); }
+    std::optional<serdes_key_type> next_key() {
+        return this->wrapped->next_key();
+    }
 
 private:
     struct interface {
@@ -113,11 +115,10 @@ private:
         virtual void begin_read_array(const serdes_key_type&) = 0;
         virtual void end_read_array() = 0;
 
-        virtual ~interface(){}
     };
 
     template <typename I>
-    struct wrapper: interface {
+    struct wrapper final: interface {
         wrapper(I& i): inner(i) {}
         I& inner;
 

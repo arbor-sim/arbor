@@ -87,7 +87,48 @@ public:
         arb_assert(num_events == base::ev_data_.size());
     }
 
-    ARB_SERDES_ENABLE(event_stream<Event>, index_);
+    friend void serialize(serializer& ser, const std::string& k, const event_stream<Event>& t) {
+        ser.begin_write_map(::arb::to_serdes_key(k));
+        ARB_SERDES_WRITE(ev_data_);
+        // NOTE: Write spans as sizes only, since we know the base pointer: ev_data_.data()
+        // NOTE: As corrolary, we can optimise by just storing the size part, effectively
+        //       cutting half of the cost.
+        // ARB_SERDES_WRITE(ev_spans_);
+        ser.begin_write_map("ev_spans_");
+        for (size_t ix = 0; ix < t.ev_spans_.size(); ++ix) {
+            ser.begin_write_map(std::to_string(ix));
+            const auto& span = t.ev_spans_[ix];
+            arb_assert(span.begin() == t.ev_data_.data());
+            ser.write("size", (unsigned long long) span.size());
+            ser.end_write_map();
+        }
+        ser.end_write_map();
+        ARB_SERDES_WRITE(index_);
+        ARB_SERDES_WRITE(device_ev_data_);
+        ARB_SERDES_WRITE(offsets_);
+        ser.end_write_map();
+    }
+
+    friend void deserialize(serializer& ser, const std::string& k, event_stream<Event>& t) {
+        ser.begin_read_map(::arb::to_serdes_key(k));
+        ARB_SERDES_READ(ev_data_);
+        ser.begin_read_map("ev_spans_");
+        for (size_t ix = 0; ser.next_key(); ++ix) {
+            ser.begin_read_map(std::to_string(ix));
+            unsigned long long size = 0; ser.read("size", size);
+            if (ix < t.ev_spans_.size()) {
+                t.ev_spans_[ix] = typename base::span_type{t.ev_data_.data(), size};
+            } else {
+                t.ev_spans_.emplace_back(t.ev_data_.data(), size);
+            }
+            ser.end_read_map();
+        }
+        ser.end_read_map();
+        ARB_SERDES_READ(index_);
+        ARB_SERDES_READ(device_ev_data_);
+        ARB_SERDES_READ(offsets_);
+        ser.end_read_map();
+    }
 
 private:
     template<typename D>
