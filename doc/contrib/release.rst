@@ -126,7 +126,7 @@ Post Release
 
 #. Update Zenodo with authors and changelog created in previous step and submit.
 
-#. Make a new PR setting ``VERSION`` to the next with a trailing ``-dev``. E.g. if you just released ``3.14.15``, change ``VERSION`` to ``3.15.16-dev``. Make the number portion always consists of a triple. Shorter versions are uninstallable by Spack (``spack install arbor@0.8`` will install v0.8.1, due to anything shorter than a triple being interpreted as a version range). 
+#. Make a new PR setting ``VERSION`` to the next with a trailing ``-dev``. E.g. if you just released ``3.14.15``, change ``VERSION`` to ``3.15.16-dev``. Make sure the number portion always consists of a triple. Shorter versions are uninstallable by Spack (``spack install arbor@0.8`` will install v0.8.1, due to anything shorter than a triple being interpreted as a version range). 
 
    - Update ``spack/package.py``. The checksum of the targz is the sha256sum.
    - Include changes such as to ``CITATIONS``, ``doc/index.rst`` in postrel PR. Copy Zenodo BibTex export to ``CITATIONS``.
