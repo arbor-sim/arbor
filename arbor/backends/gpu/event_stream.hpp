@@ -91,9 +91,8 @@ public:
         ser.begin_write_map(::arb::to_serdes_key(k));
         ARB_SERDES_WRITE(ev_data_);
         // NOTE: Write spans as sizes only, since we know the base pointer: ev_data_.data()
-        // NOTE: As corrolary, we can optimise by just storing the size part, effectively
+        // NOTE: As corolary, we can optimise by just storing the size part, effectively
         //       cutting half of the cost.
-        // ARB_SERDES_WRITE(ev_spans_);
         ser.begin_write_map("ev_spans_");
         for (size_t ix = 0; ix < t.ev_spans_.size(); ++ix) {
             ser.begin_write_map(std::to_string(ix));
