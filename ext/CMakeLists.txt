@@ -22,7 +22,6 @@ endif()
 add_library(ext-tinyopt INTERFACE)
 target_include_directories(ext-tinyopt INTERFACE tinyopt/include)
 
-
 # functionality for adding external projects
 
 include(ExternalProject)

@@ -50,6 +50,11 @@ option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 option(ARB_USE_HWLOC "request support for thread pinning via HWLOC" OFF)
 mark_as_advanced(ARB_USE_HWLOC)
 
+# Log all memory allocations
+
+option(ARB_LOG_MEMORY "Log every call to `new`" OFF)
+mark_as_advanced(ARB_LOG_MEMORY)
+
 # Use externally built modcc?
 
 set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")

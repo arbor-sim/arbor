@@ -21,6 +21,11 @@ public:
     morphology(segment_tree m);
     morphology();
 
+    morphology(const morphology&) = default;
+    morphology& operator=(const morphology&) = default;
+    morphology(morphology&&) = default;
+    morphology& operator=(morphology&&) = default;
+
     // Empty/default-constructed morphology?
     bool empty() const;
 

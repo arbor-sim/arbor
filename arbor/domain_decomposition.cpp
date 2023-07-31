@@ -16,8 +16,8 @@ namespace arb {
 domain_decomposition::domain_decomposition(
     const recipe& rec,
     context ctx,
-    const std::vector<group_description>& groups)
-{
+    std::vector<group_description> groups):
+    groups_(std::move(groups)) {
     struct partition_gid_domain {
         partition_gid_domain(const gathered_vector<cell_gid_type>& divs, unsigned domains) {
             auto rank_part = util::partition_view(divs.partition());
@@ -40,7 +40,7 @@ domain_decomposition::domain_decomposition(
     const bool has_gpu = ctx->gpu->has_gpu();
 
     std::vector<cell_gid_type> local_gids;
-    for (const auto& g: groups) {
+    for (const auto& g: groups_) {
         if (g.backend == backend_kind::gpu && !has_gpu) {
             throw invalid_backend(domain_id);
         }
@@ -80,7 +80,6 @@ domain_decomposition::domain_decomposition(
     domain_id_ = domain_id;
     num_local_cells_ = num_local_cells;
     num_global_cells_ = num_global_cells;
-    groups_ = groups;
     gid_domain_ = partition_gid_domain(global_gids, num_domains);
 }
 

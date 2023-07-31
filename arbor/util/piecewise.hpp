@@ -239,12 +239,17 @@ struct pw_elements {
         const_iterator(): pw_(nullptr) {}
 
         using value_type = pw_element<X>;
-        using pointer = const pointer_proxy<pw_element<X>>;
-        using reference = pw_element<X>;
+        using pointer = const pointer_proxy<value_type>;
+        using reference = value_type;
 
         reference operator[](difference_type j) const { return (*pw_)[j+*c_]; }
         reference operator*() const { return (*pw_)[*c_]; }
         pointer operator->() const { return pointer{(*pw_)[*c_]}; }
+
+        const X& value() const { return pw_->cvalue(*c_); };
+        const std::pair<double, double>& extent() const { return pw_->extent(*c_); }
+        double lower_bound() const { return pw_->extent(*c_).first; }
+        double upper_bound() const { return pw_->extent(*c_).second; }
 
         // (required for iterator_adaptor)
         counter<pw_size_type>& inner() { return c_; }
@@ -303,6 +308,7 @@ struct pw_elements {
     const auto& values() const { return value_; }
     const auto& vertices() const { return vertex_; }
 
+    const X& cvalue(size_type i) const { return value_[i]; }
     X& value(size_type i) & { return value_[i]; }
     const X& value(size_type i) const & { return value_[i]; }
     X value(size_type i) const && { return value_[i]; }
@@ -360,6 +366,13 @@ struct pw_elements {
     auto operator()(double x) const & {
         size_type i = index_of(x);
         return i!=npos? (*this)[i]: throw std::range_error("position outside support");
+    }
+
+    template<typename F>
+    auto on(double x, F&& f) const & {
+        size_type i = index_of(x);
+        if (i == npos) throw std::range_error("position outside support");
+        return f(x, extent(i), value(i));
     }
 
     // mutating operations:
@@ -470,6 +483,9 @@ struct pw_elements<void> {
         reference operator*() const { return (*pw_)[*c_]; }
         pointer operator->() const { return pointer{(*pw_)[*c_]}; }
 
+        double lower_bound() const { return pw_->extent(*c_).first; }
+        double upper_bound() const { return pw_->extent(*c_).second; }
+
         // (required for iterator_adaptor)
         counter<pw_size_type>& inner() { return c_; }
         const counter<pw_size_type>& inner() const { return c_; }
@@ -512,7 +528,7 @@ struct pw_elements<void> {
     auto lower_bound() const { return bounds().first; }
     auto upper_bound() const { return bounds().second; }
 
-    auto extent(size_type i) const { return extents()[i]; }
+    std::pair<double, double> extent(size_type i) const { return extents()[i]; }
     auto lower_bound(size_type i) const { return extents()[i].first; }
     auto upper_bound(size_type i) const { return extents()[i].second; }
 
@@ -791,8 +807,8 @@ struct pw_zip_iterator {
     pw_zip_iterator& operator++() {
         if (is_end) return *this;
 
-        double a_right = ai->upper_bound();
-        double b_right = bi->upper_bound();
+        double a_right = ai.upper_bound();
+        double b_right = bi.upper_bound();
         double right = std::min(a_right, b_right);
 
         bool advance_a = a_right==right && std::next(ai)!=a_end;
@@ -815,16 +831,24 @@ struct pw_zip_iterator {
         return here;
     }
 
-    value_type operator*() const {
-        double a_right = ai->upper_bound();
-        double b_right = bi->upper_bound();
+    reference operator*() const {
+        double a_right = ai.upper_bound();
+        double b_right = bi.upper_bound();
         double right = std::min(a_right, b_right);
         return value_type{{left, right}, {*ai, *bi}};
     }
 
-    pointer operator->() const {
-        return pointer{*this};
+    template <typename F>
+    auto apply(F&& f) {
+        double a_right = ai.upper_bound();
+        double b_right = bi.upper_bound();
+        double right = std::min(a_right, b_right);
+        return f(left, right, ai.value(), bi.value());
     }
+
+    // pointer operator->() const {
+        // return pointer{*this};
+    // }
 };
 
 template <typename A, typename B>

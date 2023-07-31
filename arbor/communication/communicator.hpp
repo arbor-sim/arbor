@@ -78,14 +78,13 @@ public:
 
     void reset();
 
+    void update_connections(const recipe& rec,
+                            const domain_decomposition& dom_dec,
+                            const label_resolution_map& target_resolution_map);
+
     // used for commmunicate to coupled simulations
     void remote_ctrl_send_continue(const epoch&);
     void remote_ctrl_send_done();
-
-    void update_connections(const connectivity& rec,
-                            const domain_decomposition& dom_dec,
-                            const label_resolution_map& source_resolution_map,
-                            const label_resolution_map& target_resolution_map);
 
     void set_remote_spike_filter(const spike_predicate&);
 

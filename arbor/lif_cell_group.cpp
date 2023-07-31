@@ -8,7 +8,13 @@
 #include "util/filter.hpp"
 #include "util/maputil.hpp"
 
-using namespace arb;
+namespace arb {
+
+cell_size_type ARB_ARBOR_API get_sources(cell_label_range& src, const lif_cell& c) {
+    src.add_cell();
+    src.add_label(c.source, {0, 1});
+    return 1;
+}
 
 // Constructor containing gid of first cell in a group and a container of all cells.
 lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids,
@@ -248,3 +254,5 @@ std::vector<probe_metadata> lif_cell_group::get_probe_metadata(cell_member_type 
         return {};
     }
 }
+
+} // namespace arb

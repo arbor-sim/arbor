@@ -13,6 +13,12 @@
 
 namespace arb {
 
+cell_size_type ARB_ARBOR_API get_sources(cell_label_range& src, const spike_source_cell& c) {
+    src.add_cell();
+    src.add_label(c.source, {0, 1});
+    return 1;
+}
+
 spike_source_cell_group::spike_source_cell_group(
     const std::vector<cell_gid_type>& gids,
     const recipe& rec,
@@ -28,16 +34,10 @@ spike_source_cell_group::spike_source_cell_group(
 
     time_sequences_.reserve(gids.size());
     for (auto gid: gids_) {
-        cg_sources.add_cell();
+        auto cell = util::any_cast<spike_source_cell>(rec.get_cell_description(gid));
         cg_targets.add_cell();
-        try {
-            auto cell = util::any_cast<spike_source_cell>(rec.get_cell_description(gid));
-            time_sequences_.emplace_back(cell.seqs);
-            cg_sources.add_label(cell.source, {0, 1});
-        }
-        catch (std::bad_any_cast& e) {
-            throw bad_cell_description(cell_kind::spike_source, gid);
-        }
+        get_sources(cg_sources, cell);
+        time_sequences_.emplace_back(cell.seqs);
     }
 }
 

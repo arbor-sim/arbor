@@ -29,8 +29,7 @@ struct ARB_ARBOR_API mprovider {
     const auto& embedding() const { return embedding_; }
 
 private:
-    mprovider(arb::morphology m, const label_dict* ldptr):
-        morphology_(m), embedding_(m), label_dict_ptr(ldptr) { init(); }
+    mprovider(arb::morphology m, const label_dict* ldptr);
 
     arb::morphology morphology_;
     concrete_embedding embedding_;
@@ -44,9 +43,6 @@ private:
 
     // Non-null only during initialization phase.
     mutable const label_dict* label_dict_ptr;
-
-    // Perform greedy initialization of concrete region, locset maps.
-    void init();
 };
 
 } // namespace arb

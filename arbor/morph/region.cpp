@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include <sstream>
 
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/primitives.hpp>
@@ -18,6 +19,13 @@
 #include "util/rangeutil.hpp"
 
 namespace arb {
+
+std::string region_to_string(const region& reg) {
+    std::stringstream ss;
+    ss << reg;
+    return ss.str();
+}
+
 namespace reg {
 
 std::optional<mcable> intersect(const mcable& a, const mcable& b) {

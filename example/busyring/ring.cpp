@@ -186,7 +186,7 @@ int main(int argc, char** argv) {
         auto params = read_options(argc, argv);
 
         arb::proc_allocation resources;
-        resources.num_threads = arbenv::default_concurrency();
+        resources.num_threads = 1; //arbenv::default_concurrency();
         resources.bind_threads = params.bind_threads;
 
 #ifdef ARB_MPI_ENABLED
@@ -216,8 +216,8 @@ int main(int argc, char** argv) {
 
         // Create an instance of our recipe.
         ring_recipe recipe(params);
-        cell_stats stats(recipe);
-        if (root) std::cout << stats << "\n";
+        // cell_stats stats(recipe);
+        // if (root) std::cout << stats << "\n";
         // Make decomposition
         auto decomp = arb::partition_load_balance(recipe, context, {{arb::cell_kind::cable, params.hint}});
         // Construct the model.
@@ -428,7 +428,7 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
 
     decor.set_default(arb::cv_policy_every_segment());
 
-    return {arb::morphology(tree), decor};
+    return {arb::morphology(std::move(tree)), std::move(decor)};
 }
 
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {

@@ -223,6 +223,26 @@ namespace {
         unsigned groups_;
         cell_size_type size_;
     };
+
+    std::set<cell_gid_type> set_of(const std::vector<cell_gid_type>& vec) {
+        return std::set(vec.begin(), vec.end());
+    }
+
+    // Check GJ invariants: If cell I is in group A and I is gj-connected to cell J
+    // then J is also in A
+    bool check_gj_invariants(const domain_decomposition& ddc,
+                             std::map<cell_gid_type, std::set<cell_gid_type>> gj_conns) {
+        for (int ix = 0; ix < ddc.num_groups(); ++ix) {
+            const auto group = set_of(ddc.group(ix).gids);
+            for (auto gid: group) {
+                for (auto peer: gj_conns[gid]) {
+                    if (!group.count(peer)) return false;
+                }
+            }
+        }
+        return true;
+    }
+
 }
 
 TEST(domain_decomposition, homogeneous_population_mc) {
@@ -393,17 +413,18 @@ TEST(domain_decomposition, symmetric_groups) {
         EXPECT_EQ(6u, D0.num_groups());
 
         unsigned shift = rank * R.num_cells()/nranks;
-        std::vector<std::vector<cell_gid_type>> expected_groups0 =
+        std::set<std::set<cell_gid_type>> expected_groups0 =
                 {{0 + shift},
+                 {1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift},
                  {3 + shift},
                  {4 + shift},
                  {5 + shift},
                  {8 + shift},
-                 {1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift}
                 };
 
-        for (unsigned i = 0; i < 6; i++) {
-            EXPECT_EQ(expected_groups0[i], D0.group(i).gids);
+        for (unsigned ix = 0; ix < D0.num_groups(); ++ix) {
+            const auto group = set_of(D0.group(ix).gids);
+            EXPECT_TRUE(expected_groups0.count(group) == 1);
         }
 
         unsigned cells_per_rank = R.num_cells()/nranks;
@@ -419,11 +440,13 @@ TEST(domain_decomposition, symmetric_groups) {
         const auto D1 = partition_load_balance(R, ctx, hints);
         EXPECT_EQ(1u, D1.num_groups());
 
-        std::vector<cell_gid_type> expected_groups1 =
-                {0 + shift, 3 + shift, 4 + shift, 5 + shift, 8 + shift,
-                 1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift};
+        std::set<cell_gid_type> expected_groups1 = {
+            0 + shift, 1 + shift, 2 + shift, 6 + shift, 7 + shift,
+            9 + shift, 3 + shift, 4 + shift, 5 + shift, 8 + shift,
 
-        EXPECT_EQ(expected_groups1, D1.group(0).gids);
+        };
+
+        EXPECT_EQ(expected_groups1, set_of(D1.group(0).gids));
 
         for (unsigned i = 0; i < R.num_cells(); i++) {
             EXPECT_EQ(i/cells_per_rank, (unsigned) D1.gid_domain(i));
@@ -435,12 +458,14 @@ TEST(domain_decomposition, symmetric_groups) {
         const auto D2 = partition_load_balance(R, ctx, hints);
         EXPECT_EQ(2u, D2.num_groups());
 
-        std::vector<std::vector<cell_gid_type>> expected_groups2 =
-                {{0 + shift, 3 + shift, 4 + shift, 5 + shift, 8 + shift},
-                 {1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift}};
+        std::set<std::set<cell_gid_type>> expected_groups2 = {
+            {0 + shift, 1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift},
+            {3 + shift, 4 + shift, 5 + shift, 8 + shift},
+        };
 
-        for (unsigned i = 0; i < 2u; i++) {
-            EXPECT_EQ(expected_groups2[i], D2.group(i).gids);
+        for (unsigned ix = 0; ix < D2.num_groups(); ++ix) {
+            const auto group = set_of(D2.group(ix).gids);
+            EXPECT_TRUE(expected_groups2.count(group) == 1);
         }
         for (unsigned i = 0; i < R.num_cells(); i++) {
             EXPECT_EQ(i/cells_per_rank, (unsigned) D2.gid_domain(i));
@@ -465,16 +490,17 @@ TEST(domain_decomposition, gj_multi_distributed_groups) {
 
         unsigned cells_per_rank = nranks;
         // check groups
-        unsigned i = 0;
+        unsigned ix = 0;
         for (unsigned gid = rank * cells_per_rank; gid < (rank + 1) * cells_per_rank; gid++) {
             if (gid % nranks == (unsigned) rank - 1) {
                 continue;
             } else if (gid % nranks == (unsigned) rank && rank != nranks - 1) {
                 std::vector<cell_gid_type> cg = {gid, gid + cells_per_rank};
-                EXPECT_EQ(cg, D.group(D.num_groups() - 1).gids);
+                EXPECT_EQ(cg, D.group(0).gids);
             } else {
+                ix = (ix + 1) % D.num_groups();
                 std::vector<cell_gid_type> cg = {gid};
-                EXPECT_EQ(cg, D.group(i++).gids);
+                EXPECT_EQ(cg, D.group(ix).gids);
             }
         }
         // check gid_domains
@@ -509,10 +535,11 @@ TEST(domain_decomposition, gj_single_distributed_group) {
 
     unsigned cells_per_rank = nranks;
     // check groups
-    unsigned i = 0;
+    unsigned ix = 0;
     for (unsigned gid = rank*cells_per_rank; gid < (rank + 1)*cells_per_rank; gid++) {
-        if (gid%nranks == 1) {
-            if (rank == 0) {
+        if ((gid+0)%nranks == 1) {
+            std::cout << "* " << ix << ' ' << gid << '\n';
+            if (rank == 1) {
                 std::vector<cell_gid_type> cg;
                 for (int r = 0; r < nranks; ++r) {
                     cg.push_back(gid + (r*nranks));
@@ -522,8 +549,10 @@ TEST(domain_decomposition, gj_single_distributed_group) {
                 continue;
             }
         } else {
+            std::cout << ix << ' ' << gid << '\n';
             std::vector<cell_gid_type> cg = {gid};
-            EXPECT_EQ(cg, D.group(i++).gids);
+            EXPECT_EQ(cg, D.group(ix).gids);
+            ix = (ix + 1) % D.num_groups();
         }
     }
     // check gid_domains

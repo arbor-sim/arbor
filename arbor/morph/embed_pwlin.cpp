@@ -102,11 +102,15 @@ struct embed_pwlin_data {
 // function is an interval [a, b] with 0 ≤ a ≤ pos ≤ b ≤ 1.
 
 template <unsigned p, unsigned q>
-double interpolate(double pos, const pw_ratpoly<p, q>& f) {
-    auto [extent, poly] = f(pos);
-    auto [left, right] = extent;
-
+double interpolate_element(double pos, const std::pair<double, double>& extent, const rat_element<p, q>& poly) {
+    const auto& [left, right] = extent;
     return left==right? poly[0]: poly((pos-left)/(right-left));
+}
+
+template <unsigned p, unsigned q>
+double interpolate(double pos, const pw_ratpoly<p, q>& f) {
+    const auto& [extent, poly] = f(pos);
+    return interpolate_element(pos, extent, poly);
 }
 
 // Integration
@@ -118,7 +122,7 @@ double interpolate(double pos, const pw_ratpoly<p, q>& f) {
 template <unsigned p, unsigned q>
 double integrate(const pw_constant_fn& g, const pw_ratpoly<p, q>& f) {
     double sum = 0;
-    for (auto&& [extent, gval]: g) {
+    for (const auto& [extent, gval]: g) {
         sum += gval*(interpolate(extent.second, f)-interpolate(extent.first, f));
     }
     return sum;
@@ -130,17 +134,20 @@ double integrate(const pw_constant_fn& g, const pw_ratpoly<p, q>& f) {
 // Σⱼ ∫[r,s]∩[aⱼ,bⱼ] g(x)dfⱼ(x) (where [r, s] is the domain of g).
 
 template <unsigned p, unsigned q>
-double integrate(const pw_constant_fn& g, const pw_elements<pw_ratpoly<p, q>>& fs) {
-    double sum = 0;
-    if (!fs.empty()) {
-        for (auto&& [extent, pw_pair]: pw_zip_range(g, fs)) {
-            auto [left, right] = extent;
-            if (left==right) continue;
+double integrate_step(double left, double right, double g, const pw_elements<rat_element<p, q>>& f) {
+    if (left == right) return 0;
+    auto r_val = f.on(right, interpolate_element<p, q>);
+    auto l_val = f.on(left,  interpolate_element<p, q>);
+    return g*(r_val - l_val);
+}
 
-            double gval = pw_pair.first;
-            pw_ratpoly<p, q> f = pw_pair.second;
-            sum += gval*(interpolate(right, f)-interpolate(left, f));
-        }
+template <unsigned p, unsigned q>
+double integrate(const pw_constant_fn& g, const pw_elements<pw_elements<rat_element<p, q>>>& fs) {
+    if (fs.empty()) return 0.0;
+    double sum = 0;
+    auto range = pw_zip_range(g, fs);
+    for (auto it = range.begin(); it != range.end(); ++it) {
+        sum += it.apply(integrate_step<p, q>);
     }
     return sum;
 }

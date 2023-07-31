@@ -91,6 +91,13 @@ struct ARB_ARBOR_API cv_geometry: public cell_cv_data_impl {
         return util::make_span(partn[cell_idx]);
     }
 
+    void shrink_to_fit() {
+        cv_to_cell.shrink_to_fit();
+        cell_cv_divs.shrink_to_fit();
+        branch_cv_map.shrink_to_fit();
+        for (auto& p: branch_cv_map) p.shrink_to_fit();
+    }
+
     size_type size() const {
         arb_assert((cv_parent.empty() && cv_cables_divs.empty() &&
                     cv_cables.empty() && cv_to_cell.empty())
@@ -142,6 +149,12 @@ struct fvm_diffusion_info {
     using value_type = arb_value_type;
     std::vector<value_type> face_diffusivity;
     std::vector<std::vector<pw_constant_fn>> axial_inv_diffusivity;
+
+    void shrink_to_fit() {
+        face_diffusivity.shrink_to_fit();
+        axial_inv_diffusivity.shrink_to_fit();
+        for (auto& p: axial_inv_diffusivity) p.shrink_to_fit();
+    }
 };
     
 struct fvm_cv_discretization {
@@ -168,6 +181,18 @@ struct fvm_cv_discretization {
 
     // For each diffusive ion species, their properties
     std::unordered_map<std::string, fvm_diffusion_info> diffusive_ions;
+
+    void shrink_to_fit() {
+        face_conductance.shrink_to_fit();
+        cv_area.shrink_to_fit();
+        cv_capacitance.shrink_to_fit();
+        init_membrane_potential.shrink_to_fit();
+        temperature_K.shrink_to_fit();
+        diam_um.shrink_to_fit();
+        axial_resistivity.shrink_to_fit();
+        for (auto& p: axial_resistivity) p.shrink_to_fit();
+        for (auto& [k, v]: diffusive_ions) v.shrink_to_fit();
+    }
 };
 
 // Combine two fvm_cv_geometry groups in-place.

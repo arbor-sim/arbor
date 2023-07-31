@@ -13,6 +13,7 @@ namespace arb {
 
 namespace profile {
 
+
 // type used for region identifiers
 using region_id_type = std::size_t;
 
@@ -26,6 +27,10 @@ struct profile {
 
     // the accumulated time spent in each region.
     std::vector<double> times;
+
+    // Maximum Resident Set Size up to this region's end.
+    std::vector<long> max_rss;
+    std::vector<long> fst_rss;
 
     // the number of threads for which profiling information was recorded.
     std::size_t num_threads;

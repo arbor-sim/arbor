@@ -116,6 +116,8 @@ private:
     };
 };
 
+std::string region_to_string(const region&);
+
 class locset;
 
 namespace reg {

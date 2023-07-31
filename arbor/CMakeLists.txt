@@ -26,7 +26,7 @@ set(arbor_sources
     io/serialize_hex.cpp
     label_resolution.cpp
     lif_cell_group.cpp
-    mc_cell_group.cpp
+    cable_cell_group.cpp
     mechcat.cpp
     mechinfo.cpp
     memory/gpu_wrappers.cpp
@@ -96,6 +96,10 @@ if(ARB_WITH_MPI)
         communication/mpi.cpp
         communication/mpi_error.cpp
         communication/mpi_context.cpp)
+endif()
+
+if(ARB_LOG_MEMORY)
+    set_source_files_properties(profile/profiler.cpp COMPILE_DEFINITIONS ARB_LOG_MEMORY)
 endif()
 
 # Add special target for private include directory, for use by arbor target

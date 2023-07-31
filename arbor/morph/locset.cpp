@@ -20,6 +20,13 @@
 #include "util/unique.hpp"
 
 namespace arb {
+
+std::string locset_to_string(const locset& ls) {
+    std::stringstream ss;
+    ss << ls;
+    return ss.str();
+}
+
 namespace ls {
 
 // Throw on invalid mlocation.

@@ -36,7 +36,7 @@ struct group_description {
 class ARB_ARBOR_API domain_decomposition {
 public:
     domain_decomposition() = delete;
-    domain_decomposition(const recipe& rec, context ctx, const std::vector<group_description>& groups);
+    domain_decomposition(const recipe& rec, context ctx, std::vector<group_description> groups);
 
     domain_decomposition(const domain_decomposition&) = default;
     domain_decomposition& operator=(const domain_decomposition&) = default;

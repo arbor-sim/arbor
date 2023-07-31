@@ -1,6 +1,7 @@
 #include <numeric>
 #include <utility>
 #include <vector>
+#include <any>
 #include <limits>
 
 #include <arbor/assert.hpp>
@@ -19,6 +20,10 @@
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
+#include "spike_source_cell_group.hpp"
+#include "cable_cell_group.hpp"
+#include "benchmark_cell_group.hpp"
+#include "lif_cell_group.hpp"
 
 #include "communication/communicator.hpp"
 
@@ -32,6 +37,30 @@ communicator::communicator(const recipe& rec,
                                                      num_domains_{(cell_size_type) ctx.distributed->size()},
                                                      distributed_{ctx.distributed},
                                                      thread_pool_{ctx.thread_pool} {}
+
+// This is a bit nasty, as we basically reimplement things from all cell kinds ...
+cell_label_range get_sources(cell_gid_type gid, const recipe& rec) {
+    auto cell = rec.get_cell_description(gid);
+    auto kind = rec.get_cell_kind(gid);
+    cell_label_range result;
+    if (kind == cell_kind::lif) {
+        get_sources(result, util::any_cast<lif_cell>(cell));
+    }
+    else if (kind == cell_kind::spike_source) {
+        get_sources(result, util::any_cast<spike_source_cell>(cell));
+    }
+    else if (kind == cell_kind::benchmark) {
+        get_sources(result, util::any_cast<benchmark_cell>(cell));
+    }
+    else if (kind == cell_kind::cable) {
+        get_sources(result, util::any_cast<cable_cell>(cell));
+    }
+    else {
+        throw arbor_internal_error("Unknown cell kind");
+    }
+    return result;
+}    
+
 
 constexpr inline
 bool is_external(cell_gid_type c) {
@@ -55,9 +84,8 @@ cell_member_type global_cell_of(const cell_member_type& c) {
     return {c.gid | msb, c.index};
 }
 
-void communicator::update_connections(const connectivity& rec,
+void communicator::update_connections(const recipe& rec,
                                       const domain_decomposition& dom_dec,
-                                      const label_resolution_map& source_resolution_map,
                                       const label_resolution_map& target_resolution_map) {
     PE(init:communicator:update:clear);
     // Forget all lingering information
@@ -75,12 +103,7 @@ void communicator::update_connections(const connectivity& rec,
     // Also the count of presynaptic sources from each domain
     //   -> src_counts: array with one entry for each domain
 
-    // Record all the gid in a flat vector.
-
-    PE(init:communicator:update:collect_gids);
-    std::vector<cell_gid_type> gids; gids.reserve(num_local_cells_);
-    for (const auto& g: dom_dec.groups()) util::append(gids, g.gids);
-    PL();
+    // Record all the gids in a flat vector.
 
     // Build the connection information for local cells.
     PE(init:communicator:update:gid_connections);
@@ -94,26 +117,52 @@ void communicator::update_connections(const connectivity& rec,
     part_ext_connections.push_back(0);
     std::vector<unsigned> src_domains;
     std::vector<cell_size_type> src_counts(num_domains_);
-    for (const auto gid: gids) {
-        // Local
-        const auto& conns = rec.connections_on(gid);
-        for (const auto& conn: conns) {
-            const auto sgid = conn.source.gid;
-            if (sgid >= num_total_cells_) throw arb::bad_connection_source_gid(gid, sgid, num_total_cells_);
-            const auto src = dom_dec.gid_domain(sgid);
-            src_domains.push_back(src);
-            src_counts[src]++;
-            gid_connections.emplace_back(conn);
+    std::unordered_map<cell_gid_type, std::size_t> used;
+    for (const auto& group: dom_dec.groups()) {
+        for (const auto gid: group.gids) {
+            // Local
+            const auto& conns = rec.connections_on(gid);
+            for (const auto& conn: conns) {
+                const auto sgid = conn.source.gid;
+                used[sgid] += 1;
+                if (sgid >= num_total_cells_) throw arb::bad_connection_source_gid(gid, sgid, num_total_cells_);
+                const auto src = dom_dec.gid_domain(sgid);
+                src_domains.push_back(src);
+                src_counts[src]++;
+                gid_connections.emplace_back(conn);
+            }
+            part_connections.push_back(gid_connections.size());
+            // Remote
+            const auto& ext_conns = rec.external_connections_on(gid);
+            for (const auto& conn: ext_conns) {
+                gid_ext_connections.emplace_back(conn);
+            }
+            part_ext_connections.push_back(gid_ext_connections.size());
         }
-        part_connections.push_back(gid_connections.size());
-        // Remote
-        const auto& ext_conns = rec.external_connections_on(gid);
-        for (const auto& conn: ext_conns) {
-            gid_ext_connections.emplace_back(conn);
-        }
-        part_ext_connections.push_back(gid_ext_connections.size());
     }
 
+    // Construct a label resolver for a given gid.
+    //
+    // We could take care not to fetch sources from connected cells for those
+    // gids that are local to or group. But, that doesn't seem to be worth the
+    // extra effort.
+    struct label_map {
+        std::size_t used = 0;
+        std::unique_ptr<label_resolution_map> map;
+        resolver res;
+
+        label_map(cell_gid_type gid, const recipe& rec):
+            map{std::make_unique<label_resolution_map>(cell_labels_and_gids{get_sources(gid, rec), {gid}})},
+            res{map.get()}
+                {}
+        cell_lid_type resolve(const cell_global_label_type& lbl) { used += 1; return res.resolve(lbl); }
+        void reset() { res.reset(); }
+        void clear() { res.clear(); map->clear(); }
+    };
+
+    // Construct the connections.
+    // The loop above gave the information required to construct in place
+    // the connections as partitioned by the domain of their source gid.
     util::make_partition(connection_part_, src_counts);
     auto n_cons = gid_connections.size();
     auto n_ext_cons = gid_ext_connections.size();
@@ -129,27 +178,40 @@ void communicator::update_connections(const connectivity& rec,
     std::size_t ext = 0;
     auto src_domain = src_domains.begin();
     auto target_resolver = resolver(&target_resolution_map);
-    for (const auto index: util::make_span(num_local_cells_)) {
-        const auto tgt_gid = gids[index];
-        auto source_resolver = resolver(&source_resolution_map);
-        for (const auto cidx: util::make_span(part_connections[index], part_connections[index+1])) {
-            const auto& conn = gid_connections[cidx];
-            auto src_gid = conn.source.gid;
-            if(is_external(src_gid)) throw arb::source_gid_exceeds_limit(tgt_gid, src_gid);
-            auto src_lid = source_resolver.resolve(conn.source);
-            auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
-            auto offset  = offsets[*src_domain]++;
-            ++src_domain;
-            connections_[offset] = {{src_gid, src_lid}, tgt_lid, conn.weight, conn.delay, index};
-        }
-        for (const auto cidx: util::make_span(part_ext_connections[index], part_ext_connections[index+1])) {
-            const auto& conn = gid_ext_connections[cidx];
-            auto src = global_cell_of(conn.source);
-            auto src_gid = conn.source.rid;
-            if(is_external(src_gid)) throw arb::source_gid_exceeds_limit(tgt_gid, src_gid);
-            auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
-            ext_connections_[ext] = {src, tgt_lid, conn.weight, conn.delay, index};
-            ++ext;
+    auto sources = std::unordered_map<cell_gid_type, label_map>{};
+    cell_size_type index = 0;
+    for (const auto& group: dom_dec.groups()) {
+        for (const auto& tgt_gid: group.gids) {
+            for (const auto cidx: util::make_span(part_connections[index], part_connections[index+1])) {
+                const auto& conn = gid_connections[cidx];
+                auto src_gid = conn.source.gid;
+                if (!sources.count(src_gid)) sources.emplace(src_gid, label_map{src_gid, rec});
+                if(is_external(src_gid)) throw arb::source_gid_exceeds_limit(tgt_gid, src_gid);
+                auto src_lid = sources.at(src_gid).resolve(conn.source);
+                auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
+                auto offset  = offsets[*src_domain]++;
+                ++src_domain;
+                connections_[offset] = {{src_gid, src_lid}, tgt_lid, conn.weight, conn.delay, index};
+            }
+            for (const auto cidx: util::make_span(part_ext_connections[index], part_ext_connections[index+1])) {
+                const auto& conn = gid_ext_connections[cidx];
+                auto src = global_cell_of(conn.source);
+                auto src_gid = conn.source.rid;
+                if(is_external(src_gid)) throw arb::source_gid_exceeds_limit(tgt_gid, src_gid);
+                auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
+                ext_connections_[ext] = {src, tgt_lid, conn.weight, conn.delay, index};
+                ++ext;
+            }
+            for (auto& [k, v]: sources) {
+                // To save a bit of peak memory, clear what we don't need anymore.
+                if (v.used >= used[k]) {
+                    v.clear();
+                }
+                else {
+                    v.reset();
+                }
+            }
+            ++index;
         }
     }
     PL();

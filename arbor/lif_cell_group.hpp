@@ -79,4 +79,6 @@ private:
     std::unordered_map<cell_member_type, lif_probe_info> probes_;
 };
 
+cell_size_type ARB_ARBOR_API get_sources(cell_label_range& src, const lif_cell& c);
+
 } // namespace arb

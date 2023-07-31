@@ -69,7 +69,7 @@ struct ARB_ARBOR_API s_expr {
 
     // This value_wrapper is used to wrap the shared pointer
     template <typename T>
-    struct value_wrapper{
+    struct value_wrapper {
         using state_t = std::unique_ptr<T>;
         state_t state;
 

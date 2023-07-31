@@ -4,6 +4,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <sstream>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -18,6 +19,8 @@ struct mprovider;
 
 class locset;
 class locset_tag {};
+
+std::string locset_to_string(const locset& ls);
 
 class ARB_SYMBOL_VISIBLE locset {
 public:

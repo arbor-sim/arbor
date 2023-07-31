@@ -15,7 +15,7 @@
 #include "cell_group.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
-#include "mc_cell_group.hpp"
+#include "cable_cell_group.hpp"
 #include "profile/profiler_macro.hpp"
 #include "sampler_map.hpp"
 #include "util/filter.hpp"
@@ -26,11 +26,23 @@
 
 namespace arb {
 
-mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
-                             const recipe& rec,
-                             cell_label_range& cg_sources,
-                             cell_label_range& cg_targets,
-                             fvm_lowered_cell_ptr lowered):
+cell_size_type ARB_ARBOR_API get_sources(cell_label_range& src, const cable_cell& c) {
+    src.add_cell();
+    cell_size_type count = 0;
+    for (const auto& [label, range]: c.detector_ranges()) {
+        src.add_label(label, range);
+        count += range.end - range.begin;
+    }
+    return count;
+}
+
+// ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::target_handle,(a.mech_id,a.mech_index),(b.mech_id,b.mech_index))
+// ARB_DEFINE_LEXICOGRAPHIC_ORDERING(arb::deliverable_event,(a.time,a.handle,a.weight),(b.time,b.handle,b.weight))
+cable_cell_group::cable_cell_group(const std::vector<cell_gid_type>& gids,
+                                   const recipe& rec,
+                                   cell_label_range& cg_sources,
+                                   cell_label_range& cg_targets,
+                                   fvm_lowered_cell_ptr lowered):
     gids_(gids), lowered_(std::move(lowered))
 {
     // Build lookup table for gid to local index.
@@ -68,7 +80,7 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
     spike_sources_.shrink_to_fit();
 }
 
-void mc_cell_group::reset() {
+void cable_cell_group::reset() {
     spikes_.clear();
 
     for (auto &entry: sampler_map_) {
@@ -377,7 +389,7 @@ void run_samples(
     std::visit([&](auto& x) {run_samples(x, sc, raw_times, raw_samples, sample_records, scratch); }, sc.pdata_ptr->info);
 }
 
-void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
+void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
     time_type tstart = lowered_->time();
 
     // Bin and collate deliverable events from event lanes.
@@ -505,9 +517,8 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     }
 }
 
-void mc_cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids,
-                                schedule sched, sampler_function fn)
-{
+void cable_cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids,
+                                   schedule sched, sampler_function fn) {
     std::lock_guard<std::mutex> guard(sampler_mex_);
 
     std::vector<cell_member_type> probeset =
@@ -519,17 +530,17 @@ void mc_cell_group::add_sampler(sampler_association_handle h, cell_member_predic
     }
 }
 
-void mc_cell_group::remove_sampler(sampler_association_handle h) {
+void cable_cell_group::remove_sampler(sampler_association_handle h) {
     std::lock_guard<std::mutex> guard(sampler_mex_);
     sampler_map_.erase(h);
 }
 
-void mc_cell_group::remove_all_samplers() {
+void cable_cell_group::remove_all_samplers() {
     std::lock_guard<std::mutex> guard(sampler_mex_);
     sampler_map_.clear();
 }
 
-std::vector<probe_metadata> mc_cell_group::get_probe_metadata(cell_member_type probeset_id) const {
+std::vector<probe_metadata> cable_cell_group::get_probe_metadata(cell_member_type probeset_id) const {
     // Probe associations are fixed after construction, so we do not need to grab the mutex.
 
     std::optional<probe_tag> maybe_tag = util::value_by_key(probe_map_.tag, probeset_id);

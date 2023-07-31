@@ -125,41 +125,54 @@ decor& decor::place(locset where, placeable what, cell_tag_type label) {
 }
 
 decor& decor::set_default(defaultable what) {
-    std::visit(
-            [this] (auto&& p) {
-                using T = std::decay_t<decltype(p)>;
-                if constexpr (std::is_same_v<init_membrane_potential, T>) {
-                    defaults_.init_membrane_potential = p.value;
-                }
-                else if constexpr (std::is_same_v<axial_resistivity, T>) {
-                    defaults_.axial_resistivity = p.value;
-                }
-                else if constexpr (std::is_same_v<temperature_K, T>) {
-                    defaults_.temperature_K = p.value;
-                }
-                else if constexpr (std::is_same_v<membrane_capacitance, T>) {
-                    defaults_.membrane_capacitance = p.value;
-                }
-                else if constexpr (std::is_same_v<init_int_concentration, T>) {
-                    defaults_.ion_data[p.ion].init_int_concentration = p.value;
-                }
-                else if constexpr (std::is_same_v<init_ext_concentration, T>) {
-                    defaults_.ion_data[p.ion].init_ext_concentration = p.value;
-                }
-                else if constexpr (std::is_same_v<init_reversal_potential, T>) {
-                    defaults_.ion_data[p.ion].init_reversal_potential = p.value;
-                }
-                else if constexpr (std::is_same_v<ion_reversal_potential_method, T>) {
-                    defaults_.reversal_potential_method[p.ion] = p.method;
-                }
-                else if constexpr (std::is_same_v<cv_policy, T>) {
-                    defaults_.discretization = std::forward<cv_policy>(p);
-                }
-                else if constexpr (std::is_same_v<ion_diffusivity, T>) {
-                    defaults_.ion_data[p.ion].diffusivity = p.value;
-                }
-            },
-            what);
+    switch (what.index()) {
+        case 0: {
+            defaults_.init_membrane_potential = std::get<init_membrane_potential>(what).value;
+            break;
+        }
+        case 1: {
+            defaults_.axial_resistivity = std::get<axial_resistivity>(what).value;
+            break;
+        }
+        case 2: {
+            defaults_.temperature_K = std::get<temperature_K>(what).value;
+            break;
+        }
+        case 3: {
+            defaults_.membrane_capacitance = std::get<membrane_capacitance>(what).value;
+            break;
+        }
+        case 4: {
+            auto& p = std::get<ion_diffusivity>(what);
+            defaults_.ion_data[p.ion].diffusivity = p.value;
+            break;
+        }
+        case 5: {
+            auto& p = std::get<init_int_concentration>(what);
+            defaults_.ion_data[p.ion].init_int_concentration = p.value;
+            break;
+        }
+        case 6: {
+            auto& p = std::get<init_ext_concentration>(what);
+            defaults_.ion_data[p.ion].init_int_concentration = p.value;
+            break;
+        }
+        case 7: {
+            auto& p = std::get<init_reversal_potential>(what);
+            defaults_.ion_data[p.ion].init_reversal_potential = p.value;
+            break;
+        }
+        case 8: {
+            auto& p = std::get<ion_reversal_potential_method>(what);
+            defaults_.reversal_potential_method[p.ion] = p.method;
+            break;
+        }
+        case 9:
+            defaults_.discretization = std::forward<cv_policy>(std::get<cv_policy>(what));
+            break;
+        default:
+            throw arbor_internal_error{"Unknown defaultable variant"};
+    }
     return *this;
 }
 
