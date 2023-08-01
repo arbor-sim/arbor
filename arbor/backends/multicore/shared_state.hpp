@@ -259,7 +259,7 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const shared_state& s);
 ARB_SERDES_ENABLE_EXT(multicore::ion_state, Xd_, gX_);
 ARB_SERDES_ENABLE_EXT(multicore::mech_storage,
                       data_,
-                      // TODO(serdes) ion_states_,
+                      // NOTE(serdes) ion_states_, this is just a bunch of pointers
                       random_numbers_,
                       random_number_update_counter_);
 ARB_SERDES_ENABLE_EXT(multicore::shared_state,

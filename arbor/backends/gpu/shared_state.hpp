@@ -252,7 +252,7 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s);
 ARB_SERDES_ENABLE_EXT(gpu::ion_state, Xd_, gX_);
 ARB_SERDES_ENABLE_EXT(gpu::mech_storage,
                       data_,
-                      // TODO(serdes) ion_states_,
+                      // NOTE(serdes) ion_states_, this is just a bunch of pointers
                       random_numbers_,
                       deliverable_events_);
 ARB_SERDES_ENABLE_EXT(gpu::shared_state,
@@ -260,6 +260,7 @@ ARB_SERDES_ENABLE_EXT(gpu::shared_state,
                       ion_data,
                       storage,
                       voltage,
+                      current_density,
                       conductivity,
                       time_since_spike,
                       time, time_to,

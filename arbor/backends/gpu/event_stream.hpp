@@ -73,12 +73,14 @@ public:
                 // host span
                 auto host_span = memory::make_view(base::ev_data_)(offset, offset + size);
                 // make event data and copy
-                std::copy_n(util::transform_view(staged[i], [](const auto& x) {
-                    return event_data(x);}).begin(), size, host_span.begin());
+                std::copy_n(util::transform_view(staged[i],
+                                                 [](const auto& x) { return event_data(x); }).begin(),
+                            size,
+                            host_span.begin());
                 // sort if necessary
                 if constexpr (has_event_index<Event>::value) {
-                    util::stable_sort_by(host_span, [](const event_data_type& ed) {
-                        return event_index(ed); });
+                    util::stable_sort_by(host_span,
+                                         [](const event_data_type& ed) { return event_index(ed); });
                 }
                 // copy to device
                 memory::copy_async(host_span, base::ev_spans_[i]);
@@ -90,15 +92,13 @@ public:
     friend void serialize(serializer& ser, const std::string& k, const event_stream<Event>& t) {
         ser.begin_write_map(::arb::to_serdes_key(k));
         ARB_SERDES_WRITE(ev_data_);
-        // NOTE: Write spans as sizes only, since we know the base pointer: ev_data_.data()
-        // NOTE: As corolary, we can optimise by just storing the size part, effectively
-        //       cutting half of the cost.
         ser.begin_write_map("ev_spans_");
+        auto base_ptr = t.device_ev_data_.data();
         for (size_t ix = 0; ix < t.ev_spans_.size(); ++ix) {
             ser.begin_write_map(std::to_string(ix));
             const auto& span = t.ev_spans_[ix];
-            arb_assert(span.begin() == t.ev_data_.data());
-            ser.write("size", (unsigned long long) span.size());
+            ser.write("offset", static_cast<unsigned long long>(span.begin() - base_ptr));
+            ser.write("size", static_cast<unsigned long long>(span.size()));
             ser.end_write_map();
         }
         ser.end_write_map();
@@ -114,11 +114,14 @@ public:
         ser.begin_read_map("ev_spans_");
         for (size_t ix = 0; ser.next_key(); ++ix) {
             ser.begin_read_map(std::to_string(ix));
-            unsigned long long size = 0; ser.read("size", size);
+            unsigned long long offset = 0, size = 0;
+            ser.read("offset", offset);
+            ser.read("size", size);
+            typename base::span_type span{t.ev_data_.data() + offset, size};
             if (ix < t.ev_spans_.size()) {
-                t.ev_spans_[ix] = typename base::span_type{t.ev_data_.data(), size};
+                t.ev_spans_[ix] = span;
             } else {
-                t.ev_spans_.emplace_back(t.ev_data_.data(), size);
+                t.ev_spans_.emplace_back(span);
             }
             ser.end_read_map();
         }

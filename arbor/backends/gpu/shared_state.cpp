@@ -22,6 +22,8 @@
 #include "util/range.hpp"
 #include "util/strprintf.hpp"
 
+#include <iostream>
+
 using arb::memory::make_const_view;
 
 namespace arb {

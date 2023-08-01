@@ -9,6 +9,8 @@
 #include <arbor/simulation.hpp>
 #include <arbor/recipe.hpp>
 
+#include "memory/wrappers.hpp"
+
 #include <gtest/gtest.h>
 
 #include <nlohmann/json.hpp>
@@ -218,6 +220,7 @@ TEST(serdes, single_cell) {
 
     // ... rewind ...
     deserialize(serializer, "sim", simulation);
+    serialize(serializer, "sim", simulation);
 
     // ... and run the same segment again.
     output = &result_v2;
@@ -269,6 +272,33 @@ TEST(serdes, network) {
 }
 
 #ifdef ARB_GPU_ENABLED
+
+TEST(serdes, host_device_arrays) {
+
+    constexpr size_t N = 16;
+    arb::memory::host_vector<double> hvs(N);
+    for (size_t ix = 0; ix < N; ++ix) hvs[ix] = ix*42.23 + 0.178;
+
+    auto dvs = arb::memory::on_gpu(hvs);
+
+    // Round-trip an array
+    {
+        arb::memory::device_vector<double> dvs_2(N);
+        auto writer = io{};
+        auto serializer = serdes{writer};
+        serialize(serializer, "dvs", dvs);
+        deserialize(serializer, "dvs", dvs_2);
+        {
+            auto hvs_2 = arb::memory::on_host(dvs);
+            for (size_t ix = 0; ix < N; ++ix) ASSERT_EQ(hvs_2[ix], ix*42.23 + 0.178);
+        }
+        {
+            auto hvs_2 = arb::memory::on_host(dvs_2);
+            for (size_t ix = 0; ix < N; ++ix) ASSERT_EQ(hvs_2[ix], ix*42.23 + 0.178);
+        }
+    }
+}
+
 TEST(serdes, single_cell_gpu) {
     double dt = 0.5;
     double T  = 5;
@@ -294,14 +324,13 @@ TEST(serdes, single_cell_gpu) {
     output = &result_pre;
     simulation.run(T, dt);
     serialize(serializer, "sim", simulation);
-
     // Then run some more, ...
     output = &result_v1;
     simulation.run(2*T, dt);
 
     // ... rewind ...
     deserialize(serializer, "sim", simulation);
-
+    serialize(serializer, "sim", simulation);
     // ... and run the same segment again.
     output = &result_v2;
     simulation.run(2*T, dt);
