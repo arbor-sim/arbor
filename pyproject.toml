@@ -62,7 +62,7 @@ build-backend = "scikit_build_core.build"
 [tool.cibuildwheel]
 build-frontend = "build"
 build = ["cp3*-*linux*","cp3*-macosx*"]
-skip = ["cp36*", "pp*", "*musllinux*"]
+skip = ["cp36*", "*musllinux*"]
 test-command = "python -m unittest discover -v -s {project}/python"
 before-build = "python -m pip install pip --upgrade"
 before-test = "python -m pip install pip --upgrade"
