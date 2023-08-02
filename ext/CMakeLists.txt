@@ -109,6 +109,7 @@ if (ARB_USE_BUNDLED_GTEST)
         target_link_libraries(ext-gtest INTERFACE Threads::Threads)
     endif()
 else()
+    # Use system provided google test
     find_package(GTest)
     add_library(ext-gtest INTERFACE)
     if (${CMAKE_VERSION} VERSION_LESS "3.20.0")
