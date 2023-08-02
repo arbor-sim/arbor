@@ -17,13 +17,6 @@ if(ARB_USE_BUNDLED_RANDOM123)
     message(STATUS "Using Random123 submodule: ${CMAKE_CURRENT_SOURCE_DIR}>/random123")
 endif()
 
-# pugixml (header-only)
-
-check_git_submodule(pugixml pugixml)
-if(NOT pugixml_avail)
-    message(FATAL_ERROR "Required pugixml submodule is not available.")
-endif()
-
 # tinyopt command line parsing libary (header-only).
 
 add_library(ext-tinyopt INTERFACE)
