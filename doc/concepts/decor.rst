@@ -194,6 +194,8 @@ Currently, only parameters of :ref:`density mechanisms <cablecell-density-mechs>
     # paint a scaled density mechanism, where 'g' is scaled with the distance from the root.
     decor.paint('"dend"', arbor.scaled_mechanism(arbor.density(m), {'g': '(distance 1.0 (root))'}))
 
+.. _cablecell-ions:
+
 5. Ion species
 ~~~~~~~~~~~~~~
 
@@ -284,6 +286,8 @@ using the *paint* interface:
 
     # Alternatively, one can selectively overwrite the global defaults.
     decor.paint('(tag 2)', arbor.ion('ca', rev_pot=126)
+
+.. _cablecell-ions-diffusion:
 
 To enable diffusion of ion species along the morphology (axial diffusion) one
 sets the per-species diffusivity to a positive value. It can be changed per

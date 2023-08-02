@@ -88,7 +88,7 @@ def make_cable_cell(morphology, clamp_location):
         )
         # set passive mechanism all over
         # passive mech w. leak reversal potential (mV)
-        .paint("(all)", arbor.density("pas/e=-65", {"g": 0.0001}))
+        .paint("(all)", arbor.density("pas/e=-65", g=0.0001))
     )
 
     # set number of CVs per branch

@@ -16,9 +16,9 @@ namespace arb {
 
 using event_span = util::range<const spike_event*>;
 
-void linear_merge_events(std::vector<event_span>& sources, pse_vector& out);
-void pqueue_merge_events(std::vector<event_span>& sources, pse_vector& out);
+void ARB_ARBOR_API linear_merge_events(std::vector<event_span>& sources, pse_vector& out);
+void ARB_ARBOR_API pqueue_merge_events(std::vector<event_span>& sources, pse_vector& out);
 
-void merge_events(std::vector<event_span>& sources, pse_vector& out);
+void ARB_ARBOR_API merge_events(std::vector<event_span>& sources, pse_vector& out);
 
 } // namespace arb

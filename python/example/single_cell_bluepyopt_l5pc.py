@@ -23,7 +23,7 @@ cell_json, morpho, decor, labels = ephys.create_acc.read_acc(cell_json_filename)
 
 labels["soma_center"] = "(location 0 0.5)"
 labels["dend1"] = (
-    '(restrict (distal-translate (proximal (region "apic")) 660)'
+    '(restrict-to (distal-translate (proximal (region "apic")) 660)'
     " (proximal-interval (distal (branch 123))))"
 )
 
