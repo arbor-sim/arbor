@@ -1,8 +1,6 @@
 #include <arbor/communication/remote.hpp>
 #include <arbor/version.hpp>
 
-#include <iostream>
-
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -16,7 +14,6 @@ namespace pyarb {
     using namespace pybind11::literals;
 #ifdef ARB_MPI_ENABLED
 void register_remote(pybind11::module& m) {
-    std::cout << "Registering remote with MPI\n";
     auto s = m.def_submodule("remote", "Wrappers for remote communication.");
 
     pybind11::class_<arb::remote::msg_null> msg_null(s, "msg_null", "Empty message.");
