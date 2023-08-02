@@ -136,7 +136,16 @@ if(ARB_GPU STREQUAL "cuda")
     set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
     enable_language(CUDA)
     find_package(CUDAToolkit)
-    set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+    if(${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 12)
+        # Pascal, Volta, Ampere, Hopper
+        set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
+    elseif(${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 11)
+        # Pascal, Volta, Ampere
+        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+    else()
+        message(FATAL_ERROR "Need at least CUDA 11, got ${CUDAToolkit_VERSION_MAJOR}")
+    endif()
+
     # We _still_ need this otherwise CUDA symbols will not be exported
     # from libarbor.a leading to linker errors when link external clients.
     # Unit tests are NOT external enough. Re-review this somewhere in the
@@ -173,7 +182,7 @@ include("CheckCompilerXLC")
 include("CompilerOptions")
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_WALL}>")
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
