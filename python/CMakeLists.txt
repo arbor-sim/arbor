@@ -41,6 +41,7 @@ set(pyarb_source
     simulation.cpp
     single_cell_model.cpp
     env.cpp
+    remote.cpp
 )
 
 set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_BINARY="${CMAKE_INSTALL_BINDIR}"         APPEND)
