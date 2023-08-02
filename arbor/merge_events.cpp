@@ -14,7 +14,7 @@ namespace arb {
 // k-way linear merge:
 // Pick stream with the minimum element, pop that and push into output.
 // Repeat.
-void linear_merge_events(std::vector<event_span>& sources, pse_vector& out) {
+void ARB_ARBOR_API linear_merge_events(std::vector<event_span>& sources, pse_vector& out) {
     // Consume all events.
     for (;;) {
         // Now find the minimum
@@ -38,7 +38,7 @@ void linear_merge_events(std::vector<event_span>& sources, pse_vector& out) {
 }
 
 // priority-queue based merge.
-void pqueue_merge_events(std::vector<event_span>& sources, pse_vector& out) {
+void ARB_ARBOR_API pqueue_merge_events(std::vector<event_span>& sources, pse_vector& out) {
     // Min heap tracking the minimum element from each span
     using kv_type = std::pair<spike_event, int>;
     std::priority_queue<kv_type, std::vector<kv_type>, std::greater<>> heap;
@@ -68,7 +68,7 @@ void pqueue_merge_events(std::vector<event_span>& sources, pse_vector& out) {
     }
 }
 
-void merge_events(std::vector<event_span>& sources, pse_vector &out) {
+void ARB_ARBOR_API merge_events(std::vector<event_span>& sources, pse_vector &out) {
     // Count events, bail if none; else allocate enough space to store them.
     auto n_evts = std::accumulate(sources.begin(), sources.end(),
                                   0,

@@ -193,6 +193,7 @@ The Python wrapper provides an API for:
         using :py:func:`~arbor.env.default_allocation()`.
 
     .. method:: context(threads=threads, gpu_id=gpu_id, mpi=mpi_comm, inter=mpi_comm)
+        :noindex:
         
         Create a context.
 

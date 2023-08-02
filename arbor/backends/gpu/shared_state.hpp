@@ -64,11 +64,9 @@ struct ARB_ARBOR_API ion_state {
 
     ion_state() = default;
 
-    ion_state(
-        int charge,
-        const fvm_ion_config& ion_data,
-        unsigned align,
-        solver_ptr ptr);
+    ion_state(const fvm_ion_config& ion_data,
+              unsigned align,
+              solver_ptr ptr);
 
     // Set ion concentrations to weighted proportion of default concentrations.
     void init_concentration();

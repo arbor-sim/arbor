@@ -1,0 +1,41 @@
+name: Test docs
+
+on:
+  push:
+    branches: [ master ]
+    paths: 'doc/**'
+  pull_request:
+    branches: [ master ]
+    paths: 'doc/**'
+
+jobs:
+  testdocs:
+    name: "Docs build test"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+        python-version: [3.7]
+    steps:
+      - name: Set up cmake
+        uses: jwlawson/actions-setup-cmake@v1.13
+        with:
+          cmake-version: ${{ matrix.config.cmake }}
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Update pip and setup venv
+        run: python -m pip install --upgrade pip && python -m venv ~/env && . ~/env/bin/activate && echo "PATH=$PATH" >> $GITHUB_ENV
+      - name: Clone w/ submodules
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install Python packages
+        run: python -m pip install -r doc/requirements.txt -U
+      - name: Build Arbor Docs
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python` -DARB_USE_BUNDLED_LIBS=ON
+          make html

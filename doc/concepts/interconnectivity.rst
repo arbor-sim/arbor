@@ -18,6 +18,11 @@ These sites as such are not connected yet, however the :ref:`recipe <modelrecipe
 exposes a number of callbacks to form connections and gap junctions between sites.
 The recipe callbacks are interrogated during simulation creation.
 
+.. _interconnectivity-mut:
+
+Mutability
+----------
+
 In addition, simulations may update their connectivity by building a new
 connection table outside calls to `run`, for example
 
@@ -115,11 +120,11 @@ similarly
                                     weight,
                                     delay)]]
 
-Note that Arbor now recognizes two sets of ``GID``: An external and an internal
+Note that Arbor now recognizes two sets of ``GID``\: An external and an internal
 set. This allows both Arbor and the coupled simulation to keep their own
 numbering schemes. However, internally Arbor will tag external cells and spikes
-by setting their ``GID``s'  most significant bit. This _halves_ the effecively
-available ``GID``s.
+by setting their ``GID``\s'  most significant bit. This _halves_ the effecively
+available ``GID``\s.
 
 To consume external spike events, a specialised ``context`` must be created by
 calling

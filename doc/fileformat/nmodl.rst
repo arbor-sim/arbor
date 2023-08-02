@@ -320,6 +320,8 @@ contain full ``segments``).
 Modelers are encouraged to verify the expected behavior of the reversal potentials of ions
 as it can lead to vastly different model behavior.
 
+.. _formatnmodl-faster:
+
 Tips for Faster NMODL
 ---------------------
 

@@ -17,6 +17,7 @@ public:
         out_(out), fallback_(fallback)
     {}
 
+    using Visitor::visit;
     void visit(Expression* e) override { e->accept(fallback_); }
 
     void visit(UnaryExpression *e) override;
@@ -39,7 +40,6 @@ inline void cexpr_emit(Expression* e, std::ostream& out, Visitor* fallback) {
 }
 
 class ARB_LIBMODCC_API SimdExprEmitter: public CExprEmitter {
-    using CExprEmitter::visit;
 public:
     SimdExprEmitter(
         std::ostream& out,
@@ -48,7 +48,7 @@ public:
         const std::unordered_set<std::string>& scalars,
         Visitor* fallback):
             CExprEmitter(out, fallback), is_indirect_(is_indirect), input_mask_(input_mask), scalars_(scalars), fallback_(fallback) {}
-
+    using CExprEmitter::visit;
     void visit(BlockExpression *e) override;
     void visit(CallExpression *e) override;
     void visit(UnaryExpression *e) override;

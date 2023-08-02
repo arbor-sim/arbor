@@ -61,8 +61,8 @@ build-backend = "scikit_build_core.build"
 
 [tool.cibuildwheel]
 build-frontend = "build"
-build = ["cp3*-*linux*","cp3*-macosx*"]
-skip = ["cp36*", "pp*", "*musllinux*"]
+build = ["*linux*","*macosx*"]
+skip = ["cp36*", "*musllinux*"]
 test-command = "python -m unittest discover -v -s {project}/python"
 dependency-versions = "latest"
 

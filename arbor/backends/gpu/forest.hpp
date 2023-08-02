@@ -58,6 +58,8 @@ struct ARB_ARBOR_API forest {
 
 
 struct level_iterator {
+    constexpr static unsigned npos = unsigned(-1);
+
     level_iterator(tree* t, unsigned level) {
         tree_ = t;
         only_on_level = level;
@@ -94,16 +96,15 @@ struct level_iterator {
                 next_children = index + 1;
             } else {
                 // we are done with the iteration
-                current_level = -1;
-                current_node  = -1;
-                next_children = -1;
+                current_level = npos;
+                current_node  = npos;
+                next_children = npos;
             }
 
         }
     }
 
     unsigned next() {
-        constexpr unsigned npos = unsigned(-1);
         if (!valid()) {
             // we are done
             return npos;

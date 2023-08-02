@@ -41,6 +41,6 @@ private:
     unsigned n_lanes_;
 };
 
-void tree_merge_events(std::vector<event_span>& sources, pse_vector& out);
+void ARB_ARBOR_API tree_merge_events(std::vector<event_span>& sources, pse_vector& out);
 
 }

@@ -36,7 +36,7 @@ class single_recipe(arbor.recipe):
             .place('"center"', arbor.synapse("expsyn"), "synapse")
             .place(
                 '"center"',
-                arbor.synapse("expsyn_stdp", {"max_weight": 1.0}),
+                arbor.synapse("expsyn_stdp", max_weight=1.0),
                 "stpd_synapse",
             )
         )

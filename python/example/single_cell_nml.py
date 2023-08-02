@@ -31,7 +31,7 @@ morpho_groups = morpho_data.groups()
 labels = arbor.label_dict(
     {
         "stim_site": "(location 1 0.5)",  # site for the stimulus, in the middle of branch 1.
-        "axon_end": '(restrict (terminal) (region "axon"))',  # end of the axon.
+        "axon_end": '(restrict-to (terminal) (region "axon"))',  # end of the axon.
         "root": "(root)",  # the start of the soma in this morphology is at the root of the cell.
     }
 )
