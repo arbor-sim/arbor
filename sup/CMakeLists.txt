@@ -1,7 +1,6 @@
 set(sup-sources
     ioutil.cpp
     json_meter.cpp
-    path.cpp
 )
 
 add_library(arbor-sup ${sup-sources})
