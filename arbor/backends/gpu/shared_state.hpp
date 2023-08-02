@@ -40,9 +40,6 @@ struct ARB_ARBOR_API ion_state {
     using solver_type = arb::gpu::diffusion_state<arb_value_type, arb_index_type>;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
-    // Xd and gX are the only things that persists
-    ARB_SERDES_ENABLE(ion_state, Xd_, gX_);
-
     bool write_eX_;          // is eX written?
     bool write_Xo_;          // is Xo written?
     bool write_Xi_;          // is Xi written?
@@ -67,9 +64,7 @@ struct ARB_ARBOR_API ion_state {
 
     ion_state() = default;
 
-    ion_state(const fvm_ion_config& ion_data,
-              unsigned align,
-              solver_ptr ptr);
+    ion_state(const fvm_ion_config& ion_data, unsigned align, solver_ptr ptr);
 
     // Set ion concentrations to weighted proportion of default concentrations.
     void init_concentration();
@@ -120,6 +115,8 @@ struct ARB_ARBOR_API istim_state {
 };
 
 struct mech_storage {
+    mech_storage() = default;
+    mech_storage(task_system_handle tp) : deliverable_events_(tp) {}
     array data_;
     iarray indices_;
     std::vector<arb_value_type>  globals_;
@@ -130,23 +127,10 @@ struct mech_storage {
     memory::device_vector<arb_value_type*> state_vars_d_;
     memory::device_vector<arb_ion_state>   ion_states_d_;
     random_numbers random_numbers_;
-    ARB_SERDES_ENABLE(mech_storage, data_, random_numbers_);
+    deliverable_event_stream deliverable_events_;
 };
 
 struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_state> {
-    // A bit more light-weight
-    ARB_SERDES_ENABLE(shared_state,
-                      cbprng_seed,
-                      ion_data,
-                      storage,
-                      voltage,
-                      conductivity,
-                      time_since_spike,
-                      time, time_to,
-                      dt_intdom,
-                      dt_cv,
-                      deliverable_events);
-
     task_system_handle thread_pool;
 
     using cable_solver = arb::gpu::matrix_state_fine<arb_value_type, arb_index_type>;
@@ -196,7 +180,7 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
                  const std::vector<arb_index_type>& cv_to_cell_vec,
                  const fvm_cv_discretization& D,
                  const std::vector<arb_index_type>& src_to_spike,
-                 const fvm_detector_info& detector,
+                 const fvm_detector_info& detector_info,
                  const std::unordered_map<std::string, fvm_ion_config>& ions,
                  const fvm_stimulus_config& stims,
                  unsigned align,
@@ -210,7 +194,7 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
                        D.diam_um,
                        D.cv_area,
                        src_to_spike,
-                       detector,
+                       detector_info,
                        align,
                        cbprng_seed_}
     {
@@ -229,7 +213,7 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
                  const std::vector<arb_value_type>& diam,
                  const std::vector<arb_value_type>& area,
                  const std::vector<arb_index_type>& src_to_spike,
-                 const fvm_detector_info& detector,
+                 const fvm_detector_info& detector_info,
                  unsigned, // align parameter ignored
                  arb_seed_type cbprng_seed_ = 0u);
 
@@ -264,4 +248,21 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s);
 
 } // namespace gpu
+
+ARB_SERDES_ENABLE_EXT(gpu::ion_state, Xd_, gX_);
+ARB_SERDES_ENABLE_EXT(gpu::mech_storage,
+                      data_,
+                      // NOTE(serdes) ion_states_, this is just a bunch of pointers
+                      random_numbers_,
+                      deliverable_events_);
+ARB_SERDES_ENABLE_EXT(gpu::shared_state,
+                      cbprng_seed,
+                      ion_data,
+                      storage,
+                      voltage,
+                      current_density,
+                      conductivity,
+                      time_since_spike,
+                      time, time_to,
+                      dt);
 } // namespace arb

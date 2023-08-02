@@ -1,7 +1,7 @@
 #pragma once
 
 #include <optional>
-#include <string_view>
+// #include <string_view>
 #include <string>
 #include <vector>
 #include <memory>
@@ -10,13 +10,14 @@
 #include <array>
 #include <stdexcept>
 
+#include <arbor/common_types.hpp>
 #include <arbor/export.hpp>
 
 namespace arb {
 
 // NOTE: Cannot use arbexcept since it include common_type, which includes this. Circular include!
 struct ARB_SYMBOL_VISIBLE serdes_error: std::runtime_error {
-    serdes_error(std::string_view w): std::runtime_error{std::string{w}} {}
+    serdes_error(const std::string& w): std::runtime_error{w} {}
 };
 
 struct ARB_SYMBOL_VISIBLE illegal_key_type: serdes_error {
@@ -86,7 +87,9 @@ struct serializer {
     void read(const serdes_key_type& k, unsigned long long& v) { wrapped->read(k, v); };
     void read(const serdes_key_type& k, double& v) { wrapped->read(k, v); };
 
-    std::optional<serdes_key_type> next_key() { return wrapped->next_key(); }
+    std::optional<serdes_key_type> next_key() {
+        return this->wrapped->next_key();
+    }
 
 private:
     struct interface {
@@ -111,10 +114,11 @@ private:
         virtual void end_read_map() = 0;
         virtual void begin_read_array(const serdes_key_type&) = 0;
         virtual void end_read_array() = 0;
+
     };
 
     template <typename I>
-    struct wrapper: interface {
+    struct wrapper final: interface {
         wrapper(I& i): inner(i) {}
         I& inner;
 
@@ -143,88 +147,93 @@ private:
         void end_read_array() override { inner.end_read_array(); }
     };
 
-    std::unique_ptr<interface> wrapped;
+    std::unique_ptr<interface> wrapped = nullptr;
 };
 
-// the actual interface
-template<typename K>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::string& v) {
-    ser.write(to_serdes_key(k), v);
-}
+// The actual interface. This needs to go to the global namespace as
+// A) friend in a class is just weird that way (it puts the defined function into the global namespace)
+// B) we want externals to add their classes
+//
 
 template<typename K>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, std::string_view v) {
-    ser.write(to_serdes_key(k), std::string{v});
+ARB_ARBOR_API void serialize(arb::serializer& ser, const K& k, const std::string& v) {
+    ser.write(arb::to_serdes_key(k), v);
 }
 
+// template<typename K>
+// ARB_ARBOR_API void serialize(serializer& ser, const K& k, std::string_view v) {
+    // ser.write(to_serdes_key(k), std::string{v});
+// }
+
 template<typename K>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const char* v) {
-    ser.write(to_serdes_key(k), std::string{v});
+ARB_ARBOR_API void serialize(arb::serializer& ser, const K& k, const char* v) {
+    ser.write(arb::to_serdes_key(k), std::string{v});
 }
 
 template<typename K, typename P>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, P* p) {
-    if (!p) throw null_error{k};
-    serialize(ser, to_serdes_key(k), *p);
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, P* p) {
+    if (!p) throw arb::null_error{k};
+    serialize(ser, arb::to_serdes_key(k), *p);
 }
 
 template<typename K, typename P>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::unique_ptr<P>& p) {
-    if (!p) throw null_error{k};
+ARB_ARBOR_API void
+serialize(::arb::serializer& ser, const K& k, const std::unique_ptr<P>& p) {
+    if (!p) throw arb::null_error{k};
     serialize(ser, k, *p);
 }
 
 template<typename K, typename P>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::shared_ptr<P>& p) {
-    if (!p) throw null_error{k};
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const std::shared_ptr<P>& p) {
+    if (!p) throw arb::null_error{k};
     serialize(ser, k, *p);
 }
 
 template<typename K>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, long v) {
-    ser.write(to_serdes_key(k), static_cast<long long>(v));
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, long v) {
+    ser.write(arb::to_serdes_key(k), static_cast<long long>(v));
 }
 
 template<typename K>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, int v) {
-    ser.write(to_serdes_key(k), static_cast<long long>(v));
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, int v) {
+    ser.write(arb::to_serdes_key(k), static_cast<long long>(v));
 }
 
 template<typename K>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, unsigned v) {
-    ser.write(to_serdes_key(k), static_cast<unsigned long long>(v));
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, unsigned v) {
+    ser.write(arb::to_serdes_key(k), static_cast<unsigned long long>(v));
 }
 
 template<typename K>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, unsigned long v) {
-    ser.write(to_serdes_key(k), static_cast<unsigned long long>(v));
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, unsigned long v) {
+    ser.write(arb::to_serdes_key(k), static_cast<unsigned long long>(v));
 }
 
 template<typename K>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const float v) {
-    ser.write(to_serdes_key(k), double{v});
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const float& v) {
+    ser.write(arb::to_serdes_key(k), double{v});
 }
 
 template<typename K>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const double v) {
-    ser.write(to_serdes_key(k), v);
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const double& v) {
+    ser.write(arb::to_serdes_key(k), v);
 }
 
 template<typename K>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const bool v) {
-    ser.write(to_serdes_key(k), static_cast<long long>(v));
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const bool v) {
+    ser.write(arb::to_serdes_key(k), static_cast<long long>(v));
 }
 
 template<typename K>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const unsigned long long v) {
-    ser.write(to_serdes_key(k), v);
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const unsigned long long v) {
+    ser.write(arb::to_serdes_key(k), v);
 }
 
 template <typename K,
           typename Q,
           typename V>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::unordered_map<Q, V>& v) {
-    ser.begin_write_map(to_serdes_key(k));
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const std::unordered_map<Q, V>& v) {
+    ser.begin_write_map(arb::to_serdes_key(k));
     for (const auto& [q, w]: v) serialize(ser, q, w);
     ser.end_write_map();
 }
@@ -232,8 +241,8 @@ ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::unordered_m
 template <typename K,
           typename Q,
           typename V>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::map<Q, V>& v) {
-    ser.begin_write_map(to_serdes_key(k));
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const std::map<Q, V>& v) {
+    ser.begin_write_map(arb::to_serdes_key(k));
     for (const auto& [q, w]: v) serialize(ser, q, w);
     ser.end_write_map();
 }
@@ -241,8 +250,16 @@ ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::map<Q, V>& 
 template <typename K,
           typename V,
           typename A>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::vector<V, A>& vs) {
-    ser.begin_write_array(to_serdes_key(k));
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const std::vector<V, A>& vs) {
+    ser.begin_write_array(arb::to_serdes_key(k));
+    for (std::size_t ix = 0; ix < vs.size(); ++ix) serialize(ser, ix, vs[ix]);
+    ser.end_write_array();
+}
+
+template <typename K,
+          typename V>
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const std::vector<V>& vs) {
+    ser.begin_write_array(arb::to_serdes_key(k));
     for (std::size_t ix = 0; ix < vs.size(); ++ix) serialize(ser, ix, vs[ix]);
     ser.end_write_array();
 }
@@ -250,98 +267,99 @@ ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::vector<V, A
 template <typename K,
           typename V,
           size_t N>
-ARB_ARBOR_API void serialize(serializer& ser, const K& k, const std::array<V, N>& vs) {
-    ser.begin_write_array(to_serdes_key(k));
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const std::array<V, N>& vs) {
+    ser.begin_write_array(arb::to_serdes_key(k));
     for (std::size_t ix = 0; ix < vs.size(); ++ix) serialize(ser, ix, vs[ix]);
     ser.end_write_array();
 }
 
 // Reading
 template<typename K>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::string& v) {
-    ser.read(to_serdes_key(k), v);
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, std::string& v) {
+    ser.read(arb::to_serdes_key(k), v);
 }
 
 template<typename K, typename P>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, P* p) {
-    if (!p) throw null_error{k};
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, P* p) {
+    if (!p) throw arb::null_error{k};
     deserialize(ser, to_serdes_key(k), *p);
 }
 
 template<typename K, typename P>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::unique_ptr<P>& p) {
-    if (!p) throw null_error{k};
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, std::unique_ptr<P>& p) {
+    if (!p) throw arb::null_error{k};
     deserialize(ser, k, *p);
 }
 
 template<typename K, typename P>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::shared_ptr<P>& p) {
-    if (!p) throw null_error{k};
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, std::shared_ptr<P>& p) {
+    if (!p) throw arb::null_error{k};
     deserialize(ser, k, *p);
 }
 
 template<typename K>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, long& v) {
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, long& v) {
     long long tmp;
-    ser.read(to_serdes_key(k), tmp);
+    ser.read(arb::to_serdes_key(k), tmp);
     v = tmp;
 }
 
 template<typename K>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, int& v) {
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, int& v) {
     long long tmp;
-    ser.read(to_serdes_key(k), tmp);
+    ser.read(arb::to_serdes_key(k), tmp);
     v = tmp;
 }
 
 template<typename K>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, unsigned& v) {
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, unsigned& v) {
     unsigned long long tmp;
-    ser.read(to_serdes_key(k), tmp);
+    ser.read(arb::to_serdes_key(k), tmp);
     v = tmp;
 }
 
 template<typename K>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, unsigned long& v) {
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, unsigned long& v) {
     unsigned long long tmp;
-    ser.read(to_serdes_key(k), tmp);
+    ser.read(arb::to_serdes_key(k), tmp);
     v = tmp;
 }
 
 template<typename K>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, unsigned long long& v) {
-    ser.read(to_serdes_key(k), v);
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, unsigned long long& v) {
+    ser.read(arb::to_serdes_key(k), v);
 }
 
 template<typename K>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, float& v) {
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, float& v) {
     double tmp;
-    ser.read(to_serdes_key(k), tmp);
+    ser.read(arb::to_serdes_key(k), tmp);
     v = tmp;
 }
 
 template<typename K>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, double& v) {
-    ser.read(to_serdes_key(k), v);
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, double& v) {
+    ser.read(arb::to_serdes_key(k), v);
 }
 
+
 template<typename K>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, bool& v) {
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, bool& v) {
     long long tmp;
-    ser.read(to_serdes_key(k), tmp);
+    ser.read(arb::to_serdes_key(k), tmp);
     v = tmp;
 }
 
 template <typename K,
           typename Q,
           typename V>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::unordered_map<Q, V>& vs) {
-    ser.begin_read_map(to_serdes_key(k));
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, std::unordered_map<Q, V>& vs) {
+    ser.begin_read_map(arb::to_serdes_key(k));
     for (;;) {
         auto q = ser.next_key();
         if (!q) break;
         typename std::remove_cv_t<Q> key;
-        from_serdes_key(key, *q);
+        arb::from_serdes_key(key, *q);
         if (!vs.count(key)) vs[key] = {}; // NOTE Must be default constructible anyhow
         deserialize(ser, *q, vs[key]);
     }
@@ -351,13 +369,13 @@ ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::unordered_map<Q
 template <typename K,
           typename Q,
           typename V>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::map<Q, V>& vs) {
-    ser.begin_read_map(to_serdes_key(k));
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, std::map<Q, V>& vs) {
+    ser.begin_read_map(arb::to_serdes_key(k));
     for (;;) {
         auto q = ser.next_key();
         if (!q) break;
         typename std::remove_cv_t<Q> key;
-        from_serdes_key(key, *q);
+        arb::from_serdes_key(key, *q);
         if (!vs.count(key)) vs[key] = {}; // NOTE Must be default constructible anyhow
         deserialize(ser, *q, vs[key]);
     }
@@ -367,8 +385,8 @@ ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::map<Q, V>& vs) 
 template <typename K,
           typename V,
           typename A>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::vector<V, A>& vs) {
-    ser.begin_read_array(to_serdes_key(k));
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, std::vector<V, A>& vs) {
+    ser.begin_read_array(arb::to_serdes_key(k));
     for (std::size_t ix = 0;; ++ix) {
         auto q = ser.next_key();
         if (!q) break;
@@ -381,8 +399,8 @@ ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::vector<V, A>& v
 template <typename K,
           typename V,
           size_t N>
-ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::array<V, N>& vs) {
-    ser.begin_read_array(to_serdes_key(k));
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, std::array<V, N>& vs) {
+    ser.begin_read_array(arb::to_serdes_key(k));
     for (std::size_t ix = 0; ix < vs.size(); ++ix) deserialize(ser, ix, vs[ix]);
     ser.end_read_array();
 }
@@ -441,15 +459,33 @@ ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::array<V, N>& vs
     friend ARB_ARBOR_API void serialize(::arb::serializer& ser,          \
                       const K& k,                                        \
                       const T& t) {                                      \
-        ser.begin_write_map(::arb::to_serdes_key(k));                           \
+        ser.begin_write_map(::arb::to_serdes_key(k));                    \
         ARB_SERDES_EXPAND(ARB_SERDES_PUT(ARB_SERDES_WRITE, __VA_ARGS__)) \
         ser.end_write_map();                                             \
     }                                                                    \
     template <typename K>                                                \
     friend ARB_ARBOR_API void deserialize(::arb::serializer& ser,        \
+                                          const K& k,                    \
+                                          T& t) {                        \
+        ser.begin_read_map(::arb::to_serdes_key(k));                     \
+        ARB_SERDES_EXPAND(ARB_SERDES_PUT(ARB_SERDES_READ, __VA_ARGS__))  \
+        ser.end_read_map();                                              \
+    }
+
+#define ARB_SERDES_ENABLE_EXT(T, ...)                                    \
+    template <typename K> inline                                         \
+    ARB_ARBOR_API void serialize(::arb::serializer& ser,                 \
+                                 const K& k,                             \
+                                 const T& t) {                           \
+        ser.begin_write_map(::arb::to_serdes_key(k));                    \
+        ARB_SERDES_EXPAND(ARB_SERDES_PUT(ARB_SERDES_WRITE, __VA_ARGS__)) \
+        ser.end_write_map();                                             \
+    }                                                                    \
+    template <typename K> inline                                         \
+    ARB_ARBOR_API void deserialize(::arb::serializer& ser,               \
                             const K& k,                                  \
                             T& t) {                                      \
-        ser.begin_read_map(::arb::to_serdes_key(k));                            \
+        ser.begin_read_map(::arb::to_serdes_key(k));                     \
         ARB_SERDES_EXPAND(ARB_SERDES_PUT(ARB_SERDES_READ, __VA_ARGS__))  \
         ser.end_read_map();                                              \
     }
@@ -469,4 +505,17 @@ ARB_ARBOR_API void deserialize(serializer& ser, const K& k, std::array<V, N>& vs
        deserialize(ser, k, tmp);                                         \
        t = static_cast<T>(tmp);                                          \
     }
+
+
+// #define ARB_SERDES_ENABLE(T, ...)
+// #define ARB_SERDES_ENABLE_EXT(T, ...)
+// #define ARB_SERDES_ENABLE_ENUM(T)
+
+// from common_types
+ARB_SERDES_ENABLE_EXT(arb::cell_member_type, gid, index);
+ARB_SERDES_ENABLE_ENUM(arb::lid_selection_policy);
+ARB_SERDES_ENABLE_EXT(arb::cell_local_label_type, tag, policy);
+ARB_SERDES_ENABLE_EXT(arb::cell_global_label_type, gid, label);
+ARB_SERDES_ENABLE_ENUM(arb::backend_kind);
+ARB_SERDES_ENABLE_ENUM(arb::cell_kind);
 } // arb

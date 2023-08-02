@@ -21,8 +21,18 @@ struct target_handle {
 
     target_handle(cell_local_size_type mech_id, cell_local_size_type mech_index):
         mech_id(mech_id), mech_index(mech_index) {}
+
     ARB_SERDES_ENABLE(target_handle, mech_id, mech_index);
 };
+
+}
+
+template<typename K>
+void serialize(arb::serializer &ser, const K &k, const arb::target_handle&);
+template<typename K>
+void deserialize(arb::serializer &ser, const K &k, arb::target_handle&);
+
+namespace arb {
 
 struct deliverable_event {
     time_type time = 0;

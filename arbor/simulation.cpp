@@ -11,6 +11,7 @@
 #include <arbor/schedule.hpp>
 #include <arbor/simulation.hpp>
 
+#include "epoch.hpp"
 #include "cell_group.hpp"
 #include "cell_group_factory.hpp"
 #include "communication/communicator.hpp"
@@ -174,6 +175,7 @@ public:
         t.local_spikes_[1].insert(tmp);
         ser.end_read_array();
     }
+
 private:
     // Record last computed epoch (integration interval).
     epoch epoch_;

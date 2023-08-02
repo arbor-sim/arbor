@@ -241,6 +241,14 @@ void lif_cell_group::advance_cell(time_type tfinal,
     }
 }
 
+void lif_cell_group::t_serialize(serializer& ser, const std::string& k) const {
+    serialize(ser, k, *this);
+}
+
+void lif_cell_group::t_deserialize(serializer& ser, const std::string& k) {
+    deserialize(ser, k, *this);
+}
+
 std::vector<probe_metadata> lif_cell_group::get_probe_metadata(cell_member_type key) const {
     if (probes_.count(key)) {
         return {probe_metadata{key, {}, 0, {&probes_.at(key).metadata}}};

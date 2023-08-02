@@ -22,6 +22,8 @@
 #include "util/range.hpp"
 #include "util/strprintf.hpp"
 
+#include <iostream>
+
 using arb::memory::make_const_view;
 
 namespace arb {
@@ -179,7 +181,7 @@ shared_state::shared_state(task_system_handle tp,
                            unsigned, // align parameter ignored
                            arb_seed_type cbprng_seed_):
     thread_pool(tp),
-    n_detector(detector.count),
+    n_detector(detector_info.count),
     n_cv(n_cv_),
     cv_to_cell(make_const_view(cv_to_cell_vec)),
     voltage(n_cv_),
@@ -193,7 +195,7 @@ shared_state::shared_state(task_system_handle tp,
     src_to_spike(make_const_view(src_to_spike_)),
     cbprng_seed(cbprng_seed_),
     sample_events(thread_pool),
-    watcher{n_cv_, src_to_spike.data(), detector}
+    watcher{n_cv_, src_to_spike.data(), detector_info}
 {
     memory::fill(time_since_spike, -1.0);
     add_scalar(temperature_degC.size(), temperature_degC.data(), -273.15);
@@ -238,8 +240,8 @@ void shared_state::instantiate(mechanism& m,
     m.ppack_.time_since_spike = time_since_spike.data();
     m.ppack_.n_detectors      = n_detector;
 
-    if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
-    auto& store = storage.emplace(id, thread_pool).first->second;
+    if (storage.count(id)) throw arb::arbor_internal_error("Duplicate mech id in shared state");
+    auto& store = storage.emplace(id, mech_storage{thread_pool}).first->second;
 
     // Allocate view pointers
     store.state_vars_ = std::vector<arb_value_type*>(m.mech_.n_state_vars);

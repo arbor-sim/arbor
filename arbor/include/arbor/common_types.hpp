@@ -12,7 +12,6 @@
 #include <iosfwd>
 #include <string>
 #include <type_traits>
-#include <arbor/serdes.hpp>
 
 #include <arbor/util/lexcmp_def.hpp>
 #include <arbor/util/hash_def.hpp>
@@ -55,8 +54,6 @@ using cell_local_size_type = std::make_unsigned_t<cell_lid_type>;
 struct cell_member_type {
     cell_gid_type gid;
     cell_lid_type index;
-
-    ARB_SERDES_ENABLE(cell_member_type, gid, index);
 };
 
 // Pair of indexes that describe range of local indices.
@@ -77,8 +74,6 @@ enum class lid_selection_policy {
     assert_univalent // throw if the range of possible lids is wider than 1
 };
 
-ARB_SERDES_ENABLE_ENUM(lid_selection_policy)
-
 // For referring to a labeled placement on an unspecified cell.
 // The placement may be associated with multiple locations, the policy
 // is used to select a specific location.
@@ -89,8 +84,6 @@ struct cell_local_label_type {
 
     cell_local_label_type(cell_tag_type tag, lid_selection_policy policy=lid_selection_policy::assert_univalent):
         tag(std::move(tag)), policy(policy) {}
-
-    ARB_SERDES_ENABLE(cell_local_label_type, tag, policy);
 };
 
 // For referring to a labeled placement on a cell identified by gid.
@@ -102,8 +95,6 @@ struct cell_global_label_type {
     cell_global_label_type(cell_gid_type gid, cell_local_label_type label): gid(gid), label(std::move(label)) {}
     cell_global_label_type(cell_gid_type gid, cell_tag_type tag): gid(gid), label(std::move(tag)) {}
     cell_global_label_type(cell_gid_type gid, cell_tag_type tag, lid_selection_policy policy): gid(gid), label(std::move(tag), policy) {}
-
-    ARB_SERDES_ENABLE(cell_global_label_type, gid, label);
 };
 
 struct cell_remote_label_type {
@@ -135,8 +126,6 @@ enum class backend_kind {
     gpu          //  Use gpu back-end when supported by cell_group implementation.
 };
 
-ARB_SERDES_ENABLE_ENUM(backend_kind)
-
 // Enumeration used to indentify the cell type/kind, used by the model to
 // group equal kinds in the same cell group.
 
@@ -146,8 +135,6 @@ enum class ARB_SYMBOL_VISIBLE cell_kind {
     spike_source, // Cell that generates spikes at a user-supplied sequence of time points.
     benchmark,    // Proxy cell used for benchmarking.
 };
-
-ARB_SERDES_ENABLE_ENUM(cell_kind)
 
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, lid_selection_policy m);
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, cell_member_type m);
