@@ -1,13 +1,19 @@
 Arbor
 =====
 
-|ci| |pythonwheels| |zlatest| |gitter| |matrix|
+|ci| |spack| |pip| |pythonwheels| |zlatest| |gitter| |matrix|
 
-.. |ci| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml/badge.svg
-    :target: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml
+.. |ci| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-matrix.yml/badge.svg
+    :target: https://github.com/arbor-sim/arbor/actions/workflows/test-matrix.yml
 
-.. |pythonwheels| image:: https://github.com/arbor-sim/arbor/actions/workflows/release.yml/badge.svg
-    :target: https://github.com/arbor-sim/arbor/actions/workflows/release.yml
+.. |spack| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-spack.yml/badge.svg
+    :target: https://github.com/arbor-sim/arbor/actions/workflows/test-spack.yml
+
+.. |pip| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-pip.yml/badge.svg
+    :target: https://github.com/arbor-sim/arbor/actions/workflows/test-pip.yml
+
+.. |pythonwheels| image:: https://github.com/arbor-sim/arbor/actions/workflows/build-pip-wheels.yml/badge.svg
+    :target: https://github.com/arbor-sim/arbor/actions/workflows/build-pip-wheels.yml
 
 .. |gitter| image:: https://badges.gitter.im/arbor-sim/community.svg
     :target: https://gitter.im/arbor-sim/community
