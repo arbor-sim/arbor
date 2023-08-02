@@ -205,6 +205,8 @@ resistivity, and membrane capacitance, as well as all ion parameters
     # initial value for the membrane potential
     decor.paint('(all)', Vm=(42, '(diameter)'))
 
+.. _cablecell-ions:
+
 5. Ion species
 ~~~~~~~~~~~~~~
 
@@ -295,6 +297,8 @@ using the *paint* interface:
 
     # Alternatively, one can selectively overwrite the global defaults.
     decor.paint('(tag 2)', arbor.ion('ca', rev_pot=126)
+
+.. _cablecell-ions-diffusion:
 
 To enable diffusion of ion species along the morphology (axial diffusion) one
 sets the per-species diffusivity to a positive value. It can be changed per

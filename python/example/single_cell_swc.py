@@ -29,7 +29,7 @@ labels = arbor.label_dict(
     {
         "root": "(root)",  # the start of the soma in this morphology is at the root of the cell.
         "stim_site": "(location 0 0.5)",  # site for the stimulus, in the middle of branch 0.
-        "axon_end": '(restrict (terminal) (region "axon"))',
+        "axon_end": '(restrict-to (terminal) (region "axon"))',
     }  # end of the axon.
 ).add_swc_tags()  # Finally, add the SWC default labels.
 

@@ -89,8 +89,8 @@ expected<std::vector<std::size_t>, cycle_detected> topological_sort(std::size_t 
     using std::begin;
     using std::end;
 
-    constexpr std::size_t unknown = -1;
-    constexpr std::size_t cycle = -2;
+    constexpr std::size_t unknown = static_cast<std::size_t>(-1);
+    constexpr std::size_t cycle = static_cast<std::size_t>(-2);
 
     std::vector<std::size_t> depth(n, unknown);
     std::stack<std::size_t> stack;

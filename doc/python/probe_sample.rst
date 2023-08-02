@@ -134,6 +134,7 @@ The script is complete and can be run with Arbor installed, and will output:
    * Meta: (location 0 1)
    * Payload: (10, 2)
 
+.. _pycablecell-probesample-api:
 
 API
 ---
@@ -313,6 +314,8 @@ Ionic diffusion concrentration
    sites specified by the location expression string ``where``.
 
    Metadata: the list of corresponding :class:`cable` objects.
+
+.. _pycablecell-probesample-lif:
 
 LIF Cell probing
 ================

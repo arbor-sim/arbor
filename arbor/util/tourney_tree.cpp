@@ -136,7 +136,7 @@ const spike_event& tourney_tree::event(unsigned i) const {
     return heap_[i].second;
 }
 
-void tree_merge_events(std::vector<event_span>& sources, pse_vector& out) {
+void ARB_ARBOR_API tree_merge_events(std::vector<event_span>& sources, pse_vector& out) {
     tourney_tree tree(sources);
     while (!tree.empty()) {
         out.push_back(tree.head());
