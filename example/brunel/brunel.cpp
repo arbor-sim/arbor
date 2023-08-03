@@ -27,8 +27,6 @@
 
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
-#include <sup/path.hpp>
-#include <sup/strsub.hpp>
 
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
