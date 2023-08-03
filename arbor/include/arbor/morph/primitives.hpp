@@ -4,8 +4,6 @@
 #include <cstdlib>
 #include <cstdint>
 #include <ostream>
-#include <string>
-#include <sstream>
 #include <vector>
 
 #include <arbor/export.hpp>
