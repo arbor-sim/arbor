@@ -96,40 +96,39 @@ struct ARB_SYMBOL_VISIBLE threshold_detector {
 // cell-wide default:
 
 struct ARB_SYMBOL_VISIBLE init_membrane_potential {
-    double value = NAN; // [mV]
+    iexpr value = NAN;         // [mV]
 };
 
 struct ARB_SYMBOL_VISIBLE temperature_K {
-    double value = NAN; // [K]
+    iexpr value = NAN;         // [K]
 };
 
 struct ARB_SYMBOL_VISIBLE axial_resistivity {
-    double value = NAN; // [Ω·cm]
+    iexpr value = NAN;         // [Ω·cm]
 };
 
 struct ARB_SYMBOL_VISIBLE membrane_capacitance {
-    double value = NAN; // [F/m²]
+    iexpr value = NAN;         // [F/m²]
 };
 
 struct ARB_SYMBOL_VISIBLE init_int_concentration {
     std::string ion = "";
-    double value = NAN; // [mM]
+    iexpr value = NAN;         // [mM]
 };
-
 
 struct ARB_SYMBOL_VISIBLE ion_diffusivity {
     std::string ion = "";
-    double value = NAN; // [m^2/s]
+    iexpr value = NAN;         // [m^2/s]
 };
 
 struct ARB_SYMBOL_VISIBLE init_ext_concentration {
     std::string ion = "";
-    double value = NAN; // [mM]
+    iexpr value = NAN;         // [mM]
 };
 
 struct ARB_SYMBOL_VISIBLE init_reversal_potential {
     std::string ion = "";
-    double value = NAN; // [mV]
+    iexpr value = NAN;         // [mV]
 };
 
 // Mechanism description, viz. mechanism name and

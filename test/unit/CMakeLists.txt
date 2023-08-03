@@ -111,7 +111,6 @@ set(unit_sources
     test_padded.cpp
     test_partition.cpp
     test_partition_by_constraint.cpp
-    test_path.cpp
     test_piecewise.cpp
     test_pp_util.cpp
     test_probe.cpp

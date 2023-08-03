@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <stdexcept>
 #include <string>
+#include <filesystem>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/morph/label_dict.hpp>
@@ -48,7 +49,7 @@ ARB_ARBORIO_API asc_morphology parse_asc_string(const char* input);
 ARB_ARBORIO_API arb::segment_tree parse_asc_string_raw(const char* input);
 
 // Load asc morphology from file with name filename.
-ARB_ARBORIO_API asc_morphology load_asc(std::string filename);
-ARB_ARBORIO_API arb::segment_tree load_asc_raw(std::string filename);
+ARB_ARBORIO_API asc_morphology load_asc(const std::filesystem::path& filename);
+ARB_ARBORIO_API arb::segment_tree load_asc_raw(const std::filesystem::path&filename);
 
 } // namespace arborio

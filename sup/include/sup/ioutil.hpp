@@ -13,9 +13,9 @@
 
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 
 #include <sup/export.hpp>
-#include <sup/path.hpp>
 
 namespace sup {
 
@@ -89,9 +89,9 @@ private:
     bool mask_;
 };
 
-ARB_SUP_API std::fstream open_or_throw(const sup::path& p, std::ios_base::openmode, bool exclusive);
+ARB_SUP_API std::fstream open_or_throw(const std::filesystem::path& p, std::ios_base::openmode, bool exclusive);
 
-inline std::fstream open_or_throw(const sup::path& p, bool exclusive) {
+inline std::fstream open_or_throw(const std::filesystem::path& p, bool exclusive) {
     using std::ios_base;
     return open_or_throw(p, ios_base::in|ios_base::out, exclusive);
 }
