@@ -1,9 +1,12 @@
 name: Sanitize
 
 on:
-  pull_request:
+  push:
     branches: [ master ]
     paths-ignore: 'doc/**'
+
+  schedule:
+    - cron: '0 2 * * *' # run at 2 AM every day
 
 jobs:
   build:
