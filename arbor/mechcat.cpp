@@ -605,7 +605,7 @@ ARB_ARBOR_API const mechanism_catalogue load_catalogue(const std::filesystem::pa
         throw bad_catalogue_error{e.what(), {e}};
     }
     if (!get_catalogue) {
-        throw bad_catalogue_error{fmt::format("Unusable symbol 'get_catalogue' in shared object '{}'", fn)};
+        throw bad_catalogue_error{fmt::format("Unusable symbol 'get_catalogue' in shared object '{}'", fn.string())};
     }
     /* The DSO handle is not freed here: handles will be retained until
      * termination since the mechanisms provided by the catalogue may have a
@@ -615,14 +615,14 @@ ARB_ARBOR_API const mechanism_catalogue load_catalogue(const std::filesystem::pa
     int count = -1;
     auto mechs = (arb_mechanism*)get_catalogue(&count);
     if (count <= 0) {
-        throw bad_catalogue_error{fmt::format("Invalid mechanism count {} in shared object '{}'", count, fn)};
+        throw bad_catalogue_error{fmt::format("Invalid mechanism count {} in shared object '{}'", count, fn.string())};
     }
     mechanism_catalogue result;
     for(int ix = 0; ix < count; ++ix) {
         auto type = mechs[ix].type();
         auto name = std::string{type.name};
         if (name.empty()) {
-            throw bad_catalogue_error{fmt::format("Empty name for mechanism in '{}'", fn)};
+            throw bad_catalogue_error{fmt::format("Empty name for mechanism in '{}'", fn.string())};
         }
         auto icpu = mechs[ix].i_cpu();
         auto igpu = mechs[ix].i_gpu();

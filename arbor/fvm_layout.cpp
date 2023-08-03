@@ -343,7 +343,7 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
                 auto sc = ie->eval(provider, cable);
                 if (def <= 0.0 || std::isnan(def)) {
                     throw make_cc_error("Illegal diffusivity '{}' for ion '{}' at cable {}."
-                                        " Please check your expressions.", sc, ion, cable);
+                                        " Please check your expressions.", sc, ion, to_string(cable));
                 }
                 return sc;
             };
