@@ -181,7 +181,9 @@ struct cable_cell_impl {
             if (c.prox_pos == c.dist_pos) continue;
 
             if (!mm.insert(c, {prop.t_mech, im})) {
-                throw cable_cell_error(util::pprintf("cable {} overpaints", c));
+                std::stringstream rg; rg << reg;
+                throw cable_cell_error(util::pprintf("Setting mechanism '{}' on region '{}' overpaints at cable {}",
+                                                     prop.t_mech.mech.name(), rg.str(), c));
             }
         }
     }

@@ -25,7 +25,7 @@ struct linear: public recipe {
      linear(double ext, double dx, double Xi, double beta): l{ext}, d{dx}, i{Xi}, b{beta} {
         gprop.default_parameters = neuron_parameter_defaults;
         gprop.default_parameters.discretization = cv_policy_max_extent{d};
-        gprop.add_ion("bla", 1, 23, 42, 0, 0);
+        gprop.add_ion("bla", 1, 23, 42, 0, b);
     }
 
     cell_size_type num_cells()                                   const override { return 1; }
@@ -42,6 +42,7 @@ struct linear: public recipe {
         // Setup
         decor decor;
         decor.set_default(init_int_concentration{"na", i});
+        decor.set_default(ion_diffusivity{"na", b});
         decor.paint("(tag 1)"_reg, ion_diffusivity{"na", b});
         decor.place("(location 0 0.5)"_ls, synapse("inject/x=bla", {{"alpha", 200.0*l}}), "Zap");
         decor.paint("(all)"_reg, density("decay/x=bla"));
