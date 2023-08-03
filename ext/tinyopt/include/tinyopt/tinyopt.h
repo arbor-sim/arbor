@@ -568,7 +568,9 @@ using unary_argument_type_t = typename unary_argument_type<T>::type;
 
 struct sink {
     // Tag class for constructor.
-    static struct action_t {} action;
+    struct action_t {};
+
+    constexpr static action_t action{};
 
     sink():
         sink(action, [](const char*) { return true; })

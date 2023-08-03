@@ -19,11 +19,13 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Have LTO where possible, ie add -flto
 check_ipo_supported(RESULT HAVE_LTO OUTPUT ERR_LTO)
-if(HAVE_LTO AND NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
-  message (STATUS "LTO support found, enabling")
-  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-else()
-  message(STATUS "No LTO: ${ERR_LTO}")
+if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+  if(HAVE_LTO)
+    message (STATUS "LTO support found, enabling")
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+  else()
+    message(STATUS "No LTO: ${ERR_LTO}")
+  endif()
 endif()
 
 # Turn on this option to force the compilers to produce color output when output is
@@ -287,13 +289,29 @@ set(arbor_supported_components)
 # Target microarchitecture for building arbor libraries, tests and examples
 #---------------------------------------------------------------------------
 
+set(ARB_SVE_WIDTH "auto" CACHE STRING "Default SVE vector length in bits. Default: auto (detection during configure time).")
+mark_as_advanced(ARB_SVE_WIDTH)
+if (ARB_SVE_WIDTH STREQUAL "auto")
+    get_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
+    if (ARB_HAS_SVE)
+        message(STATUS "SVE detected with vector size = ${ARB_SVE_BITS} bits")
+        set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
+    else()
+        message(STATUS "NO SVE detected")
+        set(ARB_CXX_SVE_FLAGS "")
+    endif()
+else()
+    set(ARB_SVE_BITS ${ARB_SVE_WIDTH})
+    set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
+endif()
+
 # Set the full set of target flags in ARB_CXX_FLAGS_TARGET_FULL, which
 # will include target-specific -march flags if ARB_ARCH is not "none".
 if(ARB_ARCH STREQUAL "none")
-    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET})
+    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXX_SVE_FLAGS})
 else()
     set_arch_target(ARB_CXXOPT_ARCH ${ARB_ARCH})
-    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH})
+    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH} ${ARB_CXX_SVE_FLAGS})
 endif()
 
 # Compile with `-fvisibility=hidden` to ensure that the symbols of the generated

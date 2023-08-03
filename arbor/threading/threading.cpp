@@ -89,7 +89,7 @@ void task_system::run(priority_task ptsk) {
 }
 
 void task_system::run_tasks_loop(int index) {
-    auto guard = util::on_scope_exit([] { current_task_queue_ = -1; });
+    auto guard = util::on_scope_exit([] { current_task_queue_ = nil; });
     current_task_queue_ = index;
     if (bind_) set_affinity(index, count_, affinity_kind::thread);
     while (true) {
@@ -128,7 +128,7 @@ void task_system::try_run_task(int lowest_priority) {
 }
 
 thread_local int task_system::current_task_priority_ = -1;
-thread_local unsigned task_system::current_task_queue_ = -1;
+thread_local unsigned task_system::current_task_queue_ = task_system::nil;
 
 // Default construct with one thread.
 task_system::task_system(): task_system(1) {}
@@ -161,7 +161,7 @@ task_system::task_system(int nthreads, bool bind):
 
 task_system::~task_system() {
     current_task_priority_ = -1;
-    current_task_queue_ = -1;
+    current_task_queue_ = nil;
     for (auto& e: q_) e.quit();
     for (auto& e: threads_) e.join();
 }

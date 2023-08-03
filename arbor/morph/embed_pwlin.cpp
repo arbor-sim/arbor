@@ -197,20 +197,20 @@ double embed_pwlin::integrate_ixa(const mcable& c) const {
 
 // Integrate piecewise function over a cable:
 
-static pw_constant_fn restrict(const pw_constant_fn& g, double left, double right) {
+static pw_constant_fn restrict_to(const pw_constant_fn& g, double left, double right) {
     return pw_zip_with(g, pw_elements<void>{{left, right}});
 }
 
 double embed_pwlin::integrate_length(const mcable& c, const pw_constant_fn& g) const {
-    return integrate_length(c.branch, restrict(g, c.prox_pos, c.dist_pos));
+    return integrate_length(c.branch, restrict_to(g, c.prox_pos, c.dist_pos));
 }
 
 double embed_pwlin::integrate_area(const mcable& c, const pw_constant_fn& g) const {
-    return integrate_area(c.branch, restrict(g, c.prox_pos, c.dist_pos));
+    return integrate_area(c.branch, restrict_to(g, c.prox_pos, c.dist_pos));
 }
 
 double embed_pwlin::integrate_ixa(const mcable& c, const pw_constant_fn& g) const {
-    return integrate_ixa(c.branch, restrict(g, c.prox_pos, c.dist_pos));
+    return integrate_ixa(c.branch, restrict_to(g, c.prox_pos, c.dist_pos));
 }
 
 // Subregions defined by geometric inequalities:

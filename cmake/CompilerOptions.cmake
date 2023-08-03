@@ -141,6 +141,26 @@ function(set_arch_target optvar arch)
 
 endfunction()
 
+# Set ${has_sve} and ${sve_length} in parent scope according to auto detection.
+function(get_sve_length has_sve sve_length)
+    try_run(run_var cc_var ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/cmake/sve_length.cpp RUN_OUTPUT_VARIABLE out_var)
+
+    if(NOT cc_var)
+        message(FATAL_ERROR "compilation of ${PROJECT_SOURCE_DIR}/cmake/sve_length.cpp failed")
+    endif()
+    if (run_var STREQUAL FAILED_TO_RUN)
+        message(FATAL_ERROR "execution of ${PROJECT_SOURCE_DIR}/cmake/sve_length.cpp failed")
+    endif()
+
+    if(run_var STREQUAL "0")
+        set("${has_sve}" OFF PARENT_SCOPE)
+    else()
+        set("${has_sve}" ON PARENT_SCOPE)
+    endif()
+    set("${sve_length}" "${out_var}" PARENT_SCOPE)
+
+endfunction()
+
 function(export_visibility target)
     # mangle target name to correspond to cmake naming
     string(REPLACE "-" "_" target_name ${target})

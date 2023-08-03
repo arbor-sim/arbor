@@ -556,7 +556,6 @@ iexpr_ptr thingify(const iexpr& expr, const mprovider& m) {
     }
 
     throw std::runtime_error("thingify iexpr: Unknown iexpr type");
-    return nullptr;
 }
 
 std::ostream& operator<<(std::ostream& o, const iexpr& e) {

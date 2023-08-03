@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <iostream>
 
+#include <arbor/simd/sve_bits.hpp>
 #include <arbor/util/pp_util.hpp>
 
 #include "approx.hpp"
@@ -16,6 +17,9 @@
 namespace arb {
 namespace simd {
 namespace detail {
+
+// number of elements in a vector
+static constexpr unsigned max_sve_width = sve_bits/64;
 
 struct sve_double;
 struct sve_int;
@@ -33,7 +37,7 @@ template<> struct is_sve<svbool_t>    : std::true_type {};
 
 template <>
 struct simd_traits<sve_mask> {
-    static constexpr unsigned width = 8;
+    static constexpr unsigned width = max_sve_width;
     using scalar_type = bool;
     using vector_type = svbool_t;
     using mask_impl = sve_mask;
@@ -43,7 +47,7 @@ struct simd_traits<sve_mask> {
 
 template <>
 struct simd_traits<sve_double> {
-    static constexpr unsigned width = 8;
+    static constexpr unsigned width = max_sve_width;
     using scalar_type = double;
     using vector_type = svfloat64_t;
     using mask_impl = sve_mask;
@@ -53,7 +57,7 @@ struct simd_traits<sve_double> {
 
 template <>
 struct simd_traits<sve_int> {
-    static constexpr unsigned width = 8;
+    static constexpr unsigned width = max_sve_width;
     using scalar_type = int32_t;
     using vector_type = svint64_t;
     using mask_impl = sve_mask;
@@ -453,7 +457,7 @@ struct sve_double {
 
         // Compute n and g.
 
-        auto n = svrintz_f64_z(svptrue_b64(), add(mul(broadcast(ln2inv), x), broadcast(0.5)));
+        auto n = svrintm_f64_z(svptrue_b64(), add(mul(broadcast(ln2inv), x), broadcast(0.5)));
 
         auto g = fma(n, broadcast(-ln2C1), x);
         g = fma(n, broadcast(-ln2C2), g);
