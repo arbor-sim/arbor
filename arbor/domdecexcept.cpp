@@ -8,8 +8,6 @@
 
 namespace arb {
 
-using util::to_string;
-
 invalid_gj_cell_group::invalid_gj_cell_group(cell_gid_type gid_0, cell_gid_type gid_1):
     dom_dec_exception(fmt::format("cell {} needs to be in the same group as cell {} because they are connected via gap-junction.",
                               gid_0, gid_1)),
@@ -46,7 +44,7 @@ invalid_backend::invalid_backend(int rank):
 incompatible_backend::incompatible_backend(int rank, cell_kind kind):
     dom_dec_exception(fmt::format("rank {} contains a group with cells of kind {1} meant to run on the GPU backend, "
                                   "but no GPU backend support exists for {1}",
-                                  rank, to_string(kind))),
+                                  rank, util::to_string(kind))),
     rank(rank),
     kind(kind)
 {}

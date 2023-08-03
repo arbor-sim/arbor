@@ -20,8 +20,6 @@
 
 namespace arb {
 
-using util::to_string;
-
 using value_type = cable_cell::value_type;
 using index_type = cable_cell::index_type;
 using size_type = cable_cell::size_type;
@@ -195,7 +193,7 @@ struct cable_cell_impl {
             if (!mm.insert(c, {prop.t_mech, im})) {
                 throw cable_cell_error(fmt::format("Painting density mechanism '{}' on region '{}' overpaints at '{}'.",
                                                    prop.t_mech.mech.name(),
-                                                   to_string(c)));
+                                                   util::to_string(c)));
             }
         }
     }
@@ -213,7 +211,7 @@ struct cable_cell_impl {
                 throw cable_cell_error(fmt::format("Setting property '{}' on region '{}' overpaints at '{}'",
                                                    show(prop),
                                                    show(reg),
-                                                   to_string(c)));
+                                                   util::to_string(c)));
             }
         }
     }

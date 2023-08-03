@@ -10,8 +10,6 @@
 #include <fmt/format.h>
 
 namespace arb {
-using util::to_string;
-
 arbor_exception::arbor_exception(const std::string& what):
     std::runtime_error{what} {
     // Backtrace w/o this c'tor and that of backtrace.
@@ -27,14 +25,14 @@ arbor_internal_error::arbor_internal_error(const std::string& what):
 domain_error::domain_error(const std::string& w): arbor_exception(w) {}
 
 bad_cell_probe::bad_cell_probe(cell_kind kind, cell_gid_type gid):
-    arbor_exception(fmt::format("Probe kind is not supported for cell with gid {} of kind {}. Possibly the cell kind is not probeable at all.", gid, to_string(kind))),
+    arbor_exception(fmt::format("Probe kind is not supported for cell with gid {} of kind {}. Possibly the cell kind is not probeable at all.", gid, util::to_string(kind))),
     gid(gid),
     kind(kind)
 {}
 
 bad_cell_description::bad_cell_description(cell_kind kind, cell_gid_type gid):
 
-    arbor_exception(fmt::format("recipe::get_cell_kind(gid={}) -> {} does not match the cell type provided by recipe::get_cell_description(gid={})", gid, to_string(kind), gid)),
+    arbor_exception(fmt::format("recipe::get_cell_kind(gid={}) -> {} does not match the cell type provided by recipe::get_cell_description(gid={})", gid, util::to_string(kind), gid)),
     gid(gid),
     kind(kind)
 {}
@@ -65,7 +63,7 @@ bad_connection_label::bad_connection_label(cell_gid_type gid, const cell_tag_typ
 {}
 
 bad_global_property::bad_global_property(cell_kind kind):
-    arbor_exception(fmt::format("bad global property for cell kind {}", to_string(kind))),
+    arbor_exception(fmt::format("bad global property for cell kind {}", util::to_string(kind))),
     kind(kind)
 {}
 

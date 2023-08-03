@@ -28,8 +28,6 @@ using testing::cablelist_eq;
 using testing::mlocationlist_eq;
 
 TEST(region, expr_repn) {
-    using util::to_string;
-
     auto c1 = reg::cable(1, 0, 1);
     auto c2 = reg::cable(4, 0.125, 0.5);
     auto c3 = join(reg::cable(4, 0.125, 0.5), reg::cable(3, 0, 1));
@@ -42,20 +40,20 @@ TEST(region, expr_repn) {
     auto df = difference(t2, t1);
     auto cm = complement(t3);
 
-    EXPECT_EQ(to_string(c1), "(cable 1 0 1)");
-    EXPECT_EQ(to_string(c2), "(cable 4 0.125 0.5)");
-    EXPECT_EQ(to_string(c3), "(join (cable 4 0.125 0.5) (cable 3 0 1))");
-    EXPECT_EQ(to_string(b1), "(cable 1 0 1)");
-    EXPECT_EQ(to_string(t1), "(tag 1)");
-    EXPECT_EQ(to_string(t2), "(tag 2)");
-    EXPECT_EQ(to_string(s),  "(complete (tag 3))");
-    EXPECT_EQ(to_string(intersect(c1, t2)), "(intersect (cable 1 0 1) (tag 2))");
-    EXPECT_EQ(to_string(join(c1, t2)),  "(join (cable 1 0 1) (tag 2))");
-    EXPECT_EQ(to_string(join(t1, t2, t3)), "(join (join (tag 1) (tag 2)) (tag 3))");
-    EXPECT_EQ(to_string(intersect(t1, t2, t3)), "(intersect (intersect (tag 1) (tag 2)) (tag 3))");
-    EXPECT_EQ(to_string(all), "(all)");
-    EXPECT_EQ(to_string(df), "(difference (tag 2) (tag 1))");
-    EXPECT_EQ(to_string(cm), "(complement (tag 3))");
+    EXPECT_EQ(util::to_string(c1), "(cable 1 0 1)");
+    EXPECT_EQ(util::to_string(c2), "(cable 4 0.125 0.5)");
+    EXPECT_EQ(util::to_string(c3), "(join (cable 4 0.125 0.5) (cable 3 0 1))");
+    EXPECT_EQ(util::to_string(b1), "(cable 1 0 1)");
+    EXPECT_EQ(util::to_string(t1), "(tag 1)");
+    EXPECT_EQ(util::to_string(t2), "(tag 2)");
+    EXPECT_EQ(util::to_string(s),  "(complete (tag 3))");
+    EXPECT_EQ(util::to_string(intersect(c1, t2)), "(intersect (cable 1 0 1) (tag 2))");
+    EXPECT_EQ(util::to_string(join(c1, t2)),  "(join (cable 1 0 1) (tag 2))");
+    EXPECT_EQ(util::to_string(join(t1, t2, t3)), "(join (join (tag 1) (tag 2)) (tag 3))");
+    EXPECT_EQ(util::to_string(intersect(t1, t2, t3)), "(intersect (intersect (tag 1) (tag 2)) (tag 3))");
+    EXPECT_EQ(util::to_string(all), "(all)");
+    EXPECT_EQ(util::to_string(df), "(difference (tag 2) (tag 1))");
+    EXPECT_EQ(util::to_string(cm), "(complement (tag 3))");
 }
 
 TEST(region, invalid_mcable) {
@@ -65,8 +63,6 @@ TEST(region, invalid_mcable) {
 }
 
 TEST(locset, expr_repn) {
-    using util::to_string;
-
     auto root = ls::root();
     auto term = ls::terminal();
     auto loc = ls::location(2, 0.5);
@@ -74,14 +70,14 @@ TEST(locset, expr_repn) {
     auto prox = ls::proximal_translate(ls::terminal(), 100);
     auto dist = ls::distal_translate(ls::root(), 42);
 
-    EXPECT_EQ(to_string(root), "(root)");
-    EXPECT_EQ(to_string(term), "(terminal)");
-    EXPECT_EQ(to_string(sum(root, term)), "(sum (root) (terminal))");
-    EXPECT_EQ(to_string(sum(root, term, loc)), "(sum (sum (root) (terminal)) (location 2 0.5))");
-    EXPECT_EQ(to_string(loc), "(location 2 0.5)");
-    EXPECT_EQ(to_string(bdy), "(boundary (tag 1))");
-    EXPECT_EQ(to_string(prox), "(proximal-translate (terminal) 100)");
-    EXPECT_EQ(to_string(dist), "(distal-translate (root) 42)");
+    EXPECT_EQ(util::to_string(root), "(root)");
+    EXPECT_EQ(util::to_string(term), "(terminal)");
+    EXPECT_EQ(util::to_string(sum(root, term)), "(sum (root) (terminal))");
+    EXPECT_EQ(util::to_string(sum(root, term, loc)), "(sum (sum (root) (terminal)) (location 2 0.5))");
+    EXPECT_EQ(util::to_string(loc), "(location 2 0.5)");
+    EXPECT_EQ(util::to_string(bdy), "(boundary (tag 1))");
+    EXPECT_EQ(util::to_string(prox), "(proximal-translate (terminal) 100)");
+    EXPECT_EQ(util::to_string(dist), "(distal-translate (root) 42)");
 }
 
 TEST(locset, invalid_mlocation) {

@@ -8,34 +8,29 @@
 
 #include "io/pprintf.hpp"
 
+#include <fmt/format.h>
+#include <fmt/color.h>
+
 // specialize on const char* for lazy evaluation of compile time strings
 bool Parser::expect(tok tok, const char* str) {
-    if (tok == token_.type) {
-        return true;
-    }
-
-    error(
-        strlen(str) > 0 ? str
-                        : std::string("unexpected token ") + yellow(token_.spelling));
-
+    if (tok == token_.type) return true;
+    error(strlen(str) > 0
+          ? str
+          : fmt::format("unexpected token {}", fmt::styled(token_.spelling, fmt::fg(fmt::color::yellow))));
     return false;
 }
 
 bool Parser::expect(tok tok, std::string const& str) {
-    if (tok == token_.type) {
-        return true;
-    }
-
-    error(
-        str.size() > 0 ? str
-                       : std::string("unexpected token ") + yellow(token_.spelling));
-
+    if (tok == token_.type) return true;
+    error(str.size() > 0
+          ? str
+          : fmt::format("unexpected token {}", fmt::styled(token_.spelling, fmt::fg(fmt::color::yellow))));
     return false;
 }
 
 void Parser::error(std::string msg) {
-    std::string location_info = pprintf(
-        "%:% ", module_ ? module_->source_name() : "", token_.location);
+    std::string location_info = fmt::format(
+        "{} {}:{} ", module_ ? module_->source_name() : "", token_.location.line, token_.location.column);
     if (status_ == lexerStatus::error) {
         // append to current string
         error_string_ += "\n" + white(location_info) + "\n  " + msg;

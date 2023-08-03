@@ -22,8 +22,6 @@
 
 namespace arb {
 
-using util::to_string;
-
 ARB_ARBOR_API domain_decomposition partition_load_balance(
     const recipe& rec,
     context ctx,
@@ -189,12 +187,12 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(
             hint = opt_hint.value();
             if(!hint.cpu_group_size) {
                 throw arbor_exception(fmt::format("unable to perform load balancing because {} has invalid suggested cpu_cell_group size of {}",
-                                                  to_string(k),
+                                                  util::to_string(k),
                                                   hint.cpu_group_size));
             }
             if(hint.prefer_gpu && !hint.gpu_group_size) {
                 throw arbor_exception(fmt::format("unable to perform load balancing because {} has invalid suggested gpu_cell_group size of {}",
-                                                  to_string(k),
+                                                  util::to_string(k),
                                                   hint.gpu_group_size));
             }
         }

@@ -8,14 +8,13 @@
 #include <arbor/morph/morphexcept.hpp>
 
 namespace arb {
-    using util::to_string;
 
 static std::string msize_string(msize_t x) {
     return x==mnpos? "mnpos": fmt::format("{}", x);
 }
 
 invalid_mlocation::invalid_mlocation(mlocation loc):
-    morphology_error(fmt::format("invalid mlocation {}", to_string(loc))),
+    morphology_error(fmt::format("invalid mlocation {}", util::to_string(loc))),
     loc(loc)
 {}
 
@@ -30,7 +29,7 @@ no_such_segment::no_such_segment(msize_t id):
 {}
 
 invalid_mcable::invalid_mcable(mcable cable):
-    morphology_error(fmt::format("invalid mcable {}", to_string(cable))),
+    morphology_error(fmt::format("invalid mcable {}", util::to_string(cable))),
     cable(cable)
 {}
 

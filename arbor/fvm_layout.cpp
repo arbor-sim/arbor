@@ -32,8 +32,6 @@
 #include <fmt/format.h>
 
 namespace arb {
-
-using util::to_string;
 using util::assign;
 using util::assign_by;
 using util::count_along;
@@ -343,7 +341,7 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
                 auto sc = ie->eval(provider, cable);
                 if (def <= 0.0 || std::isnan(def)) {
                     throw make_cc_error("Illegal diffusivity '{}' for ion '{}' at cable {}."
-                                        " Please check your expressions.", sc, ion, to_string(cable));
+                                        " Please check your expressions.", sc, ion, util::to_string(cable));
                 }
                 return sc;
             };
