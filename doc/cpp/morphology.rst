@@ -567,7 +567,7 @@ regions and locations.
 
    .. cpp:member:: arb::label_dict labels
 
-.. cpp:function:: asc_morphology load_asc(const std::string& filename)
+.. cpp:function:: asc_morphology load_asc(const std::filesystem::path& filename)
 
    Parse a Neurolucida ASCII file.
    Throws an exception if there is an error parsing the file.
