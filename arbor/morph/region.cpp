@@ -13,7 +13,6 @@
 
 #include "util/mergeview.hpp"
 #include "util/span.hpp"
-#include "util/strprintf.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
 

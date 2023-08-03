@@ -130,7 +130,6 @@ set(unit_sources
     test_spikes.cpp
     test_spike_store.cpp
     test_stats.cpp
-    test_strprintf.cpp
     test_swcio.cpp
     test_synapses.cpp
     test_s_expr.cpp
@@ -188,6 +187,24 @@ make_catalogue_standalone(
 
 target_link_libraries(dummy-catalogue PRIVATE arbor-private-deps)
 add_dependencies(unit dummy-catalogue)
+
+if (ARB_USE_BUNDLED_FMT)
+    target_include_directories(unit
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+        PRIVATE
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../ext/fmt/include>)
+
+    target_compile_definitions(unit PRIVATE FMT_HEADER_ONLY)
+else()
+    target_include_directories(unit
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+    find_package(fmt REQUIRED)
+    target_link_libraries(unit PRIVATE fmt::fmt-header-only)
+endif()
 
 target_link_libraries(unit PRIVATE arbor-private-deps)
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../swc\"")

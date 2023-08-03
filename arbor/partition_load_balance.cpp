@@ -1,4 +1,6 @@
 #include <queue>
+#include <string>
+#include <sstream>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -18,7 +20,11 @@
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
+#include <fmt/format.h>
+
 namespace arb {
+
+using util::to_string;
 
 ARB_ARBOR_API domain_decomposition partition_load_balance(
     const recipe& rec,
@@ -184,10 +190,14 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(
         if (auto opt_hint = util::value_by_key(hint_map, k)) {
             hint = opt_hint.value();
             if(!hint.cpu_group_size) {
-                throw arbor_exception(arb::util::pprintf("unable to perform load balancing because {} has invalid suggested cpu_cell_group size of {}", k, hint.cpu_group_size));
+                throw arbor_exception(fmt::format("unable to perform load balancing because {} has invalid suggested cpu_cell_group size of {}",
+                                                  to_string(k),
+                                                  hint.cpu_group_size));
             }
             if(hint.prefer_gpu && !hint.gpu_group_size) {
-                throw arbor_exception(arb::util::pprintf("unable to perform load balancing because {} has invalid suggested gpu_cell_group size of {}", k, hint.gpu_group_size));
+                throw arbor_exception(fmt::format("unable to perform load balancing because {} has invalid suggested gpu_cell_group size of {}",
+                                                  to_string(k),
+                                                  hint.gpu_group_size));
             }
         }
 

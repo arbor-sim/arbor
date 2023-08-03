@@ -15,7 +15,12 @@
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
+
+#include <fmt/format.h>
+
 namespace arb {
+
+using util::to_string;
 
 using value_type = cable_cell::value_type;
 using index_type = cable_cell::index_type;
@@ -25,42 +30,49 @@ template <typename T> struct constant_type {
     template <typename> using type = T;
 };
 
-// Helper for debugging: print outermost DSL constructor
+namespace {
 std::string show(const paintable& item) {
-    std::stringstream os;
+    auto out = std::string();
     std::visit(
         [&] (const auto& p) {
             using T = std::decay_t<decltype(p)>;
             if constexpr (std::is_same_v<init_membrane_potential, T>) {
-                os << "init-membrane-potential";
+                fmt::format_to(std::back_inserter(out), "init-membrane-potential");
             }
             else if constexpr (std::is_same_v<axial_resistivity, T>) {
-                os << "axial-resistivity";
+                fmt::format_to(std::back_inserter(out), "axial-resistivity");
             }
             else if constexpr (std::is_same_v<temperature_K, T>) {
-                os << "temperature-kelvin";
+                fmt::format_to(std::back_inserter(out), "temperature-kelvin");
             }
             else if constexpr (std::is_same_v<membrane_capacitance, T>) {
-                os << "membrane-capacitance";
+                fmt::format_to(std::back_inserter(out), "membrane-capacitance");
             }
             else if constexpr (std::is_same_v<init_int_concentration, T>) {
-                os << "ion-internal-concentration";
+                fmt::format_to(std::back_inserter(out), "ion-internal-concentration");
             }
             else if constexpr (std::is_same_v<init_ext_concentration, T>) {
-                os << "ion-external-concentration";
+                fmt::format_to(std::back_inserter(out), "ion-external-concentration");
             }
             else if constexpr (std::is_same_v<init_reversal_potential, T>) {
-                os << "ion-reversal-potential";
+                fmt::format_to(std::back_inserter(out), "ion-reversal-potential");
             }
             else if constexpr (std::is_same_v<density, T>) {
-                os << "density:" << p.mech.name();
+                fmt::format_to(std::back_inserter(out), "(density {})", p.mech.name());
             }
             else if constexpr (std::is_same_v<voltage_process, T>) {
-                os << "voltage-process:" << p.mech.name();
+                fmt::format_to(std::back_inserter(out), "(voltage-process {})", p.mech.name());
             }
         },
         item);
-    return os.str();
+    return out;
+}
+
+std::string show(const region& reg) {
+    std::stringstream rg;
+    rg << reg;
+    return rg.str();
+}
 }
 
 
@@ -181,7 +193,9 @@ struct cable_cell_impl {
             if (c.prox_pos == c.dist_pos) continue;
 
             if (!mm.insert(c, {prop.t_mech, im})) {
-                throw cable_cell_error(util::pprintf("cable {} overpaints", c));
+                throw cable_cell_error(fmt::format("Painting density mechanism '{}' on region '{}' overpaints at '{}'.",
+                                                   prop.t_mech.mech.name(),
+                                                   to_string(c)));
             }
         }
     }
@@ -196,8 +210,10 @@ struct cable_cell_impl {
             if (c.prox_pos==c.dist_pos) continue;
 
             if (!mm.insert(c, prop)) {
-                std::stringstream rg; rg << reg;
-                throw cable_cell_error(util::pprintf("Setting property '{}' on region '{}' overpaints at '{}'", show(prop), rg.str(), c));
+                throw cable_cell_error(fmt::format("Setting property '{}' on region '{}' overpaints at '{}'",
+                                                   show(prop),
+                                                   show(reg),
+                                                   to_string(c)));
             }
         }
     }

@@ -23,15 +23,15 @@
 #include "util/rangeutil.hpp"
 #include "util/maputil.hpp"
 #include "util/range.hpp"
-#include "util/strprintf.hpp"
 
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
 
+#include <fmt/format.h>
+
 namespace arb {
 namespace multicore {
 
-using util::make_range;
 using util::make_span;
 using util::ptr_by_key;
 using util::value_by_key;
@@ -425,7 +425,7 @@ void shared_state::instantiate(arb::mechanism& m,
         auto ion = m.mech_.ions[idx].name;
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
         auto* oion = ptr_by_key(ion_data, ion_binding);
-        if (!oion) throw arbor_internal_error(util::pprintf("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state", ion));
+        if (!oion) throw arbor_internal_error(fmt::format("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state", ion));
 
         auto& ion_state = m.ppack_.ion_states[idx];
         ion_state = {0};
@@ -492,7 +492,7 @@ void shared_state::instantiate(arb::mechanism& m,
                     break;
                 }
             }
-            if (!found) throw arbor_internal_error(util::pprintf("multicore/mechanism: no such mechanism global '{}'", k));
+            if (!found) throw arbor_internal_error(fmt::format("multicore/mechanism: no such mechanism global '{}'", k));
         }
         store.globals_ = std::vector<arb_value_type>(m.ppack_.globals, m.ppack_.globals + m.mech_.n_globals);
     }
@@ -527,7 +527,7 @@ void shared_state::instantiate(arb::mechanism& m,
             // Index into shared_state respecting ion rebindings
             auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
             ion_state* oion = ptr_by_key(ion_data, ion_binding);
-            if (!oion) throw arbor_internal_error(util::pprintf("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state ", ion));
+            if (!oion) throw arbor_internal_error(fmt::format("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state ", ion));
             // Obtain index and move data
             auto indices = util::index_into(node_index, oion->node_index_);
             m.ppack_.ion_states[idx].index = writer.append(indices, util::back(indices));

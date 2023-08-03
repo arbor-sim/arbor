@@ -29,8 +29,11 @@
 #include "util/unique.hpp"
 #include "util/strprintf.hpp"
 
+#include <fmt/format.h>
+
 namespace arb {
 
+using util::to_string;
 using util::assign;
 using util::assign_by;
 using util::count_along;
@@ -44,7 +47,7 @@ namespace {
 
 template <typename... Args>
 cable_cell_error make_cc_error(const char* fmt, Args... args) {
-    return {util::pprintf(fmt, args...)};
+    return {fmt::format(fmt, args...)};
 }
 
 template <typename V>
@@ -313,7 +316,7 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
         if (auto map = diffusivity.find(ion); map != diffusivity.end()) {
             for (const auto& [k, v]: map->second) {
                 if (v.value <= 0.0) {
-                    throw make_cc_error("Illegal diffusivity '{}' for ion '{}' at '{}'.", v.value, ion, k);
+                    throw make_cc_error("Illegal diffusivity '{}' for ion '{}' at '{}'.", v.value, ion, to_string(k));
                 }
                 id_map.insert(k, 1.0/v.value);
             }

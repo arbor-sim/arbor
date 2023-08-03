@@ -73,14 +73,14 @@ struct ARB_SYMBOL_VISIBLE iexpr {
     static iexpr distal_distance(region reg);
 
     static iexpr interpolation(double prox_value,
-        locset prox_list,
-        double dist_value,
-        locset dist_list);
+                               locset prox_list,
+                               double dist_value,
+                               locset dist_list);
 
     static iexpr interpolation(double prox_value,
-        region prox_list,
-        double dist_value,
-        region dist_list);
+                               region prox_list,
+                               double dist_value,
+                               region dist_list);
 
     static iexpr radius(double scale);
 

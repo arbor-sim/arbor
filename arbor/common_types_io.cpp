@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 
 #include <arbor/common_types.hpp>
 
@@ -45,5 +46,4 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, arb::backend_kind k) {
     }
     return o;
 }
-
 }

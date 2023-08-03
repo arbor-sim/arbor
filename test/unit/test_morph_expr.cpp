@@ -11,9 +11,8 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/region.hpp>
-
-#include "util/span.hpp"
 #include "util/strprintf.hpp"
+#include "util/span.hpp"
 
 #include "common.hpp"
 #include "../common_cells.hpp"

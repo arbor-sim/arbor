@@ -10,7 +10,7 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/s_expr.hpp>
 
-#include "util/strprintf.hpp"
+#include <fmt/format.h>
 
 namespace arb {
 
@@ -63,10 +63,8 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const tok& t) {
 }
 
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const token& t) {
-    if (t.kind==tok::string) {
-        return o << util::pprintf("\"{}\"", t.spelling);
-    }
-    return o << util::pprintf("{}", t.spelling);
+    auto quote = (t.kind==tok::string) ? "\"" : "";
+    return o << fmt::format("{}{}{}", quote, t.spelling, quote);
 }
 
 //
@@ -75,7 +73,7 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const token& t) {
 
 struct s_expr_lexer_error: public arb::arbor_internal_error {
     s_expr_lexer_error(const std::string& msg, src_location l):
-        arbor_internal_error(util::pprintf("s-expression internal error at {}: {}", l, msg))
+        arbor_internal_error(fmt::format("s-expression internal error at {}:{} {}", l.line, l.column, msg))
     {}
 };
 
@@ -200,12 +198,11 @@ private:
                         }
                     }
                     token_ = {loc(), tok::error,
-                        util::pprintf("Unexpected character '{}'.", character())};
+                        fmt::format("Unexpected character '{}'.", character())};
                     return;
-
                 default:
                     token_ = {loc(), tok::error,
-                        util::pprintf("Unexpected character '{}'.", character())};
+                        fmt::format("Unexpected character '{}'.", character())};
                     return;
             }
         }
@@ -522,7 +519,7 @@ ARB_ARBOR_API s_expr parse_s_expr(const std::string& line) {
         auto t = l.current();
         if (t.kind!=tok::eof) {
             return token{t.loc, tok::error,
-                         util::pprintf("Unexpected '{}' at the end of input.", t)};
+                         fmt::format("Unexpected '{}' at the end of input.", t.spelling)};
         }
     }
     return result;

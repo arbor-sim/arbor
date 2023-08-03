@@ -33,8 +33,9 @@
 #include "util/meta.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
-#include "util/strprintf.hpp"
 #include "util/transform.hpp"
+
+#include <fmt/format.h>
 
 namespace arb {
 
@@ -286,7 +287,7 @@ void fvm_lowered_cell_impl<Backend>::assert_voltage_bounded(arb_value_type bound
     }
 
     throw range_check_failure(
-        util::pprintf("voltage solution out of bounds for at t = {}", state_->time),
+        fmt::format("voltage solution out of bounds for at t = {}", state_->time),
         v_minmax.first<-bound? v_minmax.first: v_minmax.second);
 }
 

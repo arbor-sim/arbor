@@ -16,6 +16,8 @@
 #include "parse_s_expr.hpp"
 #include "util/strprintf.hpp"
 
+#include <fmt/format.h>
+
 using namespace arb;
 using namespace arborio;
 using namespace arborio::literals;
@@ -172,7 +174,7 @@ TEST(s_expr, iterate) {
 template <typename L>
 std::string round_trip_label(const char* in) {
     if (auto x = parse_label_expression(in)) {
-        return util::pprintf("{}", std::any_cast<L>(*x));
+        return util::to_string(std::any_cast<L>(*x));
     }
     else {
         return x.error().what();
@@ -181,7 +183,7 @@ std::string round_trip_label(const char* in) {
 
 std::string round_trip_cv(const char* in) {
     if (auto x = parse_cv_policy_expression(in)) {
-        return util::pprintf("{}", std::any_cast<cv_policy>(*x));
+        return util::to_string(std::any_cast<cv_policy>(*x));
     }
     else {
         return x.error().what();
@@ -190,7 +192,7 @@ std::string round_trip_cv(const char* in) {
 
 std::string round_trip_region(const char* in) {
     if (auto x = parse_region_expression(in)) {
-        return util::pprintf("{}", std::any_cast<arb::region>(*x));
+        return util::to_string(std::any_cast<arb::region>(*x));
     }
     else {
         return x.error().what();
@@ -199,7 +201,7 @@ std::string round_trip_region(const char* in) {
 
 std::string round_trip_locset(const char* in) {
     if (auto x = parse_locset_expression(in)) {
-        return util::pprintf("{}", std::any_cast<arb::locset>(*x));
+        return util::to_string(std::any_cast<arb::locset>(*x));
     }
     else {
         return x.error().what();
@@ -208,7 +210,7 @@ std::string round_trip_locset(const char* in) {
 
 std::string round_trip_iexpr(const char* in) {
     if (auto x = parse_iexpr_expression(in)) {
-        return util::pprintf("{}", std::any_cast<arb::iexpr>(*x));
+        return util::to_string(std::any_cast<arb::iexpr>(*x));
     }
     else {
         return x.error().what();

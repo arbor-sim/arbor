@@ -14,6 +14,7 @@
 #include "gpu_uuid.hpp"
 #include "gpu_api.hpp"
 
+#include <fmt/format.h>
 
 #ifdef __linux__
 extern "C" {
@@ -77,9 +78,7 @@ std::ostream& operator<<(std::ostream& o, const uuid& id) {
 }
 
 std::runtime_error make_runtime_error(api_error_type error_code) {
-    return std::runtime_error(
-        std::string("gpu runtime error ")
-        + error_code.name() + ": " + error_code.description());
+    return std::runtime_error(fmt::format("gpu runtime error {}: {}", error_code.name(), error_code.description()));
 }
 
 // For CUDA 10 and later the uuid of all available GPUs is straightforward
@@ -112,7 +111,7 @@ std::vector<uuid> get_gpu_uuids() {
         // copy the bytes of the has to uuids[i].
         auto host = get_hostname();
         if (!host) throw std::runtime_error("Can't uniquely identify GPUs on the system");
-        auto uid = std::hash<std::string>{} (*host + '-' + std::to_string(props.pciBusID) + '-' + std::to_string(props.pciDeviceID));
+        auto uid = std::hash<std::string>{} ("{}-{}-{}", *host, std::to_string(props.pciBusID), std::to_string(props.pciDeviceID));
         auto b = reinterpret_cast<const unsigned char*>(&uid);
         std::copy(b, b+sizeof(std::size_t), uuids[i].bytes.begin());
 #else

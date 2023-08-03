@@ -8,14 +8,15 @@
 
 #include "execution_context.hpp"
 #include "util/hostname.hpp"
-#include "util/strprintf.hpp"
 #include "util/rangeutil.hpp"
+
+#include <fmt/format.h>
 
 namespace arb {
 namespace profile {
 
 using timer_type = timer<>;
-using util::strprintf;
+
 
 template <typename C>
 double mean(const C& c) {
@@ -137,19 +138,19 @@ ARB_ARBOR_API meter_report make_meter_report(const meter_manager& manager, conte
 // Print easy to read report of meters to a stream.
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const meter_report& report) {
     o << "\n---- meters -------------------------------------------------------------------------------\n";
-    o << strprintf("meter%16s", "");
+    o << fmt::format("meter{:16s}", "");
     for (auto const& m: report.meters) {
         if (m.name=="time") {
-            o << strprintf("%16s", "time(s)");
+            o << fmt::format("{:16s}", "time(s)");
         }
         else if (m.name.find("memory")!=std::string::npos) {
-            o << strprintf("%16s", m.name+"(MB)");
+            o << fmt::format("{:16s}", m.name+"(MB)");
         }
         else if (m.name.find("energy")!=std::string::npos) {
-            o << strprintf("%16s", m.name+"(kJ)");
+            o << fmt::format("{:16s}", m.name+"(kJ)");
         }
         else {
-            o << strprintf("%16s(avg)", m.name);
+            o << fmt::format("{:16s}(avg)", m.name);
         }
     }
     o << "\n-------------------------------------------------------------------------------------------\n";
@@ -157,20 +158,20 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const meter_report& repo
     int cp_index = 0;
     for (auto name: report.checkpoints) {
         name.resize(20);
-        o << strprintf("%-21s", name);
+        o << fmt::format("{:-21s}", name);
         int m_index = 0;
         for (const auto& m: report.meters) {
             if (m.name=="time") {
                 // Calculate the average time per rank in s.
                 double time = mean(m.measurements[cp_index]);
                 sums[m_index] += time;
-                o << strprintf("%16.3f", time);
+                o << fmt::format("{:16.3f}", time);
             }
             else if (m.name.find("memory")!=std::string::npos) {
                 // Calculate the average memory per rank in MB.
                 double mem = mean(m.measurements[cp_index])*1e-6;
                 sums[m_index] += mem;
-                o << strprintf("%16.3f", mem);
+                o << fmt::format("{:16.3f}", mem);
             }
             else if (m.name.find("energy")!=std::string::npos) {
                 auto doms_per_host = double(report.num_domains)/report.num_hosts;
@@ -180,12 +181,12 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const meter_report& repo
                 // approximation: better reduce a subset of measurements.
                 double energy = util::sum(m.measurements[cp_index])/doms_per_host*1e-3;
                 sums[m_index] += energy;
-                o << strprintf("%16.3f", energy);
+                o << fmt::format("{:16.3f}", energy);
             }
             else {
                 double value = mean(m.measurements[cp_index]);
                 sums[m_index] += value;
-                o << strprintf("%16.3f", value);
+                o << fmt::format("{:16.3f}", value);
             }
             ++m_index;
         }
@@ -194,9 +195,9 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const meter_report& repo
     }
 
     // Print a final line with the accumulated values of each meter.
-    o << strprintf("%-21s", "meter-total");
+    o << fmt::format("{:-21s}", "meter-total");
     for (const auto& v: sums) {
-        o << strprintf("%16.3f", v);
+        o << fmt::format("{:16.3f}", v);
     }
     o << "\n";
 

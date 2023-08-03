@@ -3,10 +3,11 @@
 
 #include <dlfcn.h>
 
+#include <fmt/format.h>
+
 #include <arbor/arbexcept.hpp>
 
 #include "util/dylib.hpp"
-#include "util/strprintf.hpp"
 
 namespace arb {
 namespace util {
@@ -24,7 +25,7 @@ void* dl_open(const std::string& fn) {
     // dlopen fails by returning NULL
     if (nullptr == result) {
         auto error = dlerror();
-        throw dl_error{util::pprintf("[POSIX] dl_open failed with: {}", error)};
+        throw dl_error{fmt::format("[POSIX] dl_open failed with: {}", error)};
     }
     return result;
 }
@@ -40,7 +41,7 @@ void* dl_get_symbol(const std::string& fn, const std::string& symbol) {
     auto result = dlsym(handle, symbol.c_str());
     // dlsym mayb return NULL even if succeeding
     if (auto error = dlerror()) {
-        throw dl_error{util::pprintf("[POSIX] dl_get_symbol failed with: {}", error)};
+        throw dl_error{fmt::format("[POSIX] dl_get_symbol failed with: {}", error)};
     }
     return result;
 }

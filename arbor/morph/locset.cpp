@@ -16,7 +16,6 @@
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
 #include "util/span.hpp"
-#include "util/strprintf.hpp"
 #include "util/unique.hpp"
 
 namespace arb {

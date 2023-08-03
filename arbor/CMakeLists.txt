@@ -135,6 +135,24 @@ add_library(arbor ${arbor_sources} ${arbor-builtin-mechanisms})
 target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
 target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
 
+if (ARB_USE_BUNDLED_FMT)
+    target_include_directories(arbor
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+        PRIVATE
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../ext/fmt/include>)
+
+    target_compile_definitions(arbor PRIVATE FMT_HEADER_ONLY)
+else()
+    target_include_directories(arbor
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+    find_package(fmt REQUIRED)
+    target_link_libraries(arbor PRIVATE fmt::fmt-header-only)
+endif()
+
 if(ARB_WITH_CUDA_CLANG)
     target_link_libraries(arbor PRIVATE ${CUDA_LIBRARIES})
     target_link_libraries(arbor PUBLIC  ${CUDA_LIBRARIES})

@@ -178,7 +178,7 @@ Take for example the built-in mechanism for passive leaky dynamics:
 4. Scaled mechanisms
 ~~~~~~~~~~~~~~~~~~~~~
 Mechanism parameters are usually homogeneous along a cell. However, sometimes it is useful to scale parameters based on inhomogeneous properties.
-:ref:`Inhomogeneous expressions  <labels-iexpr>` provide a way to describe a desired scaling formula, which for example can include the cell radius or the distance to a given set of locations.
+:ref:`Inhomogeneous expressions <labels-iexpr>` provide a way to describe a desired scaling formula, which for example can include the cell radius or the distance to a given set of locations.
 The name is inspired by NeuroML's https://docs.neuroml.org/Userdocs/Schemas/Cells.html#schema-inhomogeneousparameter.
 Such an expression is evaluated along the cell and yields a scaling factor, which is multiplied with the base value of the selected parameter.
 Internally, this evaluation and scaling is done at mid-points of the cable partition of the cell.

@@ -20,7 +20,8 @@
 #include "util/maputil.hpp"
 #include "util/meta.hpp"
 #include "util/range.hpp"
-#include "util/strprintf.hpp"
+
+#include <fmt/format.h>
 
 using arb::memory::make_const_view;
 
@@ -308,7 +309,7 @@ void shared_state::instantiate(mechanism& m,
                     break;
                 }
             }
-            if (!found) throw arbor_internal_error(util::pprintf("gpu/mechanism: no such mechanism global '{}'", k));
+            if (!found) throw arbor_internal_error(fmt::format("gpu/mechanism: no such mechanism global '{}'", k));
         }
         m.ppack_.globals = writer.append_freely(store.globals_);
     }
