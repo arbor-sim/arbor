@@ -184,36 +184,24 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
             "using S::indirect;\n"
             "using S::assign;\n";
 
-        out << "static constexpr unsigned vector_length_ = ";
-        if (opt.simd.size == no_size) {
-            out << "S::simd_abi::native_width<arb_value_type>::value;\n";
-        } else {
-            out << opt.simd.size << ";\n";
-        }
-
-        out << "static constexpr unsigned simd_width_ = ";
-        if (opt.simd.width == no_size) {
-            out << " vector_length_ ? vector_length_ : " << opt.simd.default_width << ";\n";
-        } else {
-            out << opt.simd.width << ";\n";
-        }
-
         std::string abi = "S::simd_abi::";
         switch (opt.simd.abi) {
-        case simd_spec::avx:    abi += "avx";    break;
-        case simd_spec::avx2:   abi += "avx2";   break;
-        case simd_spec::avx512: abi += "avx512"; break;
-        case simd_spec::neon:   abi += "neon";   break;
-        case simd_spec::sve:    abi += "sve";    break;
-        case simd_spec::native: abi += "native"; break;
+        case simd_spec::avx:     abi += "avx";     break;
+        case simd_spec::avx2:    abi += "avx2";    break;
+        case simd_spec::avx512:  abi += "avx512";  break;
+        case simd_spec::neon:    abi += "neon";    break;
+        case simd_spec::sve:     abi += "sve";     break;
+        case simd_spec::vls_sve: abi += "vls_sve"; break;
+        case simd_spec::native:  abi += "native";  break;
         default:
             abi += "default_abi"; break;
         }
 
         out <<
-            "using simd_value = S::simd<arb_value_type, vector_length_, " << abi << ">;\n"
-            "using simd_index = S::simd<arb_index_type, vector_length_, " << abi << ">;\n"
-            "using simd_mask  = S::simd_mask<arb_value_type, vector_length_, "<< abi << ">;\n"
+            "using simd_value = S::simd<arb_value_type, " << opt.simd.size << ", " << abi << ">;\n"
+            "using simd_index = S::simd<arb_index_type, " << opt.simd.size << ", " << abi << ">;\n"
+            "using simd_mask  = S::simd_mask<arb_value_type, " << opt.simd.size << ", "<< abi << ">;\n"
+            "static constexpr unsigned simd_width_ = " << opt.simd.width << ";\n"
             "static constexpr unsigned min_align_ = std::max(S::min_align(simd_value{}), S::min_align(simd_index{}));\n"
             "\n"
             "inline simd_value safeinv(simd_value x) {\n"
@@ -821,12 +809,12 @@ void emit_simd_state_update(std::ostream& out,
                     out << fmt::format("{{\n"
                                        "  simd_value t_{}0_ = simd_cast<simd_value>(0.0);\n"
                                        "  assign(t_{}0_, indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_));\n"
-                                       "  {} -= t_{}0_;\n"
+                                       "  {} = S::sub({}, t_{}0_);\n"
                                        "  indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_) += S::mul({}, {});\n"
                                        "}}\n",
                                        name,
                                        name, data, node,
-                                       scaled, name,
+                                       scaled, scaled, name,
                                        data, node, weight, scaled);
             }
         }
@@ -849,12 +837,12 @@ void emit_simd_state_update(std::ostream& out,
                 out << fmt::format("{{\n"
                                    "  simd_value t_{}0_ = simd_cast<simd_value>(0.0);\n"
                                    "  assign(t_{}0_, indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_));\n"
-                                   "  {} -= t_{}0_;\n"
+                                   "  {} = S::sub({}, t_{}0_);\n"
                                    "  indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_) += S::mul({}, {});\n"
                                    "}}\n",
                                    name,
                                    name, data, node,
-                                   scaled, name,
+                                   scaled, scaled, name,
                                    data, node, weight, scaled);
             }
         }

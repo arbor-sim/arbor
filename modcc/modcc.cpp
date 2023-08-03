@@ -49,14 +49,15 @@ std::unordered_map<std::string, targetKind> targetKindMap = {
 };
 
 std::unordered_map<std::string, enum simd_spec::simd_abi> simdAbiMap = {
-    {"none", simd_spec::none},
-    {"neon", simd_spec::neon},
-    {"sve", simd_spec::sve},
-    {"avx",  simd_spec::avx},
-    {"avx2", simd_spec::avx2},
-    {"avx512", simd_spec::avx512},
+    {"none",        simd_spec::none},
+    {"neon",        simd_spec::neon},
+    {"sve",         simd_spec::sve},
+    {"vls_sve",     simd_spec::vls_sve},
+    {"avx",         simd_spec::avx},
+    {"avx2",        simd_spec::avx2},
+    {"avx512",      simd_spec::avx512},
     {"default_abi", simd_spec::default_abi},
-    {"native", simd_spec::native}
+    {"native",      simd_spec::native}
 };
 
 template <typename Map, typename V>
@@ -86,9 +87,6 @@ std::ostream& operator<<(std::ostream& out, const table_prefix& tb) {
 std::ostream& operator<<(std::ostream& out, simd_spec simd) {
     std::stringstream s;
     s << key_by_value(simdAbiMap, simd.abi);
-    if (simd.width!=0) {
-        s << '/' << simd.width;
-    }
     return out << s.str();
 }
 
