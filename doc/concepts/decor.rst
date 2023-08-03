@@ -202,6 +202,7 @@ resistivity, and membrane capacitance, as well as all ion parameters
     # paint a scaled density mechanism, where 'g' is scaled with the distance from the root.
     decor.paint('"dend"', arbor.scaled_mechanism(arbor.density(m), {'g': '(distance 1.0 (root))'}))
 
+
     # initial value for the membrane potential as inhomogeneous expression.
     decor.paint('(all)', Vm='(mul 42 (diameter))')
 
