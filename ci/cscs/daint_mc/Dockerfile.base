@@ -45,5 +45,5 @@ RUN fix_spack_install
 # Finally install software that is needed, e.g. compilers
 # It is also possible to build compilers via spack and let all dependencies be handled by spack
 RUN apt-get -yqq update && apt-get -yqq upgrade \
- && apt-get -yqq install build-essential gfortran \
+ && apt-get -yqq install build-essential \
  && rm -rf /var/lib/apt/lists/*

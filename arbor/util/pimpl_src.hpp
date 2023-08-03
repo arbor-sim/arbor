@@ -13,6 +13,7 @@ namespace util {
 template<typename T>
 pimpl<T>::~pimpl() = default;
 
+// ctor is empty instead of defaulted because of hipcc complaints
 template<typename T>
 pimpl<T>::pimpl() noexcept {}
 

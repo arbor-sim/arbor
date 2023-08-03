@@ -4,7 +4,7 @@ include:
 stages:
   - build_base # build stage is running on Kubernetes cluster
   - build      # build stage is running on Kubernetes cluster
-  - test       # test stage is runnung on slurm cluster
+  - test       # test stage is running on slurm cluster
 
 variables:
   PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/software/arbor_daint_mc:$CI_COMMIT_SHORT_SHA

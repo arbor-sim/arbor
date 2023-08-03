@@ -4,7 +4,7 @@ include:
 stages:
   - build_base # build stage is running on Kubernetes cluster
   - build      # build stage is running on Kubernetes cluster
-  - test       # test stage is runnung on slurm cluster
+  - test       # test stage is running on slurm cluster
 
 variables:
   PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/software/arbor_hohgant_cpu:$CI_COMMIT_SHORT_SHA
@@ -25,6 +25,9 @@ build-arbor:
     DOCKER_BUILD_ARGS: '["BASE_IMG=$BASE_IMAGE"]'
     GIT_SUBMODULE_STRATEGY: recursive
 
+# Note: hohgant has an MPI issue: doesn't allow multiple MPI runs in same job due to repeated
+# MPI_Init/MPI_Finalize calls. Therefore, we test examples individually (each in different job).
+
 test-single-node:
   extends: .container-runner-hohgant-zen2
   stage: test
@@ -34,13 +37,24 @@ test-single-node:
     - build/bin/unit-modcc
     - build/bin/unit-local
     - build/bin/unit
-    #- scripts/run_cpp_examples.sh
-    #- python -m venv --system-site-packages /arbor.install
-    #- source /arbor.install/bin/activate
-    #- python -m unittest discover -v -s python
-    #- scripts/run_python_examples.sh
-    #- scripts/test_executables.sh
-    #- deactivate
+  variables:
+    SLURM_JOB_PARTITION: normal
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_NTASKS: 1
+    SLURM_CPUS_PER_TASK: 128
+    SLURM_TIMELIMIT: "00:10:00"
+    USE_MPI: "NO"
+
+test-python-single-node:
+  extends: .container-runner-hohgant-zen2
+  stage: test
+  image: $PERSIST_IMAGE_NAME
+  script:
+    - cd /arbor.src
+    - python -m venv --system-site-packages /arbor.install
+    - source /arbor.install/bin/activate
+    - python -m unittest discover -v -s python
+    - deactivate
   variables:
     SLURM_JOB_PARTITION: normal
     SLURM_JOB_NUM_NODES: 1
@@ -78,7 +92,6 @@ brunel-single-node:
     SLURM_CPUS_PER_TASK: 128
     SLURM_TIMELIMIT: "00:10:00"
     USE_MPI: "NO"
-
 
 test-distributed:
   extends: .container-runner-hohgant-zen2
