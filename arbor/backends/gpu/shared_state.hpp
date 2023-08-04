@@ -139,7 +139,7 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
     using cable_solver = arb::gpu::matrix_state_fine<arb_value_type, arb_index_type>;
     cable_solver solver;
 
-    static constexpr std::size_t alignment = std::max(array::alignment(), iarray::alignment());
+    static constexpr unsigned alignment = std::max(array::alignment(), iarray::alignment());
 
     arb_size_type n_intdom = 0;   // Number of distinct integration domains.
     arb_size_type n_detector = 0; // Max number of detectors on all cells.

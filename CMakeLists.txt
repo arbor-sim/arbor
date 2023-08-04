@@ -136,7 +136,9 @@ if(ARB_GPU STREQUAL "cuda")
     set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
     enable_language(CUDA)
     find_package(CUDAToolkit)
-    set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+    endif()
     # We _still_ need this otherwise CUDA symbols will not be exported
     # from libarbor.a leading to linker errors when link external clients.
     # Unit tests are NOT external enough. Re-review this somewhere in the
@@ -144,10 +146,16 @@ if(ARB_GPU STREQUAL "cuda")
     find_package(CUDA ${CUDAToolkit_VERSION_MAJOR} REQUIRED)
 elseif(ARB_GPU STREQUAL "cuda-clang")
     include(FindCUDAToolkit)
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+    endif()
     set(ARB_WITH_CUDA_CLANG TRUE)
     enable_language(CUDA)
 elseif(ARB_GPU STREQUAL "hip")
     set(ARB_WITH_HIP_CLANG TRUE)
+    # Specify AMD architecture using a (user provided) list.
+    # Note: CMake native HIP architectures are introduced with version 3.21.
+    set(ARB_HIP_ARCHITECTURES gfx906 gfx900 CACHE STRING "AMD offload architectures (semicolon separated)")
 endif()
 
 if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
@@ -415,11 +423,19 @@ if(ARB_WITH_GPU)
         target_compile_definitions(arbor-private-deps INTERFACE ARB_CUDA)
         target_compile_definitions(arborenv-private-deps INTERFACE ARB_CUDA)
     elseif(ARB_WITH_CUDA_CLANG)
-        set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-gpu-arch=sm_80 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
+        # Transform cuda archtitecture list into clang cuda flags
+        list(TRANSFORM CMAKE_CUDA_ARCHITECTURES PREPEND "--cuda-gpu-arch=sm_" OUTPUT_VARIABLE TMP)
+        string(REPLACE ";" " " CUDA_ARCH_STR "${TMP}")
+
+        set(clang_options_ -DARB_CUDA -xcuda ${CUDA_ARCH_STR} --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
         target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
     elseif(ARB_WITH_HIP_CLANG)
-        set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
+        # Transform hip archtitecture list into clang hip flags
+        list(TRANSFORM ARB_HIP_ARCHITECTURES PREPEND "--offload-arch=" OUTPUT_VARIABLE TMP)
+        string(REPLACE ";" " " HIP_ARCH_STR "${TMP}")
+
+        set(clang_options_ -DARB_HIP -xhip ${HIP_ARCH_STR})
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
         target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
     endif()

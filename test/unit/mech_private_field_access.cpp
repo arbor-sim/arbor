@@ -93,7 +93,7 @@ std::vector<arb_index_type> gpu_mechanism_ion_index(const mechanism* m, const st
 
 arb_value_type gpu_mechanism_global(const mechanism* m, const std::string& key) {
     auto p = global_lookup(m, key);
-    arb_value_type v;
+    arb_value_type v = 0.;
     memory::gpu_memcpy_d2h(p, &v, sizeof(v));
     return v;
 }
