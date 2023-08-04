@@ -29,6 +29,8 @@
 #include "util/unique.hpp"
 #include "util/strprintf.hpp"
 
+#include <iostream>
+
 namespace arb {
 
 using util::assign;
@@ -251,7 +253,8 @@ ARB_ARBOR_API fvm_cv_discretization& append(fvm_cv_discretization& dczn, const f
 // FVM discretization
 // ------------------
 
-ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global_dflt) {
+ARB_ARBOR_API fvm_cv_discretization
+fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global_dflt) {
     const auto& dflt = cell.default_parameters();
     fvm_cv_discretization D;
 
@@ -281,64 +284,69 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
     const auto& potential   = assignments.get<init_membrane_potential>();
     const auto& temperature = assignments.get<temperature_K>();
     const auto& diffusivity = assignments.get<ion_diffusivity>();
+    const auto& provider    = cell.provider();
+
+    struct inv_diff {
+        iexpr value;
+    };
 
     // Set up for ion diffusivity
-    std::unordered_map<std::string, mcable_map<double>> inverse_diffusivity;
     std::unordered_map<std::string, fvm_diffusion_info> diffusive_ions;
+    std::unordered_map<std::string, mcable_map<inv_diff>> inverse_diffusivity;
 
     // Collect all eglible ions: those where any cable has finite diffusivity
     for (const auto& [ion, data]: global_dflt.ion_data) {
-        if (data.diffusivity.value_or(0.0) != 0.0) {
-            diffusive_ions[ion] = {};
+        if (auto d = data.diffusivity.value_or(0.0); d != 0.0) {
+            diffusive_ions[ion] = {d};
         }
     }
     for (const auto& [ion, data]: dflt.ion_data) {
-        if (data.diffusivity.value_or(0.0) != 0.0) {
-            diffusive_ions[ion] = {};
+        if (auto d = data.diffusivity.value_or(0.0); d != 0.0) {
+            diffusive_ions[ion] = {d};
         }
     }
     for (const auto& [ion, data]: diffusivity) {
+         // 'Finite' diffusivity iff not NAN or 0.0 or a complex expression.
         auto diffusive = std::any_of(data.begin(),
                                      data.end(),
-                                     [](const auto& kv) { return kv.second.value != 0.0; });
+                                     [](const auto& kv) {
+                                         const auto& v = kv.second.value.get_scalar();
+                                         return !v || *v != 0.0 || *v == *v;
+                                     });
         if (diffusive) {
-            diffusive_ions[ion] = {};
+            // Provide a (non-sensical) default.
+            if (!diffusive_ions.count(ion)) diffusive_ions[ion] = {NAN};
+            auto& inv = inverse_diffusivity[ion];
+            for (const auto& [k, v]: data) inv.insert(k, {1.0/v.value});
         }
     }
 
     // Remap diffusivity to resistivity
     for (auto& [ion, data]: diffusive_ions) {
         auto& id_map = inverse_diffusivity[ion];
-        // Treat specific assignments
-        if (auto map = diffusivity.find(ion); map != diffusivity.end()) {
-            for (const auto& [k, v]: map->second) {
-                if (v.value <= 0.0) {
-                    throw make_cc_error("Illegal diffusivity '{}' for ion '{}' at '{}'.", v.value, ion, k);
-                }
-                id_map.insert(k, 1.0/v.value);
-            }
-        }
-        arb_value_type def = 0.0;
-        if (auto data = util::value_by_key(global_dflt.ion_data, ion);
-            data && data->diffusivity) {
-            def = data->diffusivity.value();
-        }
-        if (auto data = util::value_by_key(dflt.ion_data, ion);
-            data && data->diffusivity) {
-            def = data->diffusivity.value();
-        }
-        if (def <= 0.0) {
+        arb_value_type def = data.default_value;
+        if (def <= 0.0 || std::isnan(def)) {
             throw make_cc_error("Illegal global diffusivity '{}' for ion '{}'; possibly unset."
                                 " Please define a positive global or cell default.", def, ion);
         }
-
         // Write inverse diffusivity / diffuse resistivity map
         auto& id = data.axial_inv_diffusivity;
         id.resize(1);
         msize_t n_branch = D.geometry.n_branch(0);
         id.reserve(n_branch);
         for (msize_t i = 0; i<n_branch; ++i) {
-            auto pw = pw_over_cable(id_map, mcable{i, 0., 1.}, 1.0/def);
+            auto cable = mcable{i, 0., 1.};
+            auto scale_param = [&, ion=ion](const auto&,
+                                   const inv_diff& par) {
+                auto ie = thingify(par.value, provider);
+                auto sc = ie->eval(provider, cable);
+                if (def <= 0.0 || std::isnan(def)) {
+                    throw make_cc_error("Illegal diffusivity '{}' for ion '{}' at cable {}."
+                                        " Please check your expressions.", sc, ion, cable);
+                }
+                return sc;
+            };
+            auto pw = pw_over_cable(id_map, cable, 1.0/def, scale_param);
             id[0].push_back(pw);
         }
         // Prepare conductivity map
@@ -350,7 +358,14 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
     auto& ax_res_0 = D.axial_resistivity[0];
     ax_res_0.reserve(n_branch);
     for (msize_t i = 0; i<n_branch; ++i) {
-        ax_res_0.emplace_back(pw_over_cable(resistivity, mcable{i, 0., 1.}, dflt_resistivity));
+        auto cable = mcable{i, 0., 1.};
+        auto scale_param = [&](const auto&,
+                               const axial_resistivity& par) {
+            auto ie = thingify(par.value, provider);
+            auto sc = ie->eval(provider, cable);
+            return sc;
+        };
+        ax_res_0.emplace_back(pw_over_cable(resistivity, cable, dflt_resistivity, scale_param));
     }
 
     const auto& embedding = cell.embedding();
@@ -384,7 +399,7 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
                 // A trivial parent CV with a zero-length cable might not
                 // be on the same branch.
                 if (parent_cable.branch==bid) {
-                    parent_refpt = 0.5*(parent_cable.prox_pos+parent_cable.dist_pos);
+                    parent_refpt = 0.5*(parent_cable.prox_pos + parent_cable.dist_pos);
                 }
             }
 
@@ -403,12 +418,22 @@ ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, co
         D.diam_um[i] = 0;
         double cv_length = 0;
 
-        for (mcable c: cv_cables) {
-            D.cv_area[i]                 += embedding.integrate_area(c);
-            D.cv_capacitance[i]          += embedding.integrate_area(c.branch, pw_over_cable(capacitance, c, dflt_capacitance));
-            D.init_membrane_potential[i] += embedding.integrate_area(c.branch, pw_over_cable(potential,   c, dflt_potential));
-            D.temperature_K[i]           += embedding.integrate_area(c.branch, pw_over_cable(temperature, c, dflt_temperature));
-            cv_length += embedding.integrate_length(c);
+        for (mcable cable: cv_cables) {
+            auto scale_param = [&](const auto&, const auto& par) {
+                auto ie = thingify(par.value, provider);
+                auto sc = ie->eval(provider, cable);
+                return sc;
+            };
+
+            auto pw_capacitance = pw_over_cable(capacitance, cable, dflt_capacitance, scale_param);
+            auto pw_potential   = pw_over_cable(potential,   cable, dflt_potential,   scale_param);
+            auto pw_temperature = pw_over_cable(temperature, cable, dflt_temperature, scale_param);
+
+            D.cv_area[i]                 += embedding.integrate_area(cable);
+            D.cv_capacitance[i]          += embedding.integrate_area(cable.branch, pw_capacitance);
+            D.init_membrane_potential[i] += embedding.integrate_area(cable.branch, pw_potential);
+            D.temperature_K[i]           += embedding.integrate_area(cable.branch, pw_temperature);
+            cv_length                    += embedding.integrate_length(cable);
         }
 
         if (D.cv_area[i]>0) {
@@ -1119,7 +1144,7 @@ auto ordered_parameters(const mechanism_info& info) {
 void
 make_voltage_mechanism_config(const region_assignment<voltage_process>& assignments,
                               const cell_build_data& data,
-                                  fvm_mechanism_config_map& result) {
+                              fvm_mechanism_config_map& result) {
 
     std::unordered_set<mcable> voltage_support;
     for (const auto& [name, cables]: assignments) {
@@ -1242,6 +1267,9 @@ make_ion_config(fvm_ion_map build_data,
                            [](const auto&, double a, double b) { return a*b; });
     };
 
+    const auto& embedding = data.embedding;
+    const auto& provider  = data.provider;
+
     for (const auto& [ion, build_data]: build_data) {
         fvm_ion_config config;
         config.cv = std::move(build_data.support);
@@ -1276,20 +1304,27 @@ make_ion_config(fvm_ion_map build_data,
             auto init_ex = 0.0;
 
             for (const mcable& cable: data.D.geometry.cables(cv)) {
-                auto branch = cable.branch;
-                auto iconc = pw_over_cable(iconc_on_cable, cable, dflt_iconc);
-                auto econc = pw_over_cable(econc_on_cable, cable, dflt_econc);
-                auto rvpot = pw_over_cable(rvpot_on_cable, cable, dflt_rvpot);
+                auto scale_param = [&](const auto&,
+                                   const auto& par) {
+                    auto ie = thingify(par.value, provider);
+                    auto sc = ie->eval(provider, cable);
+                    return sc;
+                };
 
-                reset_xi += data.embedding.integrate_area(branch, iconc);
-                reset_xo += data.embedding.integrate_area(branch, econc);
+                auto branch = cable.branch;
+                auto iconc = pw_over_cable(iconc_on_cable, cable, dflt_iconc, scale_param);
+                auto econc = pw_over_cable(econc_on_cable, cable, dflt_econc, scale_param);
+                auto rvpot = pw_over_cable(rvpot_on_cable, cable, dflt_rvpot, scale_param);
+
+                reset_xi += embedding.integrate_area(branch, iconc);
+                reset_xo += embedding.integrate_area(branch, econc);
 
                 auto iconc_masked = pw_times(xi_mask, cable, iconc);
                 auto econc_masked = pw_times(xo_mask, cable, econc);
 
-                init_xi += data.embedding.integrate_area(branch, iconc_masked);
-                init_xo += data.embedding.integrate_area(branch, econc_masked);
-                init_ex += data.embedding.integrate_area(branch, rvpot);
+                init_xi += embedding.integrate_area(branch, iconc_masked);
+                init_xo += embedding.integrate_area(branch, econc_masked);
+                init_ex += embedding.integrate_area(branch, rvpot);
             }
 
             // Scale all by area

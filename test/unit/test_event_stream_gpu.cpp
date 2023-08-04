@@ -11,8 +11,6 @@
 using namespace arb;
 
 namespace {
-    auto evtime = [](deliverable_event e) { return event_time(e); };
-
     constexpr cell_local_size_type mech = 13u;
 
     target_handle handle[4] = {

@@ -137,11 +137,15 @@ if(ARB_GPU STREQUAL "cuda")
     enable_language(CUDA)
     find_package(CUDAToolkit)
     if(${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 12)
-        # Pascal, Volta, Ampere, Hopper
-        set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
+        if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+            # Pascal, Volta, Ampere, Hopper
+            set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
+        endif()
     elseif(${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 11)
-        # Pascal, Volta, Ampere
-        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+        if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+            # Pascal, Volta, Ampere
+            set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+        endif()
     else()
         message(FATAL_ERROR "Need at least CUDA 11, got ${CUDAToolkit_VERSION_MAJOR}")
     endif()
@@ -153,10 +157,16 @@ if(ARB_GPU STREQUAL "cuda")
     find_package(CUDA ${CUDAToolkit_VERSION_MAJOR} REQUIRED)
 elseif(ARB_GPU STREQUAL "cuda-clang")
     include(FindCUDAToolkit)
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+    endif()
     set(ARB_WITH_CUDA_CLANG TRUE)
     enable_language(CUDA)
 elseif(ARB_GPU STREQUAL "hip")
     set(ARB_WITH_HIP_CLANG TRUE)
+    # Specify AMD architecture using a (user provided) list.
+    # Note: CMake native HIP architectures are introduced with version 3.21.
+    set(ARB_HIP_ARCHITECTURES gfx906 gfx900 CACHE STRING "AMD offload architectures (semicolon separated)")
 endif()
 
 if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
@@ -248,6 +258,7 @@ install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 
 cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 cmake_dependent_option(ARB_USE_BUNDLED_PUGIXML "Use bundled XML lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
+cmake_dependent_option(ARB_USE_BUNDLED_GTEST "Use bundled GoogleTest." ON "ARB_USE_BUNDLED_LIBS" OFF)
 
 cmake_dependent_option(ARB_USE_BUNDLED_JSON "Use bundled Niels Lohmann's json library." ON "ARB_USE_BUNDLED_LIBS" OFF)
 if(NOT ARB_USE_BUNDLED_JSON)
@@ -297,13 +308,29 @@ set(arbor_supported_components)
 # Target microarchitecture for building arbor libraries, tests and examples
 #---------------------------------------------------------------------------
 
+set(ARB_SVE_WIDTH "auto" CACHE STRING "Default SVE vector length in bits. Default: auto (detection during configure time).")
+mark_as_advanced(ARB_SVE_WIDTH)
+if (ARB_SVE_WIDTH STREQUAL "auto")
+    get_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
+    if (ARB_HAS_SVE)
+        message(STATUS "SVE detected with vector size = ${ARB_SVE_BITS} bits")
+        set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
+    else()
+        message(STATUS "NO SVE detected")
+        set(ARB_CXX_SVE_FLAGS "")
+    endif()
+else()
+    set(ARB_SVE_BITS ${ARB_SVE_WIDTH})
+    set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
+endif()
+
 # Set the full set of target flags in ARB_CXX_FLAGS_TARGET_FULL, which
 # will include target-specific -march flags if ARB_ARCH is not "none".
 if(ARB_ARCH STREQUAL "none")
-    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET})
+    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXX_SVE_FLAGS})
 else()
     set_arch_target(ARB_CXXOPT_ARCH ${ARB_ARCH})
-    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH})
+    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH} ${ARB_CXX_SVE_FLAGS})
 endif()
 
 # Compile with `-fvisibility=hidden` to ensure that the symbols of the generated
@@ -406,11 +433,19 @@ if(ARB_WITH_GPU)
         target_compile_definitions(arbor-private-deps INTERFACE ARB_CUDA)
         target_compile_definitions(arborenv-private-deps INTERFACE ARB_CUDA)
     elseif(ARB_WITH_CUDA_CLANG)
-        set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-gpu-arch=sm_80 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
+        # Transform cuda archtitecture list into clang cuda flags
+        list(TRANSFORM CMAKE_CUDA_ARCHITECTURES PREPEND "--cuda-gpu-arch=sm_" OUTPUT_VARIABLE TMP)
+        string(REPLACE ";" " " CUDA_ARCH_STR "${TMP}")
+
+        set(clang_options_ -DARB_CUDA -xcuda ${CUDA_ARCH_STR} --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
         target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
     elseif(ARB_WITH_HIP_CLANG)
-        set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
+        # Transform hip archtitecture list into clang hip flags
+        list(TRANSFORM ARB_HIP_ARCHITECTURES PREPEND "--offload-arch=" OUTPUT_VARIABLE TMP)
+        string(REPLACE ";" " " HIP_ARCH_STR "${TMP}")
+
+        set(clang_options_ -DARB_HIP -xhip ${HIP_ARCH_STR})
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
         target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
     endif()

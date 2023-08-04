@@ -123,11 +123,11 @@ install(TARGETS arbor-private-headers EXPORT arbor-targets)
 # directory-local.
 
 add_subdirectory(../mechanisms "${CMAKE_BINARY_DIR}/mechanisms")
-set_source_files_properties(${arbor-builtin-mechanisms} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${arbor-builtin-mechanisms} DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTIES GENERATED TRUE)
 
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
-    set_source_files_properties(${arbor_sources} PROPERTIES LANGUAGE CXX)
-    set_source_files_properties(${arbor-builtin-mechanism} PROPERTIES LANGUAGE CXX)
+    set_source_files_properties(${arbor_sources} DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTIES LANGUAGE CXX)
+    set_source_files_properties(${arbor-builtin-mechanisms} DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTIES LANGUAGE CXX)
 endif()
 
 # Library target:
@@ -146,5 +146,21 @@ export_visibility(arbor)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/export.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arbor)
+
+configure_file(
+    ${PROJECT_SOURCE_DIR}/cmake/vls_sve_bits.hpp.in
+    ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/simd/vls_sve_bits.hpp
+    @ONLY)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/simd/vls_sve_bits.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arbor/simd)
+
+configure_file(
+    ${PROJECT_SOURCE_DIR}/cmake/sve_bits.hpp.in
+    ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/simd/sve_bits.hpp
+    @ONLY)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/simd/sve_bits.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arbor/simd)
 
 install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

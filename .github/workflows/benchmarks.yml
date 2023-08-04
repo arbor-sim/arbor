@@ -3,6 +3,7 @@ name: Benchmarks
 on:
   pull_request:
     branches: [ master ]
+    paths-ignore: 'doc/**'
 
 jobs:
   build:

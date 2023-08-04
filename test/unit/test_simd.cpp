@@ -8,6 +8,7 @@
 #include <arbor/simd/avx.hpp>
 #include <arbor/simd/neon.hpp>
 #include <arbor/simd/sve.hpp>
+#include <arbor/simd/vls_sve.hpp>
 #include <arbor/simd/simd.hpp>
 #include <arbor/util/compat.hpp>
 
@@ -91,6 +92,8 @@ namespace {
     }
 
     constexpr unsigned nrounds = 20u;
+
+    constexpr int native_width = ::arb::simd::simd_abi::native_width<double>::value;
 }
 
 template <typename S>
@@ -608,6 +611,10 @@ typedef ::testing::Types<
     simd<int, 2, simd_abi::neon>,
     simd<double, 2, simd_abi::neon>,
 #endif
+#ifdef __ARM_FEATURE_SVE
+    simd<int, native_width, simd_abi::vls_sve>,
+    simd<double, native_width, simd_abi::vls_sve>,
+#endif
 
     simd<int, 4, simd_abi::generic>,
     simd<double, 4, simd_abi::generic>,
@@ -955,6 +962,9 @@ typedef ::testing::Types<
 #ifdef __ARM_NEON
     simd<double, 2, simd_abi::neon>,
 #endif
+#ifdef __ARM_FEATURE_SVE
+    simd<double, native_width, simd_abi::vls_sve>,
+#endif
 
     simd<float, 2, simd_abi::generic>,
     simd<double, 4, simd_abi::generic>,
@@ -1288,6 +1298,13 @@ typedef ::testing::Types<
     simd_and_index<simd<int, 2, simd_abi::neon>,
                    simd<int, 2, simd_abi::neon>>,
 #endif
+#ifdef __ARM_FEATURE_SVE
+    simd_and_index<simd<double, native_width, simd_abi::vls_sve>,
+                   simd<int, native_width, simd_abi::vls_sve>>,
+
+    simd_and_index<simd<int, native_width, simd_abi::vls_sve>,
+                   simd<int, native_width, simd_abi::vls_sve>>,
+#endif
 
     simd_and_index<simd<float, 4, simd_abi::generic>,
                    simd<std::int64_t, 4, simd_abi::generic>>,
@@ -1370,6 +1387,10 @@ typedef ::testing::Types<
 #ifdef __ARM_NEON
     simd_pair<simd<double, 2, simd_abi::neon>,
               simd<int, 2, simd_abi::neon>>,
+#endif
+#ifdef __ARM_FEATURE_SVE
+    simd_pair<simd<double, native_width, simd_abi::vls_sve>,
+              simd<int, native_width, simd_abi::vls_sve>>,
 #endif
 
     simd_pair<simd<double, 4, simd_abi::default_abi>,
@@ -1885,13 +1906,12 @@ typedef ::testing::Types<
                   simd_t<simd_mask<double, 2, simd_abi::neon>, double, 2>>,
 #endif
 #ifdef __ARM_FEATURE_SVE
-    simd_types_t< simd_t<     simd<double, 0, simd_abi::sve>, double, 4>,
-                  simd_t<     simd<int,    0, simd_abi::sve>, int,    4>,
-                  simd_t<simd_mask<double, 0, simd_abi::sve>, bool,   4>>,
-
-    simd_types_t< simd_t<     simd<double, 0, simd_abi::sve>, double, 8>,
-                  simd_t<     simd<int,    0, simd_abi::sve>, int,    8>,
-                  simd_t<simd_mask<double, 0, simd_abi::sve>, bool,   8>>,
+    simd_types_t< simd_t<     simd<double, 0,            simd_abi::sve>,     double, native_width>,
+                  simd_t<     simd<int,    0,            simd_abi::sve>,     int,    native_width>,
+                  simd_t<simd_mask<double, 0,            simd_abi::sve>,     bool,   native_width>>,
+    simd_types_t< simd_t<     simd<double, native_width, simd_abi::vls_sve>, double, native_width>,
+                  simd_t<     simd<int,    native_width, simd_abi::vls_sve>, int,    native_width>,
+                  simd_t<simd_mask<double, native_width, simd_abi::vls_sve>, double, native_width>>,
 #endif
     simd_types_t< simd_t<     simd<double, 8, simd_abi::default_abi>, double, 8>,
                   simd_t<     simd<int,    8, simd_abi::default_abi>, int,    8>,

@@ -55,7 +55,7 @@ class TestDomain_Decompositions(unittest.TestCase):
     def test_domain_decomposition_homogenous_CPU(self):
         n_cells = 10
         recipe = homo_recipe(n_cells)
-        context = arb.context()
+        context = arb.context(threads=1, gpu_id=None)
         decomp = arb.partition_load_balance(recipe, context)
 
         self.assertEqual(decomp.num_local_cells, n_cells)
@@ -106,7 +106,7 @@ class TestDomain_Decompositions(unittest.TestCase):
     def test_domain_decomposition_heterogenous_CPU(self):
         n_cells = 10
         recipe = hetero_recipe(n_cells)
-        context = arb.context()
+        context = arb.context(threads=1, gpu_id=None)
         decomp = arb.partition_load_balance(recipe, context)
 
         self.assertEqual(decomp.num_local_cells, n_cells)
