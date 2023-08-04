@@ -153,7 +153,7 @@ auto on_gpu(const C& c) -> device_vector<typename C::value_type> {
     return device_vector<T>(make_const_view(c));
 }
 } // namespace memory
-  //
+
 template<typename K,
          typename T>
 void serialize(::arb::serializer ser, const K& k, const memory::host_vector<T>& hvs) {
