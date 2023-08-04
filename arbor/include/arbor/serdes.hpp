@@ -1,7 +1,6 @@
 #pragma once
 
 #include <optional>
-// #include <string_view>
 #include <string>
 #include <vector>
 #include <memory>
@@ -115,6 +114,7 @@ private:
         virtual void begin_read_array(const serdes_key_type&) = 0;
         virtual void end_read_array() = 0;
 
+        virtual ~interface() {}
     };
 
     template <typename I>
@@ -150,20 +150,10 @@ private:
     std::unique_ptr<interface> wrapped = nullptr;
 };
 
-// The actual interface. This needs to go to the global namespace as
-// A) friend in a class is just weird that way (it puts the defined function into the global namespace)
-// B) we want externals to add their classes
-//
-
 template<typename K>
 ARB_ARBOR_API void serialize(arb::serializer& ser, const K& k, const std::string& v) {
     ser.write(arb::to_serdes_key(k), v);
 }
-
-// template<typename K>
-// ARB_ARBOR_API void serialize(serializer& ser, const K& k, std::string_view v) {
-    // ser.write(to_serdes_key(k), std::string{v});
-// }
 
 template<typename K>
 ARB_ARBOR_API void serialize(arb::serializer& ser, const K& k, const char* v) {
@@ -251,14 +241,6 @@ template <typename K,
           typename V,
           typename A>
 ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const std::vector<V, A>& vs) {
-    ser.begin_write_array(arb::to_serdes_key(k));
-    for (std::size_t ix = 0; ix < vs.size(); ++ix) serialize(ser, ix, vs[ix]);
-    ser.end_write_array();
-}
-
-template <typename K,
-          typename V>
-ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const std::vector<V>& vs) {
     ser.begin_write_array(arb::to_serdes_key(k));
     for (std::size_t ix = 0; ix < vs.size(); ++ix) serialize(ser, ix, vs[ix]);
     ser.end_write_array();

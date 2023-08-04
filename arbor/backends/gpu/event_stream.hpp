@@ -17,7 +17,9 @@ namespace arb {
 namespace gpu {
 
 template <typename Event>
-class event_stream : public event_stream_base<Event, typename memory::device_vector<::arb::event_data_type<Event>>::view_type> {
+class event_stream :
+        public event_stream_base<Event,
+                                 typename memory::device_vector<::arb::event_data_type<Event>>::view_type> {
 public:
     using base = event_stream_base<Event, typename memory::device_vector<::arb::event_data_type<Event>>::view_type>;
     using size_type = typename base::size_type;
