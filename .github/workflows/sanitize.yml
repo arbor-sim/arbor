@@ -6,7 +6,8 @@ on:
     paths-ignore: 'doc/**'
 
   schedule:
-    - cron: '0 2 * * 0' # run at 2 AM every sunday
+    - cron: '30 14 * * 1' # run at 14:30 every Monday
+    #- cron: '0 2 * * 0' # run at 2 AM every sunday
 
 jobs:
   build:
@@ -67,6 +68,8 @@ jobs:
       - name: Run examples
         run: scripts/run_cpp_examples.sh 2>&1 | tee -a output.log
         shell: bash
+      - name: Try to fail
+        run: exit 1
       - name: Ouput File
         if: ${{ failure() && github.event_name == 'schedule' }}
         run: |
