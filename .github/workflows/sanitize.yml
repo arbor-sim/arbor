@@ -71,18 +71,18 @@ jobs:
         if: ${{ failure() && github.event_name == 'schedule' }}
         run: |
           cat > issue.md <<EOF
-<details>
-
-<summary>output from test runs</summary>
-
-```
-EOF
+          <details>
+          
+          <summary>output from test runs</summary>
+          
+          ```
+          EOF
           cat output.log >> issue.md
           cat >> issue.md <<EOF
-```
-
-</details>
-EOF
+          ```
+          
+          </details>
+          EOF
       - name: Create Issue From File
         if: ${{ failure() && github.event_name == 'schedule' }}
         uses: peter-evans/create-issue-from-file@v4
