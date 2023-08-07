@@ -24,7 +24,8 @@ RUN spack-install-helper daint-mc \
     "py-pytest" \
     "py-seaborn" \
     "py-pandas" \
-    "pugixml"
+    "pugixml" \
+    "googletest"
 
 # end of builder container, now we are ready to copy necessary files
 
