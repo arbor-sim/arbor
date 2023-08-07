@@ -107,7 +107,7 @@ jobs:
       - name: Create Issue From File
         #if: ${{ failure() && github.event_name == 'schedule' }}
         if: ${{ failure() }}
-        uses: peter-evans/create-issue-from-file@v4
+        uses: peter-evans/create-issue-from-file@v3
         with:
           title: '[AUTOMATED] Sanitize checks failed'
           content-filepath: ./issue.md
