@@ -1561,6 +1561,38 @@ TEST(fvm_layout, ion_weights) {
     }
 }
 
+TEST(fvm_layout, global_vs_range_parameters) {
+    soma_cell_builder builder(5);
+    builder.add_branch(0, 100, 0.5, 0.5, 1, "dend");
+
+    {
+        auto desc = builder.make_cell();
+        desc.decorations.paint("dend"_lab, density("pas", {{"e", 42}}));
+
+        EXPECT_THROW(
+            fvm_build_mechanism_data({},
+                                     {{desc}},
+                                     {0},
+                                     {{}},
+                                     fvm_cv_discretize({{desc}},
+                                                       neuron_parameter_defaults)),
+            did_you_mean_global_parameter);
+    }
+    {
+        auto desc = builder.make_cell();
+        desc.decorations.paint("dend"_lab, density("pas/g=23"));
+
+        EXPECT_THROW(
+            fvm_build_mechanism_data({},
+                                     {{desc}},
+                                     {0},
+                                     {{}},
+                                     fvm_cv_discretize({{desc}},
+                                                       neuron_parameter_defaults)),
+            did_you_mean_normal_parameter);
+    }
+}
+
 TEST(fvm_layout, revpot) {
     // Create two cells with three ions 'a', 'b' and 'c'.
     // Configure a reversal potential mechanism that writes to 'a' and

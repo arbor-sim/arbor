@@ -137,6 +137,18 @@ struct ARB_SYMBOL_VISIBLE no_such_parameter: arbor_exception {
     std::string param_name;
 };
 
+struct ARB_SYMBOL_VISIBLE did_you_mean_global_parameter: arbor_exception {
+    did_you_mean_global_parameter(const std::string& mech_name, const std::string& param_name);
+    std::string mech_name;
+    std::string param_name;
+};
+
+struct ARB_SYMBOL_VISIBLE did_you_mean_normal_parameter: arbor_exception {
+    did_you_mean_normal_parameter(const std::string& mech_name, const std::string& param_name);
+    std::string mech_name;
+    std::string param_name;
+};
+
 struct ARB_SYMBOL_VISIBLE illegal_diffusive_mechanism: arbor_exception {
     explicit illegal_diffusive_mechanism(const std::string& mech, const std::string& ion);
     std::string mech;

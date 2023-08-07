@@ -112,6 +112,26 @@ no_such_parameter::no_such_parameter(const std::string& mech_name, const std::st
     param_name(param_name)
 {}
 
+did_you_mean_global_parameter::did_you_mean_global_parameter(const std::string& mech_name, const std::string& param_name):
+    arbor_exception(pprintf("mechanism '{}' has no parameter '{}', "
+                            "but a global parameter with the same name exists. "
+                            "Use '{}/{}=...' to set it.",
+                            mech_name, param_name,
+                            mech_name, param_name)),
+    mech_name(mech_name),
+    param_name(param_name)
+{}
+
+did_you_mean_normal_parameter::did_you_mean_normal_parameter(const std::string& mech_name, const std::string& param_name):
+    arbor_exception(pprintf("mechanism '{}' has no global parameter '{}', "
+                            "but a normal parameter with the same name exists. "
+                            "Set it via the parameter map, eg 'density(\"{}\", {{\"{}\", ...}, ...})'",
+                            mech_name, param_name,
+                            mech_name, param_name)),
+    mech_name(mech_name),
+    param_name(param_name)
+{}
+
 illegal_diffusive_mechanism::illegal_diffusive_mechanism(const std::string& m, const std::string& i):
         arbor_exception(pprintf("mechanism '{}' accesses diffusive value of ion '{}', but diffusivity is disabled for it.", m, i)),
         mech{m},
