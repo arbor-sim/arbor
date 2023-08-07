@@ -110,7 +110,7 @@ if (ARB_USE_BUNDLED_GTEST)
     endif()
 else()
     # Use system provided google test
-    find_package(GTest)
+    find_package(GTest REQUIRED)
     add_library(ext-gtest INTERFACE)
     target_link_libraries(ext-gtest INTERFACE GTest::GTest GTest::Main)
 endif()
