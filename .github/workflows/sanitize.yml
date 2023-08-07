@@ -71,7 +71,8 @@ jobs:
       - name: Try to fail
         run: exit 1
       - name: Ouput File
-        if: ${{ failure() && github.event_name == 'schedule' }}
+        #if: ${{ failure() && github.event_name == 'schedule' }}
+        if: ${{ failure() }}
         run: |
           cat > issue.md <<EOF
           <details>
@@ -87,7 +88,8 @@ jobs:
           </details>
           EOF
       - name: Create Issue From File
-        if: ${{ failure() && github.event_name == 'schedule' }}
+        #if: ${{ failure() && github.event_name == 'schedule' }}
+        if: ${{ failure() }}
         uses: peter-evans/create-issue-from-file@v4
         with:
           title: '[AUTOMATED] Sanitize checks failed'
