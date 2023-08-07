@@ -77,20 +77,25 @@ jobs:
         #if: ${{ failure() && github.event_name == 'schedule' }}
         if: ${{ failure() }}
         run: |
-          fence='```'
-          cat > issue.md <<EOF
+          FENCE='```'
+          HEADER=$(cat << EOF
           <details>
           
           <summary>output from test runs</summary>
           
-          ${fence}
+          ${FENCE}
           EOF
-          cat output.log >> issue.md
-          cat >> issue.md <<EOF
-          ${fence}
+          )
+          FOOTER=$(cat << EOF
+          ${FENCE}
           
           </details>
           EOF
+          )
+          cat HEADER > issue.md
+          cat output.log >> issue.md
+          cat FOOTER >> issue.md
+          cat issue.md
       - name: Create Issue From File
         #if: ${{ failure() && github.event_name == 'schedule' }}
         if: ${{ failure() }}
