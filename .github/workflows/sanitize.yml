@@ -6,7 +6,7 @@ on:
     paths-ignore: 'doc/**'
 
   schedule:
-    - cron: '0 2 * * *' # run at 2 AM every day
+    - cron: '0 2 * * 0' # run at 2 AM every sunday
 
 jobs:
   build:
@@ -61,7 +61,33 @@ jobs:
           cd -
       - name: Run unit tests
         run: |
-          build/bin/unit --gtest_filter=-*DeathTest
-          build/bin/unit-modcc
+          build/bin/unit --gtest_filter=-*DeathTest 2>&1 | tee output.log
+          build/bin/unit-modcc 2>&1 | tee -a output.log
+        shell: bash
       - name: Run examples
-        run: scripts/run_cpp_examples.sh
+        run: scripts/run_cpp_examples.sh 2>&1 | tee -a output.log
+        shell: bash
+      - name: Ouput File
+        if: ${{ failure() && github.event_name == 'schedule' }}
+        run: |
+          cat > issue.md <<EOF
+<details>
+
+<summary>output from test runs</summary>
+
+```
+EOF
+          cat output.log >> issue.md
+          cat >> issue.md <<EOF
+```
+
+</details>
+EOF
+      - name: Create Issue From File
+        if: ${{ failure() && github.event_name == 'schedule' }}
+        uses: peter-evans/create-issue-from-file@v4
+        with:
+          title: '[AUTOMATED] Sanitize checks failed'
+          content-filepath: ./issue.md
+          labels: |
+            automated issue
