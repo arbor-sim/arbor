@@ -77,16 +77,17 @@ jobs:
         #if: ${{ failure() && github.event_name == 'schedule' }}
         if: ${{ failure() }}
         run: |
+          fence='```'
           cat > issue.md <<EOF
           <details>
           
           <summary>output from test runs</summary>
           
-          ```
+          ${fence}
           EOF
           cat output.log >> issue.md
           cat >> issue.md <<EOF
-          ```
+          ${fence}
           
           </details>
           EOF
