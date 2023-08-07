@@ -1,0 +1,67 @@
+include:
+  - remote: 'https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.ci-ext.yml'
+
+stages:
+  - build_base # build stage is running on Kubernetes cluster
+  - build      # build stage is running on Kubernetes cluster
+  - test       # test stage is running on slurm cluster
+
+variables:
+  PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/software/arbor_daint_gpu:$CI_COMMIT_SHORT_SHA
+
+build-base:
+  extends: .container-builder-dynamic-name
+  stage: build_base
+  variables:
+    DOCKERFILE: ci/cscs/daint_gpu/Dockerfile.base
+    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/base/arbor_daint_gpu_base_image
+    WATCH_FILECHANGES: 'ci/cscs/daint_gpu/Dockerfile.base'
+
+build-arbor:
+  extends: .container-builder
+  stage: build
+  variables:
+    DOCKERFILE: ci/cscs/daint_gpu/Dockerfile
+    DOCKER_BUILD_ARGS: '["BASE_IMG=$BASE_IMAGE"]'
+    GIT_SUBMODULE_STRATEGY: recursive
+
+test-single-node:
+  extends: .container-runner-daint-gpu
+  stage: test
+  image: $PERSIST_IMAGE_NAME
+  script:
+    - cd /arbor.src
+    - build/bin/unit-modcc
+    - build/bin/unit-local
+    - build/bin/unit
+    - scripts/run_cpp_examples.sh
+    - python -m venv --system-site-packages /arbor.install
+    - source /arbor.install/bin/activate
+    - python -m unittest discover -v -s python
+    - scripts/run_python_examples.sh
+    - scripts/test_executables.sh
+    - deactivate
+  variables:
+    SLURM_JOB_PARTITION: normal
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_NTASKS: 1
+    SLURM_CPUS_PER_TASK: 12
+    SLURM_TIMELIMIT: "00:30:00"
+    USE_MPI: "NO"
+
+test-distributed:
+  extends: .container-runner-daint-gpu
+  stage: test
+  image: $PERSIST_IMAGE_NAME
+  script:
+    - cd /arbor.src
+    - build/bin/unit-mpi
+    - scripts/run_cpp_examples.sh -d
+  variables:
+    SLURM_JOB_PARTITION: normal
+    SLURM_JOB_NUM_NODES: 2
+    SLURM_NTASKS: 2
+    SLURM_CPUS_PER_TASK: 12
+    SLURM_TIMELIMIT: "00:30:00"
+    USE_MPI: "YES"
+

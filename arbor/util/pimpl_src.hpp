@@ -13,8 +13,9 @@ namespace util {
 template<typename T>
 pimpl<T>::~pimpl() = default;
 
+// ctor is empty instead of defaulted because of hipcc complaints
 template<typename T>
-pimpl<T>::pimpl() noexcept = default;
+pimpl<T>::pimpl() noexcept {}
 
 template<typename T>
 pimpl<T>::pimpl(T* ptr) noexcept : m{ptr} {}
@@ -53,9 +54,4 @@ pimpl<T> make_pimpl(Args&&... args) {
 // In order to avoid linker errors for the constructors and destructor, the pimpl template needs to
 // be instantiated in the source file. This macro helps with this boilerplate code. Note, that it
 // needs to be placed in the default namespace.
-#define ARB_INSTANTIATE_PIMPL(T) \
-namespace arb {                  \
-namespace util {                 \
-template struct pimpl<T>;        \
-}                                \
-}
+#define ARB_INSTANTIATE_PIMPL(T) template class ::arb::util::pimpl<T>;
