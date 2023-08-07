@@ -964,7 +964,14 @@ void verify_mechanism(const ion_species_map& global_ions,
                       const mechanism_desc& desc) {
     const auto& name = desc.name();
     for (const auto& [p, v]: desc.values()) {
-        if (!info.parameters.count(p)) throw no_such_parameter(name, p);
+        if (!info.parameters.count(p)) {
+            if (info.globals.count(p)) {
+                throw did_you_mean_global_parameter(name, p);
+            }
+            else {
+                throw no_such_parameter(name, p);
+            }
+        }
         if (!info.parameters.at(p).valid(v)) throw invalid_parameter_value(name, p, v);
     }
 
