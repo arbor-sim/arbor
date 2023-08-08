@@ -100,9 +100,9 @@ jobs:
           </details>
           EOF
           )"
-          echo ${HEADER} > issue.md
+          echo "${HEADER}" > issue.md
           cat output.log >> issue.md
-          echo ${FOOTER} >> issue.md
+          echo "${FOOTER}" >> issue.md
           cat issue.md
       - name: Create Issue From File
         #if: ${{ failure() && github.event_name == 'schedule' }}
