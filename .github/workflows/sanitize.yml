@@ -4,13 +4,9 @@ on:
   push:
     branches: [ master ]
     paths-ignore: 'doc/**'
-  pull_request:
-    branches: [ master ]
-    paths-ignore: 'doc/**'
 
   schedule:
-    - cron: '40 13 * * 2' # run at 14:30 every Monday
-    #- cron: '0 2 * * 0' # run at 2 AM every sunday
+    - cron: '0 2 * * 0' # run at 2 AM every sunday
 
 permissions:
   issues: write
@@ -59,31 +55,25 @@ jobs:
         uses: hendrikmuhs/ccache-action@v1.2
         with:
           key: sanitize-${{ env.CXX }}-${{ matrix.sanitizer }}-${{ env.VECTOR_EXTENSIONS }}
-      #- name: Build arbor
-      #  run: |
-      #    export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
-      #    mkdir build
-      #    cd build
-      #    export SAN="-fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer"
-      #    cmake .. -GNinja -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS="$SAN" -DCMAKE_C_FLAGS="$SAN" -DCMAKE_EXE_LINKER_FLAGS="$SAN" -DCMAKE_MODULE_LINKER_FLAGS="$SAN" -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_VECTORIZE=${{ matrix.simd }} -DARB_WITH_MPI=OFF -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python`
-      #    ninja -j4 -v tests examples pyarb
-      #    cd -
-      #- name: Run unit tests
-      #  run: |
-      #    build/bin/unit --gtest_filter=-*DeathTest 2>&1 | tee output.log
-      #    build/bin/unit-modcc 2>&1 | tee -a output.log
-      #  shell: bash
-      #- name: Run examples
-      #  run: scripts/run_cpp_examples.sh 2>&1 | tee -a output.log
-      #  shell: bash
-      - name: Try to fail
+      - name: Build arbor
         run: |
-          pwd
-          echo "test output" 2>&1 | tee output.log
-          exit 1
+          export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+          mkdir build
+          cd build
+          export SAN="-fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer"
+          cmake .. -GNinja -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS="$SAN" -DCMAKE_C_FLAGS="$SAN" -DCMAKE_EXE_LINKER_FLAGS="$SAN" -DCMAKE_MODULE_LINKER_FLAGS="$SAN" -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_VECTORIZE=${{ matrix.simd }} -DARB_WITH_MPI=OFF -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python`
+          ninja -j4 -v tests examples pyarb
+          cd -
+      - name: Run unit tests
+        run: |
+          build/bin/unit --gtest_filter=-*DeathTest 2>&1 | tee output.log
+          build/bin/unit-modcc 2>&1 | tee -a output.log
+        shell: bash
+      - name: Run examples
+        run: scripts/run_cpp_examples.sh 2>&1 | tee -a output.log
+        shell: bash
       - name: Ouput File
-        #if: ${{ failure() && github.event_name == 'schedule' }}
-        if: ${{ failure() }}
+        if: ${{ failure() && github.event_name == 'schedule' }}
         run: |
           FENCE='```'
           HEADER="$(cat << EOF
@@ -104,10 +94,8 @@ jobs:
           cat output.log >> issue.md
           echo "${FOOTER}" >> issue.md
           echo -e "\nSee also the [corresponding workflow](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n" >> issue.md
-          cat issue.md
       - name: Create Issue From File
-        #if: ${{ failure() && github.event_name == 'schedule' }}
-        if: ${{ failure() }}
+        if: ${{ failure() && github.event_name == 'schedule' }}
         uses: peter-evans/create-issue-from-file@v4
         with:
           title: '[AUTOMATED] Sanitize checks failed'
