@@ -22,7 +22,7 @@ jobs:
           submodules: recursive
       - name: Create unique version in pyproject.toml
         if: startsWith(github.ref, 'refs/tags/v') == false
-        run: python3 -c 'import time;f=open("pyproject.toml","r+");c = f.readlines();d=[i.split("#")[0].strip()[:-1]+time.strftime("%Y%m%d%H%I%S")+"\"\n" if i.startswith("version") else i for i in c];f.seek(0);f.writelines(d)'
+        run: python3 -c 'import time;f=open("pyproject.toml","r+");c = f.readlines();d=[i.split("#")[0].strip()[:-1]+time.strftime("%Y%m%d%H%I%S")+"\"\n" if i.startswith("version") else i for i in c];f.seek(0);f.writelines(d);f.truncate()'
       - uses: actions/upload-artifact@v3
         with:
             name: arbver
