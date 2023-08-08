@@ -121,9 +121,9 @@ jobs:
         #if: ${{ failure() && github.event_name == 'schedule' }}
         if: ${{ failure() }}
         - uses: dblock/create-a-github-issue@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          filename: ./issue.md
-          update_existing: true
-          search_existing: all
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with:
+            filename: ./issue.md
+            update_existing: true
+            search_existing: all
