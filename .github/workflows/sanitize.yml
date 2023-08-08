@@ -108,15 +108,6 @@ jobs:
           cat output.log >> issue.md
           echo ${FOOTER} >> issue.md
           cat issue.md
-      #- name: Create Issue From File
-      #  #if: ${{ failure() && github.event_name == 'schedule' }}
-      #  if: ${{ failure() }}
-      #  uses: peter-evans/create-issue-from-file@v3
-      #  with:
-      #    title: '[AUTOMATED] Sanitize checks failed'
-      #    content-filepath: ./issue.md
-      #    labels: |
-      #      automated issue
       - name: Create Issue From File
         #if: ${{ failure() && github.event_name == 'schedule' }}
         if: ${{ failure() }}
