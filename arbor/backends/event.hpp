@@ -2,6 +2,7 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/serdes.hpp>
 #include <arbor/mechanism_abi.h>
 #include <arbor/generic_event.hpp>
 
@@ -17,9 +18,21 @@ struct target_handle {
     cell_local_size_type mech_index; // instance of the mechanism
 
     target_handle() = default;
+
     target_handle(cell_local_size_type mech_id, cell_local_size_type mech_index):
         mech_id(mech_id), mech_index(mech_index) {}
+
+    ARB_SERDES_ENABLE(target_handle, mech_id, mech_index);
 };
+
+}
+
+template<typename K>
+void serialize(arb::serializer &ser, const K &k, const arb::target_handle&);
+template<typename K>
+void deserialize(arb::serializer &ser, const K &k, arb::target_handle&);
+
+namespace arb {
 
 struct deliverable_event {
     time_type time = 0;
@@ -29,10 +42,20 @@ struct deliverable_event {
     deliverable_event() = default;
     deliverable_event(time_type time, target_handle handle, float weight):
         time(time), weight(weight), handle(handle) {}
+
+    ARB_SERDES_ENABLE(deliverable_event, time, weight, handle);
 };
 
 template<>
 struct has_event_index<deliverable_event> : public std::true_type {};
+
+// Subset of event information required for mechanism delivery.
+struct deliverable_event_data {
+    cell_local_size_type mech_id;    // same as target_handle::mech_id
+    cell_local_size_type mech_index; // same as target_handle::mech_index
+    float weight;
+    ARB_SERDES_ENABLE(deliverable_event_data, mech_id, mech_index, weight);
+};
 
 // Stream index accessor function for multi_event_stream:
 inline cell_local_size_type event_index(const arb_deliverable_event_data& ed) {

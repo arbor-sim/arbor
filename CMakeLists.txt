@@ -136,9 +136,20 @@ if(ARB_GPU STREQUAL "cuda")
     set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
     enable_language(CUDA)
     find_package(CUDAToolkit)
-    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+    if(${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 12)
+        if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+            # Pascal, Volta, Ampere, Hopper
+            set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
+        endif()
+    elseif(${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 11)
+        if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+            # Pascal, Volta, Ampere
+            set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+        endif()
+    else()
+        message(FATAL_ERROR "Need at least CUDA 11, got ${CUDAToolkit_VERSION_MAJOR}")
     endif()
+
     # We _still_ need this otherwise CUDA symbols will not be exported
     # from libarbor.a leading to linker errors when link external clients.
     # Unit tests are NOT external enough. Re-review this somewhere in the
@@ -181,7 +192,7 @@ include("CheckCompilerXLC")
 include("CompilerOptions")
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_WALL}>")
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -241,8 +252,9 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 
 install(PROGRAMS scripts/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
-# External libraries in `ext` sub-directory: json, tinyopt and randon123.
-# Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
+
+# External libraries in `ext` sub-directory: json, tinyopt and random123.
+# Creates interface libraries `ext-tinyopt` and `ext-random123`
 
 cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 cmake_dependent_option(ARB_USE_BUNDLED_PUGIXML "Use bundled XML lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
@@ -250,10 +262,8 @@ cmake_dependent_option(ARB_USE_BUNDLED_GTEST "Use bundled GoogleTest." ON "ARB_U
 
 cmake_dependent_option(ARB_USE_BUNDLED_JSON "Use bundled Niels Lohmann's json library." ON "ARB_USE_BUNDLED_LIBS" OFF)
 if(NOT ARB_USE_BUNDLED_JSON)
-  find_package(nlohmann_json)
-  set(json_library_name nlohmann_json::nlohmann_json)
-else()
-  unset(nlohmann_json_DIR CACHE)
+  find_package(nlohmann_json 3.11.2 CONFIG REQUIRED)
+  message(STATUS "Using external JSON = ${nlohmann_json_VERSION}")
 endif()
 
 cmake_dependent_option(ARB_USE_BUNDLED_RANDOM123 "Use bundled Random123 lib." ON "ARB_USE_BUNDLED_LIBS" OFF)

@@ -92,6 +92,11 @@ struct sampler_call_info {
     sample_size_type end_offset;
 };
 
+void mc_cell_group::t_serialize(serializer& ser,
+                              const std::string& k) const { serialize(ser, k, *this); }
+void mc_cell_group::t_deserialize(serializer& ser,
+                                const std::string& k) { deserialize(ser, k, *this); }
+
 // Working space for computing and collating data for samplers.
 using fvm_probe_scratch = std::tuple<std::vector<double>, std::vector<cable_sample_range>>;
 

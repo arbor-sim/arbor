@@ -5,6 +5,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
 
+#include "backends/common_types.hpp"
 #include "execution_context.hpp"
 #include "memory/memory.hpp"
 #include "util/span.hpp"
@@ -51,6 +52,12 @@ public:
     threshold_watcher& operator=(threshold_watcher&& other) = default;
 
     threshold_watcher(const execution_context& ctx): stack_(ctx.gpu) {}
+
+    threshold_watcher(const arb_size_type num_cv,
+                      const arb_index_type* src_to_spike,
+                      const fvm_detector_info& info):
+        threshold_watcher{num_cv, src_to_spike, info.cv, info.threshold, info.ctx}
+    {}
 
     threshold_watcher(const arb_size_type num_cv,
                       const arb_index_type* src_to_spike,

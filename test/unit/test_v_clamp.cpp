@@ -13,8 +13,8 @@
 #include <arborio/label_parse.hpp>
 using namespace arborio::literals;
 
-struct recipe: public arb::recipe {
-    recipe(bool clamp, bool limit): limit{limit}, clamp{clamp} {
+struct v_proc_recipe: public arb::recipe {
+    v_proc_recipe(bool clamp, bool limit): limit{limit}, clamp{clamp} {
         gprop.default_parameters = arb::neuron_parameter_defaults;
         gprop.default_parameters.discretization = arb::cv_policy_max_extent(1.0);
     }
@@ -89,7 +89,7 @@ TEST(v_process, clamp) {
             }
         }
     };
-    auto sim = arb::simulation(recipe{true, false});
+    auto sim = arb::simulation(v_proc_recipe{true, false});
     sim.add_sampler(arb::all_probes, arb::regular_schedule(0.05), fun);
     sim.run(1.0, 0.005);
 
@@ -157,7 +157,7 @@ TEST(v_process, limit) {
             }
         }
     };
-    auto sim = arb::simulation(recipe{false, true});
+    auto sim = arb::simulation(v_proc_recipe{false, true});
     sim.add_sampler(arb::all_probes, arb::regular_schedule(0.05), fun);
     sim.run(1.0, 0.005);
 
@@ -225,7 +225,7 @@ TEST(v_process, clamp_fine) {
             }
         }
     };
-    auto rec = recipe{true, false};
+    auto rec = v_proc_recipe{true, false};
     rec.gprop.default_parameters.discretization = arb::cv_policy_max_extent(0.5);
     auto sim = arb::simulation(rec);
     sim.add_sampler(arb::all_probes, arb::regular_schedule(0.05), fun);

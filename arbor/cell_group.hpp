@@ -9,6 +9,7 @@
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/spike_event.hpp>
+#include <arbor/serdes.hpp>
 
 #include "epoch.hpp"
 #include "util/rangeutil.hpp"
@@ -48,8 +49,16 @@ public:
     virtual std::vector<probe_metadata> get_probe_metadata(cell_member_type) const {
         return {};
     }
+    // trampolines for serialization
+    virtual void t_serialize(serializer& s, const std::string&) const = 0;
+    virtual void t_deserialize(serializer& s, const std::string&)  = 0;
 };
 
 using cell_group_ptr = std::unique_ptr<cell_group>;
+
+template<typename K>
+void serialize(serializer& s, const K& k, const cell_group& v) { v.t_serialize(s, to_serdes_key(k)); }
+template<typename K>
+void deserialize(serializer& s, const K& k, cell_group& v) { v.t_deserialize(s, to_serdes_key(k)); }
 
 } // namespace arb

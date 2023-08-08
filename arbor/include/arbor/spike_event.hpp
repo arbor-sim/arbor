@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <arbor/export.hpp>
+#include <arbor/serdes.hpp>
 #include <arbor/common_types.hpp>
 
 namespace arb {
@@ -23,6 +24,8 @@ struct spike_event {
     friend bool operator<(const spike_event& l, const spike_event& r) {
         return std::tie(l.time, l.target, l.weight) < std::tie(r.time, r.target, r.weight);
     }
+
+    ARB_SERDES_ENABLE(spike_event, target, time, weight);
 };
 
 using pse_vector = std::vector<spike_event>;

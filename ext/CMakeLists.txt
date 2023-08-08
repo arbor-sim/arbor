@@ -1,13 +1,13 @@
 # Niels Lohmann's json library (single-header version).
 
 if(ARB_USE_BUNDLED_JSON)
-  add_library(ext-json INTERFACE)
-  target_include_directories(ext-json INTERFACE json/single_include)
-  set(json_library_name ext-json PARENT_SCOPE)
+  set(JSON_BuildTests OFF CACHE INTERNAL "")
+  add_subdirectory(json)
+  install(TARGETS nlohmann_json EXPORT arbor-targets)
+  message(STATUS "Using internal JSON.")
 endif()
 
 # Random123 (DE Shaw Research) counter-based random number generators (header-only)
-
 if(ARB_USE_BUNDLED_RANDOM123)
     check_git_submodule(random123 random123)
     if(NOT random123_avail)

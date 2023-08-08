@@ -57,6 +57,10 @@ public:
 
     std::vector<probe_metadata> get_probe_metadata(cell_member_type probeset_id) const override;
 
+    ARB_SERDES_ENABLE(mc_cell_group, gids_, spikes_, lowered_);
+
+    virtual void t_serialize(serializer& ser, const std::string& k) const override;
+    virtual void t_deserialize(serializer& ser, const std::string& k) override;
 private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
