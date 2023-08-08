@@ -87,6 +87,10 @@ jobs:
         run: |
           FENCE='```'
           HEADER=$(cat << EOF
+          ---
+          title: [AUTOMATED] Sanitize checks failed {{ date | date('dddd, MMMM Do') }}
+          labels: automated issue
+          ---
           <details>
           
           <summary>output from test runs</summary>
@@ -104,12 +108,22 @@ jobs:
           cat output.log >> issue.md
           echo ${FOOTER} >> issue.md
           cat issue.md
+      #- name: Create Issue From File
+      #  #if: ${{ failure() && github.event_name == 'schedule' }}
+      #  if: ${{ failure() }}
+      #  uses: peter-evans/create-issue-from-file@v3
+      #  with:
+      #    title: '[AUTOMATED] Sanitize checks failed'
+      #    content-filepath: ./issue.md
+      #    labels: |
+      #      automated issue
       - name: Create Issue From File
         #if: ${{ failure() && github.event_name == 'schedule' }}
         if: ${{ failure() }}
-        uses: peter-evans/create-issue-from-file@v3
+        - uses: dblock/create-a-github-issue@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          title: '[AUTOMATED] Sanitize checks failed'
-          content-filepath: ./issue.md
-          labels: |
-            automated issue
+          filename: ./issue.md
+          update_existing: true
+          search_existing: all
