@@ -9,7 +9,7 @@ on:
     paths-ignore: 'doc/**'
 
   schedule:
-    - cron: '30 14 * * 1' # run at 14:30 every Monday
+    - cron: '40 13 * * 2' # run at 14:30 every Monday
     #- cron: '0 2 * * 0' # run at 2 AM every sunday
 
 permissions:
@@ -86,20 +86,20 @@ jobs:
         if: ${{ failure() }}
         run: |
           FENCE='```'
-          HEADER=$(cat << EOF
+          HEADER="$(cat << EOF
           <details>
           
           <summary>output from test runs</summary>
           
           ${FENCE}
           EOF
-          )
-          FOOTER=$(cat << EOF
+          )"
+          FOOTER="$(cat << EOF
           ${FENCE}
           
           </details>
           EOF
-          )
+          )"
           echo ${HEADER} > issue.md
           cat output.log >> issue.md
           echo ${FOOTER} >> issue.md
