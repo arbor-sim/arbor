@@ -69,12 +69,14 @@ execute_example() {
     echo -n "   - ${example}: "
 
     # skip marked examples if we are in distributed mode
-    for ex in "${skip_local[@]}"; do
-        if [[ $ex == $example ]]; then
-            echo "skipped"
-            return
-        fi
-    done
+    if [[ $distributed == 0 ]]; then
+        for ex in "${skip_local[@]}"; do
+            if [[ $ex == $example ]]; then
+                echo "skipped"
+                return
+            fi
+        done
+    fi
 
     # run the example and redirect its output
     mkdir -p ${path}
