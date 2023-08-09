@@ -105,8 +105,8 @@ void register_mpi(pybind11::module& m) {
         .def(pybind11::init(
             [](pybind11::object o){ return mpi_comm_shim(o); }),
             "mpi_comm_obj"_a, "MPI communicator object.")
-        .def("__str__",  util::to_string<mpi_comm_shim>)
-        .def("__repr__", util::to_string<mpi_comm_shim>);
+        .def("__str__",  [](const mpi_comm_shim& c) { return util::to_string(c); })
+        .def("__repr__", [](const mpi_comm_shim& c) { return util::to_string(c); });
 
     m.def("mpi_init", &mpi_init, "Initialize MPI with MPI_THREAD_SINGLE, as required by Arbor.");
     m.def("mpi_finalize", &mpi_finalize, "Finalize MPI (calls MPI_Finalize)");
