@@ -1,6 +1,6 @@
 [project]
 name = "arbor"
-version = "0.8.2-dev" # TODO: make dependent on VERSION file. Blocked by https://github.com/scikit-build/scikit-build-core/issues/230
+version = "0.9.0-rc" # TODO: make dependent on VERSION file. Blocked by https://github.com/scikit-build/scikit-build-core/issues/230
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {file = "LICENSE"}
 description = "High performance simulation of networks of multicompartment neurons."
