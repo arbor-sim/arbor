@@ -2,7 +2,6 @@
 #include <sstream>
 
 #include "util/strprintf.hpp"
-#include <fmt/format.h>
 
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/morphexcept.hpp>

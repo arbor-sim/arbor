@@ -7,8 +7,6 @@
 #include "util/unwind.hpp"
 #include "util/strprintf.hpp"
 
-#include <fmt/format.h>
-
 namespace arb {
 arbor_exception::arbor_exception(const std::string& what):
     std::runtime_error{what} {

@@ -10,7 +10,7 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/s_expr.hpp>
 
-#include <fmt/format.h>
+#include "util/strprintf.hpp"
 
 namespace arb {
 

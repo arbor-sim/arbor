@@ -20,8 +20,7 @@
 #include "util/maputil.hpp"
 #include "util/meta.hpp"
 #include "util/range.hpp"
-
-#include <fmt/format.h>
+#include "util/strprintf.hpp"
 
 #include <iostream>
 

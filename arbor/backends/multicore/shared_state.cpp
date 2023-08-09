@@ -23,11 +23,10 @@
 #include "util/rangeutil.hpp"
 #include "util/maputil.hpp"
 #include "util/range.hpp"
+#include "util/strprintf.hpp"
 
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
-
-#include <fmt/format.h>
 
 namespace arb {
 namespace multicore {

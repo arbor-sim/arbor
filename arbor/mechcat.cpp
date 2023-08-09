@@ -16,8 +16,7 @@
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
-
-#include <fmt/format.h>
+#include "util/strprintf.hpp"
 
 /* Notes on implementation:
  *

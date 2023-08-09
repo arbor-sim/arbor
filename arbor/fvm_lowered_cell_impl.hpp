@@ -34,8 +34,7 @@
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
-
-#include <fmt/format.h>
+#include "util/strprintf.hpp"
 
 namespace arb {
 

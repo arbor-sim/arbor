@@ -16,6 +16,11 @@
 
 #include "util/meta.hpp"
 
+#include <fmt/format.h>
+#include <fmt/compile.h>
+#include <fmt/ranges.h>
+#include <fmt/std.h>
+
 namespace arb {
 namespace util {
 

@@ -18,8 +18,6 @@
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
-#include <fmt/format.h>
-
 namespace arb {
 
 ARB_ARBOR_API domain_decomposition partition_load_balance(

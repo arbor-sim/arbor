@@ -4,8 +4,6 @@
 
 #include "util/strprintf.hpp"
 
-#include <fmt/format.h>
-
 namespace arb {
 
 invalid_gj_cell_group::invalid_gj_cell_group(cell_gid_type gid_0, cell_gid_type gid_1):

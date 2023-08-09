@@ -12,9 +12,6 @@
 
 #include "util/maputil.hpp"
 #include "util/strprintf.hpp"
-#include <fmt/format.h>
-#include <fmt/ranges.h>
-#include <fmt/std.h>
 
 namespace arb {
 

@@ -10,7 +10,7 @@
 #include "util/hostname.hpp"
 #include "util/rangeutil.hpp"
 
-#include <fmt/format.h>
+#include "util/strprintf.hpp"
 
 namespace arb {
 namespace profile {

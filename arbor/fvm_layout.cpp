@@ -29,8 +29,6 @@
 #include "util/unique.hpp"
 #include "util/strprintf.hpp"
 
-#include <fmt/format.h>
-
 namespace arb {
 using util::assign;
 using util::assign_by;

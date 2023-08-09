@@ -15,9 +15,6 @@
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
-
-#include <fmt/format.h>
-
 namespace arb {
 
 using value_type = cable_cell::value_type;

@@ -4,11 +4,10 @@
 
 #include <dlfcn.h>
 
-#include <fmt/format.h>
-
 #include <arbor/arbexcept.hpp>
 
 #include "util/dylib.hpp"
+#include "util/strprintf.hpp"
 
 namespace arb {
 namespace util {
