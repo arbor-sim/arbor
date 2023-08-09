@@ -117,21 +117,19 @@ no_such_parameter::no_such_parameter(const std::string& mech_name, const std::st
 {}
 
 did_you_mean_global_parameter::did_you_mean_global_parameter(const std::string& mech_name, const std::string& param_name):
-    arbor_exception(pprintf("mechanism '{}' has no parameter '{}', "
-                            "but a global parameter with the same name exists. "
-                            "Use '{}/{}=...' to set it.",
-                            mech_name, param_name,
-                            mech_name, param_name)),
+    arbor_exception(fmt::format(FMT_COMPILE("mechanism '{0}' has no parameter '{1}', "
+                                            "but a global parameter with the same name exists. "
+                                            "Use '{0}/{1}=...' to set it."),
+                                mech_name, param_name)),
     mech_name(mech_name),
     param_name(param_name)
 {}
 
 did_you_mean_normal_parameter::did_you_mean_normal_parameter(const std::string& mech_name, const std::string& param_name):
-    arbor_exception(pprintf("mechanism '{}' has no global parameter '{}', "
-                            "but a normal parameter with the same name exists. "
-                            "Set it via the parameter map, eg 'density(\"{}\", {{\"{}\", ...}, ...})'",
-                            mech_name, param_name,
-                            mech_name, param_name)),
+    arbor_exception(fmt::format(FMT_COMPILE("mechanism '{0}' has no global parameter '{1}', "
+                                            "but a normal parameter with the same name exists. "
+                                            "Set it via the parameter map, eg 'density(\"{0}\", {{{{\"{1}\", ...}}, ...}})'"),
+                                mech_name, param_name)),
     mech_name(mech_name),
     param_name(param_name)
 {}
