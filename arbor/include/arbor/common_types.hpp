@@ -130,10 +130,10 @@ enum class backend_kind {
 // group equal kinds in the same cell group.
 
 enum class ARB_SYMBOL_VISIBLE cell_kind {
-    cable,   // Our own special mc neuron.
-    lif,       // Leaky-integrate and fire neuron.
-    spike_source,     // Cell that generates spikes at a user-supplied sequence of time points.
-    benchmark,        // Proxy cell used for benchmarking.
+    cable,        // Our own special mc neuron.
+    lif,          // Leaky-integrate and fire neuron.
+    spike_source, // Cell that generates spikes at a user-supplied sequence of time points.
+    benchmark,    // Proxy cell used for benchmarking.
 };
 
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, lid_selection_policy m);

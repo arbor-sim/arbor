@@ -116,7 +116,7 @@ include(ErrorTarget)  # reguired for add_error_target
 
 # Set release as the default build type (CMake default is debug.)
 
-if (NOT CMAKE_BUILD_TYPE)
+if (NOT CMAKE_BUILD_TYPE AND NOT BUILD_TESTING)
     set(CMAKE_BUILD_TYPE release CACHE STRING "Choose the type of build." FORCE)
     # Set the possible values of build type for cmake-gui
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
@@ -136,7 +136,20 @@ if(ARB_GPU STREQUAL "cuda")
     set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
     enable_language(CUDA)
     find_package(CUDAToolkit)
-    set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+    if(${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 12)
+        if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+            # Pascal, Volta, Ampere, Hopper
+            set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
+        endif()
+    elseif(${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 11)
+        if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+            # Pascal, Volta, Ampere
+            set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+        endif()
+    else()
+        message(FATAL_ERROR "Need at least CUDA 11, got ${CUDAToolkit_VERSION_MAJOR}")
+    endif()
+
     # We _still_ need this otherwise CUDA symbols will not be exported
     # from libarbor.a leading to linker errors when link external clients.
     # Unit tests are NOT external enough. Re-review this somewhere in the
@@ -144,10 +157,16 @@ if(ARB_GPU STREQUAL "cuda")
     find_package(CUDA ${CUDAToolkit_VERSION_MAJOR} REQUIRED)
 elseif(ARB_GPU STREQUAL "cuda-clang")
     include(FindCUDAToolkit)
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+    endif()
     set(ARB_WITH_CUDA_CLANG TRUE)
     enable_language(CUDA)
 elseif(ARB_GPU STREQUAL "hip")
     set(ARB_WITH_HIP_CLANG TRUE)
+    # Specify AMD architecture using a (user provided) list.
+    # Note: CMake native HIP architectures are introduced with version 3.21.
+    set(ARB_HIP_ARCHITECTURES gfx906 gfx900 CACHE STRING "AMD offload architectures (semicolon separated)")
 endif()
 
 if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
@@ -173,7 +192,7 @@ include("CheckCompilerXLC")
 include("CompilerOptions")
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_WALL}>")
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -233,18 +252,18 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 
 install(PROGRAMS scripts/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
-# External libraries in `ext` sub-directory: json, tinyopt and randon123.
-# Creates interface libraries `ext-json`, `ext-tinyopt` and `ext-random123`
+
+# External libraries in `ext` sub-directory: json, tinyopt and random123.
+# Creates interface libraries `ext-tinyopt` and `ext-random123`
 
 cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 cmake_dependent_option(ARB_USE_BUNDLED_PUGIXML "Use bundled XML lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
+cmake_dependent_option(ARB_USE_BUNDLED_GTEST "Use bundled GoogleTest." ON "ARB_USE_BUNDLED_LIBS" OFF)
 
 cmake_dependent_option(ARB_USE_BUNDLED_JSON "Use bundled Niels Lohmann's json library." ON "ARB_USE_BUNDLED_LIBS" OFF)
 if(NOT ARB_USE_BUNDLED_JSON)
-  find_package(nlohmann_json)
-  set(json_library_name nlohmann_json::nlohmann_json)
-else()
-  unset(nlohmann_json_DIR CACHE)
+  find_package(nlohmann_json 3.11.2 CONFIG REQUIRED)
+  message(STATUS "Using external JSON = ${nlohmann_json_VERSION}")
 endif()
 
 cmake_dependent_option(ARB_USE_BUNDLED_RANDOM123 "Use bundled Random123 lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
@@ -416,11 +435,19 @@ if(ARB_WITH_GPU)
         target_compile_definitions(arbor-private-deps INTERFACE ARB_CUDA)
         target_compile_definitions(arborenv-private-deps INTERFACE ARB_CUDA)
     elseif(ARB_WITH_CUDA_CLANG)
-        set(clang_options_ -DARB_CUDA -xcuda --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-gpu-arch=sm_80 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
+        # Transform cuda archtitecture list into clang cuda flags
+        list(TRANSFORM CMAKE_CUDA_ARCHITECTURES PREPEND "--cuda-gpu-arch=sm_" OUTPUT_VARIABLE TMP)
+        string(REPLACE ";" " " CUDA_ARCH_STR "${TMP}")
+
+        set(clang_options_ -DARB_CUDA -xcuda ${CUDA_ARCH_STR} --cuda-path=${CUDA_TOOLKIT_ROOT_DIR})
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
         target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
     elseif(ARB_WITH_HIP_CLANG)
-        set(clang_options_ -DARB_HIP -xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
+        # Transform hip archtitecture list into clang hip flags
+        list(TRANSFORM ARB_HIP_ARCHITECTURES PREPEND "--offload-arch=" OUTPUT_VARIABLE TMP)
+        string(REPLACE ";" " " HIP_ARCH_STR "${TMP}")
+
+        set(clang_options_ -DARB_HIP -xhip ${HIP_ARCH_STR})
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
         target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
     endif()

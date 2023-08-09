@@ -14,12 +14,14 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-22.04]
-        python-version: [3.8]
+        python-version: ['3.10']
+        spack-version: ['develop', 'latest_release']
+      fail-fast: false
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-            path: arbor
+          path: arbor
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
@@ -27,18 +29,49 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.spack-cache
-          key: spack-cache-${{ matrix.os }}-${{ github.run_id }}
-          restore-keys: spack-cache-${{ matrix.os }}-
-
-      - name: Build Arbor's Spack package against the develop branch
-        run: arbor/scripts/build_spack_package.sh arbor develop
-
-      # build_spack_package.sh only builds, does not install, therefore can't run Python code.
-      # - name: Run Python examples
-      #   run: |
-      #     cd arbor
-      #     scripts/run_python_examples.sh
-      # - name: Test executables
-      #   run: |
-      #     cd arbor
-      #     scripts/test_executables.sh
+          key: spack-cache-${{ matrix.os }}-${{ matrix.spack-version }}-${{ github.run_id }}
+          restore-keys: spack-cache-${{ matrix.os }}-${{ matrix.spack-version }}-
+      - name: Get Spack (develop)
+        if: ${{ matrix.spack-version == 'develop' }}
+        run: |
+          git clone -c feature.manyFiles=true --depth 1 https://github.com/spack/spack.git
+      - name: Get Spack (latest_release)
+        if: ${{ matrix.spack-version == 'latest_release' }}
+        run: |
+          wget "$(curl -sH "Accept: application/vnd.github.v3+json" https://api.github.com/repos/spack/spack/releases/latest | grep browser_download_url |  cut -d '"' -f 4)"
+          tar xfz spack*.tar.gz
+          mv spack*/ spack
+      - name: Prep
+        run: |
+          mkdir ~/.spack
+          cp arbor/spack/config.yaml ~/.spack
+          source spack/share/spack/setup-env.sh
+          spack repo create custom_repo
+          mkdir -p custom_repo/packages/arbor
+          spack repo add custom_repo
+          spack reindex
+          cp arbor/spack/package.py custom_repo/packages/arbor
+      - name: Build Arbor
+        run: |
+          source spack/share/spack/setup-env.sh
+          cd arbor
+          spack dev-build arbor@develop +python
+      - name: Load Arbor and verify installation, Python Examples.
+        run: |
+          source spack/share/spack/setup-env.sh
+          spack load arbor
+          cd arbor
+          scripts/run_python_examples.sh
+          scripts/test_executables.sh
+      - name: Remove Arbor
+        run: |
+          source spack/share/spack/setup-env.sh
+          spack uninstall -yafR arbor
+      - name: Failure, upload logs
+        uses: actions/upload-artifact@v3
+        if: ${{ failure() }}
+        with:
+          name: spack-log-${{ matrix.spack-version }}
+          path: |
+            arbor/*.txt
+            !arbor/CMakeLists.txt

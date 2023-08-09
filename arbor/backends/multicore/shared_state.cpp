@@ -200,12 +200,12 @@ shared_state::shared_state(task_system_handle,    // ignored in mc backend
                            const std::vector<arb_value_type>& diam,
                            const std::vector<arb_value_type>& area,
                            const std::vector<arb_index_type>& src_to_spike_,
-                           const fvm_detector_info& detector,
+                           const fvm_detector_info& detector_info,
                            unsigned align,
                            arb_seed_type cbprng_seed_):
     alignment(min_alignment(align)),
     alloc(alignment),
-    n_detector(detector.count),
+    n_detector(detector_info.count),
     n_cv(n_cv_),
     cv_to_cell(math::round_up(cv_to_cell_vec.size(), alignment), pad(alignment)),
     voltage(n_cv_, pad(alignment)),
@@ -218,11 +218,8 @@ shared_state::shared_state(task_system_handle,    // ignored in mc backend
     time_since_spike(n_cell*n_detector, pad(alignment)),
     src_to_spike(src_to_spike_.begin(), src_to_spike_.end(), pad(alignment)),
     cbprng_seed(cbprng_seed_),
-    watcher{n_cv_,
-            src_to_spike.data(),
-            detector.cv,
-            detector.threshold,
-            detector.ctx} {
+    watcher{n_cv_, src_to_spike.data(), detector_info}
+{
     if (cv_to_cell_vec.size()) {
         std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
         std::fill(cv_to_cell.begin() + n_cv, cv_to_cell.end(), cv_to_cell_vec.back());

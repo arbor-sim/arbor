@@ -17,6 +17,7 @@
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/util/handle_set.hpp>
+#include <arbor/serdes.hpp>
 
 namespace arb {
 
@@ -96,6 +97,9 @@ public:
 
     ~simulation();
 
+    friend void serialize(serializer&, const std::string&, const simulation&);
+    friend void deserialize(serializer&, const std::string&, simulation&);
+
 private:
     std::unique_ptr<simulation_state> impl_;
 };
@@ -165,5 +169,8 @@ private:
 
 // An epoch callback function that prints out a text progress bar.
 ARB_ARBOR_API epoch_function epoch_progress_bar();
+
+ARB_ARBOR_API void serialize(arb::serializer&, const std::string&, const arb::simulation&);
+ARB_ARBOR_API void deserialize(arb::serializer&, const std::string&, arb::simulation&);
 
 } // namespace arb

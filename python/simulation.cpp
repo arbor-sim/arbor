@@ -12,6 +12,9 @@
 #include "recipe.hpp"
 #include "schedule.hpp"
 
+#include <arborio/json_serdes.hpp>
+#include <arbor/serdes.hpp>
+
 namespace py = pybind11;
 
 namespace pyarb {
@@ -75,6 +78,21 @@ public:
             py_reset_and_throw();
             throw;
         }
+    }
+
+
+    std::string serialize() {
+        arborio::json_serdes writer;
+        arb::serializer serializer{writer};
+        arb::serialize(serializer, "sim", *sim_);
+        return writer.get_json().dump();
+    }
+
+    void deserialize(const std::string& data) {
+        arborio::json_serdes writer;
+        writer.set_json(nlohmann::json::parse(data));
+        arb::serializer serializer{writer};
+        arb::deserialize(serializer, "sim", *sim_);
     }
 
     void set_remote_spike_filter(const arb::spike_predicate& p) { return sim_->set_remote_spike_filter(p); }
@@ -232,6 +250,13 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
              "Rebuild the connection table from recipe::connections_on and the event"
              "generators based on recipe::event_generators.",
              "recipe"_a)
+        .def("deserialize", &simulation_shim::deserialize,
+             pybind11::call_guard<pybind11::gil_scoped_release>(),
+             "Deserialize the simulation object from a JSON string."
+             "json"_a)
+        .def("serialize", &simulation_shim::serialize,
+             pybind11::call_guard<pybind11::gil_scoped_release>(),
+             "Serialize the simulation object to a JSON string.")
         .def("reset", &simulation_shim::reset,
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Reset the state of the simulation to its initial state.")

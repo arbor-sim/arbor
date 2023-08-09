@@ -58,7 +58,6 @@ public:
         ev_spans_.clear();
         index_ = 0;
     }
-
 };
 
 } // namespace arb

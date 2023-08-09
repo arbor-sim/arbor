@@ -70,6 +70,11 @@ public:
         return mechanisms_;
     }
 
+    ARB_SERDES_ENABLE(fvm_lowered_cell_impl<Backend>, seed_, state_);
+
+    void t_serialize(serializer& ser, const std::string& k) const override { serialize(ser, k, *this); }
+    void t_deserialize(serializer& ser, const std::string& k) override { deserialize(ser, k, *this); }
+
 private:
     // Host or GPU-side back-end dependent storage.
     using array               = typename backend::array;

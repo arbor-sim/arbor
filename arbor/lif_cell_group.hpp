@@ -40,6 +40,11 @@ public:
 
     virtual std::vector<probe_metadata> get_probe_metadata(cell_member_type) const override;
 
+    ARB_SERDES_ENABLE(lif_cell_group, gids_, cells_, spikes_, last_time_updated_, next_time_updatable_);
+
+    virtual void t_serialize(serializer& ser, const std::string& k) const override;
+    virtual void t_deserialize(serializer& ser, const std::string& k) override;
+
 private:
     enum class lif_probe_kind { voltage };
 

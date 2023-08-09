@@ -21,7 +21,7 @@ public:
     enumerable_thread_specific(const task_system_handle& ts):
         thread_ids_{ts->get_thread_ids()},
         data{std::vector<T>(ts->get_num_threads())}
-    {}
+        {}
 
     enumerable_thread_specific(const T& init, const task_system_handle& ts):
         thread_ids_{ts->get_thread_ids()},

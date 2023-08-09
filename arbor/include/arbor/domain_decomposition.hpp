@@ -9,6 +9,7 @@
 #include <arbor/context.hpp>
 #include <arbor/export.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/serdes.hpp>
 
 namespace arb {
 
@@ -26,6 +27,8 @@ struct group_description {
     group_description(cell_kind k, std::vector<cell_gid_type> g, backend_kind b):
         kind(k), gids(std::move(g)), backend(b)
     {}
+
+    ARB_SERDES_ENABLE(group_description, kind, gids, backend);
 };
 
 /// Meta data that describes a domain decomposition.
@@ -56,7 +59,7 @@ private:
     /// decomposition.
     std::function<int(cell_gid_type)> gid_domain_;
 
-    /// Number of distrubuted domains
+    /// Number of distributed domains
     int num_domains_;
 
     /// The index of the local domain

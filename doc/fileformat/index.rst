@@ -20,3 +20,4 @@ File formats
    neuroml
    nmodl
    swc
+   serdes
