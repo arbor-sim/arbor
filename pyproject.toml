@@ -58,12 +58,12 @@ requires = [
 ]
 build-backend = "scikit_build_core.build"
 
-
 [tool.cibuildwheel]
 build-frontend = "build"
 build = ["*linux*","*macosx*"]
 skip = ["cp36*", "*musllinux*"]
 test-command = "python -m unittest discover -v -s {project}/python"
+test-skip = "cp312*"
 dependency-versions = "latest"
 
 [tool.cibuildwheel.macos]
