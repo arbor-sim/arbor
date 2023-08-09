@@ -35,7 +35,7 @@ static inline bool cable_lt(const arb::mcable& a, const arb::mcable& b) {
 
 void check_trailing(std::istream& in, std::string fname) {
     if (!(in >> std::ws).eof()) {
-        throw pyarb_error(util::pprintf("Trailing data found at end of file '{}'", fname));
+        throw pyarb_error(fmt::format("Trailing data found at end of file '{}'", fname));
     }
 }
 
@@ -68,9 +68,9 @@ void register_morphology(py::module& m) {
             "The relative position on the branch (∈ [0.,1.], where 0. means proximal and 1. distal).")
         .def(py::self==py::self)
         .def("__str__",
-            [](arb::mlocation l) { return util::pprintf("(location {} {})", l.branch, l.pos); })
+            [](arb::mlocation l) { return fmt::format("(location {} {})", l.branch, l.pos); })
         .def("__repr__",
-            [](arb::mlocation l) { return util::pprintf("(location {} {})", l.branch, l.pos); });
+            [](arb::mlocation l) { return fmt::format("(location {} {})", l.branch, l.pos); });
 
     // arb::mpoint
     py::class_<arb::mpoint> mpoint(m, "mpoint");
@@ -90,10 +90,10 @@ void register_morphology(py::module& m) {
         .def(py::self==py::self)
         .def("__str__",
             [](const arb::mpoint& p) {
-                return util::pprintf("<arbor.mpoint: x {}, y {}, z {}, radius {}>", p.x, p.y, p.z, p.radius);
+                return fmt::format("<arbor.mpoint: x {}, y {}, z {}, radius {}>", p.x, p.y, p.z, p.radius);
             })
         .def("__repr__",
-            [](const arb::mpoint& p) {return util::pprintf("{}", p);});
+            [](const arb::mpoint& p) {return util::to_string(p);});
 
     py::implicitly_convertible<py::tuple, arb::mpoint>();
 
@@ -123,8 +123,8 @@ void register_morphology(py::module& m) {
         .def_readonly("dist", &arb::mcable::dist_pos,
                 "The relative position of the distal end of the cable on its branch ∈ [0,1].")
         .def(py::self==py::self)
-        .def("__str__", [](const arb::mcable& c) { return util::pprintf("{}", c); })
-        .def("__repr__", [](const arb::mcable& c) { return util::pprintf("{}", c); });
+        .def("__str__", [](const arb::mcable& c) { return util::to_string(c); })
+        .def("__repr__", [](const arb::mcable& c) { return util::to_string(c); });
 
     // arb::isometry
     py::class_<arb::isometry> isometry(m, "isometry");
@@ -288,7 +288,7 @@ void register_morphology(py::module& m) {
             [](const arb::segment_tree& t, int tag) { return arb::tag_roots(t, tag); },
             "Get roots of tag region of this segment tree.")
         .def("__str__", [](const arb::segment_tree& s) {
-                return util::pprintf("<arbor.segment_tree:\n{}>", s);});
+                return fmt::format("<arbor.segment_tree:\n{}>", util::to_string(s));});
 
     using morph_or_tree = std::variant<arb::segment_tree, arb::morphology>;
 
@@ -306,7 +306,7 @@ void register_morphology(py::module& m) {
             }
             catch (arborio::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
-                throw pyarb_error(util::pprintf("Arbor SWC: parse error: {}", e.what()));
+                throw pyarb_error(fmt::format("Arbor SWC: parse error: {}", e.what()));
             }
         },
         "filename_or_stream"_a,
@@ -330,7 +330,7 @@ void register_morphology(py::module& m) {
             }
             catch (arborio::swc_error& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
-                throw pyarb_error(util::pprintf("NEURON SWC: parse error: {}", e.what()));
+                throw pyarb_error(fmt::format("NEURON SWC: parse error: {}", e.what()));
             }
         },
         "filename_or_stream"_a,
@@ -370,7 +370,7 @@ void register_morphology(py::module& m) {
                 "Convert this morphology to a segment_tree.")
         .def("__str__",
                 [](const arb::morphology& m) {
-                    return util::pprintf("<arbor.morphology:\n{}>", m);
+                    return fmt::format("<arbor.morphology:\n{}>", util::to_string(m));
                 });
 
     // Neurolucida ASCII, or .asc, file format support.
@@ -401,7 +401,7 @@ void register_morphology(py::module& m) {
             }
             catch (std::exception& e) {
                 // Try to produce helpful error messages for SWC parsing errors.
-                throw pyarb_error(util::pprintf("error loading neurolucida asc file: {}", e.what()));
+                throw pyarb_error(fmt::format("error loading neurolucida asc file: {}", e.what()));
             }
         },
         "filename_or_stream"_a,
@@ -445,7 +445,7 @@ void register_morphology(py::module& m) {
                 }
                 catch (arborio::neuroml_exception& e) {
                     // Try to produce helpful error messages for NeuroML parsing errors.
-                    throw pyarb_error(util::pprintf("NeuroML error: {}", e.what()));
+                    throw pyarb_error(fmt::format("NeuroML error: {}", e.what()));
                 }
             }),
             "Construct NML morphology from filename or stream.")
@@ -455,7 +455,7 @@ void register_morphology(py::module& m) {
                     return nml.cell_ids();
                 }
                 catch (arborio::neuroml_exception& e) {
-                    throw util::pprintf("NeuroML error: {}", e.what());
+                    throw fmt::format("NeuroML error: {}", e.what());
                 }
             },
             "Query top-level cells.")
@@ -465,7 +465,7 @@ void register_morphology(py::module& m) {
                     return nml.morphology_ids();
                 }
                 catch (arborio::neuroml_exception& e) {
-                    throw util::pprintf("NeuroML error: {}", e.what());
+                    throw fmt::format("NeuroML error: {}", e.what());
                 }
             },
             "Query top-level standalone morphologies.")
@@ -476,7 +476,7 @@ void register_morphology(py::module& m) {
                     return nml.morphology(morph_id, spherical? allow_spherical_root: none);
                 }
                 catch (arborio::neuroml_exception& e) {
-                    throw util::pprintf("NeuroML error: {}", e.what());
+                    throw fmt::format("NeuroML error: {}", e.what());
                 }
             }, "morph_id"_a, "allow_spherical_root"_a=false,
             "Retrieve top-level nml_morph_data associated with morph_id.")
@@ -487,7 +487,7 @@ void register_morphology(py::module& m) {
                     return nml.cell_morphology(cell_id, spherical? allow_spherical_root: none);
                 }
                 catch (arborio::neuroml_exception& e) {
-                    throw util::pprintf("NeuroML error: {}", e.what());
+                    throw fmt::format("NeuroML error: {}", e.what());
                 }
             }, "cell_id"_a, "allow_spherical_root"_a=false,
             "Retrieve nml_morph_data associated with cell_id.");

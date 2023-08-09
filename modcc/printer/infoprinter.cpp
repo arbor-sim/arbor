@@ -3,10 +3,6 @@
 #include <string>
 #include <regex>
 
-#include <fmt/core.h>
-#include <fmt/format.h>
-#include <fmt/compile.h>
-
 #include "blocks.hpp"
 #include "infoprinter.hpp"
 #include "module.hpp"
@@ -14,6 +10,7 @@
 
 #include "io/ostream_wrappers.hpp"
 #include "io/prefixbuf.hpp"
+#include "io/pprintf.hpp"
 
 using io::quote;
 

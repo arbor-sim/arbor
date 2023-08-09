@@ -15,7 +15,10 @@
 #include <arbor/util/any_ptr.hpp>
 
 #include "pyarb.hpp"
+
 #include "strprintf.hpp"
+
+#include <fmt/format.h>
 
 using arb::util::any_cast;
 using arb::util::any_ptr;
@@ -244,10 +247,8 @@ arb::probe_info lif_probe_voltage() {
 
 void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
     using namespace pybind11::literals;
-    using util::pprintf;
 
     // Probe metadata wrappers:
-
     py::class_<arb::lif_probe_metadata> lif_probe_metadata(m, "lif_probe_metadata",
         "Probe metadata associated with a LIF cell probe.");
 
@@ -262,9 +263,9 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
         .def_readwrite("location", &arb::cable_probe_point_info::loc,
             "Location of point process instance on cell.")
         .def("__str__", [](arb::cable_probe_point_info m) {
-            return pprintf("<arbor.cable_probe_point_info: target {}, multiplicity {}, location {}>", m.target, m.multiplicity, m.loc);})
+            return fmt::format("<arbor.cable_probe_point_info: target {}, multiplicity {}, location {}>", m.target, m.multiplicity, util::to_string(m.loc));})
         .def("__repr__",[](arb::cable_probe_point_info m) {
-            return pprintf("<arbor.cable_probe_point_info: target {}, multiplicity {}, location {}>", m.target, m.multiplicity, m.loc);});
+            return fmt::format("<arbor.cable_probe_point_info: target {}, multiplicity {}, location {}>", m.target, m.multiplicity, util::to_string(m.loc));});
 
     // Probe address constructors:
 

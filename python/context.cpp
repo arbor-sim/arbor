@@ -139,8 +139,8 @@ void register_contexts(pybind11::module& m) {
             "Corresponds to the integer parameter used to identify GPUs in CUDA API calls.")
         .def_property_readonly("has_gpu", &proc_allocation_shim::has_gpu,
             "Whether a GPU is being used (True/False).")
-        .def("__str__",  util::to_string<proc_allocation_shim>)
-        .def("__repr__", util::to_string<proc_allocation_shim>);
+        .def("__str__",  [](const proc_allocation_shim& p) { return util::to_string(p); })
+        .def("__repr__", [](const proc_allocation_shim& p) { return util::to_string(p); });
 
     // context
     pybind11::class_<context_shim, std::shared_ptr<context_shim>> context(m, "context", "An opaque handle for the hardware resources used in a simulation.");
@@ -188,8 +188,8 @@ void register_contexts(pybind11::module& m) {
                                "The number of distributed domains (equivalent to the number of MPI ranks).")
         .def_property_readonly("rank", [](const context_shim& ctx){return arb::rank(ctx.context);},
                                "The numeric id of the local domain (equivalent to MPI rank).")
-        .def("__str__", util::to_string<context_shim>)
-        .def("__repr__", util::to_string<context_shim>);
+        .def("__str__",  [](const context_shim& p) { return util::to_string(p); })
+        .def("__repr__", [](const context_shim& p) { return util::to_string(p); });
 }
 
 } // namespace pyarb

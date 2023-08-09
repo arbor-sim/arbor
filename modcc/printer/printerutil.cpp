@@ -245,7 +245,7 @@ ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* 
         v.readonly = true;
         break;
     default:
-        throw compiler_exception(pprintf("unrecognized indexed data source: %", sym), sym->location());
+        throw compiler_exception(fmt::format("unrecognized indexed data source: {}", sym->to_string()), sym->location());
     }
 
     return v;

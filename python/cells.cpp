@@ -42,48 +42,6 @@
 
 namespace pyarb {
 
-template <typename T>
-std::string to_string(const T& t) {
-    std::stringstream ss;
-    ss << t;
-    return ss.str();
-}
-
-// This isn't pretty. Partly because the information in the global parameters
-// is all over the place.
-template <>
-std::string to_string(const arb::cable_cell_global_properties& props) {
-    std::string s = "{arbor.cable_global_properties";
-
-    const auto& D = props.default_parameters;
-    const auto& I = D.ion_data;
-    // name, valence, int_con, ext_con, rev_pot, rev_pot_method
-    s += "\n  ions: {";
-    for (auto& ion: props.ion_species) {
-        if (!I.count(ion.first)) {
-            s += util::pprintf("\n    {name: '{}', valence: {}, int_con: None, ext_con: None, rev_pot: None, rev_pot_method: None}",
-                    ion.first, ion.second);
-        }
-        else {
-            auto& props = I.at(ion.first);
-            std::string method = D.reversal_potential_method.count(ion.first)?
-                "'"+D.reversal_potential_method.at(ion.first).name()+"'": "None";
-            s += util::pprintf("\n    {name: '{}', valence: {}, int_con: {}, ext_con: {}, rev_pot: {}, rev_pot_method: {}}",
-                    ion.first, ion.second,
-                    props.init_int_concentration,
-                    props.init_ext_concentration,
-                    props.init_reversal_potential,
-                    method);
-        }
-    }
-    s += "}\n";
-    s += util::pprintf("  parameters: {Vm: {}, cm: {}, rL: {}, tempK: {}}\n",
-            D.init_membrane_potential, D.membrane_capacitance,
-            D.axial_resistivity, D.temperature_K);
-    s += "}";
-    return s;
-}
-
 //
 // cv_policy helpers
 //
@@ -119,7 +77,7 @@ std::optional<arb::mechanism_desc> maybe_method(pybind11::object method) {
             return *m;
         }
         else {
-            throw std::runtime_error(util::pprintf("invalid rev_pot_method: {}", method));
+            throw std::runtime_error(fmt::format("invalid rev_pot_method: {}", util::to_string(method)));
         }
     }
     return {};
@@ -130,20 +88,20 @@ std::optional<arb::mechanism_desc> maybe_method(pybind11::object method) {
 //
 
 std::string lif_str(const arb::lif_cell& c){
-    return util::pprintf(
+    return fmt::format(
         "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, V_m {}, t_ref {}>",
         c.tau_m, c.V_th, c.C_m, c.E_L, c.V_m, c.t_ref);
 }
 
 
 std::string mechanism_desc_str(const arb::mechanism_desc& md) {
-    return util::pprintf("mechanism('{}', {})",
-            md.name(), util::dictionary_csv(md.values()));
+    return fmt::format("mechanism('{}', {})",
+            md.name(), md.values());
 }
 
 std::string scaled_density_desc_str(const arb::scaled_mechanism<arb::density>& p) {
-    return util::pprintf("({}, {})",
-            mechanism_desc_str(p.t_mech.mech), util::dictionary_csv(p.scale_expr));
+    return fmt::format("({}, {})",
+            mechanism_desc_str(p.t_mech.mech), util::to_string(p.scale_expr));
 }
 
 void register_cells(pybind11::module& m) {
@@ -326,7 +284,7 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init([](const std::string& expression) { return arborio::parse_cv_policy_expression(expression).unwrap(); }),
             "expression"_a, "A valid CV policy expression")
         .def_property_readonly("domain",
-                               [](const arb::cv_policy& p) {return util::pprintf("{}", p.domain());},
+                               [](const arb::cv_policy& p) {return fmt::format("{}", util::to_string(p.domain()));},
                                "The domain on which the policy is applied.")
         .def(pybind11::self + pybind11::self)
         .def(pybind11::self | pybind11::self)
@@ -410,7 +368,7 @@ void register_cells(pybind11::module& m) {
               bool integrate_area;
               if (integrate_along == "area") integrate_area = true;
               else if (integrate_along == "length") integrate_area = false;
-              else throw pyarb_error(util::pprintf("{} does not name a valid integration axis. "
+              else throw pyarb_error(fmt::format("{} does not name a valid integration axis. "
                                                    "Only 'area' and 'length' are supported)", integrate_along));
 
               auto object_vec = arb::intersect_region(arborio::parse_region_expression(reg).unwrap(), cvs, integrate_area);
@@ -431,42 +389,42 @@ void register_cells(pybind11::module& m) {
     membrane_potential
         .def(pybind11::init([](double v) -> arb::init_membrane_potential { return {v}; }))
         .def("__repr__", [](const arb::init_membrane_potential& d){
-            return "Vm=" + to_string(d.value);});
+            return "Vm=" + util::to_string(d.value);});
 
     pybind11::class_<arb::membrane_capacitance> membrane_capacitance(m, "membrane_capacitance", "Setting the membrane capacitance.");
     membrane_capacitance
         .def(pybind11::init([](double v) -> arb::membrane_capacitance { return {v}; }))
-        .def("__repr__", [](const arb::membrane_capacitance& d){return "Cm=" + to_string(d.value);});
+        .def("__repr__", [](const arb::membrane_capacitance& d){return "Cm=" + util::to_string(d.value);});
 
     pybind11::class_<arb::temperature_K> temperature_K(m, "temperature_K", "Setting the temperature.");
     temperature_K
         .def(pybind11::init([](double v) -> arb::temperature_K { return {v}; }))
-        .def("__repr__", [](const arb::temperature_K& d){return "T=" + to_string(d.value);});
+        .def("__repr__", [](const arb::temperature_K& d){return "T=" + util::to_string(d.value);});
 
     pybind11::class_<arb::axial_resistivity> axial_resistivity(m, "axial_resistivity", "Setting the axial resistivity.");
     axial_resistivity
         .def(pybind11::init([](double v) -> arb::axial_resistivity { return {v}; }))
-        .def("__repr__", [](const arb::axial_resistivity& d){return "Ra" + to_string(d.value);});
+        .def("__repr__", [](const arb::axial_resistivity& d){return "Ra" + util::to_string(d.value);});
 
     pybind11::class_<arb::init_reversal_potential> reversal_potential(m, "reversal_potential", "Setting the initial reversal potential.");
     reversal_potential
         .def(pybind11::init([](const std::string& i, double v) -> arb::init_reversal_potential { return {i, v}; }))
-        .def("__repr__", [](const arb::init_reversal_potential& d){return "e" + d.ion + "=" + to_string(d.value);});
+        .def("__repr__", [](const arb::init_reversal_potential& d){return "e" + d.ion + "=" + util::to_string(d.value);});
 
     pybind11::class_<arb::init_int_concentration> int_concentration(m, "int_concentration", "Setting the initial internal ion concentration.");
     int_concentration
         .def(pybind11::init([](const std::string& i, double v) -> arb::init_int_concentration { return {i, v}; }))
-        .def("__repr__", [](const arb::init_int_concentration& d){return d.ion + "i" + "=" + to_string(d.value);});
+        .def("__repr__", [](const arb::init_int_concentration& d){return d.ion + "i" + "=" + util::to_string(d.value);});
 
     pybind11::class_<arb::init_ext_concentration> ext_concentration(m, "ext_concentration", "Setting the initial external ion concentration.");
     ext_concentration
         .def(pybind11::init([](const std::string& i, double v) -> arb::init_ext_concentration { return {i, v}; }))
-        .def("__repr__", [](const arb::init_ext_concentration& d){return d.ion + "o" + "=" + to_string(d.value);});
+        .def("__repr__", [](const arb::init_ext_concentration& d){return d.ion + "o" + "=" + util::to_string(d.value);});
 
     pybind11::class_<arb::ion_diffusivity> ion_diffusivity(m, "ion_diffusivity", "Setting the ion diffusivity.");
     ion_diffusivity
         .def(pybind11::init([](const std::string& i, double v) -> arb::ion_diffusivity { return {i, v}; }))
-        .def("__repr__", [](const arb::ion_diffusivity& d){return "D" + d.ion + "=" + to_string(d.value);});
+        .def("__repr__", [](const arb::ion_diffusivity& d){return "D" + d.ion + "=" + util::to_string(d.value);});
 
     pybind11::class_<arb::density> density(m, "density", "For painting a density mechanism on a region.");
     density
@@ -598,9 +556,9 @@ void register_cells(pybind11::module& m) {
         .def_readonly("frequency", &arb::i_clamp::frequency, "Oscillation frequency (kHz), zero implies DC stimulus.")
         .def_readonly("phase", &arb::i_clamp::phase, "Oscillation initial phase (rad)")
         .def("__repr__", [](const arb::i_clamp& c) {
-            return util::pprintf("<arbor.iclamp: frequency {} Hz>", c.frequency);})
+            return fmt::format("<arbor.iclamp: frequency {} Hz>", c.frequency);})
         .def("__str__", [](const arb::i_clamp& c) {
-            return util::pprintf("<arbor.iclamp: frequency {} Hz>", c.frequency);});
+            return fmt::format("<arbor.iclamp: frequency {} Hz>", c.frequency);});
 
     // arb::threshold_detector
     pybind11::class_<arb::threshold_detector> detector(m, "threshold_detector",
@@ -611,9 +569,9 @@ void register_cells(pybind11::module& m) {
             "threshold"_a, "Voltage threshold of spike detector [mV]")
         .def_readonly("threshold", &arb::threshold_detector::threshold, "Voltage threshold of spike detector [mV]")
         .def("__repr__", [](const arb::threshold_detector& d){
-            return util::pprintf("<arbor.threshold_detector: threshold {} mV>", d.threshold);})
+            return fmt::format("<arbor.threshold_detector: threshold {} mV>", d.threshold);})
         .def("__str__", [](const arb::threshold_detector& d){
-            return util::pprintf("(threshold_detector {})", d.threshold);});
+            return fmt::format("(threshold_detector {})", d.threshold);});
 
     // arb::cable_cell_global_properties
     pybind11::class_<arb::cable_cell_ion_data> ion_data(m, "ion_data");
@@ -696,7 +654,7 @@ void register_cells(pybind11::module& m) {
                pybind11::object method, optional<double> diff)
             {
                 if (!props.ion_species.count(ion) && !valence) {
-                    throw std::runtime_error(util::pprintf("New ion species: '{}', missing valence", ion));
+                    throw std::runtime_error(fmt::format("New ion species: '{}', missing valence", ion));
                 }
                 if (valence) props.ion_species[ion] = *valence;
 
@@ -757,7 +715,7 @@ void register_cells(pybind11::module& m) {
         .def_readwrite("catalogue",
                        &arb::cable_cell_global_properties::catalogue,
                        "The mechanism catalogue.")
-        .def("__str__", [](const arb::cable_cell_global_properties& p){return to_string(p);});
+        .def("__str__", [](const arb::cable_cell_global_properties& p){return util::to_string(p);});
 
     m.def("neuron_cable_properties", []() {
         arb::cable_cell_global_properties prop;
@@ -820,7 +778,7 @@ void register_cells(pybind11::module& m) {
             [](arb::decor& dec) {
                 std::vector<std::tuple<std::string, arb::paintable>> result;
                 for (const auto& [k, v]: dec.paintings()) {
-                    result.emplace_back(to_string(k), v);
+                    result.emplace_back(util::to_string(k), v);
                 }
                 return result;
             },
@@ -829,7 +787,7 @@ void register_cells(pybind11::module& m) {
             [](arb::decor& dec) {
                 std::vector<std::tuple<std::string, arb::placeable, std::string>> result;
                 for (const auto& [k, v, t]: dec.placements()) {
-                    result.emplace_back(to_string(k), v, t);
+                    result.emplace_back(util::to_string(k), v, t);
                 }
                 return result;
             },

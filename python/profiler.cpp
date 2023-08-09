@@ -52,7 +52,7 @@ void register_profiler(pybind11::module& m) {
             return arb::profile::make_meter_report(manager, ctx.context);
             }),
             "manager"_a, "context"_a)
-        .def("__str__",  [](arb::profile::meter_report& r){return util::pprintf("{}", r);})
+        .def("__str__",  [](arb::profile::meter_report& r){return util::to_string(r);})
         .def("__repr__", [](arb::profile::meter_report& r){return "<arbor.meter_report>";});
 
 #ifdef ARB_PROFILE_ENABLED

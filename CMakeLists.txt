@@ -275,6 +275,8 @@ add_subdirectory(ext)
 install(TARGETS ext-hwloc EXPORT arbor-targets)
 install(TARGETS ext-random123 EXPORT arbor-targets)
 
+target_link_libraries(arbor-private-deps INTERFACE ext-fmt)
+
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
 

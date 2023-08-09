@@ -4,14 +4,11 @@
 #include <set>
 #include <regex>
 
-#include <fmt/core.h>
-#include <fmt/format.h>
-#include <fmt/compile.h>
-
 #include "gpuprinter.hpp"
 #include "expression.hpp"
 #include "io/ostream_wrappers.hpp"
 #include "io/prefixbuf.hpp"
+#include "io/pprintf.hpp"
 #include "printer/cexpr_emit.hpp"
 #include "printer/printerutil.hpp"
 

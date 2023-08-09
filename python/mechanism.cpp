@@ -52,12 +52,12 @@ void register_mechanisms(pybind11::module& m) {
         .def_readonly("max",     &arb::mechanism_field_spec::upper_bound)
         .def("__repr__",
                 [](const arb::mechanism_field_spec& spec) {
-                    return util::pprintf("{units: '{}', default: {}, min: {}, max: {}}",
+                    return fmt::format("{units: '{}', default: {}, min: {}, max: {}}",
                                          (spec.units.size()? spec.units.c_str(): "1"), spec.default_value,
                                          spec.lower_bound, spec.upper_bound); })
         .def("__str__",
                 [](const arb::mechanism_field_spec& spec) {
-                    return util::pprintf("{units: '{}', default: {}, min: {}, max: {}}",
+                    return fmt::format("{units: '{}', default: {}, min: {}, max: {}}",
                                          (spec.units.size()? spec.units.c_str(): "1"), spec.default_value,
                                          spec.lower_bound, spec.upper_bound); });
 
@@ -72,13 +72,13 @@ void register_mechanisms(pybind11::module& m) {
         .def("__repr__",
                 [](const arb::ion_dependency& dep) {
                     auto tf = [](bool x) {return x? "True": "False";};
-                    return util::pprintf("{write_int_con: {}, write_ext_con: {}, write_rev_pot: {}, read_rev_pot: {}}",
+                    return fmt::format("{write_int_con: {}, write_ext_con: {}, write_rev_pot: {}, read_rev_pot: {}}",
                                          tf(dep.write_concentration_int), tf(dep.write_concentration_ext),
                                          tf(dep.write_reversal_potential), tf(dep.read_reversal_potential)); })
         .def("__str__",
                 [](const arb::ion_dependency& dep) {
                     auto tf = [](bool x) {return x? "True": "False";};
-                    return util::pprintf("{write_int_con: {}, write_ext_con: {}, write_rev_pot: {}, read_rev_pot: {}}",
+                    return fmt::format("{write_int_con: {}, write_ext_con: {}, write_rev_pot: {}, read_rev_pot: {}}",
                                          tf(dep.write_concentration_int), tf(dep.write_concentration_ext),
                                          tf(dep.write_reversal_potential), tf(dep.read_reversal_potential)); })
         ;
@@ -105,10 +105,10 @@ void register_mechanisms(pybind11::module& m) {
                 }, "String representation of the kind of the mechanism.")
         .def("__repr__",
                 [](const arb::mechanism_info& inf) {
-                    return util::pprintf("(arbor.mechanism_info)"); })
+                    return fmt::format("(arbor.mechanism_info)"); })
         .def("__str__",
                 [](const arb::mechanism_info& inf) {
-                    return util::pprintf("(arbor.mechanism_info)"); });
+                    return fmt::format("(arbor.mechanism_info)"); });
 
     pybind11::class_<arb::mechanism_catalogue> cat(m, "catalogue");
 
@@ -192,10 +192,10 @@ void register_mechanisms(pybind11::module& m) {
                 "ions"_a=std::unordered_map<std::string, std::string>{})
         .def("__repr__",
                 [](const arb::mechanism_catalogue& cat) {
-                    return util::pprintf("<arbor.mechanism_catalogue>"); })
+                    return fmt::format("<arbor.mechanism_catalogue>"); })
         .def("__str__",
                 [](const arb::mechanism_catalogue& cat) {
-                    return util::pprintf("<arbor.mechanism_catalogue>"); });
+                    return fmt::format("<arbor.mechanism_catalogue>"); });
 
     m.def("default_catalogue", [](){return arb::global_default_catalogue();});
     m.def("allen_catalogue", [](){return arb::global_allen_catalogue();});
@@ -262,10 +262,10 @@ void register_mechanisms(pybind11::module& m) {
             }, "A dictionary of parameter values with parameter name as key.")
         .def("__repr__",
                 [](const arb::mechanism_desc& md) {
-                    return util::pprintf("<arbor.mechanism: name '{}', parameters {}>", md.name(), util::dictionary_csv(md.values())); })
+                    return fmt::format("<arbor.mechanism: name '{}', parameters {}>", md.name(), md.values()); })
         .def("__str__",
                 [](const arb::mechanism_desc& md) {
-                    return util::pprintf("('{}' {})", md.name(), util::dictionary_csv(md.values())); });
+                    return fmt::format("('{}' {})", md.name(), md.values()); });
 
 }
 

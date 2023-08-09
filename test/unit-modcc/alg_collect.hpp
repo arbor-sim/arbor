@@ -253,6 +253,12 @@ struct prodsum {
         return o;
     }
 
+    std::string to_string() {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
     bool is_scalar() const {
         return terms.empty() || (terms.size()==1 && terms.front().prim.empty());
     }

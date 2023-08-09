@@ -11,6 +11,10 @@
 #include <arbor/s_expr.hpp>
 
 #include "util/maputil.hpp"
+#include "util/strprintf.hpp"
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+#include <fmt/std.h>
 
 namespace arb {
 
@@ -169,6 +173,38 @@ decor& decor::set_default(defaultable what) {
             },
             what);
     return *this;
+}
+
+std::ostream& operator<<(std::ostream& os, const cable_cell_global_properties& props) {
+    const auto& D = props.default_parameters;
+    const auto& I = D.ion_data;
+    os << "{arbor.cable_global_properties\n"
+          "  ions: {";
+    for (auto& [name, data]: props.ion_species) {
+        std::string xi = "None";
+        std::string xo = "None";
+        std::string ex = "None";
+        std::string mt = "'None'";
+        if (I.count(name)) {
+            const auto& props = I.at(name);
+            if (props.init_int_concentration)  xi = util::to_string(*props.init_int_concentration);
+            if (props.init_ext_concentration)  xo = util::to_string(*props.init_ext_concentration);
+            if (props.init_reversal_potential) ex = util::to_string(*props.init_reversal_potential);
+            if (D.reversal_potential_method.count(name)) mt ="'" + D.reversal_potential_method.at(name).name() + "'";
+        }
+        os << fmt::format("\n    {{name: '{}', valence: {}, int_con: {}, ext_con: {}, rev_pot: {}, rev_pot_method: {}}}",
+                          name,
+                          data,
+                          xi, xo, ex, mt);
+    }
+    os << "}\n"
+       <<  fmt::format("  parameters: {Vm: {}, cm: {}, rL: {}, tempK: {}}\n",
+                       D.init_membrane_potential ? util::to_string(*D.init_membrane_potential) : "None",
+                       D.membrane_capacitance ? util::to_string(*D.membrane_capacitance) : "None",
+                       D.axial_resistivity ? util::to_string(*D.axial_resistivity) : "None",
+                       D.temperature_K ? util::to_string(*D.temperature_K) : "None")
+       << "}";
+    return os;
 }
 
 } // namespace arb

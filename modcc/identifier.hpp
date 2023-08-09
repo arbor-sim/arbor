@@ -8,6 +8,17 @@ enum class moduleKind {
     point, density, junction, revpot, voltage,
 };
 
+inline std::string to_string(moduleKind v) {
+    switch(v) {
+        case moduleKind::point : return "point";
+        case moduleKind::density : return "density";
+        case moduleKind::junction : return "junction";
+        case moduleKind::revpot : return "revpot";
+        case moduleKind::voltage : return "voltage";
+    }
+}
+
+
 /// indicate how a variable is accessed
 /// access is (read, written, or both)
 /// the distinction between write only and read only is required because

@@ -98,13 +98,13 @@ void IdentifierExpression::semantic(scope_ptr scp) {
     auto s = scope_->find(spelling_);
 
     if(s==nullptr) {
-        error( pprintf("the variable '%' is undefined",
-                        yellow(spelling_), location_));
+        error( fmt::format("the variable '{}' is undefined at {}:{}",
+                        yellow(spelling_), location_.line, location_.column));
         return;
     }
     if(s->kind() == symbolKind::procedure || s->kind() == symbolKind::function) {
-        error( pprintf("the symbol '%' is a function/procedure, not a variable",
-                       yellow(spelling_)));
+        error( fmt::format("the symbol '{}' is a function/procedure, not a variable",
+                           yellow(spelling_)));
         return;
     }
 
@@ -123,7 +123,7 @@ void IdentifierExpression::semantic(scope_ptr scp) {
             s = scope_->add_local_symbol(spelling_, scope_type::symbol_ptr{var});
         }
         else {
-            error( pprintf("the symbol '%' refers to an external quantity "
+            error( fmt::format("the symbol '{}' refers to an external quantity "
                            "and is unavailable in a function or procedure",
                            yellow(spelling_)));
             return;
@@ -164,8 +164,8 @@ void DerivativeExpression::semantic(scope_ptr scp) {
     }
     auto v = symbol_->is_variable();
     if (!v || !v->is_state()) {
-        error( pprintf("the variable '%' must be a state variable to be differentiated",
-                        yellow(spelling_), location_));
+        error( fmt::format("the variable '{}' at {}:{} must be a state variable to be differentiated",
+                        yellow(spelling_), location_.line, location_.column));
         return;
     }
 }
@@ -208,7 +208,7 @@ expression_ptr LocalDeclaration::clone() const {
 
 bool LocalDeclaration::add_variable(Token tok) {
     if(vars_.find(tok.spelling)!=vars_.end()) {
-        error( "the variable '" + yellow(tok.spelling) + "' is defined more than once");
+        error("the variable '" + yellow(tok.spelling) + "' is defined more than once");
         return false;
     }
 
@@ -234,19 +234,19 @@ void LocalDeclaration::semantic(scope_ptr scp) {
            || s->kind()==symbolKind::indexed_variable)
         {
             if(s && s->kind()==symbolKind::indexed_variable) {
-                warning(pprintf("The local variable '%' clashes with the indexed"
-                                " variable defined at %, which will be ignored."
-                                " Remove the local definition of this variable"
-                                " if the previously defined variable was intended.",
-                                 yellow(name), s->location() ));
+                warning(fmt::format("The local variable '{}' clashes with the indexed"
+                                    " variable defined at ({}:{}), which will be ignored."
+                                    " Remove the local definition of this variable"
+                                    " if the previously defined variable was intended.",
+                                    yellow(name), s->location().line, s->location().column));
             } else {
                 auto symbol = make_symbol<LocalVariable>(location_, name);
                 symbols_.push_back( scope_->add_local_symbol(name, std::move(symbol)) );
             }
         }
         else {
-            error(pprintf("the symbol '%' has already been defined at %",
-                          yellow(name), s->location() ));
+            error(fmt::format("the symbol '{}' has already been defined at {}:{}",
+                              yellow(name), s->location().line, s->location().column));
         }
     }
 }
@@ -273,8 +273,8 @@ void ArgumentExpression::semantic(scope_ptr scp) {
         scope_->add_local_symbol(name_, std::move(symbol));
     }
     else {
-        error(pprintf("the symbol '%' has already been defined at %",
-                      yellow(name_), s->location() ));
+        error(fmt::format("the symbol '{}' has already been defined at {}",
+                      yellow(name_), s->location().line, s->location().column));
     }
 }
 
@@ -284,8 +284,7 @@ void ArgumentExpression::semantic(scope_ptr scp) {
 *******************************************************************************/
 
 std::string VariableExpression::to_string() const {
-    char n[17];
-    snprintf(n, 17, "%-10s", name().c_str());
+    auto n = fmt::format("{:-10s}", name());
     std::string
         s = blue("variable") + " " + yellow(n) + "("
           + colorize("write", is_writeable() ? stringColor::green : stringColor::red) + ", "
@@ -317,7 +316,7 @@ std::string IndexedVariable::to_string() const {
 
 std::string ReactionExpression::to_string() const {
     return blue("reaction") +
-           pprintf(" % <-> % (%, %)",
+           fmt::format(" {} <-> {} ({}, {})",
                lhs()->to_string(), rhs()->to_string(),
                 fwd_rate()->to_string(), rev_rate()->to_string());
 }
@@ -492,12 +491,12 @@ void CallExpression::semantic(scope_ptr scp) {
 
     // either undefined or refers to a variable
     if(!s) {
-        error(pprintf("there is no function or procedure named '%' ",
+        error(fmt::format("there is no function or procedure named '{}' ",
                       yellow(spelling_)));
         return;
     }
     if(s->kind()==symbolKind::local_variable || s->kind()==symbolKind::variable) {
-        error(pprintf("the symbol '%' refers to a variable, but it is being"
+        error(fmt::format("the symbol '{}' refers to a variable, but it is being"
                       " called like a function", yellow(spelling_) ));
     }
 
@@ -514,8 +513,8 @@ void CallExpression::semantic(scope_ptr scp) {
             expected_args = procedure()->args().size();
         }
         if(args_.size() != unsigned(expected_args)) {
-            error(pprintf("call has the wrong number of arguments: expected %"
-                          ", received %", expected_args, args_.size()));
+            error(fmt::format("call has the wrong number of arguments: expected {}"
+                          ", received {}", expected_args, args_.size()));
         }
     }
 
@@ -827,8 +826,7 @@ void BinaryExpression::replace_rhs(expression_ptr&& other) {
 }
 
 std::string BinaryExpression::to_string() const {
-    //return pprintf("(% % %)", blue(token_string(op_)), lhs_->to_string(), rhs_->to_string());
-    return pprintf("(% % %)", lhs_->to_string(), blue(token_string(op_)), rhs_->to_string());
+    return fmt::format("({} {} {})", lhs_->to_string(), blue(token_string(op_)), rhs_->to_string());
 }
 
 /*******************************************************************************
@@ -991,8 +989,8 @@ void PDiffExpression::semantic(scope_ptr scp) {
     scope_ = scp;
 
     if (!var_->is_identifier()) {
-        error(pprintf("the variable in the partial differential expression is not "
-                      "an identifier, but instead %", yellow(var_->to_string())));
+        error(fmt::format("the variable in the partial differential expression is not "
+                          "an identifier, but instead {}", yellow(var_->to_string())));
     }
     var_->semantic(scp);
     arg_->semantic(scp);

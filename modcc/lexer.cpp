@@ -67,7 +67,7 @@ Token Lexer::parse() {
             case '\r'   :
                 current_++;
                 if(*current_ != '\n') {
-                    error_string_ = pprintf("bad line ending: \\n must follow \\r");
+                    error_string_ = "bad line ending: \\n must follow \\r";
                     status_ = lexerStatus::error;
                     t.type = tok::reserved;
                     return t;
@@ -111,7 +111,7 @@ Token Lexer::parse() {
                         else if (*current_ == '\r') {
                             current_++;
                             if(*current_ != '\n') {
-                                error_string_ = pprintf("bad line ending: \\n must follow \\r");
+                                error_string_ = "bad line ending: \\n must follow \\r";
                                 return t;
                             }
                             current_++;
@@ -229,7 +229,7 @@ Token Lexer::parse() {
                     }
                 }
                 if (!valid) {
-                    error_string_ = pprintf("& must be in pairs");
+                    error_string_ = "& must be in pairs";
                     status_ = lexerStatus::error;
                     t.type = tok::reserved;
                 }
@@ -246,7 +246,7 @@ Token Lexer::parse() {
                     }
                 }
                 if (!valid) {
-                    error_string_ = pprintf("| must be in pairs");
+                    error_string_ = "| must be in pairs";
                     status_ = lexerStatus::error;
                     t.type = tok::reserved;
                 }
@@ -261,9 +261,9 @@ Token Lexer::parse() {
                 t.spelling += character();
                 return t;
             default:
-                error_string_ =
-                    pprintf( "unexpected character '%' at %",
-                             *current_, location_);
+                error_string_ = fmt::format("unexpected character '{}' at {}:{}",
+                                            *current_,
+                                            location_.line, location_.column);
                 status_ = lexerStatus::error;
                 t.spelling += character();
                 t.type = tok::reserved;
@@ -363,13 +363,13 @@ Token Lexer::number() {
 
     // check that the mantisa is an integer
     if(incorrectly_formed_mantisa) {
-        error_string_ = pprintf("the exponent/mantissa must be an integer '%'", yellow(str));
+        error_string_ = fmt::format("the exponent/mantissa must be an integer '{}'", yellow(str));
         status_ = lexerStatus::error;
     }
     // check that there is at most one decimal point
     // i.e. disallow values like 2.2324.323
     if(num_point>1) {
-        error_string_ = pprintf("too many .'s when reading the number '%'", yellow(str));
+        error_string_ = fmt::format("too many .'s when reading the number '{}'", yellow(str));
         status_ = lexerStatus::error;
     }
 

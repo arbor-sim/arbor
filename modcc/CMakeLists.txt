@@ -50,6 +50,8 @@ else()
     target_link_libraries(libmodcc PRIVATE fmt::fmt-header-only)
 endif()
 
+target_link_libraries(libmodcc INTERFACE ext-fmt)
+
 set_target_properties(libmodcc PROPERTIES OUTPUT_NAME modcc)
 
 export_visibility(libmodcc)

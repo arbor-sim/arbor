@@ -9,7 +9,6 @@
 
 namespace pyarb {
 
-using util::pprintf;
 namespace py = pybind11;
 
 void register_identifiers(py::module& m) {
@@ -57,8 +56,8 @@ void register_identifiers(py::module& m) {
              "The identifier of a a group of one or more items on a cell.")
         .def_readwrite("policy", &arb::cell_local_label_type::policy,
             "The policy for selecting one of possibly multiple items associated with the label.")
-        .def("__str__", [](arb::cell_local_label_type m) {return pprintf("<arbor.cell_local_label: label {}, policy {}>", m.tag, m.policy);})
-        .def("__repr__",[](arb::cell_local_label_type m) {return pprintf("<arbor.cell_local_label: label {}, policy {}>", m.tag, m.policy);});
+        .def("__str__", [](arb::cell_local_label_type m) {return fmt::format("<arbor.cell_local_label: label {}, policy {}>", m.tag, util::to_string(m.policy));})
+        .def("__repr__",[](arb::cell_local_label_type m) {return fmt::format("<arbor.cell_local_label: label {}, policy {}>", m.tag, util::to_string(m.policy));});
 
     py::implicitly_convertible<py::tuple, arb::cell_local_label_type>();
     py::implicitly_convertible<py::str, arb::cell_local_label_type>();
@@ -96,8 +95,8 @@ void register_identifiers(py::module& m) {
              "The global identifier of the cell.")
         .def_readwrite("label", &arb::cell_global_label_type::label,
              "The cell_local_label representing the label and selection policy of an item on the cell.")
-        .def("__str__", [](arb::cell_global_label_type m) {return pprintf("<arbor.cell_global_label: gid {}, label ({}, {})>", m.gid, m.label.tag, m.label.policy);})
-        .def("__repr__",[](arb::cell_global_label_type m) {return pprintf("<arbor.cell_global_label: gid {}, label ({}, {})>", m.gid, m.label.tag, m.label.policy);});
+        .def("__str__", [](arb::cell_global_label_type m) {return fmt::format("<arbor.cell_global_label: gid {}, label ({}, {})>", m.gid, m.label.tag, util::to_string(m.label.policy));})
+        .def("__repr__",[](arb::cell_global_label_type m) {return fmt::format("<arbor.cell_global_label: gid {}, label ({}, {})>", m.gid, m.label.tag, util::to_string(m.label.policy));});
 
     py::implicitly_convertible<py::tuple, arb::cell_global_label_type>();
 
@@ -127,8 +126,8 @@ void register_identifiers(py::module& m) {
             "The global identifier of the cell.")
         .def_readwrite("index", &arb::cell_member_type::index,
             "Cell-local index of the item.")
-        .def("__str__", [](arb::cell_member_type m) {return pprintf("<arbor.cell_member: gid {}, index {}>", m.gid, m.index);})
-        .def("__repr__",[](arb::cell_member_type m) {return pprintf("<arbor.cell_member: gid {}, index {}>", m.gid, m.index);});
+        .def("__str__", [](arb::cell_member_type m) {return fmt::format("<arbor.cell_member: gid {}, index {}>", m.gid, m.index);})
+        .def("__repr__",[](arb::cell_member_type m) {return fmt::format("<arbor.cell_member: gid {}, index {}>", m.gid, m.index);});
 
     py::implicitly_convertible<py::tuple, arb::cell_member_type>();
 

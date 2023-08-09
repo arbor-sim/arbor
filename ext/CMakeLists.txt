@@ -22,6 +22,21 @@ endif()
 add_library(ext-tinyopt INTERFACE)
 target_include_directories(ext-tinyopt INTERFACE tinyopt/include)
 
+add_library(ext-fmt INTERFACE)
+if (ARB_USE_BUNDLED_FMT)
+    target_include_directories(ext-fmt
+        INTERFACE
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/fmt/include>)
+    target_compile_definitions(ext-fmt INTERFACE FMT_HEADER_ONLY)
+    install(TARGETS ext-fmt EXPORT arbor-targets)
+else()
+    target_include_directories(ext-fmt
+        INTERFACE
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+    find_package(fmt REQUIRED)
+    target_link_libraries(ext-fmt INTERFACE fmt::fmt-header-only)
+endif()
 
 # functionality for adding external projects
 

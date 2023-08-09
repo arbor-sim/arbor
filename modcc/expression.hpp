@@ -11,9 +11,8 @@
 #include "identifier.hpp"
 #include "scope.hpp"
 #include "token.hpp"
-#include <libmodcc/export.hpp>
-
 #include "io/pprintf.hpp"
+#include <libmodcc/export.hpp>
 
 class Visitor;
 
@@ -289,9 +288,7 @@ public:
         return spelling_;
     }
 
-    std::string to_string() const override {
-        return yellow(pprintf("%", spelling_));
-    }
+    std::string to_string() const override { return yellow(spelling_); }
 
     expression_ptr clone() const override;
     using Expression::semantic;
@@ -331,9 +328,7 @@ public:
     :   IdentifierExpression(loc, name)
     {}
 
-    std::string to_string() const override {
-        return blue("diff") + "(" + yellow(spelling()) + ")";
-    }
+    std::string to_string() const override { return fmt::format("{} ({})", blue("diff"), yellow(spelling())); }
 
     expression_ptr clone() const override;
 
@@ -360,9 +355,7 @@ public:
 
     virtual double value() const {return value_;};
 
-    std::string to_string() const override {
-        return purple(pprintf("%", value_));
-    }
+    std::string to_string() const override { return purple(fmt::to_string(value_)); }
 
     // do nothing for number semantic analysis
     using Expression::semantic;
@@ -391,9 +384,7 @@ public:
 
     long long integer_value() const {return integer_;}
 
-    std::string to_string() const override {
-        return purple(pprintf("%", integer_));
-    }
+    std::string to_string() const override { return purple(std::to_string(integer_)); }
 
     // do nothing for number semantic analysis
     using Expression::semantic;
@@ -569,7 +560,7 @@ public:
         // external symbols are either read or write only
         if(access()==accessKind::readwrite) {
             throw compiler_exception(
-                pprintf("attempt to generate an index % with readwrite access", yellow(lookup_name)),
+                fmt::format("attempt to generate an index {} with readwrite access", yellow(lookup_name)),
                 location_);
         }
     }
@@ -687,8 +678,10 @@ public:
     {}
 
     std::string to_string() const override {
-        return blue("solve") + "(" + yellow(name_) + ", "
-            + green(::to_string(method_)) + ")";
+        return fmt::format("{} ({}, {})",
+                           blue("solve"),
+                           yellow(name_),
+                           green(::to_string(method_)));
     }
 
     std::string const& name() const {
@@ -965,7 +958,7 @@ public:
     StoichTermExpression* is_stoich_term() override {return this;}
 
     std::string to_string() const override {
-        return pprintf("% %", coeff()->to_string(), ident()->to_string());
+        return fmt::format("{} {}", coeff()->to_string(), ident()->to_string());
     }
     using Expression::semantic;
     void semantic(scope_ptr scp) override;
@@ -1256,7 +1249,7 @@ public:
     {}
 
     std::string to_string() const override {
-        return pprintf("(% %)", green(token_string(op_)), expression_->to_string());
+        return fmt::format("({} {})", green(token_string(op_)), expression_->to_string());
     }
 
     expression_ptr clone() const override;

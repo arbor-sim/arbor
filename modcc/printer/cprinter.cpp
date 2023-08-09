@@ -7,15 +7,12 @@
 #include "expression.hpp"
 #include "io/ostream_wrappers.hpp"
 #include "io/prefixbuf.hpp"
+#include "io/pprintf.hpp"
 #include "printer/cexpr_emit.hpp"
 #include "printer/cprinter.hpp"
 #include "printer/printeropt.hpp"
 #include "printer/printerutil.hpp"
 #include "printer/marks.hpp"
-
-#include <fmt/core.h>
-#include <fmt/format.h>
-#include <fmt/compile.h>
 
 using io::indent;
 using io::popindent;

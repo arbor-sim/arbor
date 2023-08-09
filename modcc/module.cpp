@@ -117,25 +117,27 @@ public:
 };
 
 std::string Module::error_string() const {
-    std::string str;
+    std::stringstream str;
     for (const error_entry& entry: errors()) {
-        if (!str.empty()) str += '\n';
-        str += red("  * ");
-        str += white(pprintf("%:% ", source_name(), entry.location));
-        str += entry.message;
+        str << fmt::format("  {} {} ({}, {}): {}\n",
+                           red("*"),
+                           source_name(),
+                           entry.location.line, entry.location.column,
+                           entry.message);
     }
-    return str;
+    return str.str();
 }
 
 std::string Module::warning_string() const {
-    std::string str;
-    for (auto& entry: warnings()) {
-        if (!str.empty()) str += '\n';
-        str += purple("  * ");
-        str += white(pprintf("%:% ", source_name(), entry.location));
-        str += entry.message;
+    std::stringstream str;
+    for (const error_entry& entry: warnings()) {
+        str << fmt::format("  {} {} ({}, {}): {}\n",
+                           purple("*"),
+                           source_name(),
+                           entry.location.line, entry.location.column,
+                           entry.message);
     }
-    return str;
+    return str.str();
 }
 
 void Module::add_callable(symbol_ptr callable) {
@@ -170,7 +172,7 @@ bool Module::semantic() {
             bool is_found = (symbols_.find(symbol->name()) != symbols_.end());
             if(is_found) {
                 error(
-                    pprintf("'%' clashes with previously defined symbol",
+                    fmt::format("'{}' clashes with previously defined symbol",
                             symbol->name()),
                     symbol->location()
                 );
@@ -222,13 +224,11 @@ bool Module::semantic() {
     // When creating an API method, the first task is to look up the source procedure,
     // i.e. the INITIAL block for init(). This lambda takes care of this repetative
     // lookup work, with error checking.
-    auto make_empty_api_method = [this]
-            (std::string const& name, std::string const& source_name)
-            -> std::pair<APIMethod*, ProcedureExpression*>
-    {
-        if( !has_symbol(source_name, symbolKind::procedure) ) {
-            error(pprintf("unable to find symbol '%'", yellow(source_name)),
-                   Location());
+    auto make_empty_api_method = [this] (std::string const& name, std::string const& source_name)
+            -> std::pair<APIMethod*, ProcedureExpression*> {
+        if(!has_symbol(source_name, symbolKind::procedure)) {
+            error(fmt::format("unable to find symbol '{}'", yellow(source_name)),
+                  Location());
             return std::make_pair(nullptr, nullptr);
         }
 
@@ -236,7 +236,7 @@ bool Module::semantic() {
         auto loc = source->location();
 
         if( symbols_.find(name)!=symbols_.end() ) {
-            error(pprintf("'%' clashes with reserved name, please rename it",
+            error(fmt::format("'{}' clashes with reserved name, please rename it",
                           yellow(name)),
                   symbols_.find(name)->second->location());
             return std::make_pair(nullptr, source);
@@ -361,7 +361,8 @@ bool Module::semantic() {
                 // Check that we didn't solve an already solved variable.
                 for (const auto &id: solver->solved_identifiers()) {
                     if (solved_ids.count(id) > 0) {
-                        error("Variable " + id + " solved twice!", solve_expression->location());
+                        error(fmt::format("Block '{}' has been solved twice!", id),
+                              solve_expression->location());
                         return false;
                     }
                     solved_ids.insert(id);
@@ -507,7 +508,8 @@ bool Module::semantic() {
             // Check that we didn't solve an already solved variable.
             for (const auto& id: solver->solved_identifiers()) {
                 if (solved_ids.count(id)>0) {
-                    error("Variable "+id+" solved twice!", e->location());
+                    error(fmt::format("Block '{}' has been solved twice!", id),
+                          e->location());
                     return false;
                 }
                 solved_ids.insert(id);
@@ -573,7 +575,7 @@ bool Module::semantic() {
         auto net_rec_api = make_empty_api_method("net_rec_api", "net_receive");
         // handle Arbor specifics
         if (net_rec_api.second->args().size() > 1) {
-            error(pprintf("NET_RECEIVE takes at most one argument (Arbor limitation!)"), net_rec_api.first->location());
+            error("NET_RECEIVE takes at most one argument (Arbor limitation!)", net_rec_api.first->location());
         }
         net_rec_api.first->body(net_rec_api.second->body()->clone());
         if (net_rec_api.second) {
@@ -587,7 +589,7 @@ bool Module::semantic() {
                         }
                         if(coef->is_number()) {
                             if (!s->is_assignment()->lhs()->is_identifier()) {
-                                error(pprintf("Left hand side of assignment is not an identifier"));
+                                error("Left hand side of assignment is not an identifier");
                                 return false;
                             }
                             linear_homogeneous &= s->is_assignment()->lhs()->is_identifier()->name() == id ?
@@ -646,7 +648,7 @@ void Module::add_variables_to_symbols() {
                accessKind acc, std::string ch, Location loc) -> symbol_ptr& {
         if (symbols_.count(name)) {
             throw compiler_exception(
-                pprintf("the symbol % already exists", yellow(name)), loc);
+                fmt::format("the symbol '{}' already exists", yellow(name)), loc);
         }
         return symbols_[name] =
             make_symbol<IndexedVariable>(loc, name, data_source, acc, ch);
@@ -655,7 +657,7 @@ void Module::add_variables_to_symbols() {
     auto create_white_noise = [this](Token const & token) -> symbol_ptr& {
         if (symbols_.count(token.spelling)) {
             throw compiler_exception(
-                pprintf("the symbol % already exists", yellow(token.spelling)), token.location);
+                fmt::format("the symbol '{}' already exists", yellow(token.spelling)), token.location);
         }
         return symbols_[token.spelling] = make_symbol<WhiteNoise>(token.location, token.spelling);
     };
@@ -752,12 +754,14 @@ void Module::add_variables_to_symbols() {
         if (has_symbol(name)) {
             state = symbols_[name].get()->is_variable();
             if (!state) {
-                error(pprintf("the symbol defined % can't be redeclared", yellow(name)), tkn.location);
+                error(fmt::format("the symbol {} can't be redeclared", yellow(name)),
+                      tkn.location);
                 return;
             }
             if (!state->is_state()) {
-                error(pprintf("the symbol defined % at % can't be redeclared",
-                    state->location(), yellow(name)), tkn.location);
+                error(fmt::format("the symbol {} defined at {}:{} can't be redeclared",
+                                  yellow(name), state->location().line, state->location().column),
+                      tkn.location);
                 return;
             }
             name += "_shadowed_";

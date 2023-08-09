@@ -47,7 +47,7 @@ alg::prodsum expand_expression(Expression* e, const id_prodsum_map& exmap) {
         case tok::pow:
             if (!rhs.is_scalar()) {
                 // make an opaque term for this case (i.e. too hard to simplify)
-                return prodterm(pprintf("(%)^(%)", lhs, rhs));
+                return prodterm(fmt::format("({})^({})", lhs.to_string(), rhs.to_string()));
             }
             else return lhs.pow(rhs.first_coeff());
         default:
@@ -60,13 +60,13 @@ alg::prodsum expand_expression(Expression* e, const id_prodsum_map& exmap) {
         case tok::minus:
             return -inner;
         case tok::exp:
-            return prodterm(pprintf("exp(%)", inner));
+            return prodterm(fmt::format("exp({})", inner.to_string()));
         case tok::log:
-            return prodterm(pprintf("log(%)", inner));
+            return prodterm(fmt::format("log({})", inner.to_string()));
         case tok::sin:
-            return prodterm(pprintf("sin(%)", inner));
+            return prodterm(fmt::format("sin({})", inner.to_string()));
         case tok::cos:
-            return prodterm(pprintf("cos(%)", inner));
+            return prodterm(fmt::format("cos({})", inner.to_string()));
         default:
             throw std::runtime_error("unrecognized unaryop");
         }

@@ -54,6 +54,7 @@ set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_PYTHON_LIB_PATH=
 # use by both the Python wrapper target (pyarb) and for the
 # unit tests of the C++ components in the Python wrapper.
 add_library(pyarb_obj OBJECT ${pyarb_source})
+target_link_libraries(pyarb_obj INTERFACE ext-fmt)
 set_target_properties(pyarb_obj PROPERTIES CXX_VISIBILITY_PRESET hidden)
 target_link_libraries(pyarb_obj PRIVATE arbor arborenv arborio pybind11::module)
 

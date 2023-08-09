@@ -100,8 +100,8 @@ static std::vector<arb::event_generator> convert_gen(std::vector<pybind11::objec
         // check that a valid Python event_generator was passed.
         if (!isinstance<pyarb::event_generator_shim>(g)) {
             throw pyarb_error(
-                util::pprintf(
-                    "recipe supplied an invalid event generator for gid {}: {}", gid, pybind11::str(g)));
+                fmt::format(
+                    "recipe supplied an invalid event generator for gid {}: {}", gid, std::string{pybind11::str(g)}));
         }
         // get a reference to the python event_generator
         auto& p = cast<const pyarb::event_generator_shim&>(g);
@@ -122,13 +122,18 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
 }
 
 std::string con_to_string(const arb::cell_connection& c) {
-    return util::pprintf("<arbor.connection: source ({}, \"{}\", {}), destination (\"{}\", {}), delay {}, weight {}>",
-         c.source.gid, c.source.label.tag, c.source.label.policy, c.target.tag, c.target.policy, c.delay, c.weight);
+    return fmt::format("<arbor.connection: source ({}, \"{}\", {}), destination (\"{}\", {}), delay {}, weight {}>",
+                       c.source.gid, c.source.label.tag, util::to_string(c.source.label.policy),
+                       c.target.tag, util::to_string(c.target.policy),
+                       c.delay, c.weight);
 }
 
 std::string gj_to_string(const arb::gap_junction_connection& gc) {
-    return util::pprintf("<arbor.gap_junction_connection: peer ({}, \"{}\", {}), local (\"{}\", {}), weight {}>",
-         gc.peer.gid, gc.peer.label.tag, gc.peer.label.policy, gc.local.tag, gc.local.policy, gc.weight);
+    return fmt::format("<arbor.gap_junction_connection: peer ({}, \"{}\", {}), local (\"{}\", {}), weight {}>",
+                       gc.peer.gid, gc.peer.label.tag, util::to_string(
+                           gc.peer.label.policy),
+                       gc.local.tag, util::to_string(gc.local.policy),
+                       gc.weight);
 }
 
 void register_recipe(pybind11::module& m) {
@@ -217,7 +222,7 @@ void register_recipe(pybind11::module& m) {
     // Probes
     pybind11::class_<arb::probe_info> probe(m, "probe");
     probe
-        .def("__repr__", [](const arb::probe_info& p){return util::pprintf("<arbor.probe: tag {}>", p.tag);})
-        .def("__str__",  [](const arb::probe_info& p){return util::pprintf("<arbor.probe: tag {}>", p.tag);});
+        .def("__repr__", [](const arb::probe_info& p){return fmt::format("<arbor.probe: tag {}>", p.tag);})
+        .def("__str__",  [](const arb::probe_info& p){return fmt::format("<arbor.probe: tag {}>", p.tag);});
 }
 } // namespace pyarb

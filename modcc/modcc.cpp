@@ -20,8 +20,6 @@
 #include "io/bulkio.hpp"
 #include "io/pprintf.hpp"
 
-#include <fmt/format.h>
-
 using std::cout;
 using std::cerr;
 
@@ -286,7 +284,7 @@ int main(int argc, char **argv) {
             return report_error(e.what());
         }
         catch (compiler_exception& e) {
-            return report_ice(pprintf("% @ %", e.what(), e.location()));
+            return report_ice(fmt::format("{} @ {}:{}", e.what(), e.location().line, e.location().column));
         }
         catch (std::exception& e) {
             return report_ice(e.what());

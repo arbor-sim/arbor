@@ -21,7 +21,7 @@ std::ostream& operator<<(std::ostream& o, const regular_schedule_shim& x) {
 
 std::ostream& operator<<(std::ostream& o, const explicit_schedule_shim& e) {
     o << "<arbor.explicit_schedule: times [";
-    return o << util::csv(e.times) << "] ms>";
+    return o << util::to_string(e.times) << "] ms>";
 };
 
 std::ostream& operator<<(std::ostream& o, const poisson_schedule_shim& p) {
@@ -226,8 +226,8 @@ void register_schedules(py::module& m) {
             "The interval between time points [ms].")
         .def("events", &regular_schedule_shim::events,
             "A view of monotonically increasing time values in the half-open interval [t0, t1).")
-        .def("__str__",  util::to_string<regular_schedule_shim>)
-        .def("__repr__", util::to_string<regular_schedule_shim>);
+        .def("__str__",  [](const regular_schedule_shim& s) { return util::to_string(s); })
+        .def("__repr__", [](const regular_schedule_shim& s) { return util::to_string(s); });
 
     // Explicit schedule
     py::class_<explicit_schedule_shim, schedule_shim_base> explicit_schedule(m, "explicit_schedule",
@@ -244,8 +244,8 @@ void register_schedules(py::module& m) {
             "A list of times [ms].")
         .def("events", &explicit_schedule_shim::events,
             "A view of monotonically increasing time values in the half-open interval [t0, t1).")
-        .def("__str__",  util::to_string<explicit_schedule_shim>)
-        .def("__repr__", util::to_string<explicit_schedule_shim>);
+        .def("__str__",  [](const explicit_schedule_shim& s) { return util::to_string(s); })
+        .def("__repr__", [](const explicit_schedule_shim& s) { return util::to_string(s); });
 
     // Poisson schedule
     py::class_<poisson_schedule_shim, schedule_shim_base> poisson_schedule(m, "poisson_schedule",
@@ -273,8 +273,8 @@ void register_schedules(py::module& m) {
             "No events delivered after this time [ms].")
         .def("events", &poisson_schedule_shim::events,
             "A view of monotonically increasing time values in the half-open interval [t0, t1).")
-        .def("__str__",  util::to_string<poisson_schedule_shim>)
-        .def("__repr__", util::to_string<poisson_schedule_shim>);
+        .def("__str__",  [](const poisson_schedule_shim& s) { return util::to_string(s); })
+        .def("__repr__", [](const poisson_schedule_shim& s) { return util::to_string(s); });
 }
 
 }

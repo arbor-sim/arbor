@@ -160,11 +160,11 @@ public:
     void probe(const std::string& what, const arb::locset& where, double frequency) {
         if (what != "voltage") {
             throw pyarb_error(
-                util::pprintf("{} does not name a valid variable to trace (currently only 'voltage' is supported)", what));
+                fmt::format("{} does not name a valid variable to trace (currently only 'voltage' is supported)", what));
         }
         if (frequency<=0) {
             throw pyarb_error(
-                util::pprintf("sampling frequency is not greater than zero", what));
+                fmt::format("sampling frequency is not greater than zero", what));
         }
         for (auto& l: cell_.concrete_locset(where)) {
             probes_.push_back({l, frequency});
@@ -232,8 +232,8 @@ void register_single_cell(pybind11::module& m) {
         .def_readonly("location", &trace::loc, "Location on cell morphology.")
         .def_readonly("time",    &trace::t, "Time stamps of samples [ms].")
         .def_readonly("value",   &trace::v, "Sample values.")
-        .def("__str__", [](const trace& tr) {return util::pprintf("(trace \"{}\" {})", tr.variable, tr.loc);})
-        .def("__repr__", [](const trace& tr) {return util::pprintf("(trace \"{}\" {})", tr.variable, tr.loc);});
+        .def("__str__", [](const trace& tr) {return fmt::format("(trace \"{}\" {})", tr.variable, util::to_string(tr.loc));})
+        .def("__repr__", [](const trace& tr) {return fmt::format("(trace \"{}\" {})", tr.variable, util::to_string(tr.loc));});
 
     pybind11::class_<single_cell_model> model(m, "single_cell_model",
         "Wrapper for simplified description, and execution, of single cell models.");

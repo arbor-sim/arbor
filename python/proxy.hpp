@@ -94,7 +94,7 @@ struct label_dict_proxy {
             }
             else {
                 // Successfully parsed an expression that is neither region nor locset.
-                throw util::pprintf("The definition of '{} = {}' does not define a valid region or locset.", name, desc);
+                throw fmt::format("The definition of '{} = {}' does not define a valid region or locset.", name, desc);
             }
             // The entry was added succesfully: store it in the cache.
             cache[name] = desc;
@@ -102,7 +102,7 @@ struct label_dict_proxy {
         catch (std::string msg) {
             const char* base = "\nError adding the label '{}' = '{}'\n{}\n";
 
-            throw std::runtime_error(util::pprintf(base, name, desc, msg));
+            throw std::runtime_error(fmt::format(base, name, desc, msg));
         }
         // Exceptions are thrown in parse or eval if an unexpected error occured.
         catch (std::exception& e) {
@@ -115,21 +115,21 @@ struct label_dict_proxy {
                 "\nPlease file a bug report with this full error message at:"
                 "\n    github.com/arbor-sim/arbor/issues"
                 "\n----------------------------------------------------------------";
-            throw arb::arbor_internal_error(util::pprintf(msg, name, desc, e.what()));
+            throw arb::arbor_internal_error(fmt::format(msg, name, desc, e.what()));
         }
     }
 
     std::string to_string() const {
         std::string s;
         s += "(label_dict";
-        for (auto& x: dict.regions()) {
-            s += util::pprintf(" (region  \"{}\" {})", x.first, x.second);
+        for (const auto& [k, v]: dict.regions()) {
+            s += fmt::format(" (region  \"{}\" {})", k, util::to_string(v));
         }
-        for (auto& x: dict.locsets()) {
-            s += util::pprintf(" (locset \"{}\" {})", x.first, x.second);
+        for (const auto& [k, v]: dict.locsets()) {
+            s += fmt::format(" (locset \"{}\" {})", k, util::to_string(v));
         }
-        for (auto& x: dict.iexpressions()) {
-            s += util::pprintf(" (iexpr \"{}\" {})", x.first, x.second);
+        for (const auto& [k, v]: dict.iexpressions()) {
+            s += fmt::format(" (iexpr \"{}\" {})", k, util::to_string(v));
         }
         s += ")";
         return s;

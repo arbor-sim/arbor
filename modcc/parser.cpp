@@ -5,18 +5,14 @@
 #include "perfvisitor.hpp"
 #include "token.hpp"
 #include "util.hpp"
-
 #include "io/pprintf.hpp"
-
-#include <fmt/format.h>
-#include <fmt/color.h>
 
 // specialize on const char* for lazy evaluation of compile time strings
 bool Parser::expect(tok tok, const char* str) {
     if (tok == token_.type) return true;
     error(strlen(str) > 0
           ? str
-          : fmt::format("unexpected token {}", fmt::styled(token_.spelling, fmt::fg(fmt::color::yellow))));
+          : fmt::format(FMT_COMPILE("unexpected token {}"), yellow(token_.spelling)));
     return false;
 }
 
@@ -24,13 +20,13 @@ bool Parser::expect(tok tok, std::string const& str) {
     if (tok == token_.type) return true;
     error(str.size() > 0
           ? str
-          : fmt::format("unexpected token {}", fmt::styled(token_.spelling, fmt::fg(fmt::color::yellow))));
+          : fmt::format(FMT_COMPILE("unexpected token {}"), yellow(token_.spelling)));
     return false;
 }
 
 void Parser::error(std::string msg) {
-    std::string location_info = fmt::format(
-        "{} {}:{} ", module_ ? module_->source_name() : "", token_.location.line, token_.location.column);
+    std::string location_info = fmt::format(FMT_COMPILE(
+        "{} {}:{} "), module_ ? module_->source_name() : "", token_.location.line, token_.location.column);
     if (status_ == lexerStatus::error) {
         // append to current string
         error_string_ += "\n" + white(location_info) + "\n  " + msg;
@@ -42,8 +38,8 @@ void Parser::error(std::string msg) {
 }
 
 void Parser::error(std::string msg, Location loc) {
-    std::string location_info = pprintf(
-        "%:% ", module_ ? module_->source_name() : "", loc);
+    std::string location_info = fmt::format(FMT_COMPILE("{}:{} {}"),
+                                            module_ ? module_->source_name() : "", loc.line, loc.column);
     if (status_ == lexerStatus::error) {
         // append to current string
         error_string_ += "\n" + green(location_info) + msg;
@@ -121,11 +117,11 @@ bool Parser::parse() {
             module_->add_callable(std::move(f));
         } break;
         default:
-            error(pprintf("expected block type, found '%'", token_.spelling));
+            error(fmt::format(FMT_COMPILE("expected block type, found '{}'"), token_.spelling));
             break;
         }
         if (status() == lexerStatus::error) {
-            std::cerr << red("error: ") << error_string_ << std::endl;
+            error(fmt::format(FMT_COMPILE("{}: {}"), red("error"), error_string_));
             return false;
         }
     }
@@ -162,15 +158,15 @@ std::vector<Token> Parser::comma_separated_identifiers() {
             tokens.push_back(token_);
         }
         else if (is_keyword(token_)) {
-            error(pprintf("found keyword '%', expected a variable name", token_.spelling));
+            error(fmt::format(FMT_COMPILE("found keyword '{}', expected a variable name"), token_.spelling));
             return tokens;
         }
         else if (token_.type == tok::real || token_.type == tok::integer) {
-            error(pprintf("found number '%', expected a variable name", token_.spelling));
+            error(fmt::format(FMT_COMPILE("found number '{}', expected a variable name"), token_.spelling));
             return tokens;
         }
         else {
-            error(pprintf("found '%', expected a variable name", token_.spelling));
+            error(fmt::format(FMT_COMPILE("found '{}', expected a variable name"), token_.spelling));
             return tokens;
         }
 
@@ -181,7 +177,7 @@ std::vector<Token> Parser::comma_separated_identifiers() {
             get_token();
             // assert that the list can't run off the end of a line
             if (peek().location.line > startline) {
-                error("line can't end with a '" + yellow(",") + "'");
+                error(fmt::format(FMT_COMPILE("line can't end with a '{}'"), yellow(",")));
                 return tokens;
             }
         }
@@ -210,8 +206,8 @@ void Parser::parse_neuron_block() {
 
     // assert that the block starts with a curly brace
     if (token_.type != tok::lbrace) {
-        error(pprintf("NEURON block must start with a curly brace {, found '%'",
-            token_.spelling));
+        error(fmt::format(FMT_COMPILE("NEURON block must start with a curly brace {{, found '{}'"),
+                          token_.spelling));
         return;
     }
 
@@ -243,7 +239,7 @@ void Parser::parse_neuron_block() {
             get_token(); // consume SUFFIX / POINT_PROCESS
             // assert that a valid name for the Neuron has been specified
             if (token_.type != tok::identifier) {
-                error(pprintf("invalid name for mechanism, found '%'", token_.spelling));
+                error(fmt::format(FMT_COMPILE("invalid name for mechanism, found '{}'"), token_.spelling));
                 return;
             }
             neuron_block.name = token_.spelling;
@@ -286,7 +282,7 @@ void Parser::parse_neuron_block() {
             get_token();
             // check this is an identifier token
             if (token_.type != tok::identifier) {
-                error(pprintf("invalid name for an ion chanel '%'", token_.spelling));
+                error(fmt::format(FMT_COMPILE("invalid name for an ion chanel '{}'"), token_.spelling));
                 return;
             }
 
@@ -351,8 +347,8 @@ void Parser::parse_neuron_block() {
 
         // the parser encountered an invalid symbol
         default:
-            error(pprintf("there was an invalid statement '%' in NEURON block",
-                token_.spelling));
+            error(fmt::format(FMT_COMPILE("there was an invalid statement '{}' in NEURON block"),
+                              token_.spelling));
             return;
         }
     }
@@ -371,7 +367,8 @@ void Parser::parse_state_block() {
 
     // assert that the block starts with a curly brace
     if (token_.type != tok::lbrace) {
-        error(pprintf("STATE block must start with a curly brace {, found '%'", token_.spelling));
+        error(fmt::format(FMT_COMPILE("STATE block must start with a curly brace {{, found '{}'"),
+                                      token_.spelling));
         return;
     }
 
@@ -384,8 +381,8 @@ void Parser::parse_state_block() {
         Id parm;
 
         if (token_.type != tok::identifier) {
-            error(pprintf("'%' is not a valid name for a state variable",
-                token_.spelling));
+            error(fmt::format(FMT_COMPILE("'{}' is not a valid name for a state variable"),
+                              token_.spelling));
             return;
         }
 
@@ -404,8 +401,8 @@ void Parser::parse_state_block() {
         if (line == location_.line && token_.type == tok::lparen) {
             parm.units = unit_description();
             if (status_ == lexerStatus::error) {
-                error(pprintf("STATUS block unexpected symbol '%s'",
-                    token_.spelling));
+                error(fmt::format(FMT_COMPILE("STATUS block unexpected symbol '{}'"),
+                                  token_.spelling));
                 return;
             }
         }
@@ -428,7 +425,7 @@ void Parser::parse_units_block() {
 
     // assert that the block starts with a curly brace
     if (token_.type != tok::lbrace) {
-        error(pprintf("UNITS block must start with a curly brace {, found '%'", token_.spelling));
+        error(fmt::format(FMT_COMPILE("UNITS block must start with a curly brace {{, found '{}'"), token_.spelling));
         return;
     }
 
@@ -441,7 +438,7 @@ void Parser::parse_units_block() {
 
         // consume the '=' sign
         if (token_.type != tok::eq) {
-            error(pprintf("expected '=', found '%'", token_.spelling));
+            error(fmt::format(FMT_COMPILE("expected '=', found '{}'"), token_.spelling));
             return;
         }
 
@@ -477,7 +474,7 @@ void Parser::parse_parameter_block() {
 
     // assert that the block starts with a curly brace
     if (token_.type != tok::lbrace) {
-        error(pprintf("PARAMETER block must start with a curly brace {, found '%'", token_.spelling));
+        error(fmt::format(FMT_COMPILE("PARAMETER block must start with a curly brace {{, found '{}'"), token_.spelling));
         return;
     }
 
@@ -540,7 +537,7 @@ void Parser::parse_parameter_block() {
 parm_exit:
     // only write error message if one hasn't already been logged by the lexer
     if (!success && status_ == lexerStatus::happy) {
-        error(pprintf("PARAMETER block unexpected symbol '%s'", token_.spelling));
+        error(fmt::format(FMT_COMPILE("PARAMETER block unexpected symbol '{}'"), token_.spelling));
     }
     return;
 }
@@ -550,7 +547,7 @@ void Parser::parse_constant_block() {
 
     // assert that the block starts with a curly brace
     if (token_.type != tok::lbrace) {
-        error(pprintf("CONSTANT block must start with a curly brace {, found '%'", token_.spelling));
+        error(fmt::format(FMT_COMPILE("CONSTANT block must start with a curly brace {{, found '{}'"), token_.spelling));
         return;
     }
 
@@ -561,7 +558,7 @@ void Parser::parse_constant_block() {
 
         // read the constant name
         if (token_.type != tok::identifier) {
-            error(pprintf("CONSTANT block unexpected symbol '%s'", token_.spelling));
+            error(fmt::format(FMT_COMPILE("CONSTANT block unexpected symbol '{}'"), token_.spelling));
             return;
         }
         name = token_.spelling; // save full token
@@ -606,7 +603,7 @@ void Parser::parse_assigned_block() {
 
     // assert that the block starts with a curly brace
     if (token_.type != tok::lbrace) {
-        error(pprintf("ASSIGNED block must start with a curly brace {, found '%'", token_.spelling));
+        error(fmt::format(FMT_COMPILE("ASSIGNED block must start with a curly brace {{, found '{}'"), token_.spelling));
         return;
     }
 
@@ -660,7 +657,7 @@ void Parser::parse_assigned_block() {
 ass_exit:
     // only write error message if one hasn't already been logged by the lexer
     if (!success && status_ == lexerStatus::happy) {
-        error(pprintf("ASSIGNED block unexpected symbol '%'", token_.spelling));
+        error(fmt::format(FMT_COMPILE("ASSIGNED block unexpected symbol '{}'"), token_.spelling));
     }
     return;
 }
@@ -672,7 +669,7 @@ void Parser::parse_white_noise_block() {
 
     // assert that the block starts with a curly brace
     if (token_.type != tok::lbrace) {
-        error(pprintf("WHITE_NOISE block must start with a curly brace {, found '%'", token_.spelling));
+        error(fmt::format(FMT_COMPILE("WHITE_NOISE block must start with a curly brace {{, found '{}'"), token_.spelling));
         return;
     }
 
@@ -720,7 +717,7 @@ void Parser::parse_white_noise_block() {
 wn_exit:
     // only write error message if one hasn't already been logged by the lexer
     if (!success && status_ == lexerStatus::happy) {
-        error(pprintf("WHITE_NOISE block unexpected symbol '%'", token_.spelling));
+        error(fmt::format(FMT_COMPILE("WHITE_NOISE block unexpected symbol '{}'"), token_.spelling));
     }
     return;
 }
@@ -748,7 +745,7 @@ std::string Parser::value_literal() {
     }
 
     if (token_.type != tok::integer && token_.type != tok::real) {
-        error(pprintf("numeric constant not an integer or real number '%'", token_));
+        error(fmt::format(FMT_COMPILE("numeric constant not an integer or real number '{}'"), token_.spelling));
         return "";
     }
     else {
@@ -771,7 +768,7 @@ int Parser::value_signed_integer() {
         get_token();
     }
     if (token_.type != tok::integer) {
-        error(pprintf("numeric constant not an integer '%'", token_));
+        error(fmt::format(FMT_COMPILE("numeric constant not an integer '{}'"), token_.spelling));
         return 0;
     }
     else {
@@ -788,7 +785,7 @@ std::vector<Token> Parser::unit_description() {
 
     // check that we start with a left parenthesis
     if (token_.type != tok::lparen) {
-        error(pprintf("unit description must start with a parenthesis '%'", token_));
+        error(fmt::format(FMT_COMPILE("unit description must start with a parenthesis '{}'"), token_.spelling));
         goto unit_exit;
     }
 
@@ -797,7 +794,7 @@ std::vector<Token> Parser::unit_description() {
     while (token_.type != tok::rparen) {
         // check for illegal tokens or a new line
         if (!is_in(token_.type, legal_tokens) || startline < location_.line) {
-            error(pprintf("incorrect unit description '%'", token_));
+            error(fmt::format(FMT_COMPILE("incorrect unit description '{}'"), token_.spelling));
             goto unit_exit;
         }
 
@@ -816,7 +813,7 @@ std::pair<std::string, std::string> Parser::range_description() {
     std::string lb, ub;
 
     if (token_.type != tok::lt) {
-        error(pprintf("range description must start with a left angle bracket '%'", token_));
+        error(fmt::format(FMT_COMPILE("range description must start with a left angle bracket '{}'"), token_.spelling));
         return {};
     }
 
@@ -824,7 +821,7 @@ std::pair<std::string, std::string> Parser::range_description() {
     lb = value_literal();
 
     if (token_.type != tok::comma) {
-        error(pprintf("range description must separate lower and upper bound with a comma '%'", token_));
+        error(fmt::format(FMT_COMPILE("range description must separate lower and upper bound with a comma '{}'"), token_.spelling));
         return {};
     }
 
@@ -832,7 +829,7 @@ std::pair<std::string, std::string> Parser::range_description() {
     ub = value_literal();
 
     if (token_.type != tok::gt) {
-        error(pprintf("range description must end with a right angle bracket '%'", token_));
+        error(fmt::format(FMT_COMPILE("range description must end with a right angle bracket '{}'"), token_.spelling));
         return {};
     }
 
@@ -844,7 +841,7 @@ std::pair<std::string, std::string> Parser::from_to_description() {
     std::string lb, ub;
 
     if (token_.type != tok::from) {
-        error(pprintf("range description must be of form FROM <number> TO <number>, found '%'", token_));
+        error(fmt::format(FMT_COMPILE("range description must be of form FROM <number> TO <number>, found '{}'"), token_.spelling));
         return {};
     }
 
@@ -852,7 +849,7 @@ std::pair<std::string, std::string> Parser::from_to_description() {
     lb = value_literal();
 
     if (token_.type != tok::to) {
-        error(pprintf("range description must be of form FROM <number> TO <number>, found '%'", token_));
+        error(fmt::format(FMT_COMPILE("range description must be of form FROM <number> TO <number>, found '{}'"), token_.spelling));
         return {};
     }
 
@@ -890,7 +887,7 @@ expression_ptr Parser::parse_prototype(std::string name = std::string()) {
     while (token_.type != tok::rparen) {
         // check identifier
         if (token_.type != tok::identifier) {
-            error("expected a valid identifier, found '" + yellow(token_.spelling) + "'");
+            error(fmt::format(FMT_COMPILE("expected a valid identifier, found '{}'"), yellow(token_.spelling)));
             return nullptr;
         }
 
@@ -1081,7 +1078,7 @@ expression_ptr Parser::parse_statement() {
         // only used for INITIAL block in NET_RECEIVE
         return parse_initial();
     default:
-        error(pprintf("unexpected token type % '%'", token_string(token_.type), token_.spelling));
+        error(fmt::format(FMT_COMPILE("unexpected token type {} '{}'"), token_string(token_.type), token_.spelling));
         return nullptr;
     }
     // unreachable!
@@ -1175,8 +1172,7 @@ expression_ptr Parser::parse_line_expression() {
         // or optimized away with a warning
         if (!lhs) return lhs;
         if (location_.line == line && token_.type != tok::eof) {
-            error(pprintf(
-                "expected a new line after call expression, found '%'",
+            error(fmt::format(FMT_COMPILE("expected a new line after call expression, found '{}'"),
                 yellow(token_.spelling)));
             return expression_ptr();
         }
@@ -1209,7 +1205,7 @@ expression_ptr Parser::parse_line_expression() {
         return parse_binop(std::move(lhs), op);
     }
     else if (line == location_.line && token_.type != tok::eof) {
-        error(pprintf("expected an assignment '%' or new line, found '%'",
+        error(fmt::format(FMT_COMPILE("expected an assignment '{}' or new line, found '{}'"),
             yellow("="),
             yellow(token_.spelling)));
         return nullptr;
@@ -1233,7 +1229,7 @@ expression_ptr Parser::parse_stoich_term() {
     }
 
     if (token_.type != tok::identifier) {
-        error(pprintf("expected an identifier, found '%'", yellow(token_.spelling)));
+        error(fmt::format(FMT_COMPILE("expected an identifier, found '{}'"), yellow(token_.spelling)));
         return nullptr;
     }
 
@@ -1272,7 +1268,7 @@ expression_ptr Parser::parse_tilde_expression() {
     auto here = location_;
 
     if (token_.type != tok::tilde) {
-        error(pprintf("expected '%', found '%'", yellow("~"), yellow(token_.spelling)));
+        error(fmt::format(FMT_COMPILE("expected '{}', found '{}'"), yellow("~"), yellow(token_.spelling)));
         return nullptr;
     }
     get_token(); // consume tilde
@@ -1286,7 +1282,7 @@ expression_ptr Parser::parse_tilde_expression() {
             // should always be true
             if (auto sterm = term->is_stoich_term()) {
                 if (sterm->negative()) {
-                    error(pprintf("expected only non-negative terms in reaction lhs, found '%'",
+                    error(fmt::format(FMT_COMPILE("expected only non-negative terms in reaction lhs, found '{}'"),
                         yellow(term->to_string())));
                     return nullptr;
                 }
@@ -1294,7 +1290,7 @@ expression_ptr Parser::parse_tilde_expression() {
         }
 
         if (token_.type != tok::arrow) {
-            error(pprintf("expected '%', found '%'", yellow("<->"), yellow(token_.spelling)));
+            error(fmt::format(FMT_COMPILE("expected '{}', found '{}'"), yellow("<->"), yellow(token_.spelling)));
             return nullptr;
         }
 
@@ -1306,7 +1302,7 @@ expression_ptr Parser::parse_tilde_expression() {
             // should always be true
             if (auto sterm = term->is_stoich_term()) {
                 if (sterm->negative()) {
-                    error(pprintf("expected only non-negative terms in reaction rhs, found '%'",
+                    error(fmt::format(FMT_COMPILE("expected only non-negative terms in reaction rhs, found '{}'"),
                         yellow(term->to_string())));
                     return nullptr;
                 }
@@ -1314,7 +1310,7 @@ expression_ptr Parser::parse_tilde_expression() {
         }
 
         if (token_.type != tok::lparen) {
-            error(pprintf("expected '%', found '%'", yellow("("), yellow(token_.spelling)));
+            error(fmt::format(FMT_COMPILE("expected '{}', found '{}'"), yellow("("), yellow(token_.spelling)));
             return nullptr;
         }
 
@@ -1323,7 +1319,7 @@ expression_ptr Parser::parse_tilde_expression() {
         if (!fwd) return nullptr;
 
         if (token_.type != tok::comma) {
-            error(pprintf("expected '%', found '%'", yellow(","), yellow(token_.spelling)));
+            error(fmt::format(FMT_COMPILE("expected '{}', found '{}'"), yellow(","), yellow(token_.spelling)));
             return nullptr;
         }
 
@@ -1332,7 +1328,7 @@ expression_ptr Parser::parse_tilde_expression() {
         if (!rev) return nullptr;
 
         if (token_.type != tok::rparen) {
-            error(pprintf("expected '%', found '%'", yellow(")"), yellow(token_.spelling)));
+            error(fmt::format(FMT_COMPILE("expected '{}', found '{}'"), yellow(")"), yellow(token_.spelling)));
             return nullptr;
         }
 
@@ -1343,7 +1339,7 @@ expression_ptr Parser::parse_tilde_expression() {
         auto lhs_bin = parse_expression(tok::eq);
 
         if (token_.type != tok::eq) {
-            error(pprintf("expected '%', found '%'", yellow("="), yellow(token_.spelling)));
+            error(fmt::format(FMT_COMPILE("expected '{}', found '{}'"), yellow("="), yellow(token_.spelling)));
             return nullptr;
         }
 
@@ -1352,7 +1348,7 @@ expression_ptr Parser::parse_tilde_expression() {
         return make_expression<LinearExpression>(here, std::move(lhs_bin), std::move(rhs));
     }
     else {
-        error(pprintf("expected stoichiometric or linear expression, found neither"));
+        error("expected stoichiometric or linear expression, found neither");
         return nullptr;
     }
 }
@@ -1361,7 +1357,7 @@ expression_ptr Parser::parse_conserve_expression() {
     auto here = location_;
 
     if (token_.type != tok::conserve) {
-        error(pprintf("expected '%', found '%'", yellow("CONSERVE"), yellow(token_.spelling)));
+        error(fmt::format(FMT_COMPILE("expected '{}', found '{}'"), yellow("CONSERVE"), yellow(token_.spelling)));
         return nullptr;
     }
 
@@ -1370,7 +1366,7 @@ expression_ptr Parser::parse_conserve_expression() {
     if (!lhs) return nullptr;
 
     if (token_.type != tok::eq) {
-        error(pprintf("expected '%', found '%'", yellow("="), yellow(token_.spelling)));
+        error(fmt::format(FMT_COMPILE("expected '{}', found '{}'"), yellow("="), yellow(token_.spelling)));
         return nullptr;
     }
 
@@ -1511,7 +1507,7 @@ expression_ptr Parser::parse_primary() {
         return binary_expression(op.location, op.type, std::move(lhs), std::move(rhs));
     }
     default: // fall through to return nullptr at end of function
-        error(pprintf("unexpected token '%' in expression",
+        error(fmt::format(FMT_COMPILE("unexpected token '{}' in expression"),
             yellow(token_.spelling)));
     }
 
@@ -1770,7 +1766,7 @@ expression_ptr Parser::parse_if() {
             false_branch = parse_block(true);
         }
         else {
-            error("expect either '" + yellow("if") + "' or '" + yellow("{") + " after else");
+            error(fmt::format(FMT_COMPILE("expect either '{}' or '{}' after 'else'"), yellow("if"), yellow("{")));
             return nullptr;
         }
     }
@@ -1810,9 +1806,9 @@ expression_ptr Parser::parse_block(bool is_nested) {
     }
 
     if (token_.type != tok::rbrace) {
-        error(pprintf("could not find closing '%' for else statement that started at ",
-            yellow("}"),
-            block_location));
+        error(fmt::format(FMT_COMPILE("could not find closing '{}' for else statement that started at ({}:{})"),
+                          yellow("}}"),
+                          block_location.line, block_location.column));
         return nullptr;
     }
     get_token(); // consume closing '}'
@@ -1847,9 +1843,9 @@ expression_ptr Parser::parse_initial() {
     }
 
     if (token_.type != tok::rbrace) {
-        error(pprintf("could not find closing '%' for else statement that started at ",
-            yellow("}"),
-            block_location));
+        error(fmt::format(FMT_COMPILE("could not find closing '{}' for else statement that started at ({}:{})"),
+                          yellow("}}"),
+                          block_location.line, block_location.column));
         return nullptr;
     }
     get_token(); // consume closing '}'
@@ -1861,7 +1857,7 @@ expression_ptr Parser::parse_compartment_statement() {
     auto here = location_;
 
     if (token_.type != tok::compartment) {
-        error(pprintf("expected '%', found '%'", yellow("COMPARTMENT"), yellow(token_.spelling)));
+        error(fmt::format(FMT_COMPILE("expected '{}', found '{}'"), yellow("COMPARTMENT"), yellow(token_.spelling)));
         return nullptr;
     }
 
@@ -1870,7 +1866,7 @@ expression_ptr Parser::parse_compartment_statement() {
     if (!scale_factor) return nullptr;
 
     if (token_.type != tok::lbrace) {
-        error(pprintf("expected '%', found '%'", yellow("{"), yellow(token_.spelling)));
+        error(fmt::format(FMT_COMPILE("expected '{}', found '{}'"), yellow("{"), yellow(token_.spelling)));
         return nullptr;
     }
 
@@ -1879,7 +1875,7 @@ expression_ptr Parser::parse_compartment_statement() {
     while (token_.type != tok::rbrace) {
         // check identifier
         if (token_.type != tok::identifier) {
-            error("expected a valid identifier, found '" + yellow(token_.spelling) + "'");
+            error(fmt::format(FMT_COMPILE("expected a valid identifier, found '{}'"), yellow(token_.spelling)));
             return nullptr;
         }
 
