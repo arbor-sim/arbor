@@ -331,7 +331,7 @@ ARB_ARBOR_API extern cable_cell_parameter_set neuron_parameter_defaults;
 
 // Global cable cell data.
 
-struct ARB_ARBOR_API cable_cell_global_properties {
+struct ARB_SYMBOL_VISIBLE cable_cell_global_properties {
     mechanism_catalogue catalogue = global_default_catalogue();
 
     // Optional check if membrane voltage magnitude is less than limit
@@ -366,8 +366,9 @@ struct ARB_ARBOR_API cable_cell_global_properties {
         default_parameters.reversal_potential_method[ion_name] = std::move(revpot_mechanism);
     }
 
-    friend std::ostream& ARB_ARBOR_API operator<<(std::ostream&, const cable_cell_global_properties&);
 };
+
+std::ostream& ARB_ARBOR_API operator<<(std::ostream&, const cable_cell_global_properties&);
 
 // Throw cable_cell_error if any default parameters are left unspecified,
 // or if the supplied ion data is incomplete.
