@@ -97,7 +97,7 @@ execute_example() {
         elif [ "$expected spikes" == "$actual" ]; then
             echo "OK"
         else
-            echo "ERROR wrong number of spikes: $expected ./. $actual"
+            echo "ERROR wrong number of spikes: '$expected' ./. '$actual'"
             ok=1
         fi
     else
@@ -155,6 +155,7 @@ PREFIX="${prefix}${PREFIX}"
 # Execute the selected examples
 for example in "${examples[@]}"; do
     execute_example "${example}"
+    exit $ok
 done
 
 exit $ok

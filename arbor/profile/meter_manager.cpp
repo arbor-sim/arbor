@@ -194,9 +194,7 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const meter_report& repo
 
     // Print a final line with the accumulated values of each meter.
     o << fmt::format(FMT_COMPILE("{:21s}"), "--- meter-total -----");
-    for (const auto& v: sums) {
-        o << fmt::format(FMT_COMPILE("{:16.3f}"), v);
-    }
+    for (const auto& v: sums) o << fmt::format(FMT_COMPILE("{:16.3f}"), v);
     o << "\n";
 
     return o;
