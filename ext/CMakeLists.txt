@@ -24,7 +24,9 @@ target_include_directories(ext-tinyopt INTERFACE tinyopt/include)
 
 add_library(ext-fmt INTERFACE)
 if (ARB_USE_BUNDLED_FMT)
-    target_include_directories(ext-fmt INTERFACE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>/ext/fmt/include)
+    target_include_directories(ext-fmt
+        INTERFACE
+          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/fmt/include>)
     target_compile_definitions(ext-fmt INTERFACE FMT_HEADER_ONLY)
 else()
     find_package(fmt REQUIRED)
