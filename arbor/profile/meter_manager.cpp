@@ -33,8 +33,7 @@ measurement::measurement(std::string n, std::string u,
     // Assert that the same number of readings were taken on every domain.
     const auto num_readings = readings.size();
     if (dist->min(num_readings)!=dist->max(num_readings)) {
-        throw std::out_of_range(
-            "the number of checkpoints in the \""+name+"\" meter do not match across domains");
+        throw std::out_of_range(fmt::format(FMT_COMPILE("the number of checkpoints in the '{}' meter do not match across domains"), name));
     }
 
     // Gather across all of the domains onto the root domain.
@@ -141,16 +140,16 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const meter_report& repo
     o << fmt::format("meter{:16s}", "");
     for (auto const& m: report.meters) {
         if (m.name=="time") {
-            o << fmt::format("{:16s}", "time(s)");
+            o << fmt::format(FMT_COMPILE("{:16s}"), "time(s)");
         }
         else if (m.name.find("memory")!=std::string::npos) {
-            o << fmt::format("{:16s}", m.name+"(MB)");
+            o << fmt::format(FMT_COMPILE("{:16s}"), m.name+"(MB)");
         }
         else if (m.name.find("energy")!=std::string::npos) {
-            o << fmt::format("{:16s}", m.name+"(kJ)");
+            o << fmt::format(FMT_COMPILE("{:16s}"), m.name+"(kJ)");
         }
         else {
-            o << fmt::format("{:16s}(avg)", m.name);
+            o << fmt::format(FMT_COMPILE("{:16s}(avg)"), m.name);
         }
     }
     o << "\n-------------------------------------------------------------------------------------------\n";
@@ -158,20 +157,20 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const meter_report& repo
     int cp_index = 0;
     for (auto name: report.checkpoints) {
         name.resize(20);
-        o << fmt::format("{:-21s}", name);
+        o << fmt::format("{:->21s}", name);
         int m_index = 0;
         for (const auto& m: report.meters) {
             if (m.name=="time") {
                 // Calculate the average time per rank in s.
                 double time = mean(m.measurements[cp_index]);
                 sums[m_index] += time;
-                o << fmt::format("{:16.3f}", time);
+                o << fmt::format(FMT_COMPILE("{:16.3f}"), time);
             }
             else if (m.name.find("memory")!=std::string::npos) {
                 // Calculate the average memory per rank in MB.
                 double mem = mean(m.measurements[cp_index])*1e-6;
                 sums[m_index] += mem;
-                o << fmt::format("{:16.3f}", mem);
+                o << fmt::format(FMT_COMPILE("{:16.3f}"), mem);
             }
             else if (m.name.find("energy")!=std::string::npos) {
                 auto doms_per_host = double(report.num_domains)/report.num_hosts;
@@ -181,12 +180,12 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const meter_report& repo
                 // approximation: better reduce a subset of measurements.
                 double energy = util::sum(m.measurements[cp_index])/doms_per_host*1e-3;
                 sums[m_index] += energy;
-                o << fmt::format("{:16.3f}", energy);
+                o << fmt::format(FMT_COMPILE("{:16.3f}"), energy);
             }
             else {
                 double value = mean(m.measurements[cp_index]);
                 sums[m_index] += value;
-                o << fmt::format("{:16.3f}", value);
+                o << fmt::format(FMT_COMPILE("{:16.3f}"), value);
             }
             ++m_index;
         }
@@ -195,9 +194,9 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const meter_report& repo
     }
 
     // Print a final line with the accumulated values of each meter.
-    o << fmt::format("{:-21s}", "meter-total");
+    o << fmt::format(FMT_COMPILE("{:->21s}"), "meter-total");
     for (const auto& v: sums) {
-        o << fmt::format("{:16.3f}", v);
+        o << fmt::format(FMT_COMPILE("{:16.3f}"), v);
     }
     o << "\n";
 

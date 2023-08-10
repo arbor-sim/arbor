@@ -284,7 +284,7 @@ void ArgumentExpression::semantic(scope_ptr scp) {
 *******************************************************************************/
 
 std::string VariableExpression::to_string() const {
-    auto n = fmt::format("{:-10s}", name());
+    auto n = fmt::format("{:->10s}", name());
     std::string
         s = blue("variable") + " " + yellow(n) + "("
           + colorize("write", is_writeable() ? stringColor::green : stringColor::red) + ", "
