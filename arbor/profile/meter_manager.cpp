@@ -156,8 +156,7 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const meter_report& repo
     std::vector<double> sums(report.meters.size());
     int cp_index = 0;
     for (auto name: report.checkpoints) {
-        name.resize(20);
-        o << fmt::format("{:->21s}", name);
+        o << fmt::format("{:<21s}", name);
         int m_index = 0;
         for (const auto& m: report.meters) {
             if (m.name=="time") {
@@ -194,7 +193,7 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const meter_report& repo
     }
 
     // Print a final line with the accumulated values of each meter.
-    o << fmt::format(FMT_COMPILE("{:->21s}"), "meter-total");
+    o << fmt::format(FMT_COMPILE("{:21s}"), "--- meter-total -----");
     for (const auto& v: sums) {
         o << fmt::format(FMT_COMPILE("{:16.3f}"), v);
     }
