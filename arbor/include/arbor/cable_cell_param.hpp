@@ -331,7 +331,7 @@ ARB_ARBOR_API extern cable_cell_parameter_set neuron_parameter_defaults;
 
 // Global cable cell data.
 
-struct ARB_SYMBOL_VISIBLE cable_cell_global_properties {
+struct ARB_ARBOR_API cable_cell_global_properties {
     mechanism_catalogue catalogue = global_default_catalogue();
 
     // Optional check if membrane voltage magnitude is less than limit
