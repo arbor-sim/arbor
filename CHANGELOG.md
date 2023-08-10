@@ -103,7 +103,7 @@ After much more delay than anticipated, we are very happy to present a new Arbor
 ## New Contributors
 * @musicinmybrain made their first contribution in https://github.com/arbor-sim/arbor/pull/2080
 
-**Full Changelog**: https://github.com/arbor-sim/arbor/compare/v0.8...v0.9.0-rc
+**Full Changelog**: https://github.com/arbor-sim/arbor/compare/v0.8.1...v0.9.0
 
 
 # v0.8.1
