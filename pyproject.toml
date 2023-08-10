@@ -1,6 +1,6 @@
 [project]
 name = "arbor"
-version = "0.8.2-dev" # TODO: make dependent on VERSION file. Blocked by https://github.com/scikit-build/scikit-build-core/issues/230
+version = "0.9.0" # TODO: make dependent on VERSION file. Blocked by https://github.com/scikit-build/scikit-build-core/issues/230
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {file = "LICENSE"}
 description = "High performance simulation of networks of multicompartment neurons."
@@ -22,6 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: C++"
 ]
 dependencies = [
@@ -42,7 +43,7 @@ wheel.packages = []
 
 [tool.black]
 line-length = 88
-target-version = ['py37', 'py38', 'py39', 'py310', 'py311']
+target-version = ['py37', 'py38', 'py39', 'py310', 'py311', 'py312']
 include = '\.pyi?$'
 extend-exclude='^/(ext|doc/scripts/.*_theme|doc/scripts/inputs.py)'
 
@@ -58,12 +59,12 @@ requires = [
 ]
 build-backend = "scikit_build_core.build"
 
-
 [tool.cibuildwheel]
 build-frontend = "build"
 build = ["*linux*","*macosx*"]
 skip = ["cp36*", "*musllinux*"]
 test-command = "python -m unittest discover -v -s {project}/python"
+test-skip = "cp312*"
 dependency-versions = "latest"
 
 [tool.cibuildwheel.macos]

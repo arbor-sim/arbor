@@ -44,7 +44,7 @@ BSD license.
 
 https://github.com/halfflat/tinyopt
 
-##  Random123
+## Random123
 A header only counter-based random number generator, written by DE Shaw research
 BSD license.
 

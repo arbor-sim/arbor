@@ -1,3 +1,111 @@
+# v0.9.0
+
+** 2023 08 09 **
+
+After much more delay than anticipated, we are very happy to present a new Arbor release. Nearly 8 months of work is in it, much of which focussed on speed, optimisation, fixes and build system changes. This release includes Python 3.12 wheels as probably one of the first packages on PyPI 😄.
+
+## Major new features
+
+* External Connectivity: Arbor can now interface with other simulators or processes through MPI. Contexts now accept a second MPI communicator and Recipes can implement a ``external_connections_on`` method to specify how simulations might be interacting. [See documentation for more.](https://docs.arbor-sim.org/en/latest/concepts/interconnectivity.html#cross-simulator-interaction)
+* Arbor now supports checkpointing and resume from a previously stored checkpoint. Useful when a certain point in time needs to be explored in multiple directions, when you want to rewind to a previous state, etc. [See documentation for more.](https://docs.arbor-sim.org/en/latest/fileformat/serdes.html)
+* More painted parameters are now scalable through `iexpr`: temperature, capacitance, resistivity, membrane potential and the following ionic parameters: internal and external concentration, diffusivity, and reversal potential. [See documentation.](https://docs.arbor-sim.org/en/latest/concepts/decor.html#scaling-mechanism-and-membrane-parameters)
+* A set of ANN activation functions for NMODL have been added: `sigmoid(x)`, `relu(x)` and `tanh(x)`. Control volume `area` is exposed through NMODL.
+* A revamped backend for ARM CPU's that support Scalable Vector Extension (SVE). Arbor and modcc are now fully compatible, so users who have access to A64FX-based HPC can take full advantage of that hardware.
+
+## Breaking changes since v0.8.1
+
+* It is no longer possible to set binning and sampling policies, due to Arbor now having a fixed timestep. Removing exact delivery increases the speed of the simulation due to elimination of small steps, makes the numerics independent of presence of sampling, and also leads to a number of code simplifications.
+* Contexts are now constructed kwargs-only. So, `arbor.context(12, None)` is now `arb.context(threads=12, gpu=None)`. In the case no arguments are supplied, the context initialized to `default_allocation`, which means it will use the total number of threads and first GPU that are locally available. `arbor.simulation` constructed without an explicit `arbor.context` also initializes a `default_allocation`.
+* Version bumps:
+  * CUDA 11 or higher is required for GPU builds.
+
+## Full commit log
+
+### Neuroscience, documentation
+
+* Emit better warning. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2071
+* ANN activation functions for NMODL: `sigmoid(x)`, `relu(x)` and `tanh(x)` by @llandsmeer in https://github.com/arbor-sim/arbor/pull/2052
+* 📊  Make profiler output a bit nicer. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2078
+* Merge GUI tutorial by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2088
+* Busyring example by @boeschf in https://github.com/arbor-sim/arbor/pull/2100
+* Feature: External Connectivity by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2001
+* FEATURE: fixed dt by @boeschf in https://github.com/arbor-sim/arbor/pull/2053
+* mention Matrix, GUI, Playground in docs by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2113
+* Document presets by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2126
+* Doc updates by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2119
+* CV area exposed to NMODL. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2110
+* Fix enumeration in docs by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2140
+* Docs: corrections. by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2135
+* Fix documentation  by @boeschf in https://github.com/arbor-sim/arbor/pull/2152
+* Address missing logo on all but front page by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2155
+* Document features by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2158
+* Make (most) painted parameters scalable. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2141
+* Add better (helpful?) errors on mechanism semantic misuse. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2171
+* Checkpoint/Resume by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2081
+
+### Core
+
+* Better handling of powers in modcc. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2061
+* Silence spurious unused variable warnings in generated code by @bcumming in https://github.com/arbor-sim/arbor/pull/2073
+* BluePyOpt API updates by @lukasgd in https://github.com/arbor-sim/arbor/pull/2045
+* Add some missing #include directives by @musicinmybrain in https://github.com/arbor-sim/arbor/pull/2080
+* Remove redundant sample events structure. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2079
+* 🧹 Re-factor FVM lowered cell implementation and shared state by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2082
+* Take less locks for shorter times when sampling. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2093
+* Fix LIF oversampling. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2091
+* 📊 Pin threads by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2094
+* Add zero'ing by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2107
+* Add an error on NET_RECEIVE w/ > 1 args. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2127
+* Update busyring to generate rings by @bcumming in https://github.com/arbor-sim/arbor/pull/2144
+* Apply some polish to model construction. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2134
+* SVE backend by @boeschf in https://github.com/arbor-sim/arbor/pull/2148
+* Exit `sup::path` stage left; enter `std::filesystem::path` stage right by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2165
+* gtest dependency by @boeschf in https://github.com/arbor-sim/arbor/pull/2163
+
+### Build, testing, CI
+
+* v0.8.1 by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2072
+* v0.8.1 postrelease by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2074
+* Enable Spack tests by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2098
+* Python/pip strikes again: execute `pip install` in venvs by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2111
+* Scikit build core by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2121
+* Spack: add dev version by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2150
+* Break out pip and doc tests, exclude doc-change from eating up precious runner cycles by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2160
+* rename test-pip.yml by @boeschf in https://github.com/arbor-sim/arbor/pull/2166
+* cscs-ci by @boeschf in https://github.com/arbor-sim/arbor/pull/2149
+* gtest in CI containers by @boeschf in https://github.com/arbor-sim/arbor/pull/2170
+* Spack-solvable versions, add tests to Spack workflow by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2156
+* Fudge version in pyproject.toml for ci by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2200
+* enable remote example by @boeschf in https://github.com/arbor-sim/arbor/pull/2173
+
+### Fixes, optimization
+
+* [BUGFIX] a-b-c: actually set compiler, improved default by @brenthuisman in https://github.com/arbor-sim/arbor/pull/2051
+* 🐙 Optimise PPACK by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2067
+* Silence flake8 and appease black. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2086
+* BUGFIX: add missing functions to sve backend by @boeschf in https://github.com/arbor-sim/arbor/pull/2096
+* BUGFIX gpu ppack declarations by @boeschf in https://github.com/arbor-sim/arbor/pull/2087
+* BUGFIX: gpu mechanism init by @boeschf in https://github.com/arbor-sim/arbor/pull/2095
+* The Initialisation Optimisation by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2097
+* Fix crash in FindId Visitor. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2115
+* Add LTO and M1 arch to CMake by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2106
+* Fix crash on probing non-existent mechanism state. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2112
+* Python/concurrency defaults by @brenthuisman in https://github.com/arbor-sim/arbor/pull/1979
+* Add faster merge events. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2108
+* Fix a typo in python bindings. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2125
+* Fix incorrect mention of attribute `catalogue` in `single_cell_model` by @Helveg in https://github.com/arbor-sim/arbor/pull/2122
+* Avoid crash when integrating over empty branch. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2124
+* fix lint pipleine by @boeschf in https://github.com/arbor-sim/arbor/pull/2151
+* Ward against probing the void. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2139
+* Fix GPU/NVC problems by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2143
+* fix ODR violation by @boeschf in https://github.com/arbor-sim/arbor/pull/2154
+
+## New Contributors
+* @musicinmybrain made their first contribution in https://github.com/arbor-sim/arbor/pull/2080
+
+**Full Changelog**: https://github.com/arbor-sim/arbor/compare/v0.8...v0.9.0-rc
+
+
 # v0.8.1
 
 ** 2022 12 22 **
@@ -10,7 +118,7 @@ A 🎄 holiday release! Not much has changed in a month, but we'd like to share 
 - Spack gpu option: added conditional variant for cuda builds to enable GPU-based random number generation (#2043) 
 - SDE Tutorial (#2044) 
 
-## Breaking changes since v0.7
+## Breaking changes since v0.8
 
 - None 💃!
 
