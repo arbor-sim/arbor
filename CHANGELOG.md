@@ -14,7 +14,7 @@ After much more delay than anticipated, we are very happy to present a new Arbor
 
 ## Breaking changes since v0.8.1
 
-* The ability to set binning and sampling policies have been removed, due to Arbor now having a fixed timestep. Removing exact delivery increases the speed of the simulation due to elimination of small steps, makes the numerics independent of presence of sampling, and also leads to a number of code simplifications.
+* It is no longer possible to set binning and sampling policies, due to Arbor now having a fixed timestep. Removing exact delivery increases the speed of the simulation due to elimination of small steps, makes the numerics independent of presence of sampling, and also leads to a number of code simplifications.
 * Contexts are now constructed kwargs-only. So, `arbor.context(12, None)` is now `arb.context(threads=12, gpu=None)`. In the case no arguments are supplied, the context initialized to `default_allocation`, which means it will use the total number of threads and first GPU that are locally available. `arbor.simulation` constructed without an explicit `arbor.context` also initializes a `default_allocation`.
 * Version bumps:
   * CUDA 11 or higher is required for GPU builds.
