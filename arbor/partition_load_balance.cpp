@@ -174,7 +174,7 @@ auto build_local_components(const recipe& rec, context ctx) {
     return build_components(global_gj_connection_table, local_gid_range);
 }
 
-}
+} // namespace
 
 ARB_ARBOR_API domain_decomposition partition_load_balance(const recipe& rec,
                                                           context ctx,
@@ -204,7 +204,7 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(const recipe& rec,
         for (auto cell: kind_lists[params.kind]) {
             const auto& component = components[cell];
             // adding the current group would go beyond alloted size, so add to the list
-            // of groups and start a new one
+            // of groups and start a new one.
             if (group_elements.size() + component.size() > params.size && !group_elements.empty()) {
                 groups.emplace_back(params.kind, std::move(group_elements), params.backend);
                 group_elements.clear();
@@ -213,7 +213,7 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(const recipe& rec,
             // the alloted size, but only by the minimal amount manageable
             group_elements.insert(group_elements.end(), component.begin(), component.end());
         }
-        // we may have a trailing, incomplete group, so add this
+        // we may have a trailing, incomplete group, so add it.
         if (!group_elements.empty()) groups.emplace_back(params.kind, std::move(group_elements), params.backend);
     }
 

@@ -444,7 +444,7 @@ TEST(domain_decomposition, unidirectional_gj_recipe) {
                 {},
                 {},
                 {},
-                {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)},
+                {gap_junction_connection({4, "gj"}, {"gj"}, 0.1), gap_junction_connection({4, "gj"}, {"gj"}, 0.1)},
                 {},
                 {},
                 {gap_junction_connection({5, "gj"}, {"gj"}, 0.1), gap_junction_connection({7, "gj"}, {"gj"}, 0.1)},
