@@ -140,7 +140,7 @@ Post Release
      - Make sure that `Notebooks <https://www.v2.opensourcebrain.org/repositories/38>`_ work on the version that their image is built with.
 
 #. Announce on our website
-#. Announce on HBP newsletter newsletter@humanbrainproject.eu, HBP Twitter/socials evan.hancock@ebrains.eu
+#. Announce on HBP newsletter newsletter@humanbrainproject.eu, communications@ebrains.eu, HBP Twitter/socials evan.hancock@ebrains.eu
 #. [AUTOMATED] Add tagged version of docs on ReadTheDocs
 #. HBP internal admin
 
@@ -154,8 +154,6 @@ Post Release
  
        - ContentTypes: https://humanbrainproject.github.io/openMINDS/v3/core/v4/data/contentType.html
        - details: https://github.com/HumanBrainProject/openMINDS_core/tree/v3/instances/data/contentTypes
- 
-   - Send an update to the folk in charge of HBP Twitter if we want to shout about it
 
 #. FZJ admin
 
