@@ -21,11 +21,17 @@
 namespace arb {
 
 namespace {
+using gj_connection_set   = std::unordered_set<cell_gid_type>;
+using gj_connection_table = std::unordered_map<cell_gid_type, gj_connection_set>;
+using gid_range           = std::pair<cell_gid_type, cell_gid_type>;
+
 // Build global GJ connectivity table such that
 // * table[gid] is the set of all gids connected to gid via a GJ
 // * iff A in table[B], then B in table[A]
 auto build_global_gj_connection_table(const recipe& rec) {
-    std::unordered_map<cell_gid_type, std::unordered_set<cell_gid_type>> res;
+    gj_connection_table res;
+
+    // Collect all explicit GJ connections
     for (cell_gid_type gid = 0; gid < rec.num_cells(); ++gid) {
         for (const auto& gj: rec.gap_junctions_on(gid)) {
             res[gid].insert(gj.peer.gid);
@@ -34,46 +40,58 @@ auto build_global_gj_connection_table(const recipe& rec) {
 
     // Make all gj_connections bidirectional.
     for (auto& [gid, local_conns]: res) {
-        for (auto peer: local_conns) {
+         for (auto peer: local_conns) {
             auto& peer_conns = res[peer];
             if (!peer_conns.count(gid)) peer_conns.insert(gid);
         }
     }
+
     return res;
 }
 
+// compute range of gids for the local domain, such that the first (= num_cells
+// % num_dom) domains get an extra element.
 auto make_local_gid_range(context ctx, cell_gid_type num_global_cells) {
     const auto& dist = ctx->distributed;
     unsigned num_domains = dist->size();
     unsigned domain_id = dist->id();
-
-    auto dom_size = [&](unsigned dom) -> cell_gid_type {
-        const cell_gid_type B = num_global_cells/num_domains;
-        const cell_gid_type R = num_global_cells - num_domains*B;
-        return B + (dom < R);
-    };
-
-    std::vector<cell_gid_type> gid_divisions;
-    auto gid_part = util::make_partition(gid_divisions,
-                                         util::transform_view(util::make_span(num_domains), dom_size));
-
-    return gid_part[domain_id];
+    // normal block size
+    auto block = num_global_cells/num_domains;
+    // domains that need an extra element
+    auto extra = num_global_cells - num_domains*block;
+    // now compute the range
+    if (domain_id < extra) {
+        // all previous domains, incl ours, have an extra element
+        auto beg = domain_id*(block + 1);
+        auto end = beg + block + 1;
+        return std::make_pair(beg, end);
+    }
+    else {
+        // in this case the first `extra` domains added an extra element and the
+        // rest has size `block`
+        auto beg = extra + domain_id*block;
+        auto end = beg + block;
+        return std::make_pair(beg, end);
+    }
 }
 
-auto build_components(const std::unordered_map<cell_gid_type, std::unordered_set<cell_gid_type>>& global_gj_connection_table,
-                      std::pair<cell_gid_type, cell_gid_type> local_gid_range) {
-    std::vector<std::vector<cell_gid_type>> super_cells; // cells connected by gj
+// build the list of components for the local domain, where a component is a list of
+// cell gids such that
+// * the smallest gid in the list is in the local_gid_range
+// * all gids that are connected to the smallest gid are also in the list
+// * all gids w/o GJ connections come first (for historical reasons!?)
+auto build_components(const gj_connection_table& global_gj_connection_table,
+                      gid_range local_gid_range) {
+    // cells connected by gj
+    std::vector<std::vector<cell_gid_type>> super_cells;
     std::vector<std::vector<cell_gid_type>> res;
-
     // track visited cells (cells that already belong to a group)
-    std::unordered_set<cell_gid_type> visited;
-
-    // Connected components algorithm using BFS
+    gj_connection_set visited;
+    // Connected components via BFS
     std::queue<cell_gid_type> q;
     for (auto gid: util::make_span(local_gid_range)) {
         if (global_gj_connection_table.count(gid)) {
-            // If cell hasn't been visited yet, must belong to new super_cell
-            // Perform BFS starting from that cell
+            // If cell hasn't been visited yet, must belong to new component
             if (!visited.count(gid)) {
                 visited.insert(gid);
                 std::vector<cell_gid_type> cg;
@@ -91,15 +109,15 @@ auto build_components(const std::unordered_map<cell_gid_type, std::unordered_set
             }
         }
         else {
-            // If cell has no gap_junctions, put in front
             res.push_back({gid});
         }
     }
 
-    // Sort super_cell groups and only keep those where the first element in the group belongs to domain
-    for (auto& sc: super_cells) {
+    // Sort super_cell groups and only keep those where the first element in the
+    // group belongs to our domain
+    for (auto sc: super_cells) {
         std::sort(sc.begin(), sc.end());
-        if (!sc.empty() && sc.front() >= local_gid_range.first) res.push_back(sc);
+        if (!sc.empty() && sc.front() >= local_gid_range.first) res.emplace_back(std::move(sc));
     }
     return res;
 }
@@ -138,11 +156,8 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(const recipe& rec,
     // which the cell group is running.
 
     auto has_gpu_backend = [&ctx](cell_kind c) { return ctx->gpu->has_gpu() && cell_kind_supported(c, backend_kind::gpu, *ctx); };
-
     std::vector<cell_kind> kinds;
-    for (auto l: kind_lists) {
-        kinds.push_back(l.first);
-    }
+    for (const auto& [kind, _lint]: kind_lists) kinds.push_back(kind);
     std::partition(kinds.begin(), kinds.end(), has_gpu_backend);
 
     std::vector<group_description> groups;
@@ -150,11 +165,11 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(const recipe& rec,
         partition_hint hint;
         if (auto opt_hint = util::value_by_key(hint_map, k)) {
             hint = opt_hint.value();
-            if(!hint.cpu_group_size) {
+            if (!hint.cpu_group_size) {
                 throw arbor_exception(arb::util::pprintf("unable to perform load balancing because {} has invalid suggested cpu_cell_group size of {}",
                                                          k, hint.cpu_group_size));
             }
-            if(hint.prefer_gpu && !hint.gpu_group_size) {
+            if (hint.prefer_gpu && !hint.gpu_group_size) {
                 throw arbor_exception(arb::util::pprintf("unable to perform load balancing because {} has invalid suggested gpu_cell_group size of {}",
                                                          k, hint.gpu_group_size));
             }
