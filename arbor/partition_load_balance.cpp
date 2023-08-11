@@ -121,14 +121,65 @@ auto build_components(const gj_connection_table& global_gj_connection_table,
     }
     return res;
 }
+
+// Figure what backend and group size to use
+auto get_backend(cell_kind k, const partition_hint_map& hint_map, bool has_gpu) {
+    const auto& hint = util::value_by_key_or(hint_map, k, {});
+    if (!hint.cpu_group_size) {
+        throw arbor_exception(arb::util::pprintf("unable to perform load balancing because {} has invalid suggested cpu_cell_group size of {}",
+                                                 k, hint.cpu_group_size));
+    }
+    if (hint.prefer_gpu && !hint.gpu_group_size) {
+        throw arbor_exception(arb::util::pprintf("unable to perform load balancing because {} has invalid suggested gpu_cell_group size of {}",
+                                                 k, hint.gpu_group_size));
+    }
+    if (hint.prefer_gpu && has_gpu) return std::make_pair(backend_kind::gpu, hint.gpu_group_size);
+    return std::make_pair(backend_kind::multicore, hint.cpu_group_size);
+}
+
+struct group_parameters {
+    cell_kind kind;
+    bool has_gpu;
+    backend_kind backend;
+    size_t size;
+};
+
+// Create a flat vector of the cell kinds present on this node, partitioned such
+// that kinds for which GPU implementation are listed before the others. This is
+// a very primitive attempt at scheduling; the cell_groups that run on the GPU
+// will be executed before other cell_groups, which is likely to be more
+// efficient.
+//
+// TODO: This creates an dependency between the load balancer and the threading
+// internals. We need support for setting the priority of cell group updates
+// according to rules such as the back end on which the cell group is running.
+auto build_group_parameters(context ctx,
+                            const partition_hint_map& hint_map,
+                            const std::unordered_map<cell_kind, std::vector<cell_gid_type>>& kind_lists) {
+    std::vector<group_parameters> res;
+    for (const auto& [kind, _gids]: kind_lists) {
+        auto has_gpu = ctx->gpu->has_gpu() && cell_kind_supported(kind, backend_kind::gpu, *ctx);
+        const auto& [backend, group_size] = get_backend(kind, hint_map, has_gpu);
+        res.push_back({kind, has_gpu, backend, group_size});
+    }
+    std::partition(res.begin(), res.end(), [](const auto& p) { return p.has_gpu; });
+    return res;
+}
+
+// Build the list of GJ-connected cells local to this domain.
+// NOTE We put this into its own function to avoid increasing RSS.
+auto build_local_components(const recipe& rec, context ctx) {
+    const auto global_gj_connection_table = build_global_gj_connection_table(rec);
+    const auto local_gid_range = make_local_gid_range(ctx, rec.num_cells());
+    return build_components(global_gj_connection_table, local_gid_range);
+}
+
 }
 
 ARB_ARBOR_API domain_decomposition partition_load_balance(const recipe& rec,
                                                           context ctx,
                                                           const partition_hint_map& hint_map) {
-    const auto global_gj_connection_table = build_global_gj_connection_table(rec);
-    const auto local_gid_range = make_local_gid_range(ctx, rec.num_cells());
-    const auto components = build_components(global_gj_connection_table, local_gid_range);
+    const auto components = build_local_components(rec, ctx);
 
     std::vector<cell_gid_type> local_gids;
     std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
@@ -144,64 +195,26 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(const recipe& rec,
         kind_lists[kind].push_back((cell_gid_type) idx);
     }
 
-    // Create a flat vector of the cell kinds present on this node,
-    // partitioned such that kinds for which GPU implementation are
-    // listed before the others. This is a very primitive attempt at
-    // scheduling; the cell_groups that run on the GPU will be executed
-    // before other cell_groups, which is likely to be more efficient.
-    //
-    // TODO: This creates an dependency between the load balancer and
-    // the threading internals. We need support for setting the priority
-    // of cell group updates according to rules such as the back end on
-    // which the cell group is running.
-
-    auto has_gpu_backend = [&ctx](cell_kind c) { return ctx->gpu->has_gpu() && cell_kind_supported(c, backend_kind::gpu, *ctx); };
-    std::vector<cell_kind> kinds;
-    for (const auto& [kind, _lint]: kind_lists) kinds.push_back(kind);
-    std::partition(kinds.begin(), kinds.end(), has_gpu_backend);
+    auto kinds = build_group_parameters(ctx, hint_map, kind_lists);
 
     std::vector<group_description> groups;
-    for (auto k: kinds) {
-        partition_hint hint;
-        if (auto opt_hint = util::value_by_key(hint_map, k)) {
-            hint = opt_hint.value();
-            if (!hint.cpu_group_size) {
-                throw arbor_exception(arb::util::pprintf("unable to perform load balancing because {} has invalid suggested cpu_cell_group size of {}",
-                                                         k, hint.cpu_group_size));
-            }
-            if (hint.prefer_gpu && !hint.gpu_group_size) {
-                throw arbor_exception(arb::util::pprintf("unable to perform load balancing because {} has invalid suggested gpu_cell_group size of {}",
-                                                         k, hint.gpu_group_size));
-            }
-        }
-
-        backend_kind backend = backend_kind::multicore;
-        std::size_t group_size = hint.cpu_group_size;
-
-        if (hint.prefer_gpu && has_gpu_backend(k)) {
-            backend = backend_kind::gpu;
-            group_size = hint.gpu_group_size;
-        }
-
+    for (const auto& params: kinds) {
         std::vector<cell_gid_type> group_elements;
         // group_elements are sorted such that the gids of all members of a component are consecutive.
-        for (auto cell: kind_lists[k]) {
+        for (auto cell: kind_lists[params.kind]) {
             const auto& component = components[cell];
-            if (group_elements.size() + component.size() > group_size && !group_elements.empty()) {
-                groups.emplace_back(k, std::move(group_elements), backend);
+            // adding the current group would go beyond alloted size, so add to the list
+            // of groups and start a new one
+            if (group_elements.size() + component.size() > params.size && !group_elements.empty()) {
+                groups.emplace_back(params.kind, std::move(group_elements), params.backend);
                 group_elements.clear();
             }
-            for (auto gid: component) {
-                group_elements.push_back(gid);
-            }
-            if (group_elements.size()>=group_size) {
-                groups.emplace_back(k, std::move(group_elements), backend);
-                group_elements.clear();
-            }
+            // we are clear to add the current component. NOTE this may exceed
+            // the alloted size, but only by the minimal amount manageable
+            group_elements.insert(group_elements.end(), component.begin(), component.end());
         }
-        if (!group_elements.empty()) {
-            groups.emplace_back(k, std::move(group_elements), backend);
-        }
+        // we may have a trailing, incomplete group, so add this
+        if (!group_elements.empty()) groups.emplace_back(params.kind, std::move(group_elements), params.backend);
     }
 
     return {rec, ctx, groups};
