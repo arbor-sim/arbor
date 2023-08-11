@@ -95,18 +95,27 @@ auto build_components(const gj_connection_table& global_gj_connection_table,
         if (global_gj_connection_table.count(gid)) {
             // If cell hasn't been visited yet, must belong to new component
             if (visited.insert(gid).second) {
+                // pivot gid: the smallest found in this group; must be at
+                // smaller or equal to `gid`.
+                auto min_gid = gid;
                 q.push(gid);
                 super_cell sc;
                 while (!q.empty()) {
                     auto element = q.front();
                     q.pop();
                     sc.push_back(element);
-                    // traverse conjoined cells
+                    min_gid = std::min(element, min_gid);
+                    // queue up conjoined cells
                     for (const auto& peer: global_gj_connection_table.at(element)) {
                         if (visited.insert(peer).second) q.push(peer);
                     }
                 }
-                super_cells.emplace_back(std::move(sc));
+                // if the pivot gid belongs to our domain, this group will be part
+                // of our domain, keep it and sort.
+                if (min_gid >= local_gid_range.first) {
+                    std::sort(sc.begin(), sc.end());
+                    super_cells.emplace_back(std::move(sc));
+                }
             }
         }
         else {
@@ -114,14 +123,8 @@ auto build_components(const gj_connection_table& global_gj_connection_table,
         }
     }
 
-    // Sort super_cell groups and only keep those where the first element in the
-    // group belongs to our domain
-    for (auto sc: super_cells) {
-        std::sort(sc.begin(), sc.end());
-        // SAFETY super cells are never empty.
-        if (sc.front() >= local_gid_range.first) res.emplace_back(std::move(sc));
-    }
-
+    // append super cells to result
+    res.insert(res.end(), super_cells.begin(), super_cells.end());
     return res;
 }
 
