@@ -20,12 +20,35 @@
 
 namespace arb {
 
-ARB_ARBOR_API domain_decomposition partition_load_balance(
-    const recipe& rec,
-    context ctx,
-    const partition_hint_map& hint_map)
-{
+namespace {
+// Build global GJ connectivity table such that
+// * table[gid] is the set of all gids connected to gid via a GJ
+// * iff A in table[B], then B in table[A]
+auto build_global_gj_connection_table(const recipe& rec) {
+    std::unordered_map<cell_gid_type, std::unordered_set<cell_gid_type>> res;
+    for (cell_gid_type gid = 0; gid < rec.num_cells(); ++gid) {
+        for (const auto& gj: rec.gap_junctions_on(gid)) {
+            res[gid].insert(gj.peer.gid);
+        }
+    }
+
+    // Make all gj_connections bidirectional.
+    for (auto& [gid, local_conns]: res) {
+        for (auto peer: local_conns) {
+            auto& peer_conns = res[peer];
+            if (!peer_conns.count(gid)) peer_conns.insert(gid);
+        }
+    }
+    return res;
+}
+}
+
+ARB_ARBOR_API domain_decomposition partition_load_balance(const recipe& rec,
+                                                          context ctx,
+                                                          const partition_hint_map& hint_map) {
     using util::make_span;
+
+    const auto global_gj_connection_table = build_global_gj_connection_table(rec);
 
     const auto& dist = ctx->distributed;
     unsigned num_domains = dist->size();
@@ -36,56 +59,17 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(
     auto dom_size = [&](unsigned dom) -> cell_gid_type {
         const cell_gid_type B = num_global_cells/num_domains;
         const cell_gid_type R = num_global_cells - num_domains*B;
-        return B + (dom<R);
+        return B + (dom < R);
     };
 
     // Global load balance
-
     std::vector<cell_gid_type> gid_divisions;
-    auto gid_part = make_partition(
-        gid_divisions, transform_view(make_span(num_domains), dom_size));
+    auto gid_part = make_partition(gid_divisions, transform_view(make_span(num_domains), dom_size));
 
-    // Global gj_connection table
 
-    // Generate a local gj_connection table.
-    // The table is indexed by the index of the target gid in the gid_part of that domain.
-    // If gid_part[domain_id] = [a, b); local_gj_connection of gid `x` is at index `x-a`.
-    const auto dom_range = gid_part[domain_id];
-    std::vector<std::vector<cell_gid_type>> local_gj_connection_table(dom_range.second-dom_range.first);
-    for (auto gid: make_span(gid_part[domain_id])) {
-        for (const auto& c: rec.gap_junctions_on(gid)) {
-            local_gj_connection_table[gid-dom_range.first].push_back(c.peer.gid);
-        }
-    }
-    // Sort the gj connections of each local cell.
-    for (auto& gid_conns: local_gj_connection_table) {
-        util::sort(gid_conns);
-    }
-
-    // Gather the global gj_connection table.
-    // The global gj_connection table after gathering is indexed by gid.
-    auto global_gj_connection_table = dist->gather_gj_connections(local_gj_connection_table);
-
-    // Make all gj_connections bidirectional.
-    std::vector<std::unordered_set<cell_gid_type>> missing_peers(global_gj_connection_table.size());
-    for (auto gid: make_span(global_gj_connection_table.size())) {
-        const auto& local_conns = global_gj_connection_table[gid];
-        for (auto peer: local_conns) {
-            auto& peer_conns = global_gj_connection_table[peer];
-            // If gid is not in the peer connection table insert it into the
-            // missing_peers set
-            if (!std::binary_search(peer_conns.begin(), peer_conns.end(), gid)) {
-                missing_peers[peer].insert(gid);
-            }
-        }
-    }
-    // Append the missing peers into the global_gj_connections table
-    for (unsigned i = 0; i < global_gj_connection_table.size(); ++i) {
-        std::move(missing_peers[i].begin(), missing_peers[i].end(), std::back_inserter(global_gj_connection_table[i]));
-    }
     // Local load balance
 
-    std::vector<std::vector<cell_gid_type>> super_cells; //cells connected by gj
+    std::vector<std::vector<cell_gid_type>> super_cells; // cells connected by gj
     std::vector<cell_gid_type> reg_cells; //independent cells
 
     // Map to track visited cells (cells that already belong to a group)
@@ -94,7 +78,7 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(
     // Connected components algorithm using BFS
     std::queue<cell_gid_type> q;
     for (auto gid: make_span(gid_part[domain_id])) {
-        if (!global_gj_connection_table[gid].empty()) {
+        if (global_gj_connection_table.count(gid)) {
             // If cell hasn't been visited yet, must belong to new super_cell
             // Perform BFS starting from that cell
             if (!visited.count(gid)) {
@@ -106,18 +90,16 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(
                     q.pop();
                     cg.push_back(element);
                     // Adjacency list
-                    for (const auto& peer: global_gj_connection_table[element]) {
-                        if (visited.insert(peer).second) {
-                            q.push(peer);
-                        }
+                    for (const auto& peer: global_gj_connection_table.at(element)) {
+                        if (visited.insert(peer).second) q.push(peer);
                     }
                 }
-                super_cells.push_back(cg);
+                super_cells.emplace_back(std::move(cg));
             }
         }
         else {
             // If cell has no gap_junctions, put in separate group of independent cells
-            reg_cells.push_back(gid);
+            reg_cells.emplace_back(gid);
         }
     }
 
@@ -223,12 +205,7 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(
         }
     }
 
-    // Exchange gid list with all other nodes
-    // global all-to-all to gather a local copy of the global gid list on each node.
-    auto global_gids = dist->gather_gids(local_gids);
-
-    return domain_decomposition(rec, ctx, groups);
+    return {rec, ctx, groups};
 }
-
 } // namespace arb
 
