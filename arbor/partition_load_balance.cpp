@@ -24,6 +24,7 @@ namespace {
 using gj_connection_set   = std::unordered_set<cell_gid_type>;
 using gj_connection_table = std::unordered_map<cell_gid_type, gj_connection_set>;
 using gid_range           = std::pair<cell_gid_type, cell_gid_type>;
+using super_cell          = std::vector<cell_gid_type>;
 
 // Build global GJ connectivity table such that
 // * table[gid] is the set of all gids connected to gid via a GJ
@@ -83,8 +84,9 @@ auto make_local_gid_range(context ctx, cell_gid_type num_global_cells) {
 auto build_components(const gj_connection_table& global_gj_connection_table,
                       gid_range local_gid_range) {
     // cells connected by gj
-    std::vector<std::vector<cell_gid_type>> super_cells;
-    std::vector<std::vector<cell_gid_type>> res;
+    std::vector<super_cell> super_cells;
+    // singular cells
+    std::vector<super_cell> res;
     // track visited cells (cells that already belong to a group)
     gj_connection_set visited;
     // Connected components via BFS
@@ -92,20 +94,19 @@ auto build_components(const gj_connection_table& global_gj_connection_table,
     for (auto gid: util::make_span(local_gid_range)) {
         if (global_gj_connection_table.count(gid)) {
             // If cell hasn't been visited yet, must belong to new component
-            if (!visited.count(gid)) {
-                visited.insert(gid);
-                std::vector<cell_gid_type> cg;
+            if (visited.insert(gid).second) {
                 q.push(gid);
+                super_cell sc;
                 while (!q.empty()) {
                     auto element = q.front();
                     q.pop();
-                    cg.push_back(element);
-                    // Adjacency list
+                    sc.push_back(element);
+                    // traverse conjoined cells
                     for (const auto& peer: global_gj_connection_table.at(element)) {
                         if (visited.insert(peer).second) q.push(peer);
                     }
                 }
-                super_cells.emplace_back(std::move(cg));
+                super_cells.emplace_back(std::move(sc));
             }
         }
         else {
@@ -117,8 +118,10 @@ auto build_components(const gj_connection_table& global_gj_connection_table,
     // group belongs to our domain
     for (auto sc: super_cells) {
         std::sort(sc.begin(), sc.end());
-        if (!sc.empty() && sc.front() >= local_gid_range.first) res.emplace_back(std::move(sc));
+        // SAFETY super cells are never empty.
+        if (sc.front() >= local_gid_range.first) res.emplace_back(std::move(sc));
     }
+
     return res;
 }
 
