@@ -34,7 +34,6 @@ struct ARB_ARBOR_API execution_context {
 
     template <typename Comm>
     execution_context(const proc_allocation& resources, Comm comm, Comm remote);
-
 };
 
 } // namespace arb

@@ -18,6 +18,8 @@
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
+#include <iostream>
+
 namespace arb {
 
 namespace {
@@ -31,22 +33,14 @@ using super_cell          = std::vector<cell_gid_type>;
 // * iff A in table[B], then B in table[A]
 auto build_global_gj_connection_table(const recipe& rec) {
     gj_connection_table res;
-
-    // Collect all explicit GJ connections
+    // Collect all explicit GJ connections and make them bi-directional
     for (cell_gid_type gid = 0; gid < rec.num_cells(); ++gid) {
         for (const auto& gj: rec.gap_junctions_on(gid)) {
-            res[gid].insert(gj.peer.gid);
+            auto peer = gj.peer.gid;
+            res[gid].insert(peer);
+            res[peer].insert(gid);
         }
     }
-
-    // Make all gj_connections bidirectional.
-    for (auto& [gid, local_conns]: res) {
-         for (auto peer: local_conns) {
-            auto& peer_conns = res[peer];
-            if (!peer_conns.count(gid)) peer_conns.insert(gid);
-        }
-    }
-
     return res;
 }
 
@@ -122,7 +116,6 @@ auto build_components(const gj_connection_table& global_gj_connection_table,
             res.push_back({gid});
         }
     }
-
     // append super cells to result
     res.insert(res.end(), super_cells.begin(), super_cells.end());
     return res;

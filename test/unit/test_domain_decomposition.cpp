@@ -7,11 +7,11 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/version.hpp>
-
 #include <arborenv/default_env.hpp>
 
 #include "util/span.hpp"
-
+#include "../execution_context.hpp"
+#include "../distributed_context.hpp"
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
 
@@ -30,122 +30,152 @@ using arb::util::make_span;
 // partition_load_balance into components that can be tested in isolation.
 
 namespace {
-    // Dummy recipes types for testing.
+// Dummy recipes types for testing.
 
-    struct dummy_cell {};
-    using homo_recipe = homogeneous_recipe<cell_kind::cable, dummy_cell>;
+struct dummy_cell {};
+using homo_recipe = homogeneous_recipe<cell_kind::cable, dummy_cell>;
 
-    // Heterogenous cell population of cable and spike source cells.
-    // Interleaved so that cells with even gid are cable cells, and odd gid are
-    // spike source cells.
-    class hetero_recipe: public recipe {
-    public:
-        hetero_recipe(cell_size_type s): size_(s) {}
+// Heterogenous cell population of cable and spike source cells.
+// Interleaved so that cells with even gid are cable cells, and odd gid are
+// spike source cells.
+class hetero_recipe: public recipe {
+public:
+    hetero_recipe(cell_size_type s): size_(s) {}
 
-        cell_size_type num_cells() const override {
-            return size_;
-        }
+    cell_size_type num_cells() const override {
+        return size_;
+    }
 
-        util::unique_any get_cell_description(cell_gid_type) const override {
-            return {};
-        }
+    util::unique_any get_cell_description(cell_gid_type) const override {
+        return {};
+    }
 
-        cell_kind get_cell_kind(cell_gid_type gid) const override {
-            return gid%2?
-                cell_kind::spike_source:
-                cell_kind::cable;
-        }
+    cell_kind get_cell_kind(cell_gid_type gid) const override {
+        return gid%2?
+            cell_kind::spike_source:
+            cell_kind::cable;
+    }
 
-    private:
-        cell_size_type size_;
-    };
+private:
+    cell_size_type size_;
+};
 
-    class gap_recipe: public recipe {
-    public:
-        gap_recipe(bool full_connected): fully_connected_(full_connected) {}
+class gap_recipe: public recipe {
+public:
+    gap_recipe(bool full_connected): fully_connected_(full_connected) {}
 
-        cell_size_type num_cells() const override {
-            return size_;
-        }
+    cell_size_type num_cells() const override {
+        return size_;
+    }
 
-        arb::util::unique_any get_cell_description(cell_gid_type) const override {
-            auto c = arb::make_cell_soma_only(false);
-            c.decorations.place(mlocation{0,1}, junction("gj"), "gj");
-            return {arb::cable_cell(c)};
-        }
+    arb::util::unique_any get_cell_description(cell_gid_type) const override {
+        auto c = arb::make_cell_soma_only(false);
+        c.decorations.place(mlocation{0,1}, junction("gj"), "gj");
+        return {arb::cable_cell(c)};
+    }
 
-        cell_kind get_cell_kind(cell_gid_type gid) const override {
-            return cell_kind::cable;
-        }
-        std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
-            switch (gid) {
-                case 0:  return {gap_junction_connection({13, "gj"}, {"gj"}, 0.1)};
-                case 2:  return {gap_junction_connection({7,  "gj"}, {"gj"}, 0.1)};
-                case 3:  return {gap_junction_connection({8, "gj"}, {"gj"}, 0.1)};
-                case 4: {
-                    if (!fully_connected_) return {gap_junction_connection({9, "gj"}, {"gj"}, 0.1)};
-                    return {
-                        gap_junction_connection({8, "gj"}, {"gj"}, 0.1),
-                        gap_junction_connection({9, "gj"}, {"gj"}, 0.1)
-                    };
-                }
-                case 7: {
-                    if (!fully_connected_) return {};
-                    return {
-                        gap_junction_connection({2, "gj"}, {"gj"}, 0.1),
-                        gap_junction_connection({11, "gj"}, {"gj"}, 0.1)
-                    };
-                }
-                case 8: {
-                    if (!fully_connected_) return {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)};
-                    return {
-                        gap_junction_connection({3, "gj"}, {"gj"}, 0.1),
-                        gap_junction_connection({4, "gj"}, {"gj"}, 0.1)
-                    };
-                }
-                case 9: {
-                    if (!fully_connected_) return {};
-                    return {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)};
-                }
-                case 11: return {gap_junction_connection({7, "gj"}, {"gj"}, 0.1)};
-                case 13: {
-                    if (!fully_connected_) return {};
-                    return { gap_junction_connection({0, "gj"}, {"gj"}, 0.1)};
-                }
-                default: return {};
+    cell_kind get_cell_kind(cell_gid_type gid) const override {
+        return cell_kind::cable;
+    }
+    std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
+        switch (gid) {
+            case 0:  return {gap_junction_connection({13, "gj"}, {"gj"}, 0.1)};
+            case 2:  return {gap_junction_connection({7,  "gj"}, {"gj"}, 0.1)};
+            case 3:  return {gap_junction_connection({8, "gj"}, {"gj"}, 0.1)};
+            case 4: {
+                if (!fully_connected_) return {gap_junction_connection({9, "gj"}, {"gj"}, 0.1)};
+                return {
+                    gap_junction_connection({8, "gj"}, {"gj"}, 0.1),
+                    gap_junction_connection({9, "gj"}, {"gj"}, 0.1)
+                };
             }
+            case 7: {
+                if (!fully_connected_) return {};
+                return {
+                    gap_junction_connection({2, "gj"}, {"gj"}, 0.1),
+                    gap_junction_connection({11, "gj"}, {"gj"}, 0.1)
+                };
+            }
+            case 8: {
+                if (!fully_connected_) return {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)};
+                return {
+                    gap_junction_connection({3, "gj"}, {"gj"}, 0.1),
+                    gap_junction_connection({4, "gj"}, {"gj"}, 0.1)
+                };
+            }
+            case 9: {
+                if (!fully_connected_) return {};
+                return {gap_junction_connection({4, "gj"}, {"gj"}, 0.1)};
+            }
+            case 11: return {gap_junction_connection({7, "gj"}, {"gj"}, 0.1)};
+            case 13: {
+                if (!fully_connected_) return {};
+                return { gap_junction_connection({0, "gj"}, {"gj"}, 0.1)};
+            }
+            default: return {};
         }
+    }
 
-    private:
-        bool fully_connected_ = true;
-        cell_size_type size_ = 15;
-    };
+private:
+    bool fully_connected_ = true;
+    cell_size_type size_ = 15;
+};
 
-    class custom_gap_recipe: public recipe {
-    public:
-        custom_gap_recipe(cell_size_type ncells, std::vector<std::vector<gap_junction_connection>> gj_conns):
-        size_(ncells), gj_conns_(std::move(gj_conns)){}
+class custom_gap_recipe: public recipe {
+public:
+    custom_gap_recipe(cell_size_type ncells, std::vector<std::vector<gap_junction_connection>> gj_conns):
+    size_(ncells), gj_conns_(std::move(gj_conns)){}
 
-        cell_size_type num_cells() const override {
-            return size_;
-        }
+    cell_size_type num_cells() const override {
+        return size_;
+    }
 
-        arb::util::unique_any get_cell_description(cell_gid_type) const override {
-            auto c = arb::make_cell_soma_only(false);
-            c.decorations.place(mlocation{0,1}, junction("gj"), "gj");
-            return {arb::cable_cell(c)};
-        }
+    arb::util::unique_any get_cell_description(cell_gid_type) const override {
+        auto c = arb::make_cell_soma_only(false);
+        c.decorations.place(mlocation{0,1}, junction("gj"), "gj");
+        return {arb::cable_cell(c)};
+    }
 
-        cell_kind get_cell_kind(cell_gid_type gid) const override {
-            return cell_kind::cable;
-        }
-        std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
-            return gj_conns_[gid];
-        }
-    private:
-        cell_size_type size_ = 7;
-        std::vector<std::vector<gap_junction_connection>> gj_conns_;
-    };
+    cell_kind get_cell_kind(cell_gid_type gid) const override {
+        return cell_kind::cable;
+    }
+    std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
+        return gj_conns_[gid];
+    }
+private:
+    cell_size_type size_ = 7;
+    std::vector<std::vector<gap_junction_connection>> gj_conns_;
+};
+
+struct unimplemented: std::runtime_error {
+    unimplemented(const std::string& f): std::runtime_error{f} {}
+};
+
+struct dummy_context {
+    dummy_context(int i, int s): size_{s}, id_{i} {}
+
+    int size_ = 1;
+    int id_ = 0;
+
+    gathered_vector<spike> gather_spikes(const std::vector<spike>&) const { throw unimplemented{__FUNCTION__}; }
+    std::vector<spike> remote_gather_spikes(const std::vector<spike>&) const { throw unimplemented{__FUNCTION__}; }
+    gathered_vector<cell_gid_type> gather_gids(const std::vector<cell_gid_type>& local_gids) const { throw unimplemented{__FUNCTION__}; }
+    void remote_ctrl_send_continue(const epoch&) const {}
+    void remote_ctrl_send_done() const {}
+    cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const { throw unimplemented{__FUNCTION__}; }
+    cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const { throw unimplemented{__FUNCTION__}; }
+    template <typename T> std::vector<T> gather(T value, int) const { throw unimplemented{__FUNCTION__}; }
+
+    int id() const { return id_; }
+    int size() const { return size_; }
+
+    template <typename T> T min(T value) const { return value; }
+    template <typename T> T max(T value) const { return value; }
+    template <typename T> T sum(T value) const { return value; }
+    void barrier() const {}
+    std::string name() const { return "dummy"; }
+};
+
 }
 
 // test assumes one domain
@@ -573,5 +603,66 @@ TEST(domain_decomposition, invalid) {
                   {cell_kind::cable, {2, 7, 11, 13}, backend_kind::multicore},
                   {cell_kind::cable, {1, 3, 4, 5, 6, 8, 9, 10, 12, 14}, backend_kind::multicore}};
         EXPECT_THROW(domain_decomposition(rec, ctx, groups), invalid_gj_cell_group);
+    }
+}
+
+struct gj_symmetric: public recipe {
+    gj_symmetric(unsigned num_ranks, bool fully_connected):
+        ncopies_(num_ranks),
+        fully_connected_(fully_connected) {}
+
+    cell_size_type num_cells_per_rank() const { return size_; }
+    cell_size_type num_cells() const override { return size_*ncopies_; }
+    arb::util::unique_any get_cell_description(cell_gid_type) const override { return {}; }
+    cell_kind get_cell_kind(cell_gid_type gid) const override { return cell_kind::cable; }
+
+    std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override {
+        unsigned shift = (gid/size_)*size_;
+        switch (gid % size_) {
+            case 1 :  {
+                if (!fully_connected_) return {};
+                return {gap_junction_connection({7 + shift, "gj"}, {"gj"}, 0.1)};
+            }
+            case 2 :  {
+                if (!fully_connected_) return {};
+                return {
+                    gap_junction_connection({6 + shift, "gj"}, {"gj"}, 0.1),
+                    gap_junction_connection({9 + shift, "gj"}, {"gj"}, 0.1)
+                };
+            }
+            case 6 :  return {
+                gap_junction_connection({2 + shift, "gj"}, {"gj"}, 0.1),
+                gap_junction_connection({7 + shift, "gj"}, {"gj"}, 0.1)
+            };
+            case 7 :  {
+                if (!fully_connected_)  {
+                    return {gap_junction_connection({1 + shift, "gj"}, {"gj"}, 0.1)};
+                }
+                return {
+                    gap_junction_connection({6 + shift, "gj"}, {"gj"}, 0.1),
+                    gap_junction_connection({1 + shift, "gj"}, {"gj"}, 0.1)
+                };
+            }
+            case 9 :  return { gap_junction_connection({2 + shift, "gj"}, {"gj"}, 0.1)};
+            default : return {};
+        }
+    }
+
+    cell_size_type size_ = 10;
+    unsigned ncopies_;
+    bool fully_connected_;
+};
+
+TEST(domain_decomposition, symmetric_groups) {
+    for (int nranks = 1; nranks < 20; ++nranks) {
+        for (int rank = 0; rank < nranks; ++rank) {
+            auto ctx = make_context();
+            ctx->distributed = std::make_shared<distributed_context>(dummy_context{rank, nranks});
+            for (const auto& R: {gj_symmetric(nranks, true), gj_symmetric(nranks, false)}) {
+                try {
+                    const auto D0 = partition_load_balance(R, {ctx});
+                } catch (const unimplemented&) {}
+            }
+        }
     }
 }
