@@ -122,6 +122,7 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(const recipe& rec,
     };
     std::vector<cell_gid_type> local_gids;
     std::unordered_map<cell_kind, std::vector<cell_identifier>> kind_lists;
+
     for (auto gid: reg_cells) {
         local_gids.push_back(gid);
         kind_lists[rec.get_cell_kind(gid)].push_back({gid, false});
@@ -137,7 +138,6 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(const recipe& rec,
         }
         kind_lists[kind].push_back({i, true});
     }
-
 
     // Create a flat vector of the cell kinds present on this node,
     // partitioned such that kinds for which GPU implementation are
@@ -195,6 +195,7 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(const recipe& rec,
                     group_elements.push_back(gid);
                 }
             }
+
             if (group_elements.size()>=group_size) {
                 groups.emplace_back(k, std::move(group_elements), backend);
                 group_elements.clear();
