@@ -125,49 +125,67 @@ decor& decor::place(locset where, placeable what, cell_tag_type label) {
 }
 
 decor& decor::set_default(defaultable what) {
-    std::visit(
-            [this] (auto&& p) {
-                using T = std::decay_t<decltype(p)>;
-                if constexpr (std::is_same_v<init_membrane_potential, T>) {
-                    if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
-                    defaults_.init_membrane_potential = *p.value.get_scalar();
-                }
-                else if constexpr (std::is_same_v<axial_resistivity, T>) {
-                    if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
-                    defaults_.axial_resistivity = *p.value.get_scalar();
-                }
-                else if constexpr (std::is_same_v<temperature_K, T>) {
-                    if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
-                    defaults_.temperature_K = *p.value.get_scalar();
-                }
-                else if constexpr (std::is_same_v<membrane_capacitance, T>) {
-                    if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
-                    defaults_.membrane_capacitance = *p.value.get_scalar();
-                }
-                else if constexpr (std::is_same_v<init_int_concentration, T>) {
-                    if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
-                    defaults_.ion_data[p.ion].init_int_concentration = *p.value.get_scalar();
-                }
-                else if constexpr (std::is_same_v<init_ext_concentration, T>) {
-                    if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
-                    defaults_.ion_data[p.ion].init_ext_concentration = *p.value.get_scalar();
-                }
-                else if constexpr (std::is_same_v<init_reversal_potential, T>) {
-                    if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
-                    defaults_.ion_data[p.ion].init_reversal_potential = *p.value.get_scalar();
-                }
-                else if constexpr (std::is_same_v<ion_reversal_potential_method, T>) {
-                    defaults_.reversal_potential_method[p.ion] = p.method;
-                }
-                else if constexpr (std::is_same_v<cv_policy, T>) {
-                    defaults_.discretization = std::forward<cv_policy>(p);
-                }
-                else if constexpr (std::is_same_v<ion_diffusivity, T>) {
-                    if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
-                    defaults_.ion_data[p.ion].diffusivity = p.value.get_scalar();
-                }
-            },
-            what);
+    // NOTE: the index/get approach is considerably faster than std::visit.
+    switch (what.index()) {
+        case 0: {
+            auto& p = std::get<init_membrane_potential>(what);
+            if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
+            defaults_.init_membrane_potential = *p.value.get_scalar();
+            break;
+        }
+        case 1: {
+            auto& p = std::get<axial_resistivity>(what);
+            if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
+            defaults_.axial_resistivity = *p.value.get_scalar();
+            break;
+        }
+        case 2: {
+            auto& p = std::get<temperature_K>(what);
+            if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
+            defaults_.temperature_K = *p.value.get_scalar();
+            break;
+        }
+        case 3: {
+            auto& p = std::get<membrane_capacitance>(what);
+            if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
+            defaults_.membrane_capacitance = *p.value.get_scalar();
+            break;
+        }
+        case 4: {
+            auto& p = std::get<ion_diffusivity>(what);
+            if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
+            defaults_.ion_data[p.ion].diffusivity = p.value.get_scalar();
+            break;
+        }
+        case 5: {
+            auto& p = std::get<init_int_concentration>(what);
+            if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
+            defaults_.ion_data[p.ion].init_ext_concentration = *p.value.get_scalar();
+            break;
+        }
+        case 6: {
+            auto& p = std::get<init_ext_concentration>(what);
+            if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
+            defaults_.ion_data[p.ion].init_int_concentration = p.value.get_scalar();
+            break;
+        }
+        case 7: {
+            auto& p = std::get<init_reversal_potential>(what);
+            if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
+            defaults_.ion_data[p.ion].init_reversal_potential = *p.value.get_scalar();
+            break;
+        }
+        case 8: {
+            auto& p = std::get<ion_reversal_potential_method>(what);
+            defaults_.reversal_potential_method[p.ion] = p.method;
+            break;
+        }
+        case 9:
+            defaults_.discretization = std::forward<cv_policy>(std::get<cv_policy>(what));
+            break;
+        default:
+            throw arbor_internal_error{"Unknown defaultable variant"};
+    }
     return *this;
 }
 
