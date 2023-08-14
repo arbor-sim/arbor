@@ -1204,7 +1204,6 @@ make_density_mechanism_config(const region_assignment<density>& assignments,
         const auto& info = data.catalogue[name];
         auto config = make_mechanism_config(info, arb_mechanism_kind_density);
 
-
         auto parameters = ordered_parameters(info);
         auto n_param = parameters.size();
 

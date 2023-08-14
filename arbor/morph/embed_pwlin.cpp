@@ -103,8 +103,8 @@ struct embed_pwlin_data {
 
 template <unsigned p, unsigned q>
 double interpolate(double pos, const pw_ratpoly<p, q>& f) {
-    auto [extent, poly] = f(pos);
-    auto [left, right] = extent;
+    const auto& [extent, poly] = f(pos);
+    const auto& [left, right] = extent;
 
     return left==right? poly[0]: poly((pos-left)/(right-left));
 }
@@ -118,7 +118,7 @@ double interpolate(double pos, const pw_ratpoly<p, q>& f) {
 template <unsigned p, unsigned q>
 double integrate(const pw_constant_fn& g, const pw_ratpoly<p, q>& f) {
     double sum = 0;
-    for (auto&& [extent, gval]: g) {
+    for (const auto& [extent, gval]: g) {
         sum += gval*(interpolate(extent.second, f)-interpolate(extent.first, f));
     }
     return sum;
@@ -133,7 +133,7 @@ template <unsigned p, unsigned q>
 double integrate(const pw_constant_fn& g, const pw_elements<pw_ratpoly<p, q>>& fs) {
     double sum = 0;
     if (!fs.empty()) {
-        for (auto&& [extent, pw_pair]: pw_zip_range(g, fs)) {
+        for (const auto& [extent, pw_pair]: pw_zip_range(g, fs)) {
             auto [left, right] = extent;
             if (left==right) continue;
 
@@ -198,19 +198,55 @@ double embed_pwlin::integrate_ixa(const mcable& c) const {
 // Integrate piecewise function over a cable:
 
 static pw_constant_fn restrict_to(const pw_constant_fn& g, double left, double right) {
-    return pw_zip_with(g, pw_elements<void>{{left, right}});
+    return pw_zip_with(g, pw_elements<void>{left, right});
 }
 
 double embed_pwlin::integrate_length(const mcable& c, const pw_constant_fn& g) const {
-    return integrate_length(c.branch, restrict_to(g, c.prox_pos, c.dist_pos));
+    if (g.empty() || c.dist_pos == c.prox_pos) return 0;
+    auto rn = pw_elements<void>{c.prox_pos, c.dist_pos};
+    const auto& ar = data_->length.at(c.branch);
+    double sum = 0;
+    auto pwzi = util::pw_zip_iterator(g, rn);
+    while (!pwzi.is_end) {
+        sum += pwzi.apply_left([&ar](auto l, auto r, const auto& vl) {
+            return vl*(interpolate(r, ar) - interpolate(l, ar));
+        });
+        ++pwzi;
+    }
+    return sum;
 }
 
 double embed_pwlin::integrate_area(const mcable& c, const pw_constant_fn& g) const {
-    return integrate_area(c.branch, restrict_to(g, c.prox_pos, c.dist_pos));
+    if (g.empty() || c.dist_pos == c.prox_pos) return 0;
+    auto rn = pw_elements<void>{c.prox_pos, c.dist_pos};
+    const auto& ar = data_->area.at(c.branch);
+    double sum = 0;
+    auto pwzi = util::pw_zip_iterator(g, rn);
+    while (!pwzi.is_end) {
+        sum += pwzi.apply_left([&ar](auto l, auto r, const auto& vl) {
+            return vl*(interpolate(r, ar) - interpolate(l, ar));
+        });
+        ++pwzi;
+    }
+    return sum;
 }
 
 double embed_pwlin::integrate_ixa(const mcable& c, const pw_constant_fn& g) const {
-    return integrate_ixa(c.branch, restrict_to(g, c.prox_pos, c.dist_pos));
+    if (g.empty() || c.dist_pos == c.prox_pos) return 0;
+    auto rn = pw_elements<void>{c.prox_pos, c.dist_pos};
+    auto pw = util::pw_zip_with(g, rn);
+    const auto& ix = data_->ixa.at(c.branch);
+    if (ix.empty()) return 0.0;
+    double sum = 0;
+    auto pwzi = util::pw_zip_iterator(pw, ix);
+    while (!pwzi.is_end) {
+        sum += pwzi.apply([](auto l, auto r, const auto& gval, const pw_ratpoly<1, 1>& f) {
+            return gval*(interpolate(r, f)-interpolate(l, f));
+        });
+        ++pwzi;
+    }
+    return sum;
+
 }
 
 // Subregions defined by geometric inequalities:

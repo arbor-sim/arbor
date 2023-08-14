@@ -285,10 +285,7 @@ int main(int argc, char** argv) {
         }
 
         auto report = arb::profile::make_meter_report(meters, context);
-        if (root) {
-            std::cout << report << '\n'
-                      << arb::profile::profiler_summary() << "\n";
-        }
+        if (root) arb::profile::print_profiler_summary(std::cout, 5);
     }
     catch (std::exception& e) {
         std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";
