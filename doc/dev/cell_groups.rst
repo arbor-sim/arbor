@@ -6,7 +6,7 @@ Cell groups
 Cell groups represent a union of cells of a single *kind* simulated in lockstep.
 In a sense, their existence is an optimisation, since parts of the internal
 state and computations can be shared between cell in single group. The currently
-most complicated cell group is the one for cable cells, called ``mc_cell_group``
+most complicated cell group is the one for cable cells, called ``cable_cell_group``
 (``mc`` stands for multi-compartment, used in older parts of Arbor), so we will
 focus on this type here.
 
@@ -14,7 +14,7 @@ Cell groups are created by domain decomposition methods on consideration of soft
 (like performance optimisation) and hard (cells connected by gap junctions must
 be in the same group) constraints.
 
-Cable Cell group ``mc_cell_group``
+Cable Cell group ``cable_cell_group``
 ----------------------------------
 
 Cable cell groups have backing store in ``shared_state`` (given the

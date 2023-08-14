@@ -635,7 +635,7 @@ The ``schedule`` class and its implementations are found in ``schedule.hpp``.
 Helper classes for probe/sampler management
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``simulation`` and ``mc_cell_group`` classes use classes defined in
+The ``simulation`` and ``cable_cell_group`` classes use classes defined in
 ``scheduler_map.hpp`` to simplify the management of sampler--probe associations
 and probe metadata.
 
@@ -644,7 +644,7 @@ handles and tuples (*schedule*, *sampler*, *probe set*), with thread-safe
 accessors.
 
 
-Batched sampling in ``mc_cell_group``
+Batched sampling in ``cable_cell_group``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``fvm_multicell`` implementations for CPU and GPU simulation of multi-compartment
@@ -657,11 +657,11 @@ When an integration step for a cell covers a sample event on that cell, the samp
 is satisfied with the value from the cell state at the beginning of the time step,
 after any postsynaptic spike events have been delivered.
 
-It is the responsibility of the ``mc_cell_group::advance()`` method to create the sample
+It is the responsibility of the ``cable_cell_group::advance()`` method to create the sample
 events from the entries of its ``sampler_association_map``, and to dispatch the
 sampled values to the sampler callbacks after the integration is complete.
 Given an association tuple (*schedule*, *sampler*, *probe set*) where the *schedule*
-has (non-zero) *n* sample times in the current integration interval, the ``mc_cell_group`` will
+has (non-zero) *n* sample times in the current integration interval, the ``cable_cell_group`` will
 call the *sampler* callback once for probe in *probe set*, with *n* sample values.
 
 .. note::

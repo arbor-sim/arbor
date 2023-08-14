@@ -7,7 +7,7 @@
 #include "epoch.hpp"
 #include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
-#include "mc_cell_group.hpp"
+#include "cable_cell_group.hpp"
 
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
@@ -28,7 +28,7 @@ namespace {
     }
 }
 
-TEST(mc_cell_group, gpu_test)
+TEST(cable_cell_group, gpu_test)
 {
     auto context = make_context({1, arbenv::default_gpu()});
 
@@ -39,7 +39,7 @@ TEST(mc_cell_group, gpu_test)
     rec.nernst_ion("k");
 
     cell_label_range srcs, tgts;
-    mc_cell_group group{{0}, rec, srcs, tgts, make_fvm_lowered_cell(backend_kind::gpu, *context)};
+    cable_cell_group group{{0}, rec, srcs, tgts, make_fvm_lowered_cell(backend_kind::gpu, *context)};
     group.advance(epoch(0, 0., 50.), 0.01, {});
 
     // The model is expected to generate 4 spikes as a result of the
