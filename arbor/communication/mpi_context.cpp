@@ -212,6 +212,16 @@ struct remote_context_impl {
         return mpi_.gather_cell_labels_and_gids(local_labels_and_gids);
     }
 
+    distributed_request send_recv_nonblocking(std::size_t recv_count,
+        void* recv_data,
+        int source_id,
+        std::size_t send_count,
+        const void* send_data,
+        int dest_id,
+        int tag) const {
+        return mpi_.send_recv_nonblocking(recv_count, recv_data, source_id, send_count, send_data, dest_id, tag);
+    }
+
     template <typename T> std::vector<T> gather(T value, int root) const { return mpi_.gather(value, root); }
     std::string name() const { return "MPIRemote"; }
     int id() const { return mpi_.id(); }

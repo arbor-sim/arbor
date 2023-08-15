@@ -114,10 +114,6 @@ public:
         return impl_->gather(value, root);
     }
 
-    std::vector<std::size_t> gather_all(std::size_t value) const {
-        return impl_->gather_all(value);
-    }
-
     template <typename T>
     distributed_request send_recv_nonblocking(std::size_t recv_count,
         T* recv_data,
@@ -176,7 +172,6 @@ private:
         gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const = 0;
         virtual std::vector<std::string>
         gather(std::string value, int root) const = 0;
-        virtual std::vector<std::size_t> gather_all(std::size_t value) const = 0;
         virtual distributed_request send_recv_nonblocking(std::size_t recv_count,
             void* recv_data,
             int source_id,
@@ -228,9 +223,6 @@ private:
         std::vector<std::string>
         gather(std::string value, int root) const override {
             return wrapped.gather(value, root);
-        }
-        std::vector<std::size_t> gather_all(std::size_t value) const override {
-            return wrapped.gather_all(value);
         }
         distributed_request send_recv_nonblocking(std::size_t recv_count,
             void* recv_data,
@@ -304,10 +296,6 @@ struct local_context {
     template <typename T>
     std::vector<T> gather(T value, int) const {
         return {std::move(value)};
-    }
-
-    std::vector<std::size_t> gather_all(std::size_t value) const {
-        return std::vector<std::size_t>({value});
     }
 
     distributed_request send_recv_nonblocking(std::size_t dest_count,
