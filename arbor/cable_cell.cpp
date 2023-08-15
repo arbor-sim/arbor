@@ -264,7 +264,7 @@ void cable_cell_impl::init() {
 }
 
 cable_cell::cable_cell(const arb::morphology& m, const decor& decorations, const label_dict& dictionary):
-    impl_(make_impl(new cable_cell_impl(std::move(m), std::move(dictionary), std::move(decorations))))
+    impl_(make_impl(new cable_cell_impl(m, dictionary, decorations)))
 {}
 
 cable_cell::cable_cell(): impl_(make_impl(new cable_cell_impl())) {}

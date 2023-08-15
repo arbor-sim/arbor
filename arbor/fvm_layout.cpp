@@ -311,7 +311,7 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
                                      data.end(),
                                      [](const auto& kv) {
                                          const auto& v = kv.second.value.get_scalar();
-                                         return !v || *v != 0.0 || *v == *v;
+                                         return !v || (*v != 0.0 && *v == *v);
                                      });
         if (diffusive) {
             // Provide a (non-sensical) default.

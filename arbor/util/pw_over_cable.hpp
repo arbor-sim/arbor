@@ -18,7 +18,7 @@ struct get_value {
 template <typename T, typename U, typename Proj = impl::get_value>
 util::pw_elements<U> pw_over_cable(const mcable_map<T>& mm,
                                    const mcable& cable,
-                                   U&& dflt_value,
+                                   U dflt_value,
                                    Proj projection = Proj{}) {
     using value_type = typename mcable_map<T>::value_type;
     msize_t bid = cable.branch;

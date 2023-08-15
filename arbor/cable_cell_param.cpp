@@ -160,13 +160,13 @@ decor& decor::set_default(defaultable what) {
         case 5: {
             auto& p = std::get<init_int_concentration>(what);
             if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
-            defaults_.ion_data[p.ion].init_ext_concentration = *p.value.get_scalar();
+            defaults_.ion_data[p.ion].init_int_concentration = *p.value.get_scalar();
             break;
         }
         case 6: {
             auto& p = std::get<init_ext_concentration>(what);
             if (p.value.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};
-            defaults_.ion_data[p.ion].init_int_concentration = p.value.get_scalar();
+            defaults_.ion_data[p.ion].init_ext_concentration = p.value.get_scalar();
             break;
         }
         case 7: {
