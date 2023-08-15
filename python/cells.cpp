@@ -38,6 +38,7 @@
 #include "pybind11/pytypes.h"
 #include "schedule.hpp"
 #include "strprintf.hpp"
+#include "util.hpp"
 
 namespace pyarb {
 
@@ -429,42 +430,43 @@ void register_cells(pybind11::module& m) {
     pybind11::class_<arb::init_membrane_potential> membrane_potential(m, "membrane_potential", "Setting the initial membrane voltage.");
     membrane_potential
         .def(pybind11::init([](double v) -> arb::init_membrane_potential { return {v}; }))
-        .def("__repr__", [](const arb::init_membrane_potential& d){return "Vm=" + std::to_string(d.value);});
+        .def("__repr__", [](const arb::init_membrane_potential& d){
+            return "Vm=" + to_string(d.value);});
 
     pybind11::class_<arb::membrane_capacitance> membrane_capacitance(m, "membrane_capacitance", "Setting the membrane capacitance.");
     membrane_capacitance
         .def(pybind11::init([](double v) -> arb::membrane_capacitance { return {v}; }))
-        .def("__repr__", [](const arb::membrane_capacitance& d){return "Cm=" + std::to_string(d.value);});
+        .def("__repr__", [](const arb::membrane_capacitance& d){return "Cm=" + to_string(d.value);});
 
     pybind11::class_<arb::temperature_K> temperature_K(m, "temperature_K", "Setting the temperature.");
     temperature_K
         .def(pybind11::init([](double v) -> arb::temperature_K { return {v}; }))
-        .def("__repr__", [](const arb::temperature_K& d){return "T=" + std::to_string(d.value);});
+        .def("__repr__", [](const arb::temperature_K& d){return "T=" + to_string(d.value);});
 
     pybind11::class_<arb::axial_resistivity> axial_resistivity(m, "axial_resistivity", "Setting the axial resistivity.");
     axial_resistivity
         .def(pybind11::init([](double v) -> arb::axial_resistivity { return {v}; }))
-        .def("__repr__", [](const arb::axial_resistivity& d){return "Ra" + std::to_string(d.value);});
+        .def("__repr__", [](const arb::axial_resistivity& d){return "Ra" + to_string(d.value);});
 
     pybind11::class_<arb::init_reversal_potential> reversal_potential(m, "reversal_potential", "Setting the initial reversal potential.");
     reversal_potential
         .def(pybind11::init([](const std::string& i, double v) -> arb::init_reversal_potential { return {i, v}; }))
-        .def("__repr__", [](const arb::init_reversal_potential& d){return "e" + d.ion + "=" + std::to_string(d.value);});
+        .def("__repr__", [](const arb::init_reversal_potential& d){return "e" + d.ion + "=" + to_string(d.value);});
 
     pybind11::class_<arb::init_int_concentration> int_concentration(m, "int_concentration", "Setting the initial internal ion concentration.");
     int_concentration
         .def(pybind11::init([](const std::string& i, double v) -> arb::init_int_concentration { return {i, v}; }))
-        .def("__repr__", [](const arb::init_int_concentration& d){return d.ion + "i" + "=" + std::to_string(d.value);});
+        .def("__repr__", [](const arb::init_int_concentration& d){return d.ion + "i" + "=" + to_string(d.value);});
 
     pybind11::class_<arb::init_ext_concentration> ext_concentration(m, "ext_concentration", "Setting the initial external ion concentration.");
     ext_concentration
         .def(pybind11::init([](const std::string& i, double v) -> arb::init_ext_concentration { return {i, v}; }))
-        .def("__repr__", [](const arb::init_ext_concentration& d){return d.ion + "o" + "=" + std::to_string(d.value);});
+        .def("__repr__", [](const arb::init_ext_concentration& d){return d.ion + "o" + "=" + to_string(d.value);});
 
     pybind11::class_<arb::ion_diffusivity> ion_diffusivity(m, "ion_diffusivity", "Setting the ion diffusivity.");
     ion_diffusivity
         .def(pybind11::init([](const std::string& i, double v) -> arb::ion_diffusivity { return {i, v}; }))
-        .def("__repr__", [](const arb::ion_diffusivity& d){return "D" + d.ion + "=" + std::to_string(d.value);});
+        .def("__repr__", [](const arb::ion_diffusivity& d){return "D" + d.ion + "=" + to_string(d.value);});
 
     pybind11::class_<arb::density> density(m, "density", "For painting a density mechanism on a region.");
     density
@@ -472,6 +474,8 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init([](arb::mechanism_desc mech) {return arb::density(mech);}))
         .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::density(name, params);}))
         .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::density(mech, params);}))
+        .def(pybind11::init([](const std::string& name, pybind11::kwargs parms) {return arb::density(name, util::dict_to_map<double>(parms));}))
+        .def(pybind11::init([](arb::mechanism_desc mech, pybind11::kwargs params) {return arb::density(mech, util::dict_to_map<double>(params));}))
         .def_readonly("mech", &arb::density::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";})
         .def("__str__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";});
@@ -482,6 +486,8 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init([](arb::mechanism_desc mech) {return arb::voltage_process(mech);}))
         .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(name, params);}))
         .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(mech, params);}))
+        .def(pybind11::init([](arb::mechanism_desc mech, pybind11::kwargs params) {return arb::voltage_process(mech, util::dict_to_map<double>(params));}))
+        .def(pybind11::init([](const std::string& name, pybind11::kwargs parms) {return arb::voltage_process(name, util::dict_to_map<double>(parms));}))
         .def_readonly("mech", &arb::voltage_process::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::voltage_process& d){return "<arbor.voltage_process " + mechanism_desc_str(d.mech) + ">";})
         .def("__str__", [](const arb::voltage_process& d){return "<arbor.voltage_process " + mechanism_desc_str(d.mech) + ">";});
@@ -496,8 +502,16 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init(
             [](arb::density dens, const std::unordered_map<std::string, std::string>& scales) {
                 auto s = arb::scaled_mechanism<arb::density>(std::move(dens));
-                for (const auto& it: scales) {
-                    s.scale(it.first, arborio::parse_iexpr_expression(it.second).unwrap());
+                for (const auto& [k, v]: scales) {
+                    s.scale(k, arborio::parse_iexpr_expression(v).unwrap());
+                }
+                return s;
+            }))
+        .def(pybind11::init(
+            [](arb::density dens, pybind11::kwargs scales) {
+                auto s = arb::scaled_mechanism<arb::density>(std::move(dens));
+                for (const auto& [k, v]: util::dict_to_map<std::string>(scales)) {
+                    s.scale(k, arborio::parse_iexpr_expression(v).unwrap());
                 }
                 return s;
             }))
@@ -526,6 +540,8 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init([](arb::mechanism_desc mech) {return arb::synapse(mech);}))
         .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::synapse(name, params);}))
         .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::synapse(mech, params);}))
+        .def(pybind11::init([](const std::string& name, pybind11::kwargs parms) {return arb::synapse(name, util::dict_to_map<double>(parms));}))
+        .def(pybind11::init([](arb::mechanism_desc mech, pybind11::kwargs params) {return arb::synapse(mech, util::dict_to_map<double>(params));}))
         .def_readonly("mech", &arb::synapse::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::synapse& s){return "<arbor.synapse " + mechanism_desc_str(s.mech) + ">";})
         .def("__str__", [](const arb::synapse& s){return "<arbor.synapse " + mechanism_desc_str(s.mech) + ">";});
@@ -537,7 +553,9 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init([](const std::string& name) {return arb::junction(name);}))
         .def(pybind11::init([](arb::mechanism_desc mech) {return arb::junction(mech);}))
         .def(pybind11::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::junction(name, params);}))
+        .def(pybind11::init([](const std::string& name, pybind11::kwargs parms) {return arb::junction(name, util::dict_to_map<double>(parms));}))
         .def(pybind11::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::junction(mech, params);}))
+        .def(pybind11::init([](arb::mechanism_desc mech, pybind11::kwargs params) {return arb::junction(mech, util::dict_to_map<double>(params));}))
         .def_readonly("mech", &arb::junction::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::junction& j){return "<arbor.junction " + mechanism_desc_str(j.mech) + ">";})
         .def("__str__", [](const arb::junction& j){return "<arbor.junction " + mechanism_desc_str(j.mech) + ">";});
@@ -645,7 +663,7 @@ void register_cells(pybind11::module& m) {
         .def_property("temperature",
                       [](const arb::cable_cell_global_properties& props) { return props.default_parameters.temperature_K; },
                       [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.temperature_K = u; })
-        .def_property("axial_resisitivity",
+        .def_property("axial_resistivity",
                       [](const arb::cable_cell_global_properties& props) { return props.default_parameters.axial_resistivity; },
                       [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.axial_resistivity = u; })
         .def("set_property",
@@ -844,14 +862,51 @@ void register_cells(pybind11::module& m) {
         .def("paint",
             [](arb::decor& dec,
                const char* region,
-               optional<double> Vm, optional<double> cm,
-               optional<double> rL, optional<double> tempK)
-            {
+               optional<std::variant<double, std::string>> Vm,
+               optional<std::variant<double, std::string>> cm,
+               optional<std::variant<double, std::string>> rL,
+               optional<std::variant<double, std::string>> tempK) {
                 auto r = arborio::parse_region_expression(region).unwrap();
-                if (Vm) dec.paint(r, arb::init_membrane_potential{*Vm});
-                if (cm) dec.paint(r, arb::membrane_capacitance{*cm});
-                if (rL) dec.paint(r, arb::axial_resistivity{*rL});
-                if (tempK) dec.paint(r, arb::temperature_K{*tempK});
+                if (Vm) {
+                    if (std::holds_alternative<double>(*Vm)) {
+                        dec.paint(r, arb::init_membrane_potential{std::get<double>(*Vm)});
+                    }
+                    else {
+                        const auto& s = std::get<std::string>(*Vm);
+                        auto ie = arborio::parse_iexpr_expression(s).unwrap();
+                        dec.paint(r, arb::init_membrane_potential{ie});
+                    }
+                }
+                if (cm) {
+                    if (std::holds_alternative<double>(*cm)) {
+                        dec.paint(r, arb::membrane_capacitance{std::get<double>(*cm)});
+                    }
+                    else {
+                        const auto& s = std::get<std::string>(*cm);
+                        auto ie = arborio::parse_iexpr_expression(s).unwrap();
+                        dec.paint(r, arb::membrane_capacitance{ie});
+                    }
+                }
+                if (rL) {
+                    if (std::holds_alternative<double>(*rL)) {
+                        dec.paint(r, arb::axial_resistivity{std::get<double>(*rL)});
+                    }
+                    else {
+                        const auto& s = std::get<std::string>(*rL);
+                        auto ie = arborio::parse_iexpr_expression(s).unwrap();
+                        dec.paint(r, arb::axial_resistivity{ie});
+                    }
+                }
+                if (tempK) {
+                    if (std::holds_alternative<double>(*tempK)) {
+                        dec.paint(r, arb::temperature_K{std::get<double>(*tempK)});
+                    }
+                    else {
+                        const auto& s = std::get<std::string>(*tempK);
+                        auto ie = arborio::parse_iexpr_expression(s).unwrap();
+                        dec.paint(r, arb::temperature_K{ie});
+                    }
+                }
                 return dec;
             },
             pybind11::arg("region"),

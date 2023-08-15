@@ -5,6 +5,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
 
+#include "backends/common_types.hpp"
 #include "execution_context.hpp"
 #include "memory/memory.hpp"
 #include "util/span.hpp"
@@ -22,16 +23,24 @@ namespace gpu {
 
 void test_thresholds_impl(
     int size,
-    const arb_index_type* cv_to_intdom, const arb_value_type* t_after, const arb_value_type* t_before,
-    const arb_index_type* src_to_spike, arb_value_type* time_since_spike, stack_storage<threshold_crossing>& stack,
-    arb_index_type* is_crossed, arb_value_type* prev_values,
-    const arb_index_type* cv_index, const arb_value_type* values, const arb_value_type* thresholds,
+    arb_value_type t_after,
+    arb_value_type t_before,
+    const arb_index_type* src_to_spike,
+    arb_value_type* time_since_spike,
+    stack_storage<threshold_crossing>& stack,
+    arb_index_type* is_crossed,
+    arb_value_type* prev_values,
+    const arb_index_type* cv_index,
+    const arb_value_type* values,
+    const arb_value_type* thresholds,
     bool record);
 
 void reset_crossed_impl(
     int size,
     arb_index_type* is_crossed,
-    const arb_index_type* cv_index, const arb_value_type* values, const arb_value_type* thresholds);
+    const arb_index_type* cv_index,
+    const arb_value_type* values,
+    const arb_value_type* thresholds);
 
 
 class threshold_watcher {
@@ -44,27 +53,26 @@ public:
 
     threshold_watcher(const execution_context& ctx): stack_(ctx.gpu) {}
 
-    threshold_watcher(
-        const arb_index_type* cv_to_intdom,
-        const arb_index_type* src_to_spike,
-        const array* t_before,
-        const array* t_after,
-        const arb_size_type num_cv,
-        const std::vector<arb_index_type>& detector_cv_idx,
-        const std::vector<arb_value_type>& thresholds,
-        const execution_context& ctx
-    ):
-        cv_to_intdom_(cv_to_intdom),
+    threshold_watcher(const arb_size_type num_cv,
+                      const arb_index_type* src_to_spike,
+                      const fvm_detector_info& info):
+        threshold_watcher{num_cv, src_to_spike, info.cv, info.threshold, info.ctx}
+    {}
+
+    threshold_watcher(const arb_size_type num_cv,
+                      const arb_index_type* src_to_spike,
+                      const std::vector<arb_index_type>& cv_index,
+                      const std::vector<arb_value_type>& thresholds,
+                      const execution_context& context):
         src_to_spike_(src_to_spike),
-        t_before_ptr_(t_before),
-        t_after_ptr_(t_after),
-        cv_index_(memory::make_const_view(detector_cv_idx)),
-        is_crossed_(detector_cv_idx.size()),
+        n_detectors_(cv_index.size()),
+        cv_index_(memory::make_const_view(cv_index)),
+        is_crossed_(n_detectors_),
         thresholds_(memory::make_const_view(thresholds)),
         v_prev_(num_cv),
         // TODO: allocates enough space for 10 spikes per watch.
         // A more robust approach might be needed to avoid overflows.
-        stack_(10*size(), ctx.gpu)
+        stack_(10*size(), context.gpu)
     {
         crossings_.reserve(stack_.capacity());
         // reset() needs to be called before this is ready for use
@@ -109,12 +117,13 @@ public:
     /// Crossing events are recorded for each threshold that has been
     /// crossed since current time t, and the last time the test was
     /// performed.
-    void test(array& time_since_spike) {
+    void test(array& time_since_spike, const arb_value_type& t_before, const arb_value_type& t_after) {
+        arb_assert(values_);
 
         if (size()>0) {
             test_thresholds_impl(
                 (int)size(),
-                cv_to_intdom_, t_after_ptr_->data(), t_before_ptr_->data(),
+                t_after, t_before,
                 src_to_spike_, time_since_spike.data(),
                 stack_.storage(),
                 is_crossed_.data(), v_prev_.data(),
@@ -132,16 +141,12 @@ public:
     }
 
 private:
-    /// Non-owning pointers to cv-to-intdom map,
-    /// the values for to test against thresholds,
-    /// and pointers to the time arrays
-    const arb_index_type* cv_to_intdom_ = nullptr;
+    // Non-owning pointers
     const arb_value_type* values_ = nullptr;
     const arb_index_type* src_to_spike_ = nullptr;
-    const array* t_before_ptr_ = nullptr;
-    const array* t_after_ptr_ = nullptr;
 
     // Threshold watch state, with data on gpu:
+    arb_size_type n_detectors_ = 0;
     iarray cv_index_;           // Compartment indexes of values to watch.
     iarray is_crossed_;         // Boolean flag for state of each watch.
     array thresholds_;          // Threshold for each watch.

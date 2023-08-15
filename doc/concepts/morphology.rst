@@ -602,6 +602,8 @@ because it has two children: the dendrites attached to its distal end.
       :width: 900
       :align: center
 
+.. _morph-edit:
+
 Editing morphologies
 --------------------
 

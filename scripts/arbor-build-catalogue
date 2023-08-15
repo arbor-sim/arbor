@@ -14,36 +14,21 @@ import re
 config = A.config()
 prefix = Path(config["prefix"])
 CXX = Path(config["CXX"])
-if not prefix.exists():
-    try:
-        # Example <>/lib/python3.10/site-packages/arbor
-        altern = Path(A.__path__[0]).parent.parent.parent.parent
-        print(
-            f"Warning: prefix '{prefix}' does not exist, falling back to '{altern}'.",
-            file=sys.stderr,
-        )
-        prefix = altern
-    except:
-        print(
-            f"Error: Neither prefix '{prefix}' nor fallback '{altern}' exist. Please specify the prefix where you keep your Python libraries with --prefix.",
-            file=sys.stderr,
-        )
-        exit(-1)
 if not CXX.exists():
-    try:
-        # Example <>/lib/python3.10/site-packages/arbor
-        altern = "c++"
-        print(
-            f"Warning: prefix '{CXX}' does not exist, falling back to '{altern}'.",
-            file=sys.stderr,
-        )
-        CXX = altern
-    except:
+    # Example <>/lib/python3.10/site-packages/arbor
+    altern = "c++"
+    from shutil import which
+    if which(altern) == None:
         print(
             f"Error: Neither prefix '{CXX}' nor fallback '{altern}' exist. Please provide a path to a C++ compiler with --cxx",
             file=sys.stderr,
         )
         exit(-1)
+    print(
+        f"Warning: prefix '{CXX}' does not exist, falling back to '{altern}'.",
+        file=sys.stderr,
+    )
+    CXX = altern
 
 
 def parse_arguments():
@@ -195,18 +180,39 @@ else:
     print(f"Internal Error: Unknown GPU type: {gpu}", file=sys.stderr)
     exit(-1)
 
-bindir = Path(args["prefix"]) / args["bin"]
-datdir = Path(args["prefix"]) / args["data"] / "arbor"
-pakdir = Path(args["prefix"]) / args["lib"] / "cmake" / "arbor"
+def check_dirs(dirry):
+    bindir = Path(dirry) / args["bin"]
+    datdir = Path(dirry) / args["data"] / "arbor"
+    pakdir = Path(dirry) / args["lib"] / "cmake" / "arbor"
 
-for path in [
-    bindir / "modcc",
-    datdir / "BuildModules.cmake",
-    pakdir / "arbor-config.cmake",
-]:
-    if not path.exists():
-        print(f"Could not find required tool: {path}. Please check your installation.")
-        exit(-1)
+    for path in [
+        bindir / "modcc",
+        datdir / "BuildModules.cmake",
+        pakdir / "arbor-config.cmake",
+    ]:
+        if not path.exists():
+            raise FileNotFoundError(f"Could not find required tool: {path}. Please check your installation.")
+    return bindir,datdir,pakdir
+
+paths=[
+    args["prefix"],
+    Path(A.__path__[0]).parent.parent.parent.parent,
+    Path(A.__path__[0]),
+]
+
+for path in paths:
+    try:
+        bindir,datdir,pakdir = check_dirs(path)
+    except:
+        pass
+try:
+    bindir
+except NameError:
+    print(
+        f"Could not find required tool: {paths}. Please check your installation.",
+        file=sys.stderr,
+    )
+    exit(-1)
 
 cmake = f"""
 cmake_minimum_required(VERSION 3.9)
@@ -306,13 +312,10 @@ with TemporaryDirectory() as tmp:
     cmake_cmd = "cmake .."
     make_cmd = "make"
     if verbose:
-        out, err = (None, None)
         make_cmd += " VERBOSE=1"
-    else:
-        out, err = (sp.PIPE, sp.PIPE)
     try:
-        sp.run(cmake_cmd, shell=True, check=True, stdout=out, stderr=err)
-        sp.run(make_cmd, shell=True, check=True, stdout=out, stderr=err)
+        sp.run(cmake_cmd, shell=True, check=True, capture_output = True, text = True)
+        sp.run(make_cmd, shell=True, check=True, capture_output = True, text = True)
         shutil.copy2(f"{name}-catalogue.so", pwd)
     except sp.CalledProcessError as e:
         import traceback as tb
@@ -321,9 +324,9 @@ with TemporaryDirectory() as tmp:
             # Not in verbose mode, so we have captured the
             # `stdout` and `stderr` and can print it to the user.
             sys.stdout.write("Build log:\n")
-            sys.stdout.write(e.stdout.decode())
+            sys.stdout.write(e.stdout)
             sys.stderr.write(tb.format_exc() + " Error:\n\n")
-            sys.stderr.write(e.stderr.decode())
+            sys.stderr.write(e.stderr)
         else:
             # In verbose mode the outputs weren't captured and
             # have been streamed to `stdout` and `stderr` already.

@@ -15,39 +15,65 @@ namespace arb {
 template <typename D, typename array, typename ion_state>
 struct shared_state_base {
 
-    void update_time_step(time_type dt_max, time_type tfinal) {
+    void update_time_to(const timestep_range::timestep& ts) {
         auto d = static_cast<D*>(this);
-        d->deliverable_events.drop_marked_events();
-        d->update_time_to(dt_max, tfinal);
-        d->deliverable_events.event_time_if_before(d->time_to);
-        d->set_dt();
+        d->time_to = ts.t_end();
+        d->dt = ts.dt();
     }
 
-    void begin_epoch(std::vector<deliverable_event> deliverables,
-                     std::vector<sample_event> samples) {
+    void next_time_step() {
+        auto d = static_cast<D*>(this);
+        d->time = d->time_to;
+    }
+
+    void begin_epoch(const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
+                     const std::vector<std::vector<sample_event>>& samples,
+                     const timestep_range& dts) {
         auto d = static_cast<D*>(this);
         // events
-        d->deliverable_events.init(std::move(deliverables));
+        auto& storage = d->storage;
+        for (auto& [mech_id, store] : storage) {
+            if (mech_id < staged_events_per_mech_id.size() && staged_events_per_mech_id[mech_id].size())
+            {
+                store.deliverable_events_.init(staged_events_per_mech_id[mech_id]);
+            }
+        }
         // samples
-        auto n_samples = samples.size();
+        auto n_samples = util::sum_by(samples, [] (const auto& s) {return s.size();});
         if (d->sample_time.size() < n_samples) {
             d->sample_time = array(n_samples);
             d->sample_value = array(n_samples);
         }
-        d->sample_events.init(std::move(samples));
+        d->sample_events.init(samples);
         // thresholds
         d->watcher.clear_crossings();
     }
 
+    void configure_solver(const fvm_cv_discretization& disc) {
+        auto d = static_cast<D*>(this);
+        d->solver = {disc.geometry.cv_parent, disc.geometry.cell_cv_divs, disc.cv_capacitance, disc.face_conductance, disc.cv_area};
+    }
 
     void add_ion(const std::string& ion_name,
-                 int charge,
                  const fvm_ion_config& ion_info,
                  typename ion_state::solver_ptr ptr=nullptr) {
         auto d = static_cast<D*>(this);
         d->ion_data.emplace(std::piecewise_construct,
                             std::forward_as_tuple(ion_name),
-                            std::forward_as_tuple(charge, ion_info, d->alignment, std::move(ptr)));
+                            std::forward_as_tuple(ion_info, d->alignment, std::move(ptr)));
+    }
+
+    void add_ions(const fvm_cv_discretization& disc,
+                  const std::unordered_map<std::string, fvm_ion_config>& ions) {
+        auto d = static_cast<D*>(this);
+        for (const auto& [ion, data]: ions) {
+            std::unique_ptr<typename ion_state::solver_type> solver = nullptr;
+            if (data.is_diffusive) solver = std::make_unique<typename ion_state::solver_type>(disc.geometry.cv_parent,
+                                                                                              disc.geometry.cell_cv_divs,
+                                                                                              data.face_diffusivity,
+                                                                                              disc.cv_area);
+            d->add_ion(ion, data, std::move(solver));
+        }
     }
 
     arb_value_type* mechanism_state_data(const mechanism& m,
@@ -63,22 +89,24 @@ struct shared_state_base {
         return nullptr;
     }
 
-    arb_deliverable_event_stream mark_deliverable_events() {
+    void mark_events() {
         auto d = static_cast<D*>(this);
-        d->deliverable_events.mark_until_after(d->time);
-        auto state = d->deliverable_events.marked_events();
-        arb_deliverable_event_stream result;
-        result.n_streams = state.n;
-        result.begin     = state.begin_offset;
-        result.end       = state.end_offset;
-        result.events    = (arb_deliverable_event_data*) state.ev_data; // FIXME(TH): This relies on bit-castability
-        return result;
+        auto& storage = d->storage;
+        for (auto& s : storage) {
+            s.second.deliverable_events_.mark();
+        }
     }
 
-
-    void next_time_step() {
+    void deliver_events(mechanism& m) {
         auto d = static_cast<D*>(this);
-        std::swap(d->time_to, d->time);
+        auto& storage = d->storage;
+        if (auto it = storage.find(m.mechanism_id()); it != storage.end()) {
+            auto& deliverable_events = it->second.deliverable_events_;
+            if (!deliverable_events.empty()) {
+                auto state = deliverable_events.marked_events();
+                m.deliver_events(state);
+            }
+        }
     }
 
     void reset_thresholds() {
@@ -88,17 +116,19 @@ struct shared_state_base {
 
     void test_thresholds() {
         auto d = static_cast<D*>(this);
-        d->watcher.test(d->time_since_spike);
+        d->watcher.test(d->time_since_spike, d->time, d->time_to);
     }
 
     void configure_stimulus(const fvm_stimulus_config& stims) {
-        auto d = static_cast<D*>(this);
-        d->stim_data = {stims, d->alignment};
+        if (!stims.cv.empty()) {
+            auto d = static_cast<D*>(this);
+            d->stim_data = {stims, d->alignment};
+        }
     }
 
     void add_stimulus_current() {
         auto d = static_cast<D*>(this);
-        d->stim_data.add_current(d->time, d->cv_to_intdom, d->current_density);
+        d->stim_data.add_current(d->time, d->current_density);
     }
 
     void ions_init_concentration() {
@@ -110,11 +140,11 @@ struct shared_state_base {
 
     void integrate_cable_state() {
         auto d = static_cast<D*>(this);
-        d->solver.solve(d->voltage, d->dt_intdom, d->current_density, d->conductivity);
+        d->solver.solve(d->voltage, d->dt, d->current_density, d->conductivity);
         for (auto& [ion, data]: d->ion_data) {
             if (data.solver) {
                 data.solver->solve(data.Xd_,
-                                   d->dt_intdom,
+                                   d->dt,
                                    d->voltage,
                                    data.iX_,
                                    data.gX_,
@@ -134,4 +164,4 @@ struct shared_state_base {
     }
 };
 
-}
+} // namespace arb

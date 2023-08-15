@@ -55,7 +55,7 @@ void generate_random_numbers(
     unsigned const grid_dim_x = block_count(width, block_dim);
     unsigned const grid_dim_y = num_rv;
 
-    kernel::generate_random_numbers<<<dim3{grid_dim_x, grid_dim_y, 1}, block_dim>>>(
+    launch({grid_dim_x, grid_dim_y, 1}, block_dim, kernel::generate_random_numbers,
         dst, width, width_padded, num_rv, seed, mech_id, counter, gid, idx, cbprng::cache_size());
 }
 

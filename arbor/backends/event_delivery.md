@@ -18,9 +18,7 @@ the lowered cell, and is passed by reference as a parameter to the mechanism
 
 Target handles are used by the lowered cell implementation to identify a particular mechanism
 instance that can receive events — ultimately via `net_receive` — and corresponding simulated
-cell. The cell information is given as an index into the cell group collection of cells,
-and is used to group events by integration domain (we have one domain per cell in each cell
-group).
+cell. The cell information is given as an index into the cell group collection of cells.
 
 Target handles are represented by the `target_handle` struct, opaque to `mc_cell_group`,
 but created in the `fvm_multicell` for each point mechanism (synapse) in the cell group.
@@ -33,34 +31,38 @@ a `target_handle` describing their destination, and a weight.
 
 ### Back-end event streams
 
-`backend::multi_event_stream` represents a set (one per cell/integration domain)
-of event streams. There is one `multi_event_stream` per lowered cell.
-
+`backend::multi_event_stream` represents a set of event streams. There is one `multi_event_stream`
+per mechanism storage `backend::shared_state::mech_storage`.
 From the perspective of the lowered cell, it must support the methods below.
-In the following, `time` is a `view` or `const_view` of an array with one
-element per stream.
 
 *  `void init(const std::vector<deliverable_event>& staged_events)`
 
-   Take a copy of the staged events (which must be ordered by increasing event time)
-   and initialize the streams by gathering the events by cell.
+   Take a copy of the staged events (which must be partitioned by the event index (a.k.a. the stream
+   index), and ordered by increasing event time within each partition) and initialize the streams.
 
 *  `bool empty() const`
 
    Return true if and only if there are no un-retired events left in any stream.
 
+*  `size_type n_streams() const`
+
+   Number of partitions/streams.
+
+*  `size_type n_remaining() const`
+
+   Number of remaining un-retired events among all streams.
+
+*  `size_type n_marked() const`
+
+   Number of marked events among all streams.
+
 *  `void clear()`
 
    Retire all events, leaving the `multi_event_stream` in an empty state.
 
-*  `void mark_until_after(const_view time)`
+*  `void mark_until_after(arb_value_type t_until)`
 
-   For all streams, mark events for delivery in the _i_ th stream with event time ≤ _time[i]_.
-
-*  `void event_times_if_before(view time) const`
-
-   For each stream, set _time[i]_ to the time of the next event time in the _i_ th stream
-   if such an event exists and has time less than _time[i]_.
+   For all streams, mark events for delivery with event time ≤ `t_until`.
 
 *  `void drop_marked_events()`
 
@@ -72,52 +74,33 @@ element per stream.
 Event delivery is performed as part of the integration loop within the lowered
 cell implementation. The interface is provided by the `multi_event_stream`
 described above, together with the mechanism method that handles the delivery proper,
-`mechanism::deliver_events` and a `backend` static method that computes the
-integration step end time before considering any pending events.
+`mechanism::deliver_events` and `backend` methods
+`shared_state::register_events`, `shared_state::mark_events` and `shared_state::deliver_events`.
+Events are considered as pending when their event time is within one time step of the current time:
+`event_time > time - dt/2 && event_time <= time + dt/2`.
 
 For `fvm_multicell` one integration step comprises:
 
 1.  Events for each cell that are due at that cell's corresponding time are
-    gathered with `events_.mark_events(time_)` where `time_` is a
-    `const_view` of the cell times and `events_` is a reference to the
-    `backend::multi_event_stream` object.
+    gathered with `state_>mark_events(step_midpoint)` where `step_midpoint` is
+    the current time plus half a time step (upper bound for pending event times). This method, in
+    turn, calls the `multi_event_stream::mark_until_after(step_midpoint)`.
 
 2.  Each mechanism is requested to deliver to itself any marked events that
-    are associated with that mechanism, via the virtual
-    `mechanism::apply_events(backend::multi_event_stream&)` method.
+    are associated with that mechanism, via the
+    `shared_state::deliver_events(const mechanism&)` method. This method eventually calls the virtual
+    `mechanism::apply_events(backend::multi_event_stream&)` method and retires the deliverd events
+    using `multi_event_stream::drop_marked_events`.
 
     This action must precede the computation of mechanism current contributions
     with `mechanism::compute_currents()`.
 
-3.  Marked events are discarded with `events_.drop_marked_events()`.
-
-4.  The upper bound on the integration step stop time `time_to_` is
-    computed via `backend::update_time_to(time_to_, time_, dt_max_, tfinal_)`,
-    as the minimum of the per-cell time `time_` plus `dt_max_` and
-    the final integration stop time `tfinal_`.
-
-5.  The integration step stop time `time_to_` is reduced to match any
-    pending events on each cell with `events_.event_times_if_before(time_to)`.
-
-6.  The solver matrix is assembled and solved to compute the voltages, using the
+3.  The solver matrix is assembled and solved to compute the voltages, using the
     newly computed currents and integration step times.
 
-7.  The mechanism states are updated with `mechanism::advance_state()`.
+4.  The mechanism states are updated with `mechanism::advance_state()`.
 
-8.  The cell times `time_` are set to the integration step stop times `time_to_`.
+5.  The cell times `time` are set to the integration step stop times `time_to`.
 
-9.  Spike detection for the last integration step is performed via the
+6.  Spike detection for the last integration step is performed via the
     `threshold_watcher_` object.
-
-## Consequences for the integrator
-
-Towards the end of the integration period, an integration step may have a zero _dt_
-for one or more cells within the group, and this needs to be handled correctly:
-
-*   Generated mechanism `advance_state()` methods should be numerically correct with
-    zero _dt_; a possibility is to guard the integration step with a _dt_ check.
-
-*   Matrix assemble and solve must check for zero _dt_. In the FVM `multicore`
-    matrix implementation, zero _dt_ sets the diagonal element to zero and the
-    rhs to the voltage; the solve procedure then ignores cells with a zero
-    diagonal element.

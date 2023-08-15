@@ -59,6 +59,12 @@ struct ARB_SYMBOL_VISIBLE bad_connection_source_gid: arbor_exception {
     cell_size_type num_cells;
 };
 
+struct ARB_SYMBOL_VISIBLE source_gid_exceeds_limit: arbor_exception {
+    source_gid_exceeds_limit(cell_gid_type gid, cell_gid_type src_gid);
+    cell_gid_type gid, src_gid;
+};
+
+
 struct ARB_SYMBOL_VISIBLE bad_connection_label: arbor_exception {
     bad_connection_label(cell_gid_type gid, const cell_tag_type& label, const std::string& msg);
     cell_gid_type gid;
@@ -131,6 +137,18 @@ struct ARB_SYMBOL_VISIBLE no_such_parameter: arbor_exception {
     std::string param_name;
 };
 
+struct ARB_SYMBOL_VISIBLE did_you_mean_global_parameter: arbor_exception {
+    did_you_mean_global_parameter(const std::string& mech_name, const std::string& param_name);
+    std::string mech_name;
+    std::string param_name;
+};
+
+struct ARB_SYMBOL_VISIBLE did_you_mean_normal_parameter: arbor_exception {
+    did_you_mean_normal_parameter(const std::string& mech_name, const std::string& param_name);
+    std::string mech_name;
+    std::string param_name;
+};
+
 struct ARB_SYMBOL_VISIBLE illegal_diffusive_mechanism: arbor_exception {
     explicit illegal_diffusive_mechanism(const std::string& mech, const std::string& ion);
     std::string mech;
@@ -187,6 +205,17 @@ struct ARB_SYMBOL_VISIBLE bad_alignment: arbor_exception {
 struct ARB_SYMBOL_VISIBLE unsupported_abi_error: arbor_exception {
     unsupported_abi_error(size_t);
     size_t version;
+};
+
+struct ARB_SYMBOL_VISIBLE bad_connection_request: arbor_exception {
+    bad_connection_request(): arbor_exception{"Illegal connection request. Is this an MPI context?"} {}
+};
+
+// General errors
+
+struct ARB_SYMBOL_VISIBLE arb_feature_disabled: arbor_exception {
+    arb_feature_disabled(const std::string& feature):
+        arbor_exception{"Tried to use a disabled feature: " + feature} {}
 };
 
 } // namespace arb

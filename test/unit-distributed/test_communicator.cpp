@@ -7,6 +7,7 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/lif_cell.hpp>
 #include <arbor/load_balance.hpp>
+#include <arbor/simulation.hpp>
 #include <arbor/spike_event.hpp>
 
 #include "communication/communicator.hpp"
@@ -17,6 +18,10 @@
 #include "util/filter.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
+
+#ifdef TEST_MPI
+#include <mpi.h>
+#endif
 
 using namespace arb;
 
@@ -448,7 +453,7 @@ test_ring(const domain_decomposition& D, communicator& C, F&& f) {
     std::reverse(local_spikes.begin(), local_spikes.end());
 
     // gather the global set of spikes
-    auto global_spikes = C.exchange(local_spikes);
+    const auto& [global_spikes, remote_spikes] = C.exchange(local_spikes);
     if (global_spikes.size()!=g_context->distributed->sum(local_spikes.size())) {
         return ::testing::AssertionFailure() << "the number of gathered spikes "
             << global_spikes.size() << " doesn't match the expected "
@@ -563,7 +568,7 @@ test_all2all(const domain_decomposition& D, communicator& C, F&& f) {
         filter(make_span(0, D.num_global_cells()), f));
 
     // gather the global set of spikes
-    auto global_spikes = C.exchange(local_spikes);
+    const auto& [global_spikes, remote_spikes] = C.exchange(local_spikes);
     if (global_spikes.size()!=g_context->distributed->sum(local_spikes.size())) {
         return ::testing::AssertionFailure() << "the number of gathered spikes "
             << global_spikes.size() << " doesn't match the expected "

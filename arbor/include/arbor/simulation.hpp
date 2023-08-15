@@ -17,6 +17,7 @@
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/util/handle_set.hpp>
+#include <arbor/serdes.hpp>
 
 namespace arb {
 
@@ -51,11 +52,17 @@ public:
 
     time_type run(time_type tfinal, time_type dt);
 
+    // Minimum delay in network τ
+    time_type min_delay();
+    // Maximal epoch length τ/2. Note that the last epoch can be shortened if
+    // the simulation length T is not an integer multiple of τ/2.
+    time_type max_epoch_length() { return min_delay()*0.5; }
+
     // Note: sampler functions may be invoked from a different thread than that
     // which called the `run` method.
 
     sampler_association_handle add_sampler(cell_member_predicate probeset_ids,
-        schedule sched, sampler_function f, sampling_policy policy = sampling_policy::lax);
+        schedule sched, sampler_function f);
 
     void remove_sampler(sampler_association_handle);
 
@@ -66,9 +73,6 @@ public:
     std::vector<probe_metadata> get_probe_metadata(cell_member_type probeset_id) const;
 
     std::size_t num_spikes() const;
-
-    // Set event binning policy on all our groups.
-    void set_binning_policy(binning_kind policy, time_type bin_interval);
 
     // Register a callback that will perform a export of the global
     // spike vector.
@@ -87,7 +91,14 @@ public:
     // are to be delivered at or after the current simulation time.
     void inject_events(const cse_vector& events);
 
+    // If remote connections are present, export only the spikes for which this
+    // predicate returns true.
+    void set_remote_spike_filter(const spike_predicate&);
+
     ~simulation();
+
+    friend void serialize(serializer&, const std::string&, const simulation&);
+    friend void deserialize(serializer&, const std::string&, simulation&);
 
 private:
     std::unique_ptr<simulation_state> impl_;
@@ -158,5 +169,8 @@ private:
 
 // An epoch callback function that prints out a text progress bar.
 ARB_ARBOR_API epoch_function epoch_progress_bar();
+
+ARB_ARBOR_API void serialize(arb::serializer&, const std::string&, const arb::simulation&);
+ARB_ARBOR_API void deserialize(arb::serializer&, const std::string&, arb::simulation&);
 
 } // namespace arb

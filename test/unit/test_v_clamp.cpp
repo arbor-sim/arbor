@@ -13,8 +13,8 @@
 #include <arborio/label_parse.hpp>
 using namespace arborio::literals;
 
-struct recipe: public arb::recipe {
-    recipe(bool clamp, bool limit): limit{limit}, clamp{clamp} {
+struct v_proc_recipe: public arb::recipe {
+    v_proc_recipe(bool clamp, bool limit): limit{limit}, clamp{clamp} {
         gprop.default_parameters = arb::neuron_parameter_defaults;
         gprop.default_parameters.discretization = arb::cv_policy_max_extent(1.0);
     }
@@ -89,14 +89,14 @@ TEST(v_process, clamp) {
             }
         }
     };
-    auto sim = arb::simulation(recipe{true, false});
+    auto sim = arb::simulation(v_proc_recipe{true, false});
     sim.add_sampler(arb::all_probes, arb::regular_schedule(0.05), fun);
     sim.run(1.0, 0.005);
 
     um_s_type exp_soma{{ 0, -65 },
                        { 0.05, -42 },
-                       { 0.095, -42 },
-                       { 0.145, -42 },
+                       { 0.1, -42 },
+                       { 0.15, -42 },
                        { 0.2, -42 },
                        { 0.25, -42 },
                        { 0.3, -42 },
@@ -115,8 +115,8 @@ TEST(v_process, clamp) {
                        { 0.95, -42 },};
     um_s_type exp_dend{{ 0, -65 },
                        { 0.05, -42.1167152 },
-                       { 0.095, -42.0917893 },
-                       { 0.145, -42.0464582 },
+                       { 0.1, -42.08809024},
+                       { 0.15, -42.04093455},
                        { 0.2, -41.9766685 },
                        { 0.25, -0.124773816 },
                        { 0.3, -0.0708536802 },
@@ -157,14 +157,14 @@ TEST(v_process, limit) {
             }
         }
     };
-    auto sim = arb::simulation(recipe{false, true});
+    auto sim = arb::simulation(v_proc_recipe{false, true});
     sim.add_sampler(arb::all_probes, arb::regular_schedule(0.05), fun);
     sim.run(1.0, 0.005);
 
     um_s_type exp_soma{{ 0, -65 },
                        { 0.05, -60 },
-                       { 0.095, -60 },
-                       { 0.145, -60 },
+                       { 0.1, -60 },
+                       { 0.15, -60 },
                        { 0.2, -60 },
                        { 0.25, -0.000425679283 },
                        { 0.3, 0 },
@@ -183,8 +183,8 @@ TEST(v_process, limit) {
                        { 0.95, 0 }};
     um_s_type exp_dend{{ 0, -65 },
                        { 0.05, -60.032677 },
-                       { 0.095, -60.0308171 },
-                       { 0.145, -60.028791 },
+                       { 0.1, -60.03061245 },
+                       { 0.15, -60.02859233 },
                        { 0.2, -60.0266703 },
                        { 0.25, -0.0178456839 },
                        { 0.3, -0.0168966758 },
@@ -225,7 +225,7 @@ TEST(v_process, clamp_fine) {
             }
         }
     };
-    auto rec = recipe{true, false};
+    auto rec = v_proc_recipe{true, false};
     rec.gprop.default_parameters.discretization = arb::cv_policy_max_extent(0.5);
     auto sim = arb::simulation(rec);
     sim.add_sampler(arb::all_probes, arb::regular_schedule(0.05), fun);
@@ -233,8 +233,8 @@ TEST(v_process, clamp_fine) {
 
     um_s_type exp_soma{{ 0, -65 },
                        { 0.05, -42 },
-                       { 0.095, -42 },
-                       { 0.145, -42 },
+                       { 0.1, -42 },
+                       { 0.15, -42 },
                        { 0.2, -42 },
                        { 0.25, -42 },
                        { 0.3, -42 },
@@ -253,8 +253,8 @@ TEST(v_process, clamp_fine) {
                        { 0.95, -42 },};
     um_s_type exp_dend{{ 0, -65 },
                        { 0.05, -42.1164544 },
-                       { 0.095, -42.0915289 },
-                       { 0.145, -42.0461939 },
+                       { 0.1, -42.0878294 },
+                       { 0.15, -42.04066987 },
                        { 0.2, -41.9764002 },
                        { 0.25, -0.124099713 },
                        { 0.3, -0.0701885048 },

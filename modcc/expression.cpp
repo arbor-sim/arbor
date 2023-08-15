@@ -606,10 +606,7 @@ void ProcedureExpression::semantic(scope_type::symbol_map &global_symbols) {
 *******************************************************************************/
 
 std::string APIMethod::to_string() const {
-    auto namestr = [] (Symbol* e) -> std::string {
-        return yellow(e->name());
-        return "";
-    };
+    auto namestr = [] (Symbol* e) -> std::string { return yellow(e->name()); };
     std::string str = blue("API method") + " " + yellow(name()) + "\n";
 
     str += blue("  locals") + " : ";
@@ -1229,7 +1226,6 @@ ARB_LIBMODCC_API expression_ptr unary_expression( Location loc,
                       << std::endl;;
             return nullptr;
     }
-    return nullptr;
 }
 
 ARB_LIBMODCC_API expression_ptr binary_expression( tok op,
@@ -1294,5 +1290,4 @@ ARB_LIBMODCC_API expression_ptr binary_expression(Location loc,
                       << std::endl;
             return nullptr;
     }
-    return nullptr;
 }

@@ -14,6 +14,7 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/serdes.hpp>
 #include <arbor/util/any_ptr.hpp>
 
 #include "backends/event.hpp"
@@ -21,6 +22,7 @@
 #include "backends/threshold_crossing.hpp"
 #include "execution_context.hpp"
 #include "sampler_map.hpp"
+#include "timestep_range.hpp"
 #include "util/meta.hpp"
 #include "util/range.hpp"
 #include "util/transform.hpp"
@@ -184,17 +186,17 @@ struct probe_association_map {
     }
 
     // Return range of fvm_probe_data values associated with probeset_id.
-    auto data_on(cell_member_type probeset_id) const {
+    // Trailing return type added here to avoid warnings about ODR violations when building shared
+    // lib together with LTO - needs to be re-checked in the future
+    auto data_on(cell_member_type probeset_id) const -> decltype(util::transform_view(util::make_range(data.equal_range(probeset_id)), util::second)) {
         return util::transform_view(util::make_range(data.equal_range(probeset_id)), util::second);
     }
 };
 
 struct fvm_initialization_data {
-    // Map from gid to integration domain id
-    std::vector<arb_index_type> cell_to_intdom;
-
     // Handles for accessing lowered cell.
     std::vector<target_handle> target_handles;
+    std::unordered_map<unsigned, arb_size_type> num_targets_per_mech_id;
 
     // Maps probe ids to probe handles and tags.
     probe_association_map probe_map;
@@ -219,19 +221,26 @@ struct fvm_lowered_cell {
         const recipe& rec) = 0;
 
     virtual fvm_integration_result integrate(
-        arb_value_type tfinal,
-        arb_value_type max_dt,
-        std::vector<deliverable_event> staged_events,
-        std::vector<sample_event> staged_samples) = 0;
+        const timestep_range& dts,
+        const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
+        const std::vector<std::vector<sample_event>>& staged_samples) = 0;
 
     virtual arb_value_type time() const = 0;
 
     virtual ~fvm_lowered_cell() {}
+
+    virtual void t_serialize(serializer& ser, const std::string& k) const = 0;
+    virtual void t_deserialize(serializer& ser, const std::string& k) = 0;
 };
 
 using fvm_lowered_cell_ptr = std::unique_ptr<fvm_lowered_cell>;
 
 ARB_ARBOR_API fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_context& ctx,
         std::uint64_t seed = 0);
+
+inline
+void serialize(serializer& s, const std::string& k, const fvm_lowered_cell& v) { v.t_serialize(s, k); }
+inline
+void deserialize(serializer& s, const std::string& k, fvm_lowered_cell& v) { v.t_deserialize(s, k); }
 
 } // namespace arb

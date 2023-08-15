@@ -10,6 +10,7 @@ set(bench_sources
     fvm_discretize.cpp
     mech_vec.cpp
     task_system.cpp
+    merge.cpp
 )
 
 if(ARB_WITH_GPU)

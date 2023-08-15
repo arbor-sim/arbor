@@ -57,7 +57,7 @@ struct cv_policy_bar_: cv_policy_base {
     }
 
     locset cv_boundary_points(const cable_cell& c) const override {
-        return unique_sum(ls::restrict(lhs_.cv_boundary_points(c), complement(rhs_.domain())), rhs_.cv_boundary_points(c));
+        return unique_sum(ls::restrict_to(lhs_.cv_boundary_points(c), complement(rhs_.domain())), rhs_.cv_boundary_points(c));
     }
 
     region domain() const override { return join(lhs_.domain(), rhs_.domain()); }
@@ -82,7 +82,7 @@ locset cv_policy_explicit::cv_boundary_points(const cable_cell& cell) const {
         ls::support(
             util::foldl(
                 [this](locset l, const auto& comp) {
-                    return sum(std::move(l), ls::restrict(locs_, comp));
+                    return sum(std::move(l), ls::restrict_to(locs_, comp));
                 },
                 ls::boundary(domain_),
                 components(cell.morphology(), thingify(domain_, cell.provider()))));
@@ -190,7 +190,7 @@ locset cv_policy_every_segment::cv_boundary_points(const cable_cell& cell) const
 
     return unique_sum(
                 ls::cboundary(domain_),
-                ls::restrict(ls::segment_boundaries(), domain_));
+                ls::restrict_to(ls::segment_boundaries(), domain_));
 }
 cv_policy_base_ptr cv_policy_every_segment::clone() const {
     return cv_policy_base_ptr(new cv_policy_every_segment(*this));

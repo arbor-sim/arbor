@@ -17,8 +17,10 @@ namespace util {
 
 // View over the keys (first elements) in a sequence of pairs or tuples.
 
+// Trailing return type added here to avoid warnings about ODR violations when building shared
+// lib together with LTO - needs to be re-checked in the future
 template <typename Seq>
-auto keys(Seq&& m) {
+auto keys(Seq&& m) -> decltype(util::transform_view(std::forward<Seq>(m), util::first)) {
     return util::transform_view(std::forward<Seq>(m), util::first);
 }
 
@@ -71,6 +73,22 @@ namespace maputil_impl {
         return std::nullopt;
     }
 
+    // use linear search
+    template <
+        typename Seq,
+        typename Key,
+        typename Eq = std::equal_to<>,
+        typename Ret = std::remove_reference_t<decltype(get<1>(*begin(std::declval<Seq&&>())))>
+    >
+    Ret value_by_key_or(std::false_type, Seq&& seq, const Key& key, Ret def, Eq eq=Eq{}) {
+        for (auto&& entry: seq) {
+            if (eq(get<0>(entry), key)) {
+                return get<1>(entry);
+            }
+        }
+        return def;
+    }
+
     template <
         typename Seq,
         typename Key,
@@ -107,6 +125,20 @@ namespace maputil_impl {
         typename FindRet = decltype(std::declval<Assoc&&>().find(std::declval<Key>())),
         typename Ret = std::remove_reference_t<decltype(get<1>(*std::declval<FindRet>()))>
     >
+    Ret value_by_key_or(std::true_type, Assoc&& map, const Key& key, Ret def) {
+        auto it = map.find(key);
+        if (it!=std::end(map)) {
+            return get<1>(*it);
+        }
+        return def;
+    }
+
+    template <
+        typename Assoc,
+        typename Key,
+        typename FindRet = decltype(std::declval<Assoc&&>().find(std::declval<Key>())),
+        typename Ret = std::remove_reference_t<decltype(get<1>(*std::declval<FindRet>()))>
+    >
     Ret* ptr_by_key(std::true_type, Assoc&& map, const Key& key) {
         auto it = map.find(key);
         return it!=std::end(map)? &get<1>(*it): nullptr;
@@ -125,6 +157,22 @@ auto value_by_key(C&& c, const Key& k) {
     return maputil_impl::value_by_key(
         std::integral_constant<bool, is_associative_container<C>::value>{},
         std::forward<C>(c), k);
+}
+
+// Return copy of value associated with key; if absent return default
+
+template <typename C, typename Key, typename Val, typename Eq>
+auto value_by_key_or(C&& c, const Key& k, Val&& v, Eq eq) {
+    return maputil_impl::value_by_key_or(std::false_type{}, std::forward<C>(c), k, v, eq);
+}
+
+template <typename C,
+          typename Key,
+          typename Val = std::remove_reference_t<decltype(std::get<1>(*begin(std::declval<C&&>())))>>
+auto value_by_key_or(C&& c, const Key& k, Val&& v) {
+    return maputil_impl::value_by_key_or(
+        std::integral_constant<bool, is_associative_container<C>::value>{},
+        std::forward<C>(c), k, v);
 }
 
 // Return pointer to value associated with key, or nullptr.

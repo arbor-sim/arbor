@@ -26,7 +26,7 @@ arbor_internal_error::arbor_internal_error(const std::string& what):
 domain_error::domain_error(const std::string& w): arbor_exception(w) {}
 
 bad_cell_probe::bad_cell_probe(cell_kind kind, cell_gid_type gid):
-    arbor_exception(pprintf("recipe::get_grobe() is not supported for cell with gid {} of kind {})", gid, kind)),
+    arbor_exception(pprintf("Probe kind is not supported for cell with gid {} of kind {}. Possibly the cell kind is not probeable at all.", gid, kind)),
     gid(gid),
     kind(kind)
 {}
@@ -43,8 +43,14 @@ invalid_mechanism_kind::invalid_mechanism_kind(arb_mechanism_kind kind):
 {}
 
 bad_connection_source_gid::bad_connection_source_gid(cell_gid_type gid, cell_gid_type src_gid, cell_size_type num_cells):
-    arbor_exception(pprintf("Model building error on cell {}: connection source gid {} is out of range: there are only {} cells in the model, in the range [{}:{}].", gid, src_gid, num_cells, 0, num_cells-1)),
+    arbor_exception(pprintf("Model building error on cell {}: connection source gid {} is out of range: there are {} cells in the model, in the range [{}:{}].", gid, src_gid, num_cells, 0, num_cells-1)),
     gid(gid), src_gid(src_gid), num_cells(num_cells)
+{}
+
+source_gid_exceeds_limit::source_gid_exceeds_limit(cell_gid_type gid, cell_gid_type src_gid):
+    arbor_exception(pprintf("Model building error on cell {}: connection source gid {} is out of range: gids may not exceed {}.",
+                            gid, src_gid, std::numeric_limits<cell_gid_type>::max()/2)),
+    gid(gid), src_gid(src_gid)
 {}
 
 bad_connection_label::bad_connection_label(cell_gid_type gid, const cell_tag_type& label, const std::string& msg):
@@ -102,6 +108,26 @@ fingerprint_mismatch::fingerprint_mismatch(const std::string& mech_name):
 
 no_such_parameter::no_such_parameter(const std::string& mech_name, const std::string& param_name):
     arbor_exception(pprintf("mechanism {} has no parameter {}", mech_name, param_name)),
+    mech_name(mech_name),
+    param_name(param_name)
+{}
+
+did_you_mean_global_parameter::did_you_mean_global_parameter(const std::string& mech_name, const std::string& param_name):
+    arbor_exception(pprintf("mechanism '{}' has no parameter '{}', "
+                            "but a global parameter with the same name exists. "
+                            "Use '{}/{}=...' to set it.",
+                            mech_name, param_name,
+                            mech_name, param_name)),
+    mech_name(mech_name),
+    param_name(param_name)
+{}
+
+did_you_mean_normal_parameter::did_you_mean_normal_parameter(const std::string& mech_name, const std::string& param_name):
+    arbor_exception(pprintf("mechanism '{}' has no global parameter '{}', "
+                            "but a normal parameter with the same name exists. "
+                            "Set it via the parameter map, eg 'density(\"{}\", {{\"{}\", ...}, ...})'",
+                            mech_name, param_name,
+                            mech_name, param_name)),
     mech_name(mech_name),
     param_name(param_name)
 {}

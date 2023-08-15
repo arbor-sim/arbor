@@ -1,13 +1,13 @@
 # Niels Lohmann's json library (single-header version).
 
 if(ARB_USE_BUNDLED_JSON)
-  add_library(ext-json INTERFACE)
-  target_include_directories(ext-json INTERFACE json/single_include)
-  set(json_library_name ext-json PARENT_SCOPE)
+  set(JSON_BuildTests OFF CACHE INTERNAL "")
+  add_subdirectory(json)
+  install(TARGETS nlohmann_json EXPORT arbor-targets)
+  message(STATUS "Using internal JSON.")
 endif()
 
 # Random123 (DE Shaw Research) counter-based random number generators (header-only)
-
 if(ARB_USE_BUNDLED_RANDOM123)
     check_git_submodule(random123 random123)
     if(NOT random123_avail)
@@ -92,18 +92,29 @@ add_external_cmake_project(
 
 # Google Test framework:
 
-# Set up google test as an external project.
-add_external_cmake_project(
-    NAME googletest
-    INTERFACE_NAME ext-gtest
-    LIB libgtest.a
-    CMAKE_ARGS
-        "-DCMAKE_BUILD_TYPE=release"
-        "-DBUILD_SHARED_LIBS=OFF"
-        "-DBUILD_GMOCK=OFF")
+if (ARB_USE_BUNDLED_GTEST)
+    # Set up google test as an external project.
+    add_external_cmake_project(
+        NAME googletest
+        INTERFACE_NAME ext-gtest
+        LIB libgtest.a
+        CMAKE_ARGS
+            "-DCMAKE_BUILD_TYPE=release"
+            "-DBUILD_SHARED_LIBS=OFF"
+            "-DBUILD_GMOCK=OFF")
 
-# on some systems we need link explicitly against threads
-if (TARGET ext-gtest)
-    find_package (Threads)
-    target_link_libraries(ext-gtest INTERFACE Threads::Threads)
+    # on some systems we need link explicitly against threads
+    if (TARGET ext-gtest)
+        find_package (Threads)
+        target_link_libraries(ext-gtest INTERFACE Threads::Threads)
+    endif()
+else()
+    # Use system provided google test
+    find_package(GTest)
+    add_library(ext-gtest INTERFACE)
+    if (${CMAKE_VERSION} VERSION_LESS "3.20.0")
+        target_link_libraries(ext-gtest INTERFACE GTest::GTest GTest::Main)
+    else()
+        target_link_libraries(ext-gtest INTERFACE GTest::gtest GTest::gtest_main)
+    endif()
 endif()

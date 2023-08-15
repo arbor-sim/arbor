@@ -22,17 +22,20 @@ public:
 
     void reset() override;
 
-    void set_binning_policy(binning_kind policy, time_type bin_interval) override {}
-
     const std::vector<spike>& spikes() const override;
 
     void clear_spikes() override;
 
-    void add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids, schedule sched, sampler_function fn, sampling_policy policy) override;
+    void add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids, schedule sched, sampler_function fn) override;
 
     void remove_sampler(sampler_association_handle h) override {}
 
     void remove_all_samplers() override {}
+
+    ARB_SERDES_ENABLE(benchmark_cell_group, cells_, spikes_, gids_);
+
+    void t_serialize(serializer& ser, const std::string& k) const override;
+    void t_deserialize(serializer& ser, const std::string& k) override;
 
 private:
     std::vector<benchmark_cell> cells_;

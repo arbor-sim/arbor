@@ -1,5 +1,6 @@
 #pragma once
 
+
 // Create/manipulate 1-d piecewise defined objects.
 //
 // A `pw_element<A>` describes a _value_ of type `A` and an _extent_ of
@@ -98,6 +99,8 @@
 #include <type_traits>
 #include <vector>
 
+#include <arbor/assert.hpp>
+
 #include "util/iterutil.hpp"
 #include "util/transform.hpp"
 #include "util/meta.hpp"
@@ -107,14 +110,11 @@ namespace arb {
 namespace util {
 
 using pw_size_type = unsigned;
-constexpr pw_size_type pw_npos = -1;
+constexpr pw_size_type pw_npos = static_cast<pw_size_type>(-1);
 
 template <typename X = void>
 struct pw_element {
-    pw_element():
-        extent(NAN, NAN),
-        value()
-    {}
+    pw_element(): pw_element{{NAN, NAN}, {}} {}
 
     pw_element(std::pair<double, double> extent, X value):
         extent(std::move(extent)),
@@ -136,10 +136,7 @@ struct pw_element {
 
 template <>
 struct pw_element<void> {
-    pw_element():
-        extent(NAN, NAN)
-    {}
-
+    pw_element(): pw_element{{NAN, NAN}} {}
     pw_element(std::pair<double, double> extent):
         extent(std::move(extent))
     {}
@@ -385,13 +382,8 @@ struct pw_elements {
 
     template <typename U>
     void push_back(double left, double right, U&& v) {
-        if (!empty() && left!=vertex_.back()) {
-            throw std::runtime_error("noncontiguous element");
-        }
-
-        if (right<left) {
-            throw std::runtime_error("inverted element");
-        }
+        if (!empty() && left != vertex_.back()) throw std::runtime_error("noncontiguous element");
+        if (right<left) throw std::runtime_error("inverted element");
 
         // Extend value_ first in case a conversion/copy/move throws.
         value_.push_back(std::forward<U>(v));
@@ -420,39 +412,28 @@ struct pw_elements {
 
         auto vi = begin(vertices);
         auto ve = end(vertices);
-
         auto ei = begin(values);
         auto ee = end(values);
 
-        if (ei==ee) { // empty case
-            if (vi!=ve) {
-                throw std::runtime_error("vertex list too long");
-            }
+        if (ei == ee) { // empty case
+            if (vi != ve) throw std::runtime_error{"Vertices and values need to have same length; values too long."};
             clear();
             return;
         }
-
-        if (vi==ve) {
-            throw std::runtime_error("vertex list too short");
-        }
-
         clear();
+        if (vi == ve) throw std::runtime_error{"Vertices and values need to have same length; values too short."};
 
+        reserve(vertices.size());
         double left = *vi++;
         double right = *vi++;
         push_back(left, right, *ei++);
 
-        while (ei!=ee) {
-            if (vi==ve) {
-                throw std::runtime_error("vertex list too short");
-            }
+        while (ei != ee) {
+            if (vi == ve) throw std::runtime_error{"Vertices and values need to have same length; values too short."};
             double right = *vi++;
             push_back(right, *ei++);
         }
-
-        if (vi!=ve) {
-            throw std::runtime_error("vertex list too long");
-        }
+        if (vi != ve) throw std::runtime_error{"Vertices and values need to have same length; values too long."};
     }
 
 private:
@@ -607,10 +588,7 @@ struct pw_elements<void> {
     }
 
     void push_back(double right) {
-        if (empty()) {
-            throw std::runtime_error("require initial left vertex for element");
-        }
-
+        if (empty()) throw std::runtime_error("require initial left vertex for element");
         push_back(vertex_.back(), right);
     }
 
@@ -626,18 +604,16 @@ struct pw_elements<void> {
         auto vi = begin(vertices);
         auto ve = end(vertices);
 
-        if (vi==ve) {
+        reserve(vertices.size());
+
+        if (vi == ve) {
             clear();
             return;
         }
 
         double left = *vi++;
-        if (vi==ve) {
-            throw std::runtime_error("vertex list too short");
-        }
-
+        if (vi == ve) throw std::runtime_error("vertex list too short");
         clear();
-
         double right = *vi++;
         push_back(left, right);
 
@@ -746,16 +722,51 @@ struct pw_zip_iterator {
 
     pw_zip_iterator() = default;
     pw_zip_iterator(const pw_elements<A>& a, const pw_elements<B>& b) {
-        double lmax = std::max(a.lower_bound(), b.lower_bound());
-        double rmin = std::min(a.upper_bound(), b.upper_bound());
+        // Default, both a and b are empty
+        is_end = true;
+        ai = a_end = a.end();
+        bi = b_end = b.end();
 
-        is_end = rmin<lmax;
-        if (!is_end) {
-            ai = a.equal_range(lmax).first;
-            a_end = a.equal_range(rmin).second;
-            bi = b.equal_range(lmax).first;
-            b_end = b.equal_range(rmin).second;
-            left = lmax;
+        if (!a.empty() && !b.empty()) {
+            const auto& [al, ah] = a.bounds();
+            const auto& [bl, bh] = b.bounds();
+            double lmax = std::max(al, bl);
+            double rmin = std::min(ah, bh);
+            is_end = rmin < lmax;
+
+            if (!is_end) {
+                ai = a.equal_range(lmax).first;
+                a_end = a.equal_range(rmin).second;
+                bi = b.equal_range(lmax).first;
+                b_end = b.equal_range(rmin).second;
+                left = lmax;
+            }
+        }
+        else if (!a.empty()) { // b must be empty
+            const auto& [al, ah] = a.bounds();
+            double lmax = al;
+            double rmin = ah;
+            is_end = rmin < lmax;
+            if (!is_end) {
+                ai = a.equal_range(lmax).first;
+                a_end = a.equal_range(rmin).second;
+                left = lmax;
+            }
+        }
+        else if (!b.empty()) { // a must be empty
+            const auto& [bl, bh] = b.bounds();
+            double lmax = bl;
+            double rmin = bh;
+            is_end = rmin < lmax;
+
+            if (!is_end) {
+                bi = b.equal_range(lmax).first;
+                b_end = b.equal_range(rmin).second;
+                left = lmax;
+            }
+        }
+        else {
+            // impossible
         }
     }
 
@@ -808,7 +819,6 @@ struct pw_zip_iterator {
         double a_right = ai->upper_bound();
         double b_right = bi->upper_bound();
         double right = std::min(a_right, b_right);
-
         return value_type{{left, right}, {*ai, *bi}};
     }
 
@@ -867,6 +877,8 @@ template <typename A, typename B, typename Fn = pw_pairify>
 auto pw_zip_with(const pw_elements<A>& a, const pw_elements<B>& b, Fn&& fn = Fn{}) {
     using Out = decltype(fn(std::pair<double, double>{}, a.front(), b.front()));
     pw_elements<Out> out;
+
+    out.reserve(a.size());
 
     for (auto elem: pw_zip_range(a, b)) {
         if constexpr (std::is_void_v<Out>) {

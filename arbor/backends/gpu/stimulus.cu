@@ -1,11 +1,11 @@
 #include <cmath>
 
-#include <arbor/fvm_types.hpp>
 #include <arbor/gpu/gpu_api.hpp>
 #include <arbor/gpu/gpu_common.hpp>
 #include <arbor/gpu/math_cu.hpp>
 
-#include "backends/gpu/stimulus.hpp"
+#include "stimulus.hpp"
+
 
 namespace arb {
 namespace gpu {
@@ -27,7 +27,7 @@ void istim_add_current_impl(int n, istim_pp pp) {
 
     arb_index_type ai = pp.accu_index[i];
     arb_index_type cv = pp.accu_to_cv[ai];
-    double t = pp.time[pp.cv_to_intdom[cv]];
+    double t = pp.time;
 
     if (ei_left==ei_right || t<pp.envl_times[ei_left]) return;
 
@@ -53,10 +53,7 @@ void istim_add_current_impl(int n, istim_pp pp) {
 } // namespace kernel
 
 ARB_ARBOR_API void istim_add_current_impl(int n, const istim_pp& pp) {
-    constexpr unsigned block_dim = 128;
-    const unsigned grid_dim = impl::block_count(n, block_dim);
-    if (!grid_dim) return;
-    kernel::istim_add_current_impl<<<grid_dim, block_dim>>>(n, pp);
+    launch_1d(n, 128, kernel::istim_add_current_impl, n, pp);
 }
 
 } // namespace gpu

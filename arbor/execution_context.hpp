@@ -25,12 +25,16 @@ struct ARB_ARBOR_API execution_context {
     task_system_handle thread_pool;
     gpu_context_handle gpu;
 
-    execution_context(const proc_allocation& resources = proc_allocation{});
+    execution_context(const proc_allocation& resources = proc_allocation{1,gpu_nil_id});
 
     // Use a template for constructing with a specific distributed context.
     // Specialised implementations are implemented in execution_context.cpp.
     template <typename Comm>
     execution_context(const proc_allocation& resources, Comm comm);
+
+    template <typename Comm>
+    execution_context(const proc_allocation& resources, Comm comm, Comm remote);
+
 };
 
 } // namespace arb

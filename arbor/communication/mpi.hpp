@@ -43,11 +43,11 @@ struct mpi_traits {
     }
 };
 
-#define MAKE_TRAITS(T,M)     \
-template <>                 \
-struct mpi_traits<T> {  \
-    constexpr static size_t count()            { return 1; } \
-    /* constexpr */ static MPI_Datatype mpi_type()   { return M; } \
+#define MAKE_TRAITS(T,M)                                        \
+template <>                                                     \
+struct mpi_traits<T> {                                          \
+    constexpr static size_t count()            { return 1; }    \
+    static MPI_Datatype mpi_type()   { return M; }              \
     constexpr static bool is_mpi_native_type() { return true; } \
 };
 
@@ -129,22 +129,18 @@ inline std::vector<std::string> gather(std::string str, int root, MPI_Comm comm)
 
 template <typename T>
 std::vector<T> gather_all(const std::vector<T>& values, MPI_Comm comm) {
-
     using traits = mpi_traits<T>;
-    std::vector<int> counts, displs;
-    counts = gather_all(int(values.size()), comm);
-    for (auto& c : counts) {
-        c *= traits::count();
-    }
+    auto counts = gather_all(int(values.size()), comm);
+    for (auto& c : counts) c *= traits::count();
+    std::vector<int> displs;
     util::make_partition(displs, counts);
-
     std::vector<T> buffer(displs.back()/traits::count());
+    auto send_count = values.size()*traits::count();
     MPI_OR_THROW(MPI_Allgatherv,
-            // const_cast required for MPI implementations that don't use const* in their interfaces
-            const_cast<T*>(values.data()), counts[rank(comm)], traits::mpi_type(),  // send buffer
-            buffer.data(), counts.data(), displs.data(), traits::mpi_type(), // receive buffer
-            comm);
-
+                 // const_cast required for MPI implementations that don't use const* in their interfaces
+                 const_cast<T*>(values.data()), send_count, traits::mpi_type(),  // send buffer
+                 buffer.data(), counts.data(), displs.data(), traits::mpi_type(), // receive buffer
+                 comm);
     return buffer;
 }
 

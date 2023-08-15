@@ -184,36 +184,24 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
             "using S::indirect;\n"
             "using S::assign;\n";
 
-        out << "static constexpr unsigned vector_length_ = ";
-        if (opt.simd.size == no_size) {
-            out << "S::simd_abi::native_width<arb_value_type>::value;\n";
-        } else {
-            out << opt.simd.size << ";\n";
-        }
-
-        out << "static constexpr unsigned simd_width_ = ";
-        if (opt.simd.width == no_size) {
-            out << " vector_length_ ? vector_length_ : " << opt.simd.default_width << ";\n";
-        } else {
-            out << opt.simd.width << ";\n";
-        }
-
         std::string abi = "S::simd_abi::";
         switch (opt.simd.abi) {
-        case simd_spec::avx:    abi += "avx";    break;
-        case simd_spec::avx2:   abi += "avx2";   break;
-        case simd_spec::avx512: abi += "avx512"; break;
-        case simd_spec::neon:   abi += "neon";   break;
-        case simd_spec::sve:    abi += "sve";    break;
-        case simd_spec::native: abi += "native"; break;
+        case simd_spec::avx:     abi += "avx";     break;
+        case simd_spec::avx2:    abi += "avx2";    break;
+        case simd_spec::avx512:  abi += "avx512";  break;
+        case simd_spec::neon:    abi += "neon";    break;
+        case simd_spec::sve:     abi += "sve";     break;
+        case simd_spec::vls_sve: abi += "vls_sve"; break;
+        case simd_spec::native:  abi += "native";  break;
         default:
             abi += "default_abi"; break;
         }
 
         out <<
-            "using simd_value = S::simd<arb_value_type, vector_length_, " << abi << ">;\n"
-            "using simd_index = S::simd<arb_index_type, vector_length_, " << abi << ">;\n"
-            "using simd_mask  = S::simd_mask<arb_value_type, vector_length_, "<< abi << ">;\n"
+            "using simd_value = S::simd<arb_value_type, " << opt.simd.size << ", " << abi << ">;\n"
+            "using simd_index = S::simd<arb_index_type, " << opt.simd.size << ", " << abi << ">;\n"
+            "using simd_mask  = S::simd_mask<arb_value_type, " << opt.simd.size << ", "<< abi << ">;\n"
+            "static constexpr unsigned simd_width_ = " << opt.simd.width << ";\n"
             "static constexpr unsigned min_align_ = std::max(S::min_align(simd_value{}), S::min_align(simd_index{}));\n"
             "\n"
             "inline simd_value safeinv(simd_value x) {\n"
@@ -251,13 +239,14 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     out << fmt::format(FMT_COMPILE("#define PPACK_IFACE_BLOCK \\\n"
                                    "[[maybe_unused]] auto {0}width                                                 = pp->width;\\\n"
                                    "[[maybe_unused]] auto {0}n_detectors                                           = pp->n_detectors;\\\n"
+                                   "[[maybe_unused]] auto {0}dt                                                    = pp->dt;\\\n"
                                    "[[maybe_unused]] arb_index_type * __restrict__ {0}vec_ci                       = pp->vec_ci;\\\n"
-                                   "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_dt                       = pp->vec_dt;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_v                        = pp->vec_v;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_i                        = pp->vec_i;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_g                        = pp->vec_g;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}temperature_degC             = pp->temperature_degC;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}diam_um                      = pp->diam_um;\\\n"
+                                   "[[maybe_unused]] arb_value_type * __restrict__ {0}area_um2                     = pp->area_um2;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}time_since_spike             = pp->time_since_spike;\\\n"
                                    "[[maybe_unused]] arb_index_type * __restrict__ {0}node_index                   = pp->node_index;\\\n"
                                    "[[maybe_unused]] arb_index_type * __restrict__ {0}peer_index                   = pp->peer_index;\\\n"
@@ -333,19 +322,13 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     if (net_receive_api) {
         out << fmt::format(FMT_COMPILE("static void apply_events(arb_mechanism_ppack* pp, arb_deliverable_event_stream* stream_ptr) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
-                                       "    auto ncell = stream_ptr->n_streams;\n"
-                                       "    for (arb_size_type c = 0; c<ncell; ++c) {{\n"
-                                       "        auto begin  = stream_ptr->events + stream_ptr->begin[c];\n"
-                                       "        auto end    = stream_ptr->events + stream_ptr->end[c];\n"
-                                       "        for (auto p = begin; p<end; ++p) {{\n"
-                                       "            auto i_     = p->mech_index;\n"
-                                       "            [[maybe_unused]] auto {1} = p->weight;\n"
-                                       "            if (p->mech_id=={0}mechanism_id) {{\n"),
-                           pp_var_pfx,
+                                       "    auto [begin_, end_] = *stream_ptr;\n"
+                                       "    for (; begin_<end_; ++begin_) {{\n"
+                                       "        [[maybe_unused]] auto [i_, {0}] = *begin_;\n"),
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
-        out << indent << indent << indent << indent;
+        out << indent << indent;
         emit_api_body(out, net_receive_api, net_recv_flags);
-        out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n" << popindent << "}\n\n";
+        out << popindent << "}\n" << popindent << "}\n\n";
     } else {
         out << "static void apply_events(arb_mechanism_ppack*, arb_deliverable_event_stream*) {}\n\n";
     }
@@ -826,12 +809,12 @@ void emit_simd_state_update(std::ostream& out,
                     out << fmt::format("{{\n"
                                        "  simd_value t_{}0_ = simd_cast<simd_value>(0.0);\n"
                                        "  assign(t_{}0_, indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_));\n"
-                                       "  {} -= t_{}0_;\n"
+                                       "  {} = S::sub({}, t_{}0_);\n"
                                        "  indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_) += S::mul({}, {});\n"
                                        "}}\n",
                                        name,
                                        name, data, node,
-                                       scaled, name,
+                                       scaled, scaled, name,
                                        data, node, weight, scaled);
             }
         }
@@ -854,12 +837,12 @@ void emit_simd_state_update(std::ostream& out,
                 out << fmt::format("{{\n"
                                    "  simd_value t_{}0_ = simd_cast<simd_value>(0.0);\n"
                                    "  assign(t_{}0_, indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_));\n"
-                                   "  {} -= t_{}0_;\n"
+                                   "  {} = S::sub({}, t_{}0_);\n"
                                    "  indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_) += S::mul({}, {});\n"
                                    "}}\n",
                                    name,
                                    name, data, node,
-                                   scaled, name,
+                                   scaled, scaled, name,
                                    data, node, weight, scaled);
             }
         }

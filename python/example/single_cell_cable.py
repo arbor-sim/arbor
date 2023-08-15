@@ -95,7 +95,7 @@ class Cable(arbor.recipe):
         decor = (
             arbor.decor()
             .set_property(Vm=self.Vm, cm=self.cm, rL=self.rL)
-            .paint('"cable"', arbor.density(f"pas/e={self.Vm}", {"g": self.g}))
+            .paint('"cable"', arbor.density(f"pas/e={self.Vm}", g=self.g))
             .place(
                 '"start"',
                 arbor.iclamp(

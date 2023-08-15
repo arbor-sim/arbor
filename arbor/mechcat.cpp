@@ -292,17 +292,22 @@ struct catalogue_state {
 
         // Update global parameter values in info for derived mechanism.
 
-        for (const auto& kv: global_params) {
-            const auto& param = kv.first;
-            const auto& value = kv.second;
-
+        for (const auto& [param, value]: global_params) {
             if (auto* p = ptr_by_key(new_info->globals, param)) {
                 if (!p->valid(value)) {
                     return unexpected_exception_ptr(invalid_parameter_value(name, param, value));
                 }
             }
             else {
-                return unexpected_exception_ptr(no_such_parameter(name, param));
+                if (new_info->parameters.count(param)) {
+                    return unexpected_exception_ptr(
+                        did_you_mean_normal_parameter(name.substr(0,
+                                                                  name.find('/')),
+                                                      param));
+                }
+                else {
+                    return unexpected_exception_ptr(no_such_parameter(name, param));
+                }
             }
 
             deriv.globals[param] = value;
@@ -595,7 +600,7 @@ std::pair<mechanism_ptr, mechanism_overrides> mechanism_catalogue::instance_impl
 
 mechanism_catalogue::~mechanism_catalogue() = default;
 
-ARB_ARBOR_API const mechanism_catalogue load_catalogue(const std::string& fn) {
+ARB_ARBOR_API const mechanism_catalogue load_catalogue(const std::filesystem::path& fn) {
     typedef void* global_catalogue_t(int*);
     global_catalogue_t* get_catalogue = nullptr;
     try {

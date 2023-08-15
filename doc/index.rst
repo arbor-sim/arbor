@@ -1,16 +1,25 @@
 Arbor
 =====
 
-|ci| |pythonwheels| |zlatest| |gitter|
+|ci| |spack| |pip| |pythonwheels| |zlatest| |gitter| |matrix|
 
-.. |ci| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml/badge.svg
-    :target: https://github.com/arbor-sim/arbor/actions/workflows/test-everything.yml
+.. |ci| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-matrix.yml/badge.svg
+    :target: https://github.com/arbor-sim/arbor/actions/workflows/test-matrix.yml
 
-.. |pythonwheels| image:: https://github.com/arbor-sim/arbor/actions/workflows/release.yml/badge.svg
-    :target: https://github.com/arbor-sim/arbor/actions/workflows/release.yml
+.. |spack| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-spack.yml/badge.svg
+    :target: https://github.com/arbor-sim/arbor/actions/workflows/test-spack.yml
+
+.. |pip| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-pip.yml/badge.svg
+    :target: https://github.com/arbor-sim/arbor/actions/workflows/test-pip.yml
+
+.. |pythonwheels| image:: https://github.com/arbor-sim/arbor/actions/workflows/build-pip-wheels.yml/badge.svg
+    :target: https://github.com/arbor-sim/arbor/actions/workflows/build-pip-wheels.yml
 
 .. |gitter| image:: https://badges.gitter.im/arbor-sim/community.svg
     :target: https://gitter.im/arbor-sim/community
+
+.. |matrix| image:: https://matrix.to/img/matrix-badge.svg
+    :target: https://matrix.to/#/#arbor-sim_community:gitter.im
 
 Welcome to the documentation for Arbor, the multi-compartment neural network simulation library.
 
@@ -31,10 +40,10 @@ Arbor is open source and openly developed, and we use development practices such
 Documentation organisation
 --------------------------
 
+* :ref:`features-overview` is an index of Arbor's major neuroscientific features and a collection of best practices and experiences collected from the Arbor modelling community, meant to spread information on how to solve common modelling questions in Arbor.
 * :ref:`tutorial` contains a few ready-made examples you can use to quickly get started using Arbor. In the tutorial descriptions we link to the relevant Arbor concepts.
 * :ref:`modelintro` describes the design and concepts used in Arbor. The breakdown of concepts is mirrored (as much as possible) in the :ref:`pyoverview` and :ref:`cppoverview`, so you can easily switch between languages and concepts.
 * The API section details our :ref:`pyoverview` and :ref:`cppoverview` API. The :ref:`dev-overview` describes Arbor code that is not user-facing; convenience classes, architecture abstractions, and other information that is relevant to understanding the inner workings of Arbor and the mathematical foundations underpinning the engine.
-* :ref:`modelling-overview` is a collection of best practices and experiences collected from the Arbor modelling community, meant to spread information on how to solve common modelling questions in Arbor.
 * Contributions to Arbor are very welcome! Under :ref:`contribindex` you'll find the conventions and procedures for all kinds of contributions.
 
 Citing Arbor
@@ -44,6 +53,9 @@ The Arbor software can be cited by version via Zenodo or via Arbors introductory
 
 Latest version
     |zlatest|
+
+Version 0.9.0
+    |z090|
 
 Version 0.8.1
     |z081|
@@ -83,6 +95,9 @@ Cite (Bibtex format)
 .. |zlatest| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1459678.svg
     :target: https://doi.org/10.5281/zenodo.1459678
 
+.. |z090| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.8233847.svg
+    :target: https://doi.org/10.5281/zenodo.8233847
+    
 .. |z081| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7473671.svg
     :target: https://doi.org/10.5281/zenodo.7473671
     
@@ -123,6 +138,7 @@ A full list of our software attributions can be found `here <https://github.com/
    :maxdepth: 1
 
    install/index
+   features/index
    tutorial/index
    ecosystem/index
    contrib/index
@@ -145,12 +161,6 @@ A full list of our software attributions can be found `here <https://github.com/
    concepts/probe_sample
 
 .. toctree::
-   :caption: Modelling:
-   :maxdepth: 1
-
-   modelling/index
-
-.. toctree::
    :caption: File formats:
    :maxdepth: 1
 
@@ -159,6 +169,7 @@ A full list of our software attributions can be found `here <https://github.com/
    fileformat/asc
    fileformat/nmodl
    fileformat/cable_cell
+   fileformat/serdes
 
 .. toctree::
    :caption: API reference:

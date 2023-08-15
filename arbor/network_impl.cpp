@@ -107,7 +107,7 @@ void push_back(std::vector<connection>& vec,
     const network_full_site_info& dest,
     double weight,
     double delay) {
-    vec.emplace_back(connection({src.gid, src.lid}, {dest.gid, dest.lid}, weight, delay));
+    vec.emplace_back(connection{{src.gid, src.lid}, {dest.gid, dest.lid}, weight, delay});
 }
 
 void push_back(std::vector<network_connection_info>& vec,

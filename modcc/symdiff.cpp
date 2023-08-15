@@ -13,6 +13,7 @@
 
 class FindIdentifierVisitor: public Visitor {
 public:
+    using Visitor::visit;
     explicit FindIdentifierVisitor(const identifier_set& ids): ids_(ids) {}
 
     void reset() { found_ = false; }
@@ -79,7 +80,7 @@ public:
     void visit(IfExpression* e) override {
         if (!found()) e->condition()->accept(this);
         if (!found()) e->true_branch()->accept(this);
-        if (!found()) e->false_branch()->accept(this);
+        if (!found() && e->false_branch()) e->false_branch()->accept(this);
     }
 
 private:
@@ -102,6 +103,7 @@ ARB_LIBMODCC_API bool involves_identifier(Expression* e, const std::string& id) 
 
 class SymPDiffVisitor: public Visitor, public error_stack {
 public:
+    using Visitor::visit;
     explicit SymPDiffVisitor(std::string id): id_(std::move(id)) {}
 
     void reset() { result_ = nullptr; }
@@ -713,6 +715,7 @@ ARB_LIBMODCC_API expression_ptr symbolic_pdiff(Expression* e, const std::string&
 
 class SubstituteVisitor: public Visitor {
 public:
+    using Visitor::visit;
     explicit SubstituteVisitor(const substitute_map& sub):
         sub_(sub) {}
 

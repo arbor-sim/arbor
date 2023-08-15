@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <iostream>
 
+#include <arbor/simd/sve_bits.hpp>
 #include <arbor/util/pp_util.hpp>
 
 #include "approx.hpp"
@@ -16,6 +17,9 @@
 namespace arb {
 namespace simd {
 namespace detail {
+
+// number of elements in a vector
+static constexpr unsigned max_sve_width = sve_bits/64;
 
 struct sve_double;
 struct sve_int;
@@ -33,7 +37,7 @@ template<> struct is_sve<svbool_t>    : std::true_type {};
 
 template <>
 struct simd_traits<sve_mask> {
-    static constexpr unsigned width = 8;
+    static constexpr unsigned width = max_sve_width;
     using scalar_type = bool;
     using vector_type = svbool_t;
     using mask_impl = sve_mask;
@@ -43,7 +47,7 @@ struct simd_traits<sve_mask> {
 
 template <>
 struct simd_traits<sve_double> {
-    static constexpr unsigned width = 8;
+    static constexpr unsigned width = max_sve_width;
     using scalar_type = double;
     using vector_type = svfloat64_t;
     using mask_impl = sve_mask;
@@ -53,7 +57,7 @@ struct simd_traits<sve_double> {
 
 template <>
 struct simd_traits<sve_int> {
-    static constexpr unsigned width = 8;
+    static constexpr unsigned width = max_sve_width;
     using scalar_type = int32_t;
     using vector_type = svint64_t;
     using mask_impl = sve_mask;
@@ -453,7 +457,7 @@ struct sve_double {
 
         // Compute n and g.
 
-        auto n = svrintz_f64_z(svptrue_b64(), add(mul(broadcast(ln2inv), x), broadcast(0.5)));
+        auto n = svrintm_f64_z(svptrue_b64(), add(mul(broadcast(ln2inv), x), broadcast(0.5)));
 
         auto g = fma(n, broadcast(-ln2C1), x);
         g = fma(n, broadcast(-ln2C2), g);
@@ -609,6 +613,56 @@ struct sve_double {
         return copy_from(r);
     }
 
+    static svfloat64_t step_right(const svfloat64_t& x) {
+        auto zeros = broadcast(0);
+        auto ones = broadcast(1);
+        return ifelse(cmp_geq(x, zeros), ones, zeros);
+    }
+
+    static svfloat64_t step_left(const svfloat64_t& x) {
+        auto zeros = broadcast(0);
+        auto ones = broadcast(1);
+        return ifelse(cmp_gt(x, zeros), ones, zeros);
+    }
+
+    static svfloat64_t step(const svfloat64_t& x) {
+        auto zeros = broadcast(0);
+        auto halfs = broadcast(0.5);
+        return add(
+            sub(
+                ifelse(cmp_gt(x, zeros), halfs, zeros),
+                ifelse(cmp_gt(zeros, x), halfs, zeros)),
+            halfs);
+    }
+
+    static svfloat64_t signum(const svfloat64_t& x) {
+        auto zeros = broadcast(0);
+        auto ones = broadcast(1);
+        return sub(ifelse(cmp_gt(x, zeros), ones, zeros),
+                   ifelse(cmp_gt(zeros, x), ones, zeros));
+    }
+
+    static svfloat64_t relu(const svfloat64_t& x) {
+        auto zeros = broadcast(0);
+        return ifelse(cmp_gt(x, zeros), x, zeros);
+    }
+
+    static svfloat64_t sigmoid(const svfloat64_t& x) {
+        auto ones = broadcast(1);
+        return div(ones, add(ones, exp(neg(x))));
+    }
+
+    static svfloat64_t tanh(const svfloat64_t& x) {
+        auto len = svlen_f64(x);
+        double a[len], r[len];
+        copy_to(x, a);
+
+        for (unsigned i = 0; i<len; ++i) {
+            r[i] = std::tanh(a[i]);
+        }
+        return copy_from(r);
+    }
+
     static unsigned simd_width(const svfloat64_t& m) {
         return svlen_f64(m);
     }
@@ -704,7 +758,7 @@ auto name(const typename detail::simd_traits<typename detail::sve_type_to_impl<T
 
 ARB_PP_FOREACH(ARB_SVE_BINARY_ARITHMETIC_, add, sub, mul, div, pow, max, min)
 ARB_PP_FOREACH(ARB_SVE_BINARY_ARITHMETIC_, cmp_eq, cmp_neq, cmp_leq, cmp_lt, cmp_geq, cmp_gt, logical_and, logical_or)
-ARB_PP_FOREACH(ARB_SVE_UNARY_ARITHMETIC_, logical_not, neg, abs, exp, log, expm1, exprelr, cos, sin, sqrt)
+ARB_PP_FOREACH(ARB_SVE_UNARY_ARITHMETIC_, logical_not, neg, abs, exp, log, expm1, exprelr, cos, sin, sqrt, step_right, step_left, step, signum, sigmoid, relu, tanh)
 
 #undef ARB_SVE_UNARY_ARITHMETIC_
 #undef ARB_SVE_BINARY_ARITHMETIC_

@@ -42,19 +42,22 @@ struct probe_info {
 // of internal gids, but we are not making the distinction between the
 // two in the current code. These two types could well be merged.
 
-struct cell_connection {
+template<typename L>
+struct cell_connection_base {
     // Connection end-points are represented by pairs
     // (cell index, source/target index on cell).
-
-    cell_global_label_type source;
-    cell_local_label_type dest;
+    L source;
+    cell_local_label_type target;
 
     float weight;
     float delay;
 
-    cell_connection(cell_global_label_type src, cell_local_label_type dst, float w, float d):
-        source(std::move(src)), dest(std::move(dst)), weight(w), delay(d) {}
+    cell_connection_base(L src, cell_local_label_type dst, float w, float d):
+        source(std::move(src)), target(std::move(dst)), weight(w), delay(d) {}
 };
+
+using cell_connection     = cell_connection_base<cell_global_label_type>;
+using ext_cell_connection = cell_connection_base<cell_remote_label_type>;
 
 struct gap_junction_connection {
     cell_global_label_type peer;
@@ -83,6 +86,12 @@ struct ARB_ARBOR_API has_synapses {
     virtual ~has_synapses() {}
 };
 
+struct ARB_ARBOR_API has_external_synapses {
+    virtual std::vector<ext_cell_connection> external_connections_on(cell_gid_type) const {
+        return {};
+    }
+};
+
 struct ARB_ARBOR_API has_probes {
     virtual std::vector<probe_info> get_probes(cell_gid_type gid) const {
         return {};
@@ -98,7 +107,10 @@ struct ARB_ARBOR_API has_generators {
 };
 
 // Toppings allow updating a simulation
-struct ARB_ARBOR_API connectivity: public has_synapses, has_generators {
+struct ARB_ARBOR_API connectivity:
+        public has_synapses,
+               has_external_synapses,
+               has_generators {
     virtual ~connectivity() {}
 };
 

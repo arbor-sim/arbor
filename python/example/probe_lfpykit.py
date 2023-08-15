@@ -88,7 +88,7 @@ def make_cable_cell(morphology, clamp_location):
         )
         # set passive mechanism all over
         # passive mech w. leak reversal potential (mV)
-        .paint("(all)", arbor.density("pas/e=-65", {"g": 0.0001}))
+        .paint("(all)", arbor.density("pas/e=-65", g=0.0001))
     )
 
     # set number of CVs per branch
@@ -125,9 +125,9 @@ sim = arbor.simulation(recipe)
 
 # set up sampling on probes with sampling every 1 ms
 schedule = arbor.regular_schedule(1.0)
-v_handle = sim.sample(recipe.vprobeset_id, schedule, arbor.sampling_policy.exact)
-i_handle = sim.sample(recipe.iprobeset_id, schedule, arbor.sampling_policy.exact)
-c_handle = sim.sample(recipe.cprobeset_id, schedule, arbor.sampling_policy.exact)
+v_handle = sim.sample(recipe.vprobeset_id, schedule)
+i_handle = sim.sample(recipe.iprobeset_id, schedule)
+c_handle = sim.sample(recipe.cprobeset_id, schedule)
 
 # run simulation for 500 ms of simulated activity and collect results.
 sim.run(tfinal=500)

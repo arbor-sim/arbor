@@ -173,19 +173,25 @@ Take for example the built-in mechanism for passive leaky dynamics:
     decor.paint('"soma"', arbor.density(m3)) # error: can't have overlap between two instances of a mechanism
                                              #        with different values for a global parameter.
 
-.. _cablecell-ions:
-
 .. _cablecell-scaled-mechs:
 
-4. Scaled mechanisms
+4. Scaling Mechanism and Membrane Parameters
 ~~~~~~~~~~~~~~~~~~~~~
-Mechanism parameters are usually homogeneous along a cell. However, sometimes it is useful to scale parameters based on inhomogeneous properties.
-:ref:`Inhomogeneous expressions  <labels-iexpr>` provide a way to describe a desired scaling formula, which for example can include the cell radius or the distance to a given set of locations.
-The name is inspired by NeuroML's https://docs.neuroml.org/Userdocs/Schemas/Cells.html#schema-inhomogeneousparameter.
-Such an expression is evaluated along the cell and yields a scaling factor, which is multiplied with the base value of the selected parameter.
-Internally, this evaluation and scaling is done at mid-points of the cable partition of the cell.
-Currently, only parameters of :ref:`density mechanisms <cablecell-density-mechs>` can be scaled.
 
+Mechanism parameters are usually homogeneous along a cell. However, sometimes it
+is useful to scale parameters based on inhomogeneous properties.
+:ref:`Inhomogeneous expressions <labels-iexpr>` provide a way to describe a
+desired scaling formula, which for example can include the cell radius or the
+distance to a given set of locations. The name is inspired by NeuroML's
+https://docs.neuroml.org/Userdocs/Schemas/Cells.html#schema-inhomogeneousparameter.
+Such an expression is evaluated along the cell and yields a scaling factor,
+which is multiplied with the base value of the selected parameter. Internally,
+this evaluation and scaling is done at mid-points of the cable partition of the
+cell. Currently, parameters of :ref:`density mechanisms
+<cablecell-density-mechs>` and painted (not defaulted) membrane parameters can
+be scaled. Eligible parameters are: temperature, membrane potential, axial
+resistivity, and membrane capacitance, as well as all ion parameters
+(diffusivity, reversal potential, and concentrations).
 
 .. code-block:: Python
 
@@ -195,6 +201,12 @@ Currently, only parameters of :ref:`density mechanisms <cablecell-density-mechs>
     decor = arbor.decor()
     # paint a scaled density mechanism, where 'g' is scaled with the distance from the root.
     decor.paint('"dend"', arbor.scaled_mechanism(arbor.density(m), {'g': '(distance 1.0 (root))'}))
+
+
+    # initial value for the membrane potential as inhomogeneous expression.
+    decor.paint('(all)', Vm='(mul 42 (diameter))')
+
+.. _cablecell-ions:
 
 5. Ion species
 ~~~~~~~~~~~~~~
@@ -287,6 +299,8 @@ using the *paint* interface:
     # Alternatively, one can selectively overwrite the global defaults.
     decor.paint('(tag 2)', arbor.ion('ca', rev_pot=126)
 
+.. _cablecell-ions-diffusion:
+
 To enable diffusion of ion species along the morphology (axial diffusion) one
 sets the per-species diffusivity to a positive value. It can be changed per
 region and defaults to zero. This is strictly passive transport according to the
@@ -342,13 +356,13 @@ A point mechanism (synapse) can form the target of a :term:`connection` on a cel
     expsyn = arbor.mechanism('expsyn')
 
     # Wrap the 'expsyn' mechanism in a `synapse` object and add it to the decor.
-    decor.place('"syn_loc_0"', arbor.synapse(expsyn))
+    decor.place('"syn_loc_0"', arbor.synapse(expsyn), "My_Synapse_1")
 
     # Create an 'expsyn' mechanism with default parameter values as a `synapse` object, and add it to the decor.
-    decor.place('"syn_loc_1"', arbor.synapse("expsyn"))
+    decor.place('"syn_loc_1"', arbor.synapse("expsyn"), "My_Synapse_2")
 
     # Create an 'expsyn' mechanism with modified 'tau' parameter as a `synapse` object, and add it to the decor.
-    decor.place('"syn_loc_2"', arbor.synapse("expsyn", {"tau": 1.0}))
+    decor.place('"syn_loc_2"', arbor.synapse("expsyn", {"tau": 1.0}), "My_Synapse_3")
 
 
 .. _cablecell-threshold-detectors:
@@ -399,10 +413,10 @@ on two separate cells.
     gj = arbor.mechanism("gj", {"g": 2.0})
 
     # Wrap the 'gj' mechanism in a `junction` object and add it to the decor.
-    decor.place('"gj_loc_0"', arbor.junction(gj))
+    decor.place('"gj_loc_0"', arbor.junction(gj), "My_Gap_Junction_1")
 
     # Create a 'gj' mechanism with modified 'g' parameter as a `junction` object, and add it to the decor.
-    decor.place('"gj_loc_1"', arbor.junction("gj", {"g": 1.5}))
+    decor.place('"gj_loc_1"', arbor.junction("gj", {"g": 1.5}), "My_Gap_Junction_2")
 
 .. _cablecell-stimuli:
 
@@ -447,6 +461,36 @@ constant stimuli and constant amplitude stimuli restricted to a fixed time inter
 ~~~~~~~~~
 
 See :ref:`probesample`.
+
+
+Predefined parameter sets
+-------------------------
+
+For convenience, Arbor provides predefined sets of parameters to use. Please
+refer to the API sections on how to enable these
+
+NEURON
+~~~~~~
+
+.. csv-table:: Parameter presets.
+   :widths: 30, 10, 10
+
+    **Parameter**,              **unit**, **NEURON**
+
+    initial membrane potential, [mV],     -65
+    temperature,                [K],      279.45
+    axial resistivity,          [Ω·cm],   35.4
+    membrane capacitance,       [F/m²],   0.01
+
+.. csv-table:: Ion presets.
+   :widths: 25, 10, 10, 10, 10
+
+    **Parameter**,          **unit**, **Na**, **K**, **Ca**
+
+    internal concentration, [mM],      10,    54.4,  0.00005
+    external concentration, [mM],     140,     2.5,  2
+    reversal potential,     [mV],      50,   -77,    132.458
+    diffusivity,            [m²/s],     0,     0,    0
 
 API
 ---

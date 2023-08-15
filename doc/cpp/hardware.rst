@@ -55,8 +55,8 @@ user-supplied values in environment values are in the header ``arborenv/default_
 
 .. cpp:function:: arb::proc_allocation default_allocation()
 
-   Return a :cpp:any:`proc_allocation` with thread count from :cpp:any:`default_concurrency()`
-   and gpu id from :cpp:any:`default_gpu()`.
+    Return a :cpp:any:`proc_allocation` with thread count from :cpp:any:`default_concurrency()`
+    and gpu id from :cpp:any:`default_gpu()`.
 
 .. cpp:function:: unsigned long default_concurrency()
 
@@ -65,102 +65,102 @@ user-supplied values in environment values are in the header ``arborenv/default_
 
 .. cpp:function:: int default_gpu()
 
-   Determine GPU id to use from the ARBENV_GPU_ID environment variable, or from the first available
-   GPU id of those detected.
+    Determine GPU id to use from the ARBENV_GPU_ID environment variable, or from the first available
+    GPU id of those detected.
 
-   Return value:
+    Return value:
 
-   * Return -1 if Arbor has no GPU support, or if the ARBENV_GPU_ID environment variable is set to a negative number, or if ARBENV_GPU_ID is empty or unset and no GPUs are detected.
-   * Return a non-negative GPU id equal to ARBENV_GPU_ID if it is set to a non-negative value that is a valid GPU id, or else to the first valid GPU id detected (typically zero).
+    * Return -1 if Arbor has no GPU support, or if the ARBENV_GPU_ID environment variable is set to a negative number, or if ARBENV_GPU_ID is empty or unset and no GPUs are detected.
+    * Return a non-negative GPU id equal to ARBENV_GPU_ID if it is set to a non-negative value that is a valid GPU id, or else to the first valid GPU id detected (typically zero).
 
-   Throws:
+    Throws:
 
-   * Throws :cpp:any:`arbenv::invalid_env_value` if ARBENV_GPU_ID contains a non-integer value.
-   * Throws :cpp:any:`arbenv::no_such_gpu` if ARBENV_GPU_ID contains a non-negative integer that does not correspond to a detected GPU.
+    * Throws :cpp:any:`arbenv::invalid_env_value` if ARBENV_GPU_ID contains a non-integer value.
+    * Throws :cpp:any:`arbenv::no_such_gpu` if ARBENV_GPU_ID contains a non-negative integer that does not correspond to a detected GPU.
 
 The header ``arborenv/concurrency.hpp`` supplies lower-level functions for querying the threading environment.
 
 .. cpp:function:: unsigned long thread_concurrency()
 
-   Attempts to detect the number of available CPU cores. Returns 1 if unable to detect
-   the number of cores.
+    Attempts to detect the number of available CPU cores. Returns 1 if unable to detect
+    the number of cores.
 
 .. cpp:function:: std::vector<int> get_affinity()
 
-   Returns the list of logical processor ids where the calling thread has affinity,
-   or an empty vector if unable to determine.
+    Returns the list of logical processor ids where the calling thread has affinity,
+    or an empty vector if unable to determine.
 
 The header ``arborenv/gpu_env.hpp`` supplies lower-level functions for querying the GPU environment.
 
 .. cpp:function:: int find_private_gpu(MPI_Comm comm)
 
-   A helper function that assigns a unique GPU to every MPI rank.
+    A helper function that assigns a unique GPU to every MPI rank.
 
-   .. Note::
+    .. Note::
 
-      Arbor allows at most one GPU per MPI rank, and furthermore requires that
-      an MPI rank has exclusive access to a GPU, i.e. two MPI ranks can not
-      share a GPU.
-      This function assigns a unique GPU to each rank when more than one rank
-      has access to the same GPU(s).
-      An example use case is on systems with "fat" nodes with multiple GPUs
-      per node, in which case Arbor should be run with multiple MPI ranks
-      per node.
-      Uniquely assigning GPUs is quite difficult, and this function provides
-      what we feel is a robust implementation.
+        Arbor allows at most one GPU per MPI rank, and furthermore requires that
+        an MPI rank has exclusive access to a GPU, i.e. two MPI ranks can not
+        share a GPU.
+        This function assigns a unique GPU to each rank when more than one rank
+        has access to the same GPU(s).
+        An example use case is on systems with "fat" nodes with multiple GPUs
+        per node, in which case Arbor should be run with multiple MPI ranks
+        per node.
+        Uniquely assigning GPUs is quite difficult, and this function provides
+        what we feel is a robust implementation.
 
-   All MPI ranks in the MPI communicator :cpp:any:`comm` should call to
-   avoid a deadlock.
+    All MPI ranks in the MPI communicator :cpp:any:`comm` should call to
+    avoid a deadlock.
 
-   Return value:
+    Return value:
 
-     * **non-negative integer**: the identifier of the GPU assigned to this rank.
-     * **-1**: no GPU was available for this MPI rank.
+    * **non-negative integer**: the identifier of the GPU assigned to this rank.
+    * **-1**: no GPU was available for this MPI rank.
 
-   Throws:
+    Throws:
 
-     * :cpp:any:`arbenv::gpu_uuid_error`: if there was an error in the CUDA runtime
-       on the local or remote MPI ranks, i.e. if one rank throws, all ranks
-       will throw.
+    * :cpp:any:`arbenv::gpu_uuid_error`: if there was an error in the CUDA runtime
+        on the local or remote MPI ranks, i.e. if one rank throws, all ranks
+        will throw.
 
 The header ``arborenv/with_mpi.hpp`` provides an RAII interface for initializing MPI
 and handling exceptions on MPI exit.
 
 .. cpp:class:: with_mpi
 
-   The :cpp:class:`with_mpi` type is a simple RAII scoped guard for MPI initialization
-   and finalization. On creation :cpp:class:`with_mpi` will call :cpp:any:`MPI_Init_thread`
-   to initialize MPI with the minimum level thread support required by Arbor, that is
-   ``MPI_THREAD_SERIALIZED``. When it goes out of scope it will automatically call
-   :cpp:any:`MPI_Finalize`.
+    The :cpp:class:`with_mpi` type is a simple RAII scoped guard for MPI initialization
+    and finalization. On creation :cpp:class:`with_mpi` will call :cpp:any:`MPI_Init_thread`
+    to initialize MPI with the minimum level thread support required by Arbor, that is
+    ``MPI_THREAD_SERIALIZED``. When it goes out of scope it will automatically call
+    :cpp:any:`MPI_Finalize`.
 
-   .. cpp:function:: with_mpi(int& argcp, char**& argvp, bool fatal_errors = true)
+    .. cpp:function:: with_mpi(int& argcp, char**& argvp, bool fatal_errors = true)
 
-      The constructor takes the :cpp:any:`argc` and :cpp:any:`argv` arguments
-      passed to main of the calling application, and an additional flag
-      :cpp:any:`fatal_errors` that toggles whether errors in MPI API calls
-      should return error codes or terminate.
+        The constructor takes the :cpp:any:`argc` and :cpp:any:`argv` arguments
+        passed to main of the calling application, and an additional flag
+        :cpp:any:`fatal_errors` that toggles whether errors in MPI API calls
+        should return error codes or terminate.
 
-   .. Warning::
+    .. Warning::
 
-      Handling exceptions is difficult in MPI applications, and it is the users
-      responsibility to do so.
+        Handling exceptions is difficult in MPI applications, and it is the users
+        responsibility to do so.
 
-      The :cpp:class:`with_mpi` scope guard attempts to facilitate error reporting of
-      uncaught exceptions, particularly in the case where one rank throws an exception,
-      while the other ranks continue executing. In this case there would be a deadlock
-      if the rank with the exception attempts to call :cpp:any:`MPI_Finalize` and
-      other ranks are waiting in other MPI calls. If this happens inside a try-catch
-      block, the deadlock stops the exception from being handled.
-      For this reason the destructor of :cpp:class:`with_mpi` only calls
-      :cpp:any:`MPI_Finalize` if there are no uncaught exceptions.
-      This isn't perfect because the other MPI ranks still deadlock,
-      however it gives the exception handling code to report the error for debugging.
+        The :cpp:class:`with_mpi` scope guard attempts to facilitate error reporting of
+        uncaught exceptions, particularly in the case where one rank throws an exception,
+        while the other ranks continue executing. In this case there would be a deadlock
+        if the rank with the exception attempts to call :cpp:any:`MPI_Finalize` and
+        other ranks are waiting in other MPI calls. If this happens inside a try-catch
+        block, the deadlock stops the exception from being handled.
+        For this reason the destructor of :cpp:class:`with_mpi` only calls
+        :cpp:any:`MPI_Finalize` if there are no uncaught exceptions.
+        This isn't perfect because the other MPI ranks still deadlock,
+        however it gives the exception handling code to report the error for debugging.
 
-   An example workflow that uses the MPI scope guard. Note that this code will
-   print the exception error message in the case where only one MPI rank threw
-   an exception, though it would either then deadlock or exit with an error code
-   that one or more MPI ranks exited without calling :cpp:any:`MPI_Finalize`.
+    An example workflow that uses the MPI scope guard. Note that this code will
+    print the exception error message in the case where only one MPI rank threw
+    an exception, though it would either then deadlock or exit with an error code
+    that one or more MPI ranks exited without calling :cpp:any:`MPI_Finalize`.
 
     .. container:: example-code
 
@@ -198,10 +198,10 @@ libarbor
 
 The core Arbor library *libarbor* provides an API for:
 
-  * prescribing which hardware resources are to be used by a
-    simulation using :cpp:class:`arb::proc_allocation`.
-  * opaque handles to hardware resources used by simulations called
-    :cpp:class:`arb::context`.
+* prescribing which hardware resources are to be used by a
+  simulation using :cpp:class:`arb::proc_allocation`.
+* opaque handles to hardware resources used by simulations called
+  :cpp:class:`arb::context`.
 
 .. cpp:namespace:: arb
 
@@ -249,6 +249,24 @@ The core Arbor library *libarbor* provides an API for:
 
         The number of CPU threads available.
 
+    .. cpp:member:: bool bind_procs
+
+        Try to generate a binding mask for all MPI processes on a node. This can
+        help with performance by suppressing unneeded task migrations from the
+        OS. See also `affinity
+        <https://en.wikipedia.org/wiki/Processor_affinity>`_. Do not enable if
+        process binding is handled externally, eg by SLURM or OpenMPI, or
+        disable it there first.
+
+    .. cpp:member:: bool bind_threads
+
+        Try to generate a binding mask for all threads on an MPI process. This can
+        help with performance by suppressing unneeded task migrations from the
+        OS. See also `affinity
+        <https://en.wikipedia.org/wiki/Processor_affinity>`_. If a process
+        binding mask is set -- either externally or by `bind_procs` --, it will
+        be respected.
+
     .. cpp:member:: int gpu_id
 
         The identifier of the GPU to use.
@@ -280,13 +298,18 @@ with and without distributed computation with MPI respectively.
 
     Create a local :cpp:class:`context`, with no distributed/MPI,
     that uses local resources described by :cpp:any:`alloc`.
-    By default it will create a context with one thread and no GPU.
+    By default it will create a context with :cpp:func:`thread_concurrency` threads and no GPU.
 
 .. cpp:function:: context make_context(proc_allocation alloc, MPI_Comm comm)
 
     Create a distributed :cpp:class:`context`.
     A context that uses the local resources described by :cpp:any:`alloc`, and
     uses the MPI communicator :cpp:var:`comm` for distributed calculation.
+
+.. cpp:function:: context make_context(proc_allocation alloc, MPI_Comm comm, MPI_Comm inter)
+
+    A second MPI communicator :cpp:var:`inter` can be supplied cross-simulator interaction.
+    See :ref:`interconnectivitycross`.
 
 Contexts can be queried for information about which features a context has enabled,
 whether it has a GPU, how many threads are in its thread pool, using helper functions.
@@ -407,12 +430,12 @@ Distributed context
 To support running on systems from laptops and workstations to large distributed
 HPC clusters, Arbor uses  *distributed contexts* to:
 
-    * Describe the distributed computer system that a simulation is to be
-      distributed over and run on.
-    * Perform collective operations over the distributed system, such as gather
-      and synchronization.
-    * Query information about the distributed system, such as the number of
-      distributed processes and the index/rank of the calling process.
+* Describe the distributed computer system that a simulation is to be
+    distributed over and run on.
+* Perform collective operations over the distributed system, such as gather
+    and synchronization.
+* Query information about the distributed system, such as the number of
+    distributed processes and the index/rank of the calling process.
 
 The global context used to run a simulation is determined at run time, not at compile time.
 This means that if Arbor is compiled with support for MPI enabled, then at run time the
@@ -467,8 +490,11 @@ A distributed context can then be generated using helper functions :cpp:func:`ar
         auto dist_ctx  arb::make_local_context();
 
         // Create an MPI context that uses the standard MPI_COMM_WORLD communicator.
-        auto dist_ctx = arb::make_mpi_context(MPI_COMM_WORLD);
-
+        auto dist_ctx = arb::make_mpi_context(MPI_COMM_WORLD, bind);
+        // if `bind` is true, Arbor will attempt to generate a process binding mask
+        // such that the processes on each node receive maximal partitions of the
+        // available hardware. Do not use if your MPI (like eg OpenMPI) or cluster
+        // manager set this (eg SLURM).
 
 Class documentation
 ^^^^^^^^^^^^^^^^^^^
@@ -716,22 +742,14 @@ To support dry-run mode we use the following classes:
 
     .. cpp:function:: std::vector<cell_connection> connections_on(cell_gid_type i) const
 
-        Calls
+        Calls ``tiled_recipe_.connections_on(i % tiled_recipe_->num_cells())``.
 
-        .. code-block:: cpp
-
-            tiled_recipe_.connections_on(i % tiled_recipe_->num_cells())
-
-        But the obtained connections have to be translated to refer to the correct
+        The obtained connections have to be translated to refer to the correct
         gids corresponding to the correct domain.
 
     .. cpp:function:: std::vector<event_generator> event_generators(cell_gid_type i) const
 
-        Calls
-
-        .. code-block:: cpp
-
-            tiled_recipe_.event_generators(i)
+        Calls ``tiled_recipe_.event_generators(i)``.
 
         Calls on the domain gid without the modulo operation, because the function has a
         knowledge of the entire network.

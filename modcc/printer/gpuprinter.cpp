@@ -133,13 +133,14 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
     out << fmt::format(FMT_COMPILE("#define PPACK_IFACE_BLOCK \\\n"
                                    "auto  {0}width             __attribute__((unused)) = params_.width;\\\n"
                                    "auto  {0}n_detectors       __attribute__((unused)) = params_.n_detectors;\\\n"
+                                   "auto  {0}dt                __attribute__((unused)) = params_.dt;\\\n"
                                    "arb_index_type * __restrict__ {0}vec_ci            __attribute__((unused)) = params_.vec_ci;\\\n"
-                                   "arb_value_type * __restrict__ {0}vec_dt            __attribute__((unused)) = params_.vec_dt;\\\n"
                                    "arb_value_type * __restrict__ {0}vec_v             __attribute__((unused)) = params_.vec_v;\\\n"
                                    "arb_value_type * __restrict__ {0}vec_i             __attribute__((unused)) = params_.vec_i;\\\n"
                                    "arb_value_type * __restrict__ {0}vec_g             __attribute__((unused)) = params_.vec_g;\\\n"
                                    "arb_value_type * __restrict__ {0}temperature_degC  __attribute__((unused)) = params_.temperature_degC;\\\n"
                                    "arb_value_type * __restrict__ {0}diam_um           __attribute__((unused)) = params_.diam_um;\\\n"
+                                   "arb_value_type * __restrict__ {0}area_um2          __attribute__((unused)) = params_.area_um2;\\\n"
                                    "arb_value_type * __restrict__ {0}time_since_spike  __attribute__((unused)) = params_.time_since_spike;\\\n"
                                    "arb_index_type * __restrict__ {0}node_index        __attribute__((unused)) = params_.node_index;\\\n"
                                    "arb_index_type * __restrict__ {0}peer_index        __attribute__((unused)) = params_.peer_index;\\\n"
@@ -223,21 +224,20 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
     // event delivery
     if (net_receive_api) {
         out << fmt::format(FMT_COMPILE("__global__\n"
-                                       "void apply_events(arb_mechanism_ppack params_, arb_deliverable_event_stream stream) {{\n"
+                                       "void apply_events(arb_mechanism_ppack params_, const arb_deliverable_event_data* begin_,\n"
+                                       "                  const arb_deliverable_event_data* end_) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
-                                       "    auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
-                                       "    if(tid_<stream.n_streams) {{\n"
-                                       "        auto begin = stream.events + stream.begin[tid_];\n"
-                                       "        auto end   = stream.events + stream.end[tid_];\n"
-                                       "        for (auto p = begin; p<end; ++p) {{\n"
-                                       "            if (p->mech_id=={1}mechanism_id) {{\n"
-                                       "                auto tid_ = p->mech_index;\n"
-                                       "                [[maybe_unused]] auto {0} = p->weight;\n"),
-                           net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name(),
-                           pp_var_pfx);
-        out << indent << indent << indent << indent;
+                                       "    const auto ii_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
+                                       "    if (ii_ < (end_ - begin_)) {{\n"
+                                       "        const auto tid_ = (begin_ + ii_)->mech_index;\n"
+                                       "        if ((ii_ > 0) && ((begin_ + (ii_ - 1))->mech_index == tid_)) return;\n"
+                                       "        for (auto i_ = begin_ + ii_; i_ < end_; ++i_) {{\n"
+                                       "            if (i_->mech_index != tid_) break;\n"
+                                       "            [[maybe_unused]] auto {0} = i_->weight;\n"),
+                           net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
+        out << indent << indent << indent;
         emit_api_body_cu(out, net_receive_api, ApiFlags{}.point(is_point_proc).loop(false).iface(false));
-        out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n" << popindent << "}\n";
+        out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n\n";
     }
 
     // event delivery
@@ -270,9 +270,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
         if(!e->body()->statements().empty()) {
             out << fmt::format(FMT_COMPILE("\n"
                                            "    auto n = p->{};\n"
-                                           "    unsigned block_dim = 128;\n"
-                                           "    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
-                                           "    {}<<<grid_dim, block_dim>>>(*p);\n"),
+                                           "    ::arb::gpu::launch_1d(n, 128, {}, *p);\n"),
                                width,
                                api_name);
         }
@@ -295,12 +293,14 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                            "    auto n = p->{0};\n"
                                            "    unsigned block_dim = 128;\n"
                                            "    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
-                                           "    {1}<<<grid_dim, block_dim>>>(*p);\n"
-                                           "    if (!p->multiplicity) return;\n"
-                                           "    multiply<<<dim3{{grid_dim, {2}}}, block_dim>>>(*p);\n"),
+                                           "    ::arb::gpu::launch(grid_dim, block_dim, {1}, *p);\n"
+                                           "    if (!p->multiplicity) return;\n"),
                                "width",
-                               api_name,
-                               n);
+                               api_name);
+            // only multiply if we actually have arrays
+            if (n) {
+                out << fmt::format(FMT_COMPILE("    ::arb::gpu::launch({{grid_dim, {}}}, block_dim, multiply, *p);\n"), n);
+            }
         }
         out << "}\n\n";
     }
@@ -318,10 +318,9 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
         out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack* p, arb_deliverable_event_stream* stream_ptr) {{"), class_name, api_name);
         if(!net_receive_api->body()->statements().empty()) {
             out << fmt::format(FMT_COMPILE("\n"
-                                           "    auto n = stream_ptr->n_streams;\n"
-                                           "    unsigned block_dim = 128;\n"
-                                           "    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
-                                           "    {}<<<grid_dim, block_dim>>>(*p, *stream_ptr);\n"),
+                                           "    const arb_deliverable_event_data* const begin = stream_ptr->begin;\n"
+                                           "    const arb_deliverable_event_data* const end = stream_ptr->end;\n"
+                                           "    ::arb::gpu::launch_1d(end - begin, 128, {}, *p, begin, end);\n"),
                                api_name);
         }
         out << "}\n\n";

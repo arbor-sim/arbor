@@ -134,6 +134,7 @@ The script is complete and can be run with Arbor installed, and will output:
    * Meta: (location 0 1)
    * Payload: (10, 2)
 
+.. _pycablecell-probesample-api:
 
 API
 ---
@@ -297,6 +298,24 @@ Ionic external concentration
    Metadata: the list of corresponding :class:`cable` objects.
 
    Kind: :term:`vector probe`.
+
+Ionic diffusion concrentration
+   .. py:function:: cable_probe_ion_diff_concentration_cell(ion)
+
+   Diffusive ionic concentration of the given ``ion`` for each cable in each CV.
+
+   Metadata: the explicit :class:`location` of the sample site.
+
+   Kind: :term:`vector probe`.
+
+   .. py:function:: cable_probe_ion_diff_concentration(where, ion)
+
+   Diffusive ionic concentration of the given ``ion`` at the
+   sites specified by the location expression string ``where``.
+
+   Metadata: the list of corresponding :class:`cable` objects.
+
+.. _pycablecell-probesample-lif:
 
 LIF Cell probing
 ================

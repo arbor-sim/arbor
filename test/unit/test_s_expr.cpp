@@ -505,7 +505,7 @@ TEST(regloc, round_tripping) {
         "(distal (tag 2))",
         "(proximal (join (tag 1) (tag 2)))",
         "(uniform (tag 1) 0 100 52)",
-        "(restrict (terminal) (tag 12))",
+        "(restrict-to (terminal) (tag 12))",
         "(on-components 0.3 (segment 2))",
         "(join (terminal) (root))",
         "(sum (terminal) (root))",
@@ -843,16 +843,35 @@ std::string round_trip_component(std::istream& stream) {
     }
 }
 
+TEST(decor_literals, double_to_iexpr_promotion) {
+    using namespace cable_s_expr;
+    std::vector<std::pair<std::string, std::string>> literals = {
+        {"(membrane-potential -65.1)", "(membrane-potential (scalar -65.1))"},
+        {"(temperature-kelvin 301)", "(temperature-kelvin (scalar 301))"},
+        {"(axial-resistivity 102)", "(axial-resistivity (scalar 102))"},
+    };
+
+    for (const auto& [in, out]: literals) {
+        std::string res;
+        if (auto x = arborio::parse_expression(in)) {
+            std::visit([&](auto&& p){res = to_string(p);}, *(eval_cast_variant<defaultable>(*x)));
+        }
+        else {
+            res = x.error().what();
+        }
+        EXPECT_EQ(res, out);
+    }
+}
 
 TEST(decor_literals, round_tripping) {
     auto paint_default_literals = {
-        "(membrane-potential -65.1)",
-        "(temperature-kelvin 301)",
-        "(axial-resistivity 102)",
-        "(membrane-capacitance 0.01)",
-        "(ion-internal-concentration \"ca\" 75.1)",
-        "(ion-external-concentration \"h\" -50.1)",
-        "(ion-reversal-potential \"na\" 30)"};
+        "(membrane-potential (scalar -65.1))",
+        "(temperature-kelvin (scalar 301))",
+        "(axial-resistivity (scalar 102))",
+        "(membrane-capacitance (scalar 0.01))",
+        "(ion-internal-concentration \"ca\" (scalar 75.1))",
+        "(ion-external-concentration \"h\" (scalar -50.1))",
+        "(ion-reversal-potential \"na\" (scalar 30))"};
     auto paint_literals = {
         "(voltage-process (mechanism \"hh\"))",
         "(density (mechanism \"hh\"))",
@@ -905,25 +924,25 @@ TEST(decor_literals, round_tripping) {
 TEST(decor_expressions, round_tripping) {
     using namespace cable_s_expr;
     auto decorate_paint_literals = {
-        "(paint (region \"all\") (membrane-potential -65.1))",
-        "(paint (tag 1) (temperature-kelvin 301))",
-        "(paint (distal-interval (location 3 0)) (axial-resistivity 102))",
-        "(paint (join (region \"dend\") (all)) (membrane-capacitance 0.01))",
-        "(paint (radius-gt (tag 3) 1) (ion-internal-concentration \"ca\" 75.1))",
-        "(paint (intersect (cable 2 0 0.5) (region \"axon\")) (ion-external-concentration \"h\" -50.1))",
-        "(paint (region \"my_region\") (ion-reversal-potential \"na\" 30))",
+        "(paint (region \"all\") (membrane-potential (scalar -65.1)))",
+        "(paint (tag 1) (temperature-kelvin (scalar 301)))",
+        "(paint (distal-interval (location 3 0)) (axial-resistivity (scalar 102)))",
+        "(paint (join (region \"dend\") (all)) (membrane-capacitance (scalar 0.01)))",
+        "(paint (radius-gt (tag 3) 1) (ion-internal-concentration \"ca\" (scalar 75.1)))",
+        "(paint (intersect (cable 2 0 0.5) (region \"axon\")) (ion-external-concentration \"h\" (scalar -50.1)))",
+        "(paint (region \"my_region\") (ion-reversal-potential \"na\" (scalar 30)))",
         "(paint (cable 2 0.1 0.4) (density (mechanism \"hh\")))",
         "(paint (cable 2 0.1 0.4) (scaled-mechanism (density (mechanism \"pas\" (\"g\" 0.02))) (\"g\" (exp (add (distance 2.1 (region \"my_region\")) (scalar 3.2))))))",
         "(paint (all) (density (mechanism \"pas\" (\"g\" 0.02))))"
     };
     auto decorate_default_literals = {
-        "(default (membrane-potential -65.1))",
-        "(default (temperature-kelvin 301))",
-        "(default (axial-resistivity 102))",
-        "(default (membrane-capacitance 0.01))",
-        "(default (ion-internal-concentration \"ca\" 75.1))",
-        "(default (ion-external-concentration \"h\" -50.1))",
-        "(default (ion-reversal-potential \"na\" 30))",
+        "(default (membrane-potential (scalar -65.1)))",
+        "(default (temperature-kelvin (scalar 301)))",
+        "(default (axial-resistivity (scalar 102)))",
+        "(default (membrane-capacitance (scalar 0.01)))",
+        "(default (ion-internal-concentration \"ca\" (scalar 75.1)))",
+        "(default (ion-external-concentration \"h\" (scalar -50.1)))",
+        "(default (ion-reversal-potential \"na\" (scalar 30)))",
         "(default (ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\")))",
         "(default (cv-policy (max-extent 2 (region \"soma\") 2)))"
     };
@@ -995,7 +1014,8 @@ TEST(decor, round_tripping) {
                                 "    (version \"" + arborio::acc_version() +"\"))\n"
                                 "  (decor \n"
                                 "    (default \n"
-                                "      (axial-resistivity 100.000000))\n"
+                                "      (axial-resistivity \n"
+                                "        (scalar 100)))\n"
                                 "    (default \n"
                                 "      (ion-reversal-potential-method \"na\" \n"
                                 "        (mechanism \"nernst\")))\n"
@@ -1028,7 +1048,8 @@ TEST(decor, round_tripping) {
                                 "      (join \n"
                                 "        (tag 1)\n"
                                 "        (tag 2))\n"
-                                "      (ion-internal-concentration \"ca\" 0.500000))\n"
+                                "      (ion-internal-concentration \"ca\" \n"
+                                "        (scalar 0.5)))\n"
                                 "    (place \n"
                                 "      (location 0 0)\n"
                                 "      (junction \n"

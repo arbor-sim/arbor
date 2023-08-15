@@ -108,11 +108,7 @@ Cable cells
 
      Return a read-only view onto all settings.
 
-   .. function:: set_ion(name,
-                         charge,
-                         internal_concentration, external_concentration,
-                         reversal_potential, reversal_potential_method,
-                         diffusivty)
+   .. function:: set_ion(name, charge, internal_concentration, external_concentration, reversal_potential, reversal_potential_method, diffusivty)
 
       Add a new ion to the global set of known species.
 
@@ -132,7 +128,7 @@ Cable cells
 
     Set the default value for the temperature (``K``).
 
-    .. property:: axial_resisitivity
+    .. property:: axial_resistivity
 
     Set the default value for the membrane axial resisitivity. (``Ω·cm``)
 

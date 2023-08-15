@@ -43,10 +43,7 @@ ARB_ARBOR_API void gather(
     const arb_index_type* p,
     unsigned n)
 {
-    constexpr unsigned blockdim = 128;
-    const unsigned griddim = impl::block_count(n, blockdim);
-
-    kernels::gather<<<griddim, blockdim>>>(from, to, p, n);
+    launch_1d(n, 128, kernels::gather<arb_value_type, arb_index_type>, from, to, p, n);
 }
 
 ARB_ARBOR_API void scatter(
@@ -55,10 +52,7 @@ ARB_ARBOR_API void scatter(
     const arb_index_type* p,
     unsigned n)
 {
-    constexpr unsigned blockdim = 128;
-    const unsigned griddim = impl::block_count(n, blockdim);
-
-    kernels::scatter<<<griddim, blockdim>>>(from, to, p, n);
+    launch_1d(n, 128, kernels::scatter<arb_value_type, arb_index_type>, from, to, p, n);
 }
 
 } // namespace gpu

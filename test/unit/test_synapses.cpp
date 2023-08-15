@@ -73,9 +73,11 @@ TEST(synapses, syn_basic_state) {
     using value_type = arb_value_type;
     using index_type = arb_index_type;
 
+    auto thread_pool = std::make_shared<arb::threading::task_system>();
+
     int num_syn = 4;
     int num_comp = 4;
-    int num_intdom = 1;
+    int num_cells = 1;
 
     value_type temp_K = *neuron_parameter_defaults.temperature_K;
 
@@ -87,21 +89,22 @@ TEST(synapses, syn_basic_state) {
 
     auto align = std::max(expsyn->data_alignment(), exp2syn->data_alignment());
 
-    shared_state state(num_intdom,
-                       num_intdom,
-                       std::vector<index_type>(num_comp, 0),
-                       std::vector<index_type>(num_comp, 0),
-                       std::vector<value_type>(num_comp, -65),
-                       std::vector<value_type>(num_comp, temp_K),
-                       std::vector<value_type>(num_comp, 1.),
-                       std::vector<index_type>(0),
+    shared_state state(thread_pool,
+                       num_cells,
+                       num_comp,
+                       std::vector<index_type>(num_comp, 0),      // cv -> cell
+                       std::vector<value_type>(num_comp, -65),    // U_m
+                       std::vector<value_type>(num_comp, temp_K), // T
+                       std::vector<value_type>(num_comp, 1.),     // diameter
+                       std::vector<value_type>(num_comp, 10.),    // area
+                       std::vector<index_type>(0),                // src -> spike
                        fvm_detector_info{},
                        align);
 
     state.reset();
     fill(state.current_density, 1.0);
-    fill(state.time_to, 0.1);
-    state.set_dt();
+    const auto dts = timestep_range(0.1, 0.1);
+    state.update_time_to(dts[0]);
 
     std::vector<index_type> syn_cv(num_syn, 0);
     std::vector<index_type> syn_mult(num_syn, 1);
@@ -149,24 +152,13 @@ TEST(synapses, syn_basic_state) {
     // Deliver two events (at time 0), one each to expsyn synapses 1 and 3
     // and exp2syn synapses 0 and 2.
 
-    std::vector<deliverable_event> events = {
-        {0., {0, 1, 0}, 3.14f},
-        {0., {0, 3, 0}, 1.41f},
-        {0., {1, 0, 0}, 2.71f},
-        {0., {1, 2, 0}, 0.07f}
-    };
-    state.deliverable_events.init(events);
-    state.deliverable_events.mark_until_after(state.time);
+    state.begin_epoch({{{{0., {0, 1}, 3.14f}, {0., {0, 3}, 1.41f}}},  // events for mech_id == 0
+                       {{{0., {1, 0}, 2.71f}, {0., {1, 2}, 0.07f}}}}, // events for mech_id == 1
+                      {}, dts);
+    state.mark_events();
 
-    auto marked = state.deliverable_events.marked_events();
-    arb_deliverable_event_stream evts;
-    evts.n_streams = marked.n;
-    evts.begin     = marked.begin_offset;
-    evts.end       = marked.end_offset;
-    evts.events    = (arb_deliverable_event_data*) marked.ev_data; // FIXME(TH): This relies on bit-castability
-
-    expsyn->deliver_events(evts);
-    exp2syn->deliver_events(evts);
+    state.deliver_events(*expsyn);
+    state.deliver_events(*exp2syn);
 
     using fvec = std::vector<arb_value_type>;
 

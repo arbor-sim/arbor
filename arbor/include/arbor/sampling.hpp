@@ -42,9 +42,4 @@ using sampler_function = std::function<
 
 using sampler_association_handle = std::size_t;
 
-enum class sampling_policy {
-    lax,
-    exact
-};
-
 } // namespace arb

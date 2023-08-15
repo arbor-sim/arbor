@@ -29,6 +29,26 @@ void copy(LHS&& from, RHS&& to) {
     coord.copy(lhs, rhs);
 }
 
+template <typename LHS, typename RHS>
+void copy_async(LHS&& from, RHS&& to) {
+    arb_assert(from.size() == to.size());
+#ifdef VERBOSE
+    std::cerr
+        << util::blue("copy_async") << " "
+        << util::pretty_printer<std::decay_t<LHS>>::print(from)
+        << util::cyan(" -> ")
+        << util::pretty_printer<std::decay_t<RHS>>::print(to)  << "\n";
+#endif
+    // adapt views to the inputs
+    auto lhs = make_const_view(from);
+    auto rhs = make_view(to);
+
+    // get a copy of the source view's coordinator
+    typename decltype(lhs)::coordinator_type coord;
+    // perform the copy
+    coord.copy_async(lhs, rhs);
+}
+
 template <typename LHS, typename T>
 void fill(LHS&& target, T value) {
     using lhs_type = std::decay_t<LHS>;

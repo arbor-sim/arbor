@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <arbor/mechanism.hpp>
+#include <arbor/serdes.hpp>
 
 #include <util/pimpl.hpp>
 #include <backends/rand_fwd.hpp>
@@ -18,6 +19,8 @@ public:
         arb_seed_type seed);
 
     void update(mechanism& m);
+
+    ARB_SERDES_ENABLE(random_numbers, data_, random_number_update_counter_);
 
   private:
     // random number device storage
