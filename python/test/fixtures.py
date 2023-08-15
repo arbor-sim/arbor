@@ -172,6 +172,18 @@ def dummy_catalogue(repo_path):
     cat_path = _build_cat("dummy", path)
     return arbor.load_catalogue(str(cat_path))
 
+@_singleton_fixture
+@repo_path()
+def diffusion_catalogue(repo_path):
+    """
+    Fixture that returns an `arbor.catalogue`
+    which contains mechanisms `neuron_with_diffusion`
+    and `synapse_with_diffusion`.
+    """
+    path = repo_path / "test" / "unit" / "diffusion"
+    cat_path = _build_cat("diffusion", path)
+    return arbor.load_catalogue(str(cat_path))
+
 
 @_fixture
 class empty_recipe(arbor.recipe):
