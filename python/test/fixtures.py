@@ -172,6 +172,7 @@ def dummy_catalogue(repo_path):
     cat_path = _build_cat("dummy", path)
     return arbor.load_catalogue(str(cat_path))
 
+
 @_singleton_fixture
 @repo_path()
 def diffusion_catalogue(repo_path):
