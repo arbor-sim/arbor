@@ -10,8 +10,8 @@ Tests for the concentration and amount of diffusive particles across time and mo
 Three different morphological structures are considered: 1 segment ("soma only"), 2 segments
 ("soma with dendrite"), and 3 segments ("soma with two dendrites").
 
-NOTE: Internally, Arbor only knows concentrations. Thus, particle amounts have to be computed 
-      from concentrations by integrating over the volume of the morphology. The total amount 
+NOTE: Internally, Arbor only knows concentrations. Thus, particle amounts have to be computed
+      from concentrations by integrating over the volume of the morphology. The total amount
       of particles should be conserved unless there is deliberate injection or removal of
       particles.
 """
@@ -89,12 +89,6 @@ class TestDiffusion(unittest.TestCase):
             radius_3 = 0
 
         length_per_seg = length / num_segs  # axial length of a segment in µm
-        area_tot = (
-            2 * np.pi * (radius_1 + radius_2 + radius_3) * length_per_seg
-        )  # surface area of the whole setup in µm^2 (excluding the circle-shaped ends, since Arbor does not consider current flux there)
-        area_per_cv = area_tot / (
-            num_segs * num_cvs_per_seg
-        )  # surface area of one cylindrical CV in µm^2 (excluding the circle-shaped ends, since Arbor does not consider current flux there)
         volume_tot = (
             np.pi * (radius_1**2 + radius_2**2 + radius_3**2) * length_per_seg
         )  # volume of the whole setup in µm^3
@@ -180,7 +174,7 @@ class TestDiffusion(unittest.TestCase):
                 }
             )
         else:
-            raise ValueError(f"Specified number of segments not supported.")
+            raise ValueError(f"Specified number of segments ({num_segs}) not supported.")
         morph = A.morphology(tree)
 
         # ---------------------------------------------------------------------------------------
@@ -248,7 +242,6 @@ class TestDiffusion(unittest.TestCase):
         # ---------------------------------------------------------------------------------------
         # retrieve data and do the testing
         data_s = sim.samples(hdl_s)[0][0]
-        times = data_s[:, 0]
         data_sV = sim.samples(hdl_sV)[0][0]
         tmp_data = sim.samples(hdl_sV_all)[0][0]
         data_sV_total = np.zeros_like(tmp_data[:, 0])
