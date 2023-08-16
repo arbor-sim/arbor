@@ -174,7 +174,9 @@ class TestDiffusion(unittest.TestCase):
                 }
             )
         else:
-            raise ValueError(f"Specified number of segments ({num_segs}) not supported.")
+            raise ValueError(
+                f"Specified number of segments ({num_segs}) not supported."
+            )
         morph = A.morphology(tree)
 
         # ---------------------------------------------------------------------------------------
