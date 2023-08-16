@@ -16,6 +16,7 @@ NOTE: Internally, Arbor only knows concentrations. Thus, particle amounts have t
       particles.
 """
 
+
 # ---------------------------------------------------------------------------------------
 # recipe class
 class recipe(A.recipe):
@@ -59,7 +60,6 @@ class recipe(A.recipe):
 # ---------------------------------------------------------------------------------------
 # test class
 class TestDiffusion(unittest.TestCase):
-
     # Constructor (overridden)
     def __init__(self, args):
         super(TestDiffusion, self).__init__(args)
@@ -72,7 +72,6 @@ class TestDiffusion(unittest.TestCase):
     def simulate_diffusion(
         self, cat, _num_segs, _num_cvs_per_seg, _length, _r_1, _r_2=0.0, _r_3=0.0
     ):
-
         # ---------------------------------------------------------------------------------------
         # set the main parameters and calculate geometrical measures
         num_segs = _num_segs  # number of segments
@@ -97,7 +96,7 @@ class TestDiffusion(unittest.TestCase):
             num_segs * num_cvs_per_seg
         )  # surface area of one cylindrical CV in µm^2 (excluding the circle-shaped ends, since Arbor does not consider current flux there)
         volume_tot = (
-            np.pi * (radius_1 ** 2 + radius_2 ** 2 + radius_3 ** 2) * length_per_seg
+            np.pi * (radius_1**2 + radius_2**2 + radius_3**2) * length_per_seg
         )  # volume of the whole setup in µm^3
         volume_per_cv = volume_tot / (
             num_segs * num_cvs_per_seg
@@ -150,7 +149,6 @@ class TestDiffusion(unittest.TestCase):
                 }
             )
         elif num_segs == 3:
-
             s = tree.append(
                 A.mnpos,
                 A.mpoint(-1 / 3 * length, 0, 0, radius_1),
@@ -302,7 +300,6 @@ class TestDiffusion(unittest.TestCase):
     # Test: simulations with equal radii
     @fixtures.diffusion_catalogue()
     def test_diffusion_equal_radii(self, diffusion_catalogue):
-
         self.simulate_diffusion(
             diffusion_catalogue, 1, 600, 10, 4
         )  # 1 segment with radius 4 µm
