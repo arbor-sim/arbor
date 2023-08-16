@@ -122,15 +122,16 @@ auto build_components(const gj_connection_table& global_gj_connection_table,
 }
 
 // Figure what backend and group size to use
-auto get_backend(cell_kind k, const partition_hint_map& hint_map, bool has_gpu) {
-    const auto& hint = util::value_by_key_or(hint_map, k, {});
+auto get_backend(context ctx, cell_kind kind, const partition_hint_map& hint_map) {
+    auto has_gpu = ctx->gpu->has_gpu() && cell_kind_supported(kind, backend_kind::gpu, *ctx);
+    const auto& hint = util::value_by_key_or(hint_map, kind, {});
     if (!hint.cpu_group_size) {
         throw arbor_exception(arb::util::pprintf("unable to perform load balancing because {} has invalid suggested cpu_cell_group size of {}",
-                                                 k, hint.cpu_group_size));
+                                                 kind, hint.cpu_group_size));
     }
     if (hint.prefer_gpu && !hint.gpu_group_size) {
         throw arbor_exception(arb::util::pprintf("unable to perform load balancing because {} has invalid suggested gpu_cell_group size of {}",
-                                                 k, hint.gpu_group_size));
+                                                 kind, hint.gpu_group_size));
     }
     if (hint.prefer_gpu && has_gpu) return std::make_pair(backend_kind::gpu, hint.gpu_group_size);
     return std::make_pair(backend_kind::multicore, hint.cpu_group_size);
@@ -138,14 +139,13 @@ auto get_backend(cell_kind k, const partition_hint_map& hint_map, bool has_gpu) 
 
 struct group_parameters {
     cell_kind kind;
-    bool has_gpu;
     backend_kind backend;
     size_t size;
 };
 
-// Create a flat vector of the cell kinds present on this node, partitioned such
-// that kinds for which GPU implementation are listed before the others. This is
-// a very primitive attempt at scheduling; the cell_groups that run on the GPU
+// Create a flat vector of the cell kinds present on this node, sorted such that
+// kinds for which GPU implementation are listed before the others. This is a
+// very primitive attempt at scheduling; the cell_groups that run on the GPU
 // will be executed before other cell_groups, which is likely to be more
 // efficient.
 //
@@ -157,11 +157,10 @@ auto build_group_parameters(context ctx,
                             const std::unordered_map<cell_kind, std::vector<cell_gid_type>>& kind_lists) {
     std::vector<group_parameters> res;
     for (const auto& [kind, _gids]: kind_lists) {
-        auto has_gpu = ctx->gpu->has_gpu() && cell_kind_supported(kind, backend_kind::gpu, *ctx);
-        const auto& [backend, group_size] = get_backend(kind, hint_map, has_gpu);
-        res.push_back({kind, has_gpu, backend, group_size});
+        const auto& [backend, group_size] = get_backend(ctx, kind, hint_map);
+        res.push_back({kind, backend, group_size});
     }
-    std::partition(res.begin(), res.end(), [](const auto& p) { return p.has_gpu; });
+    util::sort_by(res, [](const auto& p) { return p.kind; });
     return res;
 }
 

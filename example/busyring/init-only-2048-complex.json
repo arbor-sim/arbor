@@ -1,7 +1,7 @@
 {
     "name": "run_n=2045_d=10-complex=true",
-    "num-cells": 2048,
-    "synapses": 10,
+    "num-cells": 128,
+    "synapses": 20000,
     "min-delay": 5,
     "duration": 0.1,
     "ring-size": 4,
