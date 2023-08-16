@@ -7,6 +7,7 @@
 #include <arbor/recipe.hpp>
 #include <arbor/context.hpp>
 
+#include "cell_group_factory.hpp"
 #include "execution_context.hpp"
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
@@ -23,7 +24,6 @@ domain_decomposition::domain_decomposition(const recipe& rec,
     const auto* dist = ctx->distributed.get();
     num_domains_ = dist->size();
     domain_id_ = dist->id();
-    const bool has_gpu = ctx->gpu->has_gpu();
 
     // Collect and do a first check on the local gid set
     // * Are all GJ connected cells in the same group
@@ -31,12 +31,8 @@ domain_decomposition::domain_decomposition(const recipe& rec,
     for (const auto& g: groups_) {
         // Check whether GPU is supported and bail if not
         // TODO: This would benefit from generalisation; ie
-        // bool context::has_backend(backend_kind kind)
-        // bool compatible(cell_kind ck, backend_kind bk)
-        if (g.backend == backend_kind::gpu) {
-            if(!has_gpu) throw invalid_backend(domain_id_);
-            if (g.kind != cell_kind::cable) throw incompatible_backend(domain_id_, g.kind);
-        }
+        if (!has_backend(ctx, g.backend)) throw invalid_backend(domain_id_, g.backend);
+        if (!cell_kind_supported(g.kind, g.backend, *ctx)) throw incompatible_backend(domain_id_, g.kind, g.backend);
         // Check GJ cliques.
         std::unordered_set<cell_gid_type> gid_set(g.gids.begin(), g.gids.end());
         for (const auto& gid: gid_set) {

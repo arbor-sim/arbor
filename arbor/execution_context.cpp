@@ -72,10 +72,6 @@ ARB_ARBOR_API std::string distribution_type(context ctx) {
     return ctx->distributed->name();
 }
 
-ARB_ARBOR_API bool has_gpu(context ctx) {
-    return ctx->gpu->has_gpu();
-}
-
 ARB_ARBOR_API unsigned num_threads(context ctx) {
     return ctx->thread_pool->get_num_threads();
 }
@@ -90,6 +86,20 @@ ARB_ARBOR_API unsigned rank(context ctx) {
 
 ARB_ARBOR_API bool has_mpi(context ctx) {
     return ctx->distributed->name() == "MPI";
+}
+
+ARB_ARBOR_API bool has_gpu(context ctx) { return ctx->gpu->has_gpu(); }
+
+ARB_ARBOR_API bool has_backend(context ctx, backend_kind be) {
+    if (backend_kind::gpu == be) {
+        return has_gpu(ctx);
+    }
+    else if (backend_kind::multicore == be) {
+        return true;
+    } else {
+        // Impossible.
+        throw std::runtime_error{"Unknown backend"};
+    }
 }
 
 } // namespace arb

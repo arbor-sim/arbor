@@ -41,18 +41,21 @@ out_of_bounds::out_of_bounds(cell_gid_type gid, unsigned num_cells):
     num_cells(num_cells)
 {}
 
-invalid_backend::invalid_backend(int rank):
-    dom_dec_exception(pprintf("rank {} contains a group meant to run on GPU, but no GPU backend was detected in the context.",
-                              rank)),
-    rank(rank)
+invalid_backend::invalid_backend(int rank, backend_kind be):
+    dom_dec_exception(pprintf("rank {} contains a group requested to run on the {} backend, "
+                              "but no such backend detected in the context.",
+                              rank, backend_kind_str(be))),
+    rank(rank),
+    backend(be)
 {}
 
-incompatible_backend::incompatible_backend(int rank, cell_kind kind):
-    dom_dec_exception(pprintf("rank {} contains a group with cells of kind {} meant to run on the GPU backend, but no GPU backend support exists for {}",
-                              rank, kind, kind)),
+incompatible_backend::incompatible_backend(int rank, cell_kind kind, backend_kind be):
+    dom_dec_exception(pprintf("rank {} contains a group with cells of kind {} "
+                              "requested to run on the {} backend, which is not supported.",
+                              rank, cell_kind_str(kind), backend_kind_str(be))),
     rank(rank),
-    kind(kind)
+    kind(kind),
+    backend(be)
 {}
 
 } // namespace arb
-

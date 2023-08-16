@@ -40,14 +40,16 @@ struct ARB_SYMBOL_VISIBLE out_of_bounds: dom_dec_exception {
 };
 
 struct ARB_SYMBOL_VISIBLE invalid_backend: dom_dec_exception {
-    invalid_backend(int rank);
+    invalid_backend(int rank, backend_kind be);
     int rank;
+    backend_kind backend;
 };
 
 struct ARB_SYMBOL_VISIBLE incompatible_backend: dom_dec_exception {
-    incompatible_backend(int rank, cell_kind kind);
+    incompatible_backend(int rank, cell_kind kind, backend_kind back);
     int rank;
     cell_kind kind;
+    backend_kind backend;
 };
 } // namespace arb
 

@@ -136,6 +136,26 @@ enum class ARB_SYMBOL_VISIBLE cell_kind {
     benchmark,    // Proxy cell used for benchmarking.
 };
 
+inline ARB_ARBOR_API
+std::string backend_kind_str(backend_kind bk) {
+    switch (bk) {
+        case backend_kind::gpu:        return "gpu";
+        case backend_kind::multicore:  return "multicore";
+        default: throw std::runtime_error{"Unknown backend"};
+    }
+}
+
+inline ARB_ARBOR_API
+std::string cell_kind_str(cell_kind bk) {
+    switch (bk) {
+        case cell_kind::cable:        return "cable";
+        case cell_kind::lif:          return "lif";
+        case cell_kind::spike_source: return "spike_source";
+        case cell_kind::benchmark:    return "benchmark";
+        default: throw std::runtime_error{"Unknown cell"};
+    }
+}
+
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, lid_selection_policy m);
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, cell_member_type m);
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, cell_kind k);

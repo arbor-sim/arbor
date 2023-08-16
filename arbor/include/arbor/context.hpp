@@ -1,5 +1,6 @@
 #pragma once
 
+#include "arbor/common_types.hpp"
 #include <memory>
 
 #include <arbor/export.hpp>
@@ -78,6 +79,7 @@ ARB_ARBOR_API context make_context(const proc_allocation& resources, Comm comm, 
 // Queries for properties of execution resources in a context.
 
 ARB_ARBOR_API std::string distribution_type(context);
+ARB_ARBOR_API bool has_backend(context, backend_kind);
 ARB_ARBOR_API bool has_gpu(context);
 ARB_ARBOR_API unsigned num_threads(context);
 ARB_ARBOR_API bool has_mpi(context);
