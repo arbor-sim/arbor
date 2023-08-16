@@ -198,7 +198,9 @@ void update_remote_connections(const connectivity& rec,
     for (const auto gid: gids) {
         const auto& ext_conns = rec.external_connections_on(gid);
         for (const auto& conn: ext_conns) {
-            if(!is_external(conn.source.rid)) throw arb::source_gid_exceeds_limit(gid, conn.source.rid);
+            // NOTE: This might look like a bug, but the _remote id_ is consider locally
+            // in the remote id space, ie must not be already tagged as remote.
+            if(is_external(conn.source.rid)) throw arb::source_gid_exceeds_limit(gid, conn.source.rid);
             gid_ext_connections.emplace_back(conn);
         }
         part_ext_connections.push_back(gid_ext_connections.size());
