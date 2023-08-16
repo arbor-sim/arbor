@@ -35,7 +35,7 @@ domain_decomposition::domain_decomposition(const recipe& rec,
         if (!cell_kind_supported(g.kind, g.backend, *ctx)) throw incompatible_backend(domain_id_, g.kind, g.backend);
         // Check GJ cliques.
         std::unordered_set<cell_gid_type> gid_set(g.gids.begin(), g.gids.end());
-        for (const auto& gid: gid_set) {
+        for (const auto& gid: g.gids) {
             if (gid >= num_global_cells_) throw out_of_bounds(gid, num_global_cells_);
             for (const auto& gj: rec.gap_junctions_on(gid)) {
                 if (!gid_set.count(gj.peer.gid)) throw invalid_gj_cell_group(gid, gj.peer.gid);
