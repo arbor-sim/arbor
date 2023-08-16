@@ -116,6 +116,9 @@ struct ARB_ARBOR_API resolver {
 
     using state_variant = std::variant<round_robin_state, round_robin_halt_state, assert_univalent_state>;
 
+    void clear();
+    void reset();
+
 private:
     template<typename K, typename V>
     using map = std::unordered_map<K, V>;

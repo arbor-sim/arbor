@@ -227,5 +227,16 @@ cell_lid_type resolver::resolve(cell_gid_type gid, const cell_local_label_type& 
     return *lid;
 }
 
+
+void resolver::reset() {
+    for (auto& [gid, tags]: state_map_) {
+        for (auto& [tag, states]: tags) {
+            states.clear();
+        }
+    }
+}
+
+void resolver::clear() { state_map_.clear(); }
+
 } // namespace arb
 

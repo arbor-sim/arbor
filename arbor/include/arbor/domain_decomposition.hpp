@@ -39,7 +39,9 @@ struct group_description {
 class ARB_ARBOR_API domain_decomposition {
 public:
     domain_decomposition() = delete;
-    domain_decomposition(const recipe& rec, context ctx, const std::vector<group_description>& groups);
+    domain_decomposition(const recipe& rec,
+                         context ctx,
+                         std::vector<group_description> groups);
 
     domain_decomposition(const domain_decomposition&) = default;
     domain_decomposition& operator=(const domain_decomposition&) = default;
@@ -54,10 +56,8 @@ public:
     const group_description& group(unsigned) const;
 
 private:
-    /// Return the domain id of cell with gid.
-    /// Supplied by the load balancing algorithm that generates the domain
-    /// decomposition.
-    std::function<int(cell_gid_type)> gid_domain_;
+    /// Obtain the domain id of cell with gid.
+    std::unordered_map<cell_gid_type, int> gid_map_;
 
     /// Number of distributed domains
     int num_domains_;

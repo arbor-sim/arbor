@@ -63,10 +63,9 @@ public:
     /// all events that must be delivered to targets in that cell group as a
     /// result of the global spike exchange, plus any events that were already
     /// in the list.
-    void make_event_queues(
-            const gathered_vector<spike>& global_spikes,
-            std::vector<pse_vector>& queues,
-            const std::vector<spike>& external_spikes={});
+    void make_event_queues(const gathered_vector<spike>& global_spikes,
+                           std::vector<pse_vector>& queues,
+                           const std::vector<spike>& external_spikes={});
 
     /// Returns the total number of global spikes over the duration of the simulation
     std::uint64_t num_spikes() const;

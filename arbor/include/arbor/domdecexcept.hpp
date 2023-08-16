@@ -26,6 +26,13 @@ struct ARB_SYMBOL_VISIBLE duplicate_gid: dom_dec_exception {
     cell_gid_type gid;
 };
 
+struct ARB_SYMBOL_VISIBLE skipped_gid: dom_dec_exception {
+    skipped_gid(cell_gid_type gid, cell_gid_type nxt);
+    cell_gid_type gid;
+    cell_gid_type nxt;
+};
+
+
 struct ARB_SYMBOL_VISIBLE out_of_bounds: dom_dec_exception {
     out_of_bounds(cell_gid_type gid, unsigned num_cells);
     cell_gid_type gid;

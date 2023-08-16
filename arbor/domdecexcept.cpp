@@ -28,6 +28,12 @@ duplicate_gid::duplicate_gid(cell_gid_type gid):
     gid(gid)
 {}
 
+skipped_gid::skipped_gid(cell_gid_type gid, cell_gid_type nxt):
+    dom_dec_exception(pprintf("gid list must be contiguous, found [..., {}, {}, ...]",
+                              gid, nxt)),
+    gid(gid), nxt(nxt)
+{}
+
 out_of_bounds::out_of_bounds(cell_gid_type gid, unsigned num_cells):
     dom_dec_exception(pprintf("cell {} is out-of-bounds of the allowed gids in the simulation which has {} total cells.",
                               gid, num_cells)),
