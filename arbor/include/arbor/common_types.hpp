@@ -12,6 +12,7 @@
 #include <iosfwd>
 #include <string>
 #include <type_traits>
+#include <stdexcept>
 
 #include <arbor/util/lexcmp_def.hpp>
 #include <arbor/util/hash_def.hpp>
