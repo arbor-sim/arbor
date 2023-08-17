@@ -307,16 +307,12 @@ Locset expressions
       On the left is the region with radius between 0.3 μm and 0.5 μm.
       The right shows the proximal set of this region.
 
-.. label:: (boundary reg:region) and (cboundary reg:region)
+.. label:: (boundary reg:region), (cboundary reg:region), and (segment-boundaries)
 
-    Boundary of (completed) region. The examples show ``(boundary (segment 2))``
-    and ``(cboundary (segment 2))``.
+    Boundary of (completed) region and those of all segments. The examples show
+    ``(boundary (segment 2))``, ``(cboundary (segment 2))``, and ``(segment-boundaries)``.
 
-    .. figure:: ../gen-images/boundary_label.svg
-      :width: 600
-      :align: center
-
-    .. figure:: ../gen-images/cboundary_label.svg
+    .. figure:: ../gen-images/boundaries_label.svg
       :width: 600
       :align: center
 

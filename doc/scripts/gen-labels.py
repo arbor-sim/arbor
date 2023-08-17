@@ -214,6 +214,7 @@ locsets = {
     "componentsmid": '(on-components 0.5 (region "dend"))',
     "boundary": '(boundary (segment 2))',
     "cboundary": '(cboundary (segment 2))',
+    "sboundary": '(segment-boundaries)',
     "distal": '(distal   (region "rad36"))',
     "proximal": '(proximal (region "rad36"))',
     "distint_in": "(sum (location 1 0.5) (location 2 0.7) (location 5 0.1))",

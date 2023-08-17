@@ -425,10 +425,15 @@ def generate(path=""):
         inputs.label_morph, [inputs.ls_branchmid], path + "/on_branches_label.svg"
     )
     label_image(
-        inputs.label_morph, [inputs.ls_boundary], path + "/boundary_label.svg"
+        inputs.label_morph, [], path + "/boundary_label.svg"
     )
     label_image(
-        inputs.label_morph, [inputs.ls_cboundary], path + "/cboundary_label.svg"
+        inputs.label_morph,
+        [inputs.ls_boundary,
+         inputs.ls_cboundary,
+         inputs.ls_sboundary,
+         ],
+        path + "/boundaries_label.svg"
     )
 
     label_image(
