@@ -514,6 +514,21 @@ def generate(path=""):
         [inputs.reg_lhs, inputs.reg_rhs, inputs.reg_and],
         path + "/intersect_label.svg",
     )
+    label_image(
+        inputs.label_morph,
+        [inputs.reg_lhs, inputs.reg_rhs, inputs.reg_diff],
+        path + "/difference_label.svg",
+    )
+    label_image(
+        inputs.label_morph,
+        [inputs.reg_rhs, inputs.reg_complement],
+        path + "/complement_label.svg",
+    )
+    label_image(
+        inputs.label_morph,
+        [inputs.reg_rhs, inputs.reg_completion],
+        path + "/completion_label.svg",
+    )
     label_image(inputs.label_morph, [inputs.reg_radlt5], path + "/radiuslt_label.svg")
     label_image(inputs.label_morph, [inputs.reg_radle5], path + "/radiusle_label.svg")
     label_image(inputs.label_morph, [inputs.reg_radgt5], path + "/radiusgt_label.svg")

@@ -198,6 +198,9 @@ regions = {
     "rhs": "(branch 1)",
     "and": '(intersect (region "lhs") (region "rhs"))',
     "or": '(join      (region "lhs") (region "rhs"))',
+    "diff": '(difference (region "lhs") (region "rhs"))',
+    "complement": '(complement (region "rhs"))',
+    "completion": '(complete (region "rhs"))',
 }
 locsets = {
     "root": "(root)",
