@@ -1,18 +1,16 @@
-#include <queue>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <algorithm>
 
 #include <arbor/domdecexcept.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
-#include <arbor/symmetric_recipe.hpp>
 #include <arbor/context.hpp>
 
 #include "cell_group_factory.hpp"
 #include "execution_context.hpp"
-#include "gpu_context.hpp"
 #include "util/maputil.hpp"
 #include "util/partition.hpp"
 #include "util/span.hpp"
@@ -84,7 +82,7 @@ auto build_components(const gj_connection_table& global_gj_connection_table,
     // track visited cells (cells that already belong to a group)
     gj_connection_set visited;
     // Connected components via BFS
-    std::queue<cell_gid_type> q;
+    std::vector<cell_gid_type> q;
     for (auto gid: util::make_span(local_gid_range)) {
         if (global_gj_connection_table.count(gid)) {
             // If cell hasn't been visited yet, must belong to new component
@@ -92,16 +90,16 @@ auto build_components(const gj_connection_table& global_gj_connection_table,
                 // pivot gid: the smallest found in this group; must be at
                 // smaller or equal to `gid`.
                 auto min_gid = gid;
-                q.push(gid);
+                q.push_back(gid);
                 super_cell sc;
                 while (!q.empty()) {
-                    auto element = q.front();
-                    q.pop();
+                    auto element = q.back();
+                    q.pop_back();
                     sc.push_back(element);
                     min_gid = std::min(element, min_gid);
                     // queue up conjoined cells
                     for (const auto& peer: global_gj_connection_table.at(element)) {
-                        if (visited.insert(peer).second) q.push(peer);
+                        if (visited.insert(peer).second) q.push_back(peer);
                     }
                 }
                 // if the pivot gid belongs to our domain, this group will be part
@@ -117,7 +115,8 @@ auto build_components(const gj_connection_table& global_gj_connection_table,
         }
     }
     // append super cells to result
-    res.insert(res.end(), super_cells.begin(), super_cells.end());
+    res.reserve(res.size() + super_cells.size());
+    std::move(super_cells.begin(), super_cells.end(), std::back_inserter(res));
     return res;
 }
 
@@ -218,4 +217,3 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(const recipe& rec,
     return {rec, ctx, groups};
 }
 } // namespace arb
-

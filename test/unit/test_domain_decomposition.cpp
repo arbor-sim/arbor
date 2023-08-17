@@ -654,14 +654,15 @@ struct gj_symmetric: public recipe {
 };
 
 TEST(domain_decomposition, symmetric_groups) {
+    auto ctx = make_context();
     for (int nranks = 1; nranks < 20; ++nranks) {
         for (int rank = 0; rank < nranks; ++rank) {
-            auto ctx = make_context();
             ctx->distributed = std::make_shared<distributed_context>(dummy_context{rank, nranks});
             for (const auto& R: {gj_symmetric(nranks, true), gj_symmetric(nranks, false)}) {
-                try {
-                    const auto D0 = partition_load_balance(R, {ctx});
-                } catch (const unimplemented&) {}
+                // NOTE: This is a bit silly, but allows us to test _most_ of
+                // the invariants without proper MPI support. If we could get `gather_gids` to
+                // work and return the expected values we could even test all of them.
+                EXPECT_THROW(partition_load_balance(R, {ctx}), unimplemented);
             }
         }
     }
