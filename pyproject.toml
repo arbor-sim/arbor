@@ -63,18 +63,19 @@ build-frontend = "build"
 build = ["*linux*","*macosx*"]
 skip = ["cp36*", "cp37*", "*musllinux*"]
 test-command = "python -m unittest discover -v -s {project}/python"
-environment = { PIP_PRE="1" }
 dependency-versions = "latest"
+
+[[tool.cibuildwheel.overrides]]
+select = "cp312*"
+environment = { PIP_PRE = "1" }
 
 [tool.cibuildwheel.macos]
 archs = ["universal2"]
-
-[tool.cibuildwheel.macos.environment]
-MACOSX_DEPLOYMENT_TARGET = "10.15"
+environment = { MACOSX_DEPLOYMENT_TARGET = "10.15" }
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
 
-[[tool.cibuildwheel.overrides]]
-select = "*-musllinux*"
+#[[tool.cibuildwheel.overrides]]
+#select = "*-musllinux*"
 #TBD
