@@ -67,11 +67,11 @@ dependency-versions = "latest"
 
 [[tool.cibuildwheel.overrides]]
 select = "cp312*"
-environment = { PIP_PRE = "1" }
+environment = { PIP_PRE=1 }
 
 [tool.cibuildwheel.macos]
 archs = ["universal2"]
-environment = { MACOSX_DEPLOYMENT_TARGET = "10.15" }
+environment = { MACOSX_DEPLOYMENT_TARGET=10.15 }
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
