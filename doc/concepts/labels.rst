@@ -273,6 +273,14 @@ Locset expressions
 
       The set of locations at the midpoint of every branch, expressed as ``(on-branches 0.5)``.
 
+.. label:: (on-components pos:double)
+
+    Points on each component of the region proportional to ``pos``.
+
+    .. figure:: ../gen-images/on_components_label.svg
+      :width: 300
+      :align: center
+
 .. label:: (distal reg:region)
 
     The set of the most distal locations of a region.
@@ -297,9 +305,25 @@ Locset expressions
       On the left is the region with radius between 0.3 μm and 0.5 μm.
       The right shows the proximal set of this region.
 
+.. label:: (boundary reg:region)
+
+    Boundary of region.
+
+    .. figure:: ../gen-images/boundary_label.svg
+      :width: 600
+      :align: center
+
+.. label:: (cboundary reg:region)
+
+    Boundary of completed region.
+
+    .. figure:: ../gen-images/cboundary_label.svg
+      :width: 600
+      :align: center
+
 .. label:: (proximal-translate ls:locset distance:real)
 
-    The set of locations that correspond to moving each location in the ``ls`` in the proximal direction
+    The set of locations that correspond to moving each location in the ```ls`` in the proximal direction
     ``distance`` μm. The locations in the output have a one to one correspondence with those in ``ls``.
 
     .. figure:: ../gen-images/proximal_translate_label.svg
@@ -386,6 +410,10 @@ Locset expressions
     .. code-block:: lisp
 
         (join (location 1 0.5) (location 2 0.1) (location 1 0.2) (location 1 0.5) (location 4 0))
+
+.. label:: (support ls:locset)
+
+    Support of the multiset ``ls``, i.e. set of all points in the locset such that each appears once.
 
 .. _labels-region-expr:
 

@@ -425,6 +425,16 @@ def generate(path=""):
         inputs.label_morph, [inputs.ls_branchmid], path + "/on_branches_label.svg"
     )
     label_image(
+        inputs.label_morph, [inputs.ls_boundary], path + "/boundary_label.svg"
+    )
+    label_image(
+        inputs.label_morph, [inputs.ls_cboundary], path + "/cboundary_label.svg"
+    )
+
+    label_image(
+        inputs.label_morph, [inputs.ls_componentsmid], path + "/on_components_label.svg"
+    )
+    label_image(
         inputs.label_morph,
         [inputs.ls_term, inputs.reg_tag3, inputs.ls_restrict],
         path + "/restrict_label.svg",
