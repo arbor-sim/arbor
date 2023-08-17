@@ -14,7 +14,7 @@
 #include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "lif_cell_group.hpp"
-#include "mc_cell_group.hpp"
+#include "cable_cell_group.hpp"
 #include "util/filter.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -514,7 +514,7 @@ TEST(communicator, ring)
     const auto D = partition_load_balance(R, g_context);
 
     // set up source and target label->lid resolvers
-    // from mc_cell_group and lif_cell_group
+    // from cable_cell_group and lif_cell_group
     std::vector<cell_gid_type> mc_gids, lif_gids;
     for (auto g: D.groups()) {
         if (g.kind == cell_kind::cable) {
@@ -525,7 +525,7 @@ TEST(communicator, ring)
         }
     }
     cell_label_range mc_srcs, mc_tgts, lif_srcs, lif_tgts;
-    auto mc_group = mc_cell_group(mc_gids, R, mc_srcs, mc_tgts, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
+    auto mc_group = cable_cell_group(mc_gids, R, mc_srcs, mc_tgts, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
     auto lif_group = lif_cell_group(lif_gids, R, lif_srcs, lif_tgts);
 
     auto local_sources = cell_labels_and_gids(mc_srcs, mc_gids);
@@ -633,13 +633,13 @@ TEST(communicator, all2all)
     const auto D = partition_load_balance(R, g_context);
 
     // set up source and target label->lid resolvers
-    // from mc_cell_group
+    // from cable_cell_group
     std::vector<cell_gid_type> mc_gids;
     for (auto g: D.groups()) {
         mc_gids.insert(mc_gids.end(), g.gids.begin(), g.gids.end());
     }
     cell_label_range local_sources, local_targets;
-    auto mc_group = mc_cell_group(mc_gids, R, local_sources, local_targets, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
+    auto mc_group = cable_cell_group(mc_gids, R, local_sources, local_targets, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, mc_gids});
 
     // construct the communicator
@@ -680,13 +680,13 @@ TEST(communicator, mini_network)
     const auto D = partition_load_balance(R, g_context);
 
     // set up source and target label->lid resolvers
-    // from mc_cell_group
+    // from cable_cell_group
     std::vector<cell_gid_type> gids;
     for (auto g: D.groups()) {
         gids.insert(gids.end(), g.gids.begin(), g.gids.end());
     }
     cell_label_range local_sources, local_targets;
-    auto mc_group = mc_cell_group(gids, R, local_sources, local_targets, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
+    auto mc_group = cable_cell_group(gids, R, local_sources, local_targets, make_fvm_lowered_cell(backend_kind::multicore, *g_context));
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, gids});
 
     // construct the communicator
