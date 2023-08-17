@@ -63,7 +63,7 @@ build-frontend = "build"
 build = ["*linux*","*macosx*"]
 skip = ["cp36*", "cp37*", "*musllinux*"]
 test-command = "python -m unittest discover -v -s {project}/python"
-environment = { PIP_ONLY_BINARY=":all:" }
+environment = { PIP_PRE="1" }
 dependency-versions = "latest"
 
 [tool.cibuildwheel.macos]
