@@ -281,6 +281,8 @@ Locset expressions
       :width: 300
       :align: center
 
+    This shows the component centers of the dendrite, i.e. ``(on-components 0.5 (region "dend"))``.
+
 .. label:: (distal reg:region)
 
     The set of the most distal locations of a region.
@@ -305,15 +307,20 @@ Locset expressions
       On the left is the region with radius between 0.3 μm and 0.5 μm.
       The right shows the proximal set of this region.
 
-.. label:: (boundary reg:region)
+.. label:: (boundary reg:region) and (cboundary reg:region)
 
-    Boundary of region.
+    Boundary of (completed) region. The examples show ``(boundary (segment 2))``
+    and ``(cboundary (segment 2))``.
 
     .. figure:: ../gen-images/boundary_label.svg
       :width: 600
       :align: center
 
-.. label:: (cboundary reg:region)
+    .. figure:: ../gen-images/cboundary_label.svg
+      :width: 600
+      :align: center
+
+.. label::
 
     Boundary of completed region.
 
