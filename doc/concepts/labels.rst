@@ -318,7 +318,7 @@ Locset expressions
 
 .. label:: (proximal-translate ls:locset distance:real)
 
-    The set of locations that correspond to moving each location in the ```ls`` in the proximal direction
+    The set of locations that correspond to moving each location in the ``ls`` in the proximal direction
     ``distance`` μm. The locations in the output have a one to one correspondence with those in ``ls``.
 
     .. figure:: ../gen-images/proximal_translate_label.svg
