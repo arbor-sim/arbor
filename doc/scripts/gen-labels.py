@@ -212,9 +212,9 @@ locsets = {
     "uniform1": "(uniform (tag 3) 0 9 1)",
     "branchmid": "(on-branches 0.5)",
     "componentsmid": '(on-components 0.5 (region "dend"))',
-    "boundary": '(boundary (segment 2))',
-    "cboundary": '(cboundary (segment 2))',
-    "sboundary": '(segment-boundaries)',
+    "boundary": "(boundary (segment 2))",
+    "cboundary": "(cboundary (segment 2))",
+    "sboundary": "(segment-boundaries)",
     "distal": '(distal   (region "rad36"))',
     "proximal": '(proximal (region "rad36"))',
     "distint_in": "(sum (location 1 0.5) (location 2 0.7) (location 5 0.1))",
@@ -316,12 +316,12 @@ f = open(sys.argv[1] + "/inputs.py", "w")
 f.write("import representation\n")
 f.write("from representation import Segment\n")
 
-f.write('############# iexpr (label_morph)\n\n')
+f.write("############# iexpr (label_morph)\n\n")
 f.write('iexpr_directional_loc = {"type": "locset", "value": [(0, 1.0)]}\n')
-f.write('iexpr_dist_dis = {\n')
+f.write("iexpr_dist_dis = {\n")
 f.write('    "type": "region",\n')
 f.write('    "value": [(1, 0.0, 1.0), (2, 0.0, 1.0), (3, 0.0, 1.0), (4, 0.0, 1.0)],\n')
-f.write('}\n')
+f.write("}\n")
 f.write('iexpr_prox_dis = {"type": "region", "value": [(0, 0.0, 1.0)]}\n')
 
 f.write("\n############# morphologies\n\n")
@@ -343,7 +343,6 @@ f.write(write_morphology("tutorial_network_ring_morph", tutorial_network_ring_mo
 
 f.write("\n############# locsets (label_morph)\n\n")
 for label in locsets:
-    print(label)
     locs = [(l.branch, l.pos) for l in cell.locations('"{}"'.format(label))]
     f.write("ls_{}  = {{'type': 'locset', 'value': {}}}\n".format(label, locs))
 
