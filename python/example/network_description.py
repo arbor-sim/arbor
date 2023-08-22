@@ -120,9 +120,15 @@ class random_ring_recipe(arbor.recipe):
         # restrict to inter-cell connections and certain source / destination labels
         s = f"(intersect {s} (inter-cell) (source-label \"detector\") (destination-label \"syn\"))"
 
-        # normal distributed weight with mean 0.02 μS, standard deviation 0.01 μS
+        # fixed weight for connections in ring
+        w_ring = f"(scalar 0.01)"
+        # random normal distributed weight with mean 0.02 μS, standard deviation 0.01 μS
         # and truncated to [0.005, 0.035]
-        w = f"(truncated-normal-distribution {seed} 0.02 0.01 0.005 0.035)"
+        w_rand = f"(truncated-normal-distribution {seed} 0.02 0.01 0.005 0.035)"
+
+        # combine into single weight expression
+        w = f"(if-else {ring} {w_ring} {w_rand})"
+
         # fixed delay
         d = "(scalar 5.0)"  # ms delay
 
@@ -145,12 +151,10 @@ class random_ring_recipe(arbor.recipe):
 
 
 # (11) Instantiate recipe
-ncells = 4
+ncells = 20
 recipe = random_ring_recipe(ncells)
 
-# (12) Create an execution context using all locally available threads and simulation
-ctx = arbor.context("avail_threads")
-sim = arbor.simulation(recipe, ctx)
+sim = arbor.simulation(recipe)
 
 # (13) Set spike generators to record
 sim.record(arbor.spike_recording.all)

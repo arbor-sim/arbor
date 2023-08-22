@@ -125,10 +125,17 @@ public:
             arb::network_selection::source_label({"detector"}),
             arb::network_selection::destination_label({"primary_syn"}));
 
-        // normal distributed weight with mean 0.05 μS, standard deviation 0.02 μS
+        // random normal distributed weight with mean 0.05 μS, standard deviation 0.02 μS
         // and truncated to [0.025, 0.075]
-        auto w = "(truncated-normal-distribution 42 0.05 0.02 0.025 0.075)"_nv;
-        // note: We are using s-expressions here as an alternative for creating a network_value
+        auto w_rand = "(truncated-normal-distribution 42 0.05 0.02 0.025 0.075)"_nv;
+        // note: We are using s-expressions here as an alternative for creating a network_value.
+        //       This alternative way is also available for network selections.
+
+        // fixed weight for connections in ring
+        auto w_ring = "(scalar 0.01)"_nv;
+
+        // combine into single weight by using the "ring" selection as condition
+        auto w = arb::network_value::if_else(ring, w_ring, w_rand);
 
         return arb::network_description{s, w, min_delay_, {}};
     };

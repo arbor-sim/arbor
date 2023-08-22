@@ -18,6 +18,277 @@ These sites as such are not connected yet, however the :ref:`recipe <modelrecipe
 exposes a number of callbacks to form connections and gap junctions between sites.
 The recipe callbacks are interrogated during simulation creation.
 
+.. _interconnectivity-high-level:
+
+High Level Network Description
+------------------------------
+
+As an alternative to providing a list of connections for each cell in the :ref:`recipe <modelrecipe>`
+, arbor supports high-level description of a cell network. It is based around a ``network_selection`` type, that represents a selection from the set of all possible connections between cells. A selection can be created based on different criteria, such as source or destination label, cell indices and also distance between source and destination. Selections can then be combined with other selections through set algebra like expressions. For distance calculations, the location of each connection point on the cell is resolved through the morphology combined with a cell isometry, which describes translation and rotation of the cell.
+Each connection also requires a weight and delay value. For this purpose, a ``network_value`` type is available, that allows to mathematically describe the value calculation using common math functions, as well random distributions.
+
+The following example shows the relevant recipe functions, where cells are connected into a ring with additional random connections between them:
+
+.. code-block:: python
+
+    def network_description(self):
+        seed = 42
+
+        # create a chain
+        s_chain = f"(chain (gid-range 0 {self.ncells}))"
+        # connect front and back of chain to form ring
+        s_ring = f"(join {s_chain} (intersect (source-cell {self.ncells - 1}) (destination-cell 0)))"
+
+        # Create random connections with probability inversely proportional to the distance within a
+        # radius
+        max_dist = 400.0 # μm
+        probability = f"(div (sub {max_dist} (distance)) {max_dist})"
+        s_rand = f"(intersect (random {seed} {probability}) (distance-lt {max_dist}))"
+
+        # combine ring with random selection
+        s = f"(join {s_ring} {s_rand})"
+        # restrict to inter-cell connections and certain source / destination labels
+        s = f"(intersect {s} (inter-cell) (source-label \"detector\") (destination-label \"syn\"))"
+
+        # fixed weight for connections in ring
+        w_ring = f"(scalar 0.01)"
+        # random normal distributed weight with mean 0.02 μS, standard deviation 0.01 μS
+        # and truncated to [0.005, 0.035]
+        w_rand = f"(truncated-normal-distribution {seed} 0.02 0.01 0.005 0.035)"
+
+        # combine into single weight expression
+        w = f"(if-else {s_ring} {w_ring} {w_rand})"
+
+        # fixed delay
+        d = "(scalar 5.0)"  # ms delay
+
+        return arbor.network_description(s, w, d, {})
+
+    def cell_isometry(self, gid):
+        # place cells with equal distance on a circle
+        radius = 500.0 # μm
+        angle = 2.0 * math.pi * gid / self.ncells
+        return arbor.isometry.translate(radius * math.cos(angle), radius * math.sin(angle), 0)
+
+
+The export function ``generate_network_connections`` allows the inspection of generated connections. The exported connections include the cell index, local label and location of both source and destination.
+
+
+.. note::
+
+   Expressions using distance require a cell isometry to resolve the global location of connection points.
+
+.. note::
+
+   A high-level description may be used together with providing explicit connection lists for each cell, but it is up to the user to avoid multiple connections between the same source and destination.
+
+.. warning::
+
+   Generating connections always involves additional work and may increase the time spent in the simulation initialization phase.
+
+
+.. _interconnectivity-selection-expressions:
+
+Network Selection Expressions
+-----------------------------
+
+.. label:: (gid-range begin:integer end:integer)
+
+    A range expression, representing a range of indices in the half-open interval [begin, end).
+
+.. label:: (gid-range begin:integer end:integer step:integer)
+
+    A range expression, representing a range of indices in the half-open interval [begin, end) with a given step size. Step size must be positive.
+
+.. label:: (cable-cell)
+
+    Cell kind expression for cable cells.
+
+.. label:: (lif-cell)
+
+    Cell kind expression for lif cells.
+
+.. label:: (benchmark-cell)
+
+    Cell kind expression for benchmark cells.
+
+.. label:: (spike-source-cell)
+
+    Cell kind expression for spike source cells.
+
+.. label:: (all)
+
+    A selection of all possible connections.
+
+.. label:: (none)
+
+    A selection representing the empty set of possible connections.
+
+.. label:: (inter-cell)
+
+    A selection of all connections that connect two different cells.
+
+.. label:: (network-selection name:string)
+
+    A named selection within the network dictionary.
+
+.. label:: (intersect network-selection network-selection [...network-selection])
+
+    The intersection of at least two selections.
+
+.. label:: (join network-selection network-selection [...network-selection])
+
+    The union of at least two selections.
+
+.. label:: (symmetric-difference network-selection network-selection [...network-selection])
+
+    The symmetric difference of at least two selections.
+
+.. label:: (difference network-selection network-selection)
+
+    The difference of two selections.
+
+.. label:: (difference network-selection)
+
+    The complement or opposite of the given selection.
+
+.. label:: (source-cell-kind kind:cell-kind)
+
+    All connections, where the source cell is of the given type.
+
+.. label:: (destination-cell-kind kind:cell-kind)
+
+    All connections, where the destination cell is of the given type.
+
+.. label:: (source-label label:string)
+
+    All connections, where the source label matches the given label.
+
+.. label:: (destination-label label:string)
+
+    All connections, where the destination label matches the given label.
+
+.. label:: (source-cell integer [...integer])
+
+    All connections, where the source cell index matches one of the given integer values.
+
+.. label:: (source-cell range:gid-range)
+
+    All connections, where the source cell index is contained in the given gid-range.
+
+.. label:: (destination-cell integer [...integer])
+
+    All connections, where the destination cell index matches one of the given integer values.
+
+.. label:: (destination-cell range:gid-range)
+
+    All connections, where the destination cell index is contained in the given gid-range.
+
+.. label:: (chain integer [...integer])
+
+    A chain of connections between cells in the given order of in the list, such that entry "i" is the source and entry "i+1" the destination.
+
+.. label:: (chain range:gid-range)
+
+    A chain of connections between cells in the given order of the gid-range, such that entry "i" is the source and entry "i+1" the destination.
+
+.. label:: (chain-reverse range:gid-range)
+
+    A chain of connections between cells in reverse of the given order of the gid-range, such that entry "i+1" is the source and entry "i" the destination.
+
+.. label:: (random p:real)
+
+    A random selection of connections, where each connection is selected with the given probability.
+
+.. label:: (random p:network-value)
+
+    A random selection of connections, where each connection is selected with the given probability expression.
+
+.. label:: (random p:network-value)
+
+    A random selection of connections, where each connection is selected with the given probability expression.
+
+.. label:: (distance-lt dist:real)
+
+    All connections, where the distance between source and destination is less than the given value in micro meter.
+
+.. label:: (distance-gt dist:real)
+
+    All connections, where the distance between source and destination is greater than the given value in micro meter.
+
+
+.. _interconnectivity-value-expressions:
+
+Network Value Expressions
+-------------------------
+
+.. label:: (scalar value:real)
+
+    A scalar of given value.
+
+.. label:: (network-value name:string)
+
+    A named network value in the network dictionary.
+
+.. label:: (distance)
+
+    The distance between source and destination.
+
+.. label:: (distance value:real)
+
+    The distance between source and destination scaled by the given value.
+
+.. label:: (uniform-distribution seed:integer begin:real end:real)
+
+    Uniform random distribution within the interval [begin, end).
+
+.. label:: (normal-distribution seed:integer mean:real std_deviation:real)
+
+    Normal random distribution with given mean and standard deviation.
+
+.. label:: (truncated-normal-distribution seed:integer mean:real std_deviation:real begin:real end:real)
+
+    Truncated normal random distribution with given mean and standard deviation within the interval [begin, end).
+
+.. label:: (if-else sel:network-selection true_value:network-value false_value:network-value)
+
+    Truncated normal random distribution with given mean and standard deviation within the interval [begin, end).
+
+.. label:: (add (network-value | real) (network-value | real) [... (network-value | real)])
+
+    Addition of at least two network values or real numbers.
+
+.. label:: (sub (network-value | real) (network-value | real) [... (network-value | real)])
+
+    Subtraction of at least two network values or real numbers.
+
+.. label:: (mul (network-value | real) (network-value | real) [... (network-value | real)])
+
+    Multiplication of at least two network values or real numbers.
+
+.. label:: (div (network-value | real) (network-value | real) [... (network-value | real)])
+
+    Division of at least two network values or real numbers.
+    The expression is evaluated from the left to right, dividing the first element by each divisor in turn.
+
+.. label:: (min (network-value | real) (network-value | real) [... (network-value | real)])
+
+    Minimum of at least two network values or real numbers.
+
+.. label:: (max (network-value | real) (network-value | real) [... (network-value | real)])
+
+    Maximum of at least two network values or real numbers.
+
+.. label:: (log (network-value | real))
+
+    Logarithm of a network value or real number.
+
+.. label:: (exp (network-value | real))
+
+    Exponential function of a network value or real number.
+
+
+
 .. _interconnectivity-mut:
 
 Mutability
@@ -37,8 +308,8 @@ connection table outside calls to `run`, for example
 
     # extend the recipe to more connections
     rec.add_connections()
-    #  use `connections_on` to build a new connection table
-    sim.update_connections(rec)
+    #  use updated recipe to build a new connection table
+    sim.update(rec)
 
     # run simulation for 0.25ms with the extended connectivity
     sim.run(0.5, 0.025)
@@ -47,12 +318,6 @@ This will completely replace the old table, previous connections to be retained
 must be explicitly included in the updated callback. This can also be used to
 update connection weights and delays. Note, however, that there is currently no
 way to introduce new sites to the simulation, nor any changes to gap junctions.
-
-The ``update_connections`` method accepts either a full ``recipe`` (but will
-**only** use the ``connections_on`` and ``events_generators`` callbacks) or a
-``connectivity``, which is a reduced recipe exposing only the relevant callbacks.
-Currently ``connectivity`` is only available in C++; Python users have to pass a
-full recipe.
 
 .. warning::
 
@@ -78,6 +343,8 @@ full recipe.
    in these callbacks. This is doubly important when using models with dynamic
    connectivity where the temptation to store all connections is even larger and
    each call to ``update`` will re-evaluate the corresponding callbacks.
+   Alternatively, connections can be generated by Arbor using the network DSL 
+   through the ``network_description`` callback function.
 
 .. _interconnectivitycross:
 

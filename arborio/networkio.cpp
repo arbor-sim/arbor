@@ -238,9 +238,9 @@ eval_map_type network_eval_map{
     {"log", make_call<double>(arb::network_value::log, "Logarithm. 1 argument: (value:real)")},
     {"log",
         make_call<network_value>(arb::network_value::log, "Logarithm. 1 argument: (value:real)")},
-    {"exp", make_call<double>(arb::network_value::exp, "Logarithm. 1 argument: (value:real)")},
+    {"exp", make_call<double>(arb::network_value::exp, "Exponential function. 1 argument: (value:real)")},
     {"exp",
-        make_call<network_value>(arb::network_value::exp, "Logarithm. 1 argument: (value:real)")},
+        make_call<network_value>(arb::network_value::exp, "Exponential function. 1 argument: (value:real)")},
 };
 
 parse_network_hopefully<std::any> eval(const s_expr& e, const eval_map_type& map);

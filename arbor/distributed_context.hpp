@@ -35,19 +35,22 @@ namespace arb {
 
 #define ARB_COLLECTIVE_TYPES_ float, double, int, unsigned, long, unsigned long, long long, unsigned long long
 
+
+// A helper struct, representing a request for data exchange.
+// After calling finalize() or destruction, the data exchange is guaranteed to be finished.
 struct distributed_request {
+    struct distributed_request_interface {
+        virtual void finalize() {};
+
+        virtual ~distributed_request_interface() = default;
+    };
+
     inline void finalize() {
         if (impl) {
             impl->finalize();
             impl.reset();
         }
     }
-
-    struct distributed_request_interface {
-        virtual void finalize() {};
-
-        virtual ~distributed_request_interface() = default;
-    };
 
     ~distributed_request() {
         try {

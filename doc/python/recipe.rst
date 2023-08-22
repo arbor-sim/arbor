@@ -84,7 +84,12 @@ Recipe
 
         By default returns an empty list.
 
+    .. function:: network_description()
 
+        Returns a network description, consisting of a network selection, network value for
+        weight and delay, and a network dictionary.
+
+        By default returns none.
 
     .. function:: gap_junctions_on(gid)
 
@@ -121,6 +126,12 @@ Recipe
         to the mechanism catalogue. Also see :ref:`mechanisms_builtins`.
 
         By default returns an empty object.
+
+    .. function:: cell_isometry(gid)
+
+        Returns a isometry consisting of translation and rotation, which is applied to the cell morphology for resolving global locations.
+
+        By default returns a isometry without translation and rotation.
 
 Cells
 ------
