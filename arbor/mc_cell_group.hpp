@@ -22,10 +22,8 @@
 
 namespace arb {
 
-class ARB_ARBOR_API mc_cell_group: public cell_group {
-public:
+struct ARB_ARBOR_API mc_cell_group: public cell_group {
     mc_cell_group() = default;
-
     mc_cell_group(const std::vector<cell_gid_type>& gids,
                   const recipe& rec,
                   cell_label_range& cg_sources,
@@ -40,13 +38,9 @@ public:
 
     void advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) override;
 
-    const std::vector<spike>& spikes() const override {
-        return spikes_;
-    }
+    const std::vector<spike>& spikes() const override { return spikes_; }
 
-    void clear_spikes() override {
-        spikes_.clear();
-    }
+    void clear_spikes() override { spikes_.clear(); }
 
     void add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids,
                      schedule sched, sampler_function fn) override;
@@ -55,12 +49,12 @@ public:
 
     void remove_all_samplers() override;
 
-    std::vector<probe_metadata> get_probe_metadata(cell_member_type probeset_id) const override;
+    std::vector<probe_metadata> get_probe_metadata(const cell_address_type&) const override;
 
     ARB_SERDES_ENABLE(mc_cell_group, gids_, spikes_, lowered_);
 
-    virtual void t_serialize(serializer& ser, const std::string& k) const override;
-    virtual void t_deserialize(serializer& ser, const std::string& k) override;
+    void t_serialize(serializer& ser, const std::string& k) const override;
+    void t_deserialize(serializer& ser, const std::string& k) override;
 private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;

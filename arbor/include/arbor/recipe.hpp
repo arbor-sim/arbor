@@ -12,7 +12,7 @@
 namespace arb {
 
 struct probe_info {
-    probe_tag tag;
+    cell_tag_type tag;
 
     // Address type will be specific to cell kind of cell `id.gid`.
     std::any address;
@@ -23,7 +23,7 @@ struct probe_info {
 
     // Implicit ctor uses tag of zero.
     template <typename X>
-    probe_info(X&& x, probe_tag tag = 0):
+    probe_info(X&& x, const cell_tag_type& tag):
         tag(tag), address(std::forward<X>(x)) {}
 };
 

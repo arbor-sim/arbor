@@ -135,17 +135,13 @@ See :ref:`cppinterconnectivity`.
 Probes
 ------
 
-.. cpp:type:: probe_tag = int
-
-    Extra contextual information associated with a probe.
-
 .. cpp:class:: probe_info
 
     Probes are specified in the recipe objects that are used to initialize a
     model; the specification of the item or value that is subjected to a
     probe will be specific to a particular cell type.
 
-    .. cpp:member:: probe_tag tag
+    .. cpp:member:: cell_tag_type tag
 
            Opaque key, returned in sample record.
 

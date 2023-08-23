@@ -270,7 +270,7 @@ public:
 
     std::any get_global_properties(cell_kind) const override { return cell_gprop_; }
 
-    simple_sde_recipe& add_probe_all_gids(probe_tag tag, std::any address) {
+    simple_sde_recipe& add_probe_all_gids(const cell_tag_type& tag, std::any address) {
         for (unsigned i=0; i<cells_.size(); ++i) {
             simple_recipe_base::add_probe(i, tag, address);
         }
@@ -351,7 +351,7 @@ public:
 
     std::any get_global_properties(cell_kind) const override { return cell_gprop_; }
     
-    sde_recipe& add_probe_all_gids(probe_tag tag, std::any address) {
+    sde_recipe& add_probe_all_gids(const cell_tag_type& tag, std::any address) {
         for (unsigned i=0; i<cells_.size(); ++i) {
             simple_recipe_base::add_probe(i, tag, address);
         }
@@ -714,10 +714,10 @@ TEST(sde, solver) {
     sde_recipe rec(ncells, ncvs, labels, dec, false);
 
     // add probes
-    rec.add_probe_all_gids(1, cable_probe_point_state_cell{m1, "S"});
-    rec.add_probe_all_gids(2, cable_probe_point_state_cell{m2, "S"});
-    rec.add_probe_all_gids(3, cable_probe_point_state_cell{m3, "S"});
-    rec.add_probe_all_gids(4, cable_probe_point_state_cell{m4, "S"});
+    rec.add_probe_all_gids("s-m1-cell", cable_probe_point_state_cell{m1, "S"});
+    rec.add_probe_all_gids("s-m2-cell", cable_probe_point_state_cell{m2, "S"});
+    rec.add_probe_all_gids("s-m3-cell", cable_probe_point_state_cell{m3, "S"});
+    rec.add_probe_all_gids("s-m4-cell", cable_probe_point_state_cell{m4, "S"});
 
     // results are accumulated for each time step
     std::vector<accumulator> stats_m1(nsteps);
@@ -736,14 +736,18 @@ TEST(sde, solver) {
             .set_seed(s);
 
         // add sampler
-        sim.add_sampler([](cell_member_type pid) { return (pid.index==0); }, regular_schedule(dt),
-            sampler_m1);
-        sim.add_sampler([](cell_member_type pid) { return (pid.index==1); }, regular_schedule(dt),
-            sampler_m2);
-        sim.add_sampler([](cell_member_type pid) { return (pid.index==2); }, regular_schedule(dt),
-            sampler_m3);
-        sim.add_sampler([](cell_member_type pid) { return (pid.index==3); }, regular_schedule(dt),
-            sampler_m4);
+        sim.add_sampler([](const cell_address_type& id) { return (id.tag == "s-m1-cell"); },
+                        regular_schedule(dt),
+                        sampler_m1);
+        sim.add_sampler([](const cell_address_type& id) { return (id.tag == "s-m2-cell"); },
+                        regular_schedule(dt),
+                        sampler_m2);
+        sim.add_sampler([](const cell_address_type& id) { return (id.tag == "s-m3-cell"); },
+                        regular_schedule(dt),
+                        sampler_m3);
+        sim.add_sampler([](const cell_address_type& id) { return (id.tag == "s-m4-cell"); },
+                        regular_schedule(dt),
+                        sampler_m4);
         
         // run the simulation
         sim.run(nsteps*dt, dt);
@@ -857,8 +861,8 @@ TEST(sde, coupled) {
     sde_recipe rec(ncells, ncvs, labels, dec, false);
 
     // add probes
-    rec.add_probe_all_gids(1, cable_probe_point_state_cell{m1, "P"});
-    rec.add_probe_all_gids(2, cable_probe_point_state_cell{m1, "sigma"});
+    rec.add_probe_all_gids("P-m1",     cable_probe_point_state_cell{m1, "P"});
+    rec.add_probe_all_gids("sigma-m1", cable_probe_point_state_cell{m1, "sigma"});
 
     // results are accumulated for each time step
     std::vector<accumulator> stats_P(nsteps);
@@ -876,9 +880,9 @@ TEST(sde, coupled) {
             .set_seed(s);
 
         // add sampler
-        sim.add_sampler([](cell_member_type pid) { return (pid.index==0); }, regular_schedule(dt),
+        sim.add_sampler([](const auto& pid) { return (pid.tag == "P-m1"); }, regular_schedule(dt),
             sampler_P);
-        sim.add_sampler([](cell_member_type pid) { return (pid.index==1); }, regular_schedule(dt),
+        sim.add_sampler([](const auto& pid) { return (pid.tag == "sigma-m1"); }, regular_schedule(dt),
             sampler_sigma);
 
         // run the simulation

@@ -4,6 +4,7 @@
 #include <memory>
 #include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -23,8 +24,11 @@
 #include "execution_context.hpp"
 #include "sampler_map.hpp"
 #include "timestep_range.hpp"
+#include "util/maputil.hpp"
 #include "util/meta.hpp"
 #include "util/range.hpp"
+#include "util/rangeutil.hpp"
+#include "util/strprintf.hpp"
 #include "util/transform.hpp"
 
 namespace arb {
@@ -175,22 +179,24 @@ struct fvm_probe_data {
 // map to multiple probe representations within the mc_cell_group.
 
 struct probe_association_map {
-    // Keys are probe id.
 
-    std::unordered_map<cell_member_type, probe_tag> tag;
-    std::unordered_multimap<cell_member_type, fvm_probe_data> data;
-
-    std::size_t size() const {
-        arb_assert(tag.size()==data.size());
-        return data.size();
-    }
+    // NOTE: We need to de-dup the iterator returned by util::keys
+    std::unordered_set<cell_address_type> keys() const { return util::assign_from(util::keys(data)); }
+    auto count(const cell_address_type& k) const { return data.count(k); }
 
     // Return range of fvm_probe_data values associated with probeset_id.
-    // Trailing return type added here to avoid warnings about ODR violations when building shared
-    // lib together with LTO - needs to be re-checked in the future
-    auto data_on(cell_member_type probeset_id) const -> decltype(util::transform_view(util::make_range(data.equal_range(probeset_id)), util::second)) {
-        return util::transform_view(util::make_range(data.equal_range(probeset_id)), util::second);
+    auto data_on(const cell_address_type& probeset_id) const { return util::make_range(data.equal_range(probeset_id)); }
+
+    probe_association_map& insert(const cell_address_type& k, fvm_probe_data v) {
+        data.insert({k, std::move(v)});
+        return *this;
     }
+
+    std::size_t size() const { return data.size(); }
+
+private:
+    // Keys are probe id.
+    std::unordered_multimap<cell_address_type, fvm_probe_data> data;
 };
 
 struct fvm_initialization_data {

@@ -33,8 +33,9 @@ namespace pyarb {
 
 // Stores the location and sampling frequency for a probe in a single cell model.
 struct probe_site {
-    arb::mlocation site;  // Location of sample on morphology.
-    double frequency;     // Sampling frequency [kHz].
+    arb::mlocation site;    // Location of sample on morphology.
+    double frequency;       // Sampling frequency [kHz].
+    arb::cell_tag_type tag; // Tag = unique name
 };
 
 // Stores a single trace, which can be queried and viewed by the user at the end
@@ -113,9 +114,7 @@ struct single_cell_recipe: arb::recipe {
     virtual std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override {
         // For now only voltage can be selected for measurement.
         std::vector<arb::probe_info> pinfo;
-        for (auto& p: probes_) {
-            pinfo.push_back(arb::cable_probe_membrane_voltage{p.site});
-        }
+        for (auto& p: probes_) pinfo.push_back({arb::cable_probe_membrane_voltage{p.site}, "Um"});
         return pinfo;
     }
 
@@ -157,7 +156,7 @@ public:
     //      m.probe('voltage', '(location 2 0.5)')
     //      m.probe('voltage', 'term')
 
-    void probe(const std::string& what, const arb::locset& where, double frequency) {
+    void probe(const std::string& what, const arb::locset& where, const arb::cell_tag_type& tag, double frequency) {
         if (what != "voltage") {
             throw pyarb_error(
                 util::pprintf("{} does not name a valid variable to trace (currently only 'voltage' is supported)", what));
@@ -167,7 +166,7 @@ public:
                 util::pprintf("sampling frequency is not greater than zero", what));
         }
         for (auto& l: cell_.concrete_locset(where)) {
-            probes_.push_back({l, frequency});
+            probes_.push_back({l, frequency, tag});
         }
     }
 
@@ -195,7 +194,7 @@ public:
             auto sched = arb::regular_schedule(1.0/p.frequency);
 
             // Now attach the sampler at probe site, with sampling schedule sched, writing to voltage
-            sim_->add_sampler(arb::one_probe({0,i}), sched, trace_callback(traces_[i]));
+            sim_->add_sampler(arb::one_probe({0, p.tag}), sched, trace_callback(traces_[i]));
         }
 
         // Set callback that records spike times.
@@ -260,21 +259,23 @@ void register_single_cell(pybind11::module& m) {
              "dt"_a = 0.025,
              "Run model from t=0 to t=tfinal ms.")
         .def("probe",
-            [](single_cell_model& m, const char* what, const char* where, double frequency) {
-                m.probe(what, arborio::parse_locset_expression(where).unwrap(), frequency);},
-            "what"_a, "where"_a, "frequency"_a,
-            "Sample a variable on the cell.\n"
-            " what:      Name of the variable to record (currently only 'voltage').\n"
-            " where:     Location on cell morphology at which to sample the variable.\n"
-            " frequency: The target frequency at which to sample [kHz].")
+             [](single_cell_model& m, const char* what, const char* where, const char* tag, double frequency) {
+                 m.probe(what, arborio::parse_locset_expression(where).unwrap(), tag, frequency);},
+             "what"_a, "where"_a, "tag"_a, "frequency"_a,
+             "Sample a variable on the cell.\n"
+             " what:      Name of the variable to record (currently only 'voltage').\n"
+             " where:     Location on cell morphology at which to sample the variable.\n"
+             " tag:       Unique name for this probe.\n"
+             " frequency: The target frequency at which to sample [kHz].")
         .def("probe",
-            [](single_cell_model& m, const char* what, const arb::mlocation& where, double frequency) {
-                m.probe(what, where, frequency);},
-            "what"_a, "where"_a, "frequency"_a,
-            "Sample a variable on the cell.\n"
-            " what:      Name of the variable to record (currently only 'voltage').\n"
-            " where:     Location on cell morphology at which to sample the variable.\n"
-            " frequency: The target frequency at which to sample [kHz].")
+             [](single_cell_model& m, const char* what, const arb::mlocation& where, const char* tag, double frequency) {
+                 m.probe(what, where, tag, frequency);},
+             "what"_a, "where"_a, "tag"_a, "frequency"_a,
+             "Sample a variable on the cell.\n"
+             " what:      Name of the variable to record (currently only 'voltage').\n"
+             " where:     Location on cell morphology at which to sample the variable.\n"
+             " tag:       Unique name for this probe.\n"
+             " frequency: The target frequency at which to sample [kHz].")
         .def("event_generator",
             [](single_cell_model& m, const pyarb::event_generator_shim& event_generator) {
                 m.event_generator(arb::event_generator(

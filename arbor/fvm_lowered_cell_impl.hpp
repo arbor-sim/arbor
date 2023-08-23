@@ -562,18 +562,15 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     for (auto cell_idx: make_span(ncell)) {
         cell_gid_type gid = gids[cell_idx];
-        std::vector<probe_info> rec_probes = rec.get_probes(gid);
-        for (cell_lid_type i: count_along(rec_probes)) {
-            probe_info& pi = rec_probes[i];
+        const auto& rec_probes = rec.get_probes(gid);
+        for (const auto& pi: rec_probes) {
             resolve_probe_address(probe_data, cells, cell_idx, pi.address,
                 D, mech_data, fvm_info.target_handles, mechptr_by_name);
 
             if (!probe_data.empty()) {
-                cell_member_type probeset_id{gid, i};
-                fvm_info.probe_map.tag[probeset_id] = pi.tag;
-
+                cell_address_type probeset_id{gid, pi.tag};
                 for (auto& data: probe_data) {
-                    fvm_info.probe_map.data.insert({probeset_id, std::move(data)});
+                    fvm_info.probe_map.insert(probeset_id, std::move(data));
                 }
             }
         }

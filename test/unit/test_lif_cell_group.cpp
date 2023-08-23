@@ -143,9 +143,9 @@ public:
     }
     std::vector<probe_info> get_probes(cell_gid_type gid) const override {
         if (gid == 0) {
-            return {arb::lif_probe_voltage{}, arb::lif_probe_voltage{}};
+            return {{arb::lif_probe_voltage{}, "a"}, {arb::lif_probe_voltage{}, "b"}};
         } else {
-            return {arb::lif_probe_voltage{}};
+            return {{arb::lif_probe_voltage{}, "a"}};
         }
     }
     std::vector<event_generator> event_generators(cell_gid_type) const override {
@@ -246,7 +246,6 @@ TEST(lif_cell_group, ring)
 
 struct Um_type {
     constexpr static double delta = 1e-6;
-
     double t;
     double u;
 
@@ -262,7 +261,7 @@ struct Um_type {
 };
 
 TEST(lif_cell_group, probe) {
-    auto ums = std::unordered_map<cell_member_type, std::vector<Um_type>>{};
+    auto ums = std::unordered_map<cell_address_type, std::vector<Um_type>>{};
     auto fun = [&ums](probe_metadata pm,
                       std::size_t n,
                       const sample_record* samples) {
@@ -685,11 +684,11 @@ TEST(lif_cell_group, probe) {
                                 { 9.95, -17.3604929 },
                                 { 9.975, -17.3387448 },};
 
-    ASSERT_TRUE(testing::seq_eq(ums[{0, 0}], exp));
-    ASSERT_TRUE(testing::seq_eq(ums[{0, 1}], exp));
+    ASSERT_TRUE(testing::seq_eq(ums[{0, "a"}], exp));
+    ASSERT_TRUE(testing::seq_eq(ums[{0, "b"}], exp));
     // gid == 1 is different, but of same size
-    EXPECT_EQ((ums[{1, 0}].size()), exp.size());
-    ASSERT_FALSE(testing::seq_eq(ums[{1, 0}], exp));
+    EXPECT_EQ((ums[{1, "a"}].size()), exp.size());
+    ASSERT_FALSE(testing::seq_eq(ums[{1, "a"}], exp));
     // now check the spikes
     std::sort(spikes.begin(), spikes.end());
     EXPECT_EQ(spikes.size(), 3u);
@@ -698,7 +697,7 @@ TEST(lif_cell_group, probe) {
 }
 
 TEST(lif_cell_group, probe_with_connections) {
-    auto ums = std::unordered_map<cell_member_type, std::vector<Um_type>>{};
+    auto ums = std::unordered_map<cell_address_type, std::vector<Um_type>>{};
     auto fun = [&ums](probe_metadata pm,
                       std::size_t n,
                       const sample_record* samples) {
@@ -1121,11 +1120,11 @@ TEST(lif_cell_group, probe_with_connections) {
                                 { 9.95, -17.3604929 },
                                 { 9.975, -17.3387448 },};
 
-    ASSERT_TRUE(testing::seq_eq(ums[{0, 0}], exp));
-    ASSERT_TRUE(testing::seq_eq(ums[{0, 1}], exp));
+    ASSERT_TRUE(testing::seq_eq(ums[{0, "a"}], exp));
+    ASSERT_TRUE(testing::seq_eq(ums[{0, "b"}], exp));
     // gid == 1 is different, but of same size
-    EXPECT_EQ((ums[{1, 0}].size()), exp.size());
-    ASSERT_FALSE(testing::seq_eq(ums[{1, 0}], exp));
+    EXPECT_EQ((ums[{1, "a"}].size()), exp.size());
+    ASSERT_FALSE(testing::seq_eq(ums[{1, "a"}], exp));
     // now check the spikes
     std::sort(spikes.begin(), spikes.end());
     EXPECT_EQ(spikes.size(), 3u);

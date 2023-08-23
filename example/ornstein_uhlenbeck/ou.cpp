@@ -9,6 +9,7 @@
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/simulation.hpp>
+#include <arbor/common_types.hpp>
 
 // a single-cell recipe with probes
 class recipe: public arb::recipe {
@@ -45,7 +46,7 @@ public:
 
     std::any get_global_properties(arb::cell_kind) const override { return cell_gprop_; }
 
-    void add_probe(arb::probe_tag tag, std::any address) { probes_.emplace_back(std::move(address), tag); }
+    void add_probe(const arb::cell_tag_type& tag, std::any address) { probes_.emplace_back(std::move(address), tag); }
 
 protected:
     std::vector<arb::probe_info> probes_;

@@ -152,7 +152,7 @@ public:
         return py::array_t<arb::spike>(py::ssize_t(spike_record_.size()), spike_record_.data());
     }
 
-    py::list get_probe_metadata(arb::cell_member_type probeset_id) const {
+    py::list get_probe_metadata(const arb::cell_address_type& probeset_id) const {
         py::list result;
         for (auto&& pm: sim_->get_probe_metadata(probeset_id)) {
              result.append(global_ptr_->probe_meta_converters.convert(pm.meta));
@@ -160,7 +160,7 @@ public:
         return result;
     }
 
-    arb::sampler_association_handle sample(arb::cell_member_type probeset_id, const pyarb::schedule_shim_base& sched) {
+    arb::sampler_association_handle sample(const arb::cell_address_type& probeset_id, const pyarb::schedule_shim_base& sched) {
         std::shared_ptr<sample_recorder_vec> recorders{new sample_recorder_vec};
 
         for (const arb::probe_metadata& pm: sim_->get_probe_metadata(probeset_id)) {

@@ -82,8 +82,7 @@ void mc_cell_group::reset() {
 
 struct sampler_call_info {
     sampler_function sampler;
-    cell_member_type probeset_id;
-    probe_tag tag;
+    cell_address_type probeset_id;
     unsigned index;
     const fvm_probe_data* pdata_ptr;
 
@@ -144,7 +143,7 @@ void run_samples(
        sample_records.push_back(sample_record{time_type(raw_times[i]), &raw_samples[i]});
     }
 
-    sc.sampler({sc.probeset_id, sc.tag, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
+    sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
 }
 
 void run_samples(
@@ -174,7 +173,7 @@ void run_samples(
         sample_records.push_back(sample_record{time_type(raw_times[offset]), &ctmp[j]});
     }
 
-    sc.sampler({sc.probeset_id, sc.tag, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
+    sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
 }
 
 void run_samples(
@@ -204,7 +203,7 @@ void run_samples(
         sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
     }
 
-    sc.sampler({sc.probeset_id, sc.tag, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
+    sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
 }
 
 void run_samples(
@@ -247,7 +246,7 @@ void run_samples(
         sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
     }
 
-    sc.sampler({sc.probeset_id, sc.tag, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
+    sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
 }
 
 void run_samples(
@@ -294,7 +293,7 @@ void run_samples(
         sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
     }
 
-    sc.sampler({sc.probeset_id, sc.tag, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
+    sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
 }
 
 void run_samples(
@@ -368,7 +367,7 @@ void run_samples(
         sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
     }
 
-    sc.sampler({sc.probeset_id, sc.tag, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
+    sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
 }
 
 // Generic run_samples dispatches on probe info variant type.
@@ -453,13 +452,11 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
             sample_size_type n_times = sample_times.size();
             if (n_times == 0) continue;
             max_samples_per_call = std::max(max_samples_per_call, n_times);
-            for (const cell_member_type& pid: sa.probeset_ids) {
-                probe_tag tag = probe_map_.tag.at(pid);
+            for (const auto& pid: sa.probeset_ids) {
                 unsigned index = 0;
-                for (const fvm_probe_data& pdata: probe_map_.data_on(pid)) {
+                for (const auto& [_, pdata]: probe_map_.data_on(pid)) {
                     call_info.push_back({sa.sampler,
                                          pid,
-                                         tag,
                                          index,
                                          &pdata,
                                          n_samples,
@@ -511,15 +508,15 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
 }
 
 void mc_cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids,
-                                schedule sched, sampler_function fn)
-{
+                                schedule sched, sampler_function fn) {
+    // SAFETY? Both probe_map and sampler must be protected by this lock?!
     std::lock_guard<std::mutex> guard(sampler_mex_);
-
-    std::vector<cell_member_type> probeset =
-        util::assign_from(util::filter(util::keys(probe_map_.tag), probeset_ids));
+    std::vector<cell_address_type> probeset = util::assign_from(util::filter(probe_map_.keys(), probeset_ids));
 
     if (!probeset.empty()) {
-        auto result = sampler_map_.insert({h, sampler_association{std::move(sched), std::move(fn), std::move(probeset)}});
+        auto result = sampler_map_.insert({h, sampler_association{std::move(sched),
+                                                                  std::move(fn),
+                                                                  std::move(probeset)}});
         arb_assert(result.second);
     }
 }
@@ -534,23 +531,17 @@ void mc_cell_group::remove_all_samplers() {
     sampler_map_.clear();
 }
 
-std::vector<probe_metadata> mc_cell_group::get_probe_metadata(cell_member_type probeset_id) const {
-    // Probe associations are fixed after construction, so we do not need to grab the mutex.
-
-    std::optional<probe_tag> maybe_tag = util::value_by_key(probe_map_.tag, probeset_id);
-    if (!maybe_tag) {
-        return {};
-    }
-
+std::vector<probe_metadata> mc_cell_group::get_probe_metadata(const cell_address_type& probeset_id) const {
+    // SAFETY: Probe associations are fixed after construction, so we do not
+    //         need to grab the mutex.
     auto data = probe_map_.data_on(probeset_id);
 
     std::vector<probe_metadata> result;
     result.reserve(data.size());
     unsigned index = 0;
-    for (const fvm_probe_data& item: data) {
-        result.push_back(probe_metadata{probeset_id, *maybe_tag, index++, item.get_metadata_ptr()});
+    for (const auto& [key, val]: data) {
+        result.push_back({probeset_id, index++, val.get_metadata_ptr()});
     }
-
     return result;
 }
 } // namespace arb
