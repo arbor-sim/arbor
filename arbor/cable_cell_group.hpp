@@ -25,7 +25,7 @@ namespace arb {
 
 struct ARB_ARBOR_API cable_cell_group: public cell_group {
     cable_cell_group() = default;
-    mc_cell_group(const std::vector<cell_gid_type>& gids,
+    cable_cell_group(const std::vector<cell_gid_type>& gids,
                   const recipe& rec,
                   cell_label_range& cg_sources,
                   cell_label_range& cg_targets,

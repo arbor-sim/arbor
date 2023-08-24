@@ -735,19 +735,11 @@ TEST(sde, solver) {
             .set_context(context)
             .set_seed(s);
 
-        // add sampler
-        sim.add_sampler([](const cell_address_type& id) { return (id.tag == "s-m1-cell"); },
-                        regular_schedule(dt),
-                        sampler_m1);
-        sim.add_sampler([](const cell_address_type& id) { return (id.tag == "s-m2-cell"); },
-                        regular_schedule(dt),
-                        sampler_m2);
-        sim.add_sampler([](const cell_address_type& id) { return (id.tag == "s-m3-cell"); },
-                        regular_schedule(dt),
-                        sampler_m3);
-        sim.add_sampler([](const cell_address_type& id) { return (id.tag == "s-m4-cell"); },
-                        regular_schedule(dt),
-                        sampler_m4);
+        // add samplers
+        sim.add_sampler(arb::one_tag("s-m1-cell"), regular_schedule(dt), sampler_m1);
+        sim.add_sampler(arb::one_tag("s-m2-cell"), regular_schedule(dt), sampler_m2);
+        sim.add_sampler(arb::one_tag("s-m3-cell"), regular_schedule(dt), sampler_m3);
+        sim.add_sampler(arb::one_tag("s-m4-cell"), regular_schedule(dt), sampler_m4);
         
         // run the simulation
         sim.run(nsteps*dt, dt);
@@ -879,11 +871,9 @@ TEST(sde, coupled) {
             .set_context(context)
             .set_seed(s);
 
-        // add sampler
-        sim.add_sampler([](const auto& pid) { return (pid.tag == "P-m1"); }, regular_schedule(dt),
-            sampler_P);
-        sim.add_sampler([](const auto& pid) { return (pid.tag == "sigma-m1"); }, regular_schedule(dt),
-            sampler_sigma);
+        // add samplers
+        sim.add_sampler(arb::one_tag("P-m1"), regular_schedule(dt), sampler_P);
+        sim.add_sampler(arb::one_tag("sigma-m1"), regular_schedule(dt), sampler_sigma);
 
         // run the simulation
         sim.run(nsteps*dt, dt);

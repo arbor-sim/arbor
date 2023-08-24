@@ -104,7 +104,7 @@ struct cell_address_type {
     cell_tag_type tag;
 
     // NOTE: We _need_ this explicitly to avoid `cell_address_type{42, 0}` from triggering
-    cell_address_type(cell_gid_type, nullptr_t) = delete;
+    cell_address_type(cell_gid_type, std::nullptr_t) = delete;
     cell_address_type(cell_gid_type gid_, cell_tag_type tag_): gid(gid_), tag(std::move(tag_)) {}
 
     // NOTE: We _really_ do not want this to occur, *EVER*.
