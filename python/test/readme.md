@@ -39,6 +39,6 @@ In subfolders `unit`/`unit_distributed`:
 
 ## Naming convention
 
-- modules: `test_xxxs` (if suitable, ending with `s` since module can consist of multiple classes)
-- class(es): `TestXxxs` (if suitable, ending with `s` since class can consist of multiple test functions)
+- modules: `test_xxxs` (if applicable use the plural with `s` as modules can comprise multiple classes)
+- class(es): `TestXxxs` (if applicable use the plural with `s` as classes can comprise multiple test functions)
 - functions: `test_yyy`

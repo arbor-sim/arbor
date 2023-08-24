@@ -20,7 +20,14 @@ NOTE: Internally, Arbor only knows concentrations. Thus, particle amounts have t
 # ---------------------------------------------------------------------------------------
 # recipe class
 class recipe(A.recipe):
-    def __init__(self, cat, cell, probes, inc_0, inc_1, dec_0):
+    # Constructor
+    # - cat: catalogue of custom mechanisms
+    # - cell: cell description
+    # - probes: list of probes
+    # - inject_remove: list of dictionaries of the form [ {"time" : <time>, "synapse" : <synapse>, "change" : <change>} ],
+    #                  where <time> is the time of the event in milliseconds, <synapse> is a label, and <change> is the
+    #                  change in total particle amount in 1e-18 mol
+    def __init__(self, cat, cell, probes, inject_remove):
         A.recipe.__init__(self)
         self.the_cell = cell
         self.the_probes = probes
@@ -29,38 +36,58 @@ class recipe(A.recipe):
             cat  # use the provided catalogue of diffusion mechanisms
         )
         self.the_props.set_ion("s", 1, 0, 0, 0)  # use diffusive particles "s"
-        self.inc_0 = inc_0  # increase in particle amount at 0.1 s (in 1e-18 mol)
-        self.inc_1 = inc_1  # increase in particle amount at 0.5 s (in 1e-18 mol)
-        self.dec_0 = dec_0  # decrease in particle amount at 1.5 s (in 1e-18 mol)
+        self.inject_remove = inject_remove
 
+    # num_cells
+    # Returns the total number of cells
     def num_cells(self):
         return 1
 
+    # cell_kind
+    # Returns the kind of the specified cell
+    # - gid: the identifier of the cell
     def cell_kind(self, gid):
         return A.cell_kind.cable
 
+    # cell_description
+    # Returns the description object of the specified cell
+    # - gid: the identifier of the cell
     def cell_description(self, gid):
         return self.the_cell
 
+    # probes
+    # Returns the list of probes for the specified cell
+    # - gid: the identifier of the cell
     def probes(self, gid):
         return self.the_probes
 
+    # global_properties
+    # Returns the properties of the specified cell
+    # - kind: the kind of the specified cell
     def global_properties(self, kind):
         return self.the_props
 
+    # event_generators
+    # Returns the list of event generators for the specified cell
+    # - gid: the identifier of the cell
     def event_generators(self, gid):
-        g = [
-            A.event_generator("syn_exc_A", self.inc_0, A.explicit_schedule([0.1])),
-            A.event_generator("syn_exc_B", self.inc_1, A.explicit_schedule([0.5])),
-            A.event_generator("syn_inh", -self.dec_0, A.explicit_schedule([1.5])),
-        ]
-        return g
+        event_gens = []
+        for event in self.inject_remove:
+            event_gens.append(
+                A.event_generator(
+                    event["synapse"],
+                    event["change"],
+                    A.explicit_schedule([event["time"]]),
+                )
+            )
+        return event_gens
 
 
 # ---------------------------------------------------------------------------------------
 # test class
 class TestDiffusion(unittest.TestCase):
     # Constructor (overridden)
+    # - args: arguments that are passed to the super class
     def __init__(self, args):
         super(TestDiffusion, self).__init__(args)
 
@@ -68,23 +95,31 @@ class TestDiffusion(unittest.TestCase):
         self.dt = 0.01  # duration of one timestep in ms
         self.dev = 0.01  # accepted relative deviation for `assertAlmostEqual`
 
+    # simulate_diffusion
     # Method to run an Arbor simulation with diffusion across different segments
+    # - cat: catalogue of custom mechanisms
+    # - _num_segs: number of segments
+    # - _num_cvs_per_seg: number of CVs per segment
+    # - _length: length of the whole setup (in case of 1 or 2 segments, one branch) in µm
+    # - _r_1 [optional]: radius of the first segment in µm
+    # - _r_2 [optional]: radius of the second segment in µm
+    # - _r_3 [optional]: radius of the third segment in µm
     def simulate_diffusion(
         self, cat, _num_segs, _num_cvs_per_seg, _length, _r_1, _r_2=0.0, _r_3=0.0
     ):
         # ---------------------------------------------------------------------------------------
         # set the main parameters and calculate geometrical measures
-        num_segs = _num_segs  # number of segments
-        num_cvs_per_seg = _num_cvs_per_seg  # number of CVs per segment
+        num_segs = _num_segs
+        num_cvs_per_seg = _num_cvs_per_seg
 
-        length = _length  # length of the whole setup (in case of 1 or 2 segments, one branch) in µm
-        radius_1 = _r_1  # radius of the first segment in µm
+        length = _length
+        radius_1 = _r_1
         if num_segs > 1:
-            radius_2 = _r_2  # radius of the second segment in µm
+            radius_2 = _r_2
         else:
             radius_2 = 0
         if num_segs > 2:
-            radius_3 = _r_3  # radius of the third segment in µm
+            radius_3 = _r_3
         else:
             radius_3 = 0
 
@@ -96,9 +131,11 @@ class TestDiffusion(unittest.TestCase):
             num_segs * num_cvs_per_seg
         )  # volume of one cylindrical CV in µm^3
 
-        inc_0 = 600  # first increase in particle amount (in 1e-18 mol)
-        inc_1 = 1200  # second increase in particle amount (in 1e-18 mol)
-        dec_0 = 1400  # decrease in particle amount (in 1e-18 mol)
+        inject_remove = [
+            {"time": 0.1, "synapse": "syn_exc_A", "change": 600},
+            {"time": 0.5, "synapse": "syn_exc_B", "change": 1200},
+            {"time": 1.5, "synapse": "syn_inh", "change": -1400},
+        ]  # changes in particle amount (in 1e-18 mol)
         diffusivity = 1  # diffusivity (in m^2/s)
 
         # ---------------------------------------------------------------------------------------
@@ -226,7 +263,7 @@ class TestDiffusion(unittest.TestCase):
         # ---------------------------------------------------------------------------------------
         # prepare the simulation
         cel = A.cable_cell(tree, dec, labels)
-        rec = recipe(cat, cel, prb, inc_0, inc_1, dec_0)
+        rec = recipe(cat, cel, prb, inject_remove)
         sim = A.simulation(rec)
 
         # ---------------------------------------------------------------------------------------
@@ -253,12 +290,22 @@ class TestDiffusion(unittest.TestCase):
         ):  # compute the total amount of particles by summing over all CVs of the whole neuron
             data_sV_total += tmp_data[:, i + 1]
 
-        s_lim_expected = (
-            inc_0 + inc_1 - dec_0
-        ) / volume_tot  # total particle amount of s divided by total volume
-        s_max_expected = (
-            inc_0 + inc_1
-        ) / volume_tot  # total particle amount of s divided by total volume
+        # final value of the total particle amount of s
+        sV_tot_lim_expected = 0
+        for event in inject_remove:
+            sV_tot_lim_expected += event["change"]
+
+        # final value of the concentration of s (total particle amount divided by total volume)
+        s_lim_expected = sV_tot_lim_expected / volume_tot
+
+        # maximum value of the total particle amount of s
+        sV_tot_max_expected = 0
+        for event in inject_remove:
+            if event["change"] > 0:
+                sV_tot_max_expected += event["change"]
+
+        # maximum value of the concentration of s (total particle amount divided by total volume)
+        s_max_expected = sV_tot_max_expected / volume_tot
 
         if num_segs < 3:
             self.assertEqual(morph.num_branches, 1)  # expected number of branches: 1
@@ -280,19 +327,23 @@ class TestDiffusion(unittest.TestCase):
         )  # max_{t}(s) [direct]
         self.assertAlmostEqual(
             data_sV[-1, 1] * num_segs * num_cvs_per_seg,
-            inc_0 + inc_1 - dec_0,
-            delta=self.dev * (inc_0 + inc_1 - dec_0),
+            sV_tot_lim_expected,
+            delta=self.dev * sV_tot_lim_expected,
         )  # lim_{t->inf}(s⋅V) [estimated]
         self.assertAlmostEqual(
             data_sV_total[-1],
-            inc_0 + inc_1 - dec_0,
-            delta=self.dev * (inc_0 + inc_1 - dec_0),
+            sV_tot_lim_expected,
+            delta=self.dev * sV_tot_lim_expected,
         )  # lim_{t->inf}(s⋅V) [direct]
         self.assertAlmostEqual(
-            np.max(data_sV_total), inc_0 + inc_1, delta=self.dev * (inc_0 + inc_1)
+            np.max(data_sV_total),
+            sV_tot_max_expected,
+            delta=self.dev * sV_tot_max_expected,
         )  # max_{t}(s⋅V) [direct]
 
-    # Test: simulations with equal radii
+    # test_diffusion_equal_radii
+    # Test: simulations with segments of equal radius
+    # - diffusion_catalogue: catalogue of diffusion mechanisms
     @fixtures.diffusion_catalogue()
     def test_diffusion_equal_radii(self, diffusion_catalogue):
         self.simulate_diffusion(
@@ -306,7 +357,9 @@ class TestDiffusion(unittest.TestCase):
         )  # 3 segments with radius 4 µm
 
     """ TODO: not succeeding as of Arbor v0.9.0:
-    # Test: simulations with different radii
+    # test_diffusion_different_radii
+    # Test: simulations with segments of different radius
+    # - diffusion_catalogue: catalogue of diffusion mechanisms
     @fixtures.diffusion_catalogue()
     def test_diffusion_different_radii(self, diffusion_catalogue):
 
