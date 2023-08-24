@@ -103,7 +103,9 @@ class TestDiffusion(unittest.TestCase):
     # - radius_1: radius of the first segment in µm
     # - radius_2: radius of the second segment in µm
     # - radius_3: radius of the third segment in µm
-    def get_morph_and_decor(self, num_segs, num_cvs_per_seg, length, radius_1, radius_2, radius_3):
+    def get_morph_and_decor(
+        self, num_segs, num_cvs_per_seg, length, radius_1, radius_2, radius_3
+    ):
         # ---------------------------------------------------------------------------------------
         # set up the morphology
         tree = A.segment_tree()
@@ -261,7 +263,9 @@ class TestDiffusion(unittest.TestCase):
 
         # ---------------------------------------------------------------------------------------
         # get morphology, decoration, and labels, and add the diffusive particle species 's'
-        morph, dec, labels = self.get_morph_and_decor(num_segs, num_cvs_per_seg, length, radius_1, radius_2, radius_3)
+        morph, dec, labels = self.get_morph_and_decor(
+            num_segs, num_cvs_per_seg, length, radius_1, radius_2, radius_3
+        )
         dec.set_ion("s", int_con=0.0, diff=diffusivity)
 
         # ---------------------------------------------------------------------------------------
@@ -374,7 +378,10 @@ class TestDiffusion(unittest.TestCase):
     # - diffusion_catalogue: catalogue of diffusion mechanisms
     @fixtures.diffusion_catalogue()
     def test_diffusion_different_radii(self, diffusion_catalogue):
-
-        self.simulate_and_test_diffusion(diffusion_catalogue, 2, 300, 10, 4, 6) # 2 segments with radius 4 µm and 6 µm
-        self.simulate_and_test_diffusion(diffusion_catalogue, 3, 200, 10, 4, 6, 6) # 3 segments with radius 4 µm and 6 µm
+        self.simulate_and_test_diffusion(
+            diffusion_catalogue, 2, 300, 10, 4, 6
+        )  # 2 segments with radius 4 µm and 6 µm
+        self.simulate_and_test_diffusion(
+            diffusion_catalogue, 3, 200, 10, 4, 6, 6
+        )  # 3 segments with radius 4 µm and 6 µm
     """
