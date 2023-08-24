@@ -89,7 +89,7 @@ model.properties.catalogue.extend(arbor.allen_catalogue(), "")
 
 # Add voltage probes on the "custom_terminal" locset
 # which sample the voltage at 50 kHz
-model.probe("voltage", where='"custom_terminal"', frequency=50)
+model.probe("voltage", where='"custom_terminal"', tag="Um", frequency=50)
 
 # (8) Run the simulation for 100 ms, with a dt of 0.025 ms
 

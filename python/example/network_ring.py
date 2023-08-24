@@ -6,6 +6,8 @@ import pandas  # You may have to pip install these
 import seaborn  # You may have to pip install these
 from math import sqrt
 
+print(arbor.__path__)
+
 # Construct a cell with the following morphology.
 # The soma (at the root of the tree) is marked 's', and
 # the end of each branch i is marked 'bi'.
@@ -111,7 +113,7 @@ class ring_recipe(arbor.recipe):
 
     # (10) Place a probe at the root of each cell.
     def probes(self, gid):
-        return [arbor.cable_probe_membrane_voltage('"root"')]
+        return [arbor.cable_probe_membrane_voltage('"root"', "Um")]
 
     def global_properties(self, kind):
         return self.props
@@ -133,7 +135,7 @@ sim = arbor.simulation(recipe)
 sim.record(arbor.spike_recording.all)
 
 # (14) Attach a sampler to the voltage probe on cell 0. Sample rate of 10 sample every ms.
-handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
+handles = [sim.sample((gid, "Um"), arbor.regular_schedule(0.1)) for gid in range(ncells)]
 
 # (15) Run simulation for 100 ms
 sim.run(100)

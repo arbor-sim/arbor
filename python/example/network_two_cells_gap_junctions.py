@@ -150,18 +150,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # set up membrane voltage probes at the position of the gap junction
-    probes = [arbor.cable_probe_membrane_voltage('"gj_site"')]
+    probes = [arbor.cable_probe_membrane_voltage('"gj_site"', "Um")]
     recipe = TwoCellsWithGapJunction(probes, **vars(args))
 
     # configure the simulation and handles for the probes
     sim = arbor.simulation(recipe)
 
     dt = 0.01
-    handles = []
-    for gid in [0, 1]:
-        handles += [
-            sim.sample((gid, i), arbor.regular_schedule(dt)) for i in range(len(probes))
-        ]
+    handles = [sim.sample((gid, "Um"), arbor.regular_schedule(dt)) for gid in range(recipe.num_cells())]
 
     # run the simulation for 5 ms
     sim.run(tfinal=5, dt=dt)

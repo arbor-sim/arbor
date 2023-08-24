@@ -61,15 +61,15 @@ class single_recipe(arbor.recipe):
         return [spike, stdp]
 
     def probes(self, gid):
-        def mk(w):
-            return arbor.cable_probe_point_state(1, "expsyn_stdp", w)
+        def mk(s, t):
+            return arbor.cable_probe_point_state(1, "expsyn_stdp", state=s, tag=t)
 
         return [
-            arbor.cable_probe_membrane_voltage('"center"'),
-            mk("g"),
-            mk("apost"),
-            mk("apre"),
-            mk("weight_plastic"),
+            arbor.cable_probe_membrane_voltage('"center"', "Um"),
+            mk("g", "state-g"),
+            mk("apost", "state-apost"),
+            mk("apre", "state-apre"),
+            mk("weight_plastic", "state-weight"),
         ]
 
     def global_properties(self, kind):
@@ -85,11 +85,11 @@ def run(dT, n_pairs=1, do_plots=False):
 
     reg_sched = arbor.regular_schedule(0.1)
     handles = {
-        "U": sim.sample((0, 0), reg_sched),
-        "g": sim.sample((0, 1), reg_sched),
-        "apost": sim.sample((0, 2), reg_sched),
-        "apre": sim.sample((0, 3), reg_sched),
-        "weight_plastic": sim.sample((0, 4), reg_sched),
+        "U": sim.sample((0, "Um"), reg_sched),
+        "g": sim.sample((0, "state-g"), reg_sched),
+        "apost": sim.sample((0, "state-apost"), reg_sched),
+        "apre": sim.sample((0, "state-apre"), reg_sched),
+        "weight_plastic": sim.sample((0, "state-weight"), reg_sched),
     }
 
     sim.run(tfinal=600)
@@ -97,13 +97,12 @@ def run(dT, n_pairs=1, do_plots=False):
     if do_plots:
         print("Plotting detailed results ...")
         for var, handle in handles.items():
-            data, meta = sim.samples(handle)[0]
+            data, _ = sim.samples(handle)[0]
 
             df = pd.DataFrame({"t/ms": data[:, 0], var: data[:, 1]})
             sns.relplot(data=df, kind="line", x="t/ms", y=var, errorbar=None).savefig(
                 f"single_cell_stdp_result_{var}.svg"
             )
-
     weight_plastic, _ = sim.samples(handles["weight_plastic"])[0]
     return weight_plastic[:, 1][-1]
 

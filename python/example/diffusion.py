@@ -47,12 +47,12 @@ dec.set_ion("na", int_con=1.0, ext_con=140, rev_pot=50, diff=0.005)
 dec.paint("(tag 1)", ion_name="na", int_con=100.0, diff=0.01)
 
 prb = [
-    A.cable_probe_ion_diff_concentration_cell("na"),
+    A.cable_probe_ion_diff_concentration_cell("na", "nad"),
 ]
 cel = A.cable_cell(tree, dec)
 rec = recipe(cel, prb)
 sim = A.simulation(rec)
-hdl = (sim.sample((0, 0), A.regular_schedule(0.1)),)
+hdl = (sim.sample((0, "nad"), A.regular_schedule(0.1)),)
 
 sim.run(tfinal=0.5)
 

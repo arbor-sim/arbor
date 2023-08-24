@@ -14,7 +14,7 @@ $PREFIX python3 -m pip install -r python/example/example_requirements.txt -U
 
 runpyex () {
   echo "=== Executing $1 ======================================"
-  $PREFIX /opt/homebrew/bin/python3 python/example/$*
+  $PREFIX python3 python/example/$*
   echo "### Example $1: OK."
 }
 

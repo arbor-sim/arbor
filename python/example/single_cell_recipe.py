@@ -45,7 +45,7 @@ class single_recipe(arbor.recipe):
         return 1
 
     # (4.3) Override the cell_kind method
-    def cell_kind(self, gid):
+    def cell_kind(self, _):
         return arbor.cell_kind.cable
 
     # (4.4) Override the cell_description method
@@ -53,8 +53,8 @@ class single_recipe(arbor.recipe):
         return cell
 
     # (4.5) Override the probes method with a voltage probe located on "midpoint"
-    def probes(self, gid):
-        return [arbor.cable_probe_membrane_voltage('"midpoint"')]
+    def probes(self, _):
+        return [arbor.cable_probe_membrane_voltage('"midpoint"', "Um")]
 
     # (4.6) Override the global_properties method
     def global_properties(self, kind):
@@ -74,7 +74,7 @@ sim = arbor.simulation(recipe)
 # The probe is located on cell 0, and is the 0th probe on that cell, thus has probeset_id (0, 0).
 
 sim.record(arbor.spike_recording.all)
-handle = sim.sample((0, 0), arbor.regular_schedule(0.1))
+handle = sim.sample((0, "Um"), arbor.regular_schedule(0.1))
 sim.run(tfinal=30)
 
 # (8) Collect results.

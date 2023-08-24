@@ -278,6 +278,20 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
             "Record data from probes with given probeset_id according to supplied schedule.\n"
             "Returns handle for retrieving data or removing the sampling.",
             "probeset_id"_a, "schedule"_a)
+        .def("sample",
+             [](simulation_shim& sim, arb::cell_gid_type gid, const arb::cell_tag_type& tag, const schedule_shim_base& schedule) {
+                 return sim.sample({gid, tag}, schedule);
+             },
+            "Record data from probes with given probeset_id=(gid, tag) according to supplied schedule.\n"
+            "Returns handle for retrieving data or removing the sampling.",
+            "gid"_a, "tag"_a, "schedule"_a)
+        .def("sample",
+             [](simulation_shim& sim, const std::tuple<arb::cell_gid_type, const arb::cell_tag_type>& addr, const schedule_shim_base& schedule) {
+                 return sim.sample({std::get<0>(addr), std::get<1>(addr)}, schedule);
+             },
+            "Record data from probes with given probeset_id=(gid, tag) according to supplied schedule.\n"
+            "Returns handle for retrieving data or removing the sampling.",
+            "probeset_id"_a, "schedule"_a)
         .def("samples", &simulation_shim::samples,
             "Retrieve sample data as a list, one element per probe associated with the query.",
             "handle"_a)

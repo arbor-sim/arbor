@@ -62,19 +62,19 @@ class Cable(arbor.recipe):
     def num_cells(self):
         return 1
 
-    def num_sources(self, gid):
+    def num_sources(self, _):
         return 0
 
-    def cell_kind(self, gid):
+    def cell_kind(self, _):
         return arbor.cell_kind.cable
 
-    def probes(self, gid):
+    def probes(self, _):
         return self.the_probes
 
-    def global_properties(self, kind):
+    def global_properties(self, _):
         return self.the_props
 
-    def cell_description(self, gid):
+    def cell_description(self, _):
         """A high level description of the cell with global identifier gid.
 
         For example the morphology, synapses and ion channels required
@@ -193,18 +193,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # set up membrane voltage probes equidistantly along the dendrites
-    probes = [
-        arbor.cable_probe_membrane_voltage(f"(location 0 {r})")
-        for r in np.linspace(0, 1, 11)
-    ]
+    probe_locations = [(f"(location 0 {r})", f"Um-(0, {r})") for r in np.linspace(0, 1, 11)]
+    probes = [arbor.cable_probe_membrane_voltage(loc, tag) for loc, tag in probe_locations]
     recipe = Cable(probes, **vars(args))
 
     # configure the simulation and handles for the probes
     sim = arbor.simulation(recipe)
     dt = 0.001
-    handles = [
-        sim.sample((0, i), arbor.regular_schedule(dt)) for i in range(len(probes))
-    ]
+    handles = [sim.sample((0, tag), arbor.regular_schedule(dt)) for _, tag in probe_locations]
 
     # run the simulation for 30 ms
     sim.run(tfinal=30, dt=dt)

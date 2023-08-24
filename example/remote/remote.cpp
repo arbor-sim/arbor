@@ -37,7 +37,7 @@ struct remote_recipe: public arb::recipe {
             return res;
         }
         arb::cell_kind get_cell_kind(arb::cell_gid_type) const override { return arb::cell_kind::lif; }
-        std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override { return {arb::lif_probe_voltage{}}; }
+        std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override { return {{arb::lif_probe_voltage{}, "Um"}}; }
 };
 
 /*
@@ -146,8 +146,7 @@ mpi_handle setup_mpi() {
 void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
     for (std::size_t ix = 0; ix < n; ++ix) {
         if (pm.id.gid != 0) continue;
-        if (pm.id.index != 0) continue;
-        if (pm.tag != 0) continue;
+        if (pm.id.tag != "Um") continue;
         const auto& sample = samples[ix];
         auto value = *arb::util::any_cast<double*>(sample.data);
         auto time  = sample.time;
