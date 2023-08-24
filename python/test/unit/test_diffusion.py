@@ -95,49 +95,15 @@ class TestDiffusion(unittest.TestCase):
         self.dt = 0.01  # duration of one timestep in ms
         self.dev = 0.01  # accepted relative deviation for `assertAlmostEqual`
 
-    # simulate_diffusion
-    # Method to run an Arbor simulation with diffusion across different segments
-    # - cat: catalogue of custom mechanisms
-    # - _num_segs: number of segments
-    # - _num_cvs_per_seg: number of CVs per segment
-    # - _length: length of the whole setup (in case of 1 or 2 segments, one branch) in µm
-    # - _r_1 [optional]: radius of the first segment in µm
-    # - _r_2 [optional]: radius of the second segment in µm
-    # - _r_3 [optional]: radius of the third segment in µm
-    def simulate_diffusion(
-        self, cat, _num_segs, _num_cvs_per_seg, _length, _r_1, _r_2=0.0, _r_3=0.0
-    ):
-        # ---------------------------------------------------------------------------------------
-        # set the main parameters and calculate geometrical measures
-        num_segs = _num_segs
-        num_cvs_per_seg = _num_cvs_per_seg
-
-        length = _length
-        radius_1 = _r_1
-        if num_segs > 1:
-            radius_2 = _r_2
-        else:
-            radius_2 = 0
-        if num_segs > 2:
-            radius_3 = _r_3
-        else:
-            radius_3 = 0
-
-        length_per_seg = length / num_segs  # axial length of a segment in µm
-        volume_tot = (
-            np.pi * (radius_1**2 + radius_2**2 + radius_3**2) * length_per_seg
-        )  # volume of the whole setup in µm^3
-        volume_per_cv = volume_tot / (
-            num_segs * num_cvs_per_seg
-        )  # volume of one cylindrical CV in µm^3
-
-        inject_remove = [
-            {"time": 0.1, "synapse": "syn_exc_A", "change": 600},
-            {"time": 0.5, "synapse": "syn_exc_B", "change": 1200},
-            {"time": 1.5, "synapse": "syn_inh", "change": -1400},
-        ]  # changes in particle amount (in 1e-18 mol)
-        diffusivity = 1  # diffusivity (in m^2/s)
-
+    # get_morph_and_decor
+    # Method that sets up and returns a morphology and decoration for given parameters
+    # - num_segs: number of segments
+    # - num_cvs_per_seg: number of CVs per segment
+    # - length: length of the whole setup (in case of 1 or 2 segments, one branch) in µm
+    # - radius_1: radius of the first segment in µm
+    # - radius_2: radius of the second segment in µm
+    # - radius_3: radius of the third segment in µm
+    def get_morph_and_decor(self, num_segs, num_cvs_per_seg, length, radius_1, radius_2, radius_3):
         # ---------------------------------------------------------------------------------------
         # set up the morphology
         tree = A.segment_tree()
@@ -221,7 +187,7 @@ class TestDiffusion(unittest.TestCase):
         dec = A.decor()
         if num_segs < 3:
             dec.discretization(
-                A.cv_policy(f"(fixed-per-branch {num_segs*num_cvs_per_seg} (branch 0))")
+                A.cv_policy(f"(fixed-per-branch {num_segs*num_cvs_per_seg})")
             )
         elif num_segs == 3:
             dec.discretization(
@@ -231,7 +197,6 @@ class TestDiffusion(unittest.TestCase):
                     + f"(fixed-per-branch {num_cvs_per_seg} (branch 2)))"
                 )
             )
-        dec.set_ion("s", int_con=0.0, diff=diffusivity)
         if num_segs == 1:
             dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_A")
             dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_B")
@@ -252,6 +217,53 @@ class TestDiffusion(unittest.TestCase):
             dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_inh")
         dec.paint("(all)", A.density("neuron_with_diffusion"))
 
+        return morph, dec, labels
+
+    # simulate_and_test_diffusion
+    # Method that runs an Arbor simulation with diffusion across different segments and subsequently
+    # performs tests on the results
+    # - cat: catalogue of custom mechanisms
+    # - num_segs: number of segments
+    # - num_cvs_per_seg: number of CVs per segment
+    # - length: length of the whole setup (in case of 1 or 2 segments, one branch) in µm
+    # - r_1 [optional]: radius of the first segment in µm
+    # - r_2 [optional]: radius of the second segment in µm
+    # - r_3 [optional]: radius of the third segment in µm
+    def simulate_and_test_diffusion(
+        self, cat, num_segs, num_cvs_per_seg, length, r_1, r_2=0.0, r_3=0.0
+    ):
+        # ---------------------------------------------------------------------------------------
+        # set parameters and calculate geometrical measures
+        radius_1 = r_1
+        if num_segs > 1:
+            radius_2 = r_2
+        else:
+            radius_2 = 0
+        if num_segs > 2:
+            radius_3 = r_3
+        else:
+            radius_3 = 0
+
+        length_per_seg = length / num_segs  # axial length of a segment in µm
+        volume_tot = (
+            np.pi * (radius_1**2 + radius_2**2 + radius_3**2) * length_per_seg
+        )  # volume of the whole setup in µm^3
+        volume_per_cv = volume_tot / (
+            num_segs * num_cvs_per_seg
+        )  # volume of one cylindrical CV in µm^3
+
+        inject_remove = [
+            {"time": 0.1, "synapse": "syn_exc_A", "change": 600},
+            {"time": 0.5, "synapse": "syn_exc_B", "change": 1200},
+            {"time": 1.5, "synapse": "syn_inh", "change": -1400},
+        ]  # changes in particle amount (in 1e-18 mol)
+        diffusivity = 1  # diffusivity (in m^2/s)
+
+        # ---------------------------------------------------------------------------------------
+        # get morphology, decoration, and labels, and add the diffusive particle species 's'
+        morph, dec, labels = self.get_morph_and_decor(num_segs, num_cvs_per_seg, length, radius_1, radius_2, radius_3)
+        dec.set_ion("s", int_con=0.0, diff=diffusivity)
+
         # ---------------------------------------------------------------------------------------
         # set probes
         prb = [
@@ -262,7 +274,7 @@ class TestDiffusion(unittest.TestCase):
 
         # ---------------------------------------------------------------------------------------
         # prepare the simulation
-        cel = A.cable_cell(tree, dec, labels)
+        cel = A.cable_cell(morph, dec, labels)
         rec = recipe(cat, cel, prb, inject_remove)
         sim = A.simulation(rec)
 
@@ -346,13 +358,13 @@ class TestDiffusion(unittest.TestCase):
     # - diffusion_catalogue: catalogue of diffusion mechanisms
     @fixtures.diffusion_catalogue()
     def test_diffusion_equal_radii(self, diffusion_catalogue):
-        self.simulate_diffusion(
+        self.simulate_and_test_diffusion(
             diffusion_catalogue, 1, 600, 10, 4
         )  # 1 segment with radius 4 µm
-        self.simulate_diffusion(
+        self.simulate_and_test_diffusion(
             diffusion_catalogue, 2, 300, 10, 4, 4
         )  # 2 segments with radius 4 µm
-        self.simulate_diffusion(
+        self.simulate_and_test_diffusion(
             diffusion_catalogue, 3, 200, 10, 4, 4, 4
         )  # 3 segments with radius 4 µm
 
@@ -363,6 +375,6 @@ class TestDiffusion(unittest.TestCase):
     @fixtures.diffusion_catalogue()
     def test_diffusion_different_radii(self, diffusion_catalogue):
 
-        self.simulate_diffusion(diffusion_catalogue, 2, 300, 10, 4, 6) # 2 segments with radius 4 µm and 6 µm
-        self.simulate_diffusion(diffusion_catalogue, 3, 200, 10, 4, 6, 6) # 3 segments with radius 4 µm and 6 µm
+        self.simulate_and_test_diffusion(diffusion_catalogue, 2, 300, 10, 4, 6) # 2 segments with radius 4 µm and 6 µm
+        self.simulate_and_test_diffusion(diffusion_catalogue, 3, 200, 10, 4, 6, 6) # 3 segments with radius 4 µm and 6 µm
     """
