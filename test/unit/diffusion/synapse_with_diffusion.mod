@@ -1,5 +1,5 @@
 NEURON {
-    POINT_PROCESS synapse_with_diffusion
+	POINT_PROCESS synapse_with_diffusion
 	USEION s WRITE sd
 }
 
@@ -20,5 +20,5 @@ BREAKPOINT {
 }
 
 NET_RECEIVE(weight) {
-    sd = sd + weight * area / volume / 1000
+	sd = sd + weight * area / volume / 1000
 }

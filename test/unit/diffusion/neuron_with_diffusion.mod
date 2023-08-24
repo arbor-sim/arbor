@@ -1,5 +1,5 @@
 NEURON {
-    SUFFIX neuron_with_diffusion
+	SUFFIX neuron_with_diffusion
 	USEION s READ sd
 }
 
