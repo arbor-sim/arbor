@@ -193,14 +193,20 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # set up membrane voltage probes equidistantly along the dendrites
-    probe_locations = [(f"(location 0 {r})", f"Um-(0, {r})") for r in np.linspace(0, 1, 11)]
-    probes = [arbor.cable_probe_membrane_voltage(loc, tag) for loc, tag in probe_locations]
+    probe_locations = [
+        (f"(location 0 {r})", f"Um-(0, {r})") for r in np.linspace(0, 1, 11)
+    ]
+    probes = [
+        arbor.cable_probe_membrane_voltage(loc, tag) for loc, tag in probe_locations
+    ]
     recipe = Cable(probes, **vars(args))
 
     # configure the simulation and handles for the probes
     sim = arbor.simulation(recipe)
     dt = 0.001
-    handles = [sim.sample((0, tag), arbor.regular_schedule(dt)) for _, tag in probe_locations]
+    handles = [
+        sim.sample((0, tag), arbor.regular_schedule(dt)) for _, tag in probe_locations
+    ]
 
     # run the simulation for 30 ms
     sim.run(tfinal=30, dt=dt)

@@ -157,7 +157,10 @@ if __name__ == "__main__":
     sim = arbor.simulation(recipe)
 
     dt = 0.01
-    handles = [sim.sample((gid, "Um"), arbor.regular_schedule(dt)) for gid in range(recipe.num_cells())]
+    handles = [
+        sim.sample((gid, "Um"), arbor.regular_schedule(dt))
+        for gid in range(recipe.num_cells())
+    ]
 
     # run the simulation for 5 ms
     sim.run(tfinal=5, dt=dt)

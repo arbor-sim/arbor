@@ -136,7 +136,9 @@ sim = arbor.simulation(recipe)
 sim.record(arbor.spike_recording.all)
 
 # Sampler
-handles = [sim.sample((gid, "Um"), arbor.regular_schedule(0.1)) for gid in range(ncells)]
+handles = [
+    sim.sample((gid, "Um"), arbor.regular_schedule(0.1)) for gid in range(ncells)
+]
 
 # Run simulation for 100 ms
 sim.run(100)

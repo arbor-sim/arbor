@@ -97,7 +97,9 @@ class stdp_recipe(arbor.recipe):
         return self.the_props
 
     def probes(self, gid):
-        return [arbor.cable_probe_point_state_cell("calcium_based_synapse", "rho", "rho")]
+        return [
+            arbor.cable_probe_point_state_cell("calcium_based_synapse", "rho", "rho")
+        ]
 
     def event_generators(self, gid):
         return self.the_gens

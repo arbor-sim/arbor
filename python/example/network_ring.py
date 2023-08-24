@@ -135,7 +135,9 @@ sim = arbor.simulation(recipe)
 sim.record(arbor.spike_recording.all)
 
 # (14) Attach a sampler to the voltage probe on cell 0. Sample rate of 10 sample every ms.
-handles = [sim.sample((gid, "Um"), arbor.regular_schedule(0.1)) for gid in range(ncells)]
+handles = [
+    sim.sample((gid, "Um"), arbor.regular_schedule(0.1)) for gid in range(ncells)
+]
 
 # (15) Run simulation for 100 ms
 sim.run(100)
