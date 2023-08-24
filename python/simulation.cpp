@@ -274,6 +274,19 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
         .def("probe_metadata", &simulation_shim::get_probe_metadata,
             "Retrieve metadata associated with given probe id.",
             "probeset_id"_a)
+        .def("probe_metadata",
+             [](const simulation_shim& sim, const std::tuple<arb::cell_gid_type, arb::cell_tag_type>& addr) {
+                 return sim.get_probe_metadata({std::get<0>(addr), std::get<1>(addr)});
+             },
+            "Retrieve metadata associated with given probe id.",
+            "addr"_a)
+        .def("probe_metadata",
+             [](const simulation_shim& sim,
+                arb::cell_gid_type gid, const arb::cell_tag_type& tag) {
+                 return sim.get_probe_metadata({gid, tag});
+             },
+            "Retrieve metadata associated with given probe id.",
+            "gid"_a, "tag"_a)
         .def("sample", &simulation_shim::sample,
             "Record data from probes with given probeset_id according to supplied schedule.\n"
             "Returns handle for retrieving data or removing the sampling.",
