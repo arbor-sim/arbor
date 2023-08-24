@@ -176,7 +176,7 @@ struct fvm_probe_data {
 };
 
 // Samplers are tied to probe ids, but one probe id may
-// map to multiple probe representations within the mc_cell_group.
+// map to multiple probe representations within the cable_cell_group.
 
 struct probe_association_map {
 

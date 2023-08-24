@@ -59,7 +59,8 @@ Dependency update rules
 #. Dependencies shall be set to a (commit hash corresponding to a) specific version tag. (All current dependencies use semver.)
 #. The version shall be compatible with the user platforms (see above).
 #. The version shall be compatible with the requirements in ``doc/dependencies.csv``.
-#. The version shall be the lowest possible. More recent versions of submodules are automatically tested through ``.github/workflows/check-submodules.yml``, to catch merge problems early.
+#. The version shall be the lowest possible, to facilitate building of complex environments.
+#. The submodule shall be set to the highest version provided by the latest Spack release ("Spack stable"). Spack CI tests both Spack stable and develop.
 #. Moreover, dependencies shall not be updated past the most recent version of the dependency in Spack.
 
    * This prevents Spack builds from pulling in ``master``, when a more recent version than available is required. `See here <https://spack.readthedocs.io/en/latest/packaging_guide.html#version-comparison>`_.

@@ -22,8 +22,9 @@
 
 namespace arb {
 
-struct ARB_ARBOR_API mc_cell_group: public cell_group {
-    mc_cell_group() = default;
+
+struct ARB_ARBOR_API cable_cell_group: public cell_group {
+    cable_cell_group() = default;
     mc_cell_group(const std::vector<cell_gid_type>& gids,
                   const recipe& rec,
                   cell_label_range& cg_sources,
@@ -51,7 +52,7 @@ struct ARB_ARBOR_API mc_cell_group: public cell_group {
 
     std::vector<probe_metadata> get_probe_metadata(const cell_address_type&) const override;
 
-    ARB_SERDES_ENABLE(mc_cell_group, gids_, spikes_, lowered_);
+    ARB_SERDES_ENABLE(cable_cell_group, gids_, spikes_, lowered_);
 
     void t_serialize(serializer& ser, const std::string& k) const override;
     void t_deserialize(serializer& ser, const std::string& k) override;

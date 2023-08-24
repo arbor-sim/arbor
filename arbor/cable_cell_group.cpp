@@ -15,7 +15,7 @@
 #include "cell_group.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
-#include "mc_cell_group.hpp"
+#include "cable_cell_group.hpp"
 #include "profile/profiler_macro.hpp"
 #include "sampler_map.hpp"
 #include "util/filter.hpp"
@@ -26,7 +26,7 @@
 
 namespace arb {
 
-mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
+cable_cell_group::cable_cell_group(const std::vector<cell_gid_type>& gids,
                              const recipe& rec,
                              cell_label_range& cg_sources,
                              cell_label_range& cg_targets,
@@ -68,7 +68,7 @@ mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids,
     spike_sources_.shrink_to_fit();
 }
 
-void mc_cell_group::reset() {
+void cable_cell_group::reset() {
     spikes_.clear();
 
     for (auto &entry: sampler_map_) {
@@ -91,9 +91,9 @@ struct sampler_call_info {
     sample_size_type end_offset;
 };
 
-void mc_cell_group::t_serialize(serializer& ser,
+void cable_cell_group::t_serialize(serializer& ser,
                               const std::string& k) const { serialize(ser, k, *this); }
-void mc_cell_group::t_deserialize(serializer& ser,
+void cable_cell_group::t_deserialize(serializer& ser,
                                 const std::string& k) { deserialize(ser, k, *this); }
 
 // Working space for computing and collating data for samplers.
@@ -381,7 +381,7 @@ void run_samples(
     std::visit([&](auto& x) {run_samples(x, sc, raw_times, raw_samples, sample_records, scratch); }, sc.pdata_ptr->info);
 }
 
-void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
+void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
     time_type tstart = lowered_->time();
 
     // Bin and collate deliverable events from event lanes.
@@ -507,7 +507,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     }
 }
 
-void mc_cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids,
+void cable_cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids,
                                 schedule sched, sampler_function fn) {
     // SAFETY? Both probe_map and sampler must be protected by this lock?!
     std::lock_guard<std::mutex> guard(sampler_mex_);
@@ -521,17 +521,17 @@ void mc_cell_group::add_sampler(sampler_association_handle h, cell_member_predic
     }
 }
 
-void mc_cell_group::remove_sampler(sampler_association_handle h) {
+void cable_cell_group::remove_sampler(sampler_association_handle h) {
     std::lock_guard<std::mutex> guard(sampler_mex_);
     sampler_map_.erase(h);
 }
 
-void mc_cell_group::remove_all_samplers() {
+void cable_cell_group::remove_all_samplers() {
     std::lock_guard<std::mutex> guard(sampler_mex_);
     sampler_map_.clear();
 }
 
-std::vector<probe_metadata> mc_cell_group::get_probe_metadata(const cell_address_type& probeset_id) const {
+std::vector<probe_metadata> cable_cell_group::get_probe_metadata(const cell_address_type& probeset_id) const {
     // SAFETY: Probe associations are fixed after construction, so we do not
     //         need to grab the mutex.
     auto data = probe_map_.data_on(probeset_id);
