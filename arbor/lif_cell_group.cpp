@@ -249,8 +249,9 @@ void lif_cell_group::t_deserialize(serializer& ser, const std::string& k) {
 }
 
 std::vector<probe_metadata> lif_cell_group::get_probe_metadata(const cell_address_type& key) const {
+    std::lock_guard<std::mutex> guard(probe_mex_);
     if (probes_.count(key)) {
-        return {probe_metadata{key, 0, {&probes_.at(key).metadata}}};
+        return {probe_metadata{key, 0, &probes_.at(key).metadata}};
     } else {
         return {};
     }

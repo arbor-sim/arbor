@@ -27,10 +27,10 @@
 namespace arb {
 
 cable_cell_group::cable_cell_group(const std::vector<cell_gid_type>& gids,
-                             const recipe& rec,
-                             cell_label_range& cg_sources,
-                             cell_label_range& cg_targets,
-                             fvm_lowered_cell_ptr lowered):
+                                   const recipe& rec,
+                                   cell_label_range& cg_sources,
+                                   cell_label_range& cg_targets,
+                                   fvm_lowered_cell_ptr lowered):
     gids_(gids), lowered_(std::move(lowered))
 {
     // Build lookup table for gid to local index.

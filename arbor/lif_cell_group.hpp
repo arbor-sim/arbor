@@ -73,10 +73,11 @@ private:
 
     // SAFETY: We need to access samplers_ through a mutex since
     // simulation::add_sampler might be called concurrently.
-    std::mutex sampler_mex_;
+    mutable std::mutex sampler_mex_;
     sampler_association_map samplers_;
 
     // LIF probe metadata, precalculated to pass to callbacks
+    mutable std::mutex probe_mex_;
     std::unordered_map<cell_address_type, lif_probe_info> probes_;
 };
 
