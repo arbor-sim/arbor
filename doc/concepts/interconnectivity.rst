@@ -23,8 +23,7 @@ The recipe callbacks are interrogated during simulation creation.
 High Level Network Description
 ------------------------------
 
-As an alternative to providing a list of connections for each cell in the :ref:`recipe <modelrecipe>`
-, arbor supports high-level description of a cell network. It is based around a ``network_selection`` type, that represents a selection from the set of all possible connections between cells. A selection can be created based on different criteria, such as source or destination label, cell indices and also distance between source and destination. Selections can then be combined with other selections through set algebra like expressions. For distance calculations, the location of each connection point on the cell is resolved through the morphology combined with a cell isometry, which describes translation and rotation of the cell.
+As an alternative to providing a list of connections for each cell in the :ref:`recipe <modelrecipe>`, arbor supports high-level description of a cell network. It is based around a ``network_selection`` type, that represents a selection from the set of all possible connections between cells. A selection can be created based on different criteria, such as source or destination label, cell indices and also distance between source and destination. Selections can then be combined with other selections through set algebra like expressions. For distance calculations, the location of each connection point on the cell is resolved through the morphology combined with a cell isometry, which describes translation and rotation of the cell.
 Each connection also requires a weight and delay value. For this purpose, a ``network_value`` type is available, that allows to mathematically describe the value calculation using common math functions, as well random distributions.
 
 The following example shows the relevant recipe functions, where cells are connected into a ring with additional random connections between them:
@@ -199,10 +198,6 @@ Network Selection Expressions
 .. label:: (random p:real)
 
     A random selection of connections, where each connection is selected with the given probability.
-
-.. label:: (random p:network-value)
-
-    A random selection of connections, where each connection is selected with the given probability expression.
 
 .. label:: (random p:network-value)
 

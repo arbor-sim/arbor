@@ -112,3 +112,62 @@ Interconnectivity
     .. attribute:: threshold
 
         Voltage threshold of threshold detector [mV]
+
+
+.. class:: network_site_info
+
+    A network connection site on a cell. Used for generated connections through the high-level network description.
+
+    .. attribute:: gid
+
+        The cell index.
+
+    .. attribute:: kind
+
+        The cell kind.
+
+    .. attribute:: label
+
+        The associated label.
+
+    .. attribute:: location
+
+        The local location on the cell.
+
+    .. attribute:: global_location
+
+        The global location in cartesian coordinates.
+
+
+.. class:: network_connection_info
+
+    A network connection between cells. Used for generated connections through the high-level network description.
+
+    .. attribute:: src
+
+        The source connection site.
+
+    .. attribute:: dest
+
+        The destination connection site.
+
+
+.. class:: network_description
+
+    A complete network description required for processing.
+
+    .. attribute:: selection
+
+        Selection of connections.
+
+    .. attribute:: weight
+
+        Weight of generated connections.
+
+    .. attribute:: delay
+
+        Delay of generated connections.
+
+    .. attribute:: dict
+
+        Dictionary for named selecations and values.

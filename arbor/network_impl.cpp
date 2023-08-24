@@ -369,8 +369,8 @@ ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(
     const domain_decomposition& dom_dec) {
     auto connections = generate_network_connections<network_connection_info>(rec, ctx, dom_dec);
 
-    // generated connections may have different orer each time due to multi-threading.
-    // sort before returning to user for reproducibility.
+    // generated connections may have different order each time due to multi-threading.
+    // Sort before returning to user for reproducibility.
     std::sort(connections.begin(), connections.end());
 
     return connections;
