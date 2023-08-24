@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs all Python examples
 
-set -Eeuo pipefail
+set -Eeuox pipefail
 
 if [[ "$#" -gt 1 ]]; then
     echo "usage: run_python_examples.sh <prefix>"
@@ -14,7 +14,7 @@ $PREFIX python3 -m pip install -r python/example/example_requirements.txt -U
 
 runpyex () {
   echo "=== Executing $1 ======================================"
-  $PREFIX python3 python/example/$*
+  $PREFIX /opt/homebrew/bin/python3 python/example/$*
   echo "### Example $1: OK."
 }
 

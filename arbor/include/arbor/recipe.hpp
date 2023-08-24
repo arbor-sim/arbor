@@ -21,6 +21,10 @@ struct probe_info {
     probe_info(const probe_info&) = default;
     probe_info(probe_info&&) = default;
 
+
+    template <typename X>
+    probe_info(X&& x, nullptr_t) = delete;
+
     // Implicit ctor uses tag of zero.
     template <typename X>
     probe_info(X&& x, const cell_tag_type& tag):
