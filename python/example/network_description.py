@@ -123,7 +123,7 @@ class random_ring_recipe(arbor.recipe):
         s = f'(intersect {s} (inter-cell) (source-label "detector") (destination-label "syn"))'
 
         # fixed weight for connections in ring
-        w_ring = f"(scalar 0.01)"
+        w_ring = "(scalar 0.01)"
         # random normal distributed weight with mean 0.02 μS, standard deviation 0.01 μS
         # and truncated to [0.005, 0.035]
         w_rand = f"(truncated-normal-distribution {seed} 0.02 0.01 0.005 0.035)"
