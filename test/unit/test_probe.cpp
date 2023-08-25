@@ -804,8 +804,13 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
     ASSERT_EQ(n_cv-1, cv_boundaries.size());
     const unsigned n_axial_probe = n_cv-1;
 
+    int ix = 0;
+    std::unordered_map<std::string, int> indices;
     for (mlocation loc: cv_boundaries) {
-        rec.add_probe(0, "I-axial", cable_probe_axial_current{loc});
+        std::string name = "I-axial-" + std::to_string(ix);
+        rec.add_probe(0, name, cable_probe_axial_current{loc});
+        indices.insert({name, ix});
+        ix++;
     }
 
     rec.add_probe(0, "I-stimulus", cable_probe_stimulus_current_cell{});
@@ -850,20 +855,17 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
                 ASSERT_EQ(s_end - s_beg, n_cv);
                 for (int ix = 0; ix < n_cv; ++ix) i_stim[ix] = *s_beg++;
             }
-            else if (pm.id.tag == "I-axial") {
+            else {
                 // Probe id tells us which axial current this is.
-                ASSERT_LT(pm.index, n_axial_probe);
-
+                ASSERT_LT(indices.count(pm.id.tag), n_axial_probe);
+                auto idx = indices.at(pm.id.tag);
                 auto m = any_cast<const mlocation*>(pm.meta);
                 ASSERT_NE(nullptr, m);
 
                 auto s = any_cast<const double*>(samples->data);
                 ASSERT_NE(nullptr, s);
 
-                i_axial.at(pm.index) = *s;
-            }
-            else {
-                throw std::runtime_error{"Unknown tag!"};
+                i_axial.at(idx) = *s;
             }
         });
 
