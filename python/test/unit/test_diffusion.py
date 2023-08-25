@@ -190,15 +190,9 @@ class TestDiffusion(unittest.TestCase):
         if num_segs < 3:
             dec.discretization(
                 A.cv_policy(f"(fixed-per-branch {num_segs*num_cvs_per_seg})")
-            )
+            )  # there is only branch for less than three segments
         elif num_segs == 3:
-            dec.discretization(
-                A.cv_policy(
-                    f"(replace (fixed-per-branch {num_cvs_per_seg} (branch 0)) "
-                    + f"(fixed-per-branch {num_cvs_per_seg} (branch 1)) "
-                    + f"(fixed-per-branch {num_cvs_per_seg} (branch 2)))"
-                )
-            )
+            dec.discretization(A.cv_policy(f"(fixed-per-branch {num_cvs_per_seg})"))
         if num_segs == 1:
             dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_A")
             dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_B")
