@@ -21,7 +21,7 @@
 
 namespace arb {
 
-struct network_full_site_info {
+struct ARB_SYMBOL_VISIBLE network_full_site_info {
     network_full_site_info() = default;
 
     network_full_site_info(cell_gid_type gid,
