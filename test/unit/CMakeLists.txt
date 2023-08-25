@@ -93,7 +93,7 @@ set(unit_sources
     test_math.cpp
     test_matrix.cpp
     test_mcable_map.cpp
-    test_mc_cell_group.cpp
+    test_cable_cell_group.cpp
     test_mechanisms.cpp
     test_mech_temp_diam.cpp
     test_mechcat.cpp
@@ -166,7 +166,7 @@ if(ARB_WITH_GPU)
         test_intrin.cu
         test_gpu_stack.cu
         test_reduce_by_key.cu
-        test_mc_cell_group_gpu.cpp
+        test_cable_cell_group_gpu.cpp
         test_spikes_gpu.cpp
         test_vector_gpu.cpp
     )

@@ -21,7 +21,7 @@ In Arbor's codebase some prefixes are used as a low-key namespacing
 - ``fvm_``:: Concerning use by the Finite Volume Method (FVM), eg
   ``fvm_lowered_cell``.
 - ``mc_``:: Related to Multi-Compartment (Cells), identical to cable cells the
-  difference is purely historical, eg ``mc_cell_group``.
+  difference is purely historical, eg ``cable_cell_group``.
 
 Setting up a Cable Cell simulation
 ----------------------------------
@@ -71,7 +71,7 @@ Lowered Cells, Shared State, and the Discretisation
 
 To obtain a simulation we need to turn the ``cable_cell`` description object
 into a ``fvm_lowered_cell``. However, multiple cells are collected into a
-``mc_cell_group`` and ``fvm_lowered_cell`` is the lowered representation of a
+``cable_cell_group`` and ``fvm_lowered_cell`` is the lowered representation of a
 full cell group. The ``fvm_lowered_cell`` is responsible for holding the
 backend-specific data of a cell group, managing sampling and stimuli, facilitate
 event processing, and driving time integration.

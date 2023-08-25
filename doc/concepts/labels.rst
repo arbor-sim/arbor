@@ -273,6 +273,16 @@ Locset expressions
 
       The set of locations at the midpoint of every branch, expressed as ``(on-branches 0.5)``.
 
+.. label:: (on-components pos:double)
+
+    Points on each component of the region proportional to ``pos``.
+
+    .. figure:: ../gen-images/on_components_label.svg
+      :width: 300
+      :align: center
+
+    This shows the component centers of the dendrite, i.e. ``(on-components 0.5 (region "dend"))``.
+
 .. label:: (distal reg:region)
 
     The set of the most distal locations of a region.
@@ -296,6 +306,15 @@ Locset expressions
 
       On the left is the region with radius between 0.3 μm and 0.5 μm.
       The right shows the proximal set of this region.
+
+.. label:: (boundary reg:region), (cboundary reg:region), and (segment-boundaries)
+
+    Boundary of (completed) region and those of all segments. The examples show
+    ``(boundary (segment 2))``, ``(cboundary (segment 2))``, and ``(segment-boundaries)``.
+
+    .. figure:: ../gen-images/boundaries_label.svg
+      :width: 600
+      :align: center
 
 .. label:: (proximal-translate ls:locset distance:real)
 
@@ -386,6 +405,10 @@ Locset expressions
     .. code-block:: lisp
 
         (join (location 1 0.5) (location 2 0.1) (location 1 0.2) (location 1 0.5) (location 4 0))
+
+.. label:: (support ls:locset)
+
+    Support of the multiset ``ls``, i.e. set of all points in the locset such that each appears once.
 
 .. _labels-region-expr:
 
@@ -611,6 +634,42 @@ Region expressions
       :align: center
 
       Two regions (left and middle) and their intersection (right).
+
+.. label:: (difference lhs:region rhs:region)
+
+    The intersection of two regions.
+
+    .. figure:: ../gen-images/difference_label.svg
+      :width: 900
+      :align: center
+
+      Two regions (left and middle) and their difference (right).
+
+.. label:: (complement reg:region)
+
+    The complement of a region.
+
+    .. figure:: ../gen-images/complement_label.svg
+      :width: 900
+      :align: center
+
+      A region (left) and its complement (right).
+
+.. label:: (complete reg:region)
+
+    Complete a region, i.e. add all covers of all included forks.
+
+    .. figure:: ../gen-images/completion_label.svg
+      :width: 900
+      :align: center
+
+      A region (left) and its completion (right).
+
+.. label:: (z-dist-from-root-lt dist:real), (z-dist-from-root-le dist:real), (z-dist-from-root-gt dist:real) and (z-dist-from-root-ge dist:real)
+
+    All points ``p`` of the morphology such that ``p``'s z-coordinate is less
+    than, less than or equal, greater than, or greater than or equal to
+    ``dist``.
 
 
 .. _labels-iexpr:
