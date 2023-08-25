@@ -68,8 +68,10 @@ void lif_cell_group::add_sampler(sampler_association_handle h,
                                  schedule sched,
                                  sampler_function fn) {
     std::lock_guard<std::mutex> guard(sampler_mex_);
-    auto probeset =
-        util::assign_from(util::filter(util::keys(probes_), probeset_ids));
+    std::vector<cell_address_type> probeset;
+    for (const auto& [k, v]: probes_) {
+        if (probeset_ids(k)) probeset.push_back(k);
+    }
     auto assoc = arb::sampler_association{std::move(sched),
                                           std::move(fn),
                                           std::move(probeset)};

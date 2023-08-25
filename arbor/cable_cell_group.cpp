@@ -92,9 +92,9 @@ struct sampler_call_info {
 };
 
 void cable_cell_group::t_serialize(serializer& ser,
-                              const std::string& k) const { serialize(ser, k, *this); }
+                                   const std::string& k) const { serialize(ser, k, *this); }
 void cable_cell_group::t_deserialize(serializer& ser,
-                                const std::string& k) { deserialize(ser, k, *this); }
+                                     const std::string& k) { deserialize(ser, k, *this); }
 
 // Working space for computing and collating data for samplers.
 using fvm_probe_scratch = std::tuple<std::vector<double>, std::vector<cable_sample_range>>;
@@ -454,19 +454,19 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
             max_samples_per_call = std::max(max_samples_per_call, n_times);
             for (const auto& pid: sa.probeset_ids) {
                 unsigned index = 0;
-                for (const auto& [_, pdata]: probe_map_.data_on(pid)) {
+                for (const auto& pdata: probe_map_.data_on(pid)) {
                     call_info.push_back({sa.sampler,
                                          pid,
                                          index,
-                                         &pdata,
+                                         pdata,
                                          n_samples,
-                                         n_samples + n_times*pdata.n_raw()});
+                                         n_samples + n_times*pdata->n_raw()});
                     index++;
                     for (auto t: sample_times) {
                         auto it = timesteps_.find(t);
                         arb_assert(it != timesteps_.end());
                         const auto timestep_index = it - timesteps_.begin();
-                        for (probe_handle h: pdata.raw_handle_range()) {
+                        for (probe_handle h: pdata->raw_handle_range()) {
                             sample_event ev{t, {h, n_samples++}};
                             sample_events_[timestep_index].push_back(ev);
                         }
@@ -507,12 +507,13 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     }
 }
 
-void cable_cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probeset_ids,
-                                schedule sched, sampler_function fn) {
+void cable_cell_group::add_sampler(sampler_association_handle h,
+                                   cell_member_predicate probeset_ids,
+                                   schedule sched,
+                                   sampler_function fn) {
     // SAFETY? Both probe_map and sampler must be protected by this lock?!
     std::lock_guard<std::mutex> guard(sampler_mex_);
-    std::vector<cell_address_type> probeset = util::assign_from(util::filter(probe_map_.keys(), probeset_ids));
-
+    auto probeset = probe_map_.keys(probeset_ids);
     if (!probeset.empty()) {
         auto result = sampler_map_.insert({h, sampler_association{std::move(sched),
                                                                   std::move(fn),
@@ -539,8 +540,8 @@ std::vector<probe_metadata> cable_cell_group::get_probe_metadata(const cell_addr
     std::vector<probe_metadata> result;
     result.reserve(data.size());
     unsigned index = 0;
-    for (const auto& [key, val]: data) {
-        result.push_back({probeset_id, index++, val.get_metadata_ptr()});
+    for (const auto& info: data) {
+        result.push_back({probeset_id, index++, info->get_metadata_ptr()});
     }
     return result;
 }

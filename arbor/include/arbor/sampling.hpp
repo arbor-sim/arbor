@@ -12,17 +12,23 @@ using cell_member_predicate = std::function<bool (const cell_address_type&)>;
 
 static cell_member_predicate all_probes = [](const cell_address_type&) { return true; };
 
-inline cell_member_predicate one_probe(const cell_address_type& pid) {
-    return [pid](const cell_address_type& x) { return pid == x; };
-}
+struct one_probe {
+    one_probe(cell_address_type p): pid{std::move(p)} {}
+    cell_address_type pid;
+    bool operator()(const cell_address_type& x) { return x == pid; }
+};
 
-inline cell_member_predicate one_gid(cell_gid_type gid) {
-    return [gid](const cell_address_type& x) { return x.gid == gid; };
-}
+struct one_gid {
+    one_gid(cell_gid_type p): gid{std::move(p)} {}
+    cell_gid_type gid;
+    bool operator()(const cell_address_type& x) { return x.gid == gid; }
+};
+struct one_tag {
+    one_tag(cell_tag_type p): tag{std::move(p)} {}
+    cell_tag_type tag;
+    bool operator()(const cell_address_type& x) { return x.tag == tag; }
+};
 
-inline cell_member_predicate one_tag(cell_tag_type tag) {
-    return [tag](const cell_address_type& x) { return x.tag == tag; };
-}
 
 // Probe-specific metadata is provided by cell group implementations.
 //

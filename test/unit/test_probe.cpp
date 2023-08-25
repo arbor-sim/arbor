@@ -131,7 +131,7 @@ void run_v_i_probe_test(context ctx) {
     EXPECT_EQ(3u, probe_map.size());
 
     auto get_probe_raw_handle = [&](const cell_address_type& addr, unsigned ix = 0) {
-        return probe_map.data_on(addr).front().second.raw_handle_range()[ix];
+        return probe_map.data_on(addr).front()->raw_handle_range()[ix];
     };
 
     // Voltage probes are interpolated, so expect fvm_probe_info
@@ -139,9 +139,9 @@ void run_v_i_probe_test(context ctx) {
     // implemented as an interpolated probe too, in order to account
     // for stimulus contributions.
 
-    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Um-l0"}).front().second.info));
-    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Um-l1"}).front().second.info));
-    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Ii-l2"}).front().second.info));
+    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Um-l0"}).front()->info));
+    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Um-l1"}).front()->info));
+    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Ii-l2"}).front()->info));
 
     probe_handle p0a = get_probe_raw_handle({0, "Um-l0"}, 0);
     probe_handle p0b = get_probe_raw_handle({0, "Um-l0"}, 1);
@@ -224,7 +224,7 @@ void run_v_cell_probe_test(context ctx) {
 
         ASSERT_EQ(1u, fvm_info.probe_map.size());
 
-        const fvm_probe_multi* h_ptr = std::get_if<fvm_probe_multi>(&fvm_info.probe_map.data_on({0, "U_m"}).front().second.info);
+        const fvm_probe_multi* h_ptr = std::get_if<fvm_probe_multi>(&fvm_info.probe_map.data_on({0, "U_m"}).front()->info);
         ASSERT_TRUE(h_ptr);
         auto& h = *h_ptr;
 
@@ -289,7 +289,7 @@ void run_expsyn_g_probe_test(context ctx) {
         ASSERT_EQ(1u, probe_map.count({0, "expsyn-g-2"}));
 
         auto get_probe_raw_handle = [&](const cell_address_type& x, unsigned i = 0) {
-            return probe_map.data_on(x).front().second.raw_handle_range()[i];
+            return probe_map.data_on(x).front()->raw_handle_range()[i];
         };
 
         probe_handle p0 = get_probe_raw_handle({0, "expsyn-g-1"});
@@ -417,7 +417,7 @@ void run_expsyn_g_cell_probe_test(context ctx) {
 
         ASSERT_EQ(2u, probe_map.size());
         for (unsigned i: {0u, 1u}) {
-            const auto* h_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({i, "expsyn-g"}).front().second.info);
+            const auto* h_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({i, "expsyn-g"}).front()->info);
             ASSERT_TRUE(h_ptr);
 
             const auto* m_ptr = std::get_if<std::vector<cable_probe_point_info>>(&h_ptr->metadata);
@@ -558,7 +558,7 @@ void run_ion_density_probe_test(context ctx) {
     EXPECT_EQ(11u, probe_map.size());
 
     auto get_probe_raw_handle = [&](const cell_address_type& x, unsigned i = 0) {
-        return probe_map.data_on(x).front().second.raw_handle_range()[i];
+        return probe_map.data_on(x).front()->raw_handle_range()[i];
     };
 
     probe_handle ca_int_cv0 = get_probe_raw_handle({0, "cai-l0"});
@@ -603,7 +603,7 @@ void run_ion_density_probe_test(context ctx) {
     // sorted by CV in the fvm_probe_weighted_multi object; this is assumed
     // below.
 
-    auto* p_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, "cai-all"}).front().second.info);
+    auto* p_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, "cai-all"}).front()->info);
     ASSERT_TRUE(p_ptr);
     const fvm_probe_multi& na_int_all_info = *p_ptr;
 
@@ -621,7 +621,7 @@ void run_ion_density_probe_test(context ctx) {
     EXPECT_EQ(na_int_cv2,   na_int_all_info.raw_handles[1]);
     EXPECT_EQ(na_int_cv2-1, na_int_all_info.raw_handles[0]);
 
-    p_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, "cao-all"}).front().second.info);
+    p_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, "cao-all"}).front()->info);
     ASSERT_TRUE(p_ptr);
     const fvm_probe_multi& ca_ext_all_info = *p_ptr;
 
@@ -737,7 +737,7 @@ void run_partial_density_probe_test(context ctx) {
     EXPECT_EQ(10u, probe_map.size());
 
     auto get_probe_raw_handle = [&](const cell_address_type& x, unsigned i = 0) {
-        return probe_map.data_on(x).front().second.raw_handle_range()[i];
+        return probe_map.data_on(x).front()->raw_handle_range()[i];
     };
 
     // Check probe values against expected values.
@@ -805,13 +805,11 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
     const unsigned n_axial_probe = n_cv-1;
 
     for (mlocation loc: cv_boundaries) {
-        // Probe ids will be be (0, 0), (0, 1), etc.
         rec.add_probe(0, "I-axial", cable_probe_axial_current{loc});
     }
 
-    // Use tags 1 and 2 for the whole-cell probes.
-    rec.add_probe(0, "I-total", cable_probe_total_ion_current_cell{});
     rec.add_probe(0, "I-stimulus", cable_probe_stimulus_current_cell{});
+    rec.add_probe(0, "I-total", cable_probe_total_ion_current_cell{});
 
     partition_hint_map phints = {
        {cell_kind::cable, {partition_hint::max_size, partition_hint::max_size, true}}
@@ -821,52 +819,45 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
     // Take a sample at 20 tau, and run sim for just a bit longer.
 
     std::vector<double> i_axial(n_axial_probe);
-    std::vector<double> i_memb, i_stim;
+    std::vector<double> i_memb(n_cv), i_stim(n_cv);
 
     sim.add_sampler(all_probes, explicit_schedule({20*tau}),
-        [&](probe_metadata pm, std::size_t n_sample, const sample_record* samples)
-        {
+        [&](probe_metadata pm,
+            std::size_t n_sample,
+            const sample_record* samples) {
             // Expect exactly one sample.
             ASSERT_EQ(1u, n_sample);
 
             if (pm.id.tag == "I-total") {
-                const mcable_list* m = any_cast<const mcable_list*>(pm.meta);
+                auto m = any_cast<const mcable_list*>(pm.meta);
                 ASSERT_NE(nullptr, m);
                 // Metadata should comprise one cable per CV.
                 ASSERT_EQ(n_cv, m->size());
-
-                const cable_sample_range* s = any_cast<const cable_sample_range*>(samples[0].data);
+                const cable_sample_range* s = any_cast<const cable_sample_range*>(samples->data);
                 ASSERT_NE(nullptr, s);
-                ASSERT_EQ(s->first+n_cv, s->second);
-
-                auto* i_var = &i_memb;
-                for (const double* p = s->first; p!=s->second; ++p) {
-                    i_var->push_back(*p);
-                }
+                auto [s_beg, s_end] = *s;
+                ASSERT_EQ(s_end - s_beg, n_cv);
+                for (int ix = 0; ix < n_cv; ++ix) i_memb[ix] = *s_beg++;
             }
             else if (pm.id.tag == "I-stimulus") {
-                const mcable_list* m = any_cast<const mcable_list*>(pm.meta);
+                auto m = any_cast<const mcable_list*>(pm.meta);
                 ASSERT_NE(nullptr, m);
                 // Metadata should comprise one cable per CV.
                 ASSERT_EQ(n_cv, m->size());
-
-                const cable_sample_range* s = any_cast<const cable_sample_range*>(samples[0].data);
+                const cable_sample_range* s = any_cast<const cable_sample_range*>(samples->data);
                 ASSERT_NE(nullptr, s);
-                ASSERT_EQ(s->first+n_cv, s->second);
-
-                auto* i_var = &i_stim;
-                for (const double* p = s->first; p!=s->second; ++p) {
-                    i_var->push_back(*p);
-                }
+                auto [s_beg, s_end] = *s;
+                ASSERT_EQ(s_end - s_beg, n_cv);
+                for (int ix = 0; ix < n_cv; ++ix) i_stim[ix] = *s_beg++;
             }
             else if (pm.id.tag == "I-axial") {
                 // Probe id tells us which axial current this is.
                 ASSERT_LT(pm.index, n_axial_probe);
 
-                const mlocation* m = any_cast<const mlocation*>(pm.meta);
+                auto m = any_cast<const mlocation*>(pm.meta);
                 ASSERT_NE(nullptr, m);
 
-                const double* s = any_cast<const double*>(samples[0].data);
+                auto s = any_cast<const double*>(samples->data);
                 ASSERT_NE(nullptr, s);
 
                 i_axial.at(pm.index) = *s;
@@ -880,6 +871,7 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
     sim.run(20*tau+dt, dt);
 
     ASSERT_EQ(n_cv, i_memb.size());
+    ASSERT_EQ(n_cv, i_stim.size());
 
     for (unsigned i = 0; i<n_cv; ++i) {
         // Axial currents are in the distal (increasing CV index) direction,
@@ -889,10 +881,10 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
         // axial current on proximal side, plus membrane current, and should
         // sum to zero.
 
-        double net_axial_flux = i<n_axial_probe? i_axial[i]: 0;
+        double net_axial_flux = i<n_axial_probe ? i_axial[i]: 0;
         net_axial_flux -= i>0? i_axial[i-1]: 0;
 
-        EXPECT_TRUE(testing::near_relative(net_axial_flux, -i_memb[i]-i_stim[i], 1e-6));
+        EXPECT_TRUE(testing::near_relative(net_axial_flux, -i_memb[i] - i_stim[i], 1e-6));
     }
 }
 
