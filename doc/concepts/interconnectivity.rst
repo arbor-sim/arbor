@@ -34,20 +34,20 @@ The following example shows the relevant recipe functions, where cells are conne
         seed = 42
 
         # create a chain
-        s_chain = f"(chain (gid-range 0 {self.ncells}))"
+        chain = f"(chain (gid-range 0 {self.ncells}))"
         # connect front and back of chain to form ring
-        s_ring = f"(join {s_chain} (intersect (source-cell {self.ncells - 1}) (destination-cell 0)))"
+        ring = f"(join {chain} (intersect (source-cell {self.ncells - 1}) (destination-cell 0)))"
 
         # Create random connections with probability inversely proportional to the distance within a
         # radius
-        max_dist = 400.0 # μm
+        max_dist = 400.0  # μm
         probability = f"(div (sub {max_dist} (distance)) {max_dist})"
-        s_rand = f"(intersect (random {seed} {probability}) (distance-lt {max_dist}))"
+        rand = f"(intersect (random {seed} {probability}) (distance-lt {max_dist}))"
 
         # combine ring with random selection
-        s = f"(join {s_ring} {s_rand})"
+        s = f"(join {ring} {rand})"
         # restrict to inter-cell connections and certain source / destination labels
-        s = f"(intersect {s} (inter-cell) (source-label \"detector\") (destination-label \"syn\"))"
+        s = f'(intersect {s} (inter-cell) (source-label "detector") (destination-label "syn"))'
 
         # fixed weight for connections in ring
         w_ring = f"(scalar 0.01)"
@@ -56,7 +56,7 @@ The following example shows the relevant recipe functions, where cells are conne
         w_rand = f"(truncated-normal-distribution {seed} 0.02 0.01 0.005 0.035)"
 
         # combine into single weight expression
-        w = f"(if-else {s_ring} {w_ring} {w_rand})"
+        w = f"(if-else {ring} {w_ring} {w_rand})"
 
         # fixed delay
         d = "(scalar 5.0)"  # ms delay

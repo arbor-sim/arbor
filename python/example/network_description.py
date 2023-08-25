@@ -35,7 +35,7 @@ def make_cable_cell(gid):
     tree.append(
         b0,
         arbor.mpoint(0, 0, 50, 2),
-        arbor.mpoint(0, 50 / sqrt(2), 50 + 50 / sqrt(2) , 0.5),
+        arbor.mpoint(0, 50 / sqrt(2), 50 + 50 / sqrt(2), 0.5),
         tag=3,
     )
     # (b2) Constant radius of 1 μm over the length of the dendrite.
@@ -97,28 +97,30 @@ class random_ring_recipe(arbor.recipe):
 
     def cell_isometry(self, gid):
         # place cells with equal distance on a circle
-        radius = 500.0 # μm
+        radius = 500.0  # μm
         angle = 2.0 * math.pi * gid / self.ncells
-        return arbor.isometry.translate(radius * math.cos(angle), radius * math.sin(angle), 0)
+        return arbor.isometry.translate(
+            radius * math.cos(angle), radius * math.sin(angle), 0
+        )
 
     def network_description(self):
         seed = 42
 
         # create a chain
-        ring = f"(chain (gid-range 0 {self.ncells}))"
+        chain = f"(chain (gid-range 0 {self.ncells}))"
         # connect front and back of chain to form ring
-        ring = f"(join {ring} (intersect (source-cell {self.ncells - 1}) (destination-cell 0)))"
+        ring = f"(join {chain} (intersect (source-cell {self.ncells - 1}) (destination-cell 0)))"
 
         # Create random connections with probability inversely proportional to the distance within a
         # radius
-        max_dist = 400.0 # μm
+        max_dist = 400.0  # μm
         probability = f"(div (sub {max_dist} (distance)) {max_dist})"
         rand = f"(intersect (random {seed} {probability}) (distance-lt {max_dist}))"
 
         # combine ring with random selection
         s = f"(join {ring} {rand})"
         # restrict to inter-cell connections and certain source / destination labels
-        s = f"(intersect {s} (inter-cell) (source-label \"detector\") (destination-label \"syn\"))"
+        s = f'(intersect {s} (inter-cell) (source-label "detector") (destination-label "syn"))'
 
         # fixed weight for connections in ring
         w_ring = f"(scalar 0.01)"
