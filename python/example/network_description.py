@@ -169,7 +169,7 @@ connections = arbor.generate_network_connections(recipe)
 
 print("connections:")
 for c in connections:
-    print(f"({c.src.gid}, \"{c.src.label}\") -> ({c.dest.gid}, \"{c.dest.label}\")")
+    print(f'({c.src.gid}, "{c.src.label}") -> ({c.dest.gid}, "{c.dest.label}")')
 
 # (16) Run simulation for 100 ms
 sim.run(100)
