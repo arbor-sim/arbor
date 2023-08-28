@@ -467,7 +467,6 @@ def generate(path=""):
         path + "/connected_components.svg",
     )
 
-
     ####################### regions
 
     label_image(
