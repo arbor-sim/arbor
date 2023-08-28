@@ -29,6 +29,8 @@
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
+#include <arbor/network.hpp>
+#include <arbor/network_generation.hpp>
 
 #include <arborenv/default_env.hpp>
 #include <arborenv/gpu_env.hpp>
@@ -37,7 +39,6 @@
 #include <sup/json_meter.hpp>
 #include <sup/json_params.hpp>
 
-#include "arbor/network.hpp"
 #include "branch_cell.hpp"
 
 #ifdef ARB_MPI_ENABLED
@@ -49,9 +50,9 @@ struct ring_params {
     ring_params() = default;
 
     std::string name = "default";
-    unsigned num_cells = 100;
+    unsigned num_cells = 20;
     double min_delay = 10;
-    double duration = 1000;
+    double duration = 100;
     cell_parameters cell;
 };
 
@@ -241,6 +242,17 @@ int main(int argc, char** argv) {
         sim.run(params.duration, 0.025);
 
         meters.checkpoint("model-run", context);
+
+
+        // Print generated connections
+        if (root) {
+            const auto connections = arb::generate_network_connections(recipe);
+            std::cout << "Connections:" << std::endl;
+            for(const auto& c: connections) {
+                std::cout << "(" << c.src.gid << ", \"" << c.src.label << "\") ->";
+                std::cout << "(" << c.dest.gid << ", \"" << c.dest.label << "\")" << std::endl;
+            }
+        }
 
         auto ns = sim.num_spikes();
 

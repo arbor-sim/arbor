@@ -13,8 +13,10 @@
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/morph/place_pwlin.hpp>
 #include <arbor/spike_source_cell.hpp>
 #include <arbor/util/unique_any.hpp>
@@ -374,6 +376,13 @@ ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(
     std::sort(connections.begin(), connections.end());
 
     return connections;
+}
+
+ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(const recipe& rec) {
+    auto ctx = arb::make_context();
+    auto decomp = arb::partition_load_balance(rec, ctx);
+
+    return generate_network_connections(rec, ctx, decomp);
 }
 
 }  // namespace arb

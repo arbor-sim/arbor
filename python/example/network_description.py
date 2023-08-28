@@ -164,16 +164,23 @@ sim.record(arbor.spike_recording.all)
 # (14) Attach a sampler to the voltage probe on cell 0. Sample rate of 10 sample every ms.
 handles = [sim.sample((gid, 0), arbor.regular_schedule(0.1)) for gid in range(ncells)]
 
-# (15) Run simulation for 100 ms
+# (15) Inspect generated connections
+connections = arbor.generate_network_connections(recipe)
+
+print("connections:")
+for c in connections:
+    print(f"({c.src.gid}, \"{c.src.label}\") -> ({c.dest.gid}, \"{c.dest.label}\")")
+
+# (16) Run simulation for 100 ms
 sim.run(100)
 print("Simulation finished")
 
-# (16) Print spike times
+# (17) Print spike times
 print("spikes:")
 for sp in sim.spikes():
     print(" ", sp)
 
-# (17) Plot the recorded voltages over time.
+# (18) Plot the recorded voltages over time.
 print("Plotting results ...")
 df_list = []
 for gid in range(ncells):
