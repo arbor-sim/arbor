@@ -36,6 +36,7 @@ all_examples=(
     "plasticity"
     "ou"
     "voltage-clamp"
+    "network_description"
     "remote"
 )
 
@@ -58,6 +59,7 @@ expected_outputs=(
     ""
     ""
     ""
+    205
     ""
 )
 
