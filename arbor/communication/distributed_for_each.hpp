@@ -133,7 +133,7 @@ void distributed_for_each(FUNC&& func,
     const auto right_rank = my_rank == distributed.size() - 1 ? 0 : my_rank + 1;
 
     // exchange buffer in ring pattern and apply function at each step
-    for (std::size_t step = 0; step < distributed.size() - 1; ++step) {
+    for (int step = 0; step < distributed.size() - 1; ++step) {
         // always expect to recieve the max size but send actual size. MPI_recv only expects a max
         // size, not the actual size.
         const auto current_info = (const vec_info*)buffer.get();
