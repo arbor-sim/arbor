@@ -224,6 +224,8 @@ locsets = {
     "proximal_translate": "(proximal-translate (terminal) 10)",
     "distal_translate_single": "(distal-translate (location 0 0.5) 5)",
     "distal_translate_multi": "(distal-translate (location 0 0.5) 15)",
+    "comp_23": "(on-components 0.5 (join (branch 2) (branch 3)))",
+    "comp_c34": "(on-components 0.5 (join (branch 3) (branch 4)))",
 }
 
 labels = {**regions, **locsets}
@@ -343,6 +345,7 @@ f.write(write_morphology("tutorial_network_ring_morph", tutorial_network_ring_mo
 
 f.write("\n############# locsets (label_morph)\n\n")
 for label in locsets:
+    print(label)
     locs = [(l.branch, l.pos) for l in cell.locations('"{}"'.format(label))]
     f.write("ls_{}  = {{'type': 'locset', 'value': {}}}\n".format(label, locs))
 
