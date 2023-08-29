@@ -8,6 +8,14 @@
 
 using namespace arb;
 
+std::vector<hash_type> make_labels(const std::vector<std::string>& ls) {
+    std::vector<hash_type> res;
+    std::transform(ls.begin(), ls.end(),
+                   std::back_inserter(res),
+                   internal_hash);
+    return res;
+}
+
 TEST(test_cell_label_range, build) {
     using ivec = std::vector<cell_size_type>;
     using svec = std::vector<cell_tag_type>;
@@ -16,18 +24,18 @@ TEST(test_cell_label_range, build) {
     // Test add_cell and add_label
     auto b0 = cell_label_range();
     EXPECT_THROW(b0.add_label("l0", {0u, 1u}), arb::arbor_internal_error);
-    EXPECT_TRUE(b0.sizes().empty());
-    EXPECT_TRUE(b0.labels().empty());
-    EXPECT_TRUE(b0.ranges().empty());
+    EXPECT_TRUE(b0.sizes.empty());
+    EXPECT_TRUE(b0.labels.empty());
+    EXPECT_TRUE(b0.ranges.empty());
     EXPECT_TRUE(b0.check_invariant());
 
     auto b1 = cell_label_range();
     b1.add_cell();
     b1.add_cell();
     b1.add_cell();
-    EXPECT_EQ((ivec{0u, 0u, 0u}), b1.sizes());
-    EXPECT_TRUE(b1.labels().empty());
-    EXPECT_TRUE(b1.ranges().empty());
+    EXPECT_EQ((ivec{0u, 0u, 0u}), b1.sizes);
+    EXPECT_TRUE(b1.labels.empty());
+    EXPECT_TRUE(b1.ranges.empty());
     EXPECT_TRUE(b1.check_invariant());
 
     auto b2 = cell_label_range();
@@ -42,9 +50,9 @@ TEST(test_cell_label_range, build) {
     b2.add_label("l4", {7u, 2u});
     b2.add_label("l4", {7u, 2u});
     b2.add_label("l2", {7u, 2u});
-    EXPECT_EQ((ivec{3u, 0u, 5u}), b2.sizes());
-    EXPECT_EQ((svec{"l0", "l0", "l1", "l2", "l3", "l4", "l4", "l2"}), b2.labels());
-    EXPECT_EQ((lvec{{0u, 1u}, {3u, 13u}, {0u, 5u}, {6u, 8u}, {1u, 0u}, {7u, 2u}, {7u, 2u}, {7u, 2u}}), b2.ranges());
+    EXPECT_EQ((ivec{3u, 0u, 5u}), b2.sizes);
+    EXPECT_EQ(make_labels(svec{"l0", "l0", "l1", "l2", "l3", "l4", "l4", "l2"}), b2.labels);
+    EXPECT_EQ((lvec{{0u, 1u}, {3u, 13u}, {0u, 5u}, {6u, 8u}, {1u, 0u}, {7u, 2u}, {7u, 2u}, {7u, 2u}}), b2.ranges);
     EXPECT_TRUE(b2.check_invariant());
 
     auto b3 = cell_label_range();
@@ -52,28 +60,29 @@ TEST(test_cell_label_range, build) {
     b3.add_label("r0", {0u, 9u});
     b3.add_label("r1", {10u, 10u});
     b3.add_cell();
-    EXPECT_EQ((ivec{2u, 0u}), b3.sizes());
-    EXPECT_EQ((svec{"r0", "r1"}), b3.labels());
-    EXPECT_EQ((lvec{{0u, 9u}, {10u, 10u}}), b3.ranges());
+    EXPECT_EQ((ivec{2u, 0u}), b3.sizes);
+    EXPECT_EQ(make_labels
+              (svec{"r0", "r1"}), b3.labels);
+    EXPECT_EQ((lvec{{0u, 9u}, {10u, 10u}}), b3.ranges);
     EXPECT_TRUE(b3.check_invariant());
 
     // Test appending
     b0.append(b1);
-    EXPECT_EQ((ivec{0u, 0u, 0u}), b0.sizes());
-    EXPECT_TRUE(b0.labels().empty());
-    EXPECT_TRUE(b0.ranges().empty());
+    EXPECT_EQ((ivec{0u, 0u, 0u}), b0.sizes);
+    EXPECT_TRUE(b0.labels.empty());
+    EXPECT_TRUE(b0.ranges.empty());
     EXPECT_TRUE(b0.check_invariant());
 
     b0.append(b2);
-    EXPECT_EQ((ivec{0u, 0u, 0u, 3u, 0u, 5u}), b0.sizes());
-    EXPECT_EQ((svec{"l0", "l0", "l1", "l2", "l3", "l4", "l4", "l2"}), b0.labels());
-    EXPECT_EQ((lvec{{0u, 1u}, {3u, 13u}, {0u, 5u}, {6u, 8u}, {1u, 0u}, {7u, 2u}, {7u, 2u}, {7u, 2u}}), b0.ranges());
+    EXPECT_EQ((ivec{0u, 0u, 0u, 3u, 0u, 5u}), b0.sizes);
+    EXPECT_EQ(make_labels(svec{"l0", "l0", "l1", "l2", "l3", "l4", "l4", "l2"}), b0.labels);
+    EXPECT_EQ((lvec{{0u, 1u}, {3u, 13u}, {0u, 5u}, {6u, 8u}, {1u, 0u}, {7u, 2u}, {7u, 2u}, {7u, 2u}}), b0.ranges);
     EXPECT_TRUE(b0.check_invariant());
 
     b0.append(b3);
-    EXPECT_EQ((ivec{0u, 0u, 0u, 3u, 0u, 5u, 2u, 0u}), b0.sizes());
-    EXPECT_EQ((svec{"l0", "l0", "l1", "l2", "l3", "l4", "l4", "l2", "r0", "r1"}), b0.labels());
-    EXPECT_EQ((lvec{{0u, 1u}, {3u, 13u}, {0u, 5u}, {6u, 8u}, {1u, 0u}, {7u, 2u}, {7u, 2u}, {7u, 2u}, {0u, 9u}, {10u, 10u}}), b0.ranges());
+    EXPECT_EQ((ivec{0u, 0u, 0u, 3u, 0u, 5u, 2u, 0u}), b0.sizes);
+    EXPECT_EQ(make_labels(svec{"l0", "l0", "l1", "l2", "l3", "l4", "l4", "l2", "r0", "r1"}), b0.labels);
+    EXPECT_EQ((lvec{{0u, 1u}, {3u, 13u}, {0u, 5u}, {6u, 8u}, {1u, 0u}, {7u, 2u}, {7u, 2u}, {7u, 2u}, {0u, 9u}, {10u, 10u}}), b0.ranges);
     EXPECT_TRUE(b0.check_invariant());
 }
 
