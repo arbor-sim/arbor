@@ -370,6 +370,10 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         }
     }
 
+    if (!fvm_info.target_data.check_invariant()) throw arbor_internal_error{"Building cell target data resulted in invalid state."};
+    if (!fvm_info.source_data.check_invariant()) throw arbor_internal_error{"Building cell source data resulted in invalid state."};
+    if (!fvm_info.gap_junction_data.check_invariant()) throw arbor_internal_error{"Building cell gj data resulted in invalid state."};
+
     cable_cell_global_properties global_props;
     try {
         std::any rec_props = rec.get_global_properties(cell_kind::cable);

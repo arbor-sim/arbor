@@ -1,5 +1,6 @@
 #include <iterator>
 #include <vector>
+#include <unordered_set>
 
 #include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
@@ -43,6 +44,17 @@ void cell_label_range::append(cell_label_range other) {
 
 bool cell_label_range::check_invariant() const {
     const cell_size_type count = std::accumulate(sizes.begin(), sizes.end(), cell_size_type(0));
+    size_t beg = 0;
+    for (auto size: sizes) {
+        size_t end = beg + size;
+        std::unordered_set<hash_type> seen;
+        for (auto idx = beg; idx < end; ++idx) {
+            auto hash = labels[idx];
+            if (seen.count(hash)) return false;
+            seen.insert(hash);
+        }
+        beg = end;
+    }
     return count==labels.size() && count==ranges.size();
 }
 
