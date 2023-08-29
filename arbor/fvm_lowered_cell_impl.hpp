@@ -312,11 +312,26 @@ fvm_detector_info get_detector_info(arb_size_type max,
     return { max, std::move(cv), std::move(threshold), ctx };
 }
 
+inline cell_size_type
+add_labels(cell_label_range& clr, const std::unordered_multimap<cell_tag_type, lid_range>& ranges) {
+    clr.add_cell();
+    cell_size_type count = 0;
+    std::unordered_map<hash_type, cell_tag_type> hashes;
+    for (const auto& [label, range]: ranges) {
+        auto hash = internal_hash(label);
+        if (hashes.count(hash) && hashes.at(hash) != label) {
+            auto err = util::strprintf("Hash collision {} ~ {} = {}", label, hashes.at(hash), hash);
+            throw arbor_internal_error{err};
+        }
+        clr.add_label(label, range);
+        count += (range.end - range.begin);
+    }
+    return count;
+}
+
 template <typename Backend>
-fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
-    const std::vector<cell_gid_type>& gids,
-    const recipe& rec)
-{
+fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gids,
+                                                                   const recipe& rec) {
     using std::any_cast;
     using util::count_along;
     using util::make_span;
@@ -346,33 +361,10 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     for (auto i : util::make_span(ncell)) {
         auto gid = gids[i];
         const auto& c = cells[i];
-
-        fvm_info.source_data.add_cell();
-        fvm_info.target_data.add_cell();
-        fvm_info.gap_junction_data.add_cell();
-
-        unsigned count = 0;
-        for (const auto& [label, range]: c.detector_ranges()) {
-            fvm_info.source_data.add_label(label, range);
-            count+=(range.end - range.begin);
-        }
-        fvm_info.num_sources[gid] = count;
-
-        count = 0;
-        for (const auto& [label, range]: c.synapse_ranges()) {
-            fvm_info.target_data.add_label(label, range);
-            count+=(range.end - range.begin);
-        }
-        fvm_info.num_targets[gid] = count;
-
-        for (const auto& [label, range]: c.junction_ranges()) {
-            fvm_info.gap_junction_data.add_label(label, range);
-        }
+        fvm_info.num_sources[gid] = add_labels(fvm_info.source_data, c.detector_ranges());
+        fvm_info.num_targets[gid] = add_labels(fvm_info.target_data, c.synapse_ranges());
+        add_labels(fvm_info.gap_junction_data, c.junction_ranges());
     }
-
-    if (!fvm_info.target_data.check_invariant()) throw arbor_internal_error{"Building cell target data resulted in invalid state."};
-    if (!fvm_info.source_data.check_invariant()) throw arbor_internal_error{"Building cell source data resulted in invalid state."};
-    if (!fvm_info.gap_junction_data.check_invariant()) throw arbor_internal_error{"Building cell gj data resulted in invalid state."};
 
     cable_cell_global_properties global_props;
     try {

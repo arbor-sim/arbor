@@ -37,24 +37,13 @@ void cell_label_range::add_label(cell_tag_type label, lid_range range) {
 
 void cell_label_range::append(cell_label_range other) {
     using std::make_move_iterator;
-    sizes.insert(sizes.end(), make_move_iterator(other.sizes.begin()), make_move_iterator(other.sizes.end()));
+    sizes.insert(sizes.end(),   make_move_iterator(other.sizes.begin()),  make_move_iterator(other.sizes.end()));
     labels.insert(labels.end(), make_move_iterator(other.labels.begin()), make_move_iterator(other.labels.end()));
     ranges.insert(ranges.end(), make_move_iterator(other.ranges.begin()), make_move_iterator(other.ranges.end()));
 }
 
 bool cell_label_range::check_invariant() const {
     const cell_size_type count = std::accumulate(sizes.begin(), sizes.end(), cell_size_type(0));
-    size_t beg = 0;
-    for (auto size: sizes) {
-        size_t end = beg + size;
-        std::unordered_set<hash_type> seen;
-        for (auto idx = beg; idx < end; ++idx) {
-            auto hash = labels[idx];
-            if (seen.count(hash)) return false;
-            seen.insert(hash);
-        }
-        beg = end;
-    }
     return count==labels.size() && count==ranges.size();
 }
 
