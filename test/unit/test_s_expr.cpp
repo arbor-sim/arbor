@@ -174,7 +174,7 @@ TEST(s_expr, iterate) {
 template <typename L>
 std::string round_trip_label(const char* in) {
     if (auto x = parse_label_expression(in)) {
-        return util::pprintf("{}", std::any_cast<L>(*x));
+        return util::to_string(std::any_cast<L>(*x));
     }
     else {
         return x.error().what();
@@ -183,7 +183,7 @@ std::string round_trip_label(const char* in) {
 
 std::string round_trip_cv(const char* in) {
     if (auto x = parse_cv_policy_expression(in)) {
-        return util::pprintf("{}", std::any_cast<cv_policy>(*x));
+        return util::to_string(std::any_cast<cv_policy>(*x));
     }
     else {
         return x.error().what();
@@ -192,7 +192,7 @@ std::string round_trip_cv(const char* in) {
 
 std::string round_trip_region(const char* in) {
     if (auto x = parse_region_expression(in)) {
-        return util::pprintf("{}", std::any_cast<arb::region>(*x));
+        return util::to_string(std::any_cast<arb::region>(*x));
     }
     else {
         return x.error().what();
@@ -201,7 +201,7 @@ std::string round_trip_region(const char* in) {
 
 std::string round_trip_locset(const char* in) {
     if (auto x = parse_locset_expression(in)) {
-        return util::pprintf("{}", std::any_cast<arb::locset>(*x));
+        return util::to_string(std::any_cast<arb::locset>(*x));
     }
     else {
         return x.error().what();
@@ -210,7 +210,7 @@ std::string round_trip_locset(const char* in) {
 
 std::string round_trip_iexpr(const char* in) {
     if (auto x = parse_iexpr_expression(in)) {
-        return util::pprintf("{}", std::any_cast<arb::iexpr>(*x));
+        return util::to_string(std::any_cast<arb::iexpr>(*x));
     }
     else {
         return x.error().what();
@@ -219,7 +219,7 @@ std::string round_trip_iexpr(const char* in) {
 
 std::string round_trip_network_selection(const char* in) {
     if (auto x = parse_network_selection_expression(in)) {
-        return util::pprintf("{}", std::any_cast<arb::network_selection>(*x));
+        return util::to_string(std::any_cast<arb::network_selection>(*x));
     }
     else {
         return x.error().what();
@@ -228,7 +228,7 @@ std::string round_trip_network_selection(const char* in) {
 
 std::string round_trip_network_value(const char* in) {
     if (auto x = parse_network_value_expression(in)) {
-        return util::pprintf("{}", std::any_cast<arb::network_value>(*x));
+        return util::to_string(std::any_cast<arb::network_value>(*x));
     }
     else {
         return x.error().what();

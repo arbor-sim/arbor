@@ -4,7 +4,7 @@
 #include "label_resolution.hpp"
 #include "network_impl.hpp"
 #include "threading/threading.hpp"
-#include "util/range.hpp"
+#include "util/rangeutil.hpp"
 #include "util/spatial_tree.hpp"
 
 #include <Random123/threefry.h>
@@ -322,10 +322,8 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
 
     distributed_for_each(sample_sources,
         distributed,
-        util::make_range(src_sites.sites.begin(), src_sites.sites.end()),
-        util::make_range(src_sites.labels.begin(), src_sites.labels.end()));
-
-    // distributed_for_each(sample_sources, distributed, src_sites.sites, src_sites.labels);
+        util::range_view(src_sites.sites),
+        util::range_view(src_sites.labels));
 
     return connections;
 }

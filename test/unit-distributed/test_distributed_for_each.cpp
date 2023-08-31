@@ -7,7 +7,7 @@
 
 #include "communication/distributed_for_each.hpp"
 #include "execution_context.hpp"
-#include "util/range.hpp"
+#include "util/rangeutil.hpp"
 
 using namespace arb;
 
@@ -84,9 +84,9 @@ TEST(distributed_for_each, multiple) {
 
     distributed_for_each(sample,
         *g_context->distributed,
-        util::make_range(data_1.begin(), data_1.end()),
-        util::make_range(data_2.begin(), data_2.end()),
-        util::make_range(data_3.begin(), data_3.end()));
+        util::range_view(data_1),
+        util::range_view(data_2),
+        util::range_view(data_3));
 
     EXPECT_EQ(num_ranks, call_count);
 }
