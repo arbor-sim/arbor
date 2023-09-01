@@ -1,5 +1,7 @@
 #pragma once
 
+#include "util/visit_variant.hpp"
+
 #include <arbor/common_types.hpp>
 #include <arbor/math.hpp>
 
@@ -109,17 +111,14 @@ public:
     // func must have signature `void func(const T&)`.
     template <typename F>
     inline void for_each(const F &func) const {
-        std::visit(
-            [&](auto &&arg) {
-                using arg_type = std::decay_t<decltype(arg)>;
-                if constexpr (std::is_same_v<arg_type, node_data>) {
-                    for (const auto &node: arg) { node.for_each(func); }
-                }
-                if constexpr (std::is_same_v<arg_type, leaf_data>) {
-                    for (const auto &d: arg) { func(d); }
-                }
+        util::visit_variant(
+            data_,
+            [&](const node_data &data) {
+                for (const auto &node: data) { node.for_each(func); }
             },
-            data_);
+            [&](const leaf_data &data) {
+                for (const auto &d: data) { func(d); }
+            });
     }
 
     // Iterate over all points within the given bounding box recursively.
@@ -134,40 +133,38 @@ public:
             return result;
         };
 
-        std::visit(
-            [&](auto &&arg) {
-                using arg_type = std::decay_t<decltype(arg)>;
-
+        util::visit_variant(
+            data_,
+            [&](const node_data &data) {
                 if (all_smaller_eq(box_min, min_) && all_smaller_eq(max_, box_max)) {
                     // sub-nodes fully inside box -> call without further boundary
                     // checks
-                    if constexpr (std::is_same_v<arg_type, node_data>) {
-                        for (const auto &node: arg) { node.template for_each<F>(func); }
-                    }
-                    if constexpr (std::is_same_v<arg_type, leaf_data>) {
-                        for (const auto &d: arg) { func(d); }
-                    }
+                    for (const auto &node: data) { node.template for_each<F>(func); }
                 }
                 else {
                     // sub-nodes partially overlap bounding box
-                    if constexpr (std::is_same_v<arg_type, node_data>) {
-                        for (const auto &node: arg) {
-                            if (all_smaller_eq(node.min_, box_max) &&
-                                all_smaller_eq(box_min, node.max_))
-                                node.template bounding_box_for_each<F>(box_min, box_max, func);
-                        }
-                    }
-                    if constexpr (std::is_same_v<arg_type, leaf_data>) {
-                        for (const auto &d: arg) {
-                            const auto p = location_(d);
-                            if (all_smaller_eq(p, box_max) && all_smaller_eq(box_min, p)) {
-                                func(d);
-                            }
-                        }
+                    for (const auto &node: data) {
+                        if (all_smaller_eq(node.min_, box_max) &&
+                            all_smaller_eq(box_min, node.max_))
+                            node.template bounding_box_for_each<F>(box_min, box_max, func);
                     }
                 }
             },
-            data_);
+            [&](const leaf_data &data) {
+                if (all_smaller_eq(box_min, min_) && all_smaller_eq(max_, box_max)) {
+                    // sub-nodes fully inside box -> call without further boundary
+                    // checks
+                    for (const auto &d: data) { func(d); }
+                }
+                else {
+                    // sub-nodes partially overlap bounding box
+                    for (const auto &d: data) {
+                        const auto p = location_(d);
+                        if (all_smaller_eq(p, box_max) && all_smaller_eq(box_min, p)) { func(d); }
+                    }
+                }
+            });
+
     }
 
     inline std::size_t size() const { return size_; }
