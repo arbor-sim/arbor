@@ -8,11 +8,12 @@
 #include <deque>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
-#include <vector>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include <arbor/export.hpp>
 
@@ -220,6 +221,9 @@ public:
 
     // Returns the thread_id map
     std::unordered_map<std::thread::id, std::size_t> get_thread_ids() const;
+
+    // Returns the calling thread id if part of the task system
+    std::optional<std::size_t> get_current_thread_id() const;
 };
 
 class task_group {

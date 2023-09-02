@@ -88,6 +88,12 @@ struct site_mapping {
             s.hash});
     }
 
+    void insert(const site_mapping& m) {
+        for(std::size_t idx = 0; idx < m.size(); ++idx) {
+            this->insert(m.get_site(idx));
+        }
+    }
+
     network_full_site_info get_site(std::size_t idx) const {
         const auto& s = this->sites.at(idx);
 
@@ -137,9 +143,6 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
 
     const auto& description = description_opt.value();
 
-    site_mapping src_sites, dest_sites;
-    std::mutex src_sites_mutex, dest_sites_mutex;
-
     const auto selection_ptr = thingify(description.selection, description.dict);
     const auto weight_ptr = thingify(description.weight, description.dict);
     const auto delay_ptr = thingify(description.delay, description.dict);
@@ -155,12 +158,20 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
         for (const auto& gid: group.gids) { gids.emplace_back(gid); }
     }
 
+    const auto num_batches = ctx->thread_pool->get_num_threads();
+    std::vector<site_mapping> src_site_batches(num_batches);
+    std::vector<site_mapping> dest_site_batches(num_batches);
+
     for (const auto& [kind, gids]: gids_by_kind) {
+        const auto batch_size = (gids.size() + num_batches - 1) / num_batches;
         // populate network sites for source and destination
         if (kind == cell_kind::cable) {
             const auto& cable_gids = gids;
             threading::parallel_for::apply(
-                0, cable_gids.size(), ctx->thread_pool.get(), [&](int i) {
+                0, cable_gids.size(), batch_size, ctx->thread_pool.get(), [&](int i) {
+                    const auto batch_idx = ctx->thread_pool->get_current_thread_id().value();
+                    auto& src_sites = src_site_batches[batch_idx];
+                    auto& dest_sites = dest_site_batches[batch_idx];
                     const auto gid = cable_gids[i];
                     const auto kind = rec.get_cell_kind(gid);
                     // We need access to morphology, so the cell is create directly
@@ -191,7 +202,6 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
 
                             if (selection.select_destination(cell_kind::cable, gid, label)) {
                                 const mpoint point = location_resolver.at(p_syn.loc);
-                                std::lock_guard<std::mutex> guard(dest_sites_mutex);
                                 dest_sites.insert(
                                     {gid, p_syn.lid, cell_kind::cable, label, p_syn.loc, point});
                             }
@@ -203,7 +213,6 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
                         const auto& label = lid_to_label(cell.detector_ranges(), p_det.lid);
                         if (selection.select_source(cell_kind::cable, gid, label)) {
                             const mpoint point = location_resolver.at(p_det.loc);
-                            std::lock_guard<std::mutex> guard(src_sites_mutex);
                             src_sites.insert(
                                 {gid, p_det.lid, cell_kind::cable, label, p_det.loc, point});
                         }
@@ -218,6 +227,9 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
             // We only need the label ranges
             cell_label_range sources, destinations;
             std::ignore = factory(gids, rec, sources, destinations);
+
+            auto& src_sites = src_site_batches[0];
+            auto& dest_sites = dest_site_batches[0];
 
             std::size_t source_label_offset = 0;
             std::size_t destination_label_offset = 0;
@@ -236,7 +248,6 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
                     const auto& range = sources.ranges().at(j);
                     for (auto lid = range.begin; lid < range.end; ++lid) {
                         if (selection.select_source(kind, gid, label)) {
-                            std::lock_guard<std::mutex> guard(src_sites_mutex);
                             src_sites.insert({gid, lid, kind, label, {0, 0.0}, point});
                         }
                     }
@@ -250,7 +261,6 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
                     const auto& range = destinations.ranges().at(j);
                     for (auto lid = range.begin; lid < range.end; ++lid) {
                         if (selection.select_destination(kind, gid, label)) {
-                            std::lock_guard<std::mutex> guard(dest_sites_mutex);
                             dest_sites.insert({gid, lid, kind, label, {0, 0.0}, point});
                         }
                     }
@@ -262,11 +272,23 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
         }
     }
 
+    site_mapping& src_sites = src_site_batches.front();
+
+    // combine src batches
+    for (std::size_t batch_idx = 1; batch_idx < src_site_batches.size(); ++batch_idx) {
+
+        for (std::size_t i = 0; i < src_site_batches[batch_idx].size(); ++i) {
+            src_sites.insert(src_site_batches[batch_idx].get_site(i));
+        }
+    }
+
     // create octree
     std::vector<network_full_site_info> network_dest_sites;
-    network_dest_sites.reserve(dest_sites.size());
-    for (std::size_t i = 0; i < dest_sites.size(); ++i) {
-        network_dest_sites.emplace_back(dest_sites.get_site(i));
+    network_dest_sites.reserve(dest_site_batches[0].size() * num_batches);
+    for (const auto& dest_sites: dest_site_batches) {
+        for (std::size_t i = 0; i < dest_sites.size(); ++i) {
+            network_dest_sites.emplace_back(dest_sites.get_site(i));
+        }
     }
     const std::size_t max_depth = selection.max_distance().has_value() ? 10 : 1;
     const std::size_t max_leaf_size = 100;
@@ -279,45 +301,47 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
         });
 
     // select connections
-    std::vector<ConnectionType> connections;
-    std::mutex connections_mutex;
+    std::vector<std::vector<ConnectionType>> connection_batches(num_batches);
 
     auto sample_sources = [&](const util::range<distributed_site_info*>& source_range,
                               const util::range<char*>& label_range) {
-        threading::parallel_for::apply(0, source_range.size(), ctx->thread_pool.get(), [&](int i) {
-            const auto& s = source_range[i];
-            network_full_site_info src;
-            src.gid = s.gid;
-            src.lid = s.lid;
-            src.kind = s.kind;
-            src.label = label_range.data() + s.label_start_idx;
-            src.location = s.location;
-            src.global_location = s.global_location;
-            src.hash = s.hash;
+        const auto batch_size = (source_range.size() + num_batches - 1) / num_batches;
+        threading::parallel_for::apply(
+            0, source_range.size(), batch_size, ctx->thread_pool.get(), [&](int i) {
+                const auto& s = source_range[i];
+                const auto batch_idx = ctx->thread_pool->get_current_thread_id().value();
+                auto& connections = connection_batches[batch_idx];
+                network_full_site_info src;
+                src.gid = s.gid;
+                src.lid = s.lid;
+                src.kind = s.kind;
+                src.label = label_range.data() + s.label_start_idx;
+                src.location = s.location;
+                src.global_location = s.global_location;
+                src.hash = s.hash;
 
-            auto sample = [&](const network_full_site_info& dest) {
-                if (selection.select_connection(src, dest)) {
-                    const auto w = weight.get(src, dest);
-                    const auto d = delay.get(src, dest);
+                auto sample = [&](const network_full_site_info& dest) {
+                    if (selection.select_connection(src, dest)) {
+                        const auto w = weight.get(src, dest);
+                        const auto d = delay.get(src, dest);
 
-                    std::lock_guard<std::mutex> guard(connections_mutex);
-                    push_back(connections, src, dest, w, d);
+                        push_back(connections, src, dest, w, d);
+                    }
+                };
+
+                if (selection.max_distance().has_value()) {
+                    const double d = selection.max_distance().value();
+                    local_dest_tree.bounding_box_for_each(
+                        decltype(local_dest_tree)::point_type{src.global_location.x - d,
+                            src.global_location.y - d,
+                            src.global_location.z - d},
+                        decltype(local_dest_tree)::point_type{src.global_location.x + d,
+                            src.global_location.y + d,
+                            src.global_location.z + d},
+                        sample);
                 }
-            };
-
-            if (selection.max_distance().has_value()) {
-                const double d = selection.max_distance().value();
-                local_dest_tree.bounding_box_for_each(
-                    decltype(local_dest_tree)::point_type{src.global_location.x - d,
-                        src.global_location.y - d,
-                        src.global_location.z - d},
-                    decltype(local_dest_tree)::point_type{src.global_location.x + d,
-                        src.global_location.y + d,
-                        src.global_location.z + d},
-                    sample);
-            }
-            else { local_dest_tree.for_each(sample); }
-        });
+                else { local_dest_tree.for_each(sample); }
+            });
     };
 
     distributed_for_each(sample_sources,
@@ -325,6 +349,12 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
         util::range_view(src_sites.sites),
         util::range_view(src_sites.labels));
 
+    // concatenate
+    auto connections = std::move(connection_batches.front());
+    for (std::size_t i = 1; i < connection_batches.size(); ++i) {
+        connections.insert(
+            connections.end(), connection_batches[i].begin(), connection_batches[i].end());
+    }
     return connections;
 }
 
