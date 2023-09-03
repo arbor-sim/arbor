@@ -12,7 +12,6 @@ ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(
     const context& ctx,
     const domain_decomposition& dom_dec);
 
-
 ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(const recipe& rec);
 
 }  // namespace arb

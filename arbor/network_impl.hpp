@@ -1,9 +1,9 @@
 #pragma once
 
 #include <memory>
-#include <vector>
-#include <string_view>
 #include <ostream>
+#include <string_view>
+#include <vector>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/benchmark_cell.hpp>
@@ -43,18 +43,18 @@ struct ARB_SYMBOL_VISIBLE network_full_site_info {
 struct network_selection_impl {
     virtual std::optional<double> max_distance() const { return std::nullopt; }
 
-    virtual bool select_connection(const network_full_site_info& src,
-        const network_full_site_info& dest) const = 0;
+    virtual bool select_connection(const network_full_site_info& source,
+        const network_full_site_info& target) const = 0;
 
     virtual bool select_source(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& tag) const = 0;
 
-    virtual bool select_destination(cell_kind kind,
+    virtual bool select_target(cell_kind kind,
         cell_gid_type gid,
         const std::string_view& tag) const = 0;
 
-    virtual void initialize(const network_label_dict& dict) {};
+    virtual void initialize(const network_label_dict& dict){};
 
     virtual void print(std::ostream& os) const = 0;
 
@@ -67,11 +67,11 @@ inline std::shared_ptr<network_selection_impl> thingify(network_selection s,
     return s.impl_;
 }
 
-
 struct network_value_impl {
-    virtual double get(const network_full_site_info& src, const network_full_site_info& dest) const = 0;
+    virtual double get(const network_full_site_info& source,
+        const network_full_site_info& target) const = 0;
 
-    virtual void initialize(const network_label_dict& dict) {};
+    virtual void initialize(const network_label_dict& dict){};
 
     virtual void print(std::ostream& os) const = 0;
 

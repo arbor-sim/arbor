@@ -23,14 +23,14 @@
 #include <arbor/context.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/morph/isometry.hpp>
+#include <arbor/network.hpp>
+#include <arbor/network_generation.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
-#include <arbor/network.hpp>
-#include <arbor/network_generation.hpp>
 
 #include <arborenv/default_env.hpp>
 #include <arborenv/gpu_env.hpp>
@@ -58,10 +58,10 @@ struct ring_params {
 
 ring_params read_options(int argc, char** argv);
 using arb::cell_gid_type;
-using arb::cell_lid_type;
-using arb::cell_size_type;
-using arb::cell_member_type;
 using arb::cell_kind;
+using arb::cell_lid_type;
+using arb::cell_member_type;
+using arb::cell_size_type;
 using arb::time_type;
 
 // Writes voltage trace as a json file.
@@ -75,22 +75,17 @@ public:
     ring_recipe(unsigned num_cells, cell_parameters params, unsigned min_delay):
         num_cells_(num_cells),
         cell_params_(params),
-        min_delay_(min_delay)
-    {
+        min_delay_(min_delay) {
         gprop_.default_parameters = arb::neuron_parameter_defaults;
     }
 
-    cell_size_type num_cells() const override {
-        return num_cells_;
-    }
+    cell_size_type num_cells() const override { return num_cells_; }
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
         return branch_cell(gid, cell_params_);
     }
 
-    cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::cable;
-    }
+    cell_kind get_cell_kind(cell_gid_type gid) const override { return cell_kind::cable; }
 
     arb::isometry get_cell_isometry(cell_gid_type gid) const override {
         // place cells with equal distance on a circle
@@ -105,10 +100,10 @@ public:
         // connect front and back of chain to form ring
         ring = arb::join(ring,
             arb::intersect(arb::network_selection::source_cell({num_cells_ - 1}),
-                arb::network_selection::destination_cell({0})));
+                arb::network_selection::target_cell({0})));
 
-        // Create random connections with probability inversely proportional to the distance within a
-        // radius
+        // Create random connections with probability inversely proportional to the distance within
+        // a radius
         const double max_dist = 400.0;
         auto probability = (max_dist - arb::network_value::distance()) / max_dist;
 
@@ -121,10 +116,10 @@ public:
         // combine ring with random selection
         auto s = join(ring, rand);
 
-        // restrict to certain source and destination labels
+        // restrict to certain source and target labels
         s = arb::intersect(s,
             arb::network_selection::source_label({"detector"}),
-            arb::network_selection::destination_label({"primary_syn"}));
+            arb::network_selection::target_label({"primary_syn"}));
 
         // random normal distributed weight with mean 0.05 μS, standard deviation 0.02 μS
         // and truncated to [0.025, 0.075]
@@ -146,7 +141,8 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (!gid) {
-            gens.push_back(arb::explicit_generator({"primary_syn"}, event_weight_, std::vector<float>{1.0f}));
+            gens.push_back(
+                arb::explicit_generator({"primary_syn"}, event_weight_, std::vector<float>{1.0f}));
         }
         return gens;
     }
@@ -157,11 +153,7 @@ public:
         return {arb::cable_probe_membrane_voltage{loc}};
     }
 
-    std::any get_global_properties(arb::cell_kind) const override {
-        return gprop_;
-    }
-
-
+    std::any get_global_properties(arb::cell_kind) const override { return gprop_; }
 
 private:
     cell_size_type num_cells_;
@@ -195,9 +187,9 @@ int main(int argc, char** argv) {
         std::cout << sup::mask_stream(root);
 
         // Print a banner with information about hardware configuration
-        std::cout << "gpu:      " << (has_gpu(context)? "yes": "no") << "\n";
+        std::cout << "gpu:      " << (has_gpu(context) ? "yes" : "no") << "\n";
         std::cout << "threads:  " << num_threads(context) << "\n";
-        std::cout << "mpi:      " << (has_mpi(context)? "yes": "no") << "\n";
+        std::cout << "mpi:      " << (has_mpi(context) ? "yes" : "no") << "\n";
         std::cout << "ranks:    " << num_ranks(context) << "\n" << std::endl;
 
         auto params = read_options(argc, argv);
@@ -234,23 +226,20 @@ int main(int argc, char** argv) {
 
         meters.checkpoint("model-init", context);
 
-        if (root) {
-            sim.set_epoch_callback(arb::epoch_progress_bar());
-        }
+        if (root) { sim.set_epoch_callback(arb::epoch_progress_bar()); }
         std::cout << "running simulation\n" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
         sim.run(params.duration, 0.025);
 
         meters.checkpoint("model-run", context);
 
-
         // Print generated connections
         if (root) {
             const auto connections = arb::generate_network_connections(recipe);
             std::cout << "Connections:" << std::endl;
-            for(const auto& c: connections) {
-                std::cout << "(" << c.src.gid << ", \"" << c.src.label << "\") ->";
-                std::cout << "(" << c.dest.gid << ", \"" << c.dest.label << "\")" << std::endl;
+            for (const auto& c: connections) {
+                std::cout << "(" << c.source.gid << ", \"" << c.source.label << "\") ->";
+                std::cout << "(" << c.target.gid << ", \"" << c.target.label << "\")" << std::endl;
             }
         }
 
@@ -258,8 +247,9 @@ int main(int argc, char** argv) {
 
         // Write spikes to file
         if (root) {
-            std::cout << "\n" << ns << " spikes generated at rate of "
-                      << params.duration/ns << " ms between spikes\n";
+            std::cout << "\n"
+                      << ns << " spikes generated at rate of " << params.duration / ns
+                      << " ms between spikes\n";
             std::ofstream fid("spikes.gdf");
             if (!fid.good()) {
                 std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
@@ -267,18 +257,18 @@ int main(int argc, char** argv) {
             else {
                 char linebuf[45];
                 for (auto spike: recorded_spikes) {
-                    auto n = std::snprintf(
-                        linebuf, sizeof(linebuf), "%u %.4f\n",
-                        unsigned{spike.source.gid}, float(spike.time));
+                    auto n = std::snprintf(linebuf,
+                        sizeof(linebuf),
+                        "%u %.4f\n",
+                        unsigned{spike.source.gid},
+                        float(spike.time));
                     fid.write(linebuf, n);
                 }
             }
         }
 
         // Write the samples to a json file.
-        if (root) {
-            write_trace_json(voltage.at(0));
-        }
+        if (root) { write_trace_json(voltage.at(0)); }
 
         auto profile = arb::profile::profiler_summary();
         std::cout << profile << "\n";
@@ -319,11 +309,11 @@ ring_params read_options(int argc, char** argv) {
     using sup::param_from_json;
 
     ring_params params;
-    if (argc<2) {
+    if (argc < 2) {
         std::cout << "Using default parameters.\n";
         return params;
     }
-    if (argc>2) {
+    if (argc > 2) {
         throw std::runtime_error("More than one command line option is not permitted.");
     }
 
@@ -331,9 +321,7 @@ ring_params read_options(int argc, char** argv) {
     std::cout << "Loading parameters from file: " << fname << "\n";
     std::ifstream f(fname);
 
-    if (!f.good()) {
-        throw std::runtime_error("Unable to open input parameter file: "+fname);
-    }
+    if (!f.good()) { throw std::runtime_error("Unable to open input parameter file: " + fname); }
 
     nlohmann::json json;
     f >> json;
@@ -345,7 +333,7 @@ ring_params read_options(int argc, char** argv) {
     params.cell = parse_cell_parameters(json);
 
     if (!json.empty()) {
-        for (auto it=json.begin(); it!=json.end(); ++it) {
+        for (auto it = json.begin(); it != json.end(); ++it) {
             std::cout << "  Warning: unused input parameter: \"" << it.key() << "\"\n";
         }
         std::cout << "\n";
@@ -353,4 +341,3 @@ ring_params read_options(int argc, char** argv) {
 
     return params;
 }
-

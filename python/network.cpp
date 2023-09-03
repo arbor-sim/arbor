@@ -1,8 +1,8 @@
+#include <pybind11/functional.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
-#include <pybind11/functional.h>
 
 #include <arbor/load_balance.hpp>
 #include <arbor/network.hpp>
@@ -11,10 +11,10 @@
 #include <arborio/label_parse.hpp>
 #include <arborio/networkio.hpp>
 
-#include <unordered_map>
-#include <string>
-#include <variant>
 #include <functional>
+#include <string>
+#include <unordered_map>
+#include <variant>
 
 #include "context.hpp"
 #include "error.hpp"
@@ -41,8 +41,8 @@ void register_network(py::module& m) {
 
     py::class_<arb::network_connection_info> network_connection_info(
         m, "network_connection_info", "Identifies a network connection");
-    network_connection_info.def_readwrite("src", &arb::network_connection_info::src)
-        .def_readwrite("dest", &arb::network_connection_info::dest)
+    network_connection_info.def_readwrite("source", &arb::network_connection_info::source)
+        .def_readwrite("target", &arb::network_connection_info::target)
         .def_readwrite("weight", &arb::network_connection_info::weight)
         .def_readwrite("delay", &arb::network_connection_info::delay)
         .def("__repr__",
@@ -56,15 +56,14 @@ void register_network(py::module& m) {
     network_selection
         .def_static("custom",
             [](arb::network_selection::custom_func_type func) {
-                return arb::network_selection::custom(
-                    [=](const arb::network_connection_info& c) {
-                        return try_catch_pyexception(
-                            [&]() {
-                                pybind11::gil_scoped_acquire guard;
-                                return func(c);
-                            },
-                            "Python error already thrown");
-                    });
+                return arb::network_selection::custom([=](const arb::network_connection_info& c) {
+                    return try_catch_pyexception(
+                        [&]() {
+                            pybind11::gil_scoped_acquire guard;
+                            return func(c);
+                        },
+                        "Python error already thrown");
+                });
             })
         .def("__str__",
             [](const arb::network_selection& s) {
@@ -76,15 +75,14 @@ void register_network(py::module& m) {
     network_value
         .def_static("custom",
             [](arb::network_value::custom_func_type func) {
-                return arb::network_value::custom(
-                    [=](const arb::network_connection_info& c) {
-                        return try_catch_pyexception(
-                            [&]() {
-                                pybind11::gil_scoped_acquire guard;
-                                return func(c);
-                            },
-                            "Python error already thrown");
-                    });
+                return arb::network_value::custom([=](const arb::network_connection_info& c) {
+                    return try_catch_pyexception(
+                        [&]() {
+                            pybind11::gil_scoped_acquire guard;
+                            return func(c);
+                        },
+                        "Python error already thrown");
+                });
             })
         .def("__str__",
             [](const arb::network_value& v) {
@@ -130,7 +128,7 @@ void register_network(py::module& m) {
                             [&](const arb::network_value& val) { dict.set(dict_label, val); }),
                         v);
                 }
-                auto desc =  arb::network_description{
+                auto desc = arb::network_description{
                     arborio::parse_network_selection_expression(selection).unwrap(),
                     arborio::parse_network_value_expression(weight).unwrap(),
                     arborio::parse_network_value_expression(delay).unwrap(),
@@ -159,7 +157,7 @@ void register_network(py::module& m) {
         pybind11::arg_v("context", pybind11::none(), "Execution context"),
         pybind11::arg_v("decomp", pybind11::none(), "Domain decomposition"),
         "Generate network connections from the network description in the recipe. Will only "
-        "generate connections with local gids in the domain composition as destination.");
+        "generate connections with local gids in the domain composition as target.");
 }
 
 }  // namespace pyarb

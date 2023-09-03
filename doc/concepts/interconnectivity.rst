@@ -23,7 +23,7 @@ The recipe callbacks are interrogated during simulation creation.
 High Level Network Description
 ------------------------------
 
-As an alternative to providing a list of connections for each cell in the :ref:`recipe <modelrecipe>`, arbor supports high-level description of a cell network. It is based around a ``network_selection`` type, that represents a selection from the set of all possible connections between cells. A selection can be created based on different criteria, such as source or destination label, cell indices and also distance between source and destination. Selections can then be combined with other selections through set algebra like expressions. For distance calculations, the location of each connection point on the cell is resolved through the morphology combined with a cell isometry, which describes translation and rotation of the cell.
+As an alternative to providing a list of connections for each cell in the :ref:`recipe <modelrecipe>`, arbor supports high-level description of a cell network. It is based around a ``network_selection`` type, that represents a selection from the set of all possible connections between cells. A selection can be created based on different criteria, such as source or target label, cell indices and also distance between source and target. Selections can then be combined with other selections through set algebra like expressions. For distance calculations, the location of each connection point on the cell is resolved through the morphology combined with a cell isometry, which describes translation and rotation of the cell.
 Each connection also requires a weight and delay value. For this purpose, a ``network_value`` type is available, that allows to mathematically describe the value calculation using common math functions, as well random distributions.
 
 The following example shows the relevant recipe functions, where cells are connected into a ring with additional random connections between them:
@@ -36,7 +36,7 @@ The following example shows the relevant recipe functions, where cells are conne
         # create a chain
         chain = f"(chain (gid-range 0 {self.ncells}))"
         # connect front and back of chain to form ring
-        ring = f"(join {chain} (intersect (source-cell {self.ncells - 1}) (destination-cell 0)))"
+        ring = f"(join {chain} (intersect (source-cell {self.ncells - 1}) (target-cell 0)))"
 
         # Create random connections with probability inversely proportional to the distance within a
         # radius
@@ -46,8 +46,8 @@ The following example shows the relevant recipe functions, where cells are conne
 
         # combine ring with random selection
         s = f"(join {ring} {rand})"
-        # restrict to inter-cell connections and certain source / destination labels
-        s = f'(intersect {s} (inter-cell) (source-label "detector") (destination-label "syn"))'
+        # restrict to inter-cell connections and certain source / target labels
+        s = f'(intersect {s} (inter-cell) (source-label "detector") (target-label "syn"))'
 
         # fixed weight for connections in ring
         w_ring = "(scalar 0.01)"
@@ -70,7 +70,7 @@ The following example shows the relevant recipe functions, where cells are conne
         return arbor.isometry.translate(radius * math.cos(angle), radius * math.sin(angle), 0)
 
 
-The export function ``generate_network_connections`` allows the inspection of generated connections. The exported connections include the cell index, local label and location of both source and destination.
+The export function ``generate_network_connections`` allows the inspection of generated connections. The exported connections include the cell index, local label and location of both source and target.
 
 
 .. note::
@@ -79,7 +79,7 @@ The export function ``generate_network_connections`` allows the inspection of ge
 
 .. note::
 
-   A high-level description may be used together with providing explicit connection lists for each cell, but it is up to the user to avoid multiple connections between the same source and destination.
+   A high-level description may be used together with providing explicit connection lists for each cell, but it is up to the user to avoid multiple connections between the same source and target.
 
 .. warning::
 
@@ -155,17 +155,17 @@ Network Selection Expressions
 
     All connections, where the source cell is of the given type.
 
-.. label:: (destination-cell-kind kind:cell-kind)
+.. label:: (target-cell-kind kind:cell-kind)
 
-    All connections, where the destination cell is of the given type.
+    All connections, where the target cell is of the given type.
 
 .. label:: (source-label label:string)
 
     All connections, where the source label matches the given label.
 
-.. label:: (destination-label label:string)
+.. label:: (target-label label:string)
 
-    All connections, where the destination label matches the given label.
+    All connections, where the target label matches the given label.
 
 .. label:: (source-cell integer [...integer])
 
@@ -175,25 +175,25 @@ Network Selection Expressions
 
     All connections, where the source cell index is contained in the given gid-range.
 
-.. label:: (destination-cell integer [...integer])
+.. label:: (target-cell integer [...integer])
 
-    All connections, where the destination cell index matches one of the given integer values.
+    All connections, where the target cell index matches one of the given integer values.
 
-.. label:: (destination-cell range:gid-range)
+.. label:: (target-cell range:gid-range)
 
-    All connections, where the destination cell index is contained in the given gid-range.
+    All connections, where the target cell index is contained in the given gid-range.
 
 .. label:: (chain integer [...integer])
 
-    A chain of connections between cells in the given order of in the list, such that entry "i" is the source and entry "i+1" the destination.
+    A chain of connections between cells in the given order of in the list, such that entry "i" is the source and entry "i+1" the target.
 
 .. label:: (chain range:gid-range)
 
-    A chain of connections between cells in the given order of the gid-range, such that entry "i" is the source and entry "i+1" the destination.
+    A chain of connections between cells in the given order of the gid-range, such that entry "i" is the source and entry "i+1" the target.
 
 .. label:: (chain-reverse range:gid-range)
 
-    A chain of connections between cells in reverse of the given order of the gid-range, such that entry "i+1" is the source and entry "i" the destination.
+    A chain of connections between cells in reverse of the given order of the gid-range, such that entry "i+1" is the source and entry "i" the target.
 
 .. label:: (random p:real)
 
@@ -205,11 +205,11 @@ Network Selection Expressions
 
 .. label:: (distance-lt dist:real)
 
-    All connections, where the distance between source and destination is less than the given value in micro meter.
+    All connections, where the distance between source and target is less than the given value in micro meter.
 
 .. label:: (distance-gt dist:real)
 
-    All connections, where the distance between source and destination is greater than the given value in micro meter.
+    All connections, where the distance between source and target is greater than the given value in micro meter.
 
 
 .. _interconnectivity-value-expressions:
@@ -227,11 +227,11 @@ Network Value Expressions
 
 .. label:: (distance)
 
-    The distance between source and destination.
+    The distance between source and target.
 
 .. label:: (distance value:real)
 
-    The distance between source and destination scaled by the given value.
+    The distance between source and target scaled by the given value.
 
 .. label:: (uniform-distribution seed:integer begin:real end:real)
 

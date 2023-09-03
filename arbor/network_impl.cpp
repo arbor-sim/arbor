@@ -89,9 +89,7 @@ struct site_mapping {
     }
 
     void insert(const site_mapping& m) {
-        for(std::size_t idx = 0; idx < m.size(); ++idx) {
-            this->insert(m.get_site(idx));
-        }
+        for (std::size_t idx = 0; idx < m.size(); ++idx) { this->insert(m.get_site(idx)); }
     }
 
     network_full_site_info get_site(std::size_t idx) const {
@@ -112,24 +110,33 @@ struct site_mapping {
 
 void push_back(const domain_decomposition& dom_dec,
     std::vector<connection>& vec,
-    const network_full_site_info& src,
-    const network_full_site_info& dest,
+    const network_full_site_info& source,
+    const network_full_site_info& target,
     double weight,
     double delay) {
-    vec.emplace_back(connection{{src.gid, src.lid}, dest.lid, (float)weight, (float)delay, dom_dec.index_on_domain(dest.gid)});
+    vec.emplace_back(connection{{source.gid, source.lid},
+        target.lid,
+        (float)weight,
+        (float)delay,
+        dom_dec.index_on_domain(target.gid)});
 }
 
 void push_back(const domain_decomposition&,
     std::vector<network_connection_info>& vec,
-    const network_full_site_info& src,
-    const network_full_site_info& dest,
+    const network_full_site_info& source,
+    const network_full_site_info& target,
     double weight,
     double delay) {
-    vec.emplace_back(network_connection_info{
-        network_site_info{
-            src.gid, src.kind, std::string(src.label), src.location, src.global_location},
-        network_site_info{
-            dest.gid, dest.kind, std::string(dest.label), dest.location, dest.global_location},
+    vec.emplace_back(network_connection_info{network_site_info{source.gid,
+                                                 source.kind,
+                                                 std::string(source.label),
+                                                 source.location,
+                                                 source.global_location},
+        network_site_info{target.gid,
+            target.kind,
+            std::string(target.label),
+            target.location,
+            target.global_location},
         weight,
         delay});
 }
@@ -166,7 +173,7 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
 
     for (const auto& [kind, gids]: gids_by_kind) {
         const auto batch_size = (gids.size() + num_batches - 1) / num_batches;
-        // populate network sites for source and destination
+        // populate network sites for source and target
         if (kind == cell_kind::cable) {
             const auto& cable_gids = gids;
             threading::parallel_for::apply(
@@ -196,13 +203,13 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
 
                     place_pwlin location_resolver(cell.morphology(), rec.get_cell_isometry(gid));
 
-                    // check all synapses of cell for potential destination
+                    // check all synapses of cell for potential target
 
                     for (const auto& [_, placed_synapses]: cell.synapses()) {
                         for (const auto& p_syn: placed_synapses) {
                             const auto& label = lid_to_label(cell.synapse_ranges(), p_syn.lid);
 
-                            if (selection.select_destination(cell_kind::cable, gid, label)) {
+                            if (selection.select_target(cell_kind::cable, gid, label)) {
                                 const mpoint point = location_resolver.at(p_syn.loc);
                                 dest_sites.insert(
                                     {gid, p_syn.lid, cell_kind::cable, label, p_syn.loc, point});
@@ -227,20 +234,20 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
             auto factory = cell_kind_implementation(kind, backend_kind::multicore, *ctx, 0);
 
             // We only need the label ranges
-            cell_label_range sources, destinations;
-            std::ignore = factory(gids, rec, sources, destinations);
+            cell_label_range sources, targets;
+            std::ignore = factory(gids, rec, sources, targets);
 
             auto& src_sites = src_site_batches[0];
             auto& dest_sites = dest_site_batches[0];
 
             std::size_t source_label_offset = 0;
-            std::size_t destination_label_offset = 0;
+            std::size_t target_label_offset = 0;
             for (std::size_t i = 0; i < gids.size(); ++i) {
                 const auto gid = gids[i];
                 const auto iso = rec.get_cell_isometry(gid);
                 const auto point = iso.apply(mpoint{0.0, 0.0, 0.0, 0.0});
                 const auto num_source_labels = sources.sizes().at(i);
-                const auto num_destination_labels = destinations.sizes().at(i);
+                const auto num_target_labels = targets.sizes().at(i);
 
                 // Iterate over each source label for current gid
                 for (std::size_t j = source_label_offset;
@@ -255,28 +262,28 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
                     }
                 }
 
-                // Iterate over each destination label for current gid
-                for (std::size_t j = destination_label_offset;
-                     j < destination_label_offset + num_destination_labels;
+                // Iterate over each target label for current gid
+                for (std::size_t j = target_label_offset;
+                     j < target_label_offset + num_target_labels;
                      ++j) {
-                    const auto& label = destinations.labels().at(j);
-                    const auto& range = destinations.ranges().at(j);
+                    const auto& label = targets.labels().at(j);
+                    const auto& range = targets.ranges().at(j);
                     for (auto lid = range.begin; lid < range.end; ++lid) {
-                        if (selection.select_destination(kind, gid, label)) {
+                        if (selection.select_target(kind, gid, label)) {
                             dest_sites.insert({gid, lid, kind, label, {0, 0.0}, point});
                         }
                     }
                 }
 
                 source_label_offset += num_source_labels;
-                destination_label_offset += num_destination_labels;
+                target_label_offset += num_target_labels;
             }
         }
     }
 
     site_mapping& src_sites = src_site_batches.front();
 
-    // combine src batches
+    // combine source batches
     for (std::size_t batch_idx = 1; batch_idx < src_site_batches.size(); ++batch_idx) {
 
         for (std::size_t i = 0; i < src_site_batches[batch_idx].size(); ++i) {
@@ -313,33 +320,33 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
                 const auto& s = source_range[i];
                 const auto batch_idx = ctx->thread_pool->get_current_thread_id().value();
                 auto& connections = connection_batches[batch_idx];
-                network_full_site_info src;
-                src.gid = s.gid;
-                src.lid = s.lid;
-                src.kind = s.kind;
-                src.label = label_range.data() + s.label_start_idx;
-                src.location = s.location;
-                src.global_location = s.global_location;
-                src.hash = s.hash;
+                network_full_site_info source;
+                source.gid = s.gid;
+                source.lid = s.lid;
+                source.kind = s.kind;
+                source.label = label_range.data() + s.label_start_idx;
+                source.location = s.location;
+                source.global_location = s.global_location;
+                source.hash = s.hash;
 
-                auto sample = [&](const network_full_site_info& dest) {
-                    if (selection.select_connection(src, dest)) {
-                        const auto w = weight.get(src, dest);
-                        const auto d = delay.get(src, dest);
+                auto sample = [&](const network_full_site_info& target) {
+                    if (selection.select_connection(source, target)) {
+                        const auto w = weight.get(source, target);
+                        const auto d = delay.get(source, target);
 
-                        push_back(dom_dec, connections, src, dest, w, d);
+                        push_back(dom_dec, connections, source, target, w, d);
                     }
                 };
 
                 if (selection.max_distance().has_value()) {
                     const double d = selection.max_distance().value();
                     local_dest_tree.bounding_box_for_each(
-                        decltype(local_dest_tree)::point_type{src.global_location.x - d,
-                            src.global_location.y - d,
-                            src.global_location.z - d},
-                        decltype(local_dest_tree)::point_type{src.global_location.x + d,
-                            src.global_location.y + d,
-                            src.global_location.z + d},
+                        decltype(local_dest_tree)::point_type{source.global_location.x - d,
+                            source.global_location.y - d,
+                            source.global_location.z - d},
+                        decltype(local_dest_tree)::point_type{source.global_location.x + d,
+                            source.global_location.y + d,
+                            source.global_location.z + d},
                         sample);
                 }
                 else { local_dest_tree.for_each(sample); }

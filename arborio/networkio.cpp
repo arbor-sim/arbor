@@ -69,9 +69,9 @@ eval_map_type network_eval_map{
     {"source-cell-kind",
         make_call<arb::cell_kind>(arb::network_selection::source_cell_kind,
             "all sources of cells matching given cell kind argument: (kind:cell-kind)")},
-    {"destination-cell-kind",
-        make_call<arb::cell_kind>(arb::network_selection::destination_cell_kind,
-            "all destinations of cells matching given cell kind argument: (kind:cell-kind)")},
+    {"target-cell-kind",
+        make_call<arb::cell_kind>(arb::network_selection::target_cell_kind,
+            "all targets of cells matching given cell kind argument: (kind:cell-kind)")},
     {"source-label",
         make_arg_vec_call<cell_tag_type>(
             [](const std::vector<std::variant<cell_tag_type>>& vec) {
@@ -83,7 +83,7 @@ eval_map_type network_eval_map{
                 return arb::network_selection::source_label(std::move(labels));
             },
             "all sources in cell with gid in list: (gid:integer) [...(gid:integer)]")},
-    {"destination-label",
+    {"target-label",
         make_arg_vec_call<cell_tag_type>(
             [](const std::vector<std::variant<cell_tag_type>>& vec) {
                 std::vector<cell_tag_type> labels;
@@ -91,9 +91,9 @@ eval_map_type network_eval_map{
                     vec.begin(), vec.end(), std::back_inserter(labels), [](const auto& x) {
                         return std::get<cell_tag_type>(x);
                     });
-                return arb::network_selection::destination_label(std::move(labels));
+                return arb::network_selection::target_label(std::move(labels));
             },
-            "all destinations in cell with gid in list: (gid:integer) [...(gid:integer)]")},
+            "all targets in cell with gid in list: (gid:integer) [...(gid:integer)]")},
     {"source-cell",
         make_arg_vec_call<int>(
             [](const std::vector<std::variant<int>>& vec) {
@@ -108,20 +108,20 @@ eval_map_type network_eval_map{
         make_call<arb::gid_range>(static_cast<arb::network_selection (*)(arb::gid_range)>(
                                       arb::network_selection::source_cell),
             "all sources in cell with gid range: (range:gid-range)")},
-    {"destination-cell",
+    {"target-cell",
         make_arg_vec_call<int>(
             [](const std::vector<std::variant<int>>& vec) {
                 std::vector<cell_gid_type> gids;
                 std::transform(vec.begin(), vec.end(), std::back_inserter(gids), [](const auto& x) {
                     return std::get<int>(x);
                 });
-                return arb::network_selection::destination_cell(std::move(gids));
+                return arb::network_selection::target_cell(std::move(gids));
             },
-            "all destinations in cell with gid in list: (gid:integer) [...(gid:integer)]")},
-    {"destination-cell",
+            "all targets in cell with gid in list: (gid:integer) [...(gid:integer)]")},
+    {"target-cell",
         make_call<gid_range>(static_cast<arb::network_selection (*)(arb::gid_range)>(
-                                 arb::network_selection::destination_cell),
-            "all destinations in cell with gid range: "
+                                 arb::network_selection::target_cell),
+            "all targets in cell with gid range: "
             "(range:gid-range)")},
     {"chain",
         make_arg_vec_call<int>(
@@ -133,17 +133,17 @@ eval_map_type network_eval_map{
                 return arb::network_selection::chain(std::move(gids));
             },
             "A chain of connections in the given order of gids in list, such that entry \"i\" is "
-            "the source and entry \"i+1\" the destination: (gid:integer) [...(gid:integer)]")},
+            "the source and entry \"i+1\" the target: (gid:integer) [...(gid:integer)]")},
     {"chain",
         make_call<arb::gid_range>(
             static_cast<arb::network_selection (*)(arb::gid_range)>(arb::network_selection::chain),
             "A chain of connections for all gids in range [begin, end) with given step size. Each "
-            "entry \"i\" is connected as source to the destination \"i+1\": (begin:integer) "
+            "entry \"i\" is connected as source to the target \"i+1\": (begin:integer) "
             "(end:integer) (step:integer)")},
     {"chain-reverse",
         make_call<arb::gid_range>(arb::network_selection::chain_reverse,
             "A chain of connections for all gids in range [begin, end) with given step size. Each "
-            "entry \"i+1\" is connected as source to the destination \"i\". This results in "
+            "entry \"i+1\" is connected as source to the target \"i\". This results in "
             "connection directions in reverse compared to the (chain-range ...) selection: "
             "(begin:integer) "
             "(end:integer) (step:integer)")},
@@ -158,11 +158,11 @@ eval_map_type network_eval_map{
             "p:network-value)")},
     {"distance-lt",
         make_call<double>(arb::network_selection::distance_lt,
-            "Select if distance between source and destination is less than given distance in "
+            "Select if distance between source and target is less than given distance in "
             "micro meter: (distance:real)")},
     {"distance-gt",
         make_call<double>(arb::network_selection::distance_gt,
-            "Select if distance between source and destination is greater than given distance in "
+            "Select if distance between source and target is greater than given distance in "
             "micro meter: (distance:real)")},
 
     // network_value
@@ -174,11 +174,11 @@ eval_map_type network_eval_map{
             "A named network value with 1 argument: (value:string)")},
     {"distance",
         make_call<double>(arb::network_value::distance,
-            "Distance between source and destination scaled by given value with unit [1/um]. 1 "
+            "Distance between source and target scaled by given value with unit [1/um]. 1 "
             "argument: (scale:real)")},
     {"distance",
         make_call<>([]() { return arb::network_value::distance(1.0); },
-            "Distance between source and destination scaled by 1.0 with unit [1/um].")},
+            "Distance between source and target scaled by 1.0 with unit [1/um].")},
     {"uniform-distribution",
         make_call<int, double, double>(
             [](unsigned seed, double begin, double end) {
@@ -238,9 +238,12 @@ eval_map_type network_eval_map{
     {"log", make_call<double>(arb::network_value::log, "Logarithm. 1 argument: (value:real)")},
     {"log",
         make_call<network_value>(arb::network_value::log, "Logarithm. 1 argument: (value:real)")},
-    {"exp", make_call<double>(arb::network_value::exp, "Exponential function. 1 argument: (value:real)")},
     {"exp",
-        make_call<network_value>(arb::network_value::exp, "Exponential function. 1 argument: (value:real)")},
+        make_call<double>(arb::network_value::exp,
+            "Exponential function. 1 argument: (value:real)")},
+    {"exp",
+        make_call<network_value>(arb::network_value::exp,
+            "Exponential function. 1 argument: (value:real)")},
 };
 
 parse_network_hopefully<std::any> eval(const s_expr& e, const eval_map_type& map);

@@ -48,25 +48,24 @@ TEST(network_selection, all) {
 
     for (const auto& site: test_sites) {
         EXPECT_TRUE(s->select_source(site.kind, site.gid, site.label));
-        EXPECT_TRUE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
     for (const auto& source: test_sites) {
-        for (const auto& dest: test_sites) { EXPECT_TRUE(s->select_connection(source, dest)); }
+        for (const auto& target: test_sites) { EXPECT_TRUE(s->select_connection(source, target)); }
     }
 }
-
 
 TEST(network_selection, none) {
     const auto s = thingify(network_selection::none(), network_label_dict());
 
     for (const auto& site: test_sites) {
         EXPECT_FALSE(s->select_source(site.kind, site.gid, site.label));
-        EXPECT_FALSE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_FALSE(s->select_target(site.kind, site.gid, site.label));
     }
 
     for (const auto& source: test_sites) {
-        for (const auto& dest: test_sites) { EXPECT_FALSE(s->select_connection(source, dest)); }
+        for (const auto& target: test_sites) { EXPECT_FALSE(s->select_connection(source, target)); }
     }
 }
 
@@ -77,30 +76,29 @@ TEST(network_selection, source_cell_kind) {
     for (const auto& site: test_sites) {
         EXPECT_EQ(
             site.kind == cell_kind::benchmark, s->select_source(site.kind, site.gid, site.label));
-        EXPECT_TRUE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
     for (const auto& source: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(source.kind == cell_kind::benchmark, s->select_connection(source, dest));
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(source.kind == cell_kind::benchmark, s->select_connection(source, target));
         }
     }
 }
 
-
-TEST(network_selection, destination_cell_kind) {
+TEST(network_selection, target_cell_kind) {
     const auto s =
-        thingify(network_selection::destination_cell_kind(cell_kind::benchmark), network_label_dict());
+        thingify(network_selection::target_cell_kind(cell_kind::benchmark), network_label_dict());
 
     for (const auto& site: test_sites) {
         EXPECT_EQ(
-            site.kind == cell_kind::benchmark, s->select_destination(site.kind, site.gid, site.label));
+            site.kind == cell_kind::benchmark, s->select_target(site.kind, site.gid, site.label));
         EXPECT_TRUE(s->select_source(site.kind, site.gid, site.label));
     }
 
     for (const auto& source: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(dest.kind == cell_kind::benchmark, s->select_connection(source, dest));
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(target.kind == cell_kind::benchmark, s->select_connection(source, target));
         }
     }
 }
@@ -111,29 +109,30 @@ TEST(network_selection, source_label) {
     for (const auto& site: test_sites) {
         EXPECT_EQ(site.label == "b" || site.label == "e",
             s->select_source(site.kind, site.gid, site.label));
-        EXPECT_TRUE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
     for (const auto& source: test_sites) {
-        for (const auto& dest: test_sites) {
+        for (const auto& target: test_sites) {
             EXPECT_EQ(
-                source.label == "b" || source.label == "e", s->select_connection(source, dest));
+                source.label == "b" || source.label == "e", s->select_connection(source, target));
         }
     }
 }
 
-TEST(network_selection, destination_label) {
-    const auto s = thingify(network_selection::destination_label({"b", "e"}), network_label_dict());
+TEST(network_selection, target_label) {
+    const auto s = thingify(network_selection::target_label({"b", "e"}), network_label_dict());
 
     for (const auto& site: test_sites) {
         EXPECT_EQ(site.label == "b" || site.label == "e",
-            s->select_destination(site.kind, site.gid, site.label));
+            s->select_target(site.kind, site.gid, site.label));
         EXPECT_TRUE(s->select_source(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(dest.label == "b" || dest.label == "e", s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(
+                target.label == "b" || target.label == "e", s->select_connection(source, target));
         }
     }
 }
@@ -144,28 +143,28 @@ TEST(network_selection, source_cell_vec) {
     for (const auto& site: test_sites) {
         EXPECT_EQ(
             site.gid == 1 || site.gid == 5, s->select_source(site.kind, site.gid, site.label));
-        EXPECT_TRUE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(src.gid == 1 || src.gid == 5, s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(source.gid == 1 || source.gid == 5, s->select_connection(source, target));
         }
     }
 }
 
-TEST(network_selection, destination_cell_vec) {
-    const auto s = thingify(network_selection::destination_cell({{1, 5}}), network_label_dict());
+TEST(network_selection, target_cell_vec) {
+    const auto s = thingify(network_selection::target_cell({{1, 5}}), network_label_dict());
 
     for (const auto& site: test_sites) {
         EXPECT_EQ(
-            site.gid == 1 || site.gid == 5, s->select_destination(site.kind, site.gid, site.label));
+            site.gid == 1 || site.gid == 5, s->select_target(site.kind, site.gid, site.label));
         EXPECT_TRUE(s->select_source(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(dest.gid == 1 || dest.gid == 5, s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(target.gid == 1 || target.gid == 5, s->select_connection(source, target));
         }
     }
 }
@@ -177,102 +176,99 @@ TEST(network_selection, source_cell_range) {
     for (const auto& site: test_sites) {
         EXPECT_EQ(
             site.gid == 1 || site.gid == 5, s->select_source(site.kind, site.gid, site.label));
-        EXPECT_TRUE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(src.gid == 1 || src.gid == 5, s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(source.gid == 1 || source.gid == 5, s->select_connection(source, target));
         }
     }
 }
 
-TEST(network_selection, destination_cell_range) {
+TEST(network_selection, target_cell_range) {
     const auto s =
-        thingify(network_selection::destination_cell(gid_range(1, 6, 4)), network_label_dict());
+        thingify(network_selection::target_cell(gid_range(1, 6, 4)), network_label_dict());
 
     for (const auto& site: test_sites) {
         EXPECT_EQ(
-            site.gid == 1 || site.gid == 5, s->select_destination(site.kind, site.gid, site.label));
+            site.gid == 1 || site.gid == 5, s->select_target(site.kind, site.gid, site.label));
         EXPECT_TRUE(s->select_source(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(dest.gid == 1 || dest.gid == 5, s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(target.gid == 1 || target.gid == 5, s->select_connection(source, target));
         }
     }
 }
 
 TEST(network_selection, chain) {
-    const auto s =
-        thingify(network_selection::chain({{0,2,5}}), network_label_dict());
+    const auto s = thingify(network_selection::chain({{0, 2, 5}}), network_label_dict());
 
     for (const auto& site: test_sites) {
         EXPECT_EQ(
             site.gid == 0 || site.gid == 2, s->select_source(site.kind, site.gid, site.label));
         EXPECT_EQ(
-            site.gid == 2 || site.gid == 5, s->select_destination(site.kind, site.gid, site.label));
+            site.gid == 2 || site.gid == 5, s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ((src.gid == 0 && dest.gid == 2) || (src.gid == 2 && dest.gid == 5),
-                s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ((source.gid == 0 && target.gid == 2) || (source.gid == 2 && target.gid == 5),
+                s->select_connection(source, target));
         }
     }
 }
 
 TEST(network_selection, chain_range) {
-    const auto s =
-        thingify(network_selection::chain({gid_range(1,8,3)}), network_label_dict());
+    const auto s = thingify(network_selection::chain({gid_range(1, 8, 3)}), network_label_dict());
 
     for (const auto& site: test_sites) {
         EXPECT_EQ(
             site.gid == 1 || site.gid == 4, s->select_source(site.kind, site.gid, site.label));
         EXPECT_EQ(
-            site.gid == 4 || site.gid == 7, s->select_destination(site.kind, site.gid, site.label));
+            site.gid == 4 || site.gid == 7, s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ((src.gid == 1 && dest.gid == 4) || (src.gid == 4 && dest.gid == 7),
-                s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ((source.gid == 1 && target.gid == 4) || (source.gid == 4 && target.gid == 7),
+                s->select_connection(source, target));
         }
     }
 }
 
 TEST(network_selection, chain_range_reverse) {
     const auto s =
-        thingify(network_selection::chain_reverse({gid_range(1,8,3)}), network_label_dict());
+        thingify(network_selection::chain_reverse({gid_range(1, 8, 3)}), network_label_dict());
 
     for (const auto& site: test_sites) {
         EXPECT_EQ(
             site.gid == 7 || site.gid == 4, s->select_source(site.kind, site.gid, site.label));
         EXPECT_EQ(
-            site.gid == 4 || site.gid == 1, s->select_destination(site.kind, site.gid, site.label));
+            site.gid == 4 || site.gid == 1, s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ((src.gid == 7 && dest.gid == 4) || (src.gid == 4 && dest.gid == 1),
-                s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ((source.gid == 7 && target.gid == 4) || (source.gid == 4 && target.gid == 1),
+                s->select_connection(source, target));
         }
     }
 }
 
 TEST(network_selection, inter_cell) {
-    const auto s =
-        thingify(network_selection::inter_cell(), network_label_dict());
+    const auto s = thingify(network_selection::inter_cell(), network_label_dict());
 
     for (const auto& site: test_sites) {
         EXPECT_TRUE(s->select_source(site.kind, site.gid, site.label));
-        EXPECT_TRUE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(src.gid != dest.gid, s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(source.gid != target.gid, s->select_connection(source, target));
         }
     }
 }
@@ -280,34 +276,33 @@ TEST(network_selection, inter_cell) {
 TEST(network_selection, named) {
     network_label_dict dict;
     dict.set("mysel", network_selection::inter_cell());
-    const auto s =
-        thingify(network_selection::named("mysel"), dict);
+    const auto s = thingify(network_selection::named("mysel"), dict);
 
     for (const auto& site: test_sites) {
         EXPECT_TRUE(s->select_source(site.kind, site.gid, site.label));
-        EXPECT_TRUE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(src.gid != dest.gid, s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(source.gid != target.gid, s->select_connection(source, target));
         }
     }
 }
 
 TEST(network_selection, intersect) {
     const auto s = thingify(network_selection::intersect(network_selection::source_cell({1}),
-                                network_selection::destination_cell({2})),
+                                network_selection::target_cell({2})),
         network_label_dict());
 
     for (const auto& site: test_sites) {
         EXPECT_EQ(site.gid == 1, s->select_source(site.kind, site.gid, site.label));
-        EXPECT_EQ(site.gid == 2, s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_EQ(site.gid == 2, s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(src.gid == 1 && dest.gid == 2, s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(source.gid == 1 && target.gid == 2, s->select_connection(source, target));
         }
     }
 }
@@ -315,20 +310,22 @@ TEST(network_selection, intersect) {
 TEST(network_selection, join) {
     const auto s = thingify(
         network_selection::join(network_selection::intersect(network_selection::source_cell({1}),
-                                    network_selection::destination_cell({2})),
+                                    network_selection::target_cell({2})),
             network_selection::intersect(
-                network_selection::source_cell({4}), network_selection::destination_cell({5}))),
+                network_selection::source_cell({4}), network_selection::target_cell({5}))),
         network_label_dict());
 
     for (const auto& site: test_sites) {
-        EXPECT_EQ(site.gid == 1 || site.gid == 4, s->select_source(site.kind, site.gid, site.label));
-        EXPECT_EQ(site.gid == 2 || site.gid == 5, s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_EQ(
+            site.gid == 1 || site.gid == 4, s->select_source(site.kind, site.gid, site.label));
+        EXPECT_EQ(
+            site.gid == 2 || site.gid == 5, s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ((src.gid == 1 && dest.gid == 2) || (src.gid == 4 && dest.gid == 5),
-                s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ((source.gid == 1 && target.gid == 2) || (source.gid == 4 && target.gid == 5),
+                s->select_connection(source, target));
         }
     }
 }
@@ -342,12 +339,12 @@ TEST(network_selection, difference) {
     for (const auto& site: test_sites) {
         EXPECT_EQ(site.gid == 0 || site.gid == 1 || site.gid == 2,
             s->select_source(site.kind, site.gid, site.label));
-        EXPECT_TRUE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(src.gid == 0 || src.gid == 2, s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(source.gid == 0 || source.gid == 2, s->select_connection(source, target));
         }
     }
 }
@@ -361,12 +358,13 @@ TEST(network_selection, symmetric_difference) {
     for (const auto& site: test_sites) {
         EXPECT_EQ(site.gid == 0 || site.gid == 1 || site.gid == 2 || site.gid == 3,
             s->select_source(site.kind, site.gid, site.label));
-        EXPECT_TRUE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(src.gid == 0 || src.gid == 2 || src.gid == 3, s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(source.gid == 0 || source.gid == 2 || source.gid == 3,
+                s->select_connection(source, target));
         }
     }
 }
@@ -377,12 +375,12 @@ TEST(network_selection, complement) {
 
     for (const auto& site: test_sites) {
         EXPECT_TRUE(s->select_source(site.kind, site.gid, site.label));
-        EXPECT_TRUE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(src.gid == dest.gid, s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(source.gid == target.gid, s->select_connection(source, target));
         }
     }
 }
@@ -392,13 +390,11 @@ TEST(network_selection, random_p_1) {
 
     for (const auto& site: test_sites) {
         EXPECT_TRUE(s->select_source(site.kind, site.gid, site.label));
-        EXPECT_TRUE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_TRUE(s->select_connection(src, dest));
-        }
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) { EXPECT_TRUE(s->select_connection(source, target)); }
     }
 }
 
@@ -407,13 +403,11 @@ TEST(network_selection, random_p_0) {
 
     for (const auto& site: test_sites) {
         EXPECT_TRUE(s->select_source(site.kind, site.gid, site.label));
-        EXPECT_TRUE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_FALSE(s->select_connection(src, dest));
-        }
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) { EXPECT_FALSE(s->select_connection(source, target)); }
     }
 }
 
@@ -422,9 +416,10 @@ TEST(network_selection, random_seed) {
     const auto s2 = thingify(network_selection::random(4592304, 0.5), network_label_dict());
 
     bool all_eq = true;
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            all_eq &= (s1->select_connection(src, dest) == s2->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            all_eq &=
+                (s1->select_connection(source, target) == s2->select_connection(source, target));
         }
     }
     EXPECT_FALSE(all_eq);
@@ -441,9 +436,9 @@ TEST(network_selection, random_reproducibility) {
     std::vector<bool> ref = {1, 1, 0, 1, 1, 0, 0, 0, 0};
 
     std::size_t i = 0;
-    for (const auto& src: sites) {
-        for (const auto& dest: sites) {
-            EXPECT_EQ(ref.at(i), s->select_connection(src, dest));
+    for (const auto& source: sites) {
+        for (const auto& target: sites) {
+            EXPECT_EQ(ref.at(i), s->select_connection(source, target));
             ++i;
         }
     };
@@ -451,73 +446,71 @@ TEST(network_selection, random_reproducibility) {
 
 TEST(network_selection, custom) {
     auto inter_cell_func = [](const network_connection_info& c) {
-        return c.src.gid != c.dest.gid;
+        return c.source.gid != c.target.gid;
     };
     const auto s = thingify(network_selection::custom(inter_cell_func), network_label_dict());
     const auto s_ref = thingify(network_selection::inter_cell(), network_label_dict());
 
     for (const auto& site: test_sites) {
         EXPECT_TRUE(s->select_source(site.kind, site.gid, site.label));
-        EXPECT_TRUE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(s->select_connection(src, dest), s_ref->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(
+                s->select_connection(source, target), s_ref->select_connection(source, target));
         }
     }
 }
 
 TEST(network_selection, distance_lt) {
     const double d = 2.1;
-    const auto s =
-        thingify(network_selection::distance_lt(d), network_label_dict());
+    const auto s = thingify(network_selection::distance_lt(d), network_label_dict());
 
     for (const auto& site: test_sites) {
         EXPECT_TRUE(s->select_source(site.kind, site.gid, site.label));
-        EXPECT_TRUE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(distance(src.global_location, dest.global_location) < d,
-                s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(distance(source.global_location, target.global_location) < d,
+                s->select_connection(source, target));
         }
     }
 }
 
 TEST(network_selection, distance_gt) {
     const double d = 2.1;
-    const auto s =
-        thingify(network_selection::distance_gt(d), network_label_dict());
+    const auto s = thingify(network_selection::distance_gt(d), network_label_dict());
 
     for (const auto& site: test_sites) {
         EXPECT_TRUE(s->select_source(site.kind, site.gid, site.label));
-        EXPECT_TRUE(s->select_destination(site.kind, site.gid, site.label));
+        EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_EQ(distance(src.global_location, dest.global_location) > d,
-                s->select_connection(src, dest));
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_EQ(distance(source.global_location, target.global_location) > d,
+                s->select_connection(source, target));
         }
     }
 }
 
-
 TEST(network_value, scalar) {
     const auto v = thingify(network_value::scalar(2.0), network_label_dict());
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) { EXPECT_DOUBLE_EQ(2.0, v->get(src, dest)); }
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) { EXPECT_DOUBLE_EQ(2.0, v->get(source, target)); }
     }
 }
 
 TEST(network_value, conversion) {
     const auto v = thingify(static_cast<network_value>(2.0), network_label_dict());
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) { EXPECT_DOUBLE_EQ(2.0, v->get(src, dest)); }
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) { EXPECT_DOUBLE_EQ(2.0, v->get(source, target)); }
     }
 }
 
@@ -526,28 +519,29 @@ TEST(network_value, named) {
     dict.set("myval", network_value::scalar(2.0));
     const auto v = thingify(network_value::named("myval"), dict);
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) { EXPECT_DOUBLE_EQ(2.0, v->get(src, dest)); }
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) { EXPECT_DOUBLE_EQ(2.0, v->get(source, target)); }
     }
 }
 
 TEST(network_value, distance) {
     const auto v = thingify(network_value::distance(), network_label_dict());
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
             EXPECT_DOUBLE_EQ(
-                distance(src.global_location, dest.global_location), v->get(src, dest));
+                distance(source.global_location, target.global_location), v->get(source, target));
         }
     }
 }
 
 TEST(network_value, uniform_distribution) {
-    const auto v = thingify(network_value::uniform_distribution(42, {-5.0, 3.0}), network_label_dict());
+    const auto v =
+        thingify(network_value::uniform_distribution(42, {-5.0, 3.0}), network_label_dict());
 
     double mean = 0.0;
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) { mean += v->get(src, dest); }
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) { mean += v->get(source, target); }
     }
 
     mean /= test_sites.size() * test_sites.size();
@@ -555,7 +549,8 @@ TEST(network_value, uniform_distribution) {
 }
 
 TEST(network_value, uniform_distribution_reproducibility) {
-    const auto v = thingify(network_value::uniform_distribution(42, {-5.0, 3.0}), network_label_dict());
+    const auto v =
+        thingify(network_value::uniform_distribution(42, {-5.0, 3.0}), network_label_dict());
 
     std::vector<network_full_site_info> sites = {
         {0, 0, cell_kind::cable, "a", {1, 0.5}, {1.2, 2.3, 3.4}},
@@ -575,9 +570,9 @@ TEST(network_value, uniform_distribution_reproducibility) {
     };
 
     std::size_t i = 0;
-    for (const auto& src: sites) {
-        for (const auto& dest: sites) {
-            EXPECT_DOUBLE_EQ(ref.at(i), v->get(src, dest));
+    for (const auto& source: sites) {
+        for (const auto& target: sites) {
+            EXPECT_DOUBLE_EQ(ref.at(i), v->get(source, target));
             ++i;
         }
     };
@@ -586,13 +581,14 @@ TEST(network_value, uniform_distribution_reproducibility) {
 TEST(network_value, normal_distribution) {
     const double mean = 5.0;
     const double std_dev = 3.0;
-    const auto v = thingify(network_value::normal_distribution(42, mean, std_dev), network_label_dict());
+    const auto v =
+        thingify(network_value::normal_distribution(42, mean, std_dev), network_label_dict());
 
     double sample_mean = 0.0;
     double sample_dev = 0.0;
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            const auto result = v->get(src, dest);
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            const auto result = v->get(source, target);
             sample_mean += result;
             sample_dev += (result - mean) * (result - mean);
         }
@@ -608,7 +604,8 @@ TEST(network_value, normal_distribution) {
 TEST(network_value, normal_distribution_reproducibility) {
     const double mean = 5.0;
     const double std_dev = 3.0;
-    const auto v = thingify(network_value::normal_distribution(42, mean, std_dev), network_label_dict());
+    const auto v =
+        thingify(network_value::normal_distribution(42, mean, std_dev), network_label_dict());
 
     std::vector<network_full_site_info> sites = {
         {0, 0, cell_kind::cable, "a", {1, 0.5}, {1.2, 2.3, 3.4}},
@@ -628,9 +625,9 @@ TEST(network_value, normal_distribution_reproducibility) {
     };
 
     std::size_t i = 0;
-    for (const auto& src: sites) {
-        for (const auto& dest: sites) {
-            EXPECT_DOUBLE_EQ(ref.at(i), v->get(src, dest));
+    for (const auto& source: sites) {
+        for (const auto& target: sites) {
+            EXPECT_DOUBLE_EQ(ref.at(i), v->get(source, target));
             ++i;
         }
     };
@@ -649,9 +646,9 @@ TEST(network_value, truncated_normal_distribution) {
 
     double sample_mean = 0.0;
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            const auto result = v->get(src, dest);
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            const auto result = v->get(source, target);
             EXPECT_GT(result, lower_bound);
             EXPECT_LE(result, upper_bound);
             sample_mean += result;
@@ -692,9 +689,9 @@ TEST(network_value, truncated_normal_distribution_reproducibility) {
     };
 
     std::size_t i = 0;
-    for (const auto& src: sites) {
-        for (const auto& dest: sites) {
-            EXPECT_DOUBLE_EQ(ref.at(i), v->get(src, dest));
+    for (const auto& source: sites) {
+        for (const auto& target: sites) {
+            EXPECT_DOUBLE_EQ(ref.at(i), v->get(source, target));
             ++i;
         }
     };
@@ -702,14 +699,15 @@ TEST(network_value, truncated_normal_distribution_reproducibility) {
 
 TEST(network_value, custom) {
     auto func = [](const network_connection_info& c) {
-        return c.src.global_location.x + c.dest.global_location.x;
+        return c.source.global_location.x + c.target.global_location.x;
     };
 
     const auto v = thingify(network_value::custom(func), network_label_dict());
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_DOUBLE_EQ(v->get(src, dest), src.global_location.x + dest.global_location.x);
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_DOUBLE_EQ(
+                v->get(source, target), source.global_location.x + target.global_location.x);
         }
     }
 }
@@ -719,8 +717,8 @@ TEST(network_value, add) {
         thingify(network_value::add(network_value::scalar(2.0), network_value::scalar(3.0)),
             network_label_dict());
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) { EXPECT_DOUBLE_EQ(v->get(src, dest), 5.0); }
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) { EXPECT_DOUBLE_EQ(v->get(source, target), 5.0); }
     }
 }
 
@@ -729,8 +727,8 @@ TEST(network_value, sub) {
         thingify(network_value::sub(network_value::scalar(2.0), network_value::scalar(3.0)),
             network_label_dict());
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) { EXPECT_DOUBLE_EQ(v->get(src, dest), -1.0); }
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) { EXPECT_DOUBLE_EQ(v->get(source, target), -1.0); }
     }
 }
 
@@ -739,8 +737,8 @@ TEST(network_value, mul) {
         thingify(network_value::mul(network_value::scalar(2.0), network_value::scalar(3.0)),
             network_label_dict());
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) { EXPECT_DOUBLE_EQ(v->get(src, dest), 6.0); }
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) { EXPECT_DOUBLE_EQ(v->get(source, target), 6.0); }
     }
 }
 
@@ -749,26 +747,30 @@ TEST(network_value, div) {
         thingify(network_value::div(network_value::scalar(2.0), network_value::scalar(3.0)),
             network_label_dict());
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) { EXPECT_DOUBLE_EQ(v->get(src, dest), 2.0 / 3.0); }
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_DOUBLE_EQ(v->get(source, target), 2.0 / 3.0);
+        }
     }
 }
 
 TEST(network_value, exp) {
-    const auto v =
-        thingify(network_value::exp(network_value::scalar(2.0)),
-            network_label_dict());
+    const auto v = thingify(network_value::exp(network_value::scalar(2.0)), network_label_dict());
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) { EXPECT_DOUBLE_EQ(v->get(src, dest), std::exp(2.0)); }
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_DOUBLE_EQ(v->get(source, target), std::exp(2.0));
+        }
     }
 }
 
 TEST(network_value, log) {
     const auto v = thingify(network_value::log(network_value::scalar(2.0)), network_label_dict());
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) { EXPECT_DOUBLE_EQ(v->get(src, dest), std::log(2.0)); }
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_DOUBLE_EQ(v->get(source, target), std::log(2.0));
+        }
     }
 }
 
@@ -780,10 +782,10 @@ TEST(network_value, min) {
         thingify(network_value::min(network_value::scalar(3.0), network_value::scalar(2.0)),
             network_label_dict());
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_DOUBLE_EQ(v1->get(src, dest), 2.0);
-            EXPECT_DOUBLE_EQ(v2->get(src, dest), 2.0);
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_DOUBLE_EQ(v1->get(source, target), 2.0);
+            EXPECT_DOUBLE_EQ(v2->get(source, target), 2.0);
         }
     }
 }
@@ -796,10 +798,10 @@ TEST(network_value, max) {
         thingify(network_value::max(network_value::scalar(3.0), network_value::scalar(2.0)),
             network_label_dict());
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_DOUBLE_EQ(v1->get(src, dest), 3.0);
-            EXPECT_DOUBLE_EQ(v2->get(src, dest), 3.0);
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_DOUBLE_EQ(v1->get(source, target), 3.0);
+            EXPECT_DOUBLE_EQ(v2->get(source, target), 3.0);
         }
     }
 }
@@ -812,9 +814,9 @@ TEST(network_value, if_else) {
 
     const auto v = thingify(network_value::if_else(s, v1, v2), network_label_dict());
 
-    for (const auto& src: test_sites) {
-        for (const auto& dest: test_sites) {
-            EXPECT_DOUBLE_EQ(v->get(src, dest), src.gid != dest.gid ? 2.0 : 3.0);
+    for (const auto& source: test_sites) {
+        for (const auto& target: test_sites) {
+            EXPECT_DOUBLE_EQ(v->get(source, target), source.gid != target.gid ? 2.0 : 3.0);
         }
     }
 }

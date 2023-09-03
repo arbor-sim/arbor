@@ -7,15 +7,15 @@ Interconnectivity
 
 .. class:: connection
 
-    Describes a connection between two cells, defined by source and destination end points (that is pre-synaptic and
+    Describes a connection between two cells, defined by source and target end points (that is pre-synaptic and
     post-synaptic respectively), a connection weight and a delay time.
 
-    The :attr:`dest` does not include the gid of a cell, this is because a :class:`arbor.connection` is bound to the
-    destination cell which means that the gid is implicitly known.
+    The :attr:`target` does not include the gid of a cell, this is because a :class:`arbor.connection` is bound to the
+    target cell which means that the gid is implicitly known.
 
-    .. function:: connection(source, destination, weight, delay)
+    .. function:: connection(source, target, weight, delay)
 
-        Construct a connection between the :attr:`source` and the :attr:`dest` with a :attr:`weight` and :attr:`delay`.
+        Construct a connection between the :attr:`source` and the :attr:`target` with a :attr:`weight` and :attr:`delay`.
 
     .. attribute:: source
 
@@ -23,10 +23,10 @@ Interconnectivity
         (gid, label) or a (gid, (label, policy)) tuple. If the policy is not indicated, the default
         :attr:`arbor.selection_policy.univalent` is used).
 
-    .. attribute:: dest
+    .. attribute:: target
 
-        The destination end point of the connection (type: :class:`arbor.cell_local_label` representing the label of the
-        destination on the cell, which can be initialized with just a label, in which case the default
+        The target end point of the connection (type: :class:`arbor.cell_local_label` representing the label of the
+        target on the cell, which can be initialized with just a label, in which case the default
         :attr:`arbor.selection_policy.univalent` is used, or a (label, policy) tuple). The gid of the cell is
         implicitly known.
 
@@ -63,18 +63,18 @@ Interconnectivity
             def connections_on(gid):
                # construct a connection from the "detector" source label on cell 2
                # to the "syn" target label on cell gid with weight 0.01 and delay of 10 ms.
-               src  = (2, "detector") # gid and locset label of the source
-               dest = "syn" # gid of the destination is determined by the argument to `connections_on`.
+               source  = (2, "detector") # gid and locset label of the source
+               target = "syn" # gid of the target is determined by the argument to `connections_on`.
                w    = 0.01  # weight of the connection. Correspondes to 0.01 μS on expsyn mechanisms
                d    = 10 # delay in ms
-               return [arbor.connection(src, dest, w, d)]
+               return [arbor.connection(source, target, w, d)]
 
 .. class:: gap_junction_connection
 
     Describes a gap junction between two gap junction sites.
 
     The :attr:`local` site does not include the gid of a cell, this is because a :class:`arbor.gap_junction_connection`
-    is bound to the destination cell which means that the gid is implicitly known.
+    is bound to the target cell which means that the gid is implicitly known.
 
     .. note::
 
@@ -96,7 +96,7 @@ Interconnectivity
     .. attribute:: local
 
         The gap junction site: the local half of the gap junction connection (type: :class:`arbor.cell_local_label`
-        representing the label of the destination on the cell, which can be initialized with just a label, in which case
+        representing the label of the target on the cell, which can be initialized with just a label, in which case
         the default :attr:`arbor.selection_policy.univalent` is used, or a (label, policy) tuple). The gid of the
         cell is implicitly known.
 
@@ -143,13 +143,13 @@ Interconnectivity
 
     A network connection between cells. Used for generated connections through the high-level network description.
 
-    .. attribute:: src
+    .. attribute:: source
 
         The source connection site.
 
-    .. attribute:: dest
+    .. attribute:: target
 
-        The destination connection site.
+        The target connection site.
 
 
 .. class:: network_description

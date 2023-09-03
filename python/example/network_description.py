@@ -109,7 +109,7 @@ class random_ring_recipe(arbor.recipe):
         # create a chain
         chain = f"(chain (gid-range 0 {self.ncells}))"
         # connect front and back of chain to form ring
-        ring = f"(join {chain} (intersect (source-cell {self.ncells - 1}) (destination-cell 0)))"
+        ring = f"(join {chain} (intersect (source-cell {self.ncells - 1}) (target-cell 0)))"
 
         # Create random connections with probability inversely proportional to the distance within a
         # radius
@@ -119,8 +119,8 @@ class random_ring_recipe(arbor.recipe):
 
         # combine ring with random selection
         s = f"(join {ring} {rand})"
-        # restrict to inter-cell connections and certain source / destination labels
-        s = f'(intersect {s} (inter-cell) (source-label "detector") (destination-label "syn"))'
+        # restrict to inter-cell connections and certain source / target labels
+        s = f'(intersect {s} (inter-cell) (source-label "detector") (target-label "syn"))'
 
         # fixed weight for connections in ring
         w_ring = "(scalar 0.01)"
@@ -169,7 +169,7 @@ connections = arbor.generate_network_connections(recipe)
 
 print("connections:")
 for c in connections:
-    print(f'({c.src.gid}, "{c.src.label}") -> ({c.dest.gid}, "{c.dest.label}")')
+    print(f'({c.source.gid}, "{c.source.label}") -> ({c.target.gid}, "{c.target.label}")')
 
 # (16) Run simulation for 100 ms
 sim.run(100)

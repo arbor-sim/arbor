@@ -8,11 +8,11 @@ Interconnectivity
 .. cpp:class:: cell_connection
 
     Describes a connection between two cells: a pre-synaptic source and a
-    post-synaptic destination. The source is typically a threshold detector on
-    a cell or a spike source. The destination is a synapse on the post-synaptic cell.
+    post-synaptic target. The source is typically a threshold detector on
+    a cell or a spike source. The target is a synapse on the post-synaptic cell.
 
-    The :cpp:member:`dest` does not include the gid of a cell, this is because a
-    :cpp:class:`cell_connection` is bound to the destination cell which means that the gid
+    The :cpp:member:`target` does not include the gid of a cell, this is because a
+    :cpp:class:`cell_connection` is bound to the target cell which means that the gid
     is implicitly known.
 
     .. cpp:member:: cell_global_label_type source
@@ -20,7 +20,7 @@ Interconnectivity
         Source end point, represented by a :cpp:type:`cell_global_label_type` which packages
         a cell gid, label of a group of sources on the cell, and source selection policy.
 
-    .. cpp:member:: cell_local_label_type dest
+    .. cpp:member:: cell_local_label_type target
 
         Destination end point on the cell, represented by a :cpp:type:`cell_local_label_type`
         which packages a label of a group of targets on the cell and a selection policy.
@@ -41,11 +41,11 @@ Interconnectivity
 .. cpp:class:: ext_cell_connection
 
     Describes a connection between two cells: a pre-synaptic source and a
-    post-synaptic destination. The source is typically a threshold detector on
-    a cell or a spike source. The destination is a synapse on the post-synaptic cell.
+    post-synaptic target. The source is typically a threshold detector on
+    a cell or a spike source. The target is a synapse on the post-synaptic cell.
 
-    The :cpp:member:`dest` does not include the gid of a cell, this is because a
-    :cpp:class:`ext_cell_connection` is bound to the destination cell which means that the gid
+    The :cpp:member:`target` does not include the gid of a cell, this is because a
+    :cpp:class:`ext_cell_connection` is bound to the target cell which means that the gid
     is implicitly known.
 
     .. cpp:member:: cell_remote_label_type source
@@ -53,7 +53,7 @@ Interconnectivity
         Source end point, represented by a :cpp:type:`cell_remote_label_type` which packages
         a cell gid, integral tag of a group of sources on the cell, and source selection policy.
 
-    .. cpp:member:: cell_local_label_type dest
+    .. cpp:member:: cell_local_label_type target
 
         Destination end point on the cell, represented by a :cpp:type:`cell_local_label_type`
         which packages a label of a group of targets on the cell and a selection policy.
@@ -129,13 +129,13 @@ Interconnectivity
 
     A network connection between cells. Used for generated connections through the high-level network description.
 
-    .. cpp:member:: network_site_info src
+    .. cpp:member:: network_site_info source
 
         The source connection site.
 
-    .. cpp:member:: network_site_info dest
+    .. cpp:member:: network_site_info target
 
-        The destination connection site.
+        The target connection site.
 
 
 .. cpp:class:: network_value
@@ -152,7 +152,7 @@ Interconnectivity
 
    .. cpp:function:: network_value distance()
 
-   The value representing the distance between source and destination.
+   The value representing the distance between source and target.
 
    .. cpp:function:: network_value uniform_distribution(unsigned seed, const std::array<double, 2>& range)
 
@@ -231,17 +231,17 @@ Interconnectivity
 
     Select connections with the given source cell kind
 
-   .. cpp:function:: network_selection destination_cell_kind(cell_kind kind);
+   .. cpp:function:: network_selection target_cell_kind(cell_kind kind);
 
-    Select connections with the given destination cell kind
+    Select connections with the given target cell kind
 
    .. cpp:function:: network_selection source_label(std::vector<cell_tag_type> labels);
 
     Select connections with the given source label
 
-   .. cpp:function:: network_selection destination_label(std::vector<cell_tag_type> labels);
+   .. cpp:function:: network_selection target_label(std::vector<cell_tag_type> labels);
 
-    Select connections with the given destination label
+    Select connections with the given target label
 
    .. cpp:function:: network_selection source_cell(std::vector<cell_gid_type> gids);
 
@@ -251,25 +251,25 @@ Interconnectivity
 
     Select connections with source cells matching the indices in the range
 
-   .. cpp:function:: network_selection destination_cell(std::vector<cell_gid_type> gids);
+   .. cpp:function:: network_selection target_cell(std::vector<cell_gid_type> gids);
 
-    Select connections with destination cells matching the indices in the list
+    Select connections with target cells matching the indices in the list
 
-   .. cpp:function:: network_selection destination_cell(gid_range range);
+   .. cpp:function:: network_selection target_cell(gid_range range);
 
-    Select connections with destination cells matching the indices in the range
+    Select connections with target cells matching the indices in the range
 
    .. cpp:function:: network_selection chain(std::vector<cell_gid_type> gids);
 
-    Select connections that form a chain, such that source cell "i" is connected to the destination cell "i+1"
+    Select connections that form a chain, such that source cell "i" is connected to the target cell "i+1"
 
    .. cpp:function:: network_selection chain(gid_range range);
 
-    Select connections that form a chain, such that source cell "i" is connected to the destination cell "i+1"
+    Select connections that form a chain, such that source cell "i" is connected to the target cell "i+1"
 
    .. cpp:function:: network_selection chain_reverse(gid_range range);
 
-    Select connections that form a reversed chain, such that source cell "i+1" is connected to the destination cell "i"
+    Select connections that form a reversed chain, such that source cell "i+1" is connected to the target cell "i"
 
    .. cpp:function:: network_selection intersect(network_selection left, network_selection right);
 

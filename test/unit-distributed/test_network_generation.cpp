@@ -3,25 +3,24 @@
 #include <vector>
 
 #include <arbor/cable_cell.hpp>
-#include <arbor/lif_cell.hpp>
-#include <arbor/spike_source_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/lif_cell.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/morph/segment_tree.hpp>
 #include <arbor/network_generation.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/spike_source_cell.hpp>
 #include <arborio/label_parse.hpp>
 
-#include "test.hpp"
 #include "execution_context.hpp"
+#include "test.hpp"
 
 using namespace arb;
 using namespace arborio::literals;
 
-
 namespace {
-// Create alternatingly a cable, lif and spike source cell with at most one source or destination
+// Create alternatingly a cable, lif and spike source cell with at most one source or target
 class network_test_recipe: public arb::recipe {
 public:
     network_test_recipe(unsigned num_cells,
@@ -35,19 +34,13 @@ public:
         gprop_.default_parameters = arb::neuron_parameter_defaults;
     }
 
-    cell_size_type num_cells() const override {
-        return num_cells_;
-    }
+    cell_size_type num_cells() const override { return num_cells_; }
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-	if(gid % 3 == 1) {
-	    return lif_cell("source", "target");
-	}
-	if(gid % 3 == 2) {
-	    return spike_source_cell("spike_source");
-	}
+        if (gid % 3 == 1) { return lif_cell("source", "target"); }
+        if (gid % 3 == 2) { return spike_source_cell("spike_source"); }
 
-	// cable cell
+        // cable cell
         int stag = 1;                 // soma tag
         int dtag = 3;                 // Dendrite tag.
         double srad = 12.6157 / 2.0;  // soma radius
@@ -72,12 +65,8 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-	if(gid % 3 == 1) {
-	    return cell_kind::lif;
-	}
-	if(gid % 3 == 2) {
-	    return cell_kind::spike_source;
-	}
+        if (gid % 3 == 1) { return cell_kind::lif; }
+        if (gid % 3 == 2) { return cell_kind::spike_source; }
 
         return cell_kind::cable;
     }
@@ -97,9 +86,7 @@ public:
         return {};
     }
 
-    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
-	return {};
-    }
+    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override { return {}; }
 
     std::any get_global_properties(arb::cell_kind) const override { return gprop_; }
 
@@ -130,27 +117,26 @@ TEST(network_generation, all) {
 
     std::unordered_map<cell_gid_type, std::vector<network_connection_info>> connections_by_dest;
 
-    for(const auto& c : connections) {
+    for (const auto& c: connections) {
         EXPECT_EQ(c.weight, weight);
         EXPECT_EQ(c.delay, delay);
-        connections_by_dest[c.dest.gid].emplace_back(c);
+        connections_by_dest[c.target.gid].emplace_back(c);
     }
 
     for (const auto& group: decomp.groups()) {
         const auto num_dest = group.kind == cell_kind::spike_source ? 0 : 1;
-        for(const auto gid : group.gids) {
-	    EXPECT_EQ(connections_by_dest[gid].size(), num_cells * num_dest);
-	}
+        for (const auto gid: group.gids) {
+            EXPECT_EQ(connections_by_dest[gid].size(), num_cells * num_dest);
+        }
     }
 }
-
 
 TEST(network_generation, cable_only) {
     const auto& ctx = g_context;
     const int num_ranks = ctx->distributed->size();
 
     const auto selection = intersect(network_selection::source_cell_kind(cell_kind::cable),
-        network_selection::destination_cell_kind(cell_kind::cable));
+        network_selection::target_cell_kind(cell_kind::cable));
     const auto weight = 2.0;
     const auto delay = 3.0;
 
@@ -164,15 +150,15 @@ TEST(network_generation, cable_only) {
 
     std::unordered_map<cell_gid_type, std::vector<network_connection_info>> connections_by_dest;
 
-    for(const auto& c : connections) {
+    for (const auto& c: connections) {
         EXPECT_EQ(c.weight, weight);
         EXPECT_EQ(c.delay, delay);
-        connections_by_dest[c.dest.gid].emplace_back(c);
+        connections_by_dest[c.target.gid].emplace_back(c);
     }
 
     for (const auto& group: decomp.groups()) {
-        for(const auto gid : group.gids) {
-	    // Only one third is a cable cell
+        for (const auto gid: group.gids) {
+            // Only one third is a cable cell
             EXPECT_EQ(connections_by_dest[gid].size(),
                 group.kind == cell_kind::cable ? num_cells / 3 : 0);
         }

@@ -39,13 +39,16 @@ ARB_DEFINE_LEXICOGRAPHIC_ORDERING(network_site_info,
     (b.gid, a.kind, b.label, b.location, b.global_location))
 
 struct ARB_SYMBOL_VISIBLE network_connection_info {
-    network_site_info src, dest;
+    network_site_info source, target;
     double weight, delay;
 
-    ARB_ARBOR_API friend std::ostream& operator<<(std::ostream& os, const network_connection_info& s);
+    ARB_ARBOR_API friend std::ostream& operator<<(std::ostream& os,
+        const network_connection_info& s);
 };
 
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(network_connection_info, (a.src, a.dest), (b.src, b.dest))
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(network_connection_info,
+    (a.source, a.target),
+    (b.source, b.target))
 
 struct network_selection_impl;
 
@@ -70,7 +73,7 @@ public:
     // A named value inside a network label dictionary
     static network_value named(std::string name);
 
-    // Distamce netweem source and destination site
+    // Distamce netweem source and target site
     static network_value distance(double scale = 1.0);
 
     // Uniform random value in (range[0], range[1]].
@@ -168,14 +171,14 @@ public:
     // Select connections with the given source cell kind
     static network_selection source_cell_kind(cell_kind kind);
 
-    // Select connections with the given destination cell kind
-    static network_selection destination_cell_kind(cell_kind kind);
+    // Select connections with the given target cell kind
+    static network_selection target_cell_kind(cell_kind kind);
 
     // Select connections with the given source label
     static network_selection source_label(std::vector<cell_tag_type> labels);
 
-    // Select connections with the given destination label
-    static network_selection destination_label(std::vector<cell_tag_type> labels);
+    // Select connections with the given target label
+    static network_selection target_label(std::vector<cell_tag_type> labels);
 
     // Select connections with source cells matching the indices in the list
     static network_selection source_cell(std::vector<cell_gid_type> gids);
@@ -183,19 +186,22 @@ public:
     // Select connections with source cells matching the indices in the range
     static network_selection source_cell(gid_range range);
 
-    // Select connections with destination cells matching the indices in the list
-    static network_selection destination_cell(std::vector<cell_gid_type> gids);
+    // Select connections with target cells matching the indices in the list
+    static network_selection target_cell(std::vector<cell_gid_type> gids);
 
-    // Select connections with destination cells matching the indices in the range
-    static network_selection destination_cell(gid_range range);
+    // Select connections with target cells matching the indices in the range
+    static network_selection target_cell(gid_range range);
 
-    // Select connections that form a chain, such that source cell "i" is connected to the destination cell "i+1"
+    // Select connections that form a chain, such that source cell "i" is connected to the target
+    // cell "i+1"
     static network_selection chain(std::vector<cell_gid_type> gids);
 
-    // Select connections that form a chain, such that source cell "i" is connected to the destination cell "i+1"
+    // Select connections that form a chain, such that source cell "i" is connected to the target
+    // cell "i+1"
     static network_selection chain(gid_range range);
 
-    // Select connections that form a reversed chain, such that source cell "i+1" is connected to the destination cell "i"
+    // Select connections that form a reversed chain, such that source cell "i+1" is connected to
+    // the target cell "i"
     static network_selection chain_reverse(gid_range range);
 
     // Select connections, that are selected by both "left" and "right"
