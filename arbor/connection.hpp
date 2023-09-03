@@ -10,14 +10,15 @@ namespace arb {
 
 struct connection {
     cell_member_type source = {0, 0};
-    cell_member_type destination = {0, 0};
-    double weight = 0.0f;
-    double delay = 0.0f;
+    cell_lid_type destination = 0;
+    float weight = 0.0f;
+    float delay = 0.0f;
+    cell_size_type index_on_domain = cell_gid_type(-1);
 };
 
 inline
 spike_event make_event(const connection& c, const spike& s) {
-    return {c.destination.index, s.time + c.delay, c.weight};
+    return {c.destination, s.time + c.delay, c.weight};
 }
 
 // connections are sorted by source id
@@ -29,6 +30,8 @@ static inline bool operator<(cell_member_type lhs, const connection& rhs)  { ret
 } // namespace arb
 
 static inline std::ostream& operator<<(std::ostream& o, arb::connection const& con) {
-    return o << "con [" << con.source << " -> " << con.destination << " : weight " << con.weight
-             << ", delay " << con.delay << "]";
+    return o << "con [" << con.source << " -> " << con.destination
+             << " : weight " << con.weight
+             << ", delay " << con.delay
+             << ", index " << con.index_on_domain << "]";
 }

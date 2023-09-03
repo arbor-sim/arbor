@@ -1,11 +1,13 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <utility>
 
-#include <arbor/domdecexcept.hpp>
-#include <arbor/domain_decomposition.hpp>
-#include <arbor/recipe.hpp>
+#include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/domdecexcept.hpp>
+#include <arbor/recipe.hpp>
 
 #include "execution_context.hpp"
 #include "util/partition.hpp"
@@ -22,15 +24,18 @@ domain_decomposition::domain_decomposition(
         partition_gid_domain(const gathered_vector<cell_gid_type>& divs, unsigned domains) {
             auto rank_part = util::partition_view(divs.partition());
             for (auto rank: count_along(rank_part)) {
+                cell_size_type index_on_domain = 0;
                 for (auto gid: util::subrange_view(divs.values(), rank_part[rank])) {
-                    gid_map[gid] = rank;
+                    gid_map[gid] = {rank, index_on_domain};
+                    ++index_on_domain;
                 }
             }
         }
-        int operator()(cell_gid_type gid) const {
+        std::pair<int,cell_size_type> operator()(cell_gid_type gid) const {
             return gid_map.at(gid);
         }
-        std::unordered_map<cell_gid_type, int> gid_map;
+        // Maps gid to domain index and cell index on domain
+        std::unordered_map<cell_gid_type, std::pair<int, cell_size_type>> gid_map;
     };
 
     const auto* dist = ctx->distributed.get();
@@ -85,7 +90,11 @@ domain_decomposition::domain_decomposition(
 }
 
 int domain_decomposition::gid_domain(cell_gid_type gid) const {
-    return gid_domain_(gid);
+    return gid_domain_(gid).first;
+}
+
+cell_size_type domain_decomposition::index_on_domain(cell_gid_type gid) const {
+    return gid_domain_(gid).second;
 }
 
 int domain_decomposition::num_domains() const {

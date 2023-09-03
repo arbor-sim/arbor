@@ -63,7 +63,6 @@ void communicator::update_connections(const recipe& rec,
     connections_.clear();
     connection_part_.clear();
     index_divisions_.clear();
-    index_on_domain_.clear();
     PL();
 
     // Construct connections from high-level specification
@@ -83,7 +82,6 @@ void communicator::update_connections(const recipe& rec,
     PE(init:communicator:update:collect_gids);
     std::vector<cell_gid_type> gids; gids.reserve(num_local_cells_);
     for (const auto& g: dom_dec.groups()) util::append(gids, g.gids);
-    for (const auto index: util::make_span(gids.size())) index_on_domain_.insert({gids[index], index});
     PL();
 
     // Build the connection information for local cells.
@@ -153,7 +151,11 @@ void communicator::update_connections(const recipe& rec,
             auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
             auto offset  = offsets[*src_domain]++;
             ++src_domain;
-            connections_[offset] = {{src_gid, src_lid}, {tgt_gid, tgt_lid}, conn.weight, conn.delay};
+            connections_[offset] = {{src_gid, src_lid},
+                tgt_lid,
+                conn.weight,
+                conn.delay,
+                dom_dec.index_on_domain(tgt_gid)};
         }
         for (const auto cidx: util::make_span(part_ext_connections[index], part_ext_connections[index+1])) {
             const auto& conn = gid_ext_connections[cidx];
@@ -161,7 +163,8 @@ void communicator::update_connections(const recipe& rec,
             auto src_gid = conn.source.rid;
             if(is_external(src_gid)) throw arb::source_gid_exceeds_limit(tgt_gid, src_gid);
             auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
-            ext_connections_[ext] = {src, {tgt_gid, tgt_lid}, conn.weight, conn.delay};
+            ext_connections_[ext] = {
+                src, tgt_lid, conn.weight, conn.delay, dom_dec.index_on_domain(tgt_gid)};
             ++ext;
         }
     }
@@ -247,10 +250,8 @@ void communicator::remote_ctrl_send_continue(const epoch& e) { ctx_->distributed
 void communicator::remote_ctrl_send_done() { ctx_->distributed->remote_ctrl_send_done(); }
 
 // Internal helper to append to the event queues
-template<typename S, typename C>
-void append_events_from_domain(C cons,
-                               S spks, const std::unordered_map<cell_gid_type, cell_size_type>& index_on_domain,
-                               std::vector<pse_vector>& queues) {
+template <typename S, typename C>
+void append_events_from_domain(C cons, S spks, std::vector<pse_vector>& queues) {
     // Predicate for partitioning
     struct spike_pred {
         bool operator()(const spike& spk, const cell_member_type& src) { return spk.source < src; }
@@ -272,7 +273,7 @@ void append_events_from_domain(C cons,
         while (cn != ce && sp != se) {
             auto sources = std::equal_range(sp, se, cn->source, spike_pred());
             for (auto s: util::make_range(sources)) {
-                queues[index_on_domain.at(cn->destination.gid)].push_back(make_event(*cn, s));
+                queues[cn->index_on_domain].push_back(make_event(*cn, s));
             }
             sp = sources.first;
             ++cn;
@@ -282,7 +283,7 @@ void append_events_from_domain(C cons,
         while (cn != ce && sp != se) {
             auto targets = std::equal_range(cn, ce, sp->source);
             for (auto c: util::make_range(targets)) {
-                queues[index_on_domain.at(c.destination.gid)].push_back(make_event(c, *sp));
+                queues[c.index_on_domain].push_back(make_event(c, *sp));
             }
             cn = targets.first;
             ++sp;
@@ -298,9 +299,9 @@ void communicator::make_event_queues(
     const auto& sp = global_spikes.partition();
     const auto& cp = connection_part_;
     for (auto dom: util::make_span(num_domains_)) {
-        append_events_from_domain(util::subrange_view(connections_,           cp[dom], cp[dom+1]),
-                                  util::subrange_view(global_spikes.values(), sp[dom], sp[dom+1]), index_on_domain_,
-                                  queues);
+        append_events_from_domain(util::subrange_view(connections_, cp[dom], cp[dom + 1]),
+            util::subrange_view(global_spikes.values(), sp[dom], sp[dom + 1]),
+            queues);
     }
     num_local_events_ = util::sum_by(queues, [](const auto& q) {return q.size();}, num_local_events_);
     // Now that all local spikes have been processed; consume the remote events coming in.
@@ -309,7 +310,7 @@ void communicator::make_event_queues(
     std::for_each(spikes.begin(),
                   spikes.end(),
                   [](auto& s) { s.source = global_cell_of(s.source); });
-    append_events_from_domain(ext_connections_, spikes, index_on_domain_, queues);
+    append_events_from_domain(ext_connections_, spikes, queues);
 }
 
 std::uint64_t communicator::num_spikes() const {

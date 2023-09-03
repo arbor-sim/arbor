@@ -110,15 +110,17 @@ struct site_mapping {
     }
 };
 
-void push_back(std::vector<connection>& vec,
+void push_back(const domain_decomposition& dom_dec,
+    std::vector<connection>& vec,
     const network_full_site_info& src,
     const network_full_site_info& dest,
     double weight,
     double delay) {
-    vec.emplace_back(connection{{src.gid, src.lid}, {dest.gid, dest.lid}, weight, delay});
+    vec.emplace_back(connection{{src.gid, src.lid}, dest.lid, (float)weight, (float)delay, dom_dec.index_on_domain(dest.gid)});
 }
 
-void push_back(std::vector<network_connection_info>& vec,
+void push_back(const domain_decomposition&,
+    std::vector<network_connection_info>& vec,
     const network_full_site_info& src,
     const network_full_site_info& dest,
     double weight,
@@ -325,7 +327,7 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
                         const auto w = weight.get(src, dest);
                         const auto d = delay.get(src, dest);
 
-                        push_back(connections, src, dest, w, d);
+                        push_back(dom_dec, connections, src, dest, w, d);
                     }
                 };
 

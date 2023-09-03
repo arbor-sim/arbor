@@ -102,7 +102,6 @@ private:
     std::vector<cell_size_type> connection_part_;
     std::vector<cell_size_type> index_divisions_;
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
-    std::unordered_map<cell_gid_type, cell_size_type> index_on_domain_;
 
     spike_predicate remote_spike_filter_;
 
