@@ -15,7 +15,7 @@ namespace arb {
 struct spike_event {
     cell_lid_type target;
     time_type time;
-    double weight;
+    float weight;
 
     friend bool operator==(const spike_event& l, const spike_event& r) {
         return l.target==r.target && l.time==r.time && l.weight==r.weight;
