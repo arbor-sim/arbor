@@ -1,0 +1,23 @@
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+version: 2
+
+submodules:
+  include: all
+  recursive: true
+
+sphinx:
+  configuration: doc/conf.py
+
+formats: []
+
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.8"
+
+python:
+  system_packages: true
+  install:
+    - requirements: doc/requirements.txt
