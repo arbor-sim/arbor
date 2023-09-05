@@ -582,6 +582,9 @@ void ProcedureExpression::semantic(scope_ptr scp) {
         if (kind_ != procedureKind::linear && e->is_linear()) {
             error("linear statement not allowed inside "+::to_string(kind_)+" definition");
         }
+        if (kind_ != procedureKind::linear && e->is_derivative()) {
+            error("derivative statement not allowed inside "+::to_string(kind_)+" definition");
+        }
     }
 
     // We start a new loop here for preserving our sanity
