@@ -555,6 +555,8 @@ void ProcedureExpression::semantic(scope_ptr scp) {
     error_ = false;
     scope_ = scp;
 
+    auto is_kinetic = [](const auto& it) { return (it->is_reaction() || it->is_conserve()); };
+
     // assert that the symbol is already visible in the global_symbols
     if(scope_->find_global(name()) == nullptr) {
         throw compiler_exception(
@@ -571,8 +573,31 @@ void ProcedureExpression::semantic(scope_ptr scp) {
 
     // this loop could be used to then check the types of statements in the body
     for(auto& e : *(body_->is_block())) {
-        if(e->is_initial_block())
+        if (e->is_initial_block()) {
             error("INITIAL block not allowed inside "+::to_string(kind_)+" definition");
+        }
+        if (kind_ != procedureKind::kinetic && is_kinetic(e)) {
+            error("reaction statement not allowed inside " + ::to_string(kind_)+" definition");
+        }
+        if (kind_ != procedureKind::linear && e->is_linear()) {
+            error("linear statement not allowed inside "+::to_string(kind_)+" definition");
+        }
+    }
+
+    // We start a new loop here for preserving our sanity
+    if (kind_ == procedureKind::kinetic) {
+        auto it = body_->is_block()->begin();
+        auto end = body_->is_block()->end();
+        // skip all 'normal' statements
+        for (; it != end && !is_kinetic(*it); ++it) {}
+        // skip all 'reaction' statements
+        for (; it != end && is_kinetic(*it); ++it) {}
+        // We have trailing 'normal' statements
+        if (it != end) {
+            error("Found alternating reaction (A <-> B ...) and normal statements. "
+                  "This is allowed by NMODL, but likely not what you want; see: "
+                  "https://docs.arbor-sim.org/en/latest/fileformat/nmodl.html#unsupported-features");
+        }
     }
 
     // perform semantic analysis for each expression in the body

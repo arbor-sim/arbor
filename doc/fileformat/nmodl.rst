@@ -141,7 +141,66 @@ Unsupported features
 * ``LOCAL`` variables outside blocks are not supported.
 * free standing blocks are not supported.
 * ``INDEPENDENT`` variables are not supported.
-* arrays and pointers are not supported by Arbor.
+* loops, arrays, and pointers are not supported by Arbor.
+
+Alternating normal and reaction statements in KINETIC
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is not so much a feature as a bug that Arbor's ``modcc`` does not reproduce
+from NEURON. Given a file like:
+
+.. code-block::
+
+   NEURON { SUFFIX test_kinetic_alternating_reaction }
+
+   STATE { A B C D }
+
+   BREAKPOINT {
+     SOLVE foobar METHOD sparse
+   }
+
+   KINETIC foobar {
+     LOCAL x, y
+
+     x = 23*v
+     y = 42*v
+
+     ~ A <-> B (x, y)
+
+     x = sin(y)
+     y = cos(x)
+
+     ~ C <-> D (x, y)
+   }
+
+one might expect that the reaction between ``C`` and ``D`` occurs with a rate
+proportional to ``sin(x)`` and ``cos(y)``. However, this file is equivalent to
+
+.. code-block::
+
+   NEURON { SUFFIX test_kinetic_alternating_reaction }
+
+   STATE { A B C D }
+
+   BREAKPOINT {
+     SOLVE foobar METHOD sparse
+   }
+
+   KINETIC foobar {
+     LOCAL x, y
+
+     x = 23*v
+     y = 42*v
+     x = sin(y)
+     y = cos(x)
+
+     ~ A <-> B (x, y)
+     ~ C <-> D (x, y)
+   }
+
+which is almost never what the author would expect. Thus, this construction constitutes
+an error in ``modcc``; if want this particular behaviour, please state this explicit by
+writing code similar to the second example.
 
 .. _arbornmodl:
 
