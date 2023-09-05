@@ -16,8 +16,6 @@
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
-#include <iostream>
-
 namespace arb {
 
 namespace {

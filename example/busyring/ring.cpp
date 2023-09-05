@@ -186,7 +186,7 @@ int main(int argc, char** argv) {
         auto params = read_options(argc, argv);
 
         arb::proc_allocation resources;
-        resources.num_threads = 1; arbenv::default_concurrency();
+        resources.num_threads = arbenv::default_concurrency();
         resources.bind_threads = params.bind_threads;
 
 #ifdef ARB_MPI_ENABLED
