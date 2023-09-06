@@ -58,15 +58,11 @@ struct network_selection_all_impl: public network_selection_impl {
         return true;
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
@@ -80,15 +76,11 @@ struct network_selection_none_impl: public network_selection_impl {
         return false;
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return false;
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return false;
     }
 
@@ -105,15 +97,11 @@ struct network_selection_source_cell_kind_impl: public network_selection_impl {
         return source.kind == select_kind;
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return kind == select_kind;
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
@@ -139,15 +127,11 @@ struct network_selection_target_cell_kind_impl: public network_selection_impl {
         return target.kind == select_kind;
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return kind == select_kind;
     }
 
@@ -176,15 +160,11 @@ struct network_selection_source_label_impl: public network_selection_impl {
         return std::binary_search(sorted_labels.begin(), sorted_labels.end(), source.label);
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return std::binary_search(sorted_labels.begin(), sorted_labels.end(), label);
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
@@ -208,15 +188,11 @@ struct network_selection_target_label_impl: public network_selection_impl {
         return std::binary_search(sorted_labels.begin(), sorted_labels.end(), target.label);
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return std::binary_search(sorted_labels.begin(), sorted_labels.end(), label);
     }
 
@@ -240,15 +216,11 @@ struct network_selection_source_cell_impl: public network_selection_impl {
         return std::binary_search(sorted_gids.begin(), sorted_gids.end(), source.gid);
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return std::binary_search(sorted_gids.begin(), sorted_gids.end(), gid);
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
@@ -273,15 +245,11 @@ struct network_selection_source_cell_range_impl: public network_selection_impl {
                !((source.gid - gid_begin) % step);
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return gid >= gid_begin && gid < gid_end && !((gid - gid_begin) % step);
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
@@ -303,15 +271,11 @@ struct network_selection_target_cell_impl: public network_selection_impl {
         return std::binary_search(sorted_gids.begin(), sorted_gids.end(), target.gid);
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return std::binary_search(sorted_gids.begin(), sorted_gids.end(), gid);
     }
 
@@ -336,15 +300,11 @@ struct network_selection_target_cell_range_impl: public network_selection_impl {
                !((target.gid - gid_begin) % step);
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return gid >= gid_begin && gid < gid_end && !((gid - gid_begin) % step);
     }
 
@@ -380,16 +340,12 @@ struct network_selection_chain_impl: public network_selection_impl {
         return false;
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return !sorted_gids.empty() &&
                std::binary_search(sorted_gids.begin(), sorted_gids.end() - 1, gid);
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return !sorted_gids.empty() &&
                std::binary_search(sorted_gids.begin() + 1, sorted_gids.end(), gid);
     }
@@ -418,17 +374,13 @@ struct network_selection_chain_range_impl: public network_selection_impl {
         return source.gid + step == target.gid && !((source.gid - gid_begin) % step);
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         // Return false if outside range or if equal to last element, which cannot be a source
         if (gid < gid_begin || gid >= gid_end - 1) return false;
         return !((gid - gid_begin) % step);
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         // Return false if outside range or if equal to first element, which cannot be a target
         if (gid <= gid_begin || gid >= gid_end) return false;
         return !((gid - gid_begin) % step);
@@ -456,17 +408,13 @@ struct network_selection_reverse_chain_range_impl: public network_selection_impl
         return target.gid + step == source.gid && !((source.gid - gid_begin) % step);
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         // Return false if outside range or if equal to first element, which cannot be a source
         if (gid <= gid_begin || gid >= gid_end) return false;
         return !((gid - gid_begin) % step);
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         // Return false if outside range or if equal to last element, which cannot be a target
         if (gid < gid_begin || gid >= gid_end - 1) return false;
         return !((gid - gid_begin) % step);
@@ -488,16 +436,12 @@ struct network_selection_complement_impl: public network_selection_impl {
         return !selection->select_connection(source, target);
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;  // cannot exclude any because source selection cannot be complemented without
                       // knowing selection criteria.
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;  // cannot exclude any because target selection cannot be complemented
                       // without knowing selection criteria.
     }
@@ -526,17 +470,13 @@ struct network_selection_named_impl: public network_selection_impl {
         return selection->select_connection(source, target);
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         if (!selection)
             throw arbor_internal_error("Trying to use unitialized named network selection.");
         return selection->select_source(kind, gid, label);
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         if (!selection)
             throw arbor_internal_error("Trying to use unitialized named network selection.");
         return selection->select_target(kind, gid, label);
@@ -561,15 +501,11 @@ struct network_selection_inter_cell_impl: public network_selection_impl {
         return source.gid != target.gid;
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
@@ -596,15 +532,11 @@ struct network_selection_custom_impl: public network_selection_impl {
                 target.global_location}});
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
@@ -621,15 +553,11 @@ struct network_selection_distance_lt_impl: public network_selection_impl {
         return distance(source.global_location, target.global_location) < d;
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
@@ -648,15 +576,11 @@ struct network_selection_distance_gt_impl: public network_selection_impl {
         return distance(source.global_location, target.global_location) > d;
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
@@ -683,15 +607,11 @@ struct network_selection_random_impl: public network_selection_impl {
         return r < p;
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return true;
     }
 
@@ -719,15 +639,11 @@ struct network_selection_intersect_impl: public network_selection_impl {
         return left->select_connection(source, target) && right->select_connection(source, target);
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return left->select_source(kind, gid, label) && right->select_source(kind, gid, label);
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return left->select_target(kind, gid, label) && right->select_target(kind, gid, label);
     }
 
@@ -769,15 +685,11 @@ struct network_selection_join_impl: public network_selection_impl {
         return left->select_connection(source, target) || right->select_connection(source, target);
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return left->select_source(kind, gid, label) || right->select_source(kind, gid, label);
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return left->select_target(kind, gid, label) || right->select_target(kind, gid, label);
     }
 
@@ -817,15 +729,11 @@ struct network_selection_symmetric_difference_impl: public network_selection_imp
         return left->select_connection(source, target) ^ right->select_connection(source, target);
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return left->select_source(kind, gid, label) || right->select_source(kind, gid, label);
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return left->select_target(kind, gid, label) || right->select_target(kind, gid, label);
     }
 
@@ -866,15 +774,11 @@ struct network_selection_difference_impl: public network_selection_impl {
                !(right->select_connection(source, target));
     }
 
-    bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return left->select_source(kind, gid, label);
     }
 
-    bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
         return left->select_target(kind, gid, label);
     }
 

@@ -46,13 +46,9 @@ struct network_selection_impl {
     virtual bool select_connection(const network_full_site_info& source,
         const network_full_site_info& target) const = 0;
 
-    virtual bool select_source(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& tag) const = 0;
+    virtual bool select_source(cell_kind kind, cell_gid_type gid, std::string_view tag) const = 0;
 
-    virtual bool select_target(cell_kind kind,
-        cell_gid_type gid,
-        const std::string_view& tag) const = 0;
+    virtual bool select_target(cell_kind kind, cell_gid_type gid, std::string_view tag) const = 0;
 
     virtual void initialize(const network_label_dict& dict){};
 
