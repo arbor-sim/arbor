@@ -3,7 +3,12 @@
 import arbor as A
 import seaborn as sns
 import matplotlib.pyplot as plt
+import subprocess as sp
 
+sp.run(['/usr/local/bin/arbor-build-catalogue',
+        'local',
+        'cat',
+        ], shell=False, check=True)
 
 class recipe(A.recipe):
     def __init__(self, cell, probes):
@@ -11,7 +16,7 @@ class recipe(A.recipe):
         self.the_cell = cell
         self.the_probes = probes
         self.the_props = A.neuron_cable_properties()
-        self.the_props.catalogue = A.default_catalogue()
+        self.the_props.catalogue.extend(A.load_catalogue('local-catalogue.so'), 'local-')
 
     def num_cells(self):
         return 1
@@ -38,7 +43,7 @@ _ = tree.append(s, A.mpoint(3, 0, 0, 1), A.mpoint(33, 0, 0, 1), tag=3)
 
 dec = A.decor()
 dec.set_ion("na", int_con=0.0, diff=0.005)
-dec.place("(location 0 0.5)", A.synapse("inject/x=na", {"alpha": 200.0}), "Zap")
+dec.place("(location 0 0.5)", A.synapse("local-inject/x=na", {"alpha": 200.0}), "Zap")
 dec.paint("(all)", A.density("decay/x=na"))
 dec.discretization(A.cv_policy("(max-extent 5)"))
 
@@ -63,15 +68,16 @@ for h in hdl:
         # Plot
         for lbl, ix in zip(m, range(1, d.shape[1])):
             ax.plot(d[:, 0], d[:, ix], label=lbl)
+        W = 8
         # Table
         print("Sodium concentration (NaD/mM)")
-        print("|-" + "-+-".join("-" * 20 for _ in range(d.shape[1])) + "-|")
+        print("|-" + "-+-".join("-" * W for _ in range(d.shape[1])) + "-|")
         print(
-            "| Time (ms)            | " + " | ".join(f"{str(l):<20}" for l in m) + " |"
+            f"| {'Time/ms':<{W}} | " + " | ".join(f"{l.prox:<{W}}" for l in m) + " |"
         )
-        print("|-" + "-+-".join("-" * 20 for _ in range(d.shape[1])) + "-|")
+        print("|-" + "-+-".join("-" * W for _ in range(d.shape[1])) + "-|")
         for ix in range(d.shape[0]):
-            print("| " + " | ".join(f"{v:>20.3f}" for v in d[ix, :]) + " |")
-        print("|-" + "-+-".join("-" * 20 for _ in range(d.shape[1])) + "-|")
+            print("| " + " | ".join(f"{v:>{W}.3f}" for v in d[ix, :]) + " |")
+        print("|-" + "-+-".join("-" * W for _ in range(d.shape[1])) + "-|")
 ax.legend()
 fg.savefig("results.pdf")
