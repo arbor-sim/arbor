@@ -1,5 +1,6 @@
 #pragma once
 
+#include <variant>
 #include <any>
 
 #include <arbor/morph/label_dict.hpp>
