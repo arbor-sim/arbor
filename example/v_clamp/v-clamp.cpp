@@ -31,11 +31,10 @@ struct options {
 };
 
 options parse_options(int argc, char** argv);
-arb::morphology default_morphology();
-arb::morphology read_swc(const std::string& path);
+arborio::loaded_morphology default_morphology();
 
 struct single_recipe: public arb::recipe {
-    explicit single_recipe(arb::morphology m, arb::cv_policy pol): morpho(std::move(m)) {
+    explicit single_recipe(arborio::loaded_morphology m, arb::cv_policy pol): morpho(std::move(m.morphology)) {
         gprop.default_parameters = arb::neuron_parameter_defaults;
         gprop.default_parameters.discretization = pol;
     }
@@ -85,7 +84,7 @@ struct single_recipe: public arb::recipe {
 int main(int argc, char** argv) {
     try {
         options opt = parse_options(argc, argv);
-        single_recipe R(opt.swc_file.empty()? default_morphology(): read_swc(opt.swc_file), opt.policy);
+        single_recipe R(opt.swc_file.empty()? default_morphology(): arborio::load_swc_arbor(opt.swc_file), opt.policy);
         R.voltage_clamp = opt.voltage;
         arb::simulation sim(R);
 
@@ -150,18 +149,13 @@ options parse_options(int argc, char** argv) {
 // of length 200 µm and radius decreasing linearly from 0.5 µm
 // to 0.2 µm.
 
-arb::morphology default_morphology() {
+arborio::loaded_morphology default_morphology() {
     arb::segment_tree tree;
 
     tree.append(arb::mnpos, { -6.3, 0.0, 0.0, 6.3}, {  6.3, 0.0, 0.0, 6.3}, 1);
     tree.append(         0, {  6.3, 0.0, 0.0, 0.5}, {206.3, 0.0, 0.0, 0.2}, 3);
 
-    return arb::morphology(tree);
-}
-
-arb::morphology read_swc(const std::string& path) {
-    std::ifstream f(path);
-    if (!f) throw std::runtime_error("unable to open SWC file: "+path);
-
-    return arborio::load_swc_arbor(arborio::parse_swc(f));
+    auto labels = arb::label_dict{};
+    labels.add_swc_tags();
+    return {tree, {tree}, labels};
 }

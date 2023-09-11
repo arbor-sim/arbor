@@ -17,7 +17,7 @@ if len(sys.argv) < 2:
     sys.exit(0)
 
 filename = sys.argv[1]
-morph = arbor.load_swc_arbor(filename)
+lmrf = arbor.load_swc_arbor(filename)
 
 # (2) Create and populate the label dictionary.
 
@@ -39,7 +39,7 @@ labels = arbor.label_dict(
         # Add a label for the terminal locations in the "axon" region:
         "axon_terminal": '(restrict-to (locset "terminal") (region "axon"))',
     }
-).add_swc_tags()  # Add SWC pre-defined regions
+).import(lmrf.labels)
 
 # (3) Create and populate the decor.
 
@@ -68,7 +68,7 @@ decor = (
 
 # (4) Create the cell.
 
-cell = arbor.cable_cell(morph, decor, labels)
+cell = arbor.cable_cell(lmrf.morphology, decor, labels)
 
 
 # (5) Create a class that inherits from arbor.recipe

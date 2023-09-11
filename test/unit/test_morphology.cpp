@@ -322,7 +322,8 @@ TEST(morphology, swc) {
     auto swc = arborio::parse_swc(fid);
 
     // Build a segmewnt_tree from swc samples.
-    auto m = arborio::load_swc_arbor(swc);
+    auto lm = arborio::load_swc_arbor(swc);
+    const auto& m = lm.morphology;
     EXPECT_EQ(221u, m.num_branches()); // 219 branches + 2 from divided soma.
 }
 #endif

@@ -295,13 +295,10 @@ void register_morphology(py::module& m) {
     // Function that creates a morphology/segment_tree from an swc file.
     // Wraps calls to C++ functions arborio::parse_swc() and arborio::load_swc_arbor().
     m.def("load_swc_arbor",
-        [](py::object fn, bool raw) -> morph_or_tree {
+        [](py::object fn) -> arborio::loaded_morphology {
             try {
                 auto contents = util::read_file_or_buffer(fn);
                 auto data = arborio::parse_swc(contents);
-                if (raw) {
-                    return arborio::load_swc_arbor_raw(data);
-                }
                 return arborio::load_swc_arbor(data);
             }
             catch (arborio::swc_error& e) {
@@ -310,7 +307,6 @@ void register_morphology(py::module& m) {
             }
         },
         "filename_or_stream"_a,
-        pybind11::arg_v("raw", false, "Return a segment tree instead of a fully formed morphology"),
         "Generate a morphology/segment_tree from an SWC file following the rules prescribed by Arbor.\n"
         "Specifically:\n"
         " * Single-segment somas are disallowed.\n"
@@ -319,13 +315,10 @@ void register_morphology(py::module& m) {
         " * A segment is always created between a sample and its parent, meaning there\n"
         "   are no gaps in the resulting morphology.");
     m.def("load_swc_neuron",
-        [](py::object fn, bool raw) -> morph_or_tree {
+        [](py::object fn) -> arborio::loaded_morphology {
             try {
                 auto contents = util::read_file_or_buffer(fn);
                 auto data = arborio::parse_swc(contents);
-                if (raw) {
-                    return arborio::load_swc_neuron_raw(data);
-                }
                 return arborio::load_swc_neuron(data);
             }
             catch (arborio::swc_error& e) {
@@ -334,14 +327,12 @@ void register_morphology(py::module& m) {
             }
         },
         "filename_or_stream"_a,
-        pybind11::arg_v("raw", false, "Return a segment tree instead of a fully formed morphology"),
         "Generate a morphology from an SWC file following the rules prescribed by NEURON.\n"
         "See the documentation https://docs.arbor-sim.org/en/latest/fileformat/swc.html\n"
         "for a detailed description of the interpretation.");
 
 
     // arb::morphology
-
     py::class_<arb::morphology> morph(m, "morphology");
     morph
         // constructors
@@ -374,29 +365,76 @@ void register_morphology(py::module& m) {
                 });
 
     // Neurolucida ASCII, or .asc, file format support.
+    py::class_<arborio::asc_color> color(m,
+                                         "asc_color",
+                                         "Neurolucida color tag.");
+    color
+        .def_readonly("red", &arborio::asc_color::r)
+        .def_readonly("blue", &arborio::asc_color::b)
+        .def_readonly("green", &arborio::asc_color::g);
 
-    py::class_<arborio::asc_morphology> asc_morphology(m, "asc_morphology",
-            "The morphology and label dictionary meta-data loaded from a Neurolucida ASCII (.asc) file.");
-    asc_morphology
+
+    py::class_<arborio::asc_spine> spine(m,
+                                         "asc_spine",
+                                         "Neurolucida spine marker.");
+    spine
+        .def_readonly("name", &arborio::asc_spine::name)
+        .def_readonly("location", &arborio::asc_spine::location);
+
+
+    py::enum_<arborio::asc_marker> marker(m,
+                                           "asc_marker",
+                                           "Neurolucida marker type.");
+    marker
+        .value("dot", arborio::asc_marker::dot)
+        .value("cross", arborio::asc_marker::cross)
+        .value("circle", arborio::asc_marker::circle)
+        .value("none", arborio::asc_marker::none);
+
+    py::class_<arborio::asc_marker_set> marker_set(m,
+                                                  "asc_marker_set",
+                                                  "Neurolucida marker set type.");
+
+    marker_set
+        .def_readonly("name", &arborio::asc_marker_set::name)
+        .def_readonly("marker", &arborio::asc_marker_set::marker)
+        .def_readonly("color", &arborio::asc_marker_set::color)
+        .def_readonly("locations", &arborio::asc_marker_set::locations);
+
+    py::class_<arborio::asc_metadata> asc_meta(m,
+                                               "asc_metadata",
+                                               "Neurolucida metadata type: Spines and marker sets.");
+
+    asc_meta
+        .def_readonly("markers", &arborio::asc_metadata::markers)
+        .def_readonly("spines", &arborio::asc_metadata::spines);
+
+    py::class_<arborio::loaded_morphology> loaded_morphology(m,
+                                                             "loaded_morphology",
+                                                             "The morphology and label dictionary meta-data loaded from file.");
+
+    py::class_<arborio::swc_metadata> swc_meta(m,
+                                               "swc_metadata",
+                                               "SWC metadata type: empty.");
+
+    loaded_morphology
         .def_readonly("morphology",
-                &arborio::asc_morphology::morphology,
+                &arborio::loaded_morphology::morphology,
                 "The cable cell morphology.")
         .def_readonly("segment_tree",
-                &arborio::asc_morphology::segment_tree,
+                &arborio::loaded_morphology::segment_tree,
                 "The raw segment tree.")
+        .def_readonly("metadata",
+                &arborio::loaded_morphology::metadata,
+                "File type specific metadata.")
         .def_property_readonly("labels",
-            [](const arborio::asc_morphology& m) {return label_dict_proxy(m.labels);},
-            "The four canonical regions are labeled 'soma', 'axon', 'dend' and 'apic'.");
-
-    using asc_morph_or_tree = std::variant<arb::segment_tree, arborio::asc_morphology>;
+            [](const arborio::loaded_morphology& m) {return label_dict_proxy(m.labels);},
+            "Any labels defined by the loaded file.");
 
     m.def("load_asc",
-        [](py::object fn, bool raw) -> asc_morph_or_tree {
+        [](py::object fn) -> arborio::loaded_morphology {
             try {
                 auto contents = util::read_file_or_buffer(fn);
-                if (raw) {
-                    return arborio::parse_asc_string_raw(contents.c_str());
-                }
                 return arborio::parse_asc_string(contents.c_str());
             }
             catch (std::exception& e) {
@@ -405,32 +443,28 @@ void register_morphology(py::module& m) {
             }
         },
         "filename_or_stream"_a,
-        pybind11::arg_v("raw", false, "Return a segment tree instead of a fully formed morphology"),
         "Load a morphology or segment_tree and meta data from a Neurolucida ASCII .asc file.");
 
     // arborio::morphology_data
-    py::class_<arborio::nml_morphology_data> nml_morph_data(m, "neuroml_morph_data");
-    nml_morph_data
+    py::class_<arborio::nml_metadata> nml_meta(m, "nml_metadata");
+    nml_meta
         .def_readonly("cell_id",
-            &arborio::nml_morphology_data::cell_id,
+            &arborio::nml_metadata::cell_id,
             "Cell id, or empty if morphology was taken from a top-level <morphology> element.")
         .def_readonly("id",
-            &arborio::nml_morphology_data::id,
+            &arborio::nml_metadata::id,
             "Morphology id.")
-        .def_readonly("morphology",
-            &arborio::nml_morphology_data::morphology,
-            "Morphology constructed from a signle NeuroML <morphology> element.")
         .def("segments",
-            [](const arborio::nml_morphology_data& md) {return label_dict_proxy(md.segments);},
+            [](const arborio::nml_metadata& md) {return label_dict_proxy(md.segments);},
             "Label dictionary containing one region expression for each segment id.")
         .def("named_segments",
-            [](const arborio::nml_morphology_data& md) {return label_dict_proxy(md.named_segments);},
+            [](const arborio::nml_metadata& md) {return label_dict_proxy(md.named_segments);},
             "Label dictionary containing one region expression for each name applied to one or more segments.")
         .def("groups",
-            [](const arborio::nml_morphology_data& md) {return label_dict_proxy(md.groups);},
+            [](const arborio::nml_metadata& md) {return label_dict_proxy(md.groups);},
             "Label dictionary containing one region expression for each segmentGroup id.")
         .def_readonly("group_segments",
-            &arborio::nml_morphology_data::group_segments,
+            &arborio::nml_metadata::group_segments,
             "Map from segmentGroup ids to their corresponding segment ids.");
 
     // arborio::neuroml

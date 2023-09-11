@@ -22,7 +22,7 @@ if len(sys.argv) < 2:
     sys.exit(0)
 
 filename = sys.argv[1]
-morpho = arbor.load_swc_arbor(filename)
+morpho = arbor.load_swc_arbor(filename).morphology
 
 # Define the regions and locsets in the model.
 labels = arbor.label_dict(

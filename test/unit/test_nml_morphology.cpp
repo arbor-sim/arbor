@@ -78,16 +78,18 @@ R"~(
     std::sort(c_ids.begin(), c_ids.end());
     EXPECT_EQ((svector{"c3", "c4"}), c_ids);
 
-    arborio::nml_morphology_data mdata;
-
-    mdata = N.cell_morphology("c4").value();
-    EXPECT_EQ("c4", mdata.cell_id);
-    EXPECT_EQ("m4", mdata.id);
-
-    mdata = N.cell_morphology("c3").value();
-    EXPECT_EQ("c3", mdata.cell_id);
-    EXPECT_EQ("m1", mdata.id);
-
+    {
+        auto mdata = N.cell_morphology("c4").value();
+        auto meta = std::get<arborio::nml_metadata>(mdata.metadata);
+        EXPECT_EQ("c4", meta.cell_id);
+        EXPECT_EQ("m4", meta.id);
+    }
+    {
+        auto mdata = N.cell_morphology("c3").value();
+        auto meta = std::get<arborio::nml_metadata>(mdata.metadata);
+        EXPECT_EQ("c3", meta.cell_id);
+        EXPECT_EQ("m1", meta.id);
+    }
     EXPECT_THROW(N.cell_morphology("mr. bobbins").value(), std::bad_optional_access);
 }
 
@@ -166,8 +168,9 @@ R"~(
 
     {
         auto m1 = N.morphology("m1").value();
+        auto d1 = std::get<arborio::nml_metadata>(m1.metadata);
         label_dict labels;
-        labels.import(m1.segments, "seg:");
+        labels.import(d1.segments, "seg:");
         mprovider P(m1.morphology, labels);
 
         EXPECT_TRUE(region_eq(P, reg::named("seg:0"), reg::all()));
@@ -178,9 +181,10 @@ R"~(
     }
 
     {
-        arborio::nml_morphology_data m2 = N.morphology("m2").value();
+        auto m2 = N.morphology("m2").value();
+        auto d2 = std::get<arborio::nml_metadata>(m2.metadata);
         label_dict labels;
-        labels.import(m2.segments, "seg:");
+        labels.import(d2.segments, "seg:");
         mprovider P(m2.morphology, labels);
 
         mextent seg0_extent = thingify(reg::named("seg:0"), P);
@@ -206,9 +210,10 @@ R"~(
     }
 
     {
-        arborio::nml_morphology_data m3 = N.morphology("m3").value();
+        auto m3 = N.morphology("m3").value();
+        auto d3 = std::get<arborio::nml_metadata>(m3.metadata);
         label_dict labels;
-        labels.import(m3.segments, "seg:");
+        labels.import(d3.segments, "seg:");
         mprovider P(m3.morphology, labels);
 
         mextent seg0_extent = thingify(reg::named("seg:0"), P);
@@ -240,9 +245,10 @@ R"~(
     }
     {
         for (const char* m_name: {"m4", "m5"}) {
-            arborio::nml_morphology_data m4_or_5 = N.morphology(m_name).value();
+            auto m4_or_5 = N.morphology(m_name).value();
+            auto d4_or_5 = std::get<arborio::nml_metadata>(m4_or_5.metadata);
             label_dict labels;
-            labels.import(m4_or_5.segments, "seg:");
+            labels.import(d4_or_5.segments, "seg:");
             mprovider P(m4_or_5.morphology, labels);
 
             mextent seg0_extent = thingify(reg::named("seg:0"), P);
@@ -329,9 +335,10 @@ R"~(
     arborio::neuroml N(doc);
 
     {
-        arborio::nml_morphology_data m1 = N.morphology("m1", allow_spherical_root).value();
+        auto m1 = N.morphology("m1", allow_spherical_root).value();
+        auto d1 = std::get<arborio::nml_metadata>(m1.metadata);
         label_dict labels;
-        labels.import(m1.segments, "seg:");
+        labels.import(d1.segments, "seg:");
         mprovider P(m1.morphology, labels);
 
         EXPECT_TRUE(region_eq(P, reg::branch(0), reg::all()));
@@ -358,9 +365,10 @@ R"~(
     }
     {
         // With spherical root _not_ provided, treat it just as a simple zero-length segment.
-        arborio::nml_morphology_data m1 = N.morphology("m1", none).value();
+        auto m1 = N.morphology("m1", none).value();
+        auto d1 = std::get<arborio::nml_metadata>(m1.metadata);
         label_dict labels;
-        labels.import(m1.segments, "seg:");
+        labels.import(d1.segments, "seg:");
         mprovider P(m1.morphology, labels);
 
         EXPECT_TRUE(region_eq(P, reg::branch(0), reg::all()));
@@ -371,9 +379,10 @@ R"~(
         EXPECT_EQ(p0, G.at(mlocation{0, 1}));
     }
     {
-        arborio::nml_morphology_data m2 = N.morphology("m2", allow_spherical_root).value();
+        auto m2 = N.morphology("m2", allow_spherical_root).value();
+        auto d2 = std::get<arborio::nml_metadata>(m2.metadata);
         label_dict labels;
-        labels.import(m2.segments, "seg:");
+        labels.import(d2.segments, "seg:");
         mprovider P(m2.morphology, labels);
 
         EXPECT_TRUE(region_eq(P, reg::branch(0), reg::all()));
@@ -387,9 +396,10 @@ R"~(
                     (p0==points[1] && p1==points[0]));
     }
     {
-        arborio::nml_morphology_data m3 = N.morphology("m3", allow_spherical_root).value();
+        auto m3 = N.morphology("m3", allow_spherical_root).value();
+        auto d3 = std::get<arborio::nml_metadata>(m3.metadata);
         label_dict labels;
-        labels.import(m3.segments, "seg:");
+        labels.import(d3.segments, "seg:");
         mprovider P(m3.morphology, labels);
         place_pwlin G(P.morphology());
 
@@ -409,9 +419,10 @@ R"~(
         EXPECT_EQ(p2, s1d);
     }
     {
-        arborio::nml_morphology_data m4 = N.morphology("m4", allow_spherical_root).value();
+        auto m4 = N.morphology("m4", allow_spherical_root).value();
+        auto d4 = std::get<arborio::nml_metadata>(m4.metadata);
         label_dict labels;
-        labels.import(m4.segments, "seg:");
+        labels.import(d4.segments, "seg:");
         mprovider P(m4.morphology, labels);
         place_pwlin G(P.morphology());
 
@@ -593,22 +604,16 @@ R"~(
     using reg::named;
 
     {
-        arborio::nml_morphology_data m1 = N.morphology("m1").value();
-        label_dict labels;
-        labels.import(m1.segments);
-        labels.import(m1.groups);
-        mprovider P(m1.morphology, labels);
+        auto m1 = N.morphology("m1").value();
+        mprovider P(m1.morphology, m1.labels);
 
         EXPECT_TRUE(region_eq(P, named("group-a"), named("0")));
         EXPECT_TRUE(region_eq(P, named("group-b"), named("2")));
         EXPECT_TRUE(region_eq(P, named("group-c"), join(named("2"), named("1"))));
     }
     {
-        arborio::nml_morphology_data m2 = N.morphology("m2").value();
-        label_dict labels;
-        labels.import(m2.segments);
-        labels.import(m2.groups);
-        mprovider P(m2.morphology, labels);
+        auto m2 = N.morphology("m2").value();
+        mprovider P(m2.morphology, m2.labels);
 
         EXPECT_TRUE(region_eq(P, named("group-a"), join(named("0"), named("2"))));
         EXPECT_TRUE(region_eq(P, named("group-c"), join(named("0"), named("1"), named("2"))));
@@ -762,11 +767,8 @@ R"~(
 
     arborio::neuroml N(doc);
 
-    arborio::nml_morphology_data m1 = N.morphology("m1").value();
-    label_dict labels;
-    labels.import(m1.segments);
-    labels.import(m1.groups);
-    mprovider P(m1.morphology, labels);
+    auto m1 = N.morphology("m1").value();
+    mprovider P(m1.morphology, m1.labels);
 
     // Note: paths/subTrees respect segment parent–child relationships,
     // not morphological distality.

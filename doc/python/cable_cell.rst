@@ -37,13 +37,7 @@ Cable cells
         import arbor
 
         # Construct the morphology from an SWC file.
-        tree = arbor.load_swc_arbor('granule.swc')
-        morph = arbor.morphology(tree)
-
-        # Define regions using standard SWC tags
-        labels = arbor.label_dict({'soma': '(tag 1)',
-                                   'axon': '(tag 2)',
-                                   'dend': '(join (tag 3) (tag 4))'})
+        lmrf = arbor.load_swc_arbor('granule.swc')
 
         # Define decorations
         decor = arbor.decor()
@@ -52,7 +46,7 @@ Cable cells
         decor.paint('"soma"', arbor.density('hh'))
 
         # Construct a cable cell.
-        cell = arbor.cable_cell(morph, decor, labels)
+        cell = arbor.cable_cell(lmrf.morphology, decor, lmrf.labels)
 
     .. method:: __init__(morphology, decorations, labels)
 

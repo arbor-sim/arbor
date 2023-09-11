@@ -63,7 +63,7 @@ if len(sys.argv) < 2:
 filename = sys.argv[1]
 
 # define morphology (needed for ``arbor.place_pwlin`` and ``arbor.cable_cell`` below)
-morphology = arbor.load_swc_arbor(filename)
+morphology = arbor.load_swc_arbor(filename).morphology
 
 # define a location on morphology for current clamp
 clamp_location = arbor.location(4, 1 / 6)

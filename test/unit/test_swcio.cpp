@@ -270,7 +270,8 @@ TEST(swc_parser, arbor_compliant) {
             {7, 3, p4.x, p4.y, p4.z, p4.radius, 4}
         };
 
-        auto morpho = load_swc_arbor(swc);
+        auto loaded = load_swc_arbor(swc);
+        const auto& morpho = loaded.morphology;
         ASSERT_EQ(3u, morpho.num_branches());
 
         EXPECT_EQ(mnpos, morpho.branch_parent(0));
@@ -315,7 +316,8 @@ TEST(swc_parser, arbor_compliant) {
             {4, 3, p3.x, p3.y, p3.z, p3.radius, 2},
         };
 
-        auto morpho = load_swc_arbor(swc);
+        auto loaded = load_swc_arbor(swc);
+        auto morpho = loaded.morphology;
         ASSERT_EQ(2u, morpho.num_branches());
 
         EXPECT_EQ(mnpos, morpho.branch_parent(0));
@@ -377,7 +379,9 @@ TEST(swc_parser, neuron_compliant) {
         std::vector<swc_record> swc{
             {1, 1, p0.x, p0.y, p0.z, p0.radius, -1}
         };
-        auto morpho = load_swc_neuron(swc);
+
+        auto loaded = load_swc_neuron(swc);
+        const auto& morpho = loaded.morphology;
 
         mpoint prox{p0.x-p0.radius, p0.y, p0.z, p0.radius};
         mpoint dist{p0.x+p0.radius, p0.y, p0.z, p0.radius};
@@ -406,7 +410,8 @@ TEST(swc_parser, neuron_compliant) {
             {1, 1, p0.x, p0.y, p0.z, p0.radius, -1},
             {2, 1, p1.x, p1.y, p1.z, p1.radius,  1}
         };
-        auto morpho = load_swc_neuron(swc);
+        auto loaded = load_swc_arbor(swc);
+        const auto& morpho = loaded.morphology;
 
         ASSERT_EQ(1u, morpho.num_branches());
 
@@ -431,7 +436,9 @@ TEST(swc_parser, neuron_compliant) {
             {2, 1, p1.x, p1.y, p1.z, p1.radius,  1},
             {3, 1, p2.x, p2.y, p2.z, p2.radius,  2}
         };
-        auto morpho = load_swc_neuron(swc);
+
+        auto loaded = load_swc_neuron(swc);
+        const auto& morpho = loaded.morphology;
 
         ASSERT_EQ(1u, morpho.num_branches());
 
@@ -466,7 +473,8 @@ TEST(swc_parser, neuron_compliant) {
             {10, 1, p4.x, p4.y, p4.z, p4.radius,  8},
             {12, 1, p5.x, p5.y, p5.z, p5.radius, 10}
         };
-        auto morpho = load_swc_neuron(swc);
+        auto loaded = load_swc_neuron(swc);
+        const auto& morpho = loaded.morphology;
 
         ASSERT_EQ(1u, morpho.num_branches());
 
@@ -507,7 +515,8 @@ TEST(swc_parser, neuron_compliant) {
             {2, 3, p1.x, p1.y, p1.z, p1.radius,  1},
             {3, 3, p2.x, p2.y, p2.z, p2.radius,  2}
         };
-        auto morpho = load_swc_neuron(swc);
+        auto loaded = load_swc_neuron(swc);
+        const auto& morpho = loaded.morphology;
 
         mpoint prox{-10, 0, 0, 10};
         mpoint dist{ 10, 0, 0, 10};
@@ -548,7 +557,8 @@ TEST(swc_parser, neuron_compliant) {
             {23, 1, p0.x, p0.y, p0.z, p0.radius, -1},
             {83, 3, p1.x, p1.y, p1.z, p1.radius, 23}
         };
-        auto morpho = load_swc_neuron(swc);
+        auto loaded = load_swc_neuron(swc);
+        const auto& morpho = loaded.morphology;
 
         mpoint prox{-10, 0, 0, 10};
         mpoint dist{ 10, 0, 0, 10};
@@ -592,7 +602,8 @@ TEST(swc_parser, neuron_compliant) {
             {3, 3, p2.x, p2.y, p2.z, p2.radius,  2},
             {4, 3, p3.x, p3.y, p3.z, p3.radius,  3}
         };
-        auto morpho = load_swc_neuron(swc);
+        auto loaded = load_swc_neuron(swc);
+        const auto& morpho = loaded.morphology;
 
         ASSERT_EQ(1u, morpho.num_branches());
 
@@ -658,7 +669,8 @@ TEST(swc_parser, neuron_compliant) {
             {18, 3, -8, 15, 0, 1, 17}
         };
 
-        auto morpho = load_swc_neuron(swc);
+        auto loaded = load_swc_neuron(swc);
+        const auto& morpho = loaded.morphology;
 
         ASSERT_EQ(10u, morpho.num_branches());
 
@@ -739,6 +751,7 @@ TEST(swc_parser, neuron_compliant) {
         EXPECT_EQ(p17, segs_9[0].dist);
     }
 }
+
 TEST(swc_parser, not_neuron_compliant) {
     using namespace arborio;
     {

@@ -17,7 +17,7 @@ if len(sys.argv) < 2:
     sys.exit(0)
 
 filename = sys.argv[1]
-morph = arbor.load_swc_arbor(filename)
+morph = arbor.load_swc_arbor(filename).morphology
 
 # (2) Create and populate the label dictionary.
 

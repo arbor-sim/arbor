@@ -165,7 +165,8 @@ ysoma_morph3 = arbor.morphology(tree)
 fn = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__), "../fileformat/example.swc")
 )
-swc_morph = arbor.load_swc_arbor(fn)
+swc = arbor.load_swc_arbor(fn)
+swc_morph = swc.morphology
 
 regions = {
     "empty": "(region-nil)",

@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <arborio/loaded_morphology.hpp>
 #include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arborio/export.hpp>
@@ -69,29 +70,6 @@ struct ARB_SYMBOL_VISIBLE nml_cyclic_dependency: neuroml_exception {
 // Note: segment id values are interpreted as unsigned long long values;
 // parsing larger segment ids will throw an exception.
 
-struct nml_morphology_data {
-    // Cell id, or empty if morphology was taken from a top-level <morphology> element.
-    std::optional<std::string> cell_id;
-
-    // Morphology id.
-    std::string id;
-
-    // Morphology constructed from a single NeuroML <morphology> element.
-    arb::morphology morphology;
-
-    // One region expression for each segment id.
-    arb::label_dict segments;
-
-    // One region expression for each name applied to one or more segments.
-    arb::label_dict named_segments;
-
-    // One region expression for each segmentGroup id.
-    arb::label_dict groups;
-
-    // Map from segmentGroup ids to their corresponding segment ids.
-    std::unordered_map<std::string, std::vector<unsigned long long>> group_segments;
-};
-
 // Represent NeuroML data determined by provided string.
 
 struct ARB_ARBORIO_API neuroml_impl;
@@ -126,8 +104,8 @@ struct ARB_ARBORIO_API neuroml {
     // Parse and retrieve top-level morphology or morphology associated with a cell.
     // Return nullopt if not found.
 
-    std::optional<nml_morphology_data> morphology(const std::string& morph_id, enum neuroml_options::values = neuroml_options::none) const;
-    std::optional<nml_morphology_data> cell_morphology(const std::string& cell_id, enum neuroml_options::values = neuroml_options::none) const;
+    std::optional<loaded_morphology> morphology(const std::string& morph_id, enum neuroml_options::values = neuroml_options::none) const;
+    std::optional<loaded_morphology> cell_morphology(const std::string& cell_id, enum neuroml_options::values = neuroml_options::none) const;
 
     ~neuroml();
 

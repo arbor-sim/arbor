@@ -475,7 +475,28 @@ The following classes and functions allow the user to inspect the CVs of a cell 
 Supported morphology formats
 ============================
 
-Arbor supports morphologies described using the SWC file format and the NeuroML file format.
+Arbor supports morphologies described using SWC, Neurolucida ASC, and the NeuroML file formats.
+The ingestion of these formats is described below, but each returns a structure
+
+
+.. cpp:class:: loaded_morphology
+
+   .. cpp:member:: arb::segment_tree segment_tree
+
+    Raw segment tree, identical to morphology.
+
+   .. cpp:member:: arb::morphology morphology
+
+    Morphology constructed from description.
+
+
+   .. cpp:member:: arb::label_dict labels
+
+    Regions and locsets defined in the description.
+
+   .. cpp:member:: std::variant<swc_metadata, asc_metadata, nml_metadata> metadata
+
+    Loader specific metadata, see below in the individual sections.
 
 .. _cppswc:
 
@@ -549,6 +570,17 @@ basic checks performed on them. The :cpp:type:`swc_data` object can then be used
    Returns a :cpp:type:`morphology` constructed according to NEURON's
    :ref:`SWC specifications <formatswc-neuron>`.
 
+.. cpp:function:: morphology load_swc_arbor(const std::filesystem::path& data)
+
+   Returns a :cpp:type:`morphology` constructed according to Arbor's
+   :ref:`SWC specifications <formatswc-arbor>`.
+
+.. cpp:function:: morphology load_swc_neuron(const std::filesystem::path& data)
+
+   Returns a :cpp:type:`morphology` constructed according to NEURON's
+   :ref:`SWC specifications <formatswc-neuron>`.
+
+
 .. _cppasc:
 
 Neurolucida ASCII
@@ -557,21 +589,40 @@ Neurolucida ASCII
 Arbor supports reading morphologies described using the
 :ref:`Neurolucida ASCII file format <formatasc>`.
 
-The :cpp:func:`parse_asc()` function is used to parse the SWC file and generate a :cpp:type:`asc_morphology` object:
-a simple struct with two members representing the morphology and a label dictionary with labeled
-regions and locations.
+The :cpp:func:`parse_asc()` function is used to parse the SWC file and generate a :cpp:type:`loaded_morphology` object:
 
-.. cpp:class:: asc_morphology
-
-   .. cpp:member:: arb::morphology morphology
-
-   .. cpp:member:: arb::label_dict labels
-
-.. cpp:function:: asc_morphology load_asc(const std::filesystem::path& filename)
+.. cpp:function:: loaded_morphology load_asc(const std::filesystem::path& filename)
 
    Parse a Neurolucida ASCII file.
    Throws an exception if there is an error parsing the file.
 
+.. cpp:class:: asc_metadata
+
+   .. cpp:member:: std::vector<asc_spine> spines
+
+   A list of spines annotated in the ``.asc`` file.
+
+   .. cpp:member:: std::vector<asc_marker_set> spines
+
+   A list of marker set annotated in the ``.asc`` file.
+
+.. cpp:class:: asc_spine
+
+    .. cpp:member:: std::string name
+
+    .. cpp:member:: arb::mpoint location
+
+.. cpp:class:: asc_marker_set
+    .. cpp:member:: asc_color color
+
+    .. cpp:member:: asc_marker marker = asc_marker::none
+
+    .. cpp:member:: std::string name
+
+    .. cpp:member:: std::vector<arb::mpoint> locations
+
+where ``asc_marker`` is an enum of ``dot``, ``circle``, ``cross``, or ``none``,
+and ``asc_color`` an RGB triple.
 
 .. _cppneuroml:
 
@@ -614,12 +665,12 @@ namespace.
 
    Return the id of each top-level ``<morphology>`` element defined in the NeuroML document.
 
-   .. cpp:function:: std::optional<nml_morphology_data> morphology(const std::string&, enum neuroml_options::value = neuroml_options::none) const
+   .. cpp:function:: std::optional<loaded_morphology> morphology(const std::string&, enum neuroml_options::value = neuroml_options::none) const
 
    Return a representation of the top-level morphology with the supplied identifier, or
    ``std::nullopt`` if no such morphology could be found.
 
-   .. cpp:function:: std::optional<nml_morphology_data> cell_morphology(const std::string&, enum neuroml_options::value = neuroml_options::none) const
+   .. cpp:function:: std::optional<loaded_morphology> cell_morphology(const std::string&, enum neuroml_options::value = neuroml_options::none) const
 
    Return a representation of the morphology associated with the cell with the supplied identifier,
    or ``std::nullopt`` if the cell or its morphology could not be found.
@@ -643,7 +694,7 @@ label dictionaries for regions corresponding to its segments and segment groups 
 and id, and a map providing the explicit list of segments contained within each defined
 segment group.
 
-.. cpp:class:: nml_morphology_data
+.. cpp:class:: nml_metadata
 
    .. cpp:member:: std::optional<std::string> cell_id
 
@@ -652,10 +703,6 @@ segment group.
    .. cpp:member:: std::string id
 
    The id attribute of the morphology.
-
-   .. cpp:member:: arb::morphology morphology
-
-   The corresponding Arbor morphology.
 
    .. cpp:member:: arb::label_dict segments
 

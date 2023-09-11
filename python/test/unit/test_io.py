@@ -153,7 +153,7 @@ class TestAccIo(unittest.TestCase):
 class TestSwcArborIo(unittest.TestCase):
     @staticmethod
     def loaders():
-        return (A.load_swc_arbor, partial(A.load_swc_arbor, raw=True))
+        return (A.load_swc_arbor.morphology, partial(A.load_swc_arbor.morphology, raw=True))
 
     def test_stringio(self):
         load_string(self.loaders(), swc_arbor)
@@ -171,7 +171,7 @@ class TestSwcArborIo(unittest.TestCase):
 class TestSwcNeuronIo(unittest.TestCase):
     @staticmethod
     def loaders():
-        return (A.load_swc_neuron, partial(A.load_swc_neuron, raw=True))
+        return (A.load_swc_neuron.morphology, partial(A.load_swc_neuron.morphology, raw=True))
 
     def test_stringio(self):
         load_string(self.loaders(), swc_neuron)
@@ -189,7 +189,7 @@ class TestSwcNeuronIo(unittest.TestCase):
 class TestAscIo(unittest.TestCase):
     @staticmethod
     def loaders():
-        return (A.load_asc, partial(A.load_asc, raw=True))
+        return (A.load_asc.morphology, partial(A.load_asc.morphology, raw=True))
 
     def test_stringio(self):
         load_string(self.loaders(), asc)

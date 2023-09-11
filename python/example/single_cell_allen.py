@@ -73,7 +73,7 @@ def load_allen_fit(fit):
 
 def make_cell(swc, fit):
     # (1) Load the swc file passed into this function
-    morphology = arbor.load_swc_neuron(swc)
+    morphology = arbor.load_swc_neuron(swc).morphology
     # (2) Label the region tags found in the swc with the names used in the parameter fit file.
     # In addition, label the midpoint of the somarbor.
     labels = arbor.label_dict().add_swc_tags()
