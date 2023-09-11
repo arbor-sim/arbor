@@ -170,7 +170,7 @@ R"~(
         auto m1 = N.morphology("m1").value();
         auto d1 = std::get<arborio::nml_metadata>(m1.metadata);
         label_dict labels;
-        labels.import(d1.segments, "seg:");
+        labels.extend(d1.segments, "seg:");
         mprovider P(m1.morphology, labels);
 
         EXPECT_TRUE(region_eq(P, reg::named("seg:0"), reg::all()));
@@ -184,7 +184,7 @@ R"~(
         auto m2 = N.morphology("m2").value();
         auto d2 = std::get<arborio::nml_metadata>(m2.metadata);
         label_dict labels;
-        labels.import(d2.segments, "seg:");
+        labels.extend(d2.segments, "seg:");
         mprovider P(m2.morphology, labels);
 
         mextent seg0_extent = thingify(reg::named("seg:0"), P);
@@ -213,7 +213,7 @@ R"~(
         auto m3 = N.morphology("m3").value();
         auto d3 = std::get<arborio::nml_metadata>(m3.metadata);
         label_dict labels;
-        labels.import(d3.segments, "seg:");
+        labels.extend(d3.segments, "seg:");
         mprovider P(m3.morphology, labels);
 
         mextent seg0_extent = thingify(reg::named("seg:0"), P);
@@ -248,7 +248,7 @@ R"~(
             auto m4_or_5 = N.morphology(m_name).value();
             auto d4_or_5 = std::get<arborio::nml_metadata>(m4_or_5.metadata);
             label_dict labels;
-            labels.import(d4_or_5.segments, "seg:");
+            labels.extend(d4_or_5.segments, "seg:");
             mprovider P(m4_or_5.morphology, labels);
 
             mextent seg0_extent = thingify(reg::named("seg:0"), P);
@@ -338,7 +338,7 @@ R"~(
         auto m1 = N.morphology("m1", allow_spherical_root).value();
         auto d1 = std::get<arborio::nml_metadata>(m1.metadata);
         label_dict labels;
-        labels.import(d1.segments, "seg:");
+        labels.extend(d1.segments, "seg:");
         mprovider P(m1.morphology, labels);
 
         EXPECT_TRUE(region_eq(P, reg::branch(0), reg::all()));
@@ -368,7 +368,7 @@ R"~(
         auto m1 = N.morphology("m1", none).value();
         auto d1 = std::get<arborio::nml_metadata>(m1.metadata);
         label_dict labels;
-        labels.import(d1.segments, "seg:");
+        labels.extend(d1.segments, "seg:");
         mprovider P(m1.morphology, labels);
 
         EXPECT_TRUE(region_eq(P, reg::branch(0), reg::all()));
@@ -382,7 +382,7 @@ R"~(
         auto m2 = N.morphology("m2", allow_spherical_root).value();
         auto d2 = std::get<arborio::nml_metadata>(m2.metadata);
         label_dict labels;
-        labels.import(d2.segments, "seg:");
+        labels.extend(d2.segments, "seg:");
         mprovider P(m2.morphology, labels);
 
         EXPECT_TRUE(region_eq(P, reg::branch(0), reg::all()));
@@ -399,7 +399,7 @@ R"~(
         auto m3 = N.morphology("m3", allow_spherical_root).value();
         auto d3 = std::get<arborio::nml_metadata>(m3.metadata);
         label_dict labels;
-        labels.import(d3.segments, "seg:");
+        labels.extend(d3.segments, "seg:");
         mprovider P(m3.morphology, labels);
         place_pwlin G(P.morphology());
 
@@ -422,7 +422,7 @@ R"~(
         auto m4 = N.morphology("m4", allow_spherical_root).value();
         auto d4 = std::get<arborio::nml_metadata>(m4.metadata);
         label_dict labels;
-        labels.import(d4.segments, "seg:");
+        labels.extend(d4.segments, "seg:");
         mprovider P(m4.morphology, labels);
         place_pwlin G(P.morphology());
 

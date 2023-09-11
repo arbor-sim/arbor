@@ -50,8 +50,8 @@ struct label_dict_proxy {
         return locsets.size() + regions.size() + iexpressions.size();
     }
 
-    void import(const label_dict_proxy& other, std::string prefix = "") {
-        dict.import(other.dict, prefix);
+    void extend(const label_dict_proxy& other, std::string prefix = "") {
+        dict.extend(other.dict, prefix);
 
         clear_cache();
         update_cache();

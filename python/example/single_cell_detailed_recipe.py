@@ -39,7 +39,7 @@ labels = arbor.label_dict(
         # Add a label for the terminal locations in the "axon" region:
         "axon_terminal": '(restrict-to (locset "terminal") (region "axon"))',
     }
-).import(lmrf.labels)
+).extend(lmrf.labels)
 
 # (3) Create and populate the decor.
 

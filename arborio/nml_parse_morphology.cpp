@@ -549,9 +549,9 @@ loaded_morphology nml_parse_morphology_element(const xml_node& morph,
         L.groups.set(group_id, std::move(r));
     }
 
-    M.labels.import(L.segments, "seg:");
-    M.labels.import(L.named_segments, "nmd:");
-    M.labels.import(L.groups, "grp:");
+    M.labels.extend(L.segments, "seg:");
+    M.labels.extend(L.named_segments, "nmd:");
+    M.labels.extend(L.groups, "grp:");
     return M;
 }
 

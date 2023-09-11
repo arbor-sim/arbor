@@ -45,7 +45,7 @@ label_dict& label_dict::set(const std::string& name, arb::iexpr e) {
     return *this;
 }
 
-void label_dict::import(const label_dict& other, const std::string& prefix) {
+void label_dict::extend(const label_dict& other, const std::string& prefix) {
     for (const auto& entry: other.locsets()) {
         set(prefix+entry.first, entry.second);
     }

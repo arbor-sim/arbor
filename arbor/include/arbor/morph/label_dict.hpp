@@ -24,7 +24,7 @@ public:
     // construct a label dict with SWC tags predefined
     label_dict& add_swc_tags();
 
-    void import(const label_dict& other, const std::string& prefix = "");
+    void extend(const label_dict& other, const std::string& prefix = "");
 
     label_dict& set(const std::string& name, locset ls);
     label_dict& set(const std::string& name, region reg);
