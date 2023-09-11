@@ -17,7 +17,7 @@ class recipe(A.recipe):
         return 1
 
     def cell_kind(self, gid):
-        return A.cell_kind.cable
+        return A.cable_cell
 
     def cell_description(self, gid):
         return self.the_cell

@@ -64,7 +64,12 @@ public:
     }
 
     arb::cell_kind cell_kind(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERRIDE_PURE(arb::cell_kind, py_recipe, cell_kind, gid);
+        try {
+            PYBIND11_OVERRIDE_PURE(arb::cell_kind, py_recipe, cell_kind, gid);
+        }
+        catch (const pybind11::cast_error& e) {
+            throw pybind11::type_error{"Couldn't convert return value of recipe.cell_kind(gid) to a cell_kind. Please check your recipe."};
+        }
     }
 
     std::vector<pybind11::object> event_generators(arb::cell_gid_type gid) const override {
