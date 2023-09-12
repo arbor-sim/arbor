@@ -176,7 +176,7 @@ Take for example the built-in mechanism for passive leaky dynamics:
 .. _cablecell-scaled-mechs:
 
 4. Scaling Mechanism and Membrane Parameters
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Mechanism parameters are usually homogeneous along a cell. However, sometimes it
 is useful to scale parameters based on inhomogeneous properties.

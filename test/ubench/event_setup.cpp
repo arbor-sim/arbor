@@ -2,10 +2,10 @@
 // The key concern is how to take an unsorted set of events
 //
 // TODO: We assume that the cells in a cell group are numbered contiguously,
-// i.e. 0:ncells-1. The cells in an mc_cell_group are not typically thus,
+// i.e. 0:ncells-1. The cells in an cable_cell_group are not typically thus,
 // instead a hash table is used to look up the cell_group local index from the
 // gid. A similar lookup should be added to theses tests, to more accurately
-// reflect the mc_cell_group implementation.
+// reflect the cable_cell_group implementation.
 //
 // TODO: The staged_events output is a vector of spike_event, not
 // a deliverable event.

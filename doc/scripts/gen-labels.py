@@ -198,6 +198,9 @@ regions = {
     "rhs": "(branch 1)",
     "and": '(intersect (region "lhs") (region "rhs"))',
     "or": '(join      (region "lhs") (region "rhs"))',
+    "diff": '(difference (region "lhs") (region "rhs"))',
+    "complement": '(complement (region "rhs"))',
+    "completion": '(complete (region "rhs"))',
 }
 locsets = {
     "root": "(root)",
@@ -208,6 +211,10 @@ locsets = {
     "uniform0": "(uniform (tag 3) 0 9 0)",
     "uniform1": "(uniform (tag 3) 0 9 1)",
     "branchmid": "(on-branches 0.5)",
+    "componentsmid": '(on-components 0.5 (region "dend"))',
+    "boundary": "(boundary (segment 2))",
+    "cboundary": "(cboundary (segment 2))",
+    "sboundary": "(segment-boundaries)",
     "distal": '(distal   (region "rad36"))',
     "proximal": '(proximal (region "rad36"))',
     "distint_in": "(sum (location 1 0.5) (location 2 0.7) (location 5 0.1))",
@@ -223,7 +230,7 @@ labels = {**regions, **locsets}
 d = arbor.label_dict(labels)
 
 # Create a cell to concretise the region and locset definitions
-cell = arbor.cable_cell(label_morph, None, d)
+cell = arbor.cable_cell(label_morph, arbor.decor(), d)
 
 ###############################################################################
 # Tutorial Example: single_cell_detailed
@@ -263,7 +270,7 @@ tutorial_labels = {**tutorial_regions, **tutorial_locsets}
 tutorial_dict = arbor.label_dict(tutorial_labels)
 
 # Create a cell to concretise the region and locset definitions
-tutorial_cell = arbor.cable_cell(tutorial_morph, None, tutorial_dict)
+tutorial_cell = arbor.cable_cell(tutorial_morph, arbor.decor(), tutorial_dict)
 
 ###############################################################################
 # Tutorial Example: network_ring
@@ -298,7 +305,7 @@ tutorial_network_ring_dict = arbor.label_dict(tutorial_network_ring_labels)
 
 # Create a cell to concretise the region and locset definitions
 tutorial_network_ring_cell = arbor.cable_cell(
-    tutorial_network_ring_morph, None, tutorial_network_ring_dict
+    tutorial_network_ring_morph, arbor.decor(), tutorial_network_ring_dict
 )
 
 ################################################################################
@@ -308,6 +315,14 @@ tutorial_network_ring_cell = arbor.cable_cell(
 f = open(sys.argv[1] + "/inputs.py", "w")
 f.write("import representation\n")
 f.write("from representation import Segment\n")
+
+f.write("############# iexpr (label_morph)\n\n")
+f.write('iexpr_directional_loc = {"type": "locset", "value": [(0, 1.0)]}\n')
+f.write("iexpr_dist_dis = {\n")
+f.write('    "type": "region",\n')
+f.write('    "value": [(1, 0.0, 1.0), (2, 0.0, 1.0), (3, 0.0, 1.0), (4, 0.0, 1.0)],\n')
+f.write("}\n")
+f.write('iexpr_prox_dis = {"type": "region", "value": [(0, 0.0, 1.0)]}\n')
 
 f.write("\n############# morphologies\n\n")
 f.write(write_morphology("label_morph", label_morph))

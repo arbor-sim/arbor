@@ -1,4 +1,4 @@
-# Copyright 2013-2022 Lawrence Livermore National Security, LLC and other
+# Copyright 2013-2023 Lawrence Livermore National Security, LLC and other
 # Spack Project Developers. See the top-level COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
@@ -12,11 +12,16 @@ class Arbor(CMakePackage, CudaPackage):
 
     homepage = "https://arbor-sim.org"
     git = "https://github.com/arbor-sim/arbor.git"
-    url = "https://github.com/arbor-sim/arbor/releases/download/v0.8.1/arbor-v0.8.1-full.tar.gz"
-    maintainers = ["thorstenhater", "brenthuisman", "haampie"]
+    url = "https://github.com/arbor-sim/arbor/releases/download/v0.8.1/arbor-v0.9.0-full.tar.gz"
+    maintainers = ("thorstenhater", "brenthuisman", "haampie")
 
     version("master", branch="master")
     version("develop")
+    version(
+        "0.9.0",
+        sha256="5f9740955c821aca81e23298c17ad64f33f635756ad9b4a0c1444710f564306a",
+        url="https://github.com/arbor-sim/arbor/releases/download/v0.9.0/arbor-v0.9.0-full.tar.gz",
+    )
     version(
         "0.8.1",
         sha256="caebf96676ace6a9c50436541c420ca4bb53f0639dcab825de6fa370aacf6baa",
@@ -75,10 +80,12 @@ class Arbor(CMakePackage, CudaPackage):
     # misc dependencies
     depends_on("fmt@7.1:", when="@0.5.3:")  # required by the modcc compiler
     depends_on("fmt@9.1:", when="@0.7.1:")
-    depends_on("googletest@1.12.1", when="@0.7.1:")
+    depends_on("fmt@10.0:", when="@0.9.1:")
+    depends_on("googletest@1.12.1:", when="@0.7.1:")
     depends_on("pugixml@1.11:", when="@0.7.1:")
-    depends_on("nlohmann-json@3.11.2")
-    depends_on("random123")
+    depends_on("pugixml@1.13:", when="@0.9.1:")
+    depends_on("nlohmann-json@3.11.2:")
+    depends_on("random123@1.14.0:")
     with when("+cuda"):
         depends_on("cuda@10:")
         depends_on("cuda@11:", when="@0.7.1:")
@@ -88,18 +95,20 @@ class Arbor(CMakePackage, CudaPackage):
     depends_on("py-mpi4py", when="+mpi+python", type=("build", "run"))
 
     # python (bindings)
-    extends("python", when="+python")
-    depends_on("python@3.7:", when="+python", type=("build", "run"))
-    depends_on("py-numpy", when="+python", type=("build", "run"))
     with when("+python"):
+        extends("python")
+        depends_on("python@3.7:", type=("build", "run"))
+        depends_on("python@3.8:", when="@0.9.1:", type=("build", "run"))
+        depends_on("py-numpy", type=("build", "run"))
         depends_on("py-pybind11@2.6:", type="build")
         depends_on("py-pybind11@2.8.1:", when="@0.5.3:", type="build")
         depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
 
     # sphinx based documentation
-    depends_on("python@3.7:", when="+doc", type="build")
-    depends_on("py-sphinx", when="+doc", type="build")
-    depends_on("py-svgwrite", when="+doc", type="build")
+    with when("+doc"):
+        depends_on("python@3.8:", type="build")
+        depends_on("py-sphinx", type="build")
+        depends_on("py-svgwrite", type="build")
 
     @property
     def build_targets(self):
