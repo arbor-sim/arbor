@@ -22,23 +22,14 @@ morpho_data = morpho_nml.morphology("m1")
 # Get the morphology.
 morpho = morpho_data.morphology
 
-# Get the region label dictionaries associated with the morphology.
-morpho_segments = morpho_data.segments()
-morpho_named = morpho_data.named_segments()
-morpho_groups = morpho_data.groups()
-
-# Create new label dict with some locsets.
+# Create new label dict with some locsets and add to it all the NeuroML dictionaries.
 labels = arbor.label_dict(
     {
         "stim_site": "(location 1 0.5)",  # site for the stimulus, in the middle of branch 1.
         "axon_end": '(restrict-to (terminal) (region "axon"))',  # end of the axon.
         "root": "(root)",  # the start of the soma in this morphology is at the root of the cell.
     }
-)
-# Add to it all the NeuroML dictionaries.
-labels.append(morpho_segments)
-labels.append(morpho_named)
-labels.append(morpho_groups)
+).append(morpho_data.labels)
 
 # Optional: print out the regions and locsets available in the label dictionary.
 print("Label dictionary regions: ", labels.regions, "\n")

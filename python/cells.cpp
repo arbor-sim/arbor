@@ -301,13 +301,13 @@ void register_cells(pybind11::module& m) {
              },
              pybind11::keep_alive<0, 1>())
         .def("append", [](label_dict_proxy& l, const label_dict_proxy& other, const char* prefix) {
-                l.extend(other, prefix);
+                return l.extend(other, prefix);
             },
             "other"_a, "The label_dict to be imported"
             "prefix"_a="", "optional prefix appended to the region and locset labels",
             "Import the entries of a another label dictionary with an optional prefix.")
         .def("update", [](label_dict_proxy& l, const label_dict_proxy& other) {
-                l.extend(other);
+                return l.extend(other);
             },
             "other"_a, "The label_dict to be imported"
             "Import the entries of a another label dictionary.")

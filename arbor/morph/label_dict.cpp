@@ -45,7 +45,7 @@ label_dict& label_dict::set(const std::string& name, arb::iexpr e) {
     return *this;
 }
 
-void label_dict::extend(const label_dict& other, const std::string& prefix) {
+label_dict& label_dict::extend(const label_dict& other, const std::string& prefix) {
     for (const auto& entry: other.locsets()) {
         set(prefix+entry.first, entry.second);
     }
@@ -55,6 +55,7 @@ void label_dict::extend(const label_dict& other, const std::string& prefix) {
     for (const auto& entry: other.iexpressions()) {
         set(prefix+entry.first, entry.second);
     }
+    return *this;
 }
 
 std::optional<region> label_dict::region(const std::string& name) const {
