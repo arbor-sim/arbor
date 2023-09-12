@@ -26,12 +26,21 @@ cell_label_range::cell_label_range(std::vector<cell_size_type> size_vec,
     arb_assert(check_invariant());
 };
 
+cell_label_range::cell_label_range(std::vector<cell_size_type> size_vec,
+                                   std::vector<hash_type> label_vec,
+                                   std::vector<lid_range> range_vec):
+    sizes(std::move(size_vec)), labels(std::move(label_vec)), ranges(std::move(range_vec))
+{
+    arb_assert(check_invariant());
+};
+
+
 void cell_label_range::add_cell() { sizes.push_back(0); }
 
-void cell_label_range::add_label(cell_tag_type label, lid_range range) {
+void cell_label_range::add_label(hash_type label, lid_range range) {
     if (sizes.empty()) throw arbor_internal_error("adding label to cell_label_range without cell");
     ++sizes.back();
-    labels.push_back(internal_hash(label));
+    labels.push_back(label);
     ranges.push_back(std::move(range));
 }
 

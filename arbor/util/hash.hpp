@@ -3,9 +3,9 @@
 #include <cstdint>
 #include <string_view>
 
-namespace arb {
-using hash_type = uint64_t;
+#include <arbor/common_types.hpp>
 
+namespace arb {
 // Non-cryptographic hash function for mapping strings to internal
 // identifiers. Concretely, FNV-1a hash function taken from
 //

@@ -23,7 +23,7 @@ TEST(test_cell_label_range, build) {
 
     // Test add_cell and add_label
     auto b0 = cell_label_range();
-    EXPECT_THROW(b0.add_label("l0", {0u, 1u}), arb::arbor_internal_error);
+    EXPECT_THROW(b0.add_label(internal_hash("l0"), {0u, 1u}), arb::arbor_internal_error);
     EXPECT_TRUE(b0.sizes.empty());
     EXPECT_TRUE(b0.labels.empty());
     EXPECT_TRUE(b0.ranges.empty());
@@ -40,16 +40,16 @@ TEST(test_cell_label_range, build) {
 
     auto b2 = cell_label_range();
     b2.add_cell();
-    b2.add_label("l0", {0u, 1u});
-    b2.add_label("l0", {3u, 13u});
-    b2.add_label("l1", {0u, 5u});
+    b2.add_label(internal_hash("l0"), {0u, 1u});
+    b2.add_label(internal_hash("l0"), {3u, 13u});
+    b2.add_label(internal_hash("l1"), {0u, 5u});
     b2.add_cell();
     b2.add_cell();
-    b2.add_label("l2", {6u, 8u});
-    b2.add_label("l3", {1u, 0u});
-    b2.add_label("l4", {7u, 2u});
-    b2.add_label("l4", {7u, 2u});
-    b2.add_label("l2", {7u, 2u});
+    b2.add_label(internal_hash("l2"), {6u, 8u});
+    b2.add_label(internal_hash("l3"), {1u, 0u});
+    b2.add_label(internal_hash("l4"), {7u, 2u});
+    b2.add_label(internal_hash("l4"), {7u, 2u});
+    b2.add_label(internal_hash("l2"), {7u, 2u});
     EXPECT_EQ((ivec{3u, 0u, 5u}), b2.sizes);
     EXPECT_EQ(make_labels(svec{"l0", "l0", "l1", "l2", "l3", "l4", "l4", "l2"}), b2.labels);
     EXPECT_EQ((lvec{{0u, 1u}, {3u, 13u}, {0u, 5u}, {6u, 8u}, {1u, 0u}, {7u, 2u}, {7u, 2u}, {7u, 2u}}), b2.ranges);
@@ -57,8 +57,8 @@ TEST(test_cell_label_range, build) {
 
     auto b3 = cell_label_range();
     b3.add_cell();
-    b3.add_label("r0", {0u, 9u});
-    b3.add_label("r1", {10u, 10u});
+    b3.add_label(internal_hash("r0"), {0u, 9u});
+    b3.add_label(internal_hash("r1"), {10u, 10u});
     b3.add_cell();
     EXPECT_EQ((ivec{2u, 0u}), b3.sizes);
     EXPECT_EQ(make_labels

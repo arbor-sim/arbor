@@ -313,16 +313,11 @@ fvm_detector_info get_detector_info(arb_size_type max,
 }
 
 inline cell_size_type
-add_labels(cell_label_range& clr, const std::unordered_multimap<cell_tag_type, lid_range>& ranges) {
+add_labels(cell_label_range& clr, const cable_cell::lid_range_map& ranges) {
     clr.add_cell();
     cell_size_type count = 0;
     std::unordered_map<hash_type, cell_tag_type> hashes;
     for (const auto& [label, range]: ranges) {
-        auto hash = internal_hash(label);
-        if (hashes.count(hash) && hashes.at(hash) != label) {
-            auto err = util::strprintf("Hash collision {} ~ {} = {}", label, hashes.at(hash), hash);
-            throw arbor_internal_error{err};
-        }
         clr.add_label(label, range);
         count += (range.end - range.begin);
     }
