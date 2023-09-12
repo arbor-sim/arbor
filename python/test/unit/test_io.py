@@ -5,7 +5,6 @@ import arbor as A
 from pathlib import Path
 from tempfile import TemporaryDirectory as TD
 from io import StringIO
-from functools import partial
 
 
 acc = """(arbor-component
@@ -175,8 +174,8 @@ class TestSwcNeuronIo(unittest.TestCase):
     @staticmethod
     def loaders():
         return (
-            A.load_swc_neuron(f).morphology,
-            A.load_swc_neuron(f).segment_tree,
+            lambda f: A.load_swc_neuron(f).morphology,
+            lambda f: A.load_swc_neuron(f).segment_tree,
         )
 
     def test_stringio(self):
@@ -196,8 +195,8 @@ class TestAscIo(unittest.TestCase):
     @staticmethod
     def loaders():
         return (
-            A.load_asc(f).morphology,
-            A.load_asc(f).segment_tree,
+            lambda f: A.load_asc(f).morphology,
+            lambda f: A.load_asc(f).segment_tree,
         )
 
     def test_stringio(self):
