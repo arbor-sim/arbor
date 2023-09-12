@@ -14,9 +14,11 @@ name: "CodeQL"
 on:
   push:
     branches: [ "master" ]
+    paths-ignore: 'doc/**'
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ "master" ]
+    paths-ignore: 'doc/**'
 
 jobs:
   analyze:
@@ -60,13 +62,13 @@ jobs:
         # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
         # queries: security-extended,security-and-quality
 
-   - name: Build arbor
-        run: |
-          mkdir build
-          cd build
-          cmake .. -GNinja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=ON -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=OFF -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_ASSERTIONS=ON -DARB_WITH_PROFILING=ON
-          ninja -j4 tests examples pyarb
-          cd -
+    - name: Build arbor
+      run: |
+           mkdir build
+           cd build
+           cmake .. -GNinja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=ON -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=OFF -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_ASSERTIONS=ON -DARB_WITH_PROFILING=ON
+           ninja -j4 tests examples pyarb
+           cd -
 
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
