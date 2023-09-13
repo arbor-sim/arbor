@@ -3,7 +3,7 @@
 import arbor as A
 import seaborn as sns
 import matplotlib.pyplot as plt
-import subprocess as sp
+
 
 class recipe(A.recipe):
     def __init__(self, cell, probes):
@@ -66,9 +66,7 @@ for h in hdl:
         # Table
         print("Sodium concentration (NaD/mM)")
         print("|-" + "-+-".join("-" * W for _ in range(d.shape[1])) + "-|")
-        print(
-            f"| {'Time/ms':<{W}} | " + " | ".join(f"{l.prox:<{W}}" for l in m) + " |"
-        )
+        print(f"| {'Time/ms':<{W}} | " + " | ".join(f"{l.prox:<{W}}" for l in m) + " |")
         print("|-" + "-+-".join("-" * W for _ in range(d.shape[1])) + "-|")
         for ix in range(d.shape[0]):
             print("| " + " | ".join(f"{v:>{W}.3f}" for v in d[ix, :]) + " |")
