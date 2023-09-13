@@ -84,9 +84,7 @@ Ions
   not made ``STATE`` they may be written to, but their values will be reset to
   their initial values every time step.
 * The diffusive concentration ``Xd`` does not share this semantics. It will not
-  be reset, even if not in ``STATE``, and may freely be written. This comes at the
-  cost of awkward treatment of ODEs for ``Xd``, see the included ``decay.mod`` for
-  an example.
+  be reset, even if not in ``STATE``, and may freely be written.
 * ``Xd`` is present on all cables iff its associated diffusivity is set to a
   non-zero value.
 

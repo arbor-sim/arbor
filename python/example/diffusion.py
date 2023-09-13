@@ -5,18 +5,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import subprocess as sp
 
-sp.run(['/usr/local/bin/arbor-build-catalogue',
-        'local',
-        'cat',
-        ], shell=False, check=True)
-
 class recipe(A.recipe):
     def __init__(self, cell, probes):
         A.recipe.__init__(self)
         self.the_cell = cell
         self.the_probes = probes
         self.the_props = A.neuron_cable_properties()
-        self.the_props.catalogue.extend(A.load_catalogue('local-catalogue.so'), 'local-')
 
     def num_cells(self):
         return 1
@@ -43,7 +37,7 @@ _ = tree.append(s, A.mpoint(3, 0, 0, 1), A.mpoint(33, 0, 0, 1), tag=3)
 
 dec = A.decor()
 dec.set_ion("na", int_con=0.0, diff=0.005)
-dec.place("(location 0 0.5)", A.synapse("local-inject/x=na", {"alpha": 200.0}), "Zap")
+dec.place("(location 0 0.5)", A.synapse("inject/x=na", {"alpha": 200.0}), "Zap")
 dec.paint("(all)", A.density("decay/x=na"))
 dec.discretization(A.cv_policy("(max-extent 5)"))
 
