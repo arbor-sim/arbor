@@ -33,7 +33,7 @@ spike_source_cell_group::spike_source_cell_group(
         try {
             auto cell = util::any_cast<spike_source_cell>(rec.get_cell_description(gid));
             time_sequences_.emplace_back(cell.seqs);
-            cg_sources.add_label(cell.source, {0, 1});
+            cg_sources.add_label(internal_hash(cell.source), {0, 1});
         }
         catch (std::bad_any_cast& e) {
             throw bad_cell_description(cell_kind::spike_source, gid);

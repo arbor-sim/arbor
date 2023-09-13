@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "../common_cells.hpp"
+#include "util/hash.hpp"
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
@@ -45,20 +46,20 @@ TEST(cable_cell, lid_ranges) {
     const auto& src_ranges = cell.detector_ranges();
     const auto& tgt_ranges = cell.synapse_ranges();
 
-    EXPECT_EQ(1u, tgt_ranges.count("t0"));
-    EXPECT_EQ(1u, tgt_ranges.count("t1"));
-    EXPECT_EQ(1u, src_ranges.count("s0"));
-    EXPECT_EQ(1u, tgt_ranges.count("t2"));
-    EXPECT_EQ(1u, src_ranges.count("s1"));
-    EXPECT_EQ(2u, tgt_ranges.count("t3"));
+    EXPECT_EQ(1u, tgt_ranges.count(internal_hash("t0")));
+    EXPECT_EQ(1u, tgt_ranges.count(internal_hash("t1")));
+    EXPECT_EQ(1u, src_ranges.count(internal_hash("s0")));
+    EXPECT_EQ(1u, tgt_ranges.count(internal_hash("t2")));
+    EXPECT_EQ(1u, src_ranges.count(internal_hash("s1")));
+    EXPECT_EQ(2u, tgt_ranges.count(internal_hash("t3")));
 
-    auto r1 = tgt_ranges.equal_range("t0").first->second;
-    auto r2 = tgt_ranges.equal_range("t1").first->second;
-    auto r3 = src_ranges.equal_range("s0").first->second;
-    auto r4 = tgt_ranges.equal_range("t2").first->second;
-    auto r5 = src_ranges.equal_range("s1").first->second;
+    auto r1 = tgt_ranges.equal_range(internal_hash("t0")).first->second;
+    auto r2 = tgt_ranges.equal_range(internal_hash("t1")).first->second;
+    auto r3 = src_ranges.equal_range(internal_hash("s0")).first->second;
+    auto r4 = tgt_ranges.equal_range(internal_hash("t2")).first->second;
+    auto r5 = src_ranges.equal_range(internal_hash("s1")).first->second;
 
-    auto r6_range = tgt_ranges.equal_range("t3");
+    auto r6_range = tgt_ranges.equal_range(internal_hash("t3"));
     auto r6_0 = r6_range.first;
     auto r6_1 = std::next(r6_range.first);
     if (r6_0->second.begin != 4u) {

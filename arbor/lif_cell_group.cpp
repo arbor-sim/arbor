@@ -26,8 +26,8 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids,
         // tell our caller about this cell's connections
         cg_sources.add_cell();
         cg_targets.add_cell();
-        cg_sources.add_label(cell.source, {0, 1});
-        cg_targets.add_label(cell.target, {0, 1});
+        cg_sources.add_label(internal_hash(cell.source), {0, 1});
+        cg_targets.add_label(internal_hash(cell.target), {0, 1});
         // insert probes where needed
         auto probes = rec.get_probes(gid);
         for (const auto lid: util::count_along(probes)) {

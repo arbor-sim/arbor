@@ -10,7 +10,9 @@
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/s_expr.hpp>
 
+#include "util/hash.hpp"
 #include "util/maputil.hpp"
+#include "util/strprintf.hpp"
 
 namespace arb {
 
@@ -120,7 +122,12 @@ decor& decor::paint(region where, paintable what) {
 }
 
 decor& decor::place(locset where, placeable what, cell_tag_type label) {
-    placements_.emplace_back(std::move(where), std::move(what), std::move(label));
+    auto hash = internal_hash(label);
+    if (hashes_.count(hash) && hashes_.at(hash) != label) {
+        throw arbor_internal_error{util::strprintf("Hash collision {} ./. {}", label, hashes_.at(hash))};
+    }
+    placements_.emplace_back(std::move(where), std::move(what), hash);
+    hashes_.emplace(hash, label);
     return *this;
 }
 

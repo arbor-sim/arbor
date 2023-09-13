@@ -246,8 +246,8 @@ using cable_cell_location_map = static_typed_map<location_assignment,
     synapse, junction, i_clamp, threshold_detector>;
 
 // High-level abstract representation of a cell.
-class ARB_SYMBOL_VISIBLE cable_cell {
-public:
+struct ARB_SYMBOL_VISIBLE cable_cell {
+    using lid_range_map = std::unordered_multimap<hash_type, lid_range>;
     using index_type = cell_lid_type;
     using size_type = cell_local_size_type;
     using value_type = double;
@@ -311,9 +311,9 @@ public:
     const cable_cell_parameter_set& default_parameters() const;
 
     // The labeled lid_ranges of sources, targets and gap_junctions on the cell;
-    const std::unordered_multimap<cell_tag_type, lid_range>& detector_ranges() const;
-    const std::unordered_multimap<cell_tag_type, lid_range>& synapse_ranges() const;
-    const std::unordered_multimap<cell_tag_type, lid_range>& junction_ranges() const;
+    const lid_range_map& detector_ranges() const;
+    const lid_range_map& synapse_ranges() const;
+    const lid_range_map& junction_ranges() const;
 
 private:
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
