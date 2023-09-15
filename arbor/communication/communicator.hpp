@@ -63,18 +63,15 @@ public:
     /// all events that must be delivered to targets in that cell group as a
     /// result of the global spike exchange, plus any events that were already
     /// in the list.
-    void make_event_queues(
-            const gathered_vector<spike>& global_spikes,
-            std::vector<pse_vector>& queues,
-            const std::vector<spike>& external_spikes={});
+    void make_event_queues(const gathered_vector<spike>& global_spikes,
+                           std::vector<pse_vector>& queues,
+                           const std::vector<spike>& external_spikes={});
 
     /// Returns the total number of global spikes over the duration of the simulation
     std::uint64_t num_spikes() const;
     void set_num_spikes(std::uint64_t n);
 
     cell_size_type num_local_cells() const;
-
-    const std::vector<connection>& connections() const;
 
     void reset();
 
@@ -89,13 +86,46 @@ public:
 
     void set_remote_spike_filter(const spike_predicate&);
 
+    // TODO: This is public for now.
+    struct connection_list {
+        std::vector<cell_size_type> idx_on_domain;
+        std::vector<cell_member_type> srcs;
+        std::vector<cell_lid_type> dests;
+        std::vector<float> weights;
+        std::vector<float> delays;
+
+        void make(const std::vector<connection>& cons) {
+            clear();
+            for (const auto& con: cons) {
+                idx_on_domain.push_back(con.index_on_domain);
+                srcs.push_back(con.source);
+                dests.push_back(con.destination);
+                weights.push_back(con.weight);
+                delays.push_back(con.delay);
+            }
+        }
+
+        void clear() {
+            idx_on_domain.clear();
+            srcs.clear();
+            dests.clear();
+            weights.clear();
+            delays.clear();
+        }
+
+        size_t size() const { return srcs.size(); }
+    };
+
+    const connection_list& connections() const;
+
 private:
+
     cell_size_type num_total_cells_ = 0;
     cell_size_type num_local_cells_ = 0;
     cell_size_type num_local_groups_ = 0;
     cell_size_type num_domains_ = 0;
     // Arbor internal connections
-    std::vector<connection> connections_;
+    connection_list connections_;
     // partition of connections over the domains of the sources' ids.
     std::vector<cell_size_type> connection_part_;
     std::vector<cell_size_type> index_divisions_;
@@ -105,7 +135,7 @@ private:
 
     // Connections from external simulators into Arbor.
     // Currently we have no partitions/indices/acceleration structures
-    std::vector<connection> ext_connections_;
+    connection_list ext_connections_;
 
     distributed_context_handle distributed_;
     task_system_handle thread_pool_;

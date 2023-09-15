@@ -649,11 +649,11 @@ TEST(communicator, all2all)
 
     for (auto i: util::make_span(0, n_global)) {
         for (auto j: util::make_span(0, n_local)) {
-            auto c = connections[i*n_local+j];
-            EXPECT_EQ(i, c.source.gid);
-            EXPECT_EQ(0u, c.source.index);
-            EXPECT_EQ(i, c.destination);
-            EXPECT_LT(c.index_on_domain, n_local);
+            auto idx = i*n_local + j;
+            EXPECT_EQ(i, connections.srcs[idx].gid);
+            EXPECT_EQ(0u, connections.srcs[idx].index);
+            EXPECT_EQ(i, connections.dests[idx]);
+            EXPECT_LT(connections.idx_on_domain[idx], n_local);
         }
     }
 
@@ -694,10 +694,9 @@ TEST(communicator, mini_network)
     C.update_connections(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}));
 
     // sort connections by source then target
-    auto connections = C.connections();
-    util::sort(connections, [](const connection& lhs, const connection& rhs) {
-      return std::forward_as_tuple(lhs.source, lhs.index_on_domain, lhs.destination) < std::forward_as_tuple(rhs.source, rhs.index_on_domain, rhs.destination);
-    });
+    auto srcs = C.connections().srcs;
+    auto dsts = C.connections().dests;
+    // util::sort(connections);
 
     // Expect one set of 22 connections from every rank: these have been sorted.
     std::vector<cell_lid_type> ex_source_lids =  {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3};
@@ -707,10 +706,10 @@ TEST(communicator, mini_network)
     for (auto i: util::make_span(0, N)) {
         std::vector<cell_gid_type> ex_source_gids(22u, i*3 + 1);
         for (unsigned j = 0; j < 22u; ++j) {
-            auto c = connections[i*22 + j];
-            EXPECT_EQ(ex_source_gids[j], c.source.gid);
-            EXPECT_EQ(ex_source_lids[j], c.source.index);
-            EXPECT_EQ(ex_target_lids[i%2][j], c.destination);
+            auto idx = i*22 + j;
+            EXPECT_EQ(ex_source_gids[j], srcs[idx].gid);
+            EXPECT_EQ(ex_source_lids[j], srcs[idx].index);
+            EXPECT_EQ(ex_target_lids[i%2][j], dsts[idx]);
         }
     }
 }

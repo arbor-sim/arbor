@@ -342,28 +342,18 @@ void simulation_state::reset() {
 
     // Clear all pending events in the event lanes.
     for (auto& lanes: event_lanes_) {
-        for (auto& lane: lanes) {
-            lane.clear();
-        }
+        for (auto& lane: lanes) lane.clear();
     }
 
     // Reset all event generators.
     for (auto& lane: event_generators_) {
-        for (auto& gen: lane) {
-            gen.reset();
-        }
+        for (auto& gen: lane) gen.reset();
     }
 
-    for (auto& lane: pending_events_) {
-        lane.clear();
-    }
+    for (auto& lane: pending_events_) lane.clear();
+    for (auto& spikes: local_spikes_) spikes.clear();
 
     communicator_.reset();
-
-    for (auto& spikes: local_spikes_) {
-        spikes.clear();
-    }
-
     epoch_.reset();
 }
 
