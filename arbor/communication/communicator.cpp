@@ -234,21 +234,21 @@ void communicator::set_remote_spike_filter(const spike_predicate& p) { remote_sp
 void communicator::remote_ctrl_send_continue(const epoch& e) { distributed_->remote_ctrl_send_continue(e); }
 void communicator::remote_ctrl_send_done() { distributed_->remote_ctrl_send_done(); }
 
-template<typename It>
+template<typename It, typename Out>
 It enqueue_from_source(const communicator::connection_list& cons,
                          const size_t idx,
                          It spk,
                          const It end,
-                         std::vector<pse_vector>& queues) {
+                         Out& out) {
     // const refs to connection.
     auto src = cons.srcs[idx];
     auto dst = cons.dests[idx];
     auto del = cons.delays[idx];
     auto wgt = cons.weights[idx];
     // mutable reference to queue
-    auto& que = queues[cons.idx_on_domain[idx]];
+    auto dom = cons.idx_on_domain[idx];
     for (; spk != end && spk->source == src; ++spk) {
-        que.emplace_back(dst, spk->time + del, wgt);
+        out.emplace_back(std::make_tuple(dom, pse_vector::value_type{dst, spk->time + del, wgt}));
     }
     return spk;
 }
@@ -260,6 +260,7 @@ void append_events_from_domain(const communicator::connection_list& cons,
                                const S& spks,
                                std::vector<pse_vector>& queues) {
     auto sp = spks.begin(), se = spks.end();
+    std::vector<std::tuple<cell_size_type, pse_vector::value_type>> tmp;
     // We have a choice of whether to walk spikes or connections:
     // i.e., we can iterate over the spikes, and for each spike search
     // the for connections that have the same source; or alternatively
@@ -274,7 +275,7 @@ void append_events_from_domain(const communicator::connection_list& cons,
             sp = std::lower_bound(sp, se,
                                   cons.srcs[cn],
                                   [](const auto& spk, const auto& src) { return spk.source < src; });
-            sp = enqueue_from_source(cons, cn, sp, se, queues);
+            sp = enqueue_from_source(cons, cn, sp, se, tmp);
             if (sp == se) break;
         }
     }
@@ -291,7 +292,7 @@ void append_events_from_domain(const communicator::connection_list& cons,
             for (;  cn < ce && cons.srcs[cn] == src; ++cn) {
                 // If we ever get multiple spikes from the same source, treat
                 // them all. This is mostly rare.
-                enqueue_from_source(cons, cn, sp, se, queues);
+                enqueue_from_source(cons, cn, sp, se, tmp);
             }
             // Skip all spikes from the same source.
             while(sp != se && sp->source == src) ++sp;
@@ -302,6 +303,10 @@ void append_events_from_domain(const communicator::connection_list& cons,
     // create one task per queue/partition which will take care of resizing and
     // appending the events. Partition is sufficient as events get sorted by
     // time later on.
+    std::partition(tmp.begin(), tmp.end(), [](const auto& tp) { return tp.first(); });
+    for (const auto& [dom, evt]: tmp) {
+        queues[dom].push_back(evt);
+    }
 }
 
 void communicator::make_event_queues(const gathered_vector<spike>& global_spikes,
