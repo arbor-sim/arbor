@@ -234,23 +234,29 @@ void communicator::set_remote_spike_filter(const spike_predicate& p) { remote_sp
 void communicator::remote_ctrl_send_continue(const epoch& e) { distributed_->remote_ctrl_send_continue(e); }
 void communicator::remote_ctrl_send_done() { distributed_->remote_ctrl_send_done(); }
 
-template<typename It, typename Out>
-It enqueue_from_source(const communicator::connection_list& cons,
+// Given
+// * a set of connections and an index into the set
+// * a range of spikes
+// * an output queue,
+// append events for that sub-range of spikes to the
+// queue that has the same source as the connection
+// at index.
+template<typename It>
+void enqueue_from_source(const communicator::connection_list& cons,
                          const size_t idx,
-                         It spk,
+                         It& spk,
                          const It end,
-                         Out& out) {
+                         std::vector<pse_vector>& out) {
     // const refs to connection.
     auto src = cons.srcs[idx];
     auto dst = cons.dests[idx];
     auto del = cons.delays[idx];
     auto wgt = cons.weights[idx];
-    // mutable reference to queue
     auto dom = cons.idx_on_domain[idx];
+    auto& que = out[dom];
     for (; spk != end && spk->source == src; ++spk) {
-        out.emplace_back(std::make_tuple(dom, pse_vector::value_type{dst, spk->time + del, wgt}));
+        que.emplace_back(dst, spk->time + del, wgt);
     }
-    return spk;
 }
     
 // Internal helper to append to the event queues
@@ -260,7 +266,7 @@ void append_events_from_domain(const communicator::connection_list& cons,
                                const S& spks,
                                std::vector<pse_vector>& queues) {
     auto sp = spks.begin(), se = spks.end();
-    std::vector<std::tuple<cell_size_type, pse_vector::value_type>> tmp;
+    if (se == sp) return;
     // We have a choice of whether to walk spikes or connections:
     // i.e., we can iterate over the spikes, and for each spike search
     // the for connections that have the same source; or alternatively
@@ -271,17 +277,20 @@ void append_events_from_domain(const communicator::connection_list& cons,
     // complexity of order max(S log(C), C log(S)), where S is the
     // number of spikes, and C is the number of connections.
     if (cons.size() < spks.size()) {
-        for (; cn < ce; ++cn) {
+        for (; sp != se && cn < ce; ++cn) {
+            // sp is now the beginning of a range of spikes from the same
+            // source.
             sp = std::lower_bound(sp, se,
                                   cons.srcs[cn],
                                   [](const auto& spk, const auto& src) { return spk.source < src; });
-            sp = enqueue_from_source(cons, cn, sp, se, tmp);
-            if (sp == se) break;
+            // now, sp is at the end of the equal source range.
+            enqueue_from_source(cons, cn, sp, se, queues);
         }
     }
     else {
         while (sp != se) {
-            auto src = sp->source;
+            auto beg = sp;
+            auto src = beg->source;
             // Here, `cn` is the index of the first connection whose source
             // is larger or equal to the spike's source. It may be `ce` if
             // all elements compare < to spk.source.
@@ -290,43 +299,34 @@ void append_events_from_domain(const communicator::connection_list& cons,
                                   src)
                 - cons.srcs.begin();
             for (;  cn < ce && cons.srcs[cn] == src; ++cn) {
+                // Reset the spike iterator as we walk the same sub-range
+                // for each connection with the same source.
+                sp = beg;
                 // If we ever get multiple spikes from the same source, treat
                 // them all. This is mostly rare.
-                enqueue_from_source(cons, cn, sp, se, tmp);
+                enqueue_from_source(cons, cn, sp, se, queues);
             }
-            // Skip all spikes from the same source.
-            while(sp != se && sp->source == src) ++sp;
+            while (sp != se && sp->source == src) ++sp;
         }
-    }
-    // NOTE How about we make an intermdiary vector containing (idx_on_doamin,
-    // event). We then partition by the queue index = idx_on_domain. NExt, we
-    // create one task per queue/partition which will take care of resizing and
-    // appending the events. Partition is sufficient as events get sorted by
-    // time later on.
-    std::partition(tmp.begin(), tmp.end(), [](const auto& tp) { return tp.first(); });
-    for (const auto& [dom, evt]: tmp) {
-        queues[dom].push_back(evt);
     }
 }
 
-void communicator::make_event_queues(const gathered_vector<spike>& global_spikes,
-                                     std::vector<pse_vector>& queues,
-                                     const std::vector<spike>& external_spikes) {
+void communicator::make_event_queues(communicator::spikes& spikes,
+                                     std::vector<pse_vector>& queues) {
     arb_assert(queues.size()==num_local_cells_);
-    const auto& sp = global_spikes.partition();
+    const auto& sp = spikes.from_local.partition();
     const auto& cp = connection_part_;
     for (auto dom: util::make_span(num_domains_)) {
         append_events_from_domain(connections_, cp[dom], cp[dom+1],
-                                  util::subrange_view(global_spikes.values(), sp[dom], sp[dom+1]),
+                                  util::subrange_view(spikes.from_local.values(), sp[dom], sp[dom+1]),
                                   queues);
     }
     num_local_events_ = util::sum_by(queues, [](const auto& q) {return q.size();}, num_local_events_);
     // Now that all local spikes have been processed; consume the remote events coming in.
     // - turn all gids into externals
-    auto spikes = external_spikes;
-    std::for_each(spikes.begin(), spikes.end(),
+    std::for_each(spikes.from_remote.begin(), spikes.from_remote.end(),
                   [](auto& s) { s.source = global_cell_of(s.source); });
-    append_events_from_domain(ext_connections_, 0, ext_connections_.size(), spikes, queues);
+    append_events_from_domain(ext_connections_, 0, ext_connections_.size(), spikes.from_remote, queues);
 }
 
 std::uint64_t communicator::num_spikes() const { return num_spikes_; }

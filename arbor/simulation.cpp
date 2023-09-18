@@ -432,21 +432,17 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         PL();
         communicator_.remote_ctrl_send_continue(prev);
         // Gather generated spikes across all ranks.
-        const auto& [global_spikes, remote_spikes] = communicator_.exchange(all_local_spikes);
+        auto spikes = communicator_.exchange(all_local_spikes);
 
         // Present spikes to user-supplied callbacks.
         PE(communication:spikeio);
-        if (local_export_callback_) {
-            local_export_callback_(all_local_spikes);
-        }
-        if (global_export_callback_) {
-            global_export_callback_(global_spikes.values());
-        }
+        if (local_export_callback_) local_export_callback_(all_local_spikes);
+        if (global_export_callback_) global_export_callback_(spikes.from_local.values());
         PL();
 
         // Append events formed from global spikes to per-cell pending event queues.
         PE(communication:walkspikes);
-        communicator_.make_event_queues(global_spikes, pending_events_, remote_spikes);
+        communicator_.make_event_queues(spikes, pending_events_);
         PL();
     };
 
