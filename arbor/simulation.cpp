@@ -38,14 +38,12 @@ auto split_sorted_range(Seq&& seq, const Value& v, Less cmp = Less{}) {
 
 // Create a new cell event_lane vector from sorted pending events, previous event_lane events,
 // and events from event generators for the given interval.
-ARB_ARBOR_API void merge_cell_events(
-    time_type t_from,
-    time_type t_to,
-    event_span old_events,
-    event_span pending,
-    std::vector<event_generator>& generators,
-    pse_vector& new_events)
-{
+ARB_ARBOR_API void merge_cell_events(time_type t_from,
+                                     time_type t_to,
+                                     event_span old_events,
+                                     event_span pending,
+                                     std::vector<event_generator>& generators,
+                                     pse_vector& new_events) {
     PE(communication:enqueue:setup);
     new_events.clear();
     old_events = split_sorted_range(old_events, t_from, event_time_less()).second;
@@ -454,7 +452,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
                 PE(communication:enqueue:sort);
                 // We just care about evt time not the ordering below that
                 util::sort_by(pending_events_[i],
-                              [](const auto& l) { return l.time; });
+                              [](const auto& evt) { return evt.time; });
                 PL();
 
                 event_span pending = util::range_pointer_view(pending_events_[i]);
