@@ -261,8 +261,7 @@ void enqueue_from_source(const communicator::connection_list& cons,
     
 // Internal helper to append to the event queues
 template<typename S>
-void append_events_from_domain(const communicator::connection_list& cons,
-                               size_t cn, const size_t ce,
+void append_events_from_domain(const communicator::connection_list& cons, size_t cn, const size_t ce,
                                const S& spks,
                                std::vector<pse_vector>& queues) {
     auto sp = spks.begin(), se = spks.end();
