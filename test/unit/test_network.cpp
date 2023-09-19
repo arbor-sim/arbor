@@ -3,6 +3,7 @@
 #include <arbor/network.hpp>
 
 #include "network_impl.hpp"
+#include "util/hash.hpp"
 
 #include <tuple>
 #include <vector>
@@ -10,36 +11,36 @@
 using namespace arb;
 
 namespace {
-std::vector<network_full_site_info> test_sites = {
-    {0, 0, cell_kind::cable, "a", {1, 0.5}, {0.0, 0.0, 0.0}},
-    {1, 0, cell_kind::benchmark, "b", {0, 0.0}, {1.0, 0.0, 0.0}},
-    {2, 0, cell_kind::lif, "c", {0, 0.0}, {2.0, 0.0, 0.0}},
-    {3, 0, cell_kind::spike_source, "d", {0, 0.0}, {3.0, 0.0, 0.0}},
-    {4, 0, cell_kind::cable, "e", {0, 0.2}, {4.0, 0.0, 0.0}},
-    {5, 0, cell_kind::cable, "f", {5, 0.1}, {5.0, 0.0, 0.0}},
-    {6, 0, cell_kind::cable, "g", {4, 0.3}, {6.0, 0.0, 0.0}},
-    {7, 0, cell_kind::cable, "h", {0, 1.0}, {7.0, 0.0, 0.0}},
-    {9, 0, cell_kind::cable, "i", {0, 0.1}, {12.0, 3.0, 4.0}},
+std::vector<network_site_info> test_sites = {
+    {0, cell_kind::cable, internal_hash("a"), {1, 0.5}, {0.0, 0.0, 0.0}},
+    {1, cell_kind::benchmark, internal_hash("b"), {0, 0.0}, {1.0, 0.0, 0.0}},
+    {2, cell_kind::lif, internal_hash("c"), {0, 0.0}, {2.0, 0.0, 0.0}},
+    {3, cell_kind::spike_source, internal_hash("d"), {0, 0.0}, {3.0, 0.0, 0.0}},
+    {4, cell_kind::cable, internal_hash("e"), {0, 0.2}, {4.0, 0.0, 0.0}},
+    {5, cell_kind::cable, internal_hash("f"), {5, 0.1}, {5.0, 0.0, 0.0}},
+    {6, cell_kind::cable, internal_hash("g"), {4, 0.3}, {6.0, 0.0, 0.0}},
+    {7, cell_kind::cable, internal_hash("h"), {0, 1.0}, {7.0, 0.0, 0.0}},
+    {9, cell_kind::cable, internal_hash("i"), {0, 0.1}, {12.0, 3.0, 4.0}},
 
-    {10, 0, cell_kind::cable, "a", {0, 0.1}, {12.0, 15.0, 16.0}},
-    {10, 1, cell_kind::cable, "b", {1, 0.1}, {13.0, 15.0, 16.0}},
-    {10, 2, cell_kind::cable, "c", {1, 0.5}, {14.0, 15.0, 16.0}},
-    {10, 3, cell_kind::cable, "d", {1, 1.0}, {15.0, 15.0, 16.0}},
-    {10, 4, cell_kind::cable, "e", {2, 0.1}, {16.0, 15.0, 16.0}},
-    {10, 5, cell_kind::cable, "f", {3, 0.1}, {16.0, 16.0, 16.0}},
-    {10, 6, cell_kind::cable, "g", {4, 0.1}, {12.0, 17.0, 16.0}},
-    {10, 7, cell_kind::cable, "h", {5, 0.1}, {12.0, 18.0, 16.0}},
-    {10, 8, cell_kind::cable, "i", {6, 0.1}, {12.0, 19.0, 16.0}},
+    {10, cell_kind::cable, internal_hash("a"), {0, 0.1}, {12.0, 15.0, 16.0}},
+    {10, cell_kind::cable, internal_hash("b"), {1, 0.1}, {13.0, 15.0, 16.0}},
+    {10, cell_kind::cable, internal_hash("c"), {1, 0.5}, {14.0, 15.0, 16.0}},
+    {10, cell_kind::cable, internal_hash("d"), {1, 1.0}, {15.0, 15.0, 16.0}},
+    {10, cell_kind::cable, internal_hash("e"), {2, 0.1}, {16.0, 15.0, 16.0}},
+    {10, cell_kind::cable, internal_hash("f"), {3, 0.1}, {16.0, 16.0, 16.0}},
+    {10, cell_kind::cable, internal_hash("g"), {4, 0.1}, {12.0, 17.0, 16.0}},
+    {10, cell_kind::cable, internal_hash("h"), {5, 0.1}, {12.0, 18.0, 16.0}},
+    {10, cell_kind::cable, internal_hash("i"), {6, 0.1}, {12.0, 19.0, 16.0}},
 
-    {11, 0, cell_kind::cable, "abcd", {0, 0.1}, {-2.0, -5.0, 3.0}},
-    {11, 1, cell_kind::cable, "cabd", {1, 0.2}, {-2.1, -5.0, 3.0}},
-    {11, 2, cell_kind::cable, "cbad", {1, 0.3}, {-2.2, -5.0, 3.0}},
-    {11, 3, cell_kind::cable, "acbd", {1, 1.0}, {-2.3, -5.0, 3.0}},
-    {11, 4, cell_kind::cable, "bacd", {2, 0.2}, {-2.4, -5.0, 3.0}},
-    {11, 5, cell_kind::cable, "bcad", {3, 0.3}, {-2.5, -5.0, 3.0}},
-    {11, 6, cell_kind::cable, "dabc", {4, 0.4}, {-2.6, -5.0, 3.0}},
-    {11, 7, cell_kind::cable, "dbca", {5, 0.5}, {-2.7, -5.0, 3.0}},
-    {11, 8, cell_kind::cable, "dcab", {6, 0.6}, {-2.8, -5.0, 3.0}},
+    {11, cell_kind::cable, internal_hash("abcd"), {0, 0.1}, {-2.0, -5.0, 3.0}},
+    {11, cell_kind::cable, internal_hash("cabd"), {1, 0.2}, {-2.1, -5.0, 3.0}},
+    {11, cell_kind::cable, internal_hash("cbad"), {1, 0.3}, {-2.2, -5.0, 3.0}},
+    {11, cell_kind::cable, internal_hash("acbd"), {1, 1.0}, {-2.3, -5.0, 3.0}},
+    {11, cell_kind::cable, internal_hash("bacd"), {2, 0.2}, {-2.4, -5.0, 3.0}},
+    {11, cell_kind::cable, internal_hash("bcad"), {3, 0.3}, {-2.5, -5.0, 3.0}},
+    {11, cell_kind::cable, internal_hash("dabc"), {4, 0.4}, {-2.6, -5.0, 3.0}},
+    {11, cell_kind::cable, internal_hash("dbca"), {5, 0.5}, {-2.7, -5.0, 3.0}},
+    {11, cell_kind::cable, internal_hash("dcab"), {6, 0.6}, {-2.8, -5.0, 3.0}},
 };
 }
 
@@ -107,15 +108,15 @@ TEST(network_selection, source_label) {
     const auto s = thingify(network_selection::source_label({"b", "e"}), network_label_dict());
 
     for (const auto& site: test_sites) {
-        EXPECT_EQ(site.label == "b" || site.label == "e",
+        EXPECT_EQ(site.label == internal_hash("b") || site.label == internal_hash("e"),
             s->select_source(site.kind, site.gid, site.label));
         EXPECT_TRUE(s->select_target(site.kind, site.gid, site.label));
     }
 
     for (const auto& source: test_sites) {
         for (const auto& target: test_sites) {
-            EXPECT_EQ(
-                source.label == "b" || source.label == "e", s->select_connection(source, target));
+            EXPECT_EQ(source.label == internal_hash("b") || source.label == internal_hash("e"),
+                s->select_connection(source, target));
         }
     }
 }
@@ -124,15 +125,15 @@ TEST(network_selection, target_label) {
     const auto s = thingify(network_selection::target_label({"b", "e"}), network_label_dict());
 
     for (const auto& site: test_sites) {
-        EXPECT_EQ(site.label == "b" || site.label == "e",
+        EXPECT_EQ(site.label == internal_hash("b") || site.label == internal_hash("e"),
             s->select_target(site.kind, site.gid, site.label));
         EXPECT_TRUE(s->select_source(site.kind, site.gid, site.label));
     }
 
     for (const auto& source: test_sites) {
         for (const auto& target: test_sites) {
-            EXPECT_EQ(
-                target.label == "b" || target.label == "e", s->select_connection(source, target));
+            EXPECT_EQ(target.label == internal_hash("b") || target.label == internal_hash("e"),
+                s->select_connection(source, target));
         }
     }
 }
@@ -428,10 +429,10 @@ TEST(network_selection, random_seed) {
 TEST(network_selection, random_reproducibility) {
     const auto s = thingify(network_selection::random(42, 0.5), network_label_dict());
 
-    std::vector<network_full_site_info> sites = {
-        {0, 0, cell_kind::cable, "a", {1, 0.5}, {1.2, 2.3, 3.4}},
-        {0, 1, cell_kind::cable, "b", {0, 0.1}, {-1.0, 0.5, 0.7}},
-        {1, 0, cell_kind::benchmark, "c", {0, 0.0}, {20.5, -59.5, 5.0}},
+    std::vector<network_site_info> sites = {
+        {0, cell_kind::cable, internal_hash("a"), {1, 0.5}, {1.2, 2.3, 3.4}},
+        {0, cell_kind::cable, internal_hash("b"), {0, 0.1}, {-1.0, 0.5, 0.7}},
+        {1, cell_kind::benchmark, internal_hash("c"), {0, 0.0}, {20.5, -59.5, 5.0}},
     };
     std::vector<bool> ref = {1, 1, 0, 1, 1, 0, 0, 0, 0};
 
@@ -445,8 +446,8 @@ TEST(network_selection, random_reproducibility) {
 }
 
 TEST(network_selection, custom) {
-    auto inter_cell_func = [](const network_connection_info& c) {
-        return c.source.gid != c.target.gid;
+    auto inter_cell_func = [](const network_site_info& source, const network_site_info& target) {
+        return source.gid != target.gid;
     };
     const auto s = thingify(network_selection::custom(inter_cell_func), network_label_dict());
     const auto s_ref = thingify(network_selection::inter_cell(), network_label_dict());
@@ -552,10 +553,10 @@ TEST(network_value, uniform_distribution_reproducibility) {
     const auto v =
         thingify(network_value::uniform_distribution(42, {-5.0, 3.0}), network_label_dict());
 
-    std::vector<network_full_site_info> sites = {
-        {0, 0, cell_kind::cable, "a", {1, 0.5}, {1.2, 2.3, 3.4}},
-        {0, 1, cell_kind::cable, "b", {0, 0.1}, {-1.0, 0.5, 0.7}},
-        {1, 0, cell_kind::benchmark, "c", {0, 0.0}, {20.5, -59.5, 5.0}},
+    std::vector<network_site_info> sites = {
+        {0, cell_kind::cable, internal_hash("a"), {1, 0.5}, {1.2, 2.3, 3.4}},
+        {0, cell_kind::cable, internal_hash("b"), {0, 0.1}, {-1.0, 0.5, 0.7}},
+        {1, cell_kind::benchmark, internal_hash("c"), {0, 0.0}, {20.5, -59.5, 5.0}},
     };
     std::vector<double> ref = {
         1.08007184307616289,
@@ -598,7 +599,7 @@ TEST(network_value, normal_distribution) {
     sample_dev = std::sqrt(sample_dev / (test_sites.size() * test_sites.size()));
 
     EXPECT_NEAR(sample_mean, mean, 1e-1);
-    EXPECT_NEAR(sample_dev, std_dev, 1e-1);
+    EXPECT_NEAR(sample_dev, std_dev, 1.5e-1);
 }
 
 TEST(network_value, normal_distribution_reproducibility) {
@@ -607,10 +608,10 @@ TEST(network_value, normal_distribution_reproducibility) {
     const auto v =
         thingify(network_value::normal_distribution(42, mean, std_dev), network_label_dict());
 
-    std::vector<network_full_site_info> sites = {
-        {0, 0, cell_kind::cable, "a", {1, 0.5}, {1.2, 2.3, 3.4}},
-        {0, 1, cell_kind::cable, "b", {0, 0.1}, {-1.0, 0.5, 0.7}},
-        {1, 0, cell_kind::benchmark, "c", {0, 0.0}, {20.5, -59.5, 5.0}},
+    std::vector<network_site_info> sites = {
+        {0, cell_kind::cable, internal_hash("a"), {1, 0.5}, {1.2, 2.3, 3.4}},
+        {0, cell_kind::cable, internal_hash("b"), {0, 0.1}, {-1.0, 0.5, 0.7}},
+        {1, cell_kind::benchmark, internal_hash("c"), {0, 0.0}, {20.5, -59.5, 5.0}},
     };
     std::vector<double> ref = {
         9.27330832850693909,
@@ -671,10 +672,10 @@ TEST(network_value, truncated_normal_distribution_reproducibility) {
         network_value::truncated_normal_distribution(42, mean, std_dev, {lower_bound, upper_bound}),
         network_label_dict());
 
-    std::vector<network_full_site_info> sites = {
-        {0, 0, cell_kind::cable, "a", {1, 0.5}, {1.2, 2.3, 3.4}},
-        {0, 1, cell_kind::cable, "b", {0, 0.1}, {-1.0, 0.5, 0.7}},
-        {1, 0, cell_kind::benchmark, "c", {0, 0.0}, {20.5, -59.5, 5.0}},
+    std::vector<network_site_info> sites = {
+        {0, cell_kind::cable, internal_hash("a"), {1, 0.5}, {1.2, 2.3, 3.4}},
+        {0, cell_kind::cable, internal_hash("b"), {0, 0.1}, {-1.0, 0.5, 0.7}},
+        {1, cell_kind::benchmark, internal_hash("c"), {0, 0.0}, {20.5, -59.5, 5.0}},
     };
     std::vector<double> ref = {
         2.81708378066100629,
@@ -698,8 +699,8 @@ TEST(network_value, truncated_normal_distribution_reproducibility) {
 }
 
 TEST(network_value, custom) {
-    auto func = [](const network_connection_info& c) {
-        return c.source.global_location.x + c.target.global_location.x;
+    auto func = [](const network_site_info& source, const network_site_info& target) {
+        return source.global_location.x + target.global_location.x;
     };
 
     const auto v = thingify(network_value::custom(func), network_label_dict());

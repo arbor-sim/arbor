@@ -56,11 +56,11 @@ void register_network(py::module& m) {
     network_selection
         .def_static("custom",
             [](arb::network_selection::custom_func_type func) {
-                return arb::network_selection::custom([=](const arb::network_connection_info& c) {
+                return arb::network_selection::custom([=](const arb::network_site_info& source, const arb::network_site_info& target) {
                     return try_catch_pyexception(
                         [&]() {
                             pybind11::gil_scoped_acquire guard;
-                            return func(c);
+                            return func(source, target);
                         },
                         "Python error already thrown");
                 });
@@ -75,11 +75,11 @@ void register_network(py::module& m) {
     network_value
         .def_static("custom",
             [](arb::network_value::custom_func_type func) {
-                return arb::network_value::custom([=](const arb::network_connection_info& c) {
+                return arb::network_value::custom([=](const arb::network_site_info& source, const arb::network_site_info& target) {
                     return try_catch_pyexception(
                         [&]() {
                             pybind11::gil_scoped_acquire guard;
-                            return func(c);
+                            return func(source, target);
                         },
                         "Python error already thrown");
                 });

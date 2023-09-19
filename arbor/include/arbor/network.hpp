@@ -25,9 +25,20 @@ namespace arb {
 using network_hash_type = std::uint64_t;
 
 struct ARB_SYMBOL_VISIBLE network_site_info {
+    // network_site_info(cell_gid_type gid,
+    //     cell_kind kind,
+    //     hash_type label,
+    //     mlocation location,
+    //     mpoint global_location):
+    //     gid(gid),
+    //     kind(kind),
+    //     label(label),
+    //     location(location),
+    //     global_location(global_location) {}
+
     cell_gid_type gid;
     cell_kind kind;
-    cell_tag_type label;
+    hash_type label;
     mlocation location;
     mpoint global_location;
 
@@ -60,7 +71,8 @@ class ARB_SYMBOL_VISIBLE network_selection;
 
 class ARB_SYMBOL_VISIBLE network_value {
 public:
-    using custom_func_type = std::function<double(const network_connection_info&)>;
+    using custom_func_type =
+        std::function<double(const network_site_info&, const network_site_info&)>;
 
     network_value() { *this = network_value::scalar(0.0); }
 
@@ -152,7 +164,8 @@ ARB_ARBOR_API inline network_value operator-(network_value a) {
 
 class ARB_SYMBOL_VISIBLE network_selection {
 public:
-    using custom_func_type = std::function<bool(const network_connection_info&)>;
+    using custom_func_type =
+        std::function<bool(const network_site_info&, const network_site_info&)>;
 
     network_selection() { *this = network_selection::none(); }
 

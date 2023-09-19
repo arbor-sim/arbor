@@ -13,8 +13,10 @@
 #include <type_traits>
 #include <variant>
 #include <vector>
+#include <cstdint>
 
 #include "network_impl.hpp"
+#include "util/hash.hpp"
 
 namespace arb {
 
@@ -29,40 +31,49 @@ enum class network_seed : unsigned {
     value_truncated_normal = 380237,
 };
 
-double uniform_rand_from_key_pair(std::array<unsigned, 2> seed,
-    network_hash_type key_a,
-    network_hash_type key_b) {
-    using rand_type = r123::Threefry2x64;
-    const rand_type::ctr_type seed_input = {{seed[0], seed[1]}};
+std::uint64_t location_hash(const mlocation& loc) {
+    const double l = static_cast<double>(loc.branch) + loc.pos;
+    return *reinterpret_cast<const std::uint64_t*>(&l);
+}
 
-    const rand_type::key_type key = {{std::min(key_a, key_b), std::max(key_a, key_b)}};
+double uniform_rand(std::array<unsigned, 4> seed,
+    const network_site_info& source,
+    const network_site_info& target) {
+    using rand_type = r123::Threefry4x64;
+    const rand_type::ctr_type seed_input = {{seed[0], seed[1], seed[2], seed[3]}};
+
+    const rand_type::key_type key = {
+        {source.gid, location_hash(source.location), target.gid, location_hash(target.location)}};
     rand_type gen;
     return r123::u01<double>(gen(seed_input, key)[0]);
 }
 
-double normal_rand_from_key_pair(std::array<unsigned, 2> seed,
-    std::uint64_t key_a,
-    std::uint64_t key_b) {
-    using rand_type = r123::Threefry2x64;
-    const rand_type::ctr_type seed_input = {{seed[0], seed[1]}};
+double normal_rand(std::array<unsigned, 4> seed,
+    const network_site_info& source,
+    const network_site_info& target) {
 
-    const rand_type::key_type key = {{std::min(key_a, key_b), std::max(key_a, key_b)}};
+    using rand_type = r123::Threefry4x64;
+    const rand_type::ctr_type seed_input = {{seed[0], seed[1], seed[2], seed[3]}};
+
+    const rand_type::key_type key = {
+        {source.gid, location_hash(source.location), target.gid, location_hash(target.location)}};
     rand_type gen;
     const auto rand_num = gen(seed_input, key);
+
     return r123::boxmuller(rand_num[0], rand_num[1]).x;
 }
 
 struct network_selection_all_impl: public network_selection_impl {
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return true;
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
@@ -71,16 +82,16 @@ struct network_selection_all_impl: public network_selection_impl {
 
 struct network_selection_none_impl: public network_selection_impl {
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return false;
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return false;
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return false;
     }
 
@@ -92,16 +103,16 @@ struct network_selection_source_cell_kind_impl: public network_selection_impl {
 
     explicit network_selection_source_cell_kind_impl(cell_kind k): select_kind(k) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return source.kind == select_kind;
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return kind == select_kind;
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
@@ -122,16 +133,16 @@ struct network_selection_target_cell_kind_impl: public network_selection_impl {
 
     explicit network_selection_target_cell_kind_impl(cell_kind k): select_kind(k) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return target.kind == select_kind;
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return kind == select_kind;
     }
 
@@ -148,57 +159,66 @@ struct network_selection_target_cell_kind_impl: public network_selection_impl {
 };
 
 struct network_selection_source_label_impl: public network_selection_impl {
-    std::vector<cell_tag_type> sorted_labels;
+    std::vector<cell_tag_type> labels;
+    std::vector<hash_type> sorted_hashes;
 
-    explicit network_selection_source_label_impl(std::vector<cell_tag_type> labels):
-        sorted_labels(std::move(labels)) {
-        std::sort(sorted_labels.begin(), sorted_labels.end());
+    explicit network_selection_source_label_impl(std::vector<cell_tag_type> labels_):
+        labels(std::move(labels_)) {
+        sorted_hashes.reserve(labels.size());
+        for(const auto& l : labels) sorted_hashes.emplace_back(internal_hash(l));
+
+        std::sort(sorted_hashes.begin(), sorted_hashes.end());
     }
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
-        return std::binary_search(sorted_labels.begin(), sorted_labels.end(), source.label);
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
+        return std::binary_search(sorted_hashes.begin(), sorted_hashes.end(), source.label);
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
-        return std::binary_search(sorted_labels.begin(), sorted_labels.end(), label);
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
+        return std::binary_search(sorted_hashes.begin(), sorted_hashes.end(), label);
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
     void print(std::ostream& os) const override {
         os << "(source-label";
-        for (const auto& l: sorted_labels) { os << " \"" << l << "\""; }
+        for (const auto& l: labels) { os << " \"" << l << "\""; }
         os << ")";
     }
 };
 
 struct network_selection_target_label_impl: public network_selection_impl {
-    std::vector<cell_tag_type> sorted_labels;
+    std::vector<cell_tag_type> labels;
+    std::vector<hash_type> sorted_hashes;
 
-    explicit network_selection_target_label_impl(std::vector<cell_tag_type> labels):
-        sorted_labels(std::move(labels)) {
-        std::sort(sorted_labels.begin(), sorted_labels.end());
+
+    explicit network_selection_target_label_impl(std::vector<cell_tag_type> labels_):
+        labels(std::move(labels_)) {
+        sorted_hashes.reserve(labels.size());
+        for(const auto& l : labels) sorted_hashes.emplace_back(internal_hash(l));
+
+        std::sort(sorted_hashes.begin(), sorted_hashes.end());
     }
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
-        return std::binary_search(sorted_labels.begin(), sorted_labels.end(), target.label);
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
+        return std::binary_search(sorted_hashes.begin(), sorted_hashes.end(), target.label);
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
-        return std::binary_search(sorted_labels.begin(), sorted_labels.end(), label);
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
+        return std::binary_search(sorted_hashes.begin(), sorted_hashes.end(), label);
     }
 
     void print(std::ostream& os) const override {
         os << "(target-label";
-        for (const auto& l: sorted_labels) { os << " \"" << l << "\""; }
+        for (const auto& l: labels) { os << " \"" << l << "\""; }
         os << ")";
     }
 };
@@ -211,16 +231,16 @@ struct network_selection_source_cell_impl: public network_selection_impl {
         std::sort(sorted_gids.begin(), sorted_gids.end());
     }
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return std::binary_search(sorted_gids.begin(), sorted_gids.end(), source.gid);
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return std::binary_search(sorted_gids.begin(), sorted_gids.end(), gid);
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
@@ -239,17 +259,17 @@ struct network_selection_source_cell_range_impl: public network_selection_impl {
         gid_end(r.end),
         step(r.step) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return source.gid >= gid_begin && source.gid < gid_end &&
                !((source.gid - gid_begin) % step);
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return gid >= gid_begin && gid < gid_end && !((gid - gid_begin) % step);
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
@@ -266,16 +286,16 @@ struct network_selection_target_cell_impl: public network_selection_impl {
         std::sort(sorted_gids.begin(), sorted_gids.end());
     }
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return std::binary_search(sorted_gids.begin(), sorted_gids.end(), target.gid);
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return std::binary_search(sorted_gids.begin(), sorted_gids.end(), gid);
     }
 
@@ -294,17 +314,17 @@ struct network_selection_target_cell_range_impl: public network_selection_impl {
         gid_end(r.end),
         step(r.step) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return target.gid >= gid_begin && target.gid < gid_end &&
                !((target.gid - gid_begin) % step);
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return gid >= gid_begin && gid < gid_end && !((gid - gid_begin) % step);
     }
 
@@ -321,8 +341,8 @@ struct network_selection_chain_impl: public network_selection_impl {
         std::sort(sorted_gids.begin(), sorted_gids.end());
     }
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         if (gids.empty()) return false;
 
         // gids size always > 0 frome here on
@@ -340,12 +360,12 @@ struct network_selection_chain_impl: public network_selection_impl {
         return false;
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return !sorted_gids.empty() &&
                std::binary_search(sorted_gids.begin(), sorted_gids.end() - 1, gid);
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return !sorted_gids.empty() &&
                std::binary_search(sorted_gids.begin() + 1, sorted_gids.end(), gid);
     }
@@ -365,8 +385,8 @@ struct network_selection_chain_range_impl: public network_selection_impl {
         gid_end(r.end),
         step(r.step) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         if (source.gid < gid_begin || source.gid >= gid_end || target.gid < gid_begin ||
             target.gid >= gid_end)
             return false;
@@ -374,13 +394,13 @@ struct network_selection_chain_range_impl: public network_selection_impl {
         return source.gid + step == target.gid && !((source.gid - gid_begin) % step);
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         // Return false if outside range or if equal to last element, which cannot be a source
         if (gid < gid_begin || gid >= gid_end - 1) return false;
         return !((gid - gid_begin) % step);
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         // Return false if outside range or if equal to first element, which cannot be a target
         if (gid <= gid_begin || gid >= gid_end) return false;
         return !((gid - gid_begin) % step);
@@ -399,8 +419,8 @@ struct network_selection_reverse_chain_range_impl: public network_selection_impl
         gid_end(r.end),
         step(r.step) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         if (source.gid < gid_begin || source.gid >= gid_end || target.gid < gid_begin ||
             target.gid >= gid_end)
             return false;
@@ -408,13 +428,13 @@ struct network_selection_reverse_chain_range_impl: public network_selection_impl
         return target.gid + step == source.gid && !((source.gid - gid_begin) % step);
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         // Return false if outside range or if equal to first element, which cannot be a source
         if (gid <= gid_begin || gid >= gid_end) return false;
         return !((gid - gid_begin) % step);
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         // Return false if outside range or if equal to last element, which cannot be a target
         if (gid < gid_begin || gid >= gid_end - 1) return false;
         return !((gid - gid_begin) % step);
@@ -431,17 +451,17 @@ struct network_selection_complement_impl: public network_selection_impl {
     explicit network_selection_complement_impl(std::shared_ptr<network_selection_impl> s):
         selection(std::move(s)) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return !selection->select_connection(source, target);
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;  // cannot exclude any because source selection cannot be complemented without
                       // knowing selection criteria.
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;  // cannot exclude any because target selection cannot be complemented
                       // without knowing selection criteria.
     }
@@ -463,20 +483,20 @@ struct network_selection_named_impl: public network_selection_impl {
 
     explicit network_selection_named_impl(std::string name): selection_name(std::move(name)) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         if (!selection)
             throw arbor_internal_error("Trying to use unitialized named network selection.");
         return selection->select_connection(source, target);
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         if (!selection)
             throw arbor_internal_error("Trying to use unitialized named network selection.");
         return selection->select_source(kind, gid, label);
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         if (!selection)
             throw arbor_internal_error("Trying to use unitialized named network selection.");
         return selection->select_target(kind, gid, label);
@@ -496,16 +516,16 @@ struct network_selection_named_impl: public network_selection_impl {
 };
 
 struct network_selection_inter_cell_impl: public network_selection_impl {
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return source.gid != target.gid;
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
@@ -518,25 +538,16 @@ struct network_selection_custom_impl: public network_selection_impl {
     explicit network_selection_custom_impl(network_selection::custom_func_type f):
         func(std::move(f)) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
-        return func({{source.gid,
-                         source.kind,
-                         cell_tag_type(source.label),
-                         source.location,
-                         source.global_location},
-            {target.gid,
-                target.kind,
-                cell_tag_type(target.label),
-                target.location,
-                target.global_location}});
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
+        return func(source, target);
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
@@ -548,16 +559,16 @@ struct network_selection_distance_lt_impl: public network_selection_impl {
 
     explicit network_selection_distance_lt_impl(double d): d(d) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return distance(source.global_location, target.global_location) < d;
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
@@ -571,16 +582,16 @@ struct network_selection_distance_gt_impl: public network_selection_impl {
 
     explicit network_selection_distance_gt_impl(double d): d(d) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return distance(source.global_location, target.global_location) > d;
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
@@ -597,21 +608,21 @@ struct network_selection_random_impl: public network_selection_impl {
         seed(seed),
         p_value(std::move(p)) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         if (!probability)
             throw arbor_internal_error("Trying to use unitialized named network selection.");
-        const auto r = uniform_rand_from_key_pair(
-            {unsigned(network_seed::selection_random), seed}, source.hash, target.hash);
+        const auto r = uniform_rand(
+            {unsigned(network_seed::selection_random), seed, seed + 1, seed + 2}, source, target);
         const auto p = (probability->get(source, target));
         return r < p;
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return true;
     }
 
@@ -634,16 +645,16 @@ struct network_selection_intersect_impl: public network_selection_impl {
         left(std::move(l)),
         right(std::move(r)) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return left->select_connection(source, target) && right->select_connection(source, target);
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return left->select_source(kind, gid, label) && right->select_source(kind, gid, label);
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return left->select_target(kind, gid, label) && right->select_target(kind, gid, label);
     }
 
@@ -680,16 +691,16 @@ struct network_selection_join_impl: public network_selection_impl {
         left(std::move(l)),
         right(std::move(r)) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return left->select_connection(source, target) || right->select_connection(source, target);
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return left->select_source(kind, gid, label) || right->select_source(kind, gid, label);
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return left->select_target(kind, gid, label) || right->select_target(kind, gid, label);
     }
 
@@ -724,16 +735,16 @@ struct network_selection_symmetric_difference_impl: public network_selection_imp
         left(std::move(l)),
         right(std::move(r)) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return left->select_connection(source, target) ^ right->select_connection(source, target);
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return left->select_source(kind, gid, label) || right->select_source(kind, gid, label);
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return left->select_target(kind, gid, label) || right->select_target(kind, gid, label);
     }
 
@@ -768,17 +779,17 @@ struct network_selection_difference_impl: public network_selection_impl {
         left(std::move(l)),
         right(std::move(r)) {}
 
-    bool select_connection(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    bool select_connection(const network_site_info& source,
+        const network_site_info& target) const override {
         return left->select_connection(source, target) &&
                !(right->select_connection(source, target));
     }
 
-    bool select_source(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_source(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return left->select_source(kind, gid, label);
     }
 
-    bool select_target(cell_kind kind, cell_gid_type gid, std::string_view label) const override {
+    bool select_target(cell_kind kind, cell_gid_type gid, hash_type label) const override {
         return left->select_target(kind, gid, label);
     }
 
@@ -809,8 +820,8 @@ struct network_value_scalar_impl: public network_value_impl {
 
     network_value_scalar_impl(double v): value(v) {}
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    double get(const network_site_info& source,
+        const network_site_info& target) const override {
         return value;
     }
 
@@ -822,8 +833,8 @@ struct network_value_distance_impl: public network_value_impl {
 
     network_value_distance_impl(double s): scale(s) {}
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    double get(const network_site_info& source,
+        const network_site_info& target) const override {
         return scale * distance(source.global_location, target.global_location);
     }
 
@@ -841,13 +852,13 @@ struct network_value_uniform_distribution_impl: public network_value_impl {
             throw std::invalid_argument("Uniform distribution: invalid range");
     }
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    double get(const network_site_info& source,
+        const network_site_info& target) const override {
         if (range[0] > range[1]) return range[1];
 
         // random number between 0 and 1
-        const auto rand_num = uniform_rand_from_key_pair(
-            {unsigned(network_seed::value_uniform), seed}, source.hash, target.hash);
+        const auto rand_num = uniform_rand(
+            {unsigned(network_seed::value_uniform), seed, seed + 1, seed + 2}, source, target);
 
         return (range[1] - range[0]) * rand_num + range[0];
     }
@@ -867,12 +878,13 @@ struct network_value_normal_distribution_impl: public network_value_impl {
         mean(mean_),
         std_deviation(std_deviation_) {}
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
-        return mean + std_deviation *
-                          normal_rand_from_key_pair({unsigned(network_seed::value_normal), seed},
-                              source.hash,
-                              target.hash);
+    double get(const network_site_info& source,
+        const network_site_info& target) const override {
+        return mean +
+               std_deviation *
+                   normal_rand({unsigned(network_seed::value_normal), seed, seed + 1, seed + 2},
+                       source,
+                       target);
     }
 
     void print(std::ostream& os) const override {
@@ -898,21 +910,21 @@ struct network_value_truncated_normal_distribution_impl: public network_value_im
             throw std::invalid_argument("Truncated normal distribution: invalid range");
     }
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
-
-        const auto src_hash = source.hash;
-        auto dest_hash = target.hash;
+    double get(const network_site_info& source,
+        const network_site_info& target) const override {
 
         double value = 0.0;
 
+        auto dynamic_seed = seed;
         do {
             value =
-                mean + std_deviation * normal_rand_from_key_pair(
-                                           {unsigned(network_seed::value_truncated_normal), seed},
-                                           src_hash,
-                                           dest_hash);
-            ++dest_hash;
+                mean + std_deviation * normal_rand({unsigned(network_seed::value_truncated_normal),
+                                                       dynamic_seed,
+                                                       dynamic_seed + 1,
+                                                       dynamic_seed + 2},
+                                           source,
+                                           target);
+            ++dynamic_seed;
         } while (!(value > range[0] && value <= range[1]));
 
         return value;
@@ -929,18 +941,9 @@ struct network_value_custom_impl: public network_value_impl {
 
     network_value_custom_impl(network_value::custom_func_type f): func(std::move(f)) {}
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
-        return func({{source.gid,
-                         source.kind,
-                         cell_tag_type(source.label),
-                         source.location,
-                         source.global_location},
-            {target.gid,
-                target.kind,
-                cell_tag_type(target.label),
-                target.location,
-                target.global_location}});
+    double get(const network_site_info& source,
+        const network_site_info& target) const override {
+        return func(source, target);
     }
 
     void print(std::ostream& os) const override { os << "(custom-network-value)"; }
@@ -954,8 +957,8 @@ struct network_value_named_impl: public network_value_impl {
 
     explicit network_value_named_impl(std::string name): value_name(std::move(name)) {}
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    double get(const network_site_info& source,
+        const network_site_info& target) const override {
         if (!value) throw arbor_internal_error("Trying to use unitialized named network value.");
         return value->get(source, target);
     }
@@ -981,8 +984,8 @@ struct network_value_add_impl: public network_value_impl {
         left(std::move(l)),
         right(std::move(r)) {}
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    double get(const network_site_info& source,
+        const network_site_info& target) const override {
         return left->get(source, target) + right->get(source, target);
     }
 
@@ -1008,8 +1011,8 @@ struct network_value_mul_impl: public network_value_impl {
         left(std::move(l)),
         right(std::move(r)) {}
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    double get(const network_site_info& source,
+        const network_site_info& target) const override {
         return left->get(source, target) * right->get(source, target);
     }
 
@@ -1035,8 +1038,8 @@ struct network_value_sub_impl: public network_value_impl {
         left(std::move(l)),
         right(std::move(r)) {}
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    double get(const network_site_info& source,
+        const network_site_info& target) const override {
         return left->get(source, target) - right->get(source, target);
     }
 
@@ -1062,8 +1065,8 @@ struct network_value_div_impl: public network_value_impl {
         left(std::move(l)),
         right(std::move(r)) {}
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    double get(const network_site_info& source,
+        const network_site_info& target) const override {
         const auto v_right = right->get(source, target);
         if (!v_right) throw arbor_exception("network_value: division by 0.");
         return left->get(source, target) / right->get(source, target);
@@ -1091,8 +1094,8 @@ struct network_value_max_impl: public network_value_impl {
         left(std::move(l)),
         right(std::move(r)) {}
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    double get(const network_site_info& source,
+        const network_site_info& target) const override {
         return std::max(left->get(source, target), right->get(source, target));
     }
 
@@ -1118,8 +1121,8 @@ struct network_value_min_impl: public network_value_impl {
         left(std::move(l)),
         right(std::move(r)) {}
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    double get(const network_site_info& source,
+        const network_site_info& target) const override {
         return std::min(left->get(source, target), right->get(source, target));
     }
 
@@ -1142,8 +1145,8 @@ struct network_value_exp_impl: public network_value_impl {
 
     network_value_exp_impl(std::shared_ptr<network_value_impl> v): value(std::move(v)) {}
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    double get(const network_site_info& source,
+        const network_site_info& target) const override {
         return std::exp(value->get(source, target));
     }
 
@@ -1161,8 +1164,8 @@ struct network_value_log_impl: public network_value_impl {
 
     network_value_log_impl(std::shared_ptr<network_value_impl> v): value(std::move(v)) {}
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    double get(const network_site_info& source,
+        const network_site_info& target) const override {
         const auto v = value->get(source, target);
         if (v <= 0.0) throw arbor_exception("network_value: log of value <= 0.0.");
         return std::log(value->get(source, target));
@@ -1189,8 +1192,7 @@ struct network_value_if_else_impl: public network_value_impl {
         true_value(std::move(true_value)),
         false_value(std::move(false_value)) {}
 
-    double get(const network_full_site_info& source,
-        const network_full_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
         if (cond->select_connection(source, target)) return true_value->get(source, target);
         return false_value->get(source, target);
     }
