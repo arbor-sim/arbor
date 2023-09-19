@@ -452,7 +452,9 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         foreach_cell(
             [&](cell_size_type i) {
                 PE(communication:enqueue:sort);
-                util::sort(pending_events_[i]);
+                // We just care about evt time not the ordering below that
+                util::sort_by(pending_events_[i],
+                              [](const auto& l) { return l.time; });
                 PL();
 
                 event_span pending = util::range_pointer_view(pending_events_[i]);
