@@ -53,7 +53,7 @@ public:
     bool is_root(msize_t i) const;
 
     // Make an ASCII tree
-    std::string show(std::function<class Fp>) const;
+    std::string show() const;
 
     friend std::ostream& operator<<(std::ostream&, const segment_tree&);
 
