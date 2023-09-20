@@ -299,6 +299,12 @@ Cable cell morphology
 
         A list of the segments.
 
+    .. method:: show
+
+        Return a string containing an ASCII rendering of the tree.
+
+        :return: string
+
 .. py:class:: morphology
 
     A *morphology* describes the geometry of a cell as unbranched cables

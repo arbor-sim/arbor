@@ -291,17 +291,17 @@ std::vector<std::string> render(const segment_tree& tree,
     return res;
 }
 
-std::string show(const segment_tree& tree) {
-    if (tree.empty()) return "";
+std::string segment_tree::show() const {
+    if (empty()) return "";
     // the tree as parent -> child
     std::multimap<msize_t, msize_t> children;
-    const auto& parents = tree.parents();
-    for (auto idx = 0; idx < tree.size(); ++idx) {
-        auto parent = parents[idx];
+    const auto& ps = parents();
+    for (auto idx = 0; idx < size(); ++idx) {
+        auto parent = ps[idx];
         children.emplace(parent, idx);
     }
 
-    auto res = render(tree, 0, children);
+    auto res = render(*this, 0, children);
     return std::accumulate(res.begin(), res.end(),
                            std::string{},
                            [](auto lhs, auto rhs) { return lhs + rhs + "\n"; });

@@ -287,6 +287,9 @@ void register_morphology(py::module& m) {
         .def("tag_roots",
             [](const arb::segment_tree& t, int tag) { return arb::tag_roots(t, tag); },
             "Get roots of tag region of this segment tree.")
+        .def("show",
+             &arb::segment_tree::show,
+             "Return ASCII representation of tree.")
         .def("__str__", [](const arb::segment_tree& s) {
                 return util::pprintf("<arbor.segment_tree:\n{}>", s);});
 

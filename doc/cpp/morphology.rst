@@ -66,6 +66,10 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
 
         A list of the segments.
 
+    .. cpp:function:: std::string show()
+
+        Return a string containing an ASCII rendering of the tree.
+
 .. cpp:function:: std::pair<segment_tree, segment_tree> split_at(const segment_tree& t, msize_t id)
 
     Split a segment_tree into a pair of subtrees at the given id,

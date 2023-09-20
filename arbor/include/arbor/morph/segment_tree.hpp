@@ -52,6 +52,9 @@ public:
     bool is_terminal(msize_t i) const;
     bool is_root(msize_t i) const;
 
+    // Make an ASCII tree
+    std::string show(std::function<class Fp>) const;
+
     friend std::ostream& operator<<(std::ostream&, const segment_tree&);
 
     // compare two trees for _identity_, not _equivalence_
@@ -87,7 +90,5 @@ apply(const segment_tree&, const isometry&);
 
 // Roots of regions of specific tag in segment tree
 ARB_ARBOR_API std::vector<msize_t> tag_roots(const segment_tree& in, int tag);
-
-std::string show(const segment_tree& tree);
 
 } // namespace arb
