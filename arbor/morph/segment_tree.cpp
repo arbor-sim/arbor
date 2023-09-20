@@ -1,5 +1,7 @@
+#include <numeric>
 #include <stdexcept>
 #include <map>
+#include <set>
 #include <vector>
 
 #include <arbor/morph/morphexcept.hpp>
@@ -8,6 +10,7 @@
 #include "io/sepval.hpp"
 #include "util/span.hpp"
 #include "util/transform.hpp"
+#include "util/strprintf.hpp"
 
 using arb::util::make_span;
 
@@ -244,6 +247,64 @@ ARB_ARBOR_API std::vector<msize_t> tag_roots(const segment_tree& t, int tag) {
     }
 
     return tag_roots;
+}
+
+std::vector<std::string> render(const segment_tree& tree,
+                                msize_t root,
+                                const std::multimap<msize_t, msize_t>& children) {
+    auto n_child = children.count(root);
+    auto seg = util::pprintf("[- {} -]", root);
+    if (0 == n_child) return {seg};
+    auto sep = std::string(seg.size(), ' ');
+    if (1 == n_child) {
+        const auto& [lo, hi] = children.equal_range(root);
+        auto child = render(tree, lo->second, children);
+        child.front() = seg + "---" + child.front();
+        for (auto rdx = 1; rdx < child.size(); ++rdx) child[rdx] = sep + "   " + child[rdx];
+        return child;
+    }
+    std::vector<std::string> res = {seg};
+    auto cdx = 0;
+    for (auto [parent, child]: util::make_range(children.equal_range(root))) {
+        auto rows = render(tree, child, children);
+        auto rdx = 0;
+        for (const auto& row: rows) {
+            // Append the first row directly onto our segments, this [- -] -- [- -]
+            if (rdx == 0) {
+                // The first child of a node may span a sub-tree
+                if (cdx == 0) {
+                    res.back() += std::string{"-+-"} + row;
+                } else {
+                    // Other children get connected to the vertical line
+                    res.push_back(sep + " +-" + row);
+                }
+                cdx++;
+            } else {
+                // If there are more children, extend the subtree by showing a
+                // vertical line
+                res.push_back(sep + (cdx < n_child ? " | " : "   ") + row);
+            }
+            ++rdx;
+        }
+    }
+    res.push_back(sep);
+    return res;
+}
+
+std::string show(const segment_tree& tree) {
+    if (tree.empty()) return "";
+    // the tree as parent -> child
+    std::multimap<msize_t, msize_t> children;
+    const auto& parents = tree.parents();
+    for (auto idx = 0; idx < tree.size(); ++idx) {
+        auto parent = parents[idx];
+        children.emplace(parent, idx);
+    }
+
+    auto res = render(tree, 0, children);
+    return std::accumulate(res.begin(), res.end(),
+                           std::string{},
+                           [](auto lhs, auto rhs) { return lhs + rhs + "\n"; });
 }
 
 

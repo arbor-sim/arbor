@@ -88,5 +88,6 @@ apply(const segment_tree&, const isometry&);
 // Roots of regions of specific tag in segment tree
 ARB_ARBOR_API std::vector<msize_t> tag_roots(const segment_tree& in, int tag);
 
+std::string show(const segment_tree& tree);
 
 } // namespace arb
