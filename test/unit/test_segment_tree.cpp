@@ -100,7 +100,6 @@ TEST(segment_tree, fuzz) {
                 // Validate that the correct number of segments created.
                 EXPECT_EQ(tree.size(), std::size_t(i+1));
             }
-            std::cerr << "TREE" << show(tree);
             EXPECT_EQ(parents, tree.parents());
             for (int i=0; i<nseg; ++i) {
                 arb::msegment seg = tree.segments()[i];
