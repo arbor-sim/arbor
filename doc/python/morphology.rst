@@ -358,6 +358,12 @@ Cable cell morphology
             :param int i: branch index
             :rtype: list
 
+    .. method:: show
+
+        Return a string containing an ASCII rendering of the morphology.
+
+        :return: string
+
 .. py:class:: place_pwlin
 
     A :class:`place_pwlin` object allows the querying of the 3-d location of locations and cables

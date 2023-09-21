@@ -19,6 +19,7 @@
 #include <arborio/swcio.hpp>
 #include <arborio/neurolucida.hpp>
 #include <arborio/neuroml.hpp>
+#include <arborio/debug.hpp>
 
 #include "util.hpp"
 #include "error.hpp"
@@ -288,8 +289,8 @@ void register_morphology(py::module& m) {
             [](const arb::segment_tree& t, int tag) { return arb::tag_roots(t, tag); },
             "Get roots of tag region of this segment tree.")
         .def("show",
-             &arb::segment_tree::show,
-             "Return ASCII representation of tree.")
+             [] (const arb::segment_tree& t) { return arborio::show(t); },
+             "Return an ASCII representation of this segment tree.")
         .def("__str__", [](const arb::segment_tree& s) {
                 return util::pprintf("<arbor.segment_tree:\n{}>", s);});
 
@@ -371,6 +372,9 @@ void register_morphology(py::module& m) {
                 "i"_a, "A list of the segments in branch i, ordered from proximal to distal ends of the branch.")
         .def("to_segment_tree", &arb::morphology::to_segment_tree,
                 "Convert this morphology to a segment_tree.")
+        .def("show",
+             [] (const arb::morphology& t) { return arborio::show(t); },
+             "Return an ASCII representation.")
         .def("__str__",
                 [](const arb::morphology& m) {
                     return util::pprintf("<arbor.morphology:\n{}>", m);

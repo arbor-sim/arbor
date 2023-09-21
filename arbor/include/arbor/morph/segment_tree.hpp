@@ -52,9 +52,6 @@ public:
     bool is_terminal(msize_t i) const;
     bool is_root(msize_t i) const;
 
-    // Make an ASCII tree
-    std::string show() const;
-
     friend std::ostream& operator<<(std::ostream&, const segment_tree&);
 
     // compare two trees for _identity_, not _equivalence_

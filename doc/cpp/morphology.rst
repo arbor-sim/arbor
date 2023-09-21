@@ -31,7 +31,6 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
 
 .. cpp:class:: segment_tree
 
-
     .. cpp:function:: segment_tree()
 
         Construct an empty segment tree.
@@ -65,10 +64,6 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
     .. cpp:function:: std::vector<msegment> segments()
 
         A list of the segments.
-
-    .. cpp:function:: std::string show()
-
-        Return a string containing an ASCII rendering of the tree.
 
 .. cpp:function:: std::pair<segment_tree, segment_tree> split_at(const segment_tree& t, msize_t id)
 
@@ -104,9 +99,43 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
 Morphology API
 --------------
 
-.. todo::
+.. cpp:class:: morphology
 
-   Describe morphology methods.
+    .. cpp:function:: morphology()
+
+        Construct an empty morphology.
+
+    .. cpp:function:: morphology(const segment_tree&)
+
+        Construct a morphology from a segment tree.
+
+    .. cpp:function:: segment_tree to_segment_tree() const
+
+        Reconcstruct the underlying segment tree.
+
+    .. cpp:function:: bool empty() const
+
+       Is this the trivial morphology?
+
+    .. cpp:function:: msize_t num_branches() const
+
+        The number of branches in the morphology.
+
+    .. cpp:function:: msize_t branch_parent(msize_t b) const
+
+        The parent branch of branch ``b``. Return ``mnpos`` if branch has no parent.
+
+    .. cpp:function:: const std::vector<msize_t>& branch_children(msize_t b) const
+
+        The child branches of branch ``b``. If b is ``mnpos``, return root branches.
+
+    .. cpp:function:: const std::vector<msize_t>& terminal_branches() const
+
+        Branches with no children.
+
+    .. cpp:function:: const std::vector<msegment>& branch_segments(msize_t b) const
+
+        Range of segments in a branch.
 
 .. _cppcablecell-morphology-construction:
 
@@ -204,6 +233,12 @@ by two stitches:
 
    cable_cell cell(stitched.morphology(), dec, stitched.labels());
 
+Debug Ouput
+-----------
+
+Tree representations of :cpp:type:`segment_tree` and :cpp:type:`morphology` can be obtained
+by including ``arborio/debug.hpp`` which contains a series of :cpp:func:`show` functions
+that return ASCII renderings of the given object.
 
 .. _locsets-and-regions:
 
