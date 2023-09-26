@@ -79,6 +79,7 @@ struct diffusion_solver {
                arb_value_type q) {
         auto cell_cv_part = util::partition_view(cell_cv_divs);
         index_type ncells = cell_cv_part.size();
+        /*
         // loop over submatrices
         for (auto m: util::make_span(0, ncells)) {
             value_type _1_dt = 1e-3/dt;     // 1/µs
@@ -95,6 +96,17 @@ struct diffusion_solver {
                 concentration[i] = _1_dt*X + F*(u*g - J);
             }
         }
+        */
+
+        for (auto m: util::make_span(0, ncells)) {
+            const value_type oodt = 1e-3/dt;
+            const auto& [lo, hi] = cell_cv_part[m];
+            for(int i = lo; i < hi; ++i) {
+                d[i] = oodt + invariant_d[i];
+                concentration[i] = oodt*concentration[i];
+            }
+        }
+
         solve(concentration);
     }
 
