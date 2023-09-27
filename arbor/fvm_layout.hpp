@@ -162,6 +162,7 @@ struct fvm_cv_discretization {
     // Following members have one element per CV.
     std::vector<value_type> face_conductance; // [µS]
     std::vector<value_type> cv_area;          // [µm²]
+    std::vector<value_type> cv_volume;        // [µm3]//
     std::vector<value_type> cv_capacitance;   // [pF]
     std::vector<value_type> init_membrane_potential; // [mV]
     std::vector<value_type> temperature_K;    // [K]

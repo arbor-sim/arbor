@@ -15,6 +15,8 @@ namespace arb {
 template <typename D, typename array, typename ion_state>
 struct shared_state_base {
 
+    using diff_solver = typename ion_state::solver_type;
+
     void update_time_to(const timestep_range::timestep& ts) {
         auto d = static_cast<D*>(this);
         d->time_to = ts.t_end();
@@ -51,7 +53,11 @@ struct shared_state_base {
 
     void configure_solver(const fvm_cv_discretization& disc) {
         auto d = static_cast<D*>(this);
-        d->solver = {disc.geometry.cv_parent, disc.geometry.cell_cv_divs, disc.cv_capacitance, disc.face_conductance, disc.cv_area};
+        d->solver = {disc.geometry.cv_parent,
+                     disc.geometry.cell_cv_divs,
+                     disc.cv_capacitance,
+                     disc.face_conductance,
+                     disc.cv_area};
     }
 
     void add_ion(const std::string& ion_name,
@@ -67,11 +73,12 @@ struct shared_state_base {
                   const std::unordered_map<std::string, fvm_ion_config>& ions) {
         auto d = static_cast<D*>(this);
         for (const auto& [ion, data]: ions) {
-            std::unique_ptr<typename ion_state::solver_type> solver = nullptr;
-            if (data.is_diffusive) solver = std::make_unique<typename ion_state::solver_type>(disc.geometry.cv_parent,
-                                                                                              disc.geometry.cell_cv_divs,
-                                                                                              data.face_diffusivity,
-                                                                                              disc.cv_area);
+            std::unique_ptr<diff_solver> solver = nullptr;
+            if (data.is_diffusive) solver = std::make_unique<diff_solver>(disc.geometry.cv_parent,
+                                                                          disc.geometry.cell_cv_divs,
+                                                                          data.face_diffusivity,
+                                                                          disc.cv_area,
+                                                                          disc.cv_volume);
             d->add_ion(ion, data, std::move(solver));
         }
     }

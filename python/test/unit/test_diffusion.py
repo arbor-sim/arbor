@@ -310,9 +310,10 @@ class TestDiffusion(unittest.TestCase):
 
         # maximum value of the total particle amount of s
         sV_tot_max_expected = 0
+        current = 0
         for event in inject_remove:
-            if event["change"] > 0:
-                sV_tot_max_expected += event["change"]
+            current += event["change"]
+            sV_tot_max_expected = max(current, sV_tot_max_expected)
 
         # maximum value of the concentration of s (total particle amount divided by total volume)
         s_max_expected = sV_tot_max_expected / volume_tot

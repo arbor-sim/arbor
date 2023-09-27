@@ -56,16 +56,14 @@ struct cable_solver {
                 const auto gij = cond[i];
                 u[i] = -gij;
                 invariant_d[i] += gij;
-                if (p[i]!=-1) { // root
-                    invariant_d[p[i]] += gij;
-                }
+                if (auto pi= p[i]; pi != -1) invariant_d[pi] += gij;
             }
         }
     }
 
     // Setup and solve the cable equation
     // * expects the voltage from its first argument
-    // * will likewise overwrite the first argument with the solction
+    // * will likewise overwrite the first argument with the solution
     template<typename T>
     void solve(T& rhs, const value_type dt, const_view current, const_view conductivity) {
         value_type * const ARB_NO_ALIAS d_ = d.data();

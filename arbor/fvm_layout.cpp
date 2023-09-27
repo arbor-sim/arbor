@@ -219,33 +219,32 @@ ARB_ARBOR_API cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
 ARB_ARBOR_API fvm_cv_discretization& append(fvm_cv_discretization& dczn, const fvm_cv_discretization& right) {
     using util::append;
 
-    append(dczn.geometry, right.geometry);
-
-    // Those in L and R: merge
-    for (auto& [ion, data]: dczn.diffusive_ions) {
-        const auto& rhs = right.diffusive_ions.find(ion);
-        if (rhs != right.diffusive_ions.end()) {
-            append(data.axial_inv_diffusivity, rhs->second.axial_inv_diffusivity);
-            append(data.face_diffusivity, rhs->second.face_diffusivity);
-        }
-    }
-    // Those only in R: add to L
-    for (auto& [ion, data]: right.diffusive_ions) {
-        const auto& lhs = dczn.diffusive_ions.find(ion);
-        if (lhs == dczn.diffusive_ions.end()) {
-            dczn.diffusive_ions[ion].axial_inv_diffusivity = data.axial_inv_diffusivity;
-            dczn.diffusive_ions[ion].face_diffusivity      = data.face_diffusivity;
+    // Merge diffusive ion data, scan ions in L and R, then...
+    // ... those in L and R: append R's data to that of L
+    for (auto& [ion, lhs]: dczn.diffusive_ions) {
+        if (auto rhs = right.diffusive_ions.find(ion); rhs != right.diffusive_ions.end()) {
+            append(lhs.axial_inv_diffusivity, rhs->second.axial_inv_diffusivity);
+            append(lhs.face_diffusivity,      rhs->second.face_diffusivity);
         }
     }
 
-    append(dczn.face_conductance, right.face_conductance);
-    append(dczn.cv_area, right.cv_area);
-    append(dczn.cv_capacitance, right.cv_capacitance);
+    // ... those only in R: add to L
+    for (auto& [ion, rhs]: right.diffusive_ions) {
+        if (0 == dczn.diffusive_ions.count(ion)) {
+            dczn.diffusive_ions[ion].axial_inv_diffusivity = rhs.axial_inv_diffusivity;
+            dczn.diffusive_ions[ion].face_diffusivity      = rhs.face_diffusivity;
+        }
+    }
+
+    append(dczn.geometry,                right.geometry);
+    append(dczn.face_conductance,        right.face_conductance);
+    append(dczn.cv_area,                 right.cv_area);
+    append(dczn.cv_volume,               right.cv_volume);
+    append(dczn.cv_capacitance,          right.cv_capacitance);
     append(dczn.init_membrane_potential, right.init_membrane_potential);
-    append(dczn.temperature_K, right.temperature_K);
-    append(dczn.diam_um, right.diam_um);
-
-    append(dczn.axial_resistivity, right.axial_resistivity);
+    append(dczn.temperature_K,           right.temperature_K);
+    append(dczn.diam_um,                 right.diam_um);
+    append(dczn.axial_resistivity,       right.axial_resistivity);
 
     return dczn;
 }
@@ -268,6 +267,7 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
     auto n_cv = D.geometry.size();
     D.face_conductance.resize(n_cv);
     D.cv_area.resize(n_cv);
+    D.cv_volume.resize(n_cv);
     D.cv_capacitance.resize(n_cv);
     D.init_membrane_potential.resize(n_cv);
     D.temperature_K.resize(n_cv);
@@ -436,11 +436,12 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
             cv_length                    += embedding.integrate_length(cable);
         }
 
+        D.cv_volume[i] = 0.25*D.cv_area[i]*D.diam_um[i];
+
         if (D.cv_area[i]>0) {
             auto A = D.cv_area[i];
             D.init_membrane_potential[i] /= A;
             D.temperature_K[i] /= A;
-
             for (auto& [ion, info]: diffusive_ions) {
                 info.face_diffusivity[i] /= A;
             }
