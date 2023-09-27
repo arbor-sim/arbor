@@ -97,14 +97,16 @@ class TestDiffusion(unittest.TestCase):
 
     # get_morph_and_decor
     # Method that sets up and returns a morphology and decoration for given parameters
-    # - num_segs: number of segments
+    # - num_segs: number of segments (1, 2, or 3; in the case of 1 or 2, there'll be one branch, in the case of 3, there'll be three branches)
     # - num_cvs_per_seg: number of CVs per segment
-    # - length: length of the whole setup (in case of 1 or 2 segments, one branch) in µm
+    # - l_1: axial length of the first segment in µm
+    # - l_2: axial length of the second segment in µm
+    # - l_3: axial length of the third segment in µm
     # - radius_1: radius of the first segment in µm
     # - radius_2: radius of the second segment in µm
     # - radius_3: radius of the third segment in µm
     def get_morph_and_decor(
-        self, num_segs, num_cvs_per_seg, length, radius_1, radius_2, radius_3
+        self, num_segs, num_cvs_per_seg, l_1, l_2, l_3, radius_1, radius_2, radius_3
     ):
         # ---------------------------------------------------------------------------------------
         # set up the morphology
@@ -112,8 +114,8 @@ class TestDiffusion(unittest.TestCase):
         if num_segs == 1:
             _ = tree.append(
                 A.mnpos,
-                A.mpoint(-length / 2, 0, 0, radius_1),
-                A.mpoint(+length / 2, 0, 0, radius_1),
+                A.mpoint(-l_1, 0, 0, radius_1),
+                A.mpoint(0, 0, 0, radius_1),
                 tag=0,
             )
 
@@ -127,14 +129,14 @@ class TestDiffusion(unittest.TestCase):
         elif num_segs == 2:
             s = tree.append(
                 A.mnpos,
-                A.mpoint(-length / 2, 0, 0, radius_1),
+                A.mpoint(-l_1, 0, 0, radius_1),
                 A.mpoint(0, 0, 0, radius_1),
                 tag=0,
             )
             _ = tree.append(
                 s,
                 A.mpoint(0, 0, 0, radius_2),
-                A.mpoint(+length / 2, 0, 0, radius_2),
+                A.mpoint(+l_2, 0, 0, radius_2),
                 tag=1,
             )
 
@@ -150,20 +152,20 @@ class TestDiffusion(unittest.TestCase):
         elif num_segs == 3:
             s = tree.append(
                 A.mnpos,
-                A.mpoint(-1 / 3 * length, 0, 0, radius_1),
+                A.mpoint(-l_1, 0, 0, radius_1),
                 A.mpoint(0, 0, 0, radius_1),
                 tag=0,
             )
             _ = tree.append(
                 s,
                 A.mpoint(0, 0, 0, radius_2),
-                A.mpoint(+1 / 3 * length, 0, 0, radius_2),
+                A.mpoint(+l_2, 0, 0, radius_2),
                 tag=1,
             )
             _ = tree.append(
                 s,
-                A.mpoint(-1 / 3 * length, 0, 0, radius_3),
-                A.mpoint(-2 / 3 * length, 0, 0, radius_3),
+                A.mpoint(0, 0, 0, radius_3),
+                A.mpoint(+l_3, 0, 0, radius_3),
                 tag=2,
             )
 
@@ -219,30 +221,36 @@ class TestDiffusion(unittest.TestCase):
     # Method that runs an Arbor simulation with diffusion across different segments and subsequently
     # performs tests on the results
     # - cat: catalogue of custom mechanisms
-    # - num_segs: number of segments
+    # - num_segs: number of segments (1, 2, or 3)
     # - num_cvs_per_seg: number of CVs per segment
-    # - length: length of the whole setup (in case of 1 or 2 segments, one branch) in µm
+    # - l_1 [optional]: axial length of the first segment in µm
+    # - l_2 [optional]: axial length of the second segment in µm
+    # - l_3 [optional]: axial length of the third segment in µm
     # - r_1 [optional]: radius of the first segment in µm
     # - r_2 [optional]: radius of the second segment in µm
     # - r_3 [optional]: radius of the third segment in µm
     def simulate_and_test_diffusion(
-        self, cat, num_segs, num_cvs_per_seg, length, r_1, r_2=0.0, r_3=0.0
+        self,
+        cat,
+        num_segs,
+        num_cvs_per_seg,
+        l_1=5.0,
+        l_2=5.0,
+        l_3=5.0,
+        r_1=4.0,
+        r_2=4.0,
+        r_3=4.0,
     ):
         # ---------------------------------------------------------------------------------------
         # set parameters and calculate geometrical measures
-        radius_1 = r_1
-        if num_segs > 1:
-            radius_2 = r_2
-        else:
-            radius_2 = 0
-        if num_segs > 2:
-            radius_3 = r_3
-        else:
-            radius_3 = 0
+        if num_segs < 2:
+            r_2 = l_2 = 0
+            r_3 = l_3 = 0
+        elif num_segs < 3:
+            r_3 = l_3 = 0
 
-        length_per_seg = length / num_segs  # axial length of a segment in µm
-        volume_tot = (
-            np.pi * (radius_1**2 + radius_2**2 + radius_3**2) * length_per_seg
+        volume_tot = np.pi * (
+            r_1**2 * l_1 + r_2**2 * l_2 + r_3**2 * l_3
         )  # volume of the whole setup in µm^3
         volume_per_cv = volume_tot / (
             num_segs * num_cvs_per_seg
@@ -258,7 +266,7 @@ class TestDiffusion(unittest.TestCase):
         # ---------------------------------------------------------------------------------------
         # get morphology, decoration, and labels, and add the diffusive particle species 's'
         morph, dec, labels = self.get_morph_and_decor(
-            num_segs, num_cvs_per_seg, length, radius_1, radius_2, radius_3
+            num_segs, num_cvs_per_seg, l_1, l_2, l_3, r_1, r_2, r_3
         )
         dec.set_ion("s", int_con=0.0, diff=diffusivity)
 
@@ -352,30 +360,45 @@ class TestDiffusion(unittest.TestCase):
         )  # max_{t}(s⋅V) [direct]
 
     # test_diffusion_equal_radii
-    # Test: simulations with segments of equal radius
+    # Test: simulations with segments of equal length and equal radius
     # - diffusion_catalogue: catalogue of diffusion mechanisms
     @fixtures.diffusion_catalogue()
     def test_diffusion_equal_radii(self, diffusion_catalogue):
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 1, 600, 10, 4
+            diffusion_catalogue, 1, 600, l_1=5, r_1=4
         )  # 1 segment with radius 4 µm
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 2, 300, 10, 4, 4
+            diffusion_catalogue, 2, 300, l_1=5, l_2=5, r_1=4, r_2=4
         )  # 2 segments with radius 4 µm
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 3, 200, 10, 4, 4, 4
+            diffusion_catalogue, 3, 200, l_1=5, l_2=5, l_3=5, r_1=4, r_2=4, r_3=4
         )  # 3 segments with radius 4 µm
 
     """ TODO: not succeeding as of Arbor v0.9.0:
+    # test_diffusion_different_length
+    # Test: simulations with segments of different length but equal radius
+    # - diffusion_catalogue: catalogue of diffusion mechanisms
+    @fixtures.diffusion_catalogue()
+    def test_diffusion_different_length(self, diffusion_catalogue):
+        self.simulate_and_test_diffusion(
+            diffusion_catalogue, 1, 600, l_1=5, r_1=4
+        )  # 1 segment with radius 4 µm
+        self.simulate_and_test_diffusion(
+            diffusion_catalogue, 2, 300, l_1=5, l_2=3, r_1=4, r_2=4
+        )  # 2 segments with radius 4 µm
+        self.simulate_and_test_diffusion(
+            diffusion_catalogue, 3, 200, l_1=5, l_2=3, l_3=3, r_1=4, r_2=4, r_3=4
+        )  # 3 segments with radius 4 µm
+
     # test_diffusion_different_radii
-    # Test: simulations with segments of different radius
+    # Test: simulations with segments of equal length but different radius
     # - diffusion_catalogue: catalogue of diffusion mechanisms
     @fixtures.diffusion_catalogue()
     def test_diffusion_different_radii(self, diffusion_catalogue):
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 2, 300, 10, 4, 6
+            diffusion_catalogue, 2, 300, l_1=5, l_2=5, r_1=4, r_2=6
         )  # 2 segments with radius 4 µm and 6 µm
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 3, 200, 10, 4, 6, 6
+            diffusion_catalogue, 3, 200, l_1=5, l_2=5, l_3=5, r_1=4, r_2=6, r_3=6
         )  # 3 segments with radius 4 µm and 6 µm
     """
