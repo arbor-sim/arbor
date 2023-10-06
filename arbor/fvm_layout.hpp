@@ -142,7 +142,7 @@ struct fvm_diffusion_info {
     using value_type = arb_value_type;
     value_type default_value;
     std::vector<value_type> face_diffusivity;
-    std::vector<std::vector<pw_constant_fn>> axial_inv_diffusivity;
+    std::vector<std::vector<pw_constant_fn>> axial_resistivity;
 
     fvm_diffusion_info(value_type d): default_value(d) {}
     fvm_diffusion_info(): fvm_diffusion_info{0.0} {}

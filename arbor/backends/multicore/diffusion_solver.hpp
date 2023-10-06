@@ -76,41 +76,30 @@ struct diffusion_solver {
     template<typename T>
     void solve(T& concentration,
                value_type dt,
-               const_view,
-               const_view,
-               const_view,
-               arb_value_type) {
+               const_view voltage,
+               const_view current,
+               const_view conductivity,
+               arb_value_type q) {
         auto cell_cv_part = util::partition_view(cell_cv_divs);
         index_type ncells = cell_cv_part.size();
-        /*
+
+        value_type _1_dt = 1e-3/dt;         // 1/µs
         // loop over submatrices
         for (auto m: util::make_span(0, ncells)) {
-            value_type _1_dt = 1e-3/dt;     // 1/µs
             for (auto i: util::make_span(cell_cv_part[m])) {
                 auto u = voltage[i];        // mV
                 auto g = conductivity[i];   // µS
                 auto J = current[i];        // A/m^2
                 auto A = 1e-3*cv_area[i];   // 1e-9·m²
                 auto X = concentration[i];  // mM
+                auto V = cv_volume[i];      // m^3
                 // conversion from current density to concentration change
                 // using Faraday's constant
                 auto F = A/(q*96.485332);
-                d[i]   = _1_dt   + F*g + invariant_d[i];
-                concentration[i] = _1_dt*X + F*(u*g - J);
+                d[i]   = _1_dt*V   + F*g + invariant_d[i];
+                concentration[i] = _1_dt*V*X + F*(u*g - J);
             }
         }
-        */
-
-        for (auto m: util::make_span(0, ncells)) {
-            const value_type oodt = 1e-3/dt;
-            const auto& [lo, hi] = cell_cv_part[m];
-            for(int i = lo; i < hi; ++i) {
-                d[i] = oodt + invariant_d[i];
-                concentration[i] = oodt*concentration[i];
-                if (cv_volume[i] != 0) concentration[i] /= cv_volume[i];
-            }
-        }
-
         solve(concentration);
     }
 
@@ -119,12 +108,12 @@ struct diffusion_solver {
     void solve(T& rhs) {
         // loop over submatrices
         for (const auto& [first, last]: util::partition_view(cell_cv_divs)) {
-            if (first >= last) continue; // skip cell with no CVs
+            if (first >= last || d[first] == 0) continue; // skip cell with no CVs
 
             // backward sweep
-            for(int i = last - 1; i > first; --i) {
-                const auto factor = u[i] / d[i];
+            for(int i = last - 1; i >= first; --i) {
                 const auto pi = parent_index[i];
+                const auto factor = u[i] / d[i];
                 d[pi] -= factor * u[i];
                 rhs[pi] -= factor * rhs[i];
             }
@@ -135,12 +124,7 @@ struct diffusion_solver {
             // forward sweep
             for(int i = first + 1; i < last; ++i) {
                 auto pi = parent_index[i];
-                rhs[i] -= u[i] * rhs[pi];
-                rhs[i] /= d[i];
-            }
-
-            for(int i = first; i < last; ++i) {
-                if (cv_volume[i] != 0) rhs[i] *= cv_volume[i];
+                rhs[i] = (rhs[i] - u[i] * rhs[pi])/d[i];
             }
         }
     }

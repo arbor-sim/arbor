@@ -7,6 +7,7 @@
 #include "backends/common_types.hpp"
 #include "fvm_layout.hpp"
 
+#include "timestep_range.hpp"
 #include "util/rangeutil.hpp"
 
 namespace arb {
