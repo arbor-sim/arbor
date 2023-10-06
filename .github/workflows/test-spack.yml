@@ -38,8 +38,8 @@ jobs:
       - name: Get Spack (latest_release)
         if: ${{ matrix.spack-version == 'latest_release' }}
         run: |
-          wget -o spack.tar.gz "$(curl -sH "Accept: application/vnd.github.v3+json" https://api.github.com/repos/spack/spack/releases/latest | grep tarball_url |  cut -d '"' -f 4)"
-          tar xfz spack.tar.gz
+          wget -O latest_spack.tar.gz "$(curl -sH "Accept: application/vnd.github.v3+json" https://api.github.com/repos/spack/spack/releases/latest | grep tarball_url |  cut -d '"' -f 4)"
+          tar xfz latest_spack.tar.gz
           mv spack*/ spack
       - name: Prep
         run: |
