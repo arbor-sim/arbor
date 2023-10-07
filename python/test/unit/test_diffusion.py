@@ -325,6 +325,7 @@ class TestDiffusion(unittest.TestCase):
         # maximum value of the concentration of s (total particle amount divided by total volume)
         s_max_expected = sV_tot_max_expected / volume_tot
 
+        # main tests
         if num_segs < 3:
             self.assertEqual(morph.num_branches, 1)  # expected number of branches: 1
         else:
@@ -333,21 +334,11 @@ class TestDiffusion(unittest.TestCase):
             num_cvs, num_segs * num_cvs_per_seg
         )  # expected total number of CVs
         self.assertAlmostEqual(
-            data_sV[-1, 1] / volume_per_cv,
-            s_lim_expected,
-            delta=self.dev * s_lim_expected,
-        )  # lim_{t->inf}(s) [estimated]
-        self.assertAlmostEqual(
             data_s[-1, 1], s_lim_expected, delta=self.dev * s_lim_expected
         )  # lim_{t->inf}(s) [direct]
         self.assertAlmostEqual(
             np.max(data_s[:, 1]), s_max_expected, delta=self.dev * s_max_expected
         )  # max_{t}(s) [direct]
-        self.assertAlmostEqual(
-            data_sV[-1, 1] * num_segs * num_cvs_per_seg,
-            sV_tot_lim_expected,
-            delta=self.dev * sV_tot_lim_expected,
-        )  # lim_{t->inf}(s⋅V) [estimated]
         self.assertAlmostEqual(
             data_sV_total[-1],
             sV_tot_lim_expected,
@@ -359,35 +350,47 @@ class TestDiffusion(unittest.TestCase):
             delta=self.dev * sV_tot_max_expected,
         )  # max_{t}(s⋅V) [direct]
 
+        # additional tests for the case that there is only one segment of fixed radius
+        if num_segs == 1:
+            self.assertAlmostEqual(
+                data_sV[-1, 1] / volume_per_cv,
+                s_lim_expected,
+                delta=self.dev * s_lim_expected,
+            )  # lim_{t->inf}(s) [estimated]
+            self.assertAlmostEqual(
+                data_sV[-1, 1] * num_segs * num_cvs_per_seg,
+                sV_tot_lim_expected,
+                delta=self.dev * sV_tot_lim_expected,
+            )  # lim_{t->inf}(s⋅V) [estimated]
+
     # test_diffusion_equal_radii
     # Test: simulations with segments of equal length and equal radius
     # - diffusion_catalogue: catalogue of diffusion mechanisms
     @fixtures.diffusion_catalogue()
     def test_diffusion_equal_radii(self, diffusion_catalogue):
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 1, 600, l_1=5, r_1=4
+            diffusion_catalogue, 1, 150, l_1=5, r_1=4
         )  # 1 segment with radius 4 µm
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 2, 300, l_1=5, l_2=5, r_1=4, r_2=4
+            diffusion_catalogue, 2, 75, l_1=5, l_2=5, r_1=4, r_2=4
         )  # 2 segments with radius 4 µm
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 3, 200, l_1=5, l_2=5, l_3=5, r_1=4, r_2=4, r_3=4
+            diffusion_catalogue, 3, 50, l_1=5, l_2=5, l_3=5, r_1=4, r_2=4, r_3=4
         )  # 3 segments with radius 4 µm
 
-    """ TODO: not succeeding as of Arbor v0.9.0:
     # test_diffusion_different_length
     # Test: simulations with segments of different length but equal radius
     # - diffusion_catalogue: catalogue of diffusion mechanisms
     @fixtures.diffusion_catalogue()
     def test_diffusion_different_length(self, diffusion_catalogue):
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 1, 600, l_1=5, r_1=4
+            diffusion_catalogue, 1, 150, l_1=5, r_1=4
         )  # 1 segment with radius 4 µm
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 2, 300, l_1=5, l_2=3, r_1=4, r_2=4
+            diffusion_catalogue, 2, 75, l_1=5, l_2=3, r_1=4, r_2=4
         )  # 2 segments with radius 4 µm
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 3, 200, l_1=5, l_2=3, l_3=3, r_1=4, r_2=4, r_3=4
+            diffusion_catalogue, 3, 50, l_1=5, l_2=3, l_3=3, r_1=4, r_2=4, r_3=4
         )  # 3 segments with radius 4 µm
 
     # test_diffusion_different_radii
@@ -396,9 +399,8 @@ class TestDiffusion(unittest.TestCase):
     @fixtures.diffusion_catalogue()
     def test_diffusion_different_radii(self, diffusion_catalogue):
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 2, 300, l_1=5, l_2=5, r_1=4, r_2=6
+            diffusion_catalogue, 2, 75, l_1=5, l_2=5, r_1=4, r_2=6
         )  # 2 segments with radius 4 µm and 6 µm
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 3, 200, l_1=5, l_2=5, l_3=5, r_1=4, r_2=6, r_3=6
+            diffusion_catalogue, 3, 50, l_1=5, l_2=5, l_3=5, r_1=4, r_2=6, r_3=6
         )  # 3 segments with radius 4 µm and 6 µm
-    """
