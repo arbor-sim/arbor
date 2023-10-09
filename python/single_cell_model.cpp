@@ -33,7 +33,7 @@ namespace pyarb {
 
 // Stores the location and sampling frequency for a probe in a single cell model.
 struct probe_site {
-    arb::mlocation site;    // Location of sample on morphology.
+    arb::locset locset;     // Location of sample on morphology.
     double frequency;       // Sampling frequency [kHz].
     arb::cell_tag_type tag; // Tag = unique name
 };
@@ -49,19 +49,25 @@ struct trace {
 
 // Callback provided to sampling API that records into a trace variable.
 struct trace_callback {
-    trace& trace_;
+    std::vector<trace>& traces_;
+    const std::unordered_map<arb::mlocation, size_t>& locmap_;
 
-    trace_callback(trace& t): trace_(t) {}
 
-    void operator()(arb::probe_metadata, std::size_t n, const arb::sample_record* recs) {
+    trace_callback(std::vector<trace>& ts, const std::unordered_map<arb::mlocation, size_t>& ls): traces_(ts), locmap_(ls) {}
+
+    void operator()(arb::probe_metadata md, std::size_t n, const arb::sample_record* recs) {
         // Push each (time, value) pair from the last epoch into trace_.
-        for (std::size_t i=0; i<n; ++i) {
-            if (auto p = any_cast<const double*>(recs[i].data)) {
-                trace_.t.push_back(recs[i].time);
-                trace_.v.push_back(*p);
-            }
-            else {
-                throw std::runtime_error("unexpected sample type");
+        auto* loc = any_cast<const arb::mlocation*>(md.meta);
+        if (locmap_.count(*loc)) {
+            auto& trace = traces_[locmap_.at(*loc)];
+            for (std::size_t i=0; i<n; ++i) {
+                if (auto p = any_cast<const double*>(recs[i].data)) {
+                    trace.t.push_back(recs[i].time);
+                    trace.v.push_back(*p);
+                }
+                else {
+                    throw std::runtime_error("unexpected sample type");
+                }
             }
         }
     }
@@ -114,7 +120,7 @@ struct single_cell_recipe: arb::recipe {
     virtual std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override {
         // For now only voltage can be selected for measurement.
         std::vector<arb::probe_info> pinfo;
-        for (auto& p: probes_) pinfo.push_back({arb::cable_probe_membrane_voltage{p.site}, "Um"});
+        for (auto& p: probes_) pinfo.push_back({arb::cable_probe_membrane_voltage{p.locset}, p.tag});
         return pinfo;
     }
 
@@ -138,15 +144,14 @@ class single_cell_model {
     std::vector<arb::event_generator> event_generators_;
     std::unique_ptr<arb::simulation> sim_;
     std::vector<double> spike_times_;
-    // Create one trace for each probe.
     std::vector<trace> traces_;
+    std::unordered_map<arb::mlocation, size_t> locmap_;
 
 public:
     arb::cable_cell_global_properties gprop;
 
     single_cell_model(arb::cable_cell c):
-        cell_(std::move(c)), ctx_(arb::make_context())
-    {
+        cell_(std::move(c)), ctx_(arb::make_context()) {
         gprop.default_parameters = arb::neuron_parameter_defaults;
         gprop.catalogue = arb::global_default_catalogue();
     }
@@ -165,9 +170,7 @@ public:
             throw pyarb_error(
                 util::pprintf("sampling frequency is not greater than zero", what));
         }
-        for (auto& l: cell_.concrete_locset(where)) {
-            probes_.push_back({l, frequency, tag});
-        }
+        probes_.push_back({where, frequency, tag});
     }
 
     void event_generator(const arb::event_generator& event_generator) {
@@ -175,26 +178,21 @@ public:
     }
 
     void run(double tfinal, double dt) {
-        // single_cell_recipe rec(cell_, probes_, gprop, spike_sources_, connections_);
         single_cell_recipe rec(cell_, probes_, gprop, event_generators_);
 
         auto domdec = arb::partition_load_balance(rec, ctx_);
 
         sim_ = std::make_unique<arb::simulation>(rec, ctx_, domdec);
 
-        // Create one trace for each probe.
-        traces_.reserve(probes_.size());
-
         // Add probes
         for (arb::cell_lid_type i=0; i<probes_.size(); ++i) {
             const auto& p = probes_[i];
-
-            traces_.push_back({"voltage", p.site, {}, {}});
-
             auto sched = arb::regular_schedule(1.0/p.frequency);
-
-            // Now attach the sampler at probe site, with sampling schedule sched, writing to voltage
-            sim_->add_sampler(arb::one_probe({0, p.tag}), sched, trace_callback(traces_[i]));
+            for (const auto& site: cell_.concrete_locset(p.locset)) {
+                locmap_.insert({site, traces_.size()});
+                traces_.push_back({"voltage", site, {}, {}});
+            }
+            sim_->add_sampler(arb::one_probe({0, p.tag}), sched, trace_callback(traces_, locmap_));
         }
 
         // Set callback that records spike times.
@@ -218,9 +216,7 @@ public:
         return spike_times_;
     }
 
-    const std::vector<trace>& traces() const {
-        return traces_;
-    }
+    const std::vector<trace>& traces() const { return traces_; }
 };
 
 void register_single_cell(pybind11::module& m) {

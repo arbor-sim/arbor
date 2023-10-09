@@ -334,7 +334,7 @@ void fvm_lowered_cell_impl<Backend>::add_probes(const std::vector<cell_gid_type>
             resolve_probe_address(probe_data, cells, cell_idx, pi.address, D, mech_data, target_handles, mechptr_by_name);
             if (!probe_data.empty()) {
                 cell_address_type addr{gid, pi.tag};
-                if (probe_map.count(addr)) throw dup_cell_probe(cell_kind::lif, gid, pi.tag);
+                if (probe_map.count(addr)) throw dup_cell_probe(cell_kind::cable, gid, pi.tag);
                 for (auto& data: probe_data) {
                     probe_map.insert(addr, std::move(data));
                 }
