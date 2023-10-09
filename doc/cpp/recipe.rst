@@ -143,7 +143,7 @@ Probes
 
     .. cpp:member:: cell_tag_type tag
 
-           Opaque key, returned in sample record.
+           User-defined tag; must be unique per cell.
 
     .. cpp:member:: util::any address
 

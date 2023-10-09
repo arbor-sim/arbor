@@ -5,8 +5,6 @@
 #include "profile/profiler_macro.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
-#include "util/filter.hpp"
-#include "util/maputil.hpp"
 
 using namespace arb;
 
@@ -32,8 +30,9 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids,
         auto probes = rec.get_probes(gid);
         for (const auto& probe: probes) {
             if (probe.address.type() == typeid(lif_probe_voltage)) {
-                cell_address_type id{gid, probe.tag};
-                probes_.insert_or_assign(id, lif_probe_info{id, lif_probe_kind::voltage, {}});
+                cell_address_type addr{gid, probe.tag};
+                if (probes_.count(addr)) throw dup_cell_probe(cell_kind::lif, gid, probe.tag);
+                probes_.insert_or_assign(addr, lif_probe_info{addr, lif_probe_kind::voltage, {}});
             }
             else {
                 throw bad_cell_probe{cell_kind::lif, gid};
