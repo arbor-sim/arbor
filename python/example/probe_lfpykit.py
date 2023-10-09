@@ -392,10 +392,6 @@ def colorbar(
 # show predictions at the last time point of simulation
 time_index = -1
 
-# use seaborn style
-plt.style.use("seaborn")
-plt.rcParams["image.cmap"] = "viridis"
-
 # create figure and axis
 fig, ax = plt.subplots(1, 1, figsize=(16, 6), dpi=100)
 
