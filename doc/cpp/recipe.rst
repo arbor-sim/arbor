@@ -143,7 +143,8 @@ Probes
 
     .. cpp:member:: cell_tag_type tag
 
-           User-defined tag; must be unique per cell.
+           User-defined tag; must be unique per cell or an exception of type
+           ``dup_cell_probe`` will be thrown.
 
     .. cpp:member:: util::any address
 
