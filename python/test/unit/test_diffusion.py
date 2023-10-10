@@ -378,7 +378,6 @@ class TestDiffusion(unittest.TestCase):
             diffusion_catalogue, 3, 50, l_1=5, l_2=5, l_3=5, r_1=4, r_2=4, r_3=4
         )  # 3 segments with radius 4 µm
 
-
     # test_diffusion_different_length
     # Test: simulations with segments of different length but equal radius
     # - diffusion_catalogue: catalogue of diffusion mechanisms
