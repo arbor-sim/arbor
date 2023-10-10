@@ -105,7 +105,6 @@ context_shim make_context_shim(proc_allocation_shim alloc, pybind11::object mpi,
 
 context_shim make_context_shim() {
     return context_shim{arb::make_context(arbenv::default_allocation())};
-
 };
 
 // pybind

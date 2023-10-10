@@ -31,7 +31,8 @@ void assemble_diffusion(T* __restrict__ const d,
                         unsigned n) {
     const unsigned tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < n) {
-        const auto pid = perm[tid];
+        auto _1_dt = 1e-3/dt;         // 1/µs
+        auto pid = perm[tid];
         auto u = voltage[tid];        // mV
         auto g = conductivity[tid];   // µS
         auto J = current[tid];        // A/m^2
@@ -42,8 +43,8 @@ void assemble_diffusion(T* __restrict__ const d,
         // using Faraday's constant
         auto F = A/(q*96.485332);
 
-        d[pid]   = 1e-3*V/dt   + F*g + invariant_d[tid];
-        rhs[pid] = 1e-3*V/dt*X + F*(u*g - J);
+        d[pid]   = _1_dt*V   + F*g + invariant_d[tid];
+        rhs[pid] = _1_dt*V*X + F*(u*g - J);
     }
 }
 
