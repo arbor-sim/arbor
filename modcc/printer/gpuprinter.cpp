@@ -1,7 +1,5 @@
-#include <cmath>
 #include <iostream>
 #include <string>
-#include <set>
 #include <regex>
 
 #include <fmt/core.h>
@@ -228,7 +226,8 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                        "                  const arb_deliverable_event_data* end_) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
                                        "    const auto ii_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
-                                       "    if (ii_ < (end_ - begin_)) {{\n"
+                                       "    auto n_ = end_ - begin_;\n"
+                                       "    if (ii_ < n_) {{\n"
                                        "        const auto tid_ = (begin_ + ii_)->mech_index;\n"
                                        "        if ((ii_ > 0) && ((begin_ + (ii_ - 1))->mech_index == tid_)) return;\n"
                                        "        for (auto i_ = begin_ + ii_; i_ < end_; ++i_) {{\n"
