@@ -9,10 +9,7 @@
 #include <arbor/fvm_types.hpp>
 
 #include "fvm_layout.hpp"
-#include "timestep_range.hpp"
-
 #include "threading/threading.hpp"
-
 #include "backends/common_types.hpp"
 #include "backends/shared_state_base.hpp"
 #include "backends/gpu/rand.hpp"

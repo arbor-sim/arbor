@@ -18,6 +18,7 @@ ARB_ARBOR_API void assemble_diffusion(
     const arb_value_type q,
     const arb_value_type* conductivity,
     const arb_value_type* area,
+    const arb_value_type* volume,
     const arb_value_type dt,
     const arb_index_type* perm,
     unsigned n);

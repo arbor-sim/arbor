@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cmath>
 #include <iosfwd>
 #include <string>
 #include <unordered_map>
@@ -15,18 +14,12 @@
 #include <arbor/simd/simd.hpp>
 
 #include "fvm_layout.hpp"
-#include "timestep_range.hpp"
-
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
-
 #include "threading/threading.hpp"
-
-#include "backends/event.hpp"
 #include "backends/common_types.hpp"
 #include "backends/rand_fwd.hpp"
 #include "backends/shared_state_base.hpp"
-
 #include "backends/multicore/threshold_watcher.hpp"
 #include "backends/multicore/multicore_common.hpp"
 #include "backends/multicore/partition_by_constraint.hpp"

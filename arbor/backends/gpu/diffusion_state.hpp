@@ -1,9 +1,7 @@
 #pragma once
 
 #include <cstring>
-
 #include <vector>
-#include <type_traits>
 
 #include <arbor/common_types.hpp>
 
@@ -38,6 +36,7 @@ public:
 
     // Required for matrix assembly
     array cv_area;             // [μm^2]
+    array cv_volume;           // [μm^3]
 
     // Invariant part of the matrix diagonal
     array invariant_d;         // [μS]
@@ -88,7 +87,8 @@ public:
     diffusion_state(const std::vector<size_type>& p,
                     const std::vector<size_type>& cell_cv_divs,
                     const std::vector<value_type>& face_diffusivity,
-                    const std::vector<value_type>& area) {
+                    const std::vector<value_type>& area,
+                    const std::vector<value_type>& volume) {
         using util::make_span;
         constexpr unsigned npos = unsigned(-1);
 
@@ -384,6 +384,7 @@ public:
 
         // the invariant part of d and cv_area are in flat form
         cv_area = memory::make_const_view(area);
+        cv_volume = memory::make_const_view(volume);
         invariant_d = memory::make_const_view(invariant_d_tmp);
 
         // calculate the cv -> cell mappings
@@ -411,6 +412,7 @@ public:
                            q,
                            conductivity.data(),
                            cv_area.data(),
+                           cv_volume.data(),
                            dt,
                            perm.data(),
                            size());

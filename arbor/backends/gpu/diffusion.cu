@@ -26,6 +26,7 @@ void assemble_diffusion(
         const T q,
         const T* __restrict__ const conductivity,
         const T* __restrict__ const area,
+        const T* __restrict__ const volume,
         const T dt,
         const I* __restrict__ const perm,
         unsigned n) {
@@ -36,13 +37,14 @@ void assemble_diffusion(
         auto g = conductivity[tid];   // µS
         auto J = current[tid];        // A/m^2
         auto A = 1e-3*area[tid];      // 1e-9·m²
+        auto V = volume[tid];         // um^3
         auto X = concentration[tid];  // mM
         // conversion from current density to concentration change
         // using Faraday's constant
         auto F = A/(q*96.485332);
 
-        d[pid]   = 1e-3/dt   + F*g + invariant_d[tid];
-        rhs[pid] = 1e-3/dt*X + F*(u*g - J);
+        d[pid]   = 1e-3*V/dt   + F*g + invariant_d[tid];
+        rhs[pid] = 1e-3*V/dt*X + F*(u*g - J);
     }
 }
 
@@ -205,12 +207,13 @@ ARB_ARBOR_API void assemble_diffusion(
     arb_value_type q,
     const arb_value_type* conductivity,
     const arb_value_type* area,
+    const arb_value_type* volume,
     const arb_value_type dt,
     const arb_index_type* perm,
     unsigned n)
 {
     launch_1d(n, 128, kernels::assemble_diffusion<arb_value_type, arb_index_type>,
-        d, rhs, invariant_d, concentration, voltage, current, q, conductivity, area,
+        d, rhs, invariant_d, concentration, voltage, current, q, conductivity, area, volume
         dt, perm, n);
 }
 
