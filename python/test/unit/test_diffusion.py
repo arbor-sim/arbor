@@ -252,9 +252,9 @@ class TestDiffusion(unittest.TestCase):
         volume_tot = np.pi * (
             r_1**2 * l_1 + r_2**2 * l_2 + r_3**2 * l_3
         )  # volume of the whole setup in µm^3
-        volume_per_cv = volume_tot / (
-            num_segs * num_cvs_per_seg
-        )  # volume of one cylindrical CV in µm^3
+        volume_soma_cv = np.pi * (
+            r_1**2 * l_1
+        ) / num_cvs_per_seg # volume of one cylindrical CV of the first segment in µm^3
 
         inject_remove = [
             {"time": 0.1, "synapse": "syn_exc_A", "change": 600},
@@ -325,43 +325,40 @@ class TestDiffusion(unittest.TestCase):
         # maximum value of the concentration of s (total particle amount divided by total volume)
         s_max_expected = sV_tot_max_expected / volume_tot
 
-        # main tests
+        # tests
         if num_segs < 3:
-            self.assertEqual(morph.num_branches, 1)  # expected number of branches: 1
+            self.assertEqual(morph.num_branches, 1)  # number of branches (1 expected)
         else:
-            self.assertEqual(morph.num_branches, 3)  # expected number of branches: 3
+            self.assertEqual(morph.num_branches, 3)  # number of branches (3 expected, see https://docs.arbor-sim.org/en/latest/concepts/morphology.html)
         self.assertEqual(
             num_cvs, num_segs * num_cvs_per_seg
-        )  # expected total number of CVs
+        )  # total number of CVs
         self.assertAlmostEqual(
             data_s[-1, 1], s_lim_expected, delta=self.dev * s_lim_expected
-        )  # lim_{t->inf}(s) [direct]
+        )  # equilibrium concentration lim_{t->inf}(s) [direct]
+        self.assertAlmostEqual(
+            data_sV[-1, 1] / volume_soma_cv,
+            s_lim_expected,
+            delta=self.dev * s_lim_expected,
+        )  # equilibrium concentration lim_{t->inf}(s) [estimated]
         self.assertAlmostEqual(
             np.max(data_s[:, 1]), s_max_expected, delta=self.dev * s_max_expected
-        )  # max_{t}(s) [direct]
+        )  # maximum concentration max_{t}(s) [direct]
         self.assertAlmostEqual(
             data_sV_total[-1],
             sV_tot_lim_expected,
             delta=self.dev * sV_tot_lim_expected,
-        )  # lim_{t->inf}(s⋅V) [direct]
+        )  # equilibrium particle amount lim_{t->inf}(s⋅V) [direct]
+        self.assertAlmostEqual(
+                data_sV[-1, 1] * num_segs * num_cvs_per_seg,
+                sV_tot_lim_expected,
+                delta=self.dev * sV_tot_lim_expected,
+            )  # equilibrium particle amount lim_{t->inf}(s⋅V) [estimated]
         self.assertAlmostEqual(
             np.max(data_sV_total),
             sV_tot_max_expected,
             delta=self.dev * sV_tot_max_expected,
-        )  # max_{t}(s⋅V) [direct]
-
-        # additional tests for the case that there is only one segment of fixed radius
-        if num_segs == 1:
-            self.assertAlmostEqual(
-                data_sV[-1, 1] / volume_per_cv,
-                s_lim_expected,
-                delta=self.dev * s_lim_expected,
-            )  # lim_{t->inf}(s) [estimated]
-            self.assertAlmostEqual(
-                data_sV[-1, 1] * num_segs * num_cvs_per_seg,
-                sV_tot_lim_expected,
-                delta=self.dev * sV_tot_lim_expected,
-            )  # lim_{t->inf}(s⋅V) [estimated]
+        )  # maximum particle amount max_{t}(s⋅V) [direct]            
 
     # test_diffusion_equal_radii
     # Test: simulations with segments of equal length and equal radius
