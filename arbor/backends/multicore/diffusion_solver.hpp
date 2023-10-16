@@ -22,7 +22,6 @@ struct diffusion_solver {
 
     array d;           // [μS]
     array u;           // [μS]
-    array cv_area;     // [μm^2]
     array cv_volume;   // [μm^3]
     array invariant_d; // [μS] invariant part of matrix diagonal
 
@@ -36,15 +35,12 @@ struct diffusion_solver {
     diffusion_solver(const std::vector<index_type>& p,
                      const std::vector<index_type>& cell_cv_divs,
                      const std::vector<value_type>& diff,
-                     const std::vector<value_type>& area,
                      const std::vector<value_type>& volume):
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
         d(size(), 0), u(size(), 0),
-        cv_area(area.begin(), area.end()),
         cv_volume(volume.begin(), volume.end()),
-        invariant_d(size(), 0)
-    {
+        invariant_d(size(), 0) {
         // Sanity check
         arb_assert(diff.size() == size());
         arb_assert(cell_cv_divs.back() == (index_type)size());
@@ -65,21 +61,11 @@ struct diffusion_solver {
 
     // Assemble and solve the matrix
     // Assemble the matrix
+    //   concentration   [mM]      (per control volume)
     //   dt              [ms]      (scalar)
-    //   internal conc   [mM]      (per control volume)
-    //   voltage         [mV]      (per control volume)
-    //   current density [A.m^-2]  (per control volume and species)
-    //   diffusivity     [m^2/s]   (per control volume)
-    //   charge          [e]
-    //   diff. concentration
-    //    * will be overwritten by the solution
     template<typename T>
     void solve(T& concentration,
-               value_type dt,
-               const_view voltage,
-               const_view current,
-               const_view conductivity,
-               arb_value_type q) {
+               value_type dt) {
         auto cell_cv_part = util::partition_view(cell_cv_divs);
         index_type ncells = cell_cv_part.size();
 
@@ -87,17 +73,10 @@ struct diffusion_solver {
         // loop over submatrices
         for (auto m: util::make_span(0, ncells)) {
             for (auto i: util::make_span(cell_cv_part[m])) {
-                auto u = voltage[i];        // mV
-                auto g = conductivity[i];   // µS
-                auto J = current[i];        // A/m^2
-                auto A = 1e-3*cv_area[i];   // 1e-9·m²
                 auto X = concentration[i];  // mM
                 auto V = cv_volume[i];      // m^3
-                // conversion from current density to concentration change
-                // using Faraday's constant
-                auto F = A/(q*96.485332);
-                d[i]   = _1_dt*V   + F*g + invariant_d[i];
-                concentration[i] = _1_dt*V*X + F*(u*g - J);
+                d[i]   = _1_dt*V + invariant_d[i];
+                concentration[i] = _1_dt*V*X;
             }
         }
         solve(concentration);

@@ -20,11 +20,6 @@ void assemble_diffusion(T* __restrict__ const d,
                         T* __restrict__ const rhs,
                         const T* __restrict__ const invariant_d,
                         const T* __restrict__ const concentration,
-                        const T* __restrict__ const voltage,
-                        const T* __restrict__ const current,
-                        const T q,
-                        const T* __restrict__ const conductivity,
-                        const T* __restrict__ const area,
                         const T* __restrict__ const volume,
                         const T dt,
                         const I* __restrict__ const perm,
@@ -33,18 +28,10 @@ void assemble_diffusion(T* __restrict__ const d,
     if (tid < n) {
         auto _1_dt = 1e-3/dt;         // 1/µs
         auto pid = perm[tid];
-        auto u = voltage[tid];        // mV
-        auto g = conductivity[tid];   // µS
-        auto J = current[tid];        // A/m^2
-        auto A = 1e-3*area[tid];      // 1e-9·m²
         auto V = volume[tid];         // um^3
         auto X = concentration[tid];  // mM
-        // conversion from current density to concentration change
-        // using Faraday's constant
-        auto F = A/(q*96.485332);
-
-        d[pid]   = _1_dt*V   + F*g + invariant_d[tid];
-        rhs[pid] = _1_dt*V*X + F*(u*g - J);
+        d[pid]   = _1_dt*V + invariant_d[tid];
+        rhs[pid] = _1_dt*V*X;
     }
 }
 
@@ -199,11 +186,6 @@ ARB_ARBOR_API void assemble_diffusion(arb_value_type* d,
                                       arb_value_type* rhs,
                                       const arb_value_type* invariant_d,
                                       const arb_value_type* concentration,
-                                      const arb_value_type* voltage,
-                                      const arb_value_type* current,
-                                      arb_value_type q,
-                                      const arb_value_type* conductivity,
-                                      const arb_value_type* area,
                                       const arb_value_type* volume,
                                       const arb_value_type dt,
                                       const arb_index_type* perm,
@@ -211,7 +193,7 @@ ARB_ARBOR_API void assemble_diffusion(arb_value_type* d,
     launch_1d(n,
               128,
               kernels::assemble_diffusion<arb_value_type, arb_index_type>,
-              d, rhs, invariant_d, concentration, voltage, current, q, conductivity, area, volume, dt, perm, n);
+              d, rhs, invariant_d, volume, dt, perm, n);
 }
 
 // Example:

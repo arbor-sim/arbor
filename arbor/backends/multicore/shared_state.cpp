@@ -67,7 +67,6 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
     Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),
     Xd_(ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)),
     Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)),
-    gX_(ion_data.cv.size(), NAN, pad(alignment)),
     init_Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),
     init_Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)),
     reset_Xi_(ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)),
@@ -88,7 +87,6 @@ void ion_state::init_concentration() {
 }
 
 void ion_state::zero_current() {
-    util::zero(gX_);
     util::zero(iX_);
 }
 
@@ -432,7 +430,6 @@ void shared_state::instantiate(arb::mechanism& m,
         ion_state.external_concentration  = oion->Xo_.data();
         ion_state.diffusive_concentration = oion->Xd_.data();
         ion_state.ionic_charge            = oion->charge.data();
-        ion_state.conductivity            = oion->gX_.data();
     }
 
     // Initialize state and parameter vectors with default values.

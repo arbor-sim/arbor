@@ -35,7 +35,6 @@ public:
     array rhs;   // [nA]
 
     // Required for matrix assembly
-    array cv_area;             // [μm^2]
     array cv_volume;           // [μm^3]
 
     // Invariant part of the matrix diagonal
@@ -356,7 +355,6 @@ public:
         // d, u, rhs        : packed
         // invariant_d      : flat
         // cv_to_cell       : flat
-        // area             : flat
 
         // the invariant part of d is stored in in flat form
         std::vector<value_type> invariant_d_tmp(matrix_size, 0);
@@ -383,7 +381,6 @@ public:
         flat_to_packed(u_shuffled, u);
 
         // the invariant part of d and cv_area are in flat form
-        cv_area = memory::make_const_view(area);
         cv_volume = memory::make_const_view(volume);
         invariant_d = memory::make_const_view(invariant_d_tmp);
 
@@ -400,18 +397,11 @@ public:
     // Afterwards the diagonal and RHS will have been set given dt, voltage, current, and conductivity.
     //   dt [ms] (scalar)
     //   voltage [mV]
-    //   current density [A/m²]
-    //   conductivity [kS/m²]
-    void assemble(const value_type dt, const_view concentration, const_view voltage, const_view current, const_view conductivity, arb_value_type q) {
+    void assemble(const value_type dt, const_view concentration) {
         assemble_diffusion(d.data(),
                            rhs.data(),
                            invariant_d.data(),
                            concentration.data(),
-                           voltage.data(),
-                           current.data(),
-                           q,
-                           conductivity.data(),
-                           cv_area.data(),
                            cv_volume.data(),
                            dt,
                            perm.data(),
@@ -435,12 +425,8 @@ public:
     }
 
     void solve(array& concentration,
-               const value_type dt,
-               const_view voltage,
-               const_view current,
-               const_view conductivity,
-               arb_value_type q) {
-        assemble(dt, concentration, voltage, current, conductivity, q);
+               const value_type dt) {
+        assemble(dt, concentration);
         solve(concentration);
     }
 

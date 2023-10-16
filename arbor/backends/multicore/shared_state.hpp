@@ -56,7 +56,6 @@ struct ARB_ARBOR_API ion_state {
     array Xi_;              // (mM)    internal concentration
     array Xd_;              // (mM)    diffusive internal concentration
     array Xo_;              // (mM)    external concentration
-    array gX_;              // (kS/m²) per-species conductivity
 
     array init_Xi_;         // (mM) area-weighted initial internal concentration
     array init_Xo_;         // (mM) area-weighted initial external concentration
@@ -249,7 +248,7 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const shared_state& s);
 } // namespace multicore
 
 // Xd and gX are the only things that persist
-ARB_SERDES_ENABLE_EXT(multicore::ion_state, Xd_, gX_);
+ARB_SERDES_ENABLE_EXT(multicore::ion_state, Xd_);
 ARB_SERDES_ENABLE_EXT(multicore::mech_storage,
                       data_,
                       // NOTE(serdes) ion_states_, this is just a bunch of pointers

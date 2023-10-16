@@ -78,7 +78,6 @@ struct shared_state_base {
             if (data.is_diffusive) solver = std::make_unique<diff_solver>(disc.geometry.cv_parent,
                                                                           disc.geometry.cell_cv_divs,
                                                                           data.face_diffusivity,
-                                                                          disc.cv_area,
                                                                           disc.cv_volume);
             d->add_ion(ion, data, std::move(solver));
         }
@@ -152,11 +151,7 @@ struct shared_state_base {
         for (auto& [ion, data]: d->ion_data) {
             if (data.solver) {
                 data.solver->solve(data.Xd_,
-                                   d->dt,
-                                   d->voltage,
-                                   data.iX_,
-                                   data.gX_,
-                                   data.charge[0]);
+                                   d->dt);
             }
         }
     }
