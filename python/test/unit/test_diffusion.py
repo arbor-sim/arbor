@@ -282,7 +282,7 @@ class TestDiffusion(unittest.TestCase):
         # prepare the simulation
         cel = A.cable_cell(morph, dec, labels)
         rec = recipe(cat, cel, prb, inject_remove)
-        if A.config()['gpu']:
+        if A.config()["gpu"]:
             ctx = A.context(gpu_id=0)
         else:
             ctx = A.context()
