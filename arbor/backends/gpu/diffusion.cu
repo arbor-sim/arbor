@@ -193,7 +193,7 @@ ARB_ARBOR_API void assemble_diffusion(arb_value_type* d,
     launch_1d(n,
               128,
               kernels::assemble_diffusion<arb_value_type, arb_index_type>,
-              d, rhs, invariant_d, volume, dt, perm, n);
+              d, rhs, invariant_d, concentration, volume, dt, perm, n);
 }
 
 // Example:
