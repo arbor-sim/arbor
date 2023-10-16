@@ -19,7 +19,6 @@ namespace gpu {
 
 template <typename T, typename I>
 struct diffusion_state {
-public:
     using value_type = T;
     using size_type = I;
 
@@ -86,7 +85,6 @@ public:
     diffusion_state(const std::vector<size_type>& p,
                     const std::vector<size_type>& cell_cv_divs,
                     const std::vector<value_type>& face_diffusivity,
-                    const std::vector<value_type>& area,
                     const std::vector<value_type>& volume) {
         using util::make_span;
         constexpr unsigned npos = unsigned(-1);
@@ -380,7 +378,7 @@ public:
         // transform u_shuffled values into packed u vector.
         flat_to_packed(u_shuffled, u);
 
-        // the invariant part of d and cv_area are in flat form
+        // data in flat form
         cv_volume = memory::make_const_view(volume);
         invariant_d = memory::make_const_view(invariant_d_tmp);
 
