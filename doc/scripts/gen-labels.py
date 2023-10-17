@@ -345,7 +345,6 @@ f.write(write_morphology("tutorial_network_ring_morph", tutorial_network_ring_mo
 
 f.write("\n############# locsets (label_morph)\n\n")
 for label in locsets:
-    print(label)
     locs = [(l.branch, l.pos) for l in cell.locations('"{}"'.format(label))]
     f.write("ls_{}  = {{'type': 'locset', 'value': {}}}\n".format(label, locs))
 
