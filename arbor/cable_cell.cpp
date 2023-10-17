@@ -235,6 +235,7 @@ void cable_cell_impl::init() {
             case  8: { paint(rc.cables, std::get<density>(what), rc.region); break; }
             case  9: { paint(rc.cables, std::get<voltage_process>(what), rc.region); break; }
             case 10: { paint(rc.cables, std::get<scaled_mechanism<density>>(what), rc.region); break; }
+            default: throw arbor_internal_error{"Unknown paintable variant"};
         }
     }
 
@@ -259,6 +260,7 @@ void cable_cell_impl::init() {
             case 1: { place(lc.places, std::get<threshold_detector>(what), label); break; }
             case 2: { place(lc.places, std::get<synapse>(what), label); break; }
             case 3: { place(lc.places, std::get<junction>(what), label); break; }
+            default: throw arbor_internal_error{"Unknown placeable variant"};
         }
     }
 }
