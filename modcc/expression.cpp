@@ -129,7 +129,6 @@ void IdentifierExpression::semantic(scope_ptr scp) {
             return;
         }
     }
-
     // save the symbol
     symbol_ = s;
 }
@@ -156,18 +155,26 @@ expression_ptr DerivativeExpression::clone() const {
 }
 
 void DerivativeExpression::semantic(scope_ptr scp) {
+    // Check for semantic errors first
     error_ = false;
-
     IdentifierExpression::semantic(scp);
-    if (has_error()) {
-        return;
+    if (has_error()) return;
+
+    // STATE is ok to take derivatives of.
+    if (auto var = symbol_->is_variable(); var && var->is_state()) return;
+
+    // Diffusive concentrations may also be differentiated
+    if (auto local = symbol_->is_local_variable()) {
+        if (auto ext = local->external_variable();
+            ext && ext->data_source() == sourceKind::ion_diffusive) {
+            return;
+        }
     }
-    auto v = symbol_->is_variable();
-    if (!v || !v->is_state()) {
-        error( pprintf("the variable '%' must be a state variable to be differentiated",
-                        yellow(spelling_), location_));
-        return;
-    }
+
+    // Anything else raises an error
+    error(pprintf("The variable '%' must be a state variable or diffusive concentration to be differentiated.",
+                  yellow(spelling_), location_));
+
 }
 
 /*******************************************************************************
