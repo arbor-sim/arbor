@@ -91,128 +91,170 @@ class TestDiffusion(unittest.TestCase):
     def __init__(self, args):
         super(TestDiffusion, self).__init__(args)
 
-        self.runtime = 3.00  # runtime of the whole simulation in ms
+        self.runtime = 5.00  # runtime of the whole simulation in ms
         self.dt = 0.01  # duration of one timestep in ms
         self.dev = 0.01  # accepted relative deviation for `assertAlmostEqual`
 
-    # get_morph_and_decor
-    # Method that sets up and returns a morphology and decoration for given parameters
-    # - num_segs: number of segments (1, 2, or 3; in the case of 1 or 2, there'll be one branch, in the case of 3, there'll be three branches)
+    # get_morph_and_decor_1_seg
+    # Method that sets up and returns a morphology and decoration for one segment with the given parameters
+    # (one segment => there'll be one branch)
     # - num_cvs_per_seg: number of CVs per segment
-    # - l_1: axial length of the first segment in µm
-    # - l_2: axial length of the second segment in µm
-    # - l_3: axial length of the third segment in µm
+    # - length_1: axial length of the first segment in µm
     # - radius_1: radius of the first segment in µm
-    # - radius_2: radius of the second segment in µm
-    # - radius_3: radius of the third segment in µm
-    def get_morph_and_decor(
-        self, num_segs, num_cvs_per_seg, l_1, l_2, l_3, radius_1, radius_2, radius_3
-    ):
+    def get_morph_and_decor_1_seg(self, num_cvs_per_seg, length_1, radius_1):
         # ---------------------------------------------------------------------------------------
         # set up the morphology
         tree = A.segment_tree()
-        if num_segs == 1:
-            _ = tree.append(
-                A.mnpos,
-                A.mpoint(-l_1, 0, 0, radius_1),
-                A.mpoint(0, 0, 0, radius_1),
-                tag=0,
-            )
-
-            labels = A.label_dict(
-                {
-                    "soma-region": "(tag 0)",
-                    "soma-center": '(on-components 0.5 (region "soma-region"))',
-                    "soma-end": '(on-components 1.0 (region "soma-region"))',
-                }
-            )
-        elif num_segs == 2:
-            s = tree.append(
-                A.mnpos,
-                A.mpoint(-l_1, 0, 0, radius_1),
-                A.mpoint(0, 0, 0, radius_1),
-                tag=0,
-            )
-            _ = tree.append(
-                s,
-                A.mpoint(0, 0, 0, radius_2),
-                A.mpoint(+l_2, 0, 0, radius_2),
-                tag=1,
-            )
-
-            labels = A.label_dict(
-                {
-                    "soma-region": "(tag 0)",
-                    "dendriteA-region": "(tag 1)",
-                    "soma-center": '(on-components 0.5 (region "soma-region"))',
-                    "soma-end": '(on-components 1.0 (region "soma-region"))',
-                    "dendriteA-center": '(on-components 0.5 (region "dendriteA-region"))',
-                }
-            )
-        elif num_segs == 3:
-            s = tree.append(
-                A.mnpos,
-                A.mpoint(-l_1, 0, 0, radius_1),
-                A.mpoint(0, 0, 0, radius_1),
-                tag=0,
-            )
-            _ = tree.append(
-                s,
-                A.mpoint(0, 0, 0, radius_2),
-                A.mpoint(+l_2, 0, 0, radius_2),
-                tag=1,
-            )
-            _ = tree.append(
-                s,
-                A.mpoint(0, 0, 0, radius_3),
-                A.mpoint(+l_3, 0, 0, radius_3),
-                tag=2,
-            )
-
-            labels = A.label_dict(
-                {
-                    "soma-region": "(tag 0)",
-                    "dendriteA-region": "(tag 1)",
-                    "dendriteB-region": "(tag 2)",
-                    "soma-center": '(on-components 0.5 (region "soma-region"))',
-                    "soma-end": '(on-components 1.0 (region "soma-region"))',
-                    "dendriteA-center": '(on-components 0.5 (region "dendriteA-region"))',
-                    "dendriteB-center": '(on-components 0.5 (region "dendriteB-region"))',
-                }
-            )
-        else:
-            raise ValueError(
-                f"Specified number of segments ({num_segs}) not supported."
-            )
+        _ = tree.append(
+            A.mnpos,
+            A.mpoint(-length_1, 0, 0, radius_1),
+            A.mpoint(0, 0, 0, radius_1),
+            tag=0,
+        )
+        labels = A.label_dict(
+            {
+                "soma-region": "(tag 0)",
+                "soma-start": '(on-components 0.0 (region "soma-region"))',
+                "soma-center": '(on-components 0.5 (region "soma-region"))',
+                "soma-end": '(on-components 1.0 (region "soma-region"))',
+            }
+        )
         morph = A.morphology(tree)
 
         # ---------------------------------------------------------------------------------------
         # decorate the morphology with mechanisms
         dec = A.decor()
-        if num_segs < 3:
-            dec.discretization(
-                A.cv_policy(f"(fixed-per-branch {num_segs*num_cvs_per_seg})")
-            )  # there is only branch for less than three segments
-        elif num_segs == 3:
-            dec.discretization(A.cv_policy(f"(fixed-per-branch {num_cvs_per_seg})"))
-        if num_segs == 1:
-            dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_A")
-            dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_B")
-            dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_inh")
-        elif num_segs == 2:
-            dec.place(
-                '"dendriteA-center"', A.synapse("synapse_with_diffusion"), "syn_exc_A"
-            )
-            dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_B")
-            dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_inh")
-        elif num_segs == 3:
-            dec.place(
-                '"dendriteA-center"', A.synapse("synapse_with_diffusion"), "syn_exc_A"
-            )
-            dec.place(
-                '"dendriteB-center"', A.synapse("synapse_with_diffusion"), "syn_exc_B"
-            )
-            dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_inh")
+        dec.discretization(
+            A.cv_policy(f"(fixed-per-branch {num_cvs_per_seg})")
+        )  # use 'fixed-per-branch' policy to obtain exact number of CVs; there's one branch here
+        dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_A")
+        dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_B")
+        dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_inh")
+        dec.paint("(all)", A.density("neuron_with_diffusion"))
+
+        return morph, dec, labels
+
+    # get_morph_and_decor_2_seg
+    # Method that sets up and returns a morphology and decoration for two segments with the given parameters
+    # (two segments => there'll be one branch)
+    # - num_cvs_per_seg: number of CVs per segment
+    # - length_1: axial length of the first segment in µm
+    # - length_2: axial length of the second segment in µm
+    # - radius_1: radius of the first segment in µm
+    # - radius_2: radius of the second segment in µm
+    def get_morph_and_decor_2_seg(
+        self, num_cvs_per_seg, length_1, length_2, radius_1, radius_2
+    ):
+        # ---------------------------------------------------------------------------------------
+        # set up the morphology
+        tree = A.segment_tree()
+        s = tree.append(
+            A.mnpos,
+            A.mpoint(-length_1, 0, 0, radius_1),
+            A.mpoint(0, 0, 0, radius_1),
+            tag=0,
+        )
+        _ = tree.append(
+            s,
+            A.mpoint(0, 0, 0, radius_2),
+            A.mpoint(+length_2, 0, 0, radius_2),
+            tag=1,
+        )
+        labels = A.label_dict(
+            {
+                "soma-region": "(tag 0)",
+                "dendriteA-region": "(tag 1)",
+                "soma-start": '(on-components 0.0 (region "soma-region"))',
+                "soma-center": '(on-components 0.5 (region "soma-region"))',
+                "soma-end": '(on-components 1.0 (region "soma-region"))',
+                "dendriteA-center": '(on-components 0.5 (region "dendriteA-region"))',
+            }
+        )
+        morph = A.morphology(tree)
+
+        # ---------------------------------------------------------------------------------------
+        # decorate the morphology with mechanisms
+        dec = A.decor()
+        dec.discretization(
+            A.cv_policy(f"(fixed-per-branch {2*num_cvs_per_seg})")
+        )  # use 'fixed-per-branch' policy to obtain exact number of CVs; there's one branch here
+        dec.place(
+            '"dendriteA-center"', A.synapse("synapse_with_diffusion"), "syn_exc_A"
+        )
+        dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_B")
+        dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_inh")
+        dec.paint("(all)", A.density("neuron_with_diffusion"))
+
+        return morph, dec, labels
+
+    # get_morph_and_decor_3_seg
+    # Method that sets up and returns a morphology and decoration for three segments with the given parameters
+    # (three segments => there'll be three branches)
+    # - num_cvs_per_seg: number of CVs per segment
+    # - length_1: axial length of the first segment in µm
+    # - length_2: axial length of the second segment in µm
+    # - length_3: axial length of the third segment in µm
+    # - radius_1: radius of the first segment in µm
+    # - radius_2: radius of the second segment in µm
+    # - radius_3: radius of the third segment in µm
+    def get_morph_and_decor_3_seg(
+        self,
+        num_cvs_per_seg,
+        length_1,
+        length_2,
+        length_3,
+        radius_1,
+        radius_2,
+        radius_3,
+    ):
+        # ---------------------------------------------------------------------------------------
+        # set up the morphology
+        tree = A.segment_tree()
+        s = tree.append(
+            A.mnpos,
+            A.mpoint(-length_1, 0, 0, radius_1),
+            A.mpoint(0, 0, 0, radius_1),
+            tag=0,
+        )
+        _ = tree.append(
+            s,
+            A.mpoint(0, 0, 0, radius_2),
+            A.mpoint(+length_2, 0, 0, radius_2),
+            tag=1,
+        )
+        _ = tree.append(
+            s,
+            A.mpoint(0, 0, 0, radius_3),
+            A.mpoint(+length_3, 0, 0, radius_3),
+            tag=2,
+        )
+        labels = A.label_dict(
+            {
+                "soma-region": "(tag 0)",
+                "dendriteA-region": "(tag 1)",
+                "dendriteB-region": "(tag 2)",
+                "soma-start": '(on-components 0.0 (region "soma-region"))',
+                "soma-center": '(on-components 0.5 (region "soma-region"))',
+                "soma-end": '(on-components 1.0 (region "soma-region"))',
+                "dendriteA-center": '(on-components 0.5 (region "dendriteA-region"))',
+                "dendriteB-center": '(on-components 0.5 (region "dendriteB-region"))',
+            }
+        )
+        morph = A.morphology(tree)
+
+        # ---------------------------------------------------------------------------------------
+        # decorate the morphology with mechanisms
+        dec = A.decor()
+        dec.discretization(
+            A.cv_policy(f"(fixed-per-branch {num_cvs_per_seg})")
+        )  # use 'fixed-per-branch' policy to obtain exact number of CVs; there are three branches here
+        dec.place(
+            '"dendriteA-center"', A.synapse("synapse_with_diffusion"), "syn_exc_A"
+        )
+        dec.place(
+            '"dendriteB-center"', A.synapse("synapse_with_diffusion"), "syn_exc_B"
+        )
+        dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_inh")
         dec.paint("(all)", A.density("neuron_with_diffusion"))
 
         return morph, dec, labels
@@ -242,20 +284,7 @@ class TestDiffusion(unittest.TestCase):
         r_3=4.0,
     ):
         # ---------------------------------------------------------------------------------------
-        # set parameters and calculate geometrical measures
-        if num_segs < 2:
-            r_2 = l_2 = 0
-            r_3 = l_3 = 0
-        elif num_segs < 3:
-            r_3 = l_3 = 0
-
-        volume_tot = np.pi * (
-            r_1**2 * l_1 + r_2**2 * l_2 + r_3**2 * l_3
-        )  # volume of the whole setup in µm^3
-        volume_per_cv = volume_tot / (
-            num_segs * num_cvs_per_seg
-        )  # volume of one cylindrical CV in µm^3
-
+        # set parameters
         inject_remove = [
             {"time": 0.1, "synapse": "syn_exc_A", "change": 600},
             {"time": 0.5, "synapse": "syn_exc_B", "change": 1200},
@@ -264,17 +293,51 @@ class TestDiffusion(unittest.TestCase):
         diffusivity = 1  # diffusivity (in m^2/s)
 
         # ---------------------------------------------------------------------------------------
-        # get morphology, decoration, and labels, and add the diffusive particle species 's'
-        morph, dec, labels = self.get_morph_and_decor(
-            num_segs, num_cvs_per_seg, l_1, l_2, l_3, r_1, r_2, r_3
-        )
+        # get morphology, decoration, and labels, and calculate geometrical measures
+        if num_segs == 1:
+            r_2 = l_2 = 0  # set radius and length of second segment to zero
+            r_3 = l_3 = 0  # set radius and length of third segment to zero
+            morph, dec, labels = self.get_morph_and_decor_1_seg(
+                num_cvs_per_seg, l_1, r_1
+            )  # get morphology, decoration, and labels
+            length_soma_cv = (
+                l_1 / num_cvs_per_seg
+            )  # consider 'fixed-per-branch' policy for one segment, which forms one branch
+        elif num_segs == 2:
+            r_3 = l_3 = 0  # set radius and length of third segment to zero
+            morph, dec, labels = self.get_morph_and_decor_2_seg(
+                num_cvs_per_seg, l_1, l_2, r_1, r_2
+            )  # get morphology, decoration, and labels
+            length_soma_cv = (l_1 + l_2) / (
+                2 * num_cvs_per_seg
+            )  # consider 'fixed-per-branch' policy for two segments, which only form one branch
+        elif num_segs == 3:
+            morph, dec, labels = self.get_morph_and_decor_3_seg(
+                num_cvs_per_seg, l_1, l_2, l_3, r_1, r_2, r_3
+            )  # get morphology, decoration, and labels
+            length_soma_cv = (
+                l_1 / num_cvs_per_seg
+            )  # consider 'fixed-per-branch' policy for three segments, which form three branches
+        else:
+            raise ValueError(
+                f"Specified number of segments ({num_segs}) not supported."
+            )
+        volume_soma_cv = np.pi * (
+            r_1**2 * length_soma_cv
+        )  # volume of one cylindrical CV of the first segment in µm^3
+        volume_tot = np.pi * (
+            r_1**2 * l_1 + r_2**2 * l_2 + r_3**2 * l_3
+        )  # volume of the whole setup in µm^3
+
+        # ---------------------------------------------------------------------------------------
+        # add the diffusive particle species 's'
         dec.set_ion("s", int_con=0.0, diff=diffusivity)
 
         # ---------------------------------------------------------------------------------------
         # set probes
         prb = [
-            A.cable_probe_ion_diff_concentration('"soma-center"', "s"),
-            A.cable_probe_density_state('"soma-center"', "neuron_with_diffusion", "sV"),
+            A.cable_probe_ion_diff_concentration('"soma-start"', "s"),
+            A.cable_probe_density_state('"soma-start"', "neuron_with_diffusion", "sV"),
             A.cable_probe_density_state_cell("neuron_with_diffusion", "sV"),
         ]
 
@@ -291,8 +354,8 @@ class TestDiffusion(unittest.TestCase):
 
         # ---------------------------------------------------------------------------------------
         # set handles
-        hdl_s = sim.sample((0, 0), A.regular_schedule(self.dt))  # s at "soma-center"
-        hdl_sV = sim.sample((0, 1), A.regular_schedule(self.dt))  # sV at "soma-center"
+        hdl_s = sim.sample((0, 0), A.regular_schedule(self.dt))  # s at "soma-start"
+        hdl_sV = sim.sample((0, 1), A.regular_schedule(self.dt))  # sV at "soma-start"
         hdl_sV_all = sim.sample(
             (0, 2), A.regular_schedule(self.dt)
         )  # sV (cell-wide array)
@@ -330,43 +393,40 @@ class TestDiffusion(unittest.TestCase):
         # maximum value of the concentration of s (total particle amount divided by total volume)
         s_max_expected = sV_tot_max_expected / volume_tot
 
-        # main tests
+        # tests
         if num_segs < 3:
-            self.assertEqual(morph.num_branches, 1)  # expected number of branches: 1
+            self.assertEqual(morph.num_branches, 1)  # number of branches (1 expected)
         else:
-            self.assertEqual(morph.num_branches, 3)  # expected number of branches: 3
-        self.assertEqual(
-            num_cvs, num_segs * num_cvs_per_seg
-        )  # expected total number of CVs
+            self.assertEqual(
+                morph.num_branches, 3
+            )  # number of branches (3 expected, see https://docs.arbor-sim.org/en/latest/concepts/morphology.html)
+        self.assertEqual(num_cvs, num_segs * num_cvs_per_seg)  # total number of CVs
         self.assertAlmostEqual(
             data_s[-1, 1], s_lim_expected, delta=self.dev * s_lim_expected
-        )  # lim_{t->inf}(s) [direct]
+        )  # equilibrium concentration lim_{t->inf}(s) [direct]
+        self.assertAlmostEqual(
+            data_sV[-1, 1] / volume_soma_cv,
+            s_lim_expected,
+            delta=self.dev * s_lim_expected,
+        )  # equilibrium concentration lim_{t->inf}(s) [estimated]
         self.assertAlmostEqual(
             np.max(data_s[:, 1]), s_max_expected, delta=self.dev * s_max_expected
-        )  # max_{t}(s) [direct]
+        )  # maximum concentration max_{t}(s) [direct]
         self.assertAlmostEqual(
             data_sV_total[-1],
             sV_tot_lim_expected,
             delta=self.dev * sV_tot_lim_expected,
-        )  # lim_{t->inf}(s⋅V) [direct]
+        )  # equilibrium particle amount lim_{t->inf}(s⋅V) [direct]
+        self.assertAlmostEqual(
+            data_sV[-1, 1] / volume_soma_cv * volume_tot,
+            sV_tot_lim_expected,
+            delta=self.dev * sV_tot_lim_expected,
+        )  # equilibrium particle amount lim_{t->inf}(s⋅V) [estimated]
         self.assertAlmostEqual(
             np.max(data_sV_total),
             sV_tot_max_expected,
             delta=self.dev * sV_tot_max_expected,
-        )  # max_{t}(s⋅V) [direct]
-
-        # additional tests for the case that there is only one segment of fixed radius
-        if num_segs == 1:
-            self.assertAlmostEqual(
-                data_sV[-1, 1] / volume_per_cv,
-                s_lim_expected,
-                delta=self.dev * s_lim_expected,
-            )  # lim_{t->inf}(s) [estimated]
-            self.assertAlmostEqual(
-                data_sV[-1, 1] * num_segs * num_cvs_per_seg,
-                sV_tot_lim_expected,
-                delta=self.dev * sV_tot_lim_expected,
-            )  # lim_{t->inf}(s⋅V) [estimated]
+        )  # maximum particle amount max_{t}(s⋅V) [direct]
 
     # test_diffusion_equal_radii
     # Test: simulations with segments of equal length and equal radius
