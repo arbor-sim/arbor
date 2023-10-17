@@ -1,15 +1,15 @@
 #include <iterator>
 #include <vector>
-#include <unordered_set>
+#include <numeric>
 
 #include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/util/expected.hpp>
+#include <arbor/util/hash_def.hpp>
 
 #include "label_resolution.hpp"
 #include "util/partition.hpp"
-#include "util/rangeutil.hpp"
 #include "util/span.hpp"
 
 namespace arb {
@@ -22,7 +22,7 @@ cell_label_range::cell_label_range(std::vector<cell_size_type> size_vec,
 {
     std::transform(label_vec.begin(), label_vec.end(),
                    std::back_inserter(labels),
-                   internal_hash);
+                   internal_hash<const std::string&>);
     arb_assert(check_invariant());
 };
 
