@@ -1,21 +1,15 @@
 NEURON {
     SUFFIX decay
     USEION x WRITE xd
-    RANGE F, tau
+    RANGE tau
 }
 
 PARAMETER { tau = 5 }
 
-INITIAL { F = xd }
-
-STATE { F }
-
 BREAKPOINT {
-   SOLVE dF METHOD cnexp
-   xd = F
+   SOLVE dX METHOD cnexp
 }
 
-DERIVATIVE dF {
-   F = xd
-   F' = -tau*F
+DERIVATIVE dX {
+   xd' = -tau*xd
 }
