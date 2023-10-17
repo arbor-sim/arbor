@@ -115,7 +115,7 @@ joined at the soma center. It differs in two ways:
 * The soma is extended along the x-axis, not the y-axis.
 * The soma is constructed from three points, the first at ``x=x0-r``, the second with
   ``x=x0`` and the third at ``x=x0+r``, to form a single section.
-* All dendrites, axons, and apical dendrites attached to the center of the soma with "zero resistance wires".
+* All dendrites, axons, and apical dendrites are attached to the center of the soma with "zero resistance wires".
 
 **The axon, dendrite and apical sub-trees follow special rules for attachment to
 the soma**: By default, the sub-tree starts at the first sample with the

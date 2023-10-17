@@ -411,7 +411,7 @@ connected points.
   :width: 800
   :align: center
 
-This mean a simple fork -- as that between branches 2, 3, and 4 in the image
+This means a simple fork -- as that between branches 2, 3, and 4 in the image
 above gives rise to the following scenarios
 
 - ``(join (segment 2) (segment 3))`` is connected as 3 is distal to 2.
