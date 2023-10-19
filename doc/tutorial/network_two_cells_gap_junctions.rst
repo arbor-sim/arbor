@@ -25,36 +25,72 @@ We will investigate how the equilibrium potentials of the two cells change becau
 Walk-through
 ************
 
-We set up a recipe for the simulation of two cells with some parameters.
+We set up a recipe for the simulation of two cells
 
 .. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
    :language: python
-   :lines: 12-64
+   :lines: 12-46
 
-Implementing the ``cell_description`` member function constructs the morphology and sets the properties of the cells as well as the gap junction mechanisms and the discretization policy.
-
-.. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
-   :language: python
-   :lines: 66-101
-
-The bidirection gap junction is created in the function ``gap_junctions_on``.
-
-.. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
-   :language: python
-   :lines: 103-117
-
-We parse the command line arguments, instantiate the recipe, run the simulation, extract results and plot:
+in which we store the relevant parameters for the two cells, all of which are
+shared except the equilibrium potentials in ``Vms``. Next, we define callbacks
+to define our cell population:
+- ``num_cells`` returns the number of cells in the network, ie 2
+- ``cell_kind`` specifies that we handle ``cable_cell`` exclusively.
+- ``global_properties`` returns a list of standard parameters based on the
+  defaults of the NEURON simulator.
+- ``cell_description`` member function constructs the morphology and sets the
+  properties of the cells as well as the gap junction mechanisms and the
+  discretization policy. It returns the finished ``cable_cell``, matching the
+  ``cell_kind`` callback.
 
 .. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
    :language: python
-   :lines: 114-
+   :lines: 48-94
 
-The output plot below shows how the potential of the two cells approaches their equilibrium potentials.
-The expected values are denoted by dashed lines.
+We build the network conections, here a single, bidirectional gap junction
+
+.. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
+   :language: python
+   :lines: 96-105
+
+And, finally, we return a set of probes which are passed in during construction
+
+.. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
+   :language: python
+   :lines: 107-109
+
+We parse the command line arguments which are used to set parameters in the recipe
+
+.. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
+   :language: python
+   :lines: 112-146
+
+Next, we define a list of probes, construct the recipe and simulation, setting probe
+sampling on a regular grid with width equal to the timestep :math:`dt`
+
+.. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
+   :language: python
+   :lines: 148-160
+
+Having set up the simulation, we can run it and access the sampling values
+
+.. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
+   :language: python
+   :lines: 162-176
+
+All that is left to do is to put this into a plot. The output plot below shows
+how the potential of the two cells approaches their equilibrium potentials
+
+.. math::
+
+   \bar U_i = U_i + w(U_i - U_j)
+
+   w = \frac{\rho + g}{2 \rho + g}
 
 .. figure:: network_two_cells_gap_junctions_result.svg
     :width: 800
     :align: center
+
 
 The full code
 *************

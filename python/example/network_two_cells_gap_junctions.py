@@ -48,19 +48,12 @@ class TwoCellsWithGapJunction(arbor.recipe):
     def num_cells(self):
         return 2
 
-    def num_sources(self, gid):
-        assert gid in [0, 1]
-        return 0
-
     def cell_kind(self, gid):
         assert gid in [0, 1]
         return arbor.cell_kind.cable
 
-    def probes(self, gid):
-        assert gid in [0, 1]
-        return self.the_probes
-
     def global_properties(self, kind):
+        assert kind == arbor.cell_kind.cable
         return self.the_props
 
     def cell_description(self, gid):
@@ -111,6 +104,9 @@ class TwoCellsWithGapJunction(arbor.recipe):
             raise RuntimeError("Invalid GID for example.")
         return [arbor.gap_junction_connection((tgt, "gj_label"), "gj_label", 1)]
 
+    def probes(self, gid):
+        assert gid in [0, 1]
+        return self.the_probes
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -164,7 +160,8 @@ if __name__ == "__main__":
         ]
 
     # run the simulation for 5 ms
-    sim.run(tfinal=5, dt=dt)
+    T = 5
+    sim.run(tfinal=T, dt=dt)
 
     # retrieve the sampled membrane voltages and convert to a pandas DataFrame
     print("Plotting results ...")
@@ -187,20 +184,22 @@ if __name__ == "__main__":
     # area of cells
     area = args.length * 1e-6 * 2 * np.pi * args.radius * 1e-6
 
-    # total conductance and resistance
+    # total conductance
     cell_g = args.g / 1e-4 * area
-    cell_R = 1 / cell_g
 
-    # gap junction conductance and resistance in base units
+    # gap junction conductance in base units
     si_gj_g = args.gj_g * 1e-6
-    si_gj_R = 1 / si_gj_g
 
     # indicate the expected equilibrium potentials
     for i, j in [[0, 1], [1, 0]]:
         weighted_potential = args.Vms[i] + (
-            (args.Vms[j] - args.Vms[i]) * (si_gj_R + cell_R)
-        ) / (2 * cell_R + si_gj_R)
+            (args.Vms[j] - args.Vms[i]) * (si_gj_g + cell_g)
+        ) / (2 * si_gj_g + cell_g)
         ax.axhline(weighted_potential, linestyle="dashed", color="black", alpha=0.5)
+        ax.text(2, weighted_potential, f'$\\tilde U_{j} = U_{j} + w\\cdot(U_{j} - U_{i})$', va='center', ha='center', backgroundcolor='w')
+        ax.text(2, args.Vms[j], f'$U_{j}$', va='center', ha='center', backgroundcolor='w')
+
+    ax.set_xlim(0, T)
 
     # plot the initial/nominal resting potentials
     for gid, Vm in enumerate(args.Vms):
