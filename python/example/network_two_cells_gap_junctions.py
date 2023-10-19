@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from builtins import enumerate
 import arbor
 import argparse
 import numpy as np
@@ -95,7 +96,6 @@ class TwoCellsWithGapJunction(arbor.recipe):
 
     def gap_junctions_on(self, gid):
         # create a bidirectional gap junction from cell 0 at label "gj_label" to cell 1 at label "gj_label" and back.
-
         if gid == 0:
             tgt = 1
         elif gid == 1:
@@ -107,6 +107,7 @@ class TwoCellsWithGapJunction(arbor.recipe):
     def probes(self, gid):
         assert gid in [0, 1]
         return self.the_probes
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -152,28 +153,28 @@ if __name__ == "__main__":
     # configure the simulation and handles for the probes
     sim = arbor.simulation(recipe)
 
+    T = 5
     dt = 0.01
-    handles = []
-    for gid in [0, 1]:
-        handles += [
-            sim.sample((gid, i), arbor.regular_schedule(dt)) for i in range(len(probes))
-        ]
+
+    handles = [
+        sim.sample((gid, i), arbor.regular_schedule(dt))
+        for i, _ in enumerate(probes)
+        for gid in range(recipe.num_cells())
+    ]
 
     # run the simulation for 5 ms
-    T = 5
     sim.run(tfinal=T, dt=dt)
 
     # retrieve the sampled membrane voltages and convert to a pandas DataFrame
     print("Plotting results ...")
     df_list = []
-    for probe in range(len(handles)):
-        samples, meta = sim.samples(handles[probe])[0]
+    for probe, handle in enumerate(handles):
+        samples, meta = sim.samples(handle)[0]
         df_list.append(
             pandas.DataFrame(
                 {"t/ms": samples[:, 0], "U/mV": samples[:, 1], "Cell": f"{probe}"}
             )
         )
-
     df = pandas.concat(df_list, ignore_index=True)
 
     fig, ax = plt.subplots()
@@ -184,20 +185,28 @@ if __name__ == "__main__":
     # area of cells
     area = args.length * 1e-6 * 2 * np.pi * args.radius * 1e-6
 
-    # total conductance
-    cell_g = args.g / 1e-4 * area
-
-    # gap junction conductance in base units
+    # total and gap junction conductance in base units
+    cell_g = area * args.g / 1e-4
     si_gj_g = args.gj_g * 1e-6
+
+    # weight
+    w = (si_gj_g + cell_g) / (2 * si_gj_g + cell_g)
 
     # indicate the expected equilibrium potentials
     for i, j in [[0, 1], [1, 0]]:
-        weighted_potential = args.Vms[i] + (
-            (args.Vms[j] - args.Vms[i]) * (si_gj_g + cell_g)
-        ) / (2 * si_gj_g + cell_g)
+        weighted_potential = args.Vms[i] + w * (args.Vms[j] - args.Vms[i])
         ax.axhline(weighted_potential, linestyle="dashed", color="black", alpha=0.5)
-        ax.text(2, weighted_potential, f'$\\tilde U_{j} = U_{j} + w\\cdot(U_{j} - U_{i})$', va='center', ha='center', backgroundcolor='w')
-        ax.text(2, args.Vms[j], f'$U_{j}$', va='center', ha='center', backgroundcolor='w')
+        ax.text(
+            2,
+            weighted_potential,
+            f"$\\tilde U_{j} = U_{j} + w\\cdot(U_{j} - U_{i})$",
+            va="center",
+            ha="center",
+            backgroundcolor="w",
+        )
+        ax.text(
+            2, args.Vms[j], f"$U_{j}$", va="center", ha="center", backgroundcolor="w"
+        )
 
     ax.set_xlim(0, T)
 
