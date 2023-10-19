@@ -112,11 +112,26 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
     .. function:: spikes()
 
         Return a NumPy structured array of spikes recorded during the course of a simulation.
-        Each spike is represented as a NumPy structured datatype with signature
-        ``('source', [('gid', '<u4'), ('index', '<u4')]), ('time', '<f8')``.
+        This array has the following NumpPy ``dtype``:
 
-        The spikes are sorted in ascending order of spike time, and spikes with the same time are
-        sorted accourding to source gid then index.
+        .. code-block:: python
+
+           [('source', [('gid', '<u4'), ('index', '<u4')]), ('time', '<f8')]
+
+        and can be iterated over as
+
+        .. code-block:: python
+
+            for (gid, index), time in sim.spikes():
+                pass
+
+        The fields ``gid`` and ``index`` identify the spike's source by the cell
+        global index ``gid`` and by the source index on that cell ``index``, eg
+        the ``n``th spike detector on a cable cell, and ``time`` is simply the
+        spike time.
+
+        The spikes are sorted in ascending order of spike time, and spikes with
+        the same time are sorted accourding to source gid then index.
 
     **Sampling probes:**
 
