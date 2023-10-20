@@ -9,7 +9,7 @@
 #include <arbor/util/expected.hpp>
 
 #include "util/partition.hpp"
-#include "util/hash.hpp"
+#include <arbor/util/hash_def.hpp>
 
 namespace arb {
 

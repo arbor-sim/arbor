@@ -12,7 +12,7 @@ std::vector<hash_type> make_labels(const std::vector<std::string>& ls) {
     std::vector<hash_type> res;
     std::transform(ls.begin(), ls.end(),
                    std::back_inserter(res),
-                   internal_hash);
+                   internal_hash<const std::string&>);
     return res;
 }
 

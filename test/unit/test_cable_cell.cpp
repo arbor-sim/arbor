@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "../common_cells.hpp"
-#include "util/hash.hpp"
+#include <arbor/util/hash_def.hpp>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>

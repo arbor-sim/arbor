@@ -10,7 +10,7 @@
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/s_expr.hpp>
 
-#include "util/hash.hpp"
+#include <arbor/util/hash_def.hpp>
 #include "util/maputil.hpp"
 #include "util/strprintf.hpp"
 
