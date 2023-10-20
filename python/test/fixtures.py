@@ -215,7 +215,7 @@ class art_spiker_recipe(arbor.recipe):
         if gid < 3:
             return []
         else:
-            return [arbor.cable_probe_membrane_voltage('"midpoint"')]
+            return [arbor.cable_probe_membrane_voltage('"midpoint"', "Um")]
 
     def _cable_cell_elements(self):
         # (1) Create a morphology with a single (cylindrical) segment of length=diameter

@@ -119,7 +119,7 @@ public:
 
     std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
         // One probe per cell, sampling membrane voltage at end of soma.
-        return {arb::cable_probe_membrane_voltage{arb::mlocation{0, 0.0}}};
+        return {{arb::cable_probe_membrane_voltage{arb::mlocation{0, 0.0}}, "Um"}};
     }
 
 private:
@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
         arb::simulation sim(recipe, ctx);
 
         // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
-        auto probeset_id = cell_member_type{0, 0};
+        auto probeset_id = arb::cell_address_type{0, "Um"};
         // The schedule for sampling is 10 samples every 1 ms.
         auto sched = arb::regular_schedule(1);
         // This is where the voltage samples will be stored as (time, value) pairs

@@ -126,7 +126,7 @@ TEST(serdes, round_trip) {
 struct serdes_recipe: public arb::recipe {
     arb::cell_size_type num_cells() const override { return num; }
     std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override {
-        return {{arb::cable_probe_membrane_voltage{arb::ls::location(0, 0.5)}, 0}};
+        return {{arb::cable_probe_membrane_voltage{arb::ls::location(0, 0.5)}, "Um-(0, 0.5)"}};
     }
     arb::cell_kind get_cell_kind(arb::cell_gid_type) const override { return arb::cell_kind::cable; }
     std::any get_global_properties(arb::cell_kind) const override {

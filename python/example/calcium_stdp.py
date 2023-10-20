@@ -97,7 +97,9 @@ class stdp_recipe(arbor.recipe):
         return self.the_props
 
     def probes(self, gid):
-        return [arbor.cable_probe_point_state_cell("calcium_based_synapse", "rho")]
+        return [
+            arbor.cable_probe_point_state_cell("calcium_based_synapse", "rho", "rho")
+        ]
 
     def event_generators(self, gid):
         return self.the_gens
@@ -147,7 +149,7 @@ def run(time_lag):
     sim = arbor.simulation(recipe, context, domains, random_seed)
 
     # Register prope to read out stdp curve
-    handle = sim.sample((0, 0), arbor.explicit_schedule([t1 - dt]))
+    handle = sim.sample((0, "rho"), arbor.explicit_schedule([t1 - dt]))
 
     # Run simulation
     sim.run(t1, dt)
@@ -175,6 +177,8 @@ def run(time_lag):
 
 with multiprocessing.Pool() as p:
     results = p.map(run, stdp_dt)
+
+results = map(run, stdp_dt)
 
 ref = numpy.array(
     [

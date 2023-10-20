@@ -110,9 +110,6 @@ The types defined below are used as identifiers for cells and members of cell-lo
         * be associated with a unique cell, identified by the member :attr:`gid`;
         * identify an item within a cell-local collection by the member :attr:`index`.
 
-        An example is uniquely identifying a probeset on the model:
-        ``arbor.cell_member(12, 3)`` can be used to identify the probeset with :attr:`index` 3 on the cell with :attr:`gid` 12.
-
         Lexicographically ordered by :attr:`gid`, then :attr:`index`.
 
     .. attribute:: gid

@@ -93,16 +93,16 @@ class single_recipe(arbor.recipe):
         return 1
 
     # (5.3) Override the cell_kind method
-    def cell_kind(self, gid):
+    def cell_kind(self, _):
         return arbor.cell_kind.cable
 
     # (5.4) Override the cell_description method
-    def cell_description(self, gid):
+    def cell_description(self, _):
         return cell
 
     # (5.5) Override the probes method
-    def probes(self, gid):
-        return [arbor.cable_probe_membrane_voltage('"custom_terminal"')]
+    def probes(self, _):
+        return [arbor.cable_probe_membrane_voltage('"custom_terminal"', "Um")]
 
     # (5.6) Override the global_properties method
     def global_properties(self, gid):
@@ -118,8 +118,7 @@ sim = arbor.simulation(recipe)
 # Instruct the simulation to record the spikes and sample the probe
 sim.record(arbor.spike_recording.all)
 
-probeset_id = arbor.cell_member(0, 0)
-handle = sim.sample(probeset_id, arbor.regular_schedule(0.02))
+handle = sim.sample((0, "Um"), arbor.regular_schedule(0.02))
 
 # (7) Run the simulation
 sim.run(tfinal=100, dt=0.025)
