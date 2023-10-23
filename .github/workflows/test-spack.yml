@@ -59,6 +59,7 @@ jobs:
       - name: Load Arbor and verify installation, Python Examples.
         run: |
           source spack/share/spack/setup-env.sh
+          python -m ensurepip --upgrade
           spack load arbor
           cd arbor
           scripts/run_python_examples.sh
