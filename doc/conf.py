@@ -24,7 +24,6 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.todo",
     "sphinx.ext.mathjax",
-    "divio_docs_theme",
 ]
 source_suffix = ".rst"
 master_doc = "index"
@@ -41,7 +40,7 @@ copyright = "2017-2023, ETHZ & FZJ"
 author = "ETHZ & FZJ"
 todo_include_todos = True
 
-html_theme = "divio_docs_theme"
+html_theme = "furo"
 html_theme_options = {}
 
 # This style makes the source code pop out a bit more
