@@ -1,5 +1,7 @@
 .diag-cont {
     display: flex;
+    max-width: 50%;
+    margin: auto;
 }
 .diag-cont code {
     font-family: monospace;
@@ -10,9 +12,15 @@
     background-color: rgb(221, 191, 146);
     border-radius: 5px;
     border: none;
-    position: absolute;
-    top: -60px;
-    left: 25%;
+}
+.diag-cont .diag-inner {
+    border: none;
+    background: rgba(76, 175, 80, 0.0)
+}
+
+.diag-cont .diag-column {
+    margin: auto;
+    max-width: 50%;
 }
 .diag-cont .diag-left {
     border: none;
@@ -66,11 +74,13 @@
     margin: 5px;
     padding: 5px;
     position: relative;
+    border-radius: 5px;
     background-color: rgb(245, 245, 245);
 }
 .diag-cont div div {
     margin: 5px;
     padding: 5px;
+    border-radius: 5px;
     position: relative;
     background-color: rgb(255, 255, 255);
 }
@@ -109,7 +119,7 @@
 }
 
 connection .line .arrow {
-    top: -5px;
+    top: 0px;
     height: 0px;
     width: 0px;
     position: absolute;
@@ -123,13 +133,11 @@ connection .line .arrow-fw {
 connection .line .arrow-bw {
     left: 100%;
     border-left: 12px solid black;
-    transform: translateX(-12px);
 }
 connection .line .text {
     position: absolute;
     top: 100%;
-    left: 50%;
-    transform: translate(-50%, -100%);
+    left: 100%;
 }
 connection .line {
     position:absolute;

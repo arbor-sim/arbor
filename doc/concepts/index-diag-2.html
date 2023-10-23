@@ -1,0 +1,42 @@
+<div class="diag-cont">
+    <div>
+    <div class="diag-inner">
+        <strong>
+            Recipe
+        </strong>
+    </div>
+    <div class="diag-note">
+        <strong>
+            Size
+        </strong>
+        </br>
+        The number of cells regardless of type.
+    </div>
+    <div class="diag-note">
+        <strong>
+            Cells
+        </strong>
+        </br>
+        A cell description.
+    </div>
+    <div id="conc_dsc" class="diag-note">
+        <strong>
+            Network
+        </strong>
+        </br>
+        List of incoming connections.
+    </div>
+    <div class="diag-note">
+        <strong>
+            In- and Outputs
+        </strong></br>
+        List of stimuli and probes.
+    </div>
+    </div>
+</div>
+<div class="diag-caption">
+  The recipe is the core abstraction to building networks. It declares a number
+  of cells present in the network and will then be interrogate for each about
+  its properties. By asking the recipe about each cell in isolation, Arbor can
+  build the network in parallel while keeping memory consumption low.
+</div>
