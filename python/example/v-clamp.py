@@ -29,7 +29,7 @@ cell = arbor.cable_cell(tree, decor, labels)
 m = arbor.single_cell_model(cell)
 
 # (6) Attach voltage probe sampling at 10 kHz (every 0.1 ms).
-m.probe("voltage", '"midpoint"', frequency=10)
+m.probe("voltage", '"midpoint"', "Um", frequency=10)
 
 # (7) Run simulation for 30 ms of simulated activity.
 m.run(tfinal=30)

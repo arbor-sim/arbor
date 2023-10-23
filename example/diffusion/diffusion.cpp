@@ -31,7 +31,7 @@ struct linear: public recipe {
     cell_size_type num_cells()                                   const override { return 1; }
     cell_kind get_cell_kind(cell_gid_type)                       const override { return cell_kind::cable; }
     std::any get_global_properties(cell_kind)                    const override { return gprop; }
-    std::vector<probe_info> get_probes(cell_gid_type)            const override { return {cable_probe_ion_diff_concentration_cell{"na"}}; }
+    std::vector<probe_info> get_probes(cell_gid_type)            const override { return {{cable_probe_ion_diff_concentration_cell{"na"}, "nad"}}; }
     std::vector<event_generator> event_generators(cell_gid_type) const override { return {explicit_generator({"Zap"}, 0.005, std::vector<float>{0.f})}; }
     util::unique_any get_cell_description(cell_gid_type)         const override {
         // Stick morphology

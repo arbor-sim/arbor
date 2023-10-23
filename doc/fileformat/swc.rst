@@ -114,16 +114,28 @@ joined at the soma center. It differs in two ways:
 
 * The soma is extended along the x-axis, not the y-axis.
 * The soma is constructed from three points, the first at ``x=x0-r``, the second with
-  ``x=x0`` and the third at ``x=x0+r``, to form a single section, with all dendrites, axons
-  and apical dendrites attached to the center of the soma with "zero resistance wires".
+  ``x=x0`` and the third at ``x=x0+r``, to form a single section.
+* All dendrites, axons, and apical dendrites are attached to the center of the soma with "zero resistance wires".
 
-**The axon, dendrite and apical sub-trees follow special rules for attachment to the soma**:
-By default, the sub-tree starts at the first sample with the dendrite, axon or apical tag, and not
-at the parent location on the soma, and the sub-tree is connected to its parent with a "zero resistance wire".
-**Except** when the sub tree is defined by a single child sample. In which case the sub-tree is
-composed of a single a segment from the parent location on the soma to the child sample,
-with constant radius of the child.
+**The axon, dendrite and apical sub-trees follow special rules for attachment to
+the soma**: By default, the sub-tree starts at the first sample with the
+dendrite, axon or apical tag, and not at the parent location on the soma, and
+the sub-tree is connected to its parent with a "zero resistance wire".
+**Except** when the sub tree is defined by a single child sample. In which case
+the sub-tree is composed of a single a segment from the parent location on the
+soma to the child sample, with constant radius of the child.
 
+Note that these special properties can lead to unintuitive behviour in some cases. Example
+
+.. code-block::
+
+     # id, tag, x, y, z, radius, parent
+     1     1    0  0  0  6       -1
+     2     3    2  0  0  3        1
+
+As we have one sample tagged ``1`` (soma), the soma is build by two cylinders
+approximating a sphere. The dendrite is attached to the center, thus the
+morphology has *three* branches arranged in a 'T'-shape.
 
 API
 """

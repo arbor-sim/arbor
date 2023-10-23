@@ -145,7 +145,7 @@ class TestMultipleConnections(unittest.TestCase):
 
         # create schedule and handle to record the membrane potential of neuron 3
         reg_sched = arb.regular_schedule(0, self.dt, self.runtime)
-        handle_mem = sim.sample((3, 0), reg_sched)
+        handle_mem = sim.sample((3, "Um"), reg_sched)
 
         # run the simulation
         sim.run(self.runtime, self.dt)
@@ -376,7 +376,7 @@ class TestMultipleConnections(unittest.TestCase):
 
         # create schedule and handle to record the membrane potential of neuron 3
         reg_sched = arb.regular_schedule(0, self.dt, self.runtime)
-        handle_mem = sim.sample((3, 0), reg_sched)
+        handle_mem = sim.sample((3, "Um"), reg_sched)
 
         # run the simulation
         sim.run(self.runtime, self.dt)

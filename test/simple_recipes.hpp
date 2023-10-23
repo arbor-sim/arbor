@@ -12,6 +12,7 @@
 #include <arbor/recipe.hpp>
 #include <arbor/util/unique_any.hpp>
 
+
 #include "util/rangeutil.hpp"
 
 namespace arb {
@@ -31,9 +32,7 @@ public:
         return probes_.at(i);
     }
 
-    virtual void add_probe(cell_gid_type gid, probe_tag tag, std::any address) {
-        probes_[gid].emplace_back(std::move(address), tag);
-    }
+    virtual void add_probe(cell_gid_type gid, const cell_tag_type& tag, std::any address) { probes_[gid].emplace_back(std::move(address), tag); }
 
     std::any get_global_properties(cell_kind k) const override {
         switch (k) {
