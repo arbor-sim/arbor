@@ -114,7 +114,7 @@ class ring_recipe(arbor.recipe):
 
     # (10) Place a probe at the root of each cell.
     def probes(self, gid):
-        return [arbor.cable_probe_membrane_voltage('"root"')]
+        return [arbor.cable_probe_membrane_voltage('"root"', "Um")]
 
     def global_properties(self, kind):
         return self.props
@@ -150,7 +150,7 @@ meters.checkpoint("load-balance", context)
 # (16) Simulation init and set spike generators to record
 sim = arbor.simulation(recipe, context, decomp)
 sim.record(arbor.spike_recording.all)
-handles = [sim.sample((gid, 0), arbor.regular_schedule(1)) for gid in range(ncells)]
+handles = [sim.sample((gid, "Um"), arbor.regular_schedule(1)) for gid in range(ncells)]
 meters.checkpoint("simulation-init", context)
 
 # (17) Run simulation

@@ -55,7 +55,6 @@ ring_params read_options(int argc, char** argv);
 using arb::cell_gid_type;
 using arb::cell_lid_type;
 using arb::cell_size_type;
-using arb::cell_member_type;
 using arb::cell_kind;
 using arb::time_type;
 
@@ -108,7 +107,7 @@ public:
     std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
         // Measure membrane voltage at end of soma.
         arb::mlocation loc{0, 0.0};
-        return {arb::cable_probe_membrane_voltage{loc}};
+        return {{arb::cable_probe_membrane_voltage{loc}, "Um"}};
     }
 
     std::any get_global_properties(arb::cell_kind) const override {
@@ -168,7 +167,7 @@ int main(int argc, char** argv) {
         // Set up the probe that will measure voltage in the cell.
 
         // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
-        auto probeset_id = cell_member_type{0, 0};
+        auto probeset_id = arb::cell_address_type{0, "Um"};
         // The schedule for sampling is 10 samples every 1 ms.
         auto sched = arb::regular_schedule(1);
         // This is where the voltage samples will be stored as (time, value) pairs

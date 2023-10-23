@@ -158,85 +158,88 @@ void register_probe_meta_maps(pyarb_global_ptr g) {
 // Wrapper functions around cable_cell probe types that return arb::probe_info values:
 // (Probe tag value is implicitly left at zero.)
 
-arb::probe_info cable_probe_membrane_voltage(const char* where) {
-    return arb::cable_probe_membrane_voltage{arborio::parse_locset_expression(where).unwrap()};
+arb::probe_info cable_probe_membrane_voltage(const char* where, const std::string& tag) {
+    return {arb::cable_probe_membrane_voltage{arborio::parse_locset_expression(where).unwrap()}, tag};
 }
 
-arb::probe_info cable_probe_membrane_voltage_cell() {
-    return arb::cable_probe_membrane_voltage_cell{};
+arb::probe_info cable_probe_membrane_voltage_cell(const std::string& tag) {
+    return {arb::cable_probe_membrane_voltage_cell{}, tag};
 }
 
-arb::probe_info cable_probe_axial_current(const char* where) {
-    return arb::cable_probe_axial_current{arborio::parse_locset_expression(where).unwrap()};
+arb::probe_info cable_probe_axial_current(const char* where, const std::string& tag) {
+    return {arb::cable_probe_axial_current{arborio::parse_locset_expression(where).unwrap()}, tag};
 }
 
-arb::probe_info cable_probe_total_ion_current_density(const char* where) {
-    return arb::cable_probe_total_ion_current_density{arborio::parse_locset_expression(where).unwrap()};
+arb::probe_info cable_probe_total_ion_current_density(const char* where, const std::string& tag) {
+    return {arb::cable_probe_total_ion_current_density{arborio::parse_locset_expression(where).unwrap()}, tag};
 }
 
-arb::probe_info cable_probe_total_ion_current_cell() {
-    return arb::cable_probe_total_ion_current_cell{};
+arb::probe_info cable_probe_total_ion_current_cell(const std::string& tag) {
+    return {arb::cable_probe_total_ion_current_cell{}, tag};
 }
 
-arb::probe_info cable_probe_total_current_cell() {
-    return arb::cable_probe_total_current_cell{};
+arb::probe_info cable_probe_total_current_cell(const std::string& tag) {
+    return {arb::cable_probe_total_current_cell{}, tag};
 }
 
-arb::probe_info cable_probe_stimulus_current_cell() {
-    return arb::cable_probe_stimulus_current_cell{};
+arb::probe_info cable_probe_stimulus_current_cell(const std::string& tag) {
+    return {arb::cable_probe_stimulus_current_cell{}, tag};
 }
 
-arb::probe_info cable_probe_density_state(const char* where, const char* mechanism, const char* state) {
-    return arb::cable_probe_density_state{arborio::parse_locset_expression(where).unwrap(), mechanism, state};
+arb::probe_info cable_probe_density_state(const char* where,
+                                          const char* mechanism,
+                                          const char* state,
+                                          const std::string& tag) {
+    return {arb::cable_probe_density_state{arborio::parse_locset_expression(where).unwrap(), mechanism, state}, tag};
 };
 
-arb::probe_info cable_probe_density_state_cell(const char* mechanism, const char* state) {
-    return arb::cable_probe_density_state_cell{mechanism, state};
+arb::probe_info cable_probe_density_state_cell(const char* mechanism, const char* state, const std::string& tag) {
+    return {arb::cable_probe_density_state_cell{mechanism, state}, tag};
 };
 
-arb::probe_info cable_probe_point_state(arb::cell_lid_type target, const char* mechanism, const char* state) {
-    return arb::cable_probe_point_state{target, mechanism, state};
+arb::probe_info cable_probe_point_state(arb::cell_lid_type target, const char* mechanism, const char* state, const std::string& tag) {
+    return {arb::cable_probe_point_state{target, mechanism, state}, tag};
 }
 
-arb::probe_info cable_probe_point_state_cell(const char* mechanism, const char* state_var) {
-    return arb::cable_probe_point_state_cell{mechanism, state_var};
+arb::probe_info cable_probe_point_state_cell(const char* mechanism, const char* state_var, const std::string& tag) {
+    return {arb::cable_probe_point_state_cell{mechanism, state_var}, tag};
 }
 
-arb::probe_info cable_probe_ion_current_density(const char* where, const char* ion) {
-    return arb::cable_probe_ion_current_density{arborio::parse_locset_expression(where).unwrap(), ion};
+arb::probe_info cable_probe_ion_current_density(const char* where, const char* ion, const std::string& tag) {
+    return {arb::cable_probe_ion_current_density{arborio::parse_locset_expression(where).unwrap(), ion}, tag};
 }
 
-arb::probe_info cable_probe_ion_current_cell(const char* ion) {
-    return arb::cable_probe_ion_current_cell{ion};
+arb::probe_info cable_probe_ion_current_cell(const char* ion, const std::string& tag) {
+    return {arb::cable_probe_ion_current_cell{ion}, tag};
 }
 
-arb::probe_info cable_probe_ion_int_concentration(const char* where, const char* ion) {
-    return arb::cable_probe_ion_int_concentration{arborio::parse_locset_expression(where).unwrap(), ion};
+arb::probe_info cable_probe_ion_int_concentration(const char* where, const char* ion, const std::string& tag) {
+    return {arb::cable_probe_ion_int_concentration{arborio::parse_locset_expression(where).unwrap(), ion}, tag};
 }
 
-arb::probe_info cable_probe_ion_int_concentration_cell(const char* ion) {
-    return arb::cable_probe_ion_int_concentration_cell{ion};
+arb::probe_info cable_probe_ion_int_concentration_cell(const char* ion, const std::string& tag) {
+    return {arb::cable_probe_ion_int_concentration_cell{ion}, tag};
 }
 
-arb::probe_info cable_probe_ion_diff_concentration(const char* where, const char* ion) {
-    return arb::cable_probe_ion_diff_concentration{arborio::parse_locset_expression(where).unwrap(), ion};
+arb::probe_info cable_probe_ion_diff_concentration(const char* where, const char* ion, const std::string& tag) {
+    return {arb::cable_probe_ion_diff_concentration{arborio::parse_locset_expression(where).unwrap(), ion}, tag};
 }
 
-arb::probe_info cable_probe_ion_diff_concentration_cell(const char* ion) {
-    return arb::cable_probe_ion_diff_concentration_cell{ion};
+arb::probe_info cable_probe_ion_diff_concentration_cell(const char* ion, const std::string& tag) {
+    return {arb::cable_probe_ion_diff_concentration_cell{ion}, tag};
 }
 
-arb::probe_info cable_probe_ion_ext_concentration(const char* where, const char* ion) {
-    return arb::cable_probe_ion_ext_concentration{arborio::parse_locset_expression(where).unwrap(), ion};
+arb::probe_info cable_probe_ion_ext_concentration(const char* where, const char* ion, const std::string& tag) {
+    return {arb::cable_probe_ion_ext_concentration{arborio::parse_locset_expression(where).unwrap(), ion}, tag};
 }
 
-arb::probe_info cable_probe_ion_ext_concentration_cell(const char* ion) {
-    return arb::cable_probe_ion_ext_concentration_cell{ion};
+arb::probe_info cable_probe_ion_ext_concentration_cell(const char* ion, const std::string& tag) {
+    return {arb::cable_probe_ion_ext_concentration_cell{ion}, tag};
 }
 
 // LIF cell probes
-arb::probe_info lif_probe_voltage() {
-    return arb::lif_probe_voltage{};
+arb::probe_info lif_probe_voltage(const std::string& tag) {
+    return {arb::lif_probe_voltage{}, tag};
 }
 
 
@@ -255,7 +258,7 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
         "Probe metadata associated with a cable cell probe for point process state.");
 
     cable_probe_point_info
-        .def_readwrite("target",   &arb::cable_probe_point_info::target,
+        .def_readwrite("target", &arb::cable_probe_point_info::target,
             "The target index of the point process instance on the cell.")
         .def_readwrite("multiplicity", &arb::cable_probe_point_info::multiplicity,
             "Number of coalesced point processes (linear synapses) associated with this instance.")
@@ -269,79 +272,80 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
     // Probe address constructors:
 
     m.def("lif_probe_voltage", &lif_probe_voltage,
-        "Probe specification for LIF cell membrane voltage.");
-
+          "Probe specification for LIF cell membrane voltage.",
+          "tag"_a);
     m.def("cable_probe_membrane_voltage", &cable_probe_membrane_voltage,
-        "Probe specification for cable cell membrane voltage interpolated at points in a location set.",
-        "where"_a);
-
+          "Probe specification for cable cell membrane voltage interpolated at points in a location set.",
+          "where"_a, "tag"_a);
     m.def("cable_probe_membrane_voltage_cell", &cable_probe_membrane_voltage_cell,
-        "Probe specification for cable cell membrane voltage associated with each cable in each CV.");
-
+          "Probe specification for cable cell membrane voltage associated with each cable in each CV.",
+          "tag"_a);
     m.def("cable_probe_axial_current", &cable_probe_axial_current,
         "Probe specification for cable cell axial current at points in a location set.",
-        "where"_a);
-
+        "where"_a, "tag"_a);
     m.def("cable_probe_total_ion_current_density", &cable_probe_total_ion_current_density,
         "Probe specification for cable cell total transmembrane current density excluding capacitive currents at points in a location set.",
-        "where"_a);
-
-    m.def("cable_probe_total_ion_current_cell", &cable_probe_total_ion_current_cell,
-        "Probe specification for cable cell total transmembrane current excluding capacitive currents for each cable in each CV.");
-
-    m.def("cable_probe_total_current_cell", &cable_probe_total_current_cell,
-        "Probe specification for cable cell total transmembrane current for each cable in each CV.");
-
-    m.def("cable_probe_stimulus_current_cell", &cable_probe_stimulus_current_cell,
-        "Probe specification for cable cell stimulus current across each cable in each CV.");
-
-    m.def("cable_probe_density_state", &cable_probe_density_state,
-        "Probe specification for a cable cell density mechanism state variable at points in a location set.",
-        "where"_a, "mechanism"_a, "state"_a);
-
-    m.def("cable_probe_density_state_cell", &cable_probe_density_state_cell,
-        "Probe specification for a cable cell density mechanism state variable on each cable in each CV where defined.",
-        "mechanism"_a, "state"_a);
-
-    m.def("cable_probe_point_state", &cable_probe_point_state,
+        "where"_a, "tag"_a);
+    m.def("cable_probe_total_ion_current_cell",
+          &cable_probe_total_ion_current_cell,
+          "Probe specification for cable cell total transmembrane current excluding capacitive currents for each cable in each CV.",
+          "tag"_a);
+    m.def("cable_probe_total_current_cell",
+          &cable_probe_total_current_cell,
+          "Probe specification for cable cell total transmembrane current for each cable in each CV.",
+          "tag"_a);
+    m.def("cable_probe_stimulus_current_cell",
+          &cable_probe_stimulus_current_cell,
+          "Probe specification for cable cell stimulus current across each cable in each CV.",
+          "tag"_a);
+    m.def("cable_probe_density_state",
+          &cable_probe_density_state,
+          "Probe specification for a cable cell density mechanism state variable at points in a location set.",
+          "where"_a, "mechanism"_a, "state"_a, "tag"_a);
+    m.def("cable_probe_density_state_cell",
+          &cable_probe_density_state_cell,
+          "Probe specification for a cable cell density mechanism state variable on each cable in each CV where defined.",
+          "mechanism"_a, "state"_a, "tag"_a);
+    m.def("cable_probe_point_state",
+          &cable_probe_point_state,
         "Probe specification for a cable cell point mechanism state variable value at a given target index.",
-        "target"_a, "mechanism"_a, "state"_a);
-
-    m.def("cable_probe_point_state_cell", &cable_probe_point_state_cell,
-        "Probe specification for a cable cell point mechanism state variable value at every corresponding target.",
-        "mechanism"_a, "state"_a);
-
-    m.def("cable_probe_ion_current_density", &cable_probe_ion_current_density,
-        "Probe specification for cable cell ionic current density at points in a location set.",
-        "where"_a, "ion"_a);
-
-    m.def("cable_probe_ion_current_cell", &cable_probe_ion_current_cell,
-        "Probe specification for cable cell ionic current across each cable in each CV.",
-        "ion"_a);
-
-    m.def("cable_probe_ion_int_concentration", &cable_probe_ion_int_concentration,
-        "Probe specification for cable cell internal ionic concentration at points in a location set.",
-        "where"_a, "ion"_a);
-
-    m.def("cable_probe_ion_int_concentration_cell", &cable_probe_ion_int_concentration_cell,
-        "Probe specification for cable cell internal ionic concentration for each cable in each CV.",
-        "ion"_a);
-
-    m.def("cable_probe_ion_diff_concentration", &cable_probe_ion_diff_concentration,
-        "Probe specification for cable cell diffusive ionic concentration at points in a location set.",
-        "where"_a, "ion"_a);
-
-    m.def("cable_probe_ion_diff_concentration_cell", &cable_probe_ion_diff_concentration_cell,
-        "Probe specification for cable cell diffusive ionic concentration for each cable in each CV.",
-        "ion"_a);
-
-    m.def("cable_probe_ion_ext_concentration", &cable_probe_ion_ext_concentration,
-        "Probe specification for cable cell external ionic concentration at points in a location set.",
-        "where"_a, "ion"_a);
-
-    m.def("cable_probe_ion_ext_concentration_cell", &cable_probe_ion_ext_concentration_cell,
-        "Probe specification for cable cell external ionic concentration for each cable in each CV.",
-        "ion"_a);
+        "target"_a, "mechanism"_a, "state"_a, "tag"_a);
+    m.def("cable_probe_point_state_cell",
+          &cable_probe_point_state_cell,
+          "Probe specification for a cable cell point mechanism state variable value at every corresponding target.",
+          "mechanism"_a, "state"_a, "tag"_a);
+    m.def("cable_probe_ion_current_density",
+          &cable_probe_ion_current_density,
+          "Probe specification for cable cell ionic current density at points in a location set.",
+          "where"_a, "ion"_a, "tag"_a);
+    m.def("cable_probe_ion_current_cell",
+          &cable_probe_ion_current_cell,
+          "Probe specification for cable cell ionic current across each cable in each CV.",
+          "ion"_a, "tag"_a);
+    m.def("cable_probe_ion_int_concentration",
+          &cable_probe_ion_int_concentration,
+          "Probe specification for cable cell internal ionic concentration at points in a location set.",
+          "where"_a, "ion"_a, "tag"_a);
+    m.def("cable_probe_ion_int_concentration_cell",
+          &cable_probe_ion_int_concentration_cell,
+          "Probe specification for cable cell internal ionic concentration for each cable in each CV.",
+          "ion"_a, "tag"_a);
+    m.def("cable_probe_ion_diff_concentration",
+          &cable_probe_ion_diff_concentration,
+          "Probe specification for cable cell diffusive ionic concentration at points in a location set.",
+          "where"_a, "ion"_a, "tag"_a);
+    m.def("cable_probe_ion_diff_concentration_cell",
+          &cable_probe_ion_diff_concentration_cell,
+          "Probe specification for cable cell diffusive ionic concentration for each cable in each CV.",
+          "ion"_a, "tag"_a);
+    m.def("cable_probe_ion_ext_concentration",
+          &cable_probe_ion_ext_concentration,
+          "Probe specification for cable cell external ionic concentration at points in a location set.",
+          "where"_a, "ion"_a, "tag"_a);
+    m.def("cable_probe_ion_ext_concentration_cell",
+          &cable_probe_ion_ext_concentration_cell,
+          "Probe specification for cable cell external ionic concentration for each cable in each CV.",
+          "ion"_a, "tag"_a);
 
     // Add probe metadata to maps for converters and recorders.
 

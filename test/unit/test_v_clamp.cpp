@@ -37,8 +37,8 @@ struct v_proc_recipe: public arb::recipe {
         return arb::cable_cell(arb::morphology{tree}, decor);
     }
     std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override {
-        return { arb::cable_probe_membrane_voltage{"(location 0 0.125)"_ls},  // soma center: 0.25/2
-                 arb::cable_probe_membrane_voltage{"(location 0 0.625)"_ls}}; // dend center: 0.75/2 + 0.25
+        return { {arb::cable_probe_membrane_voltage{"(location 0 0.125)"_ls}, "Um-(0, 0.125)"},  // soma center: 0.25/2
+                 {arb::cable_probe_membrane_voltage{"(location 0 0.625)"_ls}, "Um-(0, 0.625)"}}; // dend center: 0.75/2 + 0.25
     }
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type) const override {
         return {arb::regular_generator({"tgt"}, 5.0, 0.2, 0.05)};
@@ -78,10 +78,10 @@ TEST(v_process, clamp) {
         for (std::size_t ix = 0ul; ix < n; ++ix) {
             const auto& [t, v] = samples[ix];
             double u = *arb::util::any_cast<const double*>(v);
-            if (pm.id.index == 0) {
+            if (pm.id.tag == "Um-(0, 0.125)") {
                 u_soma.push_back({t, u});
             }
-            else if (pm.id.index == 1) {
+            else if (pm.id.tag == "Um-(0, 0.625)") {
                 u_dend.push_back({t, u});
             }
             else {
@@ -146,10 +146,10 @@ TEST(v_process, limit) {
         for (std::size_t ix = 0ul; ix < n; ++ix) {
             const auto& [t, v] = samples[ix];
             double u = *arb::util::any_cast<const double*>(v);
-            if (pm.id.index == 0) {
+            if (pm.id.tag == "Um-(0, 0.125)") {
                 u_soma.push_back({t, u});
             }
-            else if (pm.id.index == 1) {
+            else if (pm.id.tag == "Um-(0, 0.625)") {
                 u_dend.push_back({t, u});
             }
             else {
@@ -214,10 +214,10 @@ TEST(v_process, clamp_fine) {
         for (std::size_t ix = 0ul; ix < n; ++ix) {
             const auto& [t, v] = samples[ix];
             double u = *arb::util::any_cast<const double*>(v);
-            if (pm.id.index == 0) {
+            if (pm.id.tag == "Um-(0, 0.125)") {
                 u_soma.push_back({t, u});
             }
-            else if (pm.id.index == 1) {
+            else if (pm.id.tag == "Um-(0, 0.625)") {
                 u_dend.push_back({t, u});
             }
             else {

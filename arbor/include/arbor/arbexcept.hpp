@@ -42,6 +42,13 @@ struct ARB_SYMBOL_VISIBLE bad_cell_probe: arbor_exception {
     cell_kind kind;
 };
 
+struct ARB_SYMBOL_VISIBLE dup_cell_probe: arbor_exception {
+    dup_cell_probe(cell_kind kind, cell_gid_type gid, cell_tag_type tag);
+    cell_gid_type gid;
+    cell_kind kind;
+    cell_tag_type tag;
+};
+
 struct ARB_SYMBOL_VISIBLE invalid_mechanism_kind: arbor_exception {
     invalid_mechanism_kind(arb_mechanism_kind);
     arb_mechanism_kind kind;

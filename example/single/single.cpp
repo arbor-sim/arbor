@@ -48,7 +48,7 @@ struct single_recipe: public arb::recipe {
         // Probe info consists of a probe address and an optional tag, for use
         // by the sampler callback.
 
-        return {arb::probe_info{probe, 0}};
+        return {arb::probe_info{probe, "Um"}};
     }
 
     arb::cell_kind get_cell_kind(arb::cell_gid_type) const override {
