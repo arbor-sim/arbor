@@ -62,7 +62,8 @@ public:
     // which called the `run` method.
 
     sampler_association_handle add_sampler(cell_member_predicate probeset_ids,
-        schedule sched, sampler_function f);
+                                           schedule sched,
+                                           sampler_function f);
 
     void remove_sampler(sampler_association_handle);
 
@@ -70,7 +71,7 @@ public:
 
     // Return probe metadata, one entry per probe associated with supplied probe id,
     // or an empty vector if no local match for probe id.
-    std::vector<probe_metadata> get_probe_metadata(cell_member_type probeset_id) const;
+    std::vector<probe_metadata> get_probe_metadata(const cell_address_type& probeset_id) const;
 
     std::size_t num_spikes() const;
 

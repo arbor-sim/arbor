@@ -99,13 +99,14 @@ public:
     time_type run(time_type tfinal, time_type dt);
 
     sampler_association_handle add_sampler(cell_member_predicate probeset_ids,
-        schedule sched, sampler_function f);
+                                           schedule sched,
+                                           sampler_function f);
 
     void remove_sampler(sampler_association_handle);
 
     void remove_all_samplers();
 
-    std::vector<probe_metadata> get_probe_metadata(cell_member_type) const;
+    std::vector<probe_metadata> get_probe_metadata(const cell_address_type&) const;
 
     std::size_t num_spikes() const {
         return communicator_.num_spikes();
@@ -523,34 +524,28 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     return current.t1;
 }
 
-sampler_association_handle simulation_state::add_sampler(
-        cell_member_predicate probeset_ids,
-        schedule sched,
-        sampler_function f)
-{
+sampler_association_handle simulation_state::add_sampler(cell_member_predicate probeset_ids,
+                                                         schedule sched,
+                                                         sampler_function f) {
     sampler_association_handle h = sassoc_handles_.acquire();
-
     foreach_group(
         [&](cell_group_ptr& group) { group->add_sampler(h, probeset_ids, sched, f); });
-
     return h;
 }
 
 void simulation_state::remove_sampler(sampler_association_handle h) {
     foreach_group(
         [h](cell_group_ptr& group) { group->remove_sampler(h); });
-
     sassoc_handles_.release(h);
 }
 
 void simulation_state::remove_all_samplers() {
     foreach_group(
         [](cell_group_ptr& group) { group->remove_all_samplers(); });
-
     sassoc_handles_.clear();
 }
 
-std::vector<probe_metadata> simulation_state::get_probe_metadata(cell_member_type probeset_id) const {
+std::vector<probe_metadata> simulation_state::get_probe_metadata(const cell_address_type& probeset_id) const {
     if (auto linfo = util::value_by_key(gid_to_local_, probeset_id.gid)) {
         return cell_groups_.at(linfo->group_index)->get_probe_metadata(probeset_id);
     }
@@ -617,7 +612,7 @@ void simulation::remove_all_samplers() {
     impl_->remove_all_samplers();
 }
 
-std::vector<probe_metadata> simulation::get_probe_metadata(cell_member_type probeset_id) const {
+std::vector<probe_metadata> simulation::get_probe_metadata(const cell_address_type& probeset_id) const {
     return impl_->get_probe_metadata(probeset_id);
 }
 

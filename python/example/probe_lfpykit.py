@@ -48,9 +48,9 @@ class Recipe(arbor.recipe):
 
     def probes(self, gid):
         return [
-            arbor.cable_probe_membrane_voltage_cell(),
-            arbor.cable_probe_total_current_cell(),
-            arbor.cable_probe_stimulus_current_cell(),
+            arbor.cable_probe_membrane_voltage_cell("Um-all"),
+            arbor.cable_probe_total_current_cell("Itotal-all"),
+            arbor.cable_probe_stimulus_current_cell("Istim-all"),
         ]
 
 
@@ -125,9 +125,9 @@ sim = arbor.simulation(recipe)
 
 # set up sampling on probes with sampling every 1 ms
 schedule = arbor.regular_schedule(1.0)
-v_handle = sim.sample(recipe.vprobeset_id, schedule)
-i_handle = sim.sample(recipe.iprobeset_id, schedule)
-c_handle = sim.sample(recipe.cprobeset_id, schedule)
+v_handle = sim.sample(0, "Um-all", schedule)
+i_handle = sim.sample(0, "Itotal-all", schedule)
+c_handle = sim.sample(0, "Istim-all", schedule)
 
 # run simulation for 500 ms of simulated activity and collect results.
 sim.run(tfinal=500)

@@ -55,7 +55,6 @@ gap_params read_options(int argc, char** argv);
 using arb::cell_gid_type;
 using arb::cell_lid_type;
 using arb::cell_size_type;
-using arb::cell_member_type;
 using arb::cell_kind;
 using arb::time_type;
 
@@ -91,7 +90,7 @@ public:
     std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
         // Measure membrane voltage at end of soma.
         arb::mlocation loc{0, 1.};
-        return {arb::cable_probe_membrane_voltage{loc}};
+        return {{arb::cable_probe_membrane_voltage{loc}, "Um"}};
     }
 
     std::any get_global_properties(cell_kind k) const override {
@@ -184,7 +183,7 @@ int main(int argc, char** argv) {
         unsigned j=0;
         for (auto g : decomp.groups()) {
             for (auto i : g.gids) {
-                sim.add_sampler(arb::one_probe({i, 0}), sched, arb::make_simple_sampler(voltage_traces[j++]));
+                sim.add_sampler(arb::one_probe({i, "Um"}), sched, arb::make_simple_sampler(voltage_traces[j++]));
             }
         }
 

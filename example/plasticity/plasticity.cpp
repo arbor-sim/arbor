@@ -45,7 +45,7 @@ struct recipe: public arb::recipe {
     // For printing Um
     std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override {
         if (gid == 0) return {};
-        return {arb::cable_probe_membrane_voltage{center}};
+        return {{arb::cable_probe_membrane_voltage{center}, "Um"}};
     }
     // Look up the (potential) connection to this cell
     std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
