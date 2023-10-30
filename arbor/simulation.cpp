@@ -449,10 +449,31 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     auto enqueue = [this](epoch next) {
         foreach_cell(
             [&](cell_size_type i) {
+                // NOTE Despite the superficial optics, we need to sort by the
+                // full key here and _not_ purely by time. With different
+                // parallel distributions, the ordering of events with the same
+                // time may change. Consider synapses like this
+                //
+                // NET_RECEIVE (weight) {
+                //   if (state < threshold) {
+                //      state = state + weight
+                //   }
+                // }
+                //
+                // DERIVATIVE dState {
+                //   state' = -tau
+                // }
+                //
+                // and we'd end with different behaviours when events with
+                // different weights occur at the same time. We also cannot
+                // collapse events as with LIF cells by summing weights as this
+                // disturbs dynamics in a different way, eg when
+                //
+                // NET_RECEIVE (weight) {
+                //   state = state + 42
+                // }
                 PE(communication:enqueue:sort);
-                // We just care about evt time not the ordering below that
-                util::sort_by(pending_events_[i],
-                              [](const auto& evt) { return evt.time; });
+                util::sort(pending_events_[i]);
                 PL();
 
                 event_span pending = util::range_pointer_view(pending_events_[i]);
