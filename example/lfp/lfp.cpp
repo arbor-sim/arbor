@@ -22,7 +22,6 @@ using arb::util::any_cast;
 using arb::util::any_ptr;
 using arb::util::unique_any;
 using arb::cell_gid_type;
-using arb::cell_member_type;
 
 using namespace arborio::literals;
 
@@ -43,11 +42,10 @@ struct lfp_demo_recipe: public arb::recipe {
         //   1. Voltage at synapse location.
         //   2. Total ionic current density at synapse location.
         //   3. Expsyn synapse conductance value.
-        return {
-            arb::cable_probe_total_current_cell{},
-            arb::cable_probe_membrane_voltage{synapse_location_},
-            arb::cable_probe_total_ion_current_density{synapse_location_},
-            arb::cable_probe_point_state{0, "expsyn", "g"}};
+        return {{arb::cable_probe_total_current_cell{}, "Itotal"},
+                {arb::cable_probe_membrane_voltage{synapse_location_}, "Um"},
+                {arb::cable_probe_total_ion_current_density{synapse_location_}, "Iion"},
+                {arb::cable_probe_point_state{0, "expsyn", "g"}, "expsyn-g"}};
     }
 
     arb::cell_kind get_cell_kind(cell_gid_type) const override {
@@ -199,23 +197,23 @@ int main(int argc, char** argv) {
     arb::morphology cell_morphology = any_cast<arb::cable_cell>(recipe.get_cell_description(0)).morphology();
     arb::place_pwlin placed_cell(cell_morphology);
 
-    auto probe0_metadata = sim.get_probe_metadata(cell_member_type{0, 0});
+    auto probe0_metadata = sim.get_probe_metadata({0, "Itotal"});
     assert(probe0_metadata.size()==1); // Should only be one probe associated with this id.
     arb::mcable_list current_cables = *any_cast<const arb::mcable_list*>(probe0_metadata.at(0).meta);
 
     lfp_sampler lfp(placed_cell, current_cables, electrodes, 3.0);
 
     auto sample_schedule = arb::regular_schedule(sample_dt);
-    sim.add_sampler(arb::one_probe({0, 0}), sample_schedule, lfp.callback());
+    sim.add_sampler(arb::one_probe({0, "Itotal"}), sample_schedule, lfp.callback());
 
     arb::trace_vector<double, arb::mlocation> membrane_voltage;
-    sim.add_sampler(arb::one_probe({0, 1}), sample_schedule, make_simple_sampler(membrane_voltage));
+    sim.add_sampler(arb::one_probe({0, "Um"}), sample_schedule, make_simple_sampler(membrane_voltage));
 
     arb::trace_vector<double> ionic_current_density;
-    sim.add_sampler(arb::one_probe({0, 2}), sample_schedule, make_simple_sampler(ionic_current_density));
+    sim.add_sampler(arb::one_probe({0, "Iion"}), sample_schedule, make_simple_sampler(ionic_current_density));
 
     arb::trace_vector<double> synapse_g;
-    sim.add_sampler(arb::one_probe({0, 3}), sample_schedule, make_simple_sampler(synapse_g));
+    sim.add_sampler(arb::one_probe({0, "expsyn-g"}), sample_schedule, make_simple_sampler(synapse_g));
 
     sim.run(t_stop, dt);
 
