@@ -109,13 +109,11 @@ event_generator empty_generator(
 
 // Generate events at integer multiples of dt that lie between tstart and tstop.
 
-inline event_generator regular_generator(
-    cell_local_label_type target,
-    float weight,
-    time_type tstart,
-    time_type dt,
-    time_type tstop=terminal_time)
-{
+inline event_generator regular_generator(cell_local_label_type target,
+                                         float weight,
+                                         time_type tstart,
+                                         time_type dt,
+                                         time_type tstop=terminal_time) {
     return event_generator(std::move(target), weight, regular_schedule(tstart, dt, tstop));
 }
 

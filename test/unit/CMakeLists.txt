@@ -87,6 +87,7 @@ set(unit_sources
     test_lexcmp.cpp
     test_label_resolution.cpp
     test_lif_cell_group.cpp
+    test_adex_cell_group.cpp
     test_local_context.cpp
     test_maputil.cpp
     test_mask_stream.cpp

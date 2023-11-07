@@ -26,6 +26,7 @@ set(arbor_sources
     io/serialize_hex.cpp
     label_resolution.cpp
     lif_cell_group.cpp
+    adex_cell_group.cpp
     cable_cell_group.cpp
     mechcat.cpp
     mechinfo.cpp

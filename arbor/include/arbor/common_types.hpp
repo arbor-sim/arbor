@@ -152,6 +152,7 @@ enum class ARB_SYMBOL_VISIBLE cell_kind {
     lif,          // Leaky-integrate and fire neuron.
     spike_source, // Cell that generates spikes at a user-supplied sequence of time points.
     benchmark,    // Proxy cell used for benchmarking.
+    adex,         // ADaptive EXponential.
 };
 
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, lid_selection_policy m);

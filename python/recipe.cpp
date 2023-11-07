@@ -1,4 +1,3 @@
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -9,13 +8,13 @@
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/adex_cell.hpp>
 #include <arbor/spike_source_cell.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/recipe.hpp>
 
 #include "arbor/cable_cell_param.hpp"
-#include "conversion.hpp"
 #include "error.hpp"
 #include "event_generator.hpp"
 #include "strprintf.hpp"
@@ -48,7 +47,9 @@ static arb::util::unique_any convert_cell(pybind11::object o) {
     if (isinstance<arb::cable_cell>(o)) {
         return arb::util::unique_any(cast<arb::cable_cell>(o));
     }
-
+    if (isinstance<arb::adex_cell>(o)) {
+        return arb::util::unique_any(cast<arb::adex_cell>(o));
+    }
     throw pyarb_error("recipe.cell_description returned \""
                       + std::string(pybind11::str(o))
                       + "\" which does not describe a known Arbor cell type");

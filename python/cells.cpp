@@ -1,6 +1,4 @@
 #include <algorithm>
-#include <any>
-#include <cstddef>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -17,6 +15,7 @@
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/adex_cell.hpp>
 #include <arbor/cv_policy.hpp>
 #include <arbor/morph/cv_data.hpp>
 #include <arbor/morph/label_dict.hpp>
@@ -34,7 +33,6 @@
 #include "error.hpp"
 #include "proxy.hpp"
 #include "pybind11/cast.h"
-#include "pybind11/stl.h"
 #include "pybind11/pytypes.h"
 #include "schedule.hpp"
 #include "strprintf.hpp"
@@ -125,16 +123,17 @@ std::optional<arb::mechanism_desc> maybe_method(pybind11::object method) {
     return {};
 }
 
-//
-// string printers
-//
-
-std::string lif_str(const arb::lif_cell& c){
+    std::string lif_str(const arb::lif_cell& c){
     return util::pprintf(
-        "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, V_m {}, t_ref {}>",
-        c.tau_m, c.V_th, c.C_m, c.E_L, c.V_m, c.t_ref);
+        "<arbor.lif_cell: src {}, tgt {}, tau_m {}, V_th {}, C_m {}, E_L {} E_R {}, V_m {}, t_ref {}>",
+        c.source, c.target, c.tau_m, c.V_th, c.C_m, c.E_L, c.E_R, c.V_m, c.t_ref);
 }
 
+std::string adex_str(const arb::adex_cell& c){
+    return util::pprintf(
+        "<arbor.adex_cell: src {}, tgt {}, tau_m {}, V_th {}, C_m {}, E_L {}, E_R {}, V_m {}, t_ref {}, g {}, tau {}, w {}, a {}, b {}>",
+        c.source, c.target, c.delta, c.V_th, c.C_m, c.E_L, c.E_R, c.V_m, c.t_ref, c.g, c.tau, c.w, c.a, c.b);
+}
 
 std::string mechanism_desc_str(const arb::mechanism_desc& md) {
     return util::pprintf("mechanism('{}', {})",
@@ -212,7 +211,6 @@ void register_cells(pybind11::module& m) {
 
     pybind11::class_<arb::lif_cell> lif_cell(m, "lif_cell",
         "A leaky integrate-and-fire cell.");
-
     lif_cell
         .def(pybind11::init<>(
             [](arb::cell_tag_type source_label, arb::cell_tag_type target_label){
@@ -239,6 +237,47 @@ void register_cells(pybind11::module& m) {
             "Label of the single build-in target on the cell.")
         .def("__repr__", &lif_str)
         .def("__str__",  &lif_str);
+
+    // arb::lif_cell
+
+    pybind11::class_<arb::adex_cell> adex_cell(m, "adex_cell",
+        "A leaky integrate-and-fire cell.");
+    adex_cell
+        .def(pybind11::init<>(
+            [](arb::cell_tag_type source_label, arb::cell_tag_type target_label){
+                return arb::adex_cell(std::move(source_label), std::move(target_label));}),
+            "source_label"_a, "target_label"_a,
+            "Construct a adex cell with one source labeled 'source_label', and one target labeled 'target_label'.")
+        .def_readwrite("delta", &arb::adex_cell::delta,
+            "Steepness [mV].")
+        .def_readwrite("g", &arb::adex_cell::g,
+            "Leak conductivity [uS].")
+        .def_readwrite("tau", &arb::adex_cell::tau,
+            "Adaption decay time [ms].")
+        .def_readwrite("w", &arb::adex_cell::tau,
+            "Adaption variable [nA].")
+        .def_readwrite("w", &arb::adex_cell::b,
+            "Adaption variable increase on spike [nA].")
+        .def_readwrite("w", &arb::adex_cell::b,
+            "Adaption variable dynamics [uS].")
+        .def_readwrite("V_th", &arb::adex_cell::V_th,
+            "Firing threshold [mV].")
+        .def_readwrite("C_m", &arb::adex_cell::C_m,
+            "Membrane capacitance [pF].")
+        .def_readwrite("E_L", &arb::adex_cell::E_L,
+            "Resting potential [mV].")
+        .def_readwrite("E_R", &arb::adex_cell::E_R,
+            "Reset potential [mV].")
+        .def_readwrite("V_m", &arb::adex_cell::V_m,
+            "Initial value of the Membrane potential [mV].")
+        .def_readwrite("t_ref", &arb::adex_cell::t_ref,
+            "Refractory period [ms].")
+        .def_readwrite("source", &arb::adex_cell::source,
+            "Label of the single build-in source on the cell.")
+        .def_readwrite("target", &arb::adex_cell::target,
+            "Label of the single build-in target on the cell.")
+        .def("__repr__", &adex_str)
+        .def("__str__",  &adex_str);
 
     // arb::label_dict
 

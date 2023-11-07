@@ -5,7 +5,7 @@
 
 #include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/lif_cell.hpp>
+#include <arbor/adex_cell.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/spike.hpp>
@@ -16,11 +16,11 @@
 
 namespace arb {
 
-struct ARB_ARBOR_API lif_cell_group: public cell_group {
-    lif_cell_group() = default;
+struct ARB_ARBOR_API adex_cell_group: public cell_group {
+    adex_cell_group() = default;
 
     // Constructor containing gid of first cell in a group and a container of all cells.
-    lif_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, cell_label_range& cg_sources, cell_label_range& cg_targets);
+    adex_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, cell_label_range& cg_sources, cell_label_range& cg_targets);
 
     cell_kind get_cell_kind() const override;
     void reset() override;
@@ -37,7 +37,7 @@ struct ARB_ARBOR_API lif_cell_group: public cell_group {
 
     std::vector<probe_metadata> get_probe_metadata(const cell_address_type&) const override;
 
-    ARB_SERDES_ENABLE(lif_cell_group, gids_, cells_, spikes_, last_time_updated_, next_time_updatable_);
+    ARB_SERDES_ENABLE(adex_cell_group, time_, gids_, cells_, spikes_);
 
     virtual void t_serialize(serializer& ser, const std::string& k) const override;
     virtual void t_deserialize(serializer& ser, const std::string& k) override;
@@ -45,41 +45,39 @@ struct ARB_ARBOR_API lif_cell_group: public cell_group {
     static bool backend_supported(backend_kind kind) { return kind == backend_kind::multicore; }
 
 private:
-    enum class lif_probe_kind { voltage };
+    enum class adex_probe_kind { voltage, adaption };
 
-    struct lif_probe_info {
-        cell_address_type addr;
-        lif_probe_kind kind;
-        lif_probe_metadata metadata;
+    struct adex_probe_info {
+        adex_probe_kind kind;
+        adex_probe_metadata metadata;
     };
 
     // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
     // Parameter dt is ignored, since we make jumps between two consecutive spikes.
     void advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, const event_lane_subrange& event_lane);
 
+    // current time
+    time_type time_ = 0.0;
+
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
 
     // Cells that belong to this group.
-    std::vector<lif_cell> cells_;
+    std::vector<adex_cell> cells_;
 
     // Spikes that are generated (not necessarily sorted).
     std::vector<spike> spikes_;
 
-    // Time when the cell was last updated.
-    std::vector<time_type> last_time_updated_;
-    // Time when the cell was last sampled.
-    std::vector<time_type> last_time_sampled_;
-    // Time when the cell can _next_ be updated;
-    std::vector<time_type> next_time_updatable_;
-
     // SAFETY: We need to access samplers_ through a mutex since
     //         simulation::add_sampler might be called concurrently.
     std::mutex sampler_mex_;
-    sampler_association_map samplers_;
+    sampler_association_map samplers_; //
 
-    // LIF probe metadata, precalculated to pass to callbacks
-    std::unordered_map<cell_address_type, lif_probe_info> probes_;
+    // ADEX probe metadata, precalculated to pass to callbacks
+    std::unordered_map<cell_address_type, adex_probe_info> probes_;
+
+    // Time of next possible update to model refractory periods.
+    std::vector<time_type> next_update_;
 };
 
 } // namespace arb

@@ -140,6 +140,8 @@ void register_identifiers(py::module& m) {
             "A cell with morphology described by branching 1D cable segments.")
         .value("lif", arb::cell_kind::lif,
             "Leaky-integrate and fire neuron.")
+        .value("adex", arb::cell_kind::adex,
+            "Adaptive exponential neuron.")
         .value("spike_source", arb::cell_kind::spike_source,
             "Proxy cell that generates spikes from a spike sequence provided by the user.");
 
