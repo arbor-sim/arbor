@@ -7,8 +7,8 @@ import seaborn as sns
 T = 100
 dt = 0.05
 
-class recipe(A.recipe):
 
+class recipe(A.recipe):
     def __init__(self):
         A.recipe.__init__(self)
         self.weight = 10
@@ -29,12 +29,13 @@ class recipe(A.recipe):
     def probes(self, _):
         return [A.adex_probe_voltage("Um"), A.adex_probe_adaption("w")]
 
+
 rec = recipe()
 sim = A.simulation(rec)
 
 sch = A.regular_schedule(dt)
-hUm  = sim.sample((0, "Um"), sch)
-hw   = sim.sample((0, "w"), sch)
+hUm = sim.sample((0, "Um"), sch)
+hw = sim.sample((0, "w"), sch)
 
 sim.run(T, dt)
 
@@ -42,8 +43,6 @@ df_list = []
 
 Um, _ = sim.samples(hUm)[0]
 W, _ = sim.samples(hw)[0]
-df = pd.DataFrame(
-    {"t/ms": Um[:, 0], "U/mV": Um[:, 1], "W/nA": W[:, 1]}
-    )
+df = pd.DataFrame({"t/ms": Um[:, 0], "U/mV": Um[:, 1], "W/nA": W[:, 1]})
 
-sns.relplot(data=df, x='t/ms', y='U/mV', kind="line").savefig("adex_results.pdf")
+sns.relplot(data=df, x="t/ms", y="U/mV", kind="line").savefig("adex_results.pdf")
