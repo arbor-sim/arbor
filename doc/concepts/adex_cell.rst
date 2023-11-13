@@ -15,7 +15,7 @@ See for example
 
    A. Destexhe 2009
 
-Outside the refractory period the dynamics are
+wOutside the refractory period the dynamics are
 
 .. math::
    C_m\partial_t V_m = -g(V_m - E_L) + g \Delta \exp\left(\frac{V_m - V_\mathrm{th}{\Delta}\right) - w + I\\
