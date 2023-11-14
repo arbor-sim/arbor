@@ -78,7 +78,7 @@ jobs:
       - name: load arbor and verify installation, python examples.
         run: |
           source spack/share/spack/setup-env.sh
-          spack load python
+          spack load python@${{ matrix.python-version }}
           spack load py-pip
           spack load cmake
           spack load arbor
