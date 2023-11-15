@@ -10,65 +10,90 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-22.04
+
+    defaults:
+      run:
+        shell: bash
+
     strategy:
       matrix:
-        os: [ubuntu-22.04]
         python-version: ['3.10']
         spack-version: ['develop', 'latest_release']
+
       fail-fast: false
+
     steps:
-      - name: Checkout
+      - name: install additional ubuntu packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y gfortran libblas-dev
+
+      - name: clone arbor
         uses: actions/checkout@v3
         with:
           path: arbor
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Spack cache
-        uses: actions/cache@v3
-        with:
-          path: ~/.spack-cache
-          key: spack-cache-${{ matrix.os }}-${{ matrix.spack-version }}-${{ github.run_id }}
-          restore-keys: spack-cache-${{ matrix.os }}-${{ matrix.spack-version }}-
-      - name: Get Spack (develop)
+
+      - name: clone spack develop
         if: ${{ matrix.spack-version == 'develop' }}
         run: |
           git clone -c feature.manyFiles=true --depth 1 https://github.com/spack/spack.git
-      - name: Get Spack (latest_release)
+
+      - name: download spack latest release
         if: ${{ matrix.spack-version == 'latest_release' }}
         run: |
           wget -O latest_spack.tar.gz "$(curl -sH "Accept: application/vnd.github.v3+json" https://api.github.com/repos/spack/spack/releases/latest | grep tarball_url |  cut -d '"' -f 4)"
           tar xfz latest_spack.tar.gz
           mv spack*/ spack
-      - name: Prep
+
+      - name: initialize spack with arbor's config.yaml and online buildcache
         run: |
           mkdir ~/.spack
           cp arbor/spack/config.yaml ~/.spack
+          source spack/share/spack/setup-env.sh
+          spack compiler find
+          spack mirror add spack-buildcache oci://ghcr.io/spack/github-actions-buildcache
+
+      - name: install python through spack
+        run: |
+          source spack/share/spack/setup-env.sh
+          spack install --no-check-signature py-pip target=x86_64_v2 ^python@${{ matrix.python-version }}
+
+      - name: add arbor spack package
+        run: |
           source spack/share/spack/setup-env.sh
           spack repo create custom_repo
           mkdir -p custom_repo/packages/arbor
           spack repo add custom_repo
           spack reindex
           cp arbor/spack/package.py custom_repo/packages/arbor
-      - name: Build Arbor
+
+      - name: build and install arbor through spack dev-build
         run: |
           source spack/share/spack/setup-env.sh
+          spack install --no-check-signature --only dependencies arbor@develop target=x86_64_v2 +python ^python@${{ matrix.python-version }}
           cd arbor
-          spack dev-build arbor@develop +python
-      - name: Load Arbor and verify installation, Python Examples.
+          spack dev-build arbor@develop target=x86_64_v2 +python ^python@${{ matrix.python-version }}
+
+      - name: load arbor and verify installation, python examples.
         run: |
           source spack/share/spack/setup-env.sh
-          python -m ensurepip --upgrade
+          spack load python@${{ matrix.python-version }}
+          spack load py-pip
+          spack load cmake
           spack load arbor
+          python3 -m venv --system-site-packages arb_env
+          source arb_env/bin/activate
           cd arbor
           scripts/run_python_examples.sh
           scripts/test_executables.sh
-      - name: Remove Arbor
+
+      - name: remove arbor
         run: |
           source spack/share/spack/setup-env.sh
           spack uninstall -yafR arbor
-      - name: Failure, upload logs
+
+      - name: failure, upload logs
         uses: actions/upload-artifact@v3
         if: ${{ failure() }}
         with:
@@ -76,3 +101,4 @@ jobs:
           path: |
             arbor/*.txt
             !arbor/CMakeLists.txt
+
