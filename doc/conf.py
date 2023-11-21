@@ -28,7 +28,6 @@ extensions = [
 source_suffix = ".rst"
 master_doc = "index"
 
-html_logo = "images/arbor-lines-proto-colour.svg"
 html_favicon = "images/arbor-lines-proto-colour-notext.svg"
 
 intersphinx_mapping = {
@@ -41,7 +40,10 @@ author = "ETHZ & FZJ"
 todo_include_todos = True
 
 html_theme = "furo"
-html_theme_options = {}
+html_theme_options = {
+    "dark_logo": "arbor-lines-proto-colour-dark.svg",
+    "light_logo": "arbor-lines-proto-colour.svg",
+}
 
 # This style makes the source code pop out a bit more
 # from the background text, without being overpowering.
