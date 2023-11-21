@@ -80,6 +80,7 @@ set(unit_sources
     test_forest.cpp
     test_fvm_layout.cpp
     test_fvm_lowered.cpp
+    test_gathered_vector.cpp
     test_diffusion.cpp
     test_iexpr.cpp
     test_index.cpp
