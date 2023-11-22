@@ -327,8 +327,37 @@ add_labels(cell_label_range& clr, const cable_cell::lid_range_map& ranges) {
     return count;
 }
 
-fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gids,
-                                                                   const recipe& rec) {
+template <typename Backend> void
+fvm_lowered_cell_impl<Backend>::add_probes(const std::vector<cell_gid_type>& gids,
+                                           const std::vector<cable_cell>& cells,
+                                           const recipe& rec,
+                                           const fvm_cv_discretization& D,
+                                           const std::unordered_map<std::string, mechanism*>& mechptr_by_name,
+                                           const fvm_mechanism_data& mech_data,
+                                           const std::vector<target_handle>& target_handles,
+                                           probe_association_map& probe_map) {
+    auto ncell = gids.size();
+
+    std::vector<fvm_probe_data> probe_data;
+    for (auto cell_idx: util::make_span(ncell)) {
+        cell_gid_type gid = gids[cell_idx];
+        const auto& rec_probes = rec.get_probes(gid);
+        for (const auto& pi: rec_probes) {
+            resolve_probe_address(probe_data, cells, cell_idx, pi.address, D, mech_data, target_handles, mechptr_by_name);
+            if (!probe_data.empty()) {
+                cell_address_type addr{gid, pi.tag};
+                if (probe_map.count(addr)) throw dup_cell_probe(cell_kind::cable, gid, pi.tag);
+                for (auto& data: probe_data) {
+                    probe_map.insert(addr, std::move(data));
+                }
+            }
+        }
+    }
+}
+
+template <typename Backend> fvm_initialization_data
+fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gids,
+                                           const recipe& rec) {
     using std::any_cast;
     using util::count_along;
     using util::make_span;
