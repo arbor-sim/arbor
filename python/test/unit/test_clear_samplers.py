@@ -21,7 +21,7 @@ class TestClearSamplers(unittest.TestCase):
     def test_spike_clearing(self, art_spiking_sim):
         sim = art_spiking_sim
         sim.record(A.spike_recording.all)
-        handle = sim.sample((3, 0), A.regular_schedule(0.1))
+        handle = sim.sample((3, "Um"), A.regular_schedule(0.1))
 
         # baseline to test against Run in exactly the same stepping to make sure there are no rounding differences
         sim.run(3, 0.01)

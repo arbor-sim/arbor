@@ -5,8 +5,6 @@
 #include "profile/profiler_macro.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
-#include "util/filter.hpp"
-#include "util/maputil.hpp"
 
 using namespace arb;
 
@@ -30,11 +28,11 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids,
         cg_targets.add_label(internal_hash(cell.target), {0, 1});
         // insert probes where needed
         auto probes = rec.get_probes(gid);
-        for (const auto lid: util::count_along(probes)) {
-            const auto& probe = probes[lid];
+        for (const auto& probe: probes) {
             if (probe.address.type() == typeid(lif_probe_voltage)) {
-                cell_member_type id{gid, static_cast<cell_lid_type>(lid)};
-                probes_[id] = {probe.tag, lif_probe_kind::voltage, {}};
+                cell_address_type addr{gid, probe.tag};
+                if (probes_.count(addr)) throw dup_cell_probe(cell_kind::lif, gid, probe.tag);
+                probes_.insert_or_assign(addr, lif_probe_info{addr, lif_probe_kind::voltage, {}});
             }
             else {
                 throw bad_cell_probe{cell_kind::lif, gid};
@@ -69,8 +67,10 @@ void lif_cell_group::add_sampler(sampler_association_handle h,
                                  schedule sched,
                                  sampler_function fn) {
     std::lock_guard<std::mutex> guard(sampler_mex_);
-    std::vector<cell_member_type> probeset =
-        util::assign_from(util::filter(util::keys(probes_), probeset_ids));
+    std::vector<cell_address_type> probeset;
+    for (const auto& [k, v]: probes_) {
+        if (probeset_ids(k)) probeset.push_back(k);
+    }
     auto assoc = arb::sampler_association{std::move(sched),
                                           std::move(fn),
                                           std::move(probeset)};
@@ -114,7 +114,7 @@ void lif_cell_group::advance_cell(time_type tfinal,
     int event_idx = 0;
     // collected sampling data
     std::unordered_map<sampler_association_handle,
-                       std::unordered_map<cell_member_type,
+                       std::unordered_map<cell_address_type,
                                           std::vector<sample_record>>> sampled;
     // samples to process
     std::size_t n_values = 0;
@@ -148,7 +148,7 @@ void lif_cell_group::advance_cell(time_type tfinal,
     int sample_idx = 0;
     // Now allocate some scratch space for the probed values, if we don't,
     // re-alloc might move our data
-    std::vector<value_type> sampled_voltages;
+    std::vector<double> sampled_voltages;
     sampled_voltages.reserve(n_values);
     // integrate until tfinal using the exact solution of membrane voltage differential equation.
     for (;;) {
@@ -249,9 +249,11 @@ void lif_cell_group::t_deserialize(serializer& ser, const std::string& k) {
     deserialize(ser, k, *this);
 }
 
-std::vector<probe_metadata> lif_cell_group::get_probe_metadata(cell_member_type key) const {
+std::vector<probe_metadata> lif_cell_group::get_probe_metadata(const cell_address_type& key) const {
+    // SAFETY: Probe associations are fixed after construction, so we do not
+    //         need to grab the mutex.
     if (probes_.count(key)) {
-        return {probe_metadata{key, {}, 0, {&probes_.at(key).metadata}}};
+        return {probe_metadata{key, 0, &probes_.at(key).metadata}};
     } else {
         return {};
     }

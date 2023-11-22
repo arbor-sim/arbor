@@ -11,7 +11,6 @@ class recipe(A.recipe):
         self.the_cell = cell
         self.the_probes = probes
         self.the_props = A.neuron_cable_properties()
-        self.the_props.catalogue = A.default_catalogue()
 
     def num_cells(self):
         return 1
@@ -47,12 +46,12 @@ dec.set_ion("na", int_con=1.0, ext_con=140, rev_pot=50, diff=0.005)
 dec.paint("(tag 1)", ion_name="na", int_con=100.0, diff=0.01)
 
 prb = [
-    A.cable_probe_ion_diff_concentration_cell("na"),
+    A.cable_probe_ion_diff_concentration_cell("na", "nad"),
 ]
 cel = A.cable_cell(tree, dec)
 rec = recipe(cel, prb)
 sim = A.simulation(rec)
-hdl = (sim.sample((0, 0), A.regular_schedule(0.1)),)
+hdl = (sim.sample((0, "nad"), A.regular_schedule(0.1)),)
 
 sim.run(tfinal=0.5)
 
@@ -63,15 +62,14 @@ for h in hdl:
         # Plot
         for lbl, ix in zip(m, range(1, d.shape[1])):
             ax.plot(d[:, 0], d[:, ix], label=lbl)
+        W = 8
         # Table
         print("Sodium concentration (NaD/mM)")
-        print("|-" + "-+-".join("-" * 20 for _ in range(d.shape[1])) + "-|")
-        print(
-            "| Time (ms)            | " + " | ".join(f"{str(l):<20}" for l in m) + " |"
-        )
-        print("|-" + "-+-".join("-" * 20 for _ in range(d.shape[1])) + "-|")
+        print("|-" + "-+-".join("-" * W for _ in range(d.shape[1])) + "-|")
+        print(f"| {'Time/ms':<{W}} | " + " | ".join(f"{l.prox:<{W}}" for l in m) + " |")
+        print("|-" + "-+-".join("-" * W for _ in range(d.shape[1])) + "-|")
         for ix in range(d.shape[0]):
-            print("| " + " | ".join(f"{v:>20.3f}" for v in d[ix, :]) + " |")
-        print("|-" + "-+-".join("-" * 20 for _ in range(d.shape[1])) + "-|")
+            print("| " + " | ".join(f"{v:>{W}.3f}" for v in d[ix, :]) + " |")
+        print("|-" + "-+-".join("-" * W for _ in range(d.shape[1])) + "-|")
 ax.legend()
 fg.savefig("results.pdf")
