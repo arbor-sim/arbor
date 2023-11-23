@@ -10,7 +10,6 @@ fi
 
 PREFIX=${1:-}
 
-$PREFIX python3 -m ensurepip --upgrade
 $PREFIX python3 -m pip install -r python/example/example_requirements.txt -U
 
 runpyex () {
