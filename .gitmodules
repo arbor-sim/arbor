@@ -26,3 +26,6 @@
 	path = ext/pugixml
 	url = https://github.com/zeux/pugixml.git
 	branch = master
+[submodule "ext/units"]
+	path = ext/units
+	url = https://github.com/LLNL/units.git
