@@ -1,12 +1,10 @@
 #pragma once
 
 #include <cmath>
-#include <memory>
 #include <optional>
 #include <unordered_map>
 #include <string>
 #include <variant>
-#include <any>
 
 #include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
@@ -15,6 +13,7 @@
 #include <arbor/mechcat.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/primitives.hpp>
+#include <arbor/units.hpp>
 
 namespace arb {
 
@@ -54,6 +53,11 @@ struct cable_cell_ion_data {
 
 struct ARB_SYMBOL_VISIBLE i_clamp {
     struct envelope_point {
+        envelope_point(const units::quantity& t,
+                       const units::quantity& amplitude):
+            t(t.value_as(units::ms)),
+            amplitude(amplitude.value_as(units::nA))
+        {}
         double t;         // [ms]
         double amplitude; // [nA]
     };
@@ -67,29 +71,38 @@ struct ARB_SYMBOL_VISIBLE i_clamp {
     i_clamp() = default;
 
     // The simple constructor describes a constant amplitude stimulus starting from t=0.
-    explicit i_clamp(double amplitude, double frequency = 0, double phase = 0):
-        envelope({{0., amplitude}}),
-        frequency(frequency),
-        phase(phase)
+    explicit i_clamp(const units::quantity& amplitude,
+                     const units::quantity& frequency = 0*units::kHz,
+                     const units::quantity& phase = 0*units::rad):
+        i_clamp{{{0.0*units::ms, amplitude}}, frequency, phase}
     {}
 
     // Describe a stimulus by envelope and frequency.
-    explicit i_clamp(std::vector<envelope_point> envelope, double frequency = 0, double phase = 0):
+    explicit i_clamp(std::vector<envelope_point> envelope,
+                     const units::quantity& frequency = 0*units::kHz,
+                     const units::quantity& phase = 0*units::rad):
         envelope(std::move(envelope)),
-        frequency(frequency),
-        phase(phase)
+        frequency(frequency.value_as(units::kHz)),
+        phase(phase.value_as(units::rad))
     {}
 
     // A 'box' stimulus with fixed onset time, duration, and constant amplitude.
-    static i_clamp box(double onset, double duration, double amplitude, double frequency = 0, double phase = 0) {
-        return i_clamp({{onset, amplitude}, {onset+duration, amplitude}, {onset+duration, 0.}}, frequency, phase);
+    static i_clamp box(const units::quantity& onset,
+                       const units::quantity& duration,
+                       const units::quantity& amplitude,
+                       const units::quantity& frequency =  0*units::kHz,
+                       const units::quantity& phase = 0*units::rad) {
+        return i_clamp({{onset, amplitude}, {onset+duration, amplitude}, {onset+duration, 0.*units::nA}},
+                       frequency,
+                       phase);
     }
-
 };
 
 // Threshold detector description.
 struct ARB_SYMBOL_VISIBLE threshold_detector {
-    double threshold;
+    threshold_detector(const units::quantity& m): threshold(m.value_as(units::mV)) {}
+    static threshold_detector from_raw_millivolts(double v) { return {v*units::mV}; }
+    double threshold; // [mV]
 };
 
 // Setter types for painting physical and ion parameters or setting
@@ -350,7 +363,12 @@ struct ARB_SYMBOL_VISIBLE cable_cell_global_properties {
     cable_cell_parameter_set default_parameters;
 
     // Convenience methods for adding a new ion together with default ion values.
-    void add_ion(const std::string& ion_name, int charge, double init_iconc, double init_econc, double init_revpot, double diffusivity=0.0) {
+    void add_ion(const std::string& ion_name,
+                 int charge,
+                 double init_iconc,
+                 double init_econc,
+                 double init_revpot,
+                 double diffusivity=0.0) {
         ion_species[ion_name] = charge;
 
         auto &ion_data = default_parameters.ion_data[ion_name];
@@ -360,7 +378,12 @@ struct ARB_SYMBOL_VISIBLE cable_cell_global_properties {
         ion_data.diffusivity             = diffusivity;
     }
 
-    void add_ion(const std::string& ion_name, int charge, double init_iconc, double init_econc, mechanism_desc revpot_mechanism, double diffusivity=0.0) {
+    void add_ion(const std::string& ion_name,
+                 int charge,
+                 double init_iconc,
+                 double init_econc,
+                 mechanism_desc revpot_mechanism,
+                 double diffusivity=0.0) {
         add_ion(ion_name, charge, init_iconc, init_econc, 0, diffusivity);
         default_parameters.reversal_potential_method[ion_name] = std::move(revpot_mechanism);
     }

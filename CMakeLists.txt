@@ -259,6 +259,7 @@ install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 cmake_dependent_option(ARB_USE_BUNDLED_PUGIXML "Use bundled XML lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
 cmake_dependent_option(ARB_USE_BUNDLED_GTEST "Use bundled GoogleTest." ON "ARB_USE_BUNDLED_LIBS" OFF)
+cmake_dependent_option(ARB_USE_BUNDLED_UNITS "Use bundled LLNL units." ON "ARB_USE_BUNDLED_LIBS" OFF)
 
 cmake_dependent_option(ARB_USE_BUNDLED_JSON "Use bundled Niels Lohmann's json library." ON "ARB_USE_BUNDLED_LIBS" OFF)
 if(NOT ARB_USE_BUNDLED_JSON)
@@ -290,9 +291,20 @@ else()
     endif()
 endif()
 
+add_library(ext-units INTERFACE)
+if(ARB_USE_BUNDLED_UNITS)
+    target_link_libraries(ext-units INTERFACE units::units)
+else()
+    message(FATAL, "TODO")
+endif()
+
+
 add_subdirectory(ext)
 install(TARGETS ext-hwloc EXPORT arbor-targets)
 install(TARGETS ext-random123 EXPORT arbor-targets)
+target_link_libraries(arbor-public-deps INTERFACE ext-units)
+install(TARGETS ext-units EXPORT arbor-targets)
+install(TARGETS units compile_flags_target EXPORT arbor-targets)
 
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.

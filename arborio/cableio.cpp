@@ -222,12 +222,11 @@ using branch_tuple   = std::tuple<int,int,std::vector<arb::msegment>>;
 using version_tuple  = std::tuple<std::string>;
 
 // Define makers for defaultables, paintables, placeables
-#define ARBIO_DEFINE_ONE_ARG(name) arb::name make_##name(double val) { return arb::name{val};}
+#define ARBIO_DEFINE_ONE_ARG(name) arb::name make_##name(double val) { return arb::name(val);}
 #define ARBIO_DEFINE_ION_ARG(name) arb::name make_##name(const std::string& ion, double val) { return arb::name{ion, val};}
 #define ARBIO_DEFINE_IEXPR_ION_ARG(name) arb::name make_##name(const std::string& ion, iexpr val) { return arb::name{ion, val};}
 #define ARBIO_DEFINE_IEXPR_ARG(name) arb::name make_##name(iexpr val) { return arb::name{val}; }
 
-ARB_PP_FOREACH(ARBIO_DEFINE_ONE_ARG, threshold_detector)
 ARB_PP_FOREACH(ARBIO_DEFINE_IEXPR_ARG, init_membrane_potential, temperature_K, axial_resistivity, membrane_capacitance)
 ARB_PP_FOREACH(ARBIO_DEFINE_ION_ARG, ion_diffusivity)
 ARB_PP_FOREACH(ARBIO_DEFINE_IEXPR_ION_ARG, init_int_concentration, init_ext_concentration, init_reversal_potential)
@@ -242,18 +241,22 @@ std::vector<arb::i_clamp::envelope_point> make_envelope(const std::vector<std::v
     std::transform(vec.begin(), vec.end(), std::back_inserter(envlp),
         [](const auto& x) {
             auto t = std::get<envelope_tuple>(x);
-            return arb::i_clamp::envelope_point{std::get<0>(t), std::get<1>(t)};
+            return arb::i_clamp::envelope_point{std::get<0>(t)*arb::units::ms, std::get<1>(t)*arb::units::nA};
         });
     return envlp;
 }
 arb::i_clamp make_i_clamp(const std::vector<arb::i_clamp::envelope_point>& envlp, double freq, double phase) {
-    return arb::i_clamp(envlp, freq, phase);
+    return arb::i_clamp(envlp, freq*arb::units::kHz, phase*arb::units::rad);
 }
 pulse_tuple make_envelope_pulse(double delay, double duration, double amplitude) {
     return pulse_tuple{delay, duration, amplitude};
 }
 arb::i_clamp make_i_clamp_pulse(const pulse_tuple& p, double freq, double phase) {
-    return arb::i_clamp::box(std::get<0>(p), std::get<1>(p), std::get<2>(p), freq, phase);
+    return arb::i_clamp::box(std::get<0>(p)*arb::units::ms,
+                             std::get<1>(p)*arb::units::ms,
+                             std::get<2>(p)*arb::units::nA,
+                             freq*arb::units::kHz,
+                             phase*arb::units::rad);
 }
 arb::cv_policy make_cv_policy(const cv_policy& p) {
     return p;
@@ -678,7 +681,7 @@ eval_map named_evals{
         "'current-clamp' with 3 arguments (env:envelope freq:real phase:real)")},
     {"current-clamp", make_call<pulse_tuple, double, double>(make_i_clamp_pulse,
         "'current-clamp' with 3 arguments (env:envelope_pulse freq:real phase:real)")},
-    {"threshold-detector", make_call<double>(make_threshold_detector,
+    {"threshold-detector", make_call<double>(arb::threshold_detector::from_raw_millivolts,
         "'threshold-detector' with 1 argument (threshold:real)")},
     {"mechanism", make_mech_call("'mechanism' with a name argument, and 0 or more parameter settings"
         "(name:string (param:string val:real))")},

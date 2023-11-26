@@ -30,6 +30,7 @@ void register_schedules(pybind11::module& m);
 void register_simulation(pybind11::module& m, pyarb_global_ptr);
 void register_arborenv(pybind11::module& m);
 void register_single_cell(pybind11::module& m);
+void register_units(pybind11::module& m);
 
 #ifdef ARB_MPI_ENABLED
 void register_mpi(pybind11::module& m);
@@ -49,6 +50,7 @@ PYBIND11_MODULE(_arbor, m) {
 
     pyarb::register_cable_loader(m);
     pyarb::register_cable_probes(m, global_ptr);
+    pyarb::register_units(m);
     pyarb::register_cells(m);
     pyarb::register_config(m);
     pyarb::register_contexts(m);

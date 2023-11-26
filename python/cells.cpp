@@ -1,6 +1,4 @@
 #include <algorithm>
-#include <any>
-#include <cstddef>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -8,8 +6,9 @@
 #include <vector>
 
 #include <pybind11/operators.h>
-#include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/cast.h>
+#include <pybind11/pytypes.h>
 
 #include <arborio/cv_policy_parse.hpp>
 #include <arborio/label_parse.hpp>
@@ -33,9 +32,6 @@
 #include "conversion.hpp"
 #include "error.hpp"
 #include "proxy.hpp"
-#include "pybind11/cast.h"
-#include "pybind11/stl.h"
-#include "pybind11/pytypes.h"
 #include "schedule.hpp"
 #include "strprintf.hpp"
 #include "util.hpp"
@@ -566,26 +562,33 @@ void register_cells(pybind11::module& m) {
         "A current clamp for injecting a DC or fixed frequency current governed by a piecewise linear envelope.");
     i_clamp
         .def(pybind11::init(
-                [](double ts, double dur, double cur, double frequency, double phase) {
+                [](const arb::units::quantity& ts,
+                   const arb::units::quantity& dur,
+                   const arb::units::quantity& cur,
+                   const arb::units::quantity& frequency,
+                   const arb::units::quantity& phase) {
                     return arb::i_clamp::box(ts, dur, cur, frequency, phase);
-                }), "tstart"_a, "duration"_a, "current"_a, pybind11::kw_only(), "frequency"_a=0, "phase"_a=0,
-                "Construct finite duration current clamp, constant amplitude")
+                }),
+             "tstart"_a, "duration"_a, "current"_a, pybind11::kw_only(), "frequency"_a=0*arb::units::kHz, "phase"_a=0*arb::units::rad,
+             "Construct finite duration current clamp, constant amplitude")
         .def(pybind11::init(
-                [](double cur, double frequency, double phase) {
+                [](const arb::units::quantity& cur,
+                   const arb::units::quantity& frequency,
+                   const arb::units::quantity& phase) {
                     return arb::i_clamp{cur, frequency, phase};
-                }), "current"_a, pybind11::kw_only(), "frequency"_a=0, "phase"_a=0,
-                "Construct constant amplitude current clamp")
+                }),
+             "current"_a, pybind11::kw_only(), "frequency"_a=0*arb::units::kHz, "phase"_a=0*arb::units::rad,
+             "Construct constant amplitude current clamp")
         .def(pybind11::init(
-                [](std::vector<std::pair<double, double>> envl, double frequency, double phase) {
-                    arb::i_clamp clamp;
-                    for (const auto& p: envl) {
-                        clamp.envelope.push_back({p.first, p.second});
-                    }
-                    clamp.frequency = frequency;
-                    clamp.phase = phase;
-                    return clamp;
-                }), "envelope"_a, pybind11::kw_only(), "frequency"_a=0, "phase"_a=0,
-                "Construct current clamp according to (time, amplitude) linear envelope")
+                [](std::vector<std::pair<const arb::units::quantity&, const arb::units::quantity&>> envl,
+                   const arb::units::quantity& frequency,
+                   const arb::units::quantity& phase) {
+                    std::vector<arb::i_clamp::envelope_point> env;
+                    for (const auto& [t, a]: envl) env.push_back({t, a});
+                    return arb::i_clamp{env, frequency, phase};
+                }),
+             "envelope"_a, pybind11::kw_only(), "frequency"_a=0*arb::units::kHz, "phase"_a=0*arb::units::rad,
+             "Construct current clamp according to (time, amplitude) linear envelope")
         .def_property_readonly("envelope",
                 [](const arb::i_clamp& obj) {
                     std::vector<std::pair<double, double>> envl;
@@ -607,7 +610,7 @@ void register_cells(pybind11::module& m) {
             "A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an arbor.connection.");
     detector
         .def(pybind11::init(
-            [](double thresh) { return arb::threshold_detector{thresh}; }),
+            [](const arb::units::quantity& thresh) { return arb::threshold_detector{thresh}; }),
             "threshold"_a, "Voltage threshold of spike detector [mV]")
         .def_readonly("threshold", &arb::threshold_detector::threshold, "Voltage threshold of spike detector [mV]")
         .def("__repr__", [](const arb::threshold_detector& d){
