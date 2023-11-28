@@ -35,7 +35,7 @@ struct cell_parameters {
     unsigned synapses = 1;
 };
 
-cell_parameters parse_cell_parameters(nlohmann::json& json) {
+inline cell_parameters parse_cell_parameters(nlohmann::json& json) {
     cell_parameters params;
     sup::param_from_json(params.max_depth, "depth", json);
     sup::param_from_json(params.branch_probs, "branch-probs", json);
@@ -55,7 +55,7 @@ double interp(const std::array<T,2>& r, unsigned i, unsigned n) {
     return r[0] + p*(r1-r0);
 }
 
-arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
+inline arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
     arb::segment_tree tree;
 
     // Add soma.
@@ -110,12 +110,14 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     labels.set("dend", tagged(dtag));
 
     auto decor = arb::decor()
-        .set_default(arb::axial_resistivity{100})                             // [Ω·cm]
-        .paint("soma"_lab, arb::density("hh"))                                // Add HH dynamics to soma.
-        .paint("dend"_lab, arb::density("pas"))                               // Leaky current everywhere else.
-        .place(arb::mlocation{0,0}, arb::threshold_detector{10}, "detector")  // Add spike threshold detector at the soma.
-        .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "synapse")     // Add a synapse to the mid point of the first dendrite.
-        .set_default(arb::cv_policy_every_segment());                         // Make a CV between every sample in the sample tree.
+        .set_default(arb::axial_resistivity{100})                          // [Ω·cm]
+        .paint("soma"_lab, arb::density("hh"))                             // Add HH dynamics to soma.
+        .paint("dend"_lab, arb::density("pas"))                            // Leaky current everywhere else.
+        .place(arb::mlocation{0,0},
+               arb::threshold_detector{10*arb::units::mV},
+               "detector")                                                 // Add spike threshold detector at the soma.
+        .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "synapse")  // Add a synapse to the mid point of the first dendrite.
+        .set_default(arb::cv_policy_every_segment());                      // Make a CV between every sample in the sample tree.
 
     // Add additional synapses that will not be connected to anything.
     for (unsigned i=1u; i<params.synapses; ++i) {

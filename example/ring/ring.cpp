@@ -1,10 +1,4 @@
-/*
- * A miniapp that demonstrates how to make a ring model
- *
- */
-
 #include <any>
-#include <cassert>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -99,7 +93,7 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (!gid) {
-            gens.push_back(arb::explicit_generator({"primary_syn"}, event_weight_, std::vector<float>{1.0f}));
+            gens.push_back(arb::explicit_generator_from_milliseconds({"primary_syn"}, event_weight_, std::vector{1.0}));
         }
         return gens;
     }
@@ -168,8 +162,8 @@ int main(int argc, char** argv) {
 
         // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
         auto probeset_id = arb::cell_address_type{0, "Um"};
-        // The schedule for sampling is 10 samples every 1 ms.
-        auto sched = arb::regular_schedule(1);
+        // The schedule for sampling every 1 ms.
+        auto sched = arb::regular_schedule(1*arb::units::ms);
         // This is where the voltage samples will be stored as (time, value) pairs
         arb::trace_vector<double> voltage;
         // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
@@ -191,7 +185,7 @@ int main(int argc, char** argv) {
         }
         std::cout << "running simulation\n" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
-        sim.run(params.duration, 0.025);
+        sim.run(params.duration*arb::units::ms, 0.025*arb::units::ms);
 
         meters.checkpoint("model-run", context);
 

@@ -1,11 +1,8 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <sstream>
 #include <algorithm>
 #include <array>
-#include <cstring>
-#include <functional>
 
 #include <nlohmann/json.hpp>
 
@@ -113,7 +110,7 @@ public:
     // This generates a single event that will kick start the spiking on the sub-ring.
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         if (gid%params_.ring_size == 0) {
-            return {arb::explicit_generator({"p"}, event_weight_, std::vector<float>{1.0f})};
+            return {arb::explicit_generator_from_milliseconds({"p"}, event_weight_, std::vector{1.0})};
         } else {
             return {};
         }
@@ -231,7 +228,7 @@ int main(int argc, char** argv) {
             // the cell_member type points to (cell 0, probe 0)
             auto probe_id = arb::cell_address_type{0, "Um"};
             // The schedule for sampling is 10 samples every 1 ms.
-            auto sched = arb::regular_schedule(0.1);
+            auto sched = arb::regular_schedule(0.1*arb::units::ms);
             // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
             sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
         }
@@ -250,7 +247,7 @@ int main(int argc, char** argv) {
         // Run the simulation.
         if (root) sim.set_epoch_callback(arb::epoch_progress_bar());
         if (root) std::cout << "running simulation\n" << std::endl;
-        sim.run(params.duration, params.dt);
+        sim.run(params.duration*arb::units::ms, params.dt*arb::units::ms);
 
         meters.checkpoint("model-run", context);
 
@@ -423,7 +420,7 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
         decor.place(syns, arb::synapse("expsyn"), "s");
     }
 
-    decor.place(cntr, arb::threshold_detector{-20.0}, "d");
+    decor.place(cntr, arb::threshold_detector{-20.0*arb::units::mV}, "d");
 
     decor.set_default(arb::cv_policy_every_segment());
 
@@ -446,7 +443,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     decor.set_default(arb::axial_resistivity{100}); // [Ω·cm]
 
     // Add spike threshold detector at the soma.
-    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10}, "d");
+    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10*arb::units::mV}, "d");
 
     // Add a synapse to proximal end of first dendrite.
     decor.place(arb::mlocation{1, 0}, arb::synapse{"expsyn"}, "p");

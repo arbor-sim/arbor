@@ -32,7 +32,7 @@ struct linear: public recipe {
     cell_kind get_cell_kind(cell_gid_type)                       const override { return cell_kind::cable; }
     std::any get_global_properties(cell_kind)                    const override { return gprop; }
     std::vector<probe_info> get_probes(cell_gid_type)            const override { return {{cable_probe_ion_diff_concentration_cell{"na"}, "nad"}}; }
-    std::vector<event_generator> event_generators(cell_gid_type) const override { return {explicit_generator({"Zap"}, 0.005, std::vector<float>{0.f})}; }
+    std::vector<event_generator> event_generators(cell_gid_type) const override { return {explicit_generator_from_milliseconds({"Zap"}, 0.005, std::vector{0.})}; }
     util::unique_any get_cell_description(cell_gid_type)         const override {
         // Stick morphology
         // -----|-----
@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
     auto C = make_context({1, O.gpu});
     auto R = linear{O.L, O.dx, O.Xi, O.dX};
     simulation S(R, C, partition_load_balance(R, C));
-    S.add_sampler(all_probes, regular_schedule(O.ds), sampler);
-    S.run(O.T, O.dt);
+    S.add_sampler(all_probes, regular_schedule(O.ds*arb::units::ms), sampler);
+    S.run(O.T*arb::units::ms, O.dt*arb::units::ms);
     out.close();
 }

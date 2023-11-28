@@ -3,7 +3,6 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <memory>
 #include <optional>
 #include <set>
 #include <vector>
@@ -139,10 +138,7 @@ public:
     }
 
     std::vector<event_generator> event_generators(cell_gid_type gid) const override {
-        std::mt19937_64 G;
-        G.seed(gid + seed_);
-        time_type t0 = 0;
-        return {poisson_generator({"tgt"}, weight_ext_, t0, lambda_, G)};
+        return {poisson_generator({"tgt"}, weight_ext_, 0*arb::units::ms, lambda_*arb::units::kHz, gid + seed_)};
     }
 
 private:
@@ -263,7 +259,7 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-init", context);
 
         // Run simulation.
-        sim.run(options.tfinal, options.dt);
+        sim.run(options.tfinal*arb::units::ms, options.dt*arb::units::ms);
 
         meters.checkpoint("model-simulate", context);
 

@@ -19,7 +19,6 @@
 
 using std::any;
 using arb::util::any_cast;
-using arb::util::any_ptr;
 using arb::util::unique_any;
 using arb::cell_gid_type;
 
@@ -185,7 +184,7 @@ int main(int argc, char** argv) {
     const double dt = 0.1;        // [ms]
 
     // Weight 0.005 μS, onset at t = 0 ms, mean frequency 0.1 kHz.
-    auto events = arb::poisson_generator({"syn"}, .005, 0., 0.1, std::minstd_rand{});
+    auto events = arb::poisson_generator({"syn"}, .005, 0.*arb::units::ms, 100*arb::units::Hz);
     lfp_demo_recipe recipe(events);
     arb::simulation sim(recipe);
 
@@ -203,7 +202,7 @@ int main(int argc, char** argv) {
 
     lfp_sampler lfp(placed_cell, current_cables, electrodes, 3.0);
 
-    auto sample_schedule = arb::regular_schedule(sample_dt);
+    auto sample_schedule = arb::regular_schedule(sample_dt*arb::units::ms);
     sim.add_sampler(arb::one_probe({0, "Itotal"}), sample_schedule, lfp.callback());
 
     arb::trace_vector<double, arb::mlocation> membrane_voltage;
@@ -215,7 +214,7 @@ int main(int argc, char** argv) {
     arb::trace_vector<double> synapse_g;
     sim.add_sampler(arb::one_probe({0, "expsyn-g"}), sample_schedule, make_simple_sampler(synapse_g));
 
-    sim.run(t_stop, dt);
+    sim.run(t_stop*arb::units::ms, dt*arb::units::ms);
 
     // Output results in JSON format suitable for plotting by plot-lfp.py script.
 

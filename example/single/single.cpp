@@ -1,6 +1,5 @@
 #include <any>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -87,18 +86,18 @@ int main(int argc, char** argv) {
         arb::simulation sim(R);
 
         // Attach a sampler to the probe described in the recipe, sampling every 0.1 ms.
-
         arb::trace_vector<double> traces;
-        sim.add_sampler(arb::all_probes, arb::regular_schedule(0.1), arb::make_simple_sampler(traces));
+        sim.add_sampler(arb::all_probes,
+                        arb::regular_schedule(0.1*arb::units::ms),
+                        arb::make_simple_sampler(traces));
 
-        // Trigger the single synapse (target is gid 0, index 0) at t = 1 ms with
-        // the given weight.
-
+        // Trigger the single synapse (target is gid 0, index 0) at t = 1 ms
+        // with the given weight.
         arb::spike_event spike = {0, 1., opt.syn_weight};
         arb::cell_spike_events cell_spikes = {0, {spike}};
         sim.inject_events({cell_spikes});
 
-        sim.run(opt.t_end, opt.dt);
+        sim.run(opt.t_end*arb::units::ms, opt.dt*arb::units::ms);
 
         for (auto entry: traces.at(0)) {
             std::cout << entry.t << ", " << entry.v << "\n";
