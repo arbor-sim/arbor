@@ -36,7 +36,6 @@
 using arb::cell_gid_type;
 using arb::cell_lid_type;
 using arb::cell_size_type;
-using arb::cell_member_type;
 using arb::cell_kind;
 using arb::time_type;
 using arb::cable_probe_membrane_voltage;
@@ -123,7 +122,7 @@ public:
     std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
         // Measure at the soma.
         arb::mlocation loc{0, 0.0};
-        return {cable_probe_membrane_voltage{loc}};
+        return {{cable_probe_membrane_voltage{loc}, "Um"}};
     }
 
 private:
@@ -230,7 +229,7 @@ int main(int argc, char** argv) {
         if (params.record_voltage) {
             // The id of the only probe on the cell:
             // the cell_member type points to (cell 0, probe 0)
-            auto probe_id = cell_member_type{0, 0};
+            auto probe_id = arb::cell_address_type{0, "Um"};
             // The schedule for sampling is 10 samples every 1 ms.
             auto sched = arb::regular_schedule(0.1);
             // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage

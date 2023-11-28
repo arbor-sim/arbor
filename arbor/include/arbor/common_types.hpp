@@ -114,6 +114,28 @@ struct cell_global_label_type {
     cell_global_label_type(cell_gid_type gid, cell_tag_type tag, lid_selection_policy policy): gid(gid), label(std::move(tag), policy) {}
 };
 
+// User facing handle for referring to probes and similar
+
+struct cell_address_type {
+    cell_gid_type gid;
+    cell_tag_type tag;
+
+    // NOTE: We _need_ this explicitly to avoid `cell_address_type{42, 0}` from triggering
+    cell_address_type(cell_gid_type, std::nullptr_t) = delete;
+    cell_address_type(cell_gid_type gid_, cell_tag_type tag_): gid(gid_), tag(std::move(tag_)) {}
+
+    // NOTE: We _really_ do not want this to occur, *EVER*.
+    cell_address_type() = delete;
+
+    cell_address_type(const cell_address_type&) = default;
+    cell_address_type(cell_address_type&&) = default;
+
+    cell_address_type& operator=(const cell_address_type&) = default;
+    cell_address_type& operator=(cell_address_type&&) = default;
+};
+
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_address_type, (a.gid, a.tag), (b.gid, b.tag))
+
 struct cell_remote_label_type {
     cell_gid_type rid;     // remote id
     cell_lid_type index = 0; // index on remote id
@@ -127,10 +149,6 @@ ARB_DEFINE_LEXICOGRAPHIC_ORDERING(lid_range,(a.begin, a.end),(b.begin,b.end))
 
 using time_type = double;
 constexpr time_type terminal_time = std::numeric_limits<time_type>::max();
-
-// Extra contextual information associated with a probe.
-
-using probe_tag = int;
 
 // For holding counts and indexes into generated sample data.
 
@@ -160,4 +178,5 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, backend_kind k);
 
 } // namespace arb
 
+ARB_DEFINE_HASH(arb::cell_address_type, a.gid, a.tag)
 ARB_DEFINE_HASH(arb::cell_member_type, a.gid, a.index)

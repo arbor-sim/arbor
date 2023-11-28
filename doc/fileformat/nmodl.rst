@@ -84,9 +84,7 @@ Ions
   not made ``STATE`` they may be written to, but their values will be reset to
   their initial values every time step.
 * The diffusive concentration ``Xd`` does not share this semantics. It will not
-  be reset, even if not in ``STATE``, and may freely be written. This comes at the
-  cost of awkward treatment of ODEs for ``Xd``, see the included ``decay.mod`` for
-  an example.
+  be reset, even if not in ``STATE``, and may freely be written.
 * ``Xd`` is present on all cables iff its associated diffusivity is set to a
   non-zero value.
 
@@ -141,7 +139,66 @@ Unsupported features
 * ``LOCAL`` variables outside blocks are not supported.
 * free standing blocks are not supported.
 * ``INDEPENDENT`` variables are not supported.
-* arrays and pointers are not supported by Arbor.
+* loops, arrays, and pointers are not supported by Arbor.
+
+Alternating normal and reaction statements in KINETIC
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is not so much a feature as a bug that Arbor's ``modcc`` does not reproduce
+from NEURON. Given a file like:
+
+.. code-block::
+
+   NEURON { SUFFIX test_kinetic_alternating_reaction }
+
+   STATE { A B C D }
+
+   BREAKPOINT {
+     SOLVE foobar METHOD sparse
+   }
+
+   KINETIC foobar {
+     LOCAL x, y
+
+     x = 23*v
+     y = 42*v
+
+     ~ A <-> B (x, y)
+
+     x = sin(y)
+     y = cos(x)
+
+     ~ C <-> D (x, y)
+   }
+
+one might expect that the reaction between ``C`` and ``D`` occurs with a rate
+proportional to ``sin(x)`` and ``cos(y)``. However, this file is equivalent to
+
+.. code-block::
+
+   NEURON { SUFFIX test_kinetic_alternating_reaction }
+
+   STATE { A B C D }
+
+   BREAKPOINT {
+     SOLVE foobar METHOD sparse
+   }
+
+   KINETIC foobar {
+     LOCAL x, y
+
+     x = 23*v
+     y = 42*v
+     x = sin(y)
+     y = cos(x)
+
+     ~ A <-> B (x, y)
+     ~ C <-> D (x, y)
+   }
+
+which is almost never what the author would expect. Thus, this construction constitutes
+an error in ``modcc``; if want this particular behaviour, please state this explicit by
+writing code similar to the second example.
 
 .. _arbornmodl:
 

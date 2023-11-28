@@ -5,34 +5,34 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/domain_decomposition.hpp>
-#include <arbor/lif_cell.hpp>
+#include <arbor/adex_cell.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/spike_source_cell.hpp>
 
-#include "lif_cell_group.hpp"
+#include "adex_cell_group.hpp"
 
 using namespace arb;
-// Simple ring network of LIF neurons.
+// Simple ring network of ADEX neurons.
 // with one regularly spiking cell (fake cell) connected to the first cell in the ring.
 class ring_recipe: public arb::recipe {
 public:
-    ring_recipe(cell_size_type n_lif_cells, float weight, float delay):
-        n_lif_cells_(n_lif_cells), weight_(weight), delay_(delay)
+    ring_recipe(cell_size_type n_adex_cells, float weight, float delay):
+        n_adex_cells_(n_adex_cells), weight_(weight), delay_(delay)
     {}
 
     cell_size_type num_cells() const override {
-        return n_lif_cells_ + 1;
+        return n_adex_cells_ + 1;
     }
 
-    // LIF neurons have gid in range [1..n_lif_cells_] whereas fake cell is numbered with 0.
+    // ADEX neurons have gid in range [1..n_adex_cells_] whereas fake cell is numbered with 0.
     cell_kind get_cell_kind(cell_gid_type gid) const override {
         if (gid == 0) {
             return cell_kind::spike_source;
         }
-        return cell_kind::lif;
+        return cell_kind::adex;
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
@@ -43,14 +43,14 @@ public:
         // In a ring, each cell has just one incoming connection.
         std::vector<cell_connection> connections;
         // gid-1 >= 0 since gid != 0
-        auto src_gid = (gid - 1) % n_lif_cells_;
+        auto src_gid = (gid - 1) % n_adex_cells_;
         cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_);
         connections.push_back(conn);
 
-        // If first LIF cell, then add
-        // the connection from the last LIF cell as well
+        // If first ADEX cell, then add
+        // the connection from the last ADEX cell as well
         if (gid == 1) {
-            auto src_gid = n_lif_cells_;
+            auto src_gid = n_adex_cells_;
             cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_);
             connections.push_back(conn);
         }
@@ -64,17 +64,17 @@ public:
             // Produces just a single spike at time 0ms.
             return spike_source_cell("src", explicit_schedule({0.f}));
         }
-        // LIF cell.
-        auto cell = lif_cell("src", "tgt");
+        // ADEX cell.
+        auto cell = adex_cell("src", "tgt");
         return cell;
     }
 
 private:
-    cell_size_type n_lif_cells_;
+    cell_size_type n_adex_cells_;
     float weight_, delay_;
 };
 
-// LIF cells connected in the manner of a path 0->1->...->n-1.
+// ADEX cells connected in the manner of a path 0->1->...->n-1.
 class path_recipe: public arb::recipe {
 public:
     path_recipe(cell_size_type n, float weight, float delay):
@@ -86,7 +86,7 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::lif;
+        return cell_kind::adex;
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
@@ -101,7 +101,7 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto cell = lif_cell("src", "tgt");
+        auto cell = adex_cell("src", "tgt");
         return cell;
     }
 
@@ -110,7 +110,7 @@ private:
     float weight_, delay_;
 };
 
-// LIF cell with probe
+// ADEX cell with probe
 class probe_recipe: public arb::recipe {
 public:
     probe_recipe(size_t n_conn = 0): n_conn_{n_conn} {}
@@ -119,34 +119,25 @@ public:
         return 2;
     }
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::lif;
+        return cell_kind::adex;
     }
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
         std::vector<cell_connection> res;
         // Use a fictious GID
-        for (size_t ix = 0; ix < n_conn_; ++ix) res.emplace_back(cell_global_label_type{0, "src"},
-                                                                 cell_local_label_type{"tgt"},
-                                                                 0.0,
-                                                                 0.005);
+        for (size_t ix = 0; ix < n_conn_; ++ix) {
+                res.emplace_back(cell_global_label_type{0, "src"},
+                                 cell_local_label_type{"tgt"},
+                                 0.0,
+                                 0.005);
+        }
+
         return res;
     }
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto cell = lif_cell("src", "tgt");
-        if (gid == 0) {
-            cell.E_R = -23;
-            cell.V_m = -18;
-            cell.E_L = -13;
-            cell.t_ref = 0.8;
-            cell.tau_m = 5;
-        }
-        return cell;
+        return adex_cell("src", "tgt");
     }
     std::vector<probe_info> get_probes(cell_gid_type gid) const override {
-        if (gid == 0) {
-            return {{arb::lif_probe_voltage{}, "a"}, {arb::lif_probe_voltage{}, "b"}};
-        } else {
-            return {{arb::lif_probe_voltage{}, "a"}};
-        }
+        return {{arb::adex_probe_voltage{}, "a"}};
     }
     std::vector<event_generator> event_generators(cell_gid_type) const override {
         return {regular_generator({"tgt"}, 200.0, 2.0, 1.0, 6.0)};
@@ -155,14 +146,14 @@ public:
     size_t n_conn_ = 0;
 };
 
-TEST(lif_cell_group, throw) {
+TEST(adex_cell_group, throw) {
     probe_recipe rec;
     auto context = make_context();
     auto decomp = partition_load_balance(rec, context);
     EXPECT_NO_THROW(simulation(rec, context, decomp));
 }
 
-TEST(lif_cell_group, recipe)
+TEST(adex_cell_group, recipe)
 {
     ring_recipe rr(100, 1, 0.1);
     EXPECT_EQ(101u, rr.num_cells());
@@ -172,8 +163,8 @@ TEST(lif_cell_group, recipe)
     EXPECT_EQ(100u, rr.connections_on(1u)[1].source.gid);
 }
 
-TEST(lif_cell_group, spikes) {
-    // make two lif cells
+TEST(adex_cell_group, spikes) {
+    // make two adex cells
     path_recipe recipe(2, 1000, 0.1);
 
     auto context = make_context();
@@ -204,18 +195,18 @@ TEST(lif_cell_group, spikes) {
     EXPECT_EQ(4u, sim.num_spikes());
 }
 
-TEST(lif_cell_group, ring)
+TEST(adex_cell_group, ring)
 {
-    // Total number of LIF cells.
-    cell_size_type num_lif_cells = 99;
+    // Total number of ADEX cells.
+    cell_size_type num_adex_cells = 99;
     double weight = 1000;
     double delay = 1;
 
     // Total simulation time.
     time_type simulation_time = 100;
 
-    auto recipe = ring_recipe(num_lif_cells, weight, delay);
-    // Creates a simulation with a ring recipe of lif neurons
+    auto recipe = ring_recipe(num_adex_cells, weight, delay);
+    // Creates a simulation with a ring recipe of adex neurons
     simulation sim(recipe);
 
     std::vector<spike> spike_buffer;
@@ -230,14 +221,14 @@ TEST(lif_cell_group, ring)
     sim.run(simulation_time, 0.01);
     // The total number of cells in all the cell groups.
     // There is one additional fake cell (regularly spiking cell).
-    EXPECT_EQ(num_lif_cells + 1u, recipe.num_cells());
+    EXPECT_EQ(num_adex_cells + 1u, recipe.num_cells());
 
     for (auto& spike : spike_buffer) {
         // Assumes that delay = 1
         // We expect that Regular Spiking Cell spiked at time 0s.
         if (spike.source.gid == 0) {
             EXPECT_EQ(0, spike.time);
-        // Other LIF cell should spike consecutively.
+        // Other ADEX cell should spike consecutively.
         } else {
             EXPECT_EQ(spike.source.gid, spike.time);
         }
@@ -260,7 +251,7 @@ struct Um_type {
     }
 };
 
-TEST(lif_cell_group, probe) {
+TEST(adex_cell_group, probe) {
     auto ums = std::unordered_map<cell_address_type, std::vector<Um_type>>{};
     auto fun = [&ums](probe_metadata pm,
                       std::size_t n,
@@ -696,7 +687,7 @@ TEST(lif_cell_group, probe) {
     ASSERT_TRUE(testing::seq_almost_eq<double>(spikes, sexp));
 }
 
-TEST(lif_cell_group, probe_with_connections) {
+TEST(adex_cell_group, probe_with_connections) {
     auto ums = std::unordered_map<cell_address_type, std::vector<Um_type>>{};
     auto fun = [&ums](probe_metadata pm,
                       std::size_t n,

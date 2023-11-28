@@ -188,7 +188,8 @@ void register_recipe(pybind11::module& m) {
         .def("cell_description", &py_recipe::cell_description, pybind11::return_value_policy::copy,
             "gid"_a,
             "High level description of the cell with global identifier gid.")
-        .def("cell_kind", &py_recipe::cell_kind,
+        .def("cell_kind",
+             &py_recipe::cell_kind,
             "gid"_a,
             "The kind of cell with global identifier gid.")
         .def("event_generators", &py_recipe::event_generators,

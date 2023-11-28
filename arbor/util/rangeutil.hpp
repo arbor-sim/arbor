@@ -52,11 +52,8 @@ template <
 >
 std::enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
 subrange_view(Seq&& seq, Offset1 bi, Offset2 ei) {
-    Iter b = std::begin(seq);
-    std::advance(b, bi);
-
-    Iter e = b;
-    std::advance(e, ei-bi);
+    Iter b = std::next(std::begin(seq), bi);
+    Iter e = std::next(b, ei - bi);
     return make_range(b, e);
 }
 

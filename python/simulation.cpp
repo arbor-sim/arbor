@@ -152,7 +152,7 @@ public:
         return py::array_t<arb::spike>(py::ssize_t(spike_record_.size()), spike_record_.data());
     }
 
-    py::list get_probe_metadata(arb::cell_member_type probeset_id) const {
+    py::list get_probe_metadata(const arb::cell_address_type& probeset_id) const {
         py::list result;
         for (auto&& pm: sim_->get_probe_metadata(probeset_id)) {
              result.append(global_ptr_->probe_meta_converters.convert(pm.meta));
@@ -160,7 +160,7 @@ public:
         return result;
     }
 
-    arb::sampler_association_handle sample(arb::cell_member_type probeset_id, const pyarb::schedule_shim_base& sched) {
+    arb::sampler_association_handle sample(const arb::cell_address_type& probeset_id, const pyarb::schedule_shim_base& sched) {
         std::shared_ptr<sample_recorder_vec> recorders{new sample_recorder_vec};
 
         for (const arb::probe_metadata& pm: sim_->get_probe_metadata(probeset_id)) {
@@ -274,8 +274,35 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
         .def("probe_metadata", &simulation_shim::get_probe_metadata,
             "Retrieve metadata associated with given probe id.",
             "probeset_id"_a)
+        .def("probe_metadata",
+             [](const simulation_shim& sim, const std::tuple<arb::cell_gid_type, arb::cell_tag_type>& addr) {
+                 return sim.get_probe_metadata({std::get<0>(addr), std::get<1>(addr)});
+             },
+            "Retrieve metadata associated with given probe id.",
+            "addr"_a)
+        .def("probe_metadata",
+             [](const simulation_shim& sim,
+                arb::cell_gid_type gid, const arb::cell_tag_type& tag) {
+                 return sim.get_probe_metadata({gid, tag});
+             },
+            "Retrieve metadata associated with given probe id.",
+            "gid"_a, "tag"_a)
         .def("sample", &simulation_shim::sample,
             "Record data from probes with given probeset_id according to supplied schedule.\n"
+            "Returns handle for retrieving data or removing the sampling.",
+            "probeset_id"_a, "schedule"_a)
+        .def("sample",
+             [](simulation_shim& sim, arb::cell_gid_type gid, const arb::cell_tag_type& tag, const schedule_shim_base& schedule) {
+                 return sim.sample({gid, tag}, schedule);
+             },
+            "Record data from probes with given probeset_id=(gid, tag) according to supplied schedule.\n"
+            "Returns handle for retrieving data or removing the sampling.",
+            "gid"_a, "tag"_a, "schedule"_a)
+        .def("sample",
+             [](simulation_shim& sim, const std::tuple<arb::cell_gid_type, const arb::cell_tag_type>& addr, const schedule_shim_base& schedule) {
+                 return sim.sample({std::get<0>(addr), std::get<1>(addr)}, schedule);
+             },
+            "Record data from probes with given probeset_id=(gid, tag) according to supplied schedule.\n"
             "Returns handle for retrieving data or removing the sampling.",
             "probeset_id"_a, "schedule"_a)
         .def("samples", &simulation_shim::samples,

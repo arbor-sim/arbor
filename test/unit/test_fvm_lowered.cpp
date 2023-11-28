@@ -435,9 +435,9 @@ TEST(fvm_lowered, derived_mechs) {
     rec.catalogue().derive("custom_kin1", "test_kin1", {{"tau", 20.0}});
 
     cable_probe_total_ion_current_density where{builder.location({1, 0.3})};
-    rec.add_probe(0, 0, where);
-    rec.add_probe(1, 0, where);
-    rec.add_probe(2, 0, where);
+    rec.add_probe(0, "I-total", where);
+    rec.add_probe(1, "I-total", where);
+    rec.add_probe(2, "I-total", where);
 
     {
         // Test initialization and global parameter values.

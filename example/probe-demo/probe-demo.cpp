@@ -23,7 +23,6 @@
 
 using std::any;
 using arb::util::any_cast;
-using arb::util::any_ptr;
 
 const char* help_msg =
     "[OPTION]... PROBE\n"
@@ -100,7 +99,7 @@ struct cable_recipe: public arb::recipe {
     arb::cell_size_type num_cells() const override { return 1; }
 
     std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override {
-        return {probe_addr}; // (use default tag value 0)
+        return {{probe_addr, "probe"}};
     }
 
     arb::cell_kind get_cell_kind(arb::cell_gid_type) const override {

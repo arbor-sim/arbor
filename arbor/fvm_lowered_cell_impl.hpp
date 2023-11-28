@@ -7,15 +7,10 @@
 // implementation details may be tested in the unit tests.
 // It should otherwise only be used in `fvm_lowered_cell.cpp`.
 
-#include <cmath>
-#include <iterator>
 #include <memory>
 #include <optional>
-#include <queue>
-#include <stdexcept>
 #include <utility>
 #include <vector>
-#include <unordered_set>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -28,10 +23,8 @@
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
 #include "profile/profiler_macro.hpp"
-#include "sampler_map.hpp"
 #include "util/maputil.hpp"
 #include "util/meta.hpp"
-#include "util/range.hpp"
 #include "util/rangeutil.hpp"
 #include "util/strprintf.hpp"
 #include "util/transform.hpp"
@@ -119,6 +112,16 @@ private:
         const fvm_mechanism_data& M,
         const std::vector<target_handle>& handles,
         const std::unordered_map<std::string, mechanism*>& mech_instance_by_name);
+
+        // Add probes to fvm_info::probe_map
+        void add_probes(const std::vector<cell_gid_type>& gids,
+                        const std::vector<cable_cell>& cells,
+                        const recipe& rec,
+                        const fvm_cv_discretization& D,
+                        const std::unordered_map<std::string, mechanism*>& mechptr_by_name,
+                        const fvm_mechanism_data& mech_data,
+                        const std::vector<target_handle>& target_handles,
+                        probe_association_map& probe_map);
 };
 
 template <typename Backend>
@@ -324,9 +327,37 @@ add_labels(cell_label_range& clr, const cable_cell::lid_range_map& ranges) {
     return count;
 }
 
-template <typename Backend>
-fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gids,
-                                                                   const recipe& rec) {
+template <typename Backend> void
+fvm_lowered_cell_impl<Backend>::add_probes(const std::vector<cell_gid_type>& gids,
+                                           const std::vector<cable_cell>& cells,
+                                           const recipe& rec,
+                                           const fvm_cv_discretization& D,
+                                           const std::unordered_map<std::string, mechanism*>& mechptr_by_name,
+                                           const fvm_mechanism_data& mech_data,
+                                           const std::vector<target_handle>& target_handles,
+                                           probe_association_map& probe_map) {
+    auto ncell = gids.size();
+
+    std::vector<fvm_probe_data> probe_data;
+    for (auto cell_idx: util::make_span(ncell)) {
+        cell_gid_type gid = gids[cell_idx];
+        const auto& rec_probes = rec.get_probes(gid);
+        for (const auto& pi: rec_probes) {
+            resolve_probe_address(probe_data, cells, cell_idx, pi.address, D, mech_data, target_handles, mechptr_by_name);
+            if (!probe_data.empty()) {
+                cell_address_type addr{gid, pi.tag};
+                if (probe_map.count(addr)) throw dup_cell_probe(cell_kind::cable, gid, pi.tag);
+                for (auto& data: probe_data) {
+                    probe_map.insert(addr, std::move(data));
+                }
+            }
+        }
+    }
+}
+
+template <typename Backend> fvm_initialization_data
+fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gids,
+                                           const recipe& rec) {
     using std::any_cast;
     using util::count_along;
     using util::make_span;
@@ -548,27 +579,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(const std::ve
         }
     }
 
-
-    std::vector<fvm_probe_data> probe_data;
-
-    for (auto cell_idx: make_span(ncell)) {
-        cell_gid_type gid = gids[cell_idx];
-        std::vector<probe_info> rec_probes = rec.get_probes(gid);
-        for (cell_lid_type i: count_along(rec_probes)) {
-            probe_info& pi = rec_probes[i];
-            resolve_probe_address(probe_data, cells, cell_idx, pi.address,
-                D, mech_data, fvm_info.target_handles, mechptr_by_name);
-
-            if (!probe_data.empty()) {
-                cell_member_type probeset_id{gid, i};
-                fvm_info.probe_map.tag[probeset_id] = pi.tag;
-
-                for (auto& data: probe_data) {
-                    fvm_info.probe_map.data.insert({probeset_id, std::move(data)});
-                }
-            }
-        }
-    }
+    add_probes(gids, cells, rec, D, mechptr_by_name, mech_data, fvm_info.target_handles, fvm_info.probe_map);
 
     reset();
     return fvm_info;
@@ -623,16 +634,14 @@ struct probe_resolution_data {
 };
 
 template <typename Backend>
-void fvm_lowered_cell_impl<Backend>::resolve_probe_address(
-    std::vector<fvm_probe_data>& probe_data,
-    const std::vector<cable_cell>& cells,
-    std::size_t cell_idx,
-    const std::any& paddr,
-    const fvm_cv_discretization& D,
-    const fvm_mechanism_data& M,
-    const std::vector<target_handle>& handles,
-    const std::unordered_map<std::string, mechanism*>& mech_instance_by_name)
-{
+void fvm_lowered_cell_impl<Backend>::resolve_probe_address(std::vector<fvm_probe_data>& probe_data,
+                                                           const std::vector<cable_cell>& cells,
+                                                           std::size_t cell_idx,
+                                                           const std::any& paddr,
+                                                           const fvm_cv_discretization& D,
+                                                           const fvm_mechanism_data& M,
+                                                           const std::vector<target_handle>& handles,
+                                                           const std::unordered_map<std::string, mechanism*>& mech_instance_by_name) {
     probe_data.clear();
     probe_resolution_data<Backend> prd{
         probe_data, state_.get(), cells[cell_idx], cell_idx, D, M, handles, mech_instance_by_name};

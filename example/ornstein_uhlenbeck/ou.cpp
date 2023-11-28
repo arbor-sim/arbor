@@ -9,6 +9,8 @@
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/simulation.hpp>
+#include <arbor/sampling.hpp>
+#include <arbor/common_types.hpp>
 
 // a single-cell recipe with probes
 class recipe: public arb::recipe {
@@ -45,7 +47,7 @@ public:
 
     std::any get_global_properties(arb::cell_kind) const override { return cell_gprop_; }
 
-    void add_probe(arb::probe_tag tag, std::any address) { probes_.emplace_back(std::move(address), tag); }
+    void add_probe(const arb::cell_tag_type& tag, std::any address) { probes_.emplace_back(std::move(address), tag); }
 
 protected:
     std::vector<arb::probe_info> probes_;
@@ -107,7 +109,7 @@ int main(int argc, char** argv) {
 
     // create recipe and add probes
     recipe rec(ncvs);
-    rec.add_probe(1, arb::cable_probe_density_state_cell{"ornstein_uhlenbeck", "S"});
+    rec.add_probe("ou-S", arb::cable_probe_density_state_cell{"ornstein_uhlenbeck", "S"});
 
     // make context and simulation objects
     auto context = arb::make_context({1, -1});
@@ -118,8 +120,7 @@ int main(int argc, char** argv) {
     // setup sampler and add it to the simulation with regular schedule
     std::vector<arb_value_type> data;
     sampler s{data, ncvs, nsteps};
-    auto all_probes = [](arb::cell_member_type) { return true; };
-    sim.add_sampler(all_probes, arb::regular_schedule(dt), s);
+    sim.add_sampler(arb::all_probes, arb::regular_schedule(dt), s);
 
     // run the simulation
     sim.run(nsteps*dt, dt);
