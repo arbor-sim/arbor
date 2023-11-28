@@ -37,22 +37,29 @@ struct cable_cell_ion_data {
     std::optional<double> diffusivity;
 };
 
-// Clamp current is described by a sine wave with amplitude governed by a
-// piecewise linear envelope. A frequency of zero indicates that the current is
-// simply that given by the envelope.
-//
-// The envelope is given by a series of envelope_point values:
-// * The time points must be monotonically increasing.
-// * Onset and initial amplitude is given by the first point.
-// * The amplitude for time after the last time point is that of the last
-//   amplitude point; an explicit zero amplitude point must be provided if the
-//   envelope is intended to have finite support.
-//
-// Periodic envelopes are not supported, but may well be a feature worth
-// considering in the future.
-
+/**
+ * Current clamp; described by a sine wave with amplitude governed by a
+ * piecewise linear envelope. A frequency of zero indicates that the current is
+ * simply that given by the envelope.
+ *
+ * The envelope is given by a series of envelope_point values:
+ * * The time points must be monotonically increasing.
+ * * Onset and initial amplitude is given by the first point.
+ * * The amplitude for time after the last time point is that of the last
+ *   amplitude point; an explicit zero amplitude point must be provided if the
+ *   envelope is intended to have finite support.
+ *
+ * Periodic envelopes are not supported, but may well be a feature worth
+ * considering in the future.
+ */
 struct ARB_SYMBOL_VISIBLE i_clamp {
     struct envelope_point {
+        /**
+         * Current at point in time
+         *
+         * @param t, must be convertible to time
+         * @param amplitude must be convertible to current
+         */
         envelope_point(const units::quantity& t,
                        const units::quantity& amplitude):
             t(t.value_as(units::ms)),
@@ -70,7 +77,14 @@ struct ARB_SYMBOL_VISIBLE i_clamp {
     // a trivial stimulus, providing no current at all.
     i_clamp() = default;
 
-    // The simple constructor describes a constant amplitude stimulus starting from t=0.
+    /**
+     *  Constant amplitude stimulus starting at t = 0.
+     *
+     * @param amplitude must be convertible to current
+     * @param frequency, must be convertible to frequency; gives a sine current if not zero
+     * @param frequency, must be convertible to radians, phase shift of sine.
+     */
+
     explicit i_clamp(const units::quantity& amplitude,
                      const units::quantity& frequency = 0*units::kHz,
                      const units::quantity& phase = 0*units::rad):
@@ -111,6 +125,15 @@ struct ARB_SYMBOL_VISIBLE threshold_detector {
 struct ARB_SYMBOL_VISIBLE init_membrane_potential {
     iexpr value = NAN;         // [mV]
 };
+
+struct ARB_SYMBOL_VISIBLE init_membrane_potential_ {
+    double value = NAN;      // [mV]
+    iexpr scale = 1;         // [1]
+
+    init_membrane_potential_(const units::quantity& m, iexpr scale=1): value(m.value_as(units::mV)), scale{scale} {}
+
+};
+
 
 struct ARB_SYMBOL_VISIBLE temperature_K {
     iexpr value = NAN;         // [K]

@@ -25,6 +25,7 @@ constexpr auto Kelvin  = ::units::Kelvin;
 
 using ::units::s;
 using ::units::ms;
+using ::units::ns;
 
 using ::units::m;
 constexpr auto cm = centi * m;
@@ -63,4 +64,5 @@ using ::units::mol;
 constexpr auto M = mol / m.pow(3);
 constexpr auto mM = milli * M;
 
+using ::units::is_valid;
 }

@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
-#include <map>
 #include <vector>
 
 #include <arbor/cable_cell.hpp>
@@ -110,7 +109,7 @@ void run_v_i_probe_test(context ctx) {
 
     bs.decorations.set_default(cv_policy_fixed_per_branch(1));
 
-    auto stim = i_clamp::box(0, 100, 0.3);
+    auto stim = i_clamp::box(0.*arb::units::ms, 100*arb::units::ms, 0.3*arb::units::nA);
     bs.decorations.place(mlocation{1, 1}, stim, "clamp");
 
     cable1d_recipe rec((cable_cell(bs)));
@@ -778,7 +777,7 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
     cv_policy policy = cv_policy_fixed_per_branch(n_cv);
     d.set_default(policy);
 
-    d.place(mlocation{0, 0}, i_clamp(0.3), "clamp");
+    d.place(mlocation{0, 0}, i_clamp(0.3*arb::units::nA), "clamp");
 
     // The time constant will be membrane capacitance / membrane conductance.
     // For τ = 0.1 ms, set conductance to 0.01 S/cm² and membrance capacitance
@@ -786,7 +785,7 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
 
     d.paint(reg::all(), density("ca_linear", {{"g", 0.01}})); // [S/cm²]
     d.set_default(membrane_capacitance{0.01}); // [F/m²]
-    const double tau = 0.1; // [ms]
+    auto tau = 0.1*arb::units::ms;
 
     cable1d_recipe rec(cable_cell(m, d));
     rec.catalogue() = cat;
@@ -826,7 +825,7 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
     std::vector<double> i_axial(n_axial_probe);
     std::vector<double> i_memb(n_cv), i_stim(n_cv);
 
-    sim.add_sampler(all_probes, explicit_schedule({20*tau}),
+    sim.add_sampler(all_probes, explicit_schedule(std::vector{20*tau}),
         [&](probe_metadata pm,
             std::size_t n_sample,
             const sample_record* samples) {
@@ -869,8 +868,8 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
             }
         });
 
-    const double dt = 0.025; // [ms]
-    sim.run(20*tau+dt, dt);
+    auto dt = 0.025*arb::units::ms; // [ms]
+    sim.run(20*tau + dt, dt);
 
     ASSERT_EQ(n_cv, i_memb.size());
     ASSERT_EQ(n_cv, i_stim.size());
@@ -913,11 +912,11 @@ auto run_simple_samplers(const arb::context& ctx,
     std::vector<trace_vector<SampleData, SampleMeta>> traces(n_probe);
     for (unsigned i = 0; i<n_probe; ++i) {
         sim.add_sampler(one_probe(probe),
-                        explicit_schedule(when),
+                        explicit_schedule_from_milliseconds(when),
                         make_simple_sampler(traces[i]));
     }
 
-    sim.run(t_end, 0.025);
+    sim.run(t_end*arb::units::ms, 0.025*arb::units::ms);
     return traces;
 }
 
@@ -984,8 +983,8 @@ void run_v_sampled_probe_test(context ctx) {
     // samples at the same point on each cell will give the same value at
     // 0.3 ms, but different at 0.6 ms.
 
-    d0.place(mlocation{1, 1}, i_clamp::box(0, 0.5, 1.), "clamp0");
-    d1.place(mlocation{1, 1}, i_clamp::box(0, 1.0, 1.), "clamp1");
+    d0.place(mlocation{1, 1}, i_clamp::box(0*arb::units::ms, 0.5*arb::units::ms, 1.*arb::units::nA), "clamp0");
+    d1.place(mlocation{1, 1}, i_clamp::box(0*arb::units::ms, 1.0*arb::units::ms, 1.*arb::units::nA), "clamp1");
     mlocation probe_loc{1, 0.2};
 
     std::vector<cable_cell> cells = {{bs.morph, d0, bs.labels}, {bs.morph, d1, bs.labels}};
@@ -1038,8 +1037,8 @@ void run_total_current_probe_test(context ctx) {
     // For τ = 0.1 ms, set conductance to 0.01 S/cm² and membrance capacitance
     // to 0.01 F/m².
 
-    const double tau = 0.1;     // [ms]
-    d0.place(mlocation{0, 0}, i_clamp(0.3), "clamp0");
+    auto tau = 0.1*arb::units::ms;     // [ms]
+    d0.place(mlocation{0, 0}, i_clamp(0.3*arb::units::nA), "clamp0");
 
     d0.paint(reg::all(), density("ca_linear", {{"g", 0.01}})); // [S/cm²]
     d0.set_default(membrane_capacitance{0.01}); // [F/m²]
@@ -1069,19 +1068,21 @@ void run_total_current_probe_test(context ctx) {
         for (unsigned i = 0; i<2; ++i) {
             SCOPED_TRACE(i);
 
-            const double t_end = 21*tau; // [ms]
+            auto t_end = 21*tau; // [ms]
 
-            traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, t_end, cells,
+            traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, t_end.value(), cells,
                                                                              {i, "Itotal"},
-                                                                             cable_probe_total_current_cell{}, {tau, 20*tau}).at(0);
+                                                                             cable_probe_total_current_cell{},
+                                                                             {tau.value(), 20*tau.value()}).at(0);
 
-            ion_traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, t_end, cells,
+            ion_traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, t_end.value(), cells,
                                                                                  {i, "Iion"},
-                                                                                 cable_probe_total_ion_current_cell{}, {tau, 20*tau}).at(0);
+                                                                                 cable_probe_total_ion_current_cell{},
+                                                                                 {tau.value(), 20*tau.value()}).at(0);
 
-            stim_traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, t_end, cells,
+            stim_traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, t_end.value(), cells,
                                                                                   {i, "Istim"},
-                                                                                  cable_probe_stimulus_current_cell{}, {tau, 20*tau}).at(0);
+                                                                                  cable_probe_stimulus_current_cell{}, {tau.value(), 20*tau.value()}).at(0);
 
             ASSERT_EQ(2u, traces[i].size());
             ASSERT_EQ(2u, ion_traces[i].size());
@@ -1157,19 +1158,21 @@ void run_stimulus_probe_test(context ctx) {
     // Model two simple stick cable cells, 3 CVs each, and stimuli on cell 0, cv 1
     // and cell 1, cv 2. Run both cells in the same cell group.
 
-    const double stim_until = 1.; // [ms]
+    auto stim_from = 0.*arb::units::ms;
+    auto stim_until = 1.*arb::units::ms;
+
     auto m = make_stick_morphology();
     cv_policy policy = cv_policy_fixed_per_branch(3);
 
     decor d0, d1;
     d0.set_default(policy);
-    d0.place(mlocation{0, 0.5}, i_clamp::box(0., stim_until, 10.), "clamp0");
-    d0.place(mlocation{0, 0.5}, i_clamp::box(0., stim_until, 20.), "clamp1");
+    d0.place(mlocation{0, 0.5}, i_clamp::box(stim_from, stim_until, 10.*arb::units::nA), "clamp0");
+    d0.place(mlocation{0, 0.5}, i_clamp::box(stim_from, stim_until, 20.*arb::units::nA), "clamp1");
     double expected_stim0 = 30;
 
     d1.set_default(policy);
-    d1.place(mlocation{0, 1}, i_clamp::box(0., stim_until, 30.), "clamp0");
-    d1.place(mlocation{0, 1}, i_clamp::box(0., stim_until, -10.), "clamp1");
+    d1.place(mlocation{0, 1}, i_clamp::box(stim_from, stim_until,  30.*arb::units::nA), "clamp0");
+    d1.place(mlocation{0, 1}, i_clamp::box(stim_from, stim_until, -10.*arb::units::nA), "clamp1");
     double expected_stim1 = 20;
 
     std::vector<cable_cell> cells = {{m, d0}, {m, d1}};
@@ -1179,9 +1182,9 @@ void run_stimulus_probe_test(context ctx) {
     trace_data<std::vector<double>, mcable_list> traces[2];
 
     for (unsigned i: {0u, 1u}) {
-        traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, 2.5*stim_until, cells, {i, "Istim"},
+        traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, 2.5*stim_until.value(), cells, {i, "Istim"},
                                                                          cable_probe_stimulus_current_cell{},
-                                                                         {stim_until/2, 2*stim_until}).at(0);
+                                                                         {stim_until.value()/2, 2*stim_until.value()}).at(0);
 
         ASSERT_EQ(3u, traces[i].meta.size());
         for ([[maybe_unused]] unsigned cv: {0u, 1u, 2u}) {

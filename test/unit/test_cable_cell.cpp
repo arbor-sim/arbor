@@ -2,6 +2,7 @@
 #include "../common_cells.hpp"
 
 #include <arbor/cable_cell.hpp>
+#include <arbor/units.hpp>
 #include <arbor/cable_cell_param.hpp>
 
 #include <arborio/label_parse.hpp>
@@ -33,9 +34,9 @@ TEST(cable_cell, lid_ranges) {
     // Note: there are 2 terminal points.
     decorations.place("term"_lab, synapse("expsyn"), "t0");
     decorations.place("term"_lab, synapse("expsyn"), "t1");
-    decorations.place("term"_lab, threshold_detector{-10}, "s0");
+    decorations.place("term"_lab, threshold_detector{-10*arb::units::mV}, "s0");
     decorations.place(empty_sites, synapse("expsyn"), "t2");
-    decorations.place("term"_lab, threshold_detector{-20}, "s1");
+    decorations.place("term"_lab, threshold_detector{-20*arb::units::mV}, "s1");
     decorations.place(three_sites, synapse("expsyn"), "t3");
     decorations.place("term"_lab, synapse("exp2syn"), "t3");
 

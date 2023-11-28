@@ -143,7 +143,7 @@ struct serdes_recipe: public arb::recipe {
             .paint(arb::join(arb::reg::tagged(2), arb::reg::tagged(3)),
                    arb::density("pas"))
             .place(arb::mlocation{0, 0.0},
-                   arb::threshold_detector{10},
+                   arb::threshold_detector{10*arb::units::mV},
                    "detector")
             .place(arb::mlocation{0, 1.0},
                    arb::synapse("exp2syn"),
@@ -167,7 +167,7 @@ struct serdes_recipe: public arb::recipe {
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
         std::vector<arb::event_generator> res;
-        if (!gid) res.push_back(arb::regular_generator({"synapse"}, 1, 0.5, 0.73));
+        if (!gid) res.push_back(arb::regular_generator({"synapse"}, 1, 0.5*arb::units::ms, 0.73*arb::units::ms));
         return {};
     }
 
@@ -190,8 +190,8 @@ void sampler(arb::probe_metadata pm,
 }
 
 TEST(serdes, single_cell) {
-    double dt = 0.5;
-    double T  = 5;
+    auto dt = 0.5*arb::units::ms;
+    auto T  = 5*arb::units::ms;
 
     // Result
     std::vector<double> result_pre;
@@ -231,8 +231,8 @@ TEST(serdes, single_cell) {
 }
 
 TEST(serdes, network) {
-    double dt = 0.5;
-    double T  = 5;
+    auto dt = 0.5*arb::units::ms;
+    auto T  = 5*arb::units::ms;
 
     // Result
     std::vector<double> result_pre;
@@ -248,7 +248,7 @@ TEST(serdes, network) {
     model.num = 10;
     auto simulation = arb::simulation{model};
     simulation.add_sampler(arb::all_probes,
-                           arb::regular_schedule(dt),
+                           arb::regular_schedule(dt*arb::units::ms),
                            sampler);
 
     // Run simulation forward && snapshot

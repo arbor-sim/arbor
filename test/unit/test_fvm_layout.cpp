@@ -21,7 +21,6 @@
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
-#include "io/sepval.hpp"
 
 #include "common.hpp"
 #include "common_morphologies.hpp"
@@ -71,10 +70,12 @@ namespace {
             auto description = builder.make_cell();
             description.decorations.paint("soma"_lab, density("hh"));
             description.decorations.paint("dend"_lab, density("pas"));
-            description.decorations.place(builder.location({1,1}), i_clamp{5, 80, 0.3}, "clamp");
-
+            description.decorations.place(builder.location({1,1}),
+                                          i_clamp{5*arb::units::nA, 80*arb::units::kHz, 0.3*arb::units::rad},
+                                          "clamp");
             s.builders.push_back(std::move(builder));
             descriptions.push_back(description);
+
         }
 
         // Cell 1: ball and 3-stick, but with uneven dendrite
@@ -123,8 +124,12 @@ namespace {
             desc.decorations.paint(c2, membrane_capacitance{0.013});
             desc.decorations.paint(c3, membrane_capacitance{0.018});
 
-            desc.decorations.place(b.location({2,1}), i_clamp{5.,  80., 0.45}, "clamo0");
-            desc.decorations.place(b.location({3,1}), i_clamp{40., 10.,-0.2}, "clamp1");
+            desc.decorations.place(b.location({2,1}),
+                                   i_clamp::box( 5.*arb::units::ms, 80.*arb::units::ms,  0.45*arb::units::nA),
+                                   "clamp0");
+            desc.decorations.place(b.location({3,1}),
+                                   i_clamp::box(40.*arb::units::ms, 10.*arb::units::ms, -0.2*arb::units::nA),
+                                   "clamp1");
 
             desc.decorations.set_default(axial_resistivity{90});
 

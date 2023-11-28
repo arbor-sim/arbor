@@ -87,7 +87,7 @@ TEST(schedule, regular) {
     // Use exact fp representations for strict equality testing.
     std::vector<time_type> expected = {0, 0.25, 0.5, 0.75, 1.0};
 
-    schedule S = regular_schedule(0.25);
+    schedule S = regular_schedule(0.25*arb::units::ms);
     EXPECT_EQ(expected, as_vector(S.events(0, 1.25)));
 
     S.reset();
@@ -100,12 +100,12 @@ TEST(schedule, regular) {
 
 TEST(schedule, regular_invariants) {
     SCOPED_TRACE("regular_invariants");
-    run_invariant_checks(regular_schedule(0.3), 3, 12, 7);
+    run_invariant_checks(regular_schedule(0.3*arb::units::ms), 3, 12, 7);
 }
 
 TEST(schedule, regular_reset) {
     SCOPED_TRACE("regular_reset");
-    run_reset_check(regular_schedule(0.3), 3, 12, 7);
+    run_reset_check(regular_schedule(0.3*arb::units::ms), 3, 12, 7);
 }
 
 TEST(schedule, regular_rounding) {
@@ -120,7 +120,7 @@ TEST(schedule, regular_rounding) {
     time_type t0 = t1-10*dt;
     time_type t2 = t1+10*dt;
 
-    schedule S = regular_schedule(t0, dt);
+    schedule S = regular_schedule(t0*arb::units::ms, dt*arb::units::ms);
     auto int_l = as_vector(S.events(t0, t1));
     auto int_r = as_vector(S.events(t1, t2));
 
@@ -144,10 +144,10 @@ TEST(schedule, regular_rounding) {
 }
 
 TEST(schedule, explicit_schedule) {
-    time_type times[] = {0.1, 0.3, 1.0, 1.25, 1.7, 2.2};
-    std::vector<time_type> expected = {0.1, 0.3, 1.0};
+    std::vector times{0.1, 0.3, 1.0, 1.25, 1.7, 2.2};
+    std::vector expected{0.1, 0.3, 1.0};
 
-    schedule S = explicit_schedule(times);
+    schedule S = explicit_schedule_from_milliseconds(times);
     EXPECT_EQ(expected, as_vector(S.events(0, 1.25)));
 
     S.reset();
@@ -161,47 +161,19 @@ TEST(schedule, explicit_schedule) {
 TEST(schedule, explicit_invariants) {
     SCOPED_TRACE("explicit_invariants");
 
-    time_type times[] = {0.1, 0.3, 0.4, 0.42, 2.1, 2.3, 6.01, 9, 9.1, 9.8, 10, 11.2, 13};
-    run_invariant_checks(explicit_schedule(times), 0.4, 10.2, 5);
+    std::vector<arb::time_type> times{0.1, 0.3, 0.4, 0.42, 2.1, 2.3, 6.01, 9, 9.1, 9.8, 10, 11.2, 13};
+    run_invariant_checks(explicit_schedule_from_milliseconds(times), 0.4, 10.2, 5);
 }
 
 TEST(schedule, explicit_reset) {
     SCOPED_TRACE("explicit_reset");
 
-    time_type times[] = {0.1, 0.3, 0.4, 0.42, 2.1, 2.3, 6.01, 9, 9.1, 9.8, 10, 11.2, 13};
-    run_reset_check(explicit_schedule(times), 0.4, 10.2, 5);
+    std::vector<arb::time_type> times{0.1, 0.3, 0.4, 0.42, 2.1, 2.3, 6.01, 9, 9.1, 9.8, 10, 11.2, 13};
+    run_reset_check(explicit_schedule_from_milliseconds(times), 0.4, 10.2, 5);
 }
 
-// A Uniform Random Bit Generator[*] adaptor that deliberately
-// skews the generated numbers by raising their quantile to
-// the given power.
-//
-// [*] Not actually uniform.
-
-template <typename RNG>
-struct skew_adaptor {
-    using result_type = typename RNG::result_type;
-    static constexpr result_type min() { return RNG::min(); }
-    static constexpr result_type max() { return RNG::max(); }
-
-    explicit skew_adaptor(double power): power_(power) {}
-    result_type operator()() {
-        constexpr double scale = (double)(max()-min());
-        constexpr double ooscale = 1./scale;
-
-        double x = ooscale*(G_()-min());
-        x = std::pow(x, power_);
-        return min()+scale*x;
-    }
-
-private:
-    RNG G_;
-    double power_;
-};
-
-template <typename RNG>
-double poisson_schedule_dispersion(int nbin, double rate_kHz, RNG& G) {
-    schedule S = poisson_schedule(rate_kHz, G);
+double poisson_schedule_dispersion(int nbin, double rate_kHz) {
+    schedule S = poisson_schedule(rate_kHz*arb::units::kHz);
 
     std::vector<int> bin(nbin);
     for (auto t: time_range(S.events(0, nbin))) {
@@ -238,8 +210,7 @@ TEST(schedule, poisson_uniformity) {
     constexpr double chi2_lb = 888.56352318146696;
     constexpr double chi2_ub = 1118.9480663231843;
 
-    std::mt19937_64 G;
-    double dispersion = poisson_schedule_dispersion(N, .813, G);
+    double dispersion = poisson_schedule_dispersion(N, .813);
     double test_value = N*dispersion;
     EXPECT_GT(test_value, chi2_lb);
     EXPECT_LT(test_value, chi2_ub);
@@ -247,34 +218,12 @@ TEST(schedule, poisson_uniformity) {
     // Run one sample K-S test for uniformity, with critical
     // value for the finite K-S statistic Dn of α=0.01.
 
-    schedule S = poisson_schedule(100., G);
+    schedule S = poisson_schedule(100.*arb::units::kHz);
     auto events = as_vector(S.events(0,1));
     int n = (int)events.size();
     double dn = ks::dn_statistic(events);
 
     EXPECT_LT(ks::dn_cdf(dn, n), 0.99);
-
-    // Check that these tests fail for a non-Poisson
-    // source.
-
-    skew_adaptor<std::mt19937_64> W(1.5);
-    dispersion = poisson_schedule_dispersion(N, .813, W);
-    test_value = N*dispersion;
-
-    EXPECT_FALSE(test_value>=chi2_lb && test_value<=chi2_ub);
-
-    S = poisson_schedule(100., W);
-    events = as_vector(S.events(0,1));
-    n = (int)events.size();
-    dn = ks::dn_statistic(events);
-
-    // This test is currently failing, because we can't
-    // use a sufficiently high `n` in the `dn_cdf` function
-    // to get enough discrimination from the K-S test at
-    // 1%. TODO: Fix this by implementing n>140 case in
-    // `dn_cdf`.
-
-    // EXPECT_GT(ks::dn_cdf(dn, n), 0.99);
 }
 
 TEST(schedule, poisson_rate) {
@@ -284,37 +233,26 @@ TEST(schedule, poisson_rate) {
     constexpr double alpha = 0.01;
     constexpr double lambda = 123.4;
 
-    std::mt19937_64 G;
-    schedule S = poisson_schedule(lambda, G);
+    schedule S = poisson_schedule(lambda*arb::units::kHz);
     int n = (int)time_range(S.events(0, 1)).size();
     double cdf = poisson::poisson_cdf_approx(n, lambda);
 
     EXPECT_GT(cdf, alpha/2);
     EXPECT_LT(cdf, 1-alpha/2);
-
-    // Check that the test fails for a non-Poisson
-    // source.
-
-    skew_adaptor<std::mt19937_64> W(1.5);
-    S = poisson_schedule(lambda, W);
-    n = (int)time_range(S.events(0, 1)).size();
-    cdf = poisson::poisson_cdf_approx(n, lambda);
-
-    EXPECT_FALSE(cdf>=alpha/2 && cdf<=1-alpha/2);
 }
 
 TEST(schedule, poisson_invariants) {
     SCOPED_TRACE("poisson_invariants");
-    std::mt19937_64 G;
-    G.discard(100);
-    run_invariant_checks(poisson_schedule(0.81, G), 5.1, 15.3, 7);
+    auto sched = poisson_schedule(0.81*arb::units::kHz);
+    sched.discard(100);
+    run_invariant_checks(sched, 5.1, 15.3, 7);
 }
 
 TEST(schedule, poisson_reset) {
     SCOPED_TRACE("poisson_reset");
-    std::mt19937_64 G;
-    G.discard(200);
-    run_reset_check(poisson_schedule(.11, G), 1, 10, 7);
+    auto sched = poisson_schedule(0.11*arb::units::kHz);
+    sched.discard(200);
+    run_reset_check(sched, 1, 10, 7);
 }
 
 TEST(schedule, poisson_offset) {
@@ -323,42 +261,38 @@ TEST(schedule, poisson_offset) {
 
     const double offset = 3.3;
 
-    std::mt19937_64 G1;
-    G1.discard(300);
-
+    auto sched1 = poisson_schedule(.234*arb::units::kHz);
+    sched1.discard(300);
     std::vector<time_type> expected;
-    for (auto t: as_vector(poisson_schedule(.234, G1).events(0., 100.))) {
+    for (auto t: as_vector(sched1.events(0., 100.))) {
         t += offset;
         if (t<100.) {
             expected.push_back(t);
         }
     }
 
-    std::mt19937_64 G2;
-    G2.discard(300);
-
+    auto sched2 = poisson_schedule(offset*arb::units::ms, .234*arb::units::kHz);
+    sched2.discard(300);
     EXPECT_TRUE(seq_almost_eq<time_type>(expected,
-        as_vector(poisson_schedule(offset, .234, G2).events(0., 100.))));
+                                         as_vector(sched2.events(0., 100.))));
 }
 
 TEST(schedule, poisson_offset_reset) {
     SCOPED_TRACE("poisson_reset");
-    std::mt19937_64 G;
-    G.discard(400);
-    run_reset_check(poisson_schedule(3.3, 9.1, G), 1, 10, 7);
+    auto sched = poisson_schedule(3.3*arb::units::ms, 0.81*arb::units::kHz);
+    sched.discard(400);
+    run_reset_check(sched, 1, 10, 7);
 }
 
 TEST(schedule, poisson_tstop) {
     SCOPED_TRACE("poisson_tstop");
-    std::mt19937_64 G;
-    G.discard(500);
 
-    const double tstop = 50;
-
-    auto const times = as_vector(poisson_schedule(0, .234, G, tstop).events(0., 100.));
+    auto sched = poisson_schedule(0*arb::units::ms, 0.234*arb::units::kHz, default_seed, 50*arb::units::ms);
+    sched.discard(500);
+    auto const times = as_vector(sched.events(0., 100.));
     auto const max = std::max_element(begin(times), end(times));
 
     EXPECT_TRUE(max != end(times));
-    EXPECT_TRUE(*max <= tstop);
+    EXPECT_TRUE(*max <= 50);
 }
 

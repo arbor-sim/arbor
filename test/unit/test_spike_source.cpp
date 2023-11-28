@@ -14,8 +14,7 @@ using ss_recipe = homogeneous_recipe<cell_kind::spike_source, spike_source_cell>
 
 // Test that a spike_source_cell_group identifies itself with the correct
 // cell_kind enum value.
-TEST(spike_source, cell_kind)
-{
+TEST(spike_source, cell_kind) {
     ss_recipe rec(1u, spike_source_cell("src", explicit_schedule({})));
     cell_label_range srcs, tgts;
     spike_source_cell_group group({0}, rec, srcs, tgts);
@@ -37,8 +36,7 @@ static std::vector<time_type> spike_times(const std::vector<spike>& evs) {
 
 // Test that a spike_source_cell_group produces a sequence of spikes with spike
 // times corresponding to the underlying time_seq.
-TEST(spike_source, matches_time_seq)
-{
+TEST(spike_source, matches_time_seq) {
     auto test_seq = [](schedule seq) {
         ss_recipe rec(1u, spike_source_cell("src", seq));
         cell_label_range srcs, tgts;
@@ -57,16 +55,14 @@ TEST(spike_source, matches_time_seq)
         EXPECT_EQ(spike_times(group.spikes()), as_vector(seq.events(10, 20)));
     };
 
-    std::mt19937_64 G;
-    test_seq(regular_schedule(0, 1));
-    test_seq(poisson_schedule(10, G));   // produce many spikes in each interval
-    test_seq(poisson_schedule(1e-6, G)); // very unlikely to produce any spikes in either interval
+    test_seq(regular_schedule(1*arb::units::ms));
+    test_seq(poisson_schedule(10*arb::units::kHz));   // produce many spikes in each interval
+    test_seq(poisson_schedule(1e-6*arb::units::kHz)); // very unlikely to produce any spikes in either interval
 }
 
 // Test that a spike_source_cell_group will produce the same sequence of spikes
 // after being reset.
-TEST(spike_source, reset)
-{
+TEST(spike_source, reset) {
     auto test_seq = [](schedule seq) {
         ss_recipe rec(1u, spike_source_cell("src", seq));
         cell_label_range srcs, tgts;
@@ -87,16 +83,14 @@ TEST(spike_source, reset)
         EXPECT_EQ(spikes1, spikes2);
     };
 
-    std::mt19937_64 G;
-    test_seq(regular_schedule(0, 1));
-    test_seq(poisson_schedule(10, G));   // produce many spikes in each interval
-    test_seq(poisson_schedule(1e-6, G)); // very unlikely to produce any spikes in either interval
+    test_seq(regular_schedule(10*arb::units::ms));
+    test_seq(poisson_schedule(100*arb::units::kHz));   // produce many spikes in each interval
+    test_seq(poisson_schedule(1e-6*arb::units::kHz)); // very unlikely to produce any spikes in either interval
 }
 
 // Test that a spike_source_cell_group will produce the expected
 // output when the underlying time_seq is finite.
-TEST(spike_source, exhaust)
-{
+TEST(spike_source, exhaust) {
     // This test assumes that seq will exhaust itself before t=10 ms.
     auto test_seq = [](schedule seq) {
         ss_recipe rec(1u, spike_source_cell("src", seq));
@@ -112,12 +106,11 @@ TEST(spike_source, exhaust)
         EXPECT_LT(group.spikes().back().time, time_type(10));
     };
 
-    test_seq(regular_schedule(0, 1, 5));
-    test_seq(explicit_schedule({0.3, 2.3, 4.7}));
+    test_seq(regular_schedule(0*arb::units::ms, 1*arb::units::ms, 5*arb::units::ms));
+    test_seq(explicit_schedule_from_milliseconds(std::vector{0.3, 2.3, 4.7}));
 }
 
-TEST(spike_source, multiple)
-{
+TEST(spike_source, multiple) {
     // This test assumes that seq will exhaust itself before t=10 ms.
     auto test_seq = [](auto&&... seqs) {
         std::vector<schedule> schedules{seqs...};
@@ -145,13 +138,7 @@ TEST(spike_source, multiple)
         EXPECT_LT(group.spikes().back().time, time_type(10));
     };
 
-    auto seqs = std::vector<schedule>{regular_schedule(0, 1, 5),
-                                      explicit_schedule({0.3, 2.3, 4.7})};
+    std::vector seqs{regular_schedule(0*arb::units::ms, 1*arb::units::ms, 5*arb::units::ms),
+                     explicit_schedule_from_milliseconds(std::vector{0.3, 2.3, 4.7})};
     test_seq(seqs);
-    test_seq(std::vector<schedule>{regular_schedule(0, 1, 5),
-                                   explicit_schedule({0.3, 2.3, 4.7})});
-    test_seq(regular_schedule(0, 1, 5),
-             explicit_schedule({0.3, 2.3, 4.7}));
-    auto reg_sched = regular_schedule(0, 1, 5);
-    test_seq(reg_sched, explicit_schedule({0.3, 2.3, 4.7}));
 }

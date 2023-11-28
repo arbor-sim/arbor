@@ -1,5 +1,4 @@
 #include <cmath>
-#include <numeric>
 #include <string>
 #include <vector>
 
@@ -55,7 +54,7 @@ struct linear: public recipe {
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
         std::vector<arb::event_generator> result;
         for (const auto& [t, w]: inject_at) {
-            result.push_back(arb::explicit_generator({"Zap"}, w, std::vector<float>{t}));
+            result.push_back(arb::explicit_generator_from_milliseconds({"Zap"}, w, std::vector<arb::time_type>{t}));
         }
         return result;
     }
@@ -117,8 +116,8 @@ testing::AssertionResult run(const linear& rec, const result_t exp) {
     };
     auto ctx = make_context({arbenv::default_concurrency(), with_gpu});
     auto sim = simulation{rec, ctx, partition_load_balance(rec, ctx)};
-    sim.add_sampler(arb::all_probes, arb::regular_schedule(0.1), sampler);
-    sim.run(0.11, 0.01);
+    sim.add_sampler(arb::all_probes, arb::regular_schedule(0.1*arb::units::ms), sampler);
+    sim.run(0.11*arb::units::ms, 0.01*arb::units::ms);
     return all_near(sample_values, exp, epsilon);
 }
 
@@ -316,21 +315,21 @@ TEST(diffusion, setting_diffusivity) {
     {
         R r;
         r.gprop.add_ion("bla", 1, 23, 42, 0, 0);
-        EXPECT_THROW(simulation(r).run(1, 1), illegal_diffusive_mechanism);
+        EXPECT_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms), illegal_diffusive_mechanism);
     }
     // BAD: Trying to use a partially diffusive ion
     {
         R r;
         r.gprop.add_ion("bla", 1, 23, 42, 0, 0);
         r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
-        EXPECT_THROW(simulation(r).run(1, 1), cable_cell_error);
+        EXPECT_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms), cable_cell_error);
     }
     // OK: Using the global default
     {
         R r;
         r.gprop.add_ion("bla", 1, 23, 42, 0, 8);
         r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
-        EXPECT_NO_THROW(simulation(r).run(1, 1));
+        EXPECT_NO_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms));
     }
     // OK: Using the cell default
     {
@@ -338,14 +337,14 @@ TEST(diffusion, setting_diffusivity) {
         r.gprop.add_ion("bla", 1, 23, 42, 0, 0);
         r.dec.set_default(ion_diffusivity{"bla", 8});
         r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
-        EXPECT_NO_THROW(simulation(r).run(1, 1));
+        EXPECT_NO_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms));
     }
     // BAD: Using an unknown species
     {
         R r;
         r.dec.set_default(ion_diffusivity{"bla", 8});
         r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
-        EXPECT_THROW(simulation(r).run(1, 1), cable_cell_error);
+        EXPECT_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms), cable_cell_error);
     }
 
 }

@@ -1,5 +1,4 @@
 #include <cmath>
-#include <numeric>
 #include <string>
 #include <vector>
 
@@ -25,11 +24,8 @@
 #include "backends/multicore/fvm.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "fvm_lowered_cell_impl.hpp"
-#include "util/meta.hpp"
-#include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
-#include "util/transform.hpp"
 
 #include "common.hpp"
 #include "mech_private_field_access.hpp"
@@ -233,7 +229,7 @@ TEST(fvm_lowered, target_handles) {
     descriptions[1].decorations.place(mlocation{2, 0.2}, synapse("exp2syn"), "syn2");
     descriptions[1].decorations.place(mlocation{2, 0.8}, synapse("expsyn"), "syn3");
 
-    descriptions[1].decorations.place(mlocation{0, 0}, threshold_detector{3.3}, "detector");
+    descriptions[1].decorations.place(mlocation{0, 0}, threshold_detector{3.3*arb::units::mV}, "detector");
 
     cable_cell cells[] = {descriptions[0], descriptions[1]};
 
@@ -289,9 +285,9 @@ TEST(fvm_lowered, stimulus) {
     auto desc = make_cell_ball_and_stick(false);
 
     // At end of stick
-    desc.decorations.place(mlocation{0,1},   i_clamp::box(5., 80., 0.3), "clamp0");
+    desc.decorations.place(mlocation{0,1},   i_clamp::box(5.*arb::units::ms, 80.*arb::units::ms, 0.3*arb::units::nA), "clamp0");
     // On the soma CV, which is over the approximate interval: (cable 0 0 0.1)
-    desc.decorations.place(mlocation{0,0.05}, i_clamp::box(1., 2.,  0.1), "clamp1");
+    desc.decorations.place(mlocation{0,0.05}, i_clamp::box(1.*arb::units::ms, 2.*arb::units::ms, 0.1*arb::units::nA), "clamp1");
 
     std::vector<cable_cell> cells{desc};
 
@@ -360,7 +356,8 @@ TEST(fvm_lowered, ac_stimulus) {
     const double max_time = 8; // (ms)
 
     // Envelope is linear ramp from 0 to max_time.
-    dec.place(mlocation{0, 0}, i_clamp({{0, 0}, {max_time, max_amplitude}, {max_time, 0}}, freq, phase), "clamp");
+    dec.place(mlocation{0, 0},
+              i_clamp({{0*arb::units::ms, 0*arb::units::nA}, {max_time*arb::units::ms, max_amplitude*arb::units::nA}, {max_time*arb::units::ms, 0*arb::units::nA}}, freq*arb::units::kHz, phase*arb::units::rad), "clamp");
     std::vector<cable_cell> cells = {cable_cell(tree, dec)};
 
     cable_cell_global_properties gprop;
@@ -474,12 +471,12 @@ TEST(fvm_lowered, derived_mechs) {
                 }
             };
 
-        float times[] = {10.f, 20.f};
+        std::vector<double> times{10.f, 20.f};
 
         auto decomp = partition_load_balance(rec, context);
         simulation sim(rec, context, decomp);
-        sim.add_sampler(all_probes, explicit_schedule(times), sampler);
-        sim.run(30.0, 1.f/1024);
+        sim.add_sampler(all_probes, explicit_schedule_from_milliseconds(times), sampler);
+        sim.run(30.0*arb::units::ms, 1.f/1024*arb::units::ms);
 
         ASSERT_EQ(2u, samples[0].size());
         ASSERT_EQ(2u, samples[1].size());
@@ -509,7 +506,7 @@ TEST(fvm_lowered, null_region) {
 
     auto decomp = partition_load_balance(rec, context);
     simulation sim(rec, context, decomp);
-    EXPECT_NO_THROW(sim.run(30.0, 1.f/1024));
+    EXPECT_NO_THROW(sim.run(30.0*arb::units::ms, 1.f/1024*arb::units::ms));
 }
 
 
@@ -830,7 +827,7 @@ TEST(fvm_lowered, post_events_shared_state) {
             auto ndetectors = detectors_per_cell_[gid];
             auto offset = 1.0 / ndetectors;
             for (unsigned i = 0; i < ndetectors; ++i) {
-                decor.place(arb::mlocation{0, offset * i}, arb::threshold_detector{10}, "detector"+std::to_string(i));
+                decor.place(arb::mlocation{0, offset * i}, arb::threshold_detector{10*arb::units::mV}, "detector"+std::to_string(i));
             }
             decor.place(arb::mlocation{0, 0.5}, synapse_, "syanpse");
 
@@ -924,15 +921,15 @@ TEST(fvm_lowered, label_data) {
                 decor.set_default(arb::cv_policy_fixed_per_branch(10));
                 decor.place(uniform(all(), 0, 3, 42), arb::synapse("expsyn"), "4_synapses");
                 decor.place(uniform(all(), 4, 4, 42), arb::synapse("expsyn"), "1_synapse");
-                decor.place(uniform(all(), 5, 5, 42), arb::threshold_detector{10}, "1_detector");
+                decor.place(uniform(all(), 5, 5, 42), arb::threshold_detector{10*arb::units::mV}, "1_detector");
 
                 cells_.push_back(arb::cable_cell(arb::morphology(tree), decor));
             }
             {
                 arb::decor decor;
                 decor.set_default(arb::cv_policy_fixed_per_branch(10));
-                decor.place(uniform(all(), 0, 2, 24), arb::threshold_detector{10}, "3_detectors");
-                decor.place(uniform(all(), 3, 4, 24), arb::threshold_detector{10}, "2_detectors");
+                decor.place(uniform(all(), 0, 2, 24), arb::threshold_detector{10*arb::units::mV}, "3_detectors");
+                decor.place(uniform(all(), 3, 4, 24), arb::threshold_detector{10*arb::units::mV}, "2_detectors");
                 decor.place(uniform(all(), 5, 6, 24), arb::junction("gj"), "2_gap_junctions");
                 decor.place(uniform(all(), 7, 7, 24), arb::junction("gj"), "1_gap_junction");
 

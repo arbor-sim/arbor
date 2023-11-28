@@ -1,5 +1,4 @@
 #include <memory>
-#include <set>
 #include <vector>
 
 #include <arbor/export.hpp>
@@ -15,13 +14,10 @@
 #include "cell_group.hpp"
 #include "cell_group_factory.hpp"
 #include "communication/communicator.hpp"
-#include "execution_context.hpp"
 #include "merge_events.hpp"
 #include "thread_private_spike_store.hpp"
 #include "threading/threading.hpp"
-#include "util/filter.hpp"
 #include "util/maputil.hpp"
-#include "util/partition.hpp"
 #include "util/span.hpp"
 #include "profile/profiler_macro.hpp"
 
@@ -596,11 +592,11 @@ void simulation::reset() {
 
 void simulation::update(const connectivity& rec) { impl_->update(rec); }
 
-time_type simulation::run(time_type tfinal, time_type dt) {
-    if (dt <= 0.0) {
+time_type simulation::run(const units::quantity& tfinal, const units::quantity& dt) {
+    if (dt.value() <= 0.0) {
         throw domain_error("Finite time-step must be supplied.");
     }
-    return impl_->run(tfinal, dt);
+    return impl_->run(tfinal.value_as(units::ms), dt.value_as(units::ms));
 }
 
 sampler_association_handle simulation::add_sampler(

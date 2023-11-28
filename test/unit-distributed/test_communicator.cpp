@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include "test.hpp"
 
-#include <tuple>
 #include <vector>
 
 #include <arbor/domain_decomposition.hpp>
@@ -11,7 +10,6 @@
 #include <arbor/spike_event.hpp>
 
 #include "communication/communicator.hpp"
-#include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "lif_cell_group.hpp"
 #include "cable_cell_group.hpp"
@@ -204,7 +202,7 @@ namespace {
                 tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
                 arb::decor decor;
                 decor.set_default(arb::cv_policy_fixed_per_branch(10));
-                decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10}, "src");
+                decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10*arb::units::mV}, "src");
                 decor.place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "tgt");
                 return arb::cable_cell(arb::morphology(tree), decor);
             }
@@ -277,7 +275,7 @@ namespace {
             tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
             arb::decor decor;
             decor.set_default(arb::cv_policy_fixed_per_branch(10));
-            decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10}, "src");
+            decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10*arb::units::mV}, "src");
             decor.place(arb::ls::uniform(arb::reg::all(), 0, size_, gid), arb::synapse("expsyn"), "tgt");
             return arb::cable_cell(arb::morphology(tree), decor);
         }
@@ -354,8 +352,8 @@ namespace {
                 decor.place(arb::ls::uniform(arb::reg::all(), 2, 2, gid), arb::synapse("expsyn"), "synapses_1");
             }
             else {
-                decor.place(arb::ls::uniform(arb::reg::all(), 0, 2, gid), arb::threshold_detector{10}, "detectors_0");
-                decor.place(arb::ls::uniform(arb::reg::all(), 3, 3, gid), arb::threshold_detector{10}, "detectors_1");
+                decor.place(arb::ls::uniform(arb::reg::all(), 0, 2, gid), arb::threshold_detector{10*arb::units::mV}, "detectors_0");
+                decor.place(arb::ls::uniform(arb::reg::all(), 3, 3, gid), arb::threshold_detector{10*arb::units::mV}, "detectors_1");
             }
             return arb::cable_cell(arb::morphology(tree), decor);
         }

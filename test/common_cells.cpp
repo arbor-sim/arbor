@@ -1,5 +1,4 @@
 #include <arborio/label_parse.hpp>
-#include "arbor/morph/morphology.hpp"
 #include "common_cells.hpp"
 
 namespace arb {
@@ -181,7 +180,9 @@ cable_cell_description make_cell_soma_only(bool with_stim) {
     auto c = builder.make_cell();
     c.decorations.paint("soma"_lab, density("hh"));
     if (with_stim) {
-        c.decorations.place(builder.location({0,0.5}), i_clamp{10., 100., 0.1}, "cc");
+        c.decorations.place(builder.location({0,0.5}),
+                            i_clamp::box(10.*arb::units::ms, 100.*arb::units::ms, 0.1*arb::units::nA),
+                            "cc");
     }
 
     return {c.morph, c.labels, c.decorations};
@@ -216,7 +217,9 @@ cable_cell_description make_cell_ball_and_stick(bool with_stim) {
     c.decorations.paint("soma"_lab, density("hh"));
     c.decorations.paint("dend"_lab, density("pas"));
     if (with_stim) {
-        c.decorations.place(builder.location({1,1}), i_clamp{5, 80, 0.3}, "cc");
+        c.decorations.place(builder.location({1,1}),
+                            i_clamp::box(5*arb::units::ms, 80*arb::units::ms, 0.3*arb::units::nA),
+                            "cc");
     }
 
     return {c.morph, c.labels, c.decorations};
@@ -254,8 +257,12 @@ cable_cell_description make_cell_ball_and_3stick(bool with_stim) {
     c.decorations.paint("soma"_lab, density("hh"));
     c.decorations.paint("dend"_lab, density("pas"));
     if (with_stim) {
-        c.decorations.place(builder.location({2,1}), i_clamp{5.,  80., 0.45}, "cc0");
-        c.decorations.place(builder.location({3,1}), i_clamp{40., 10.,-0.2}, "cc1");
+        c.decorations.place(builder.location({2,1}),
+                            i_clamp::box(5.*arb::units::ms,  80.*arb::units::ms, 0.45*arb::units::nA),
+                            "cc0");
+        c.decorations.place(builder.location({3,1}),
+                            i_clamp::box(40.*arb::units::ms, 10.*arb::units::ms,-0.2*arb::units::nA),
+                            "cc1");
     }
 
     return {c.morph, c.labels, c.decorations};

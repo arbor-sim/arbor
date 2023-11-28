@@ -12,8 +12,6 @@
 #include <arbor/simulation.hpp>
 #include <arbor/spike_source_cell.hpp>
 
-#include "lif_cell_group.hpp"
-
 using namespace arb;
 // Simple ring network of LIF neurons.
 // with one regularly spiking cell (fake cell) connected to the first cell in the ring.
@@ -62,7 +60,7 @@ public:
         // regularly spiking cell.
         if (gid == 0) {
             // Produces just a single spike at time 0ms.
-            return spike_source_cell("src", explicit_schedule({0.f}));
+            return spike_source_cell("src", explicit_schedule_from_milliseconds({0.}));
         }
         // LIF cell.
         auto cell = lif_cell("src", "tgt");
@@ -149,7 +147,7 @@ public:
         }
     }
     std::vector<event_generator> event_generators(cell_gid_type) const override {
-        return {regular_generator({"tgt"}, 200.0, 2.0, 1.0, 6.0)};
+        return {regular_generator({"tgt"}, 200.0, 2.0*arb::units::ms, 1.0*arb::units::ms, 6.0*arb::units::ms)};
     }
 
     size_t n_conn_ = 0;
@@ -195,10 +193,7 @@ TEST(lif_cell_group, spikes) {
     events.push_back({0, {{0, 50, 1000}}});
 
     sim.inject_events(events);
-
-    time_type tfinal = 100;
-    time_type dt = 0.01;
-    sim.run(tfinal, dt);
+    sim.run(100*arb::units::ms, 0.01*arb::units::ms);
 
     // we expect 4 spikes: 2 by both neurons
     EXPECT_EQ(4u, sim.num_spikes());
@@ -210,9 +205,6 @@ TEST(lif_cell_group, ring)
     cell_size_type num_lif_cells = 99;
     double weight = 1000;
     double delay = 1;
-
-    // Total simulation time.
-    time_type simulation_time = 100;
 
     auto recipe = ring_recipe(num_lif_cells, weight, delay);
     // Creates a simulation with a ring recipe of lif neurons
@@ -227,7 +219,7 @@ TEST(lif_cell_group, ring)
     );
 
     // Runs the simulation for simulation_time with given timestep
-    sim.run(simulation_time, 0.01);
+    sim.run(100*arb::units::ms, 0.01*arb::units::ms);
     // The total number of cells in all the cell groups.
     // There is one additional fake cell (regularly spiking cell).
     EXPECT_EQ(num_lif_cells + 1u, recipe.num_cells());
@@ -274,7 +266,7 @@ TEST(lif_cell_group, probe) {
     auto rec = probe_recipe{};
     auto sim = simulation(rec);
 
-    sim.add_sampler(all_probes, regular_schedule(0.025), fun);
+    sim.add_sampler(all_probes, regular_schedule(0.025*arb::units::ms), fun);
 
     std::vector<double> spikes;
 
@@ -282,7 +274,7 @@ TEST(lif_cell_group, probe) {
         [&spikes](const std::vector<spike>& spk) { for (const auto& s: spk) spikes.push_back(s.time); }
     );
 
-    sim.run(10, 0.005);
+    sim.run(10*arb::units::ms, 0.005*arb::units::ms);
     std::vector<Um_type> exp = {{ 0, -18 },
                                 { 0.025, -17.9750624 },
                                 { 0.05, -17.9502492 },
@@ -710,7 +702,7 @@ TEST(lif_cell_group, probe_with_connections) {
     auto rec = probe_recipe{5};
     auto sim = simulation(rec);
 
-    sim.add_sampler(all_probes, regular_schedule(0.025), fun);
+    sim.add_sampler(all_probes, regular_schedule(0.025*arb::units::ms), fun);
 
     std::vector<double> spikes;
 
@@ -718,7 +710,7 @@ TEST(lif_cell_group, probe_with_connections) {
         [&spikes](const std::vector<spike>& spk) { for (const auto& s: spk) spikes.push_back(s.time); }
     );
 
-    sim.run(10, 0.005);
+    sim.run(10*arb::units::ms, 0.005*arb::units::ms);
     std::vector<Um_type> exp = {{ 0, -18 },
                                 { 0.025, -17.9750624 },
                                 { 0.05, -17.9502492 },

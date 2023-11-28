@@ -409,7 +409,7 @@ TEST(sde, reproducibility) {
     // simulation parameters
     unsigned ncells = 4;
     unsigned ncvs = 2;
-    double const dt = 0.5;
+    auto const dt = 0.5*arb::units::ms;
     unsigned nsteps = 6;
 
     // Decorations with a bunch of stochastic processes
@@ -490,7 +490,7 @@ TEST(sde, normality) {
     unsigned ncells = 4;
     unsigned nsynapses = 100;
     unsigned ncvs = 100;
-    double const dt = 0.5;
+    auto dt = 0.5*arb::units::ms;;
     unsigned nsteps = 50;
 
     // make labels (and locations for synapses)
@@ -647,7 +647,7 @@ TEST(sde, solver) {
     unsigned ncells = 4;
     unsigned nsynapses = 2000;
     unsigned ncvs = 1;
-    double const dt = 1.0/512; // need relatively small time steps due to low accuracy
+    auto dt = 1.0/512*arb::units::ms; // need relatively small time steps due to low accuracy
     unsigned nsteps = 100;
     unsigned nsims = 4;
 
@@ -773,7 +773,7 @@ TEST(sde, solver) {
 
     auto test = [&] (auto func, const auto& stats) {
         for (unsigned int i=1; i<nsteps; ++i) {
-            auto [mu, sigma_squared] = func(i*dt);
+            auto [mu, sigma_squared] = func(i*dt.value());
             double const mean = stats[i].mean();
             double const var = stats[i].variance();
 
@@ -802,7 +802,7 @@ TEST(sde, coupled) {
     unsigned ncells = 4;
     unsigned nsynapses = 2000;
     unsigned ncvs = 1;
-    double const dt = 1.0/512; // need relatively small time steps due to low accuracy
+    auto dt = 1.0/512*arb::units::ms; // need relatively small time steps due to low accuracy
     unsigned nsteps = 100;
     unsigned nsims = 4;
 
@@ -908,7 +908,7 @@ TEST(sde, coupled) {
     };
 
     for (unsigned int i=1; i<nsteps; ++i) {
-        auto ex = expected(i*dt, 0.1, 0.1, 0.1, 0.1, 1, 0.2);
+        auto ex = expected(i*dt.value(), 0.1, 0.1, 0.1, 0.1, 1, 0.2);
 
         const double E_P = ex[0];
         const double E_sigma = ex[1];

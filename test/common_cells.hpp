@@ -1,5 +1,3 @@
-#include <cmath>
-
 #include <arbor/cable_cell.hpp>
 #include <arbor/mechinfo.hpp>
 #include <arbor/morph/label_dict.hpp>

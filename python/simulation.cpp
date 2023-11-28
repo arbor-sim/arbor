@@ -116,7 +116,7 @@ public:
         }
     }
 
-    arb::time_type run(arb::time_type tfinal, arb::time_type dt) {
+    arb::time_type run(const arb::units::quantity& tfinal, const arb::units::quantity& dt) {
         return sim_->run(tfinal, dt);
     }
 

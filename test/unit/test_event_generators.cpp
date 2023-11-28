@@ -5,10 +5,6 @@
 #include <arbor/event_generator.hpp>
 #include <arbor/spike_event.hpp>
 
-#include "util/rangeutil.hpp"
-
-#include "common.hpp"
-
 using namespace arb;
 
 namespace{
@@ -18,7 +14,7 @@ namespace{
 }
 
 TEST(event_generators, assign_and_copy) {
-    event_generator gen = regular_generator({"l2"}, 5., 0.5, 0.75);
+    event_generator gen = regular_generator({"l2"}, 5., 0.5*arb::units::ms, 0.75*arb::units::ms);
     gen.resolve_label([](const cell_local_label_type&) {return 2;});
     spike_event expected{2, 0.75, 5.};
 
@@ -57,7 +53,7 @@ TEST(event_generators, regular) {
     cell_lid_type lid = 3;
     float weight = 3.14;
 
-    event_generator gen = regular_generator(label, weight, t0, dt);
+    event_generator gen = regular_generator(label, weight, t0*arb::units::ms, dt*arb::units::ms);
     gen.resolve_label([lid](const cell_local_label_type&) {return lid;});
 
     // Helper for building a set of expected events.
@@ -93,7 +89,7 @@ TEST(event_generators, seq) {
         expected.push_back({0, time, weight});
     }
 
-    event_generator gen = explicit_generator(l0, weight, times);
+    event_generator gen = explicit_generator_from_milliseconds(l0, weight, times);
     gen.resolve_label([](const cell_local_label_type&) {return 0;});
 
     EXPECT_EQ(expected, as_vector(gen.events(0, 100.))); gen.reset();
@@ -126,8 +122,6 @@ TEST(event_generators, seq) {
 }
 
 TEST(event_generators, poisson) {
-    std::mt19937_64 G;
-
     time_type t0 = 0;
     time_type t1 = 10;
     time_type lambda = 10; // expect 10 events per ms
@@ -135,7 +129,7 @@ TEST(event_generators, poisson) {
     cell_lid_type lid = 2;
     float weight = 42;
 
-    event_generator gen = poisson_generator(label, weight, t0, lambda, G);
+    event_generator gen = poisson_generator(label, weight, t0*arb::units::ms, lambda*arb::units::Hz);
     gen.resolve_label([lid](const cell_local_label_type&) {return lid;});
 
     pse_vector int1 = as_vector(gen.events(0, t1));
