@@ -13,13 +13,11 @@ struct poisson_schedule_impl {
         tstart_(tstart), exp_(rate_kHz), rng_(seed), seed_(seed), next_(tstart), tstop_(tstop) {
         arb_assert(tstart_>=0);
         arb_assert(tstart_ <= tstop_);
-        step();
     }
 
     void reset() {
         rng_ = engine_type{seed_};
         next_ = tstart_;
-        step();
     }
 
     void discard(std::size_t n) { rng_.discard(n); }
@@ -35,6 +33,7 @@ struct poisson_schedule_impl {
 
         while (next_<t0) { step(); }
 
+        step();
         while (next_<t1) {
             times_.push_back(next_);
             step();

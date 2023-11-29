@@ -17,9 +17,8 @@ using namespace testing;
 
 using time_range = util::range<const time_type*>;
 
-// Pull events from n non-contiguous subintervals of [t0, t1)
-// and check for monotonicity and boundedness.
-
+// Pull events from n non-contiguous subintervals of [t0, t1) and check for
+// monotonicity and boundedness.
 void run_invariant_checks(schedule S, time_type t0, time_type t1, unsigned n, int seed=0) {
     if (!n) return;
 
@@ -45,14 +44,13 @@ void run_invariant_checks(schedule S, time_type t0, time_type t1, unsigned n, in
     }
 }
 
-// Take events from n contiguous intervals comprising [t0, t1), reset, and
-// then compare with events taken from a different set of contiguous
-// intervals comprising [t0, t1).
-
+// Take events from n contiguous intervals comprising [t0, t1), reset, and then
+// compare with events taken from a different set of contiguous intervals
+// comprising [t0, t1).
 void run_reset_check(schedule S, time_type t0, time_type t1, unsigned n, int seed=0) {
     if (!n) return;
 
-    std::minstd_rand R(seed);
+    std::mt19937_64 R(seed);
     std::uniform_real_distribution<time_type> U(t0, t1);
 
     std::vector<time_type> first_div = {t0, t1};
