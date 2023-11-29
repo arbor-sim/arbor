@@ -1,5 +1,6 @@
 #include <arbor/common_types.hpp>
 #include <arbor/network.hpp>
+#include <arbor/util/hash_def.hpp>
 
 #include <Random123/threefry.h>
 #include <Random123/boxmuller.hpp>
@@ -13,10 +14,8 @@
 #include <type_traits>
 #include <variant>
 #include <vector>
-#include <cstdint>
 
 #include "network_impl.hpp"
-#include "util/hash.hpp"
 
 namespace arb {
 
@@ -165,7 +164,7 @@ struct network_selection_source_label_impl: public network_selection_impl {
     explicit network_selection_source_label_impl(std::vector<cell_tag_type> labels_):
         labels(std::move(labels_)) {
         sorted_hashes.reserve(labels.size());
-        for(const auto& l : labels) sorted_hashes.emplace_back(internal_hash(l));
+        for (const auto& l: labels) sorted_hashes.emplace_back(hash_value(l));
 
         std::sort(sorted_hashes.begin(), sorted_hashes.end());
     }
@@ -194,11 +193,10 @@ struct network_selection_target_label_impl: public network_selection_impl {
     std::vector<cell_tag_type> labels;
     std::vector<hash_type> sorted_hashes;
 
-
     explicit network_selection_target_label_impl(std::vector<cell_tag_type> labels_):
         labels(std::move(labels_)) {
         sorted_hashes.reserve(labels.size());
-        for(const auto& l : labels) sorted_hashes.emplace_back(internal_hash(l));
+        for (const auto& l: labels) sorted_hashes.emplace_back(hash_value(l));
 
         std::sort(sorted_hashes.begin(), sorted_hashes.end());
     }
@@ -820,8 +818,7 @@ struct network_value_scalar_impl: public network_value_impl {
 
     network_value_scalar_impl(double v): value(v) {}
 
-    double get(const network_site_info& source,
-        const network_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
         return value;
     }
 
@@ -833,8 +830,7 @@ struct network_value_distance_impl: public network_value_impl {
 
     network_value_distance_impl(double s): scale(s) {}
 
-    double get(const network_site_info& source,
-        const network_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
         return scale * distance(source.global_location, target.global_location);
     }
 
@@ -852,8 +848,7 @@ struct network_value_uniform_distribution_impl: public network_value_impl {
             throw std::invalid_argument("Uniform distribution: invalid range");
     }
 
-    double get(const network_site_info& source,
-        const network_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
         if (range[0] > range[1]) return range[1];
 
         // random number between 0 and 1
@@ -878,8 +873,7 @@ struct network_value_normal_distribution_impl: public network_value_impl {
         mean(mean_),
         std_deviation(std_deviation_) {}
 
-    double get(const network_site_info& source,
-        const network_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
         return mean +
                std_deviation *
                    normal_rand({unsigned(network_seed::value_normal), seed, seed + 1, seed + 2},
@@ -910,8 +904,7 @@ struct network_value_truncated_normal_distribution_impl: public network_value_im
             throw std::invalid_argument("Truncated normal distribution: invalid range");
     }
 
-    double get(const network_site_info& source,
-        const network_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
 
         double value = 0.0;
 
@@ -941,8 +934,7 @@ struct network_value_custom_impl: public network_value_impl {
 
     network_value_custom_impl(network_value::custom_func_type f): func(std::move(f)) {}
 
-    double get(const network_site_info& source,
-        const network_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
         return func(source, target);
     }
 
@@ -957,8 +949,7 @@ struct network_value_named_impl: public network_value_impl {
 
     explicit network_value_named_impl(std::string name): value_name(std::move(name)) {}
 
-    double get(const network_site_info& source,
-        const network_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
         if (!value) throw arbor_internal_error("Trying to use unitialized named network value.");
         return value->get(source, target);
     }
@@ -984,8 +975,7 @@ struct network_value_add_impl: public network_value_impl {
         left(std::move(l)),
         right(std::move(r)) {}
 
-    double get(const network_site_info& source,
-        const network_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
         return left->get(source, target) + right->get(source, target);
     }
 
@@ -1011,8 +1001,7 @@ struct network_value_mul_impl: public network_value_impl {
         left(std::move(l)),
         right(std::move(r)) {}
 
-    double get(const network_site_info& source,
-        const network_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
         return left->get(source, target) * right->get(source, target);
     }
 
@@ -1038,8 +1027,7 @@ struct network_value_sub_impl: public network_value_impl {
         left(std::move(l)),
         right(std::move(r)) {}
 
-    double get(const network_site_info& source,
-        const network_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
         return left->get(source, target) - right->get(source, target);
     }
 
@@ -1065,8 +1053,7 @@ struct network_value_div_impl: public network_value_impl {
         left(std::move(l)),
         right(std::move(r)) {}
 
-    double get(const network_site_info& source,
-        const network_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
         const auto v_right = right->get(source, target);
         if (!v_right) throw arbor_exception("network_value: division by 0.");
         return left->get(source, target) / right->get(source, target);
@@ -1094,8 +1081,7 @@ struct network_value_max_impl: public network_value_impl {
         left(std::move(l)),
         right(std::move(r)) {}
 
-    double get(const network_site_info& source,
-        const network_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
         return std::max(left->get(source, target), right->get(source, target));
     }
 
@@ -1121,8 +1107,7 @@ struct network_value_min_impl: public network_value_impl {
         left(std::move(l)),
         right(std::move(r)) {}
 
-    double get(const network_site_info& source,
-        const network_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
         return std::min(left->get(source, target), right->get(source, target));
     }
 
@@ -1145,8 +1130,7 @@ struct network_value_exp_impl: public network_value_impl {
 
     network_value_exp_impl(std::shared_ptr<network_value_impl> v): value(std::move(v)) {}
 
-    double get(const network_site_info& source,
-        const network_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
         return std::exp(value->get(source, target));
     }
 
@@ -1164,8 +1148,7 @@ struct network_value_log_impl: public network_value_impl {
 
     network_value_log_impl(std::shared_ptr<network_value_impl> v): value(std::move(v)) {}
 
-    double get(const network_site_info& source,
-        const network_site_info& target) const override {
+    double get(const network_site_info& source, const network_site_info& target) const override {
         const auto v = value->get(source, target);
         if (v <= 0.0) throw arbor_exception("network_value: log of value <= 0.0.");
         return std::log(value->get(source, target));

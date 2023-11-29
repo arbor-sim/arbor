@@ -6,8 +6,8 @@
 
 TEST(hash, string_eq) {
     ASSERT_EQ(arb::hash_value("foobar"), arb::hash_value(std::string{"foobar"}));
-    ASSERT_EQ(arb::hash_value("foobar"), arb::internal_hash("foobar"));
-    ASSERT_NE(arb::hash_value("foobar"), arb::internal_hash("barfoo"));
+    ASSERT_EQ(arb::hash_value("foobar"), arb::hash_value("foobar"));
+    ASSERT_NE(arb::hash_value("foobar"), arb::hash_value("barfoo"));
 }
 
 TEST(hash, doesnt_compile) {

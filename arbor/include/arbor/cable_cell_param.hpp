@@ -1,12 +1,10 @@
 #pragma once
 
 #include <cmath>
-#include <memory>
 #include <optional>
 #include <unordered_map>
 #include <string>
 #include <variant>
-#include <any>
 
 #include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>

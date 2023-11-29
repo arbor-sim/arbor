@@ -20,11 +20,10 @@
 #include <string_view>
 #include <functional>
 
-#include <iostream>
-
 // Helpers for forming hash values of compounds objects.
-
 namespace arb {
+
+namespace detail {
 
 // Non-cryptographic hash function for mapping strings to internal
 // identifiers. Concretely, FNV-1a hash function taken from
@@ -87,10 +86,11 @@ std::size_t hash_value_combine(std::size_t n, const T& head, const Ts&... tail) 
     return hash_value_combine(prime*n + internal_hash(head), tail...);
 }
 
-template <typename... T>
-std::size_t hash_value(const T&... ts) {
-    return hash_value_combine(0, ts...);
 }
+
+// User facing API
+template <typename... T>
+std::size_t hash_value(const T&... ts) { return detail::hash_value_combine(0, ts...); }
 }
 
 #define ARB_DEFINE_HASH(type,...)\

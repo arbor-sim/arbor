@@ -143,10 +143,10 @@ void register_network(py::module& m) {
 
     m.def(
         "generate_network_connections",
-        [](const std::shared_ptr<py_recipe>& rec,
+        [](const std::shared_ptr<recipe>& rec,
             std::shared_ptr<context_shim> ctx,
             std::optional<arb::domain_decomposition> decomp) {
-            py_recipe_shim rec_shim(rec);
+            recipe_shim rec_shim(rec);
 
             if (!ctx) ctx = std::make_shared<context_shim>(arb::make_context());
             if (!decomp) decomp = arb::partition_load_balance(rec_shim, ctx->context);

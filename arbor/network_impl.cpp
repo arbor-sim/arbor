@@ -280,23 +280,25 @@ std::vector<connection> generate_connections(const recipe& rec,
     return generate_network_connections<connection>(rec, ctx, dom_dec);
 }
 
-// ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(const recipe& rec,
-//     const context& ctx,
-//     const domain_decomposition& dom_dec) {
-//     auto connections = generate_network_connections<network_connection_info>(rec, ctx, dom_dec);
+ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(const recipe& rec,
+    const context& ctx,
+    const domain_decomposition& dom_dec) {
+    // auto connections = generate_network_connections<network_connection_info>(rec, ctx, dom_dec);
 
-//     // generated connections may have different order each time due to multi-threading.
-//     // Sort before returning to user for reproducibility.
-//     std::sort(connections.begin(), connections.end());
+    // // generated connections may have different order each time due to multi-threading.
+    // // Sort before returning to user for reproducibility.
+    // std::sort(connections.begin(), connections.end());
 
-//     return connections;
-// }
+    // return connections;
+    return {};
+}
 
-// ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(const recipe& rec) {
-//     auto ctx = arb::make_context();
-//     auto decomp = arb::partition_load_balance(rec, ctx);
+ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(const recipe& rec) {
+    auto ctx = arb::make_context();
+    // auto decomp = arb::partition_load_balance(rec, ctx);
 
-//     return generate_network_connections(rec, ctx, decomp);
-// }
+    // return generate_network_connections(rec, ctx, decomp);
+    return {};
+}
 
 }  // namespace arb
