@@ -215,10 +215,5 @@ void register_recipe(pybind11::module& m) {
         .def("__str__",  [](const py_recipe&){return "<arbor.recipe>";})
         .def("__repr__", [](const py_recipe&){return "<arbor.recipe>";});
 
-    // Probes
-    pybind11::class_<arb::probe_info> probe(m, "probe");
-    probe
-        .def("__repr__", [](const arb::probe_info& p){return util::pprintf("<arbor.probe: tag {}>", p.tag);})
-        .def("__str__",  [](const arb::probe_info& p){return util::pprintf("<arbor.probe: tag {}>", p.tag);});
 }
 } // namespace pyarb

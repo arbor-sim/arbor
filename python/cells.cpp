@@ -3,7 +3,6 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
-#include <vector>
 
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
@@ -31,10 +30,8 @@
 #include "arbor/cv_policy.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
-#include "proxy.hpp"
 #include "schedule.hpp"
 #include "strprintf.hpp"
-#include "util.hpp"
 
 namespace pyarb {
 
@@ -236,84 +233,6 @@ void register_cells(pybind11::module& m) {
         .def("__repr__", &lif_str)
         .def("__str__",  &lif_str);
 
-    // arb::label_dict
-
-    pybind11::class_<label_dict_proxy> label_dict(m, "label_dict",
-        "A dictionary of labelled region and locset definitions, with a\n"
-        "unique label assigned to each definition.");
-    label_dict
-        .def(pybind11::init<>(),
-             "Create an empty label dictionary.")
-        .def(pybind11::init<const std::unordered_map<std::string, std::string>&>(),
-            "Initialize a label dictionary from a dictionary with string labels as keys,"
-            " and corresponding definitions as strings.")
-        .def(pybind11::init<const label_dict_proxy&>(),
-            "Initialize a label dictionary from another one")
-        .def(pybind11::init([](pybind11::iterator& it) {
-                label_dict_proxy ld;
-                for (; it != pybind11::iterator::sentinel(); ++it) {
-                    const auto tuple = it->cast<pybind11::sequence>();
-                    const auto key   = tuple[0].cast<std::string>();
-                    const auto value = tuple[1].cast<std::string>();
-                    ld.set(key, value);
-                }
-                return ld;
-            }),
-            "Initialize a label dictionary from an iterable of key, definition pairs")
-        .def("add_swc_tags",
-             [](label_dict_proxy& l) { return l.add_swc_tags(); },
-             "Add standard SWC tagged regions.\n"
-             " - soma: (tag 1)\n"
-             " - axon: (tag 2)\n"
-             " - dend: (tag 3)\n"
-             " - apic: (tag 4)")
-        .def("__setitem__",
-            [](label_dict_proxy& l, const char* name, const char* desc) {
-                l.set(name, desc);})
-        .def("__getitem__",
-            [](label_dict_proxy& l, const char* name) {
-                if (auto v = l.getitem(name)) return v.value();
-                throw pybind11::key_error(name);
-            })
-        .def("__len__", &label_dict_proxy::size)
-        .def("__iter__",
-            [](const label_dict_proxy &ld) {
-                return pybind11::make_key_iterator(ld.cache.begin(), ld.cache.end());},
-            pybind11::keep_alive<0, 1>())
-        .def("__contains__",
-             [](const label_dict_proxy &ld, const char* name) {
-                 return ld.contains(name);})
-        .def("keys",
-            [](const label_dict_proxy &ld) {
-                return pybind11::make_key_iterator(ld.cache.begin(), ld.cache.end());},
-            pybind11::keep_alive<0, 1>())
-        .def("items",
-             [](const label_dict_proxy &ld) {
-                 return pybind11::make_iterator(ld.cache.begin(), ld.cache.end());},
-             pybind11::keep_alive<0, 1>())
-        .def("values",
-             [](const label_dict_proxy &ld) {
-                 return pybind11::make_value_iterator(ld.cache.begin(), ld.cache.end());
-             },
-             pybind11::keep_alive<0, 1>())
-        .def("append", [](label_dict_proxy& l, const label_dict_proxy& other, const char* prefix) {
-                l.import(other, prefix);
-            },
-            "other"_a, "The label_dict to be imported"
-            "prefix"_a="", "optional prefix appended to the region and locset labels",
-            "Import the entries of a another label dictionary with an optional prefix.")
-        .def("update", [](label_dict_proxy& l, const label_dict_proxy& other) {
-                l.import(other);
-            },
-            "other"_a, "The label_dict to be imported"
-            "Import the entries of a another label dictionary.")
-        .def_readonly("regions", &label_dict_proxy::regions,
-             "The region definitions.")
-        .def_readonly("locsets", &label_dict_proxy::locsets,
-             "The locset definitions.")
-        .def("__repr__", [](const label_dict_proxy& d){return d.to_string();})
-        .def("__str__",  [](const label_dict_proxy& d){return d.to_string();});
-
     // arb::cv_policy wrappers
 
     pybind11::class_<arb::cv_policy> cv_policy(m, "cv_policy",
@@ -428,6 +347,15 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init([](double v) -> arb::init_membrane_potential { return {v}; }))
         .def("__repr__", [](const arb::init_membrane_potential& d){
             return "Vm=" + to_string(d.value);});
+
+    pybind11::class_<arb::ion_reversal_potential_method> revpot_method(m, "reversal_potential_method", "Describes the mechanism used to compute eX for ion X.");
+    revpot_method
+        .def(pybind11::init([](const std::string& ion,
+                               const arb::mechanism_desc& d) -> arb::ion_reversal_potential_method {
+            return {ion, d};
+        }))
+        .def("__repr__", [](const arb::ion_reversal_potential_method& d) {
+            return "ion" + d.ion + " method=" + d.method.name();});
 
     pybind11::class_<arb::membrane_capacitance> membrane_capacitance(m, "membrane_capacitance", "Setting the membrane capacitance.");
     membrane_capacitance
@@ -672,18 +600,19 @@ void register_cells(pybind11::module& m) {
         .def("set_property",
             [](arb::cable_cell_global_properties& props,
                optional<double> Vm, optional<double> cm,
-               optional<double> rL, optional<double> tempK)
-            {
+               optional<double> rL, optional<double> tempK) {
                 if (Vm) props.default_parameters.init_membrane_potential = Vm;
                 if (cm) props.default_parameters.membrane_capacitance=cm;
                 if (rL) props.default_parameters.axial_resistivity=rL;
                 if (tempK) props.default_parameters.temperature_K=tempK;
             },
-            pybind11::arg_v("Vm",    pybind11::none(), "initial membrane voltage [mV]."),
-            pybind11::arg_v("cm",    pybind11::none(), "membrane capacitance [F/m²]."),
-            pybind11::arg_v("rL",    pybind11::none(), "axial resistivity [Ω·cm]."),
-            pybind11::arg_v("tempK", pybind11::none(), "temperature [Kelvin]."),
-            "Set global default values for cable and cell properties.")
+             "Vm"_a=pybind11::none(), "cm"_a=pybind11::none(), "rL"_a=pybind11::none(), "tempK"_a=pybind11::none(),
+             "Set global default values for cable and cell properties.\n"
+             " * Vm:    initial membrane voltage [mV].\n"
+             " * cm:    membrane capacitance [F/m²].\n"
+             " * rL:    axial resistivity [Ω·cm].\n"
+             " * tempK: temperature [Kelvin].\n"
+             "These values can be overridden on specific regions using the paint interface.")
         // add/modify ion species
         .def("unset_ion",
              [](arb::cable_cell_global_properties& props, const char* ion) {
@@ -693,41 +622,40 @@ void register_cells(pybind11::module& m) {
              },
              "Remove ion species from properties.")
         .def("set_ion",
-            [](arb::cable_cell_global_properties& props, const char* ion,
-               optional<double> valence, optional<double> int_con,
-               optional<double> ext_con, optional<double> rev_pot,
-               pybind11::object method, optional<double> diff)
-            {
-                if (!props.ion_species.count(ion) && !valence) {
-                    throw std::runtime_error(util::pprintf("New ion species: '{}', missing valence", ion));
-                }
-                if (valence) props.ion_species[ion] = *valence;
+             [](arb::cable_cell_global_properties& props, const char* ion,
+                optional<double> valence, optional<double> int_con,
+                optional<double> ext_con, optional<double> rev_pot,
+                pybind11::object method, optional<double> diff) {
+                 if (!props.ion_species.count(ion) && !valence) {
+                     throw std::runtime_error(util::pprintf("New ion species: '{}', missing valence", ion));
+                 }
+                 if (valence) props.ion_species[ion] = *valence;
 
-                auto& data = props.default_parameters.ion_data[ion];
-                if (int_con) data.init_int_concentration  = *int_con;
-                if (ext_con) data.init_ext_concentration  = *ext_con;
-                if (rev_pot) data.init_reversal_potential = *rev_pot;
-                if (diff)    data.diffusivity             = *diff;
+                 auto& data = props.default_parameters.ion_data[ion];
+                 if (int_con) data.init_int_concentration  = *int_con;
+                 if (ext_con) data.init_ext_concentration  = *ext_con;
+                 if (rev_pot) data.init_reversal_potential = *rev_pot;
+                 if (diff)    data.diffusivity             = *diff;
 
-                if (auto m = maybe_method(method)) {
-                    props.default_parameters.reversal_potential_method[ion] = *m;
-                }
-            },
-            pybind11::arg("ion"),
-            pybind11::arg_v("valence", pybind11::none(), "valence of the ion species."),
-            pybind11::arg_v("int_con", pybind11::none(), "initial internal concentration [mM]."),
-            pybind11::arg_v("ext_con", pybind11::none(), "initial external concentration [mM]."),
-            pybind11::arg_v("rev_pot", pybind11::none(), "reversal potential [mV]."),
-            pybind11::arg_v("method",  pybind11::none(), "method for calculating reversal potential."),
-            pybind11::arg_v("diff",    pybind11::none(), "diffusivity [m^2/s]."),
-            "Set the global default properties of ion species named 'ion'.\n"
-            "There are 3 ion species predefined in arbor: 'ca', 'na' and 'k'.\n"
-            "If 'ion' in not one of these ions it will be added to the list, making it\n"
-            "available to mechanisms. The user has to provide the valence of a previously\n"
-            "undefined ion the first time this function is called with it as an argument.\n"
-            "Species concentrations and reversal potential can be overridden on\n"
-            "specific regions using the paint interface, while the method for calculating\n"
-            "reversal potential is global for all compartments in the cell, and can't be\n"
+                 if (auto m = maybe_method(method)) {
+                     props.default_parameters.reversal_potential_method[ion] = *m;
+                 }
+             },
+             "ion"_a, "valence"_a=pybind11::none(), "int_con"_a=pybind11::none(), "ext_con"_a=pybind11::none(), "rev_pot"_a=pybind11::none(), "method"_a =pybind11::none(), "diff"_a=pybind11::none(),
+             "Set the global default properties of ion species named 'ion'.\n"
+             " * valence: valence of the ion species [e].\n"
+             " * int_con: initial internal concentration [mM].\n"
+             " * ext_con: initial external concentration [mM].\n"
+             " * rev_pot: reversal potential [mV].\n"
+             " * method:  mechanism for calculating reversal potential.\n"
+             " * diff:   diffusivity [m^2/s].\n"
+             "There are 3 ion species predefined in arbor: 'ca', 'na' and 'k'.\n"
+             "If 'ion' in not one of these ions it will be added to the list, making it\n"
+             "available to mechanisms. The user has to provide the valence of a previously\n"
+             "undefined ion the first time this function is called with it as an argument.\n"
+             "Species concentrations and reversal potential can be overridden on\n"
+             "specific regions using the paint interface, while the method for calculating\n"
+             "reversal potential is global for all compartments in the cell, and can't be\n"
              "overriden locally.")
         .def_property_readonly("ion_data",
                       [](const arb::cable_cell_global_properties& props) { return props.default_parameters.ion_data; })
@@ -779,46 +707,50 @@ void register_cells(pybind11::module& m) {
         .def(pybind11::init<const arb::decor&>())
         // Set cell-wide default values for properties
         .def("set_property",
-            [](arb::decor& d,
-               optional<double> Vm, optional<double> cm,
-               optional<double> rL, optional<double> tempK)
-            {
-                if (Vm) d.set_default(arb::init_membrane_potential{*Vm});
-                if (cm) d.set_default(arb::membrane_capacitance{*cm});
-                if (rL) d.set_default(arb::axial_resistivity{*rL});
-                if (tempK) d.set_default(arb::temperature_K{*tempK});
-                return d;
-            },
-            pybind11::arg_v("Vm",    pybind11::none(), "initial membrane voltage [mV]."),
-            pybind11::arg_v("cm",    pybind11::none(), "membrane capacitance [F/m²]."),
-            pybind11::arg_v("rL",    pybind11::none(), "axial resistivity [Ω·cm]."),
-            pybind11::arg_v("tempK", pybind11::none(), "temperature [Kelvin]."),
-            "Set default values for cable and cell properties. These values can be overridden on specific regions using the paint interface.")
+             [](arb::decor& d,
+                optional<double> Vm, optional<double> cm,
+                optional<double> rL, optional<double> tempK) {
+                 if (Vm) d.set_default(arb::init_membrane_potential{*Vm});
+                 if (cm) d.set_default(arb::membrane_capacitance{*cm});
+                 if (rL) d.set_default(arb::axial_resistivity{*rL});
+                 if (tempK) d.set_default(arb::temperature_K{*tempK});
+                 return d;
+             },
+             "Vm"_a=pybind11::none(), "cm"_a=pybind11::none(), "rL"_a=pybind11::none(), "tempK"_a=pybind11::none(),
+             "Set default values for cable and cell properties:\n"
+             " * Vm:    initial membrane voltage [mV].\n"
+             " * cm:    membrane capacitance [F/m²].\n"
+             " * rL:    axial resistivity [Ω·cm].\n"
+             " * tempK: temperature [Kelvin].\n"
+             "These values can be overridden on specific regions using the paint interface.")
         // modify parameters for an ion species.
         .def("set_ion",
-            [](arb::decor& d, const char* ion,
-               optional<double> int_con, optional<double> ext_con,
-               optional<double> rev_pot, pybind11::object method,
-               optional<double> diff)
-            {
-                if (int_con) d.set_default(arb::init_int_concentration{ion, *int_con});
-                if (ext_con) d.set_default(arb::init_ext_concentration{ion, *ext_con});
-                if (rev_pot) d.set_default(arb::init_reversal_potential{ion, *rev_pot});
-                if (diff)    d.set_default(arb::ion_diffusivity{ion, *diff});
-                if (auto m = maybe_method(method)) d.set_default(arb::ion_reversal_potential_method{ion, *m});
-                return d;
-            },
-            pybind11::arg("ion"),
-            pybind11::arg_v("int_con", pybind11::none(), "initial internal concentration [mM]."),
-            pybind11::arg_v("ext_con", pybind11::none(), "initial external concentration [mM]."),
-            pybind11::arg_v("rev_pot", pybind11::none(), "reversal potential [mV]."),
-            pybind11::arg_v("method",  pybind11::none(), "method for calculating reversal potential."),
-            pybind11::arg_v("diff",    pybind11::none(), "diffusivity [m^2/s]."),
-            "Set the properties of ion species named 'ion' that will be applied\n"
-            "by default everywhere on the cell. Species concentrations and reversal\n"
-            "potential can be overridden on specific regions using the paint interface, \n"
-            "while the method for calculating reversal potential is global for all\n"
-            "compartments in the cell, and can't be overriden locally.")
+             [](arb::decor& d, const char* ion,
+                optional<double> int_con, optional<double> ext_con,
+                optional<double> rev_pot, pybind11::object method,
+                optional<double> diff) {
+                 if (int_con) d.set_default(arb::init_int_concentration{ion, *int_con});
+                 if (ext_con) d.set_default(arb::init_ext_concentration{ion, *ext_con});
+                 if (rev_pot) d.set_default(arb::init_reversal_potential{ion, *rev_pot});
+                 if (diff)    d.set_default(arb::ion_diffusivity{ion, *diff});
+                 if (auto m = maybe_method(method)) d.set_default(arb::ion_reversal_potential_method{ion, *m});
+                 return d;
+             },
+             "ion"_a, "int_con"_a=pybind11::none(), "ext_con"_a=pybind11::none(), "rev_pot"_a=pybind11::none(), "method"_a =pybind11::none(), "diff"_a=pybind11::none(),
+             "Set the cell-level properties of ion species named 'ion'.\n"
+             " * int_con: initial internal concentration [mM].\n"
+             " * ext_con: initial external concentration [mM].\n"
+             " * rev_pot: reversal potential [mV].\n"
+             " * method:  mechanism for calculating reversal potential.\n"
+             " * diff:    diffusivity [m^2/s].\n"
+             "There are 3 ion species predefined in arbor: 'ca', 'na' and 'k'.\n"
+             "If 'ion' in not one of these ions it will be added to the list, making it\n"
+             "available to mechanisms. The user has to provide the valence of a previously\n"
+             "undefined ion the first time this function is called with it as an argument.\n"
+             "Species concentrations and reversal potential can be overridden on\n"
+             "specific regions using the paint interface, while the method for calculating\n"
+             "reversal potential is global for all compartments in the cell, and can't be\n"
+             "overriden locally.")
         .def("paintings",
             [](arb::decor& dec) {
                 std::vector<std::tuple<std::string, arb::paintable>> result;
@@ -912,12 +844,13 @@ void register_cells(pybind11::module& m) {
                 }
                 return dec;
             },
-            pybind11::arg("region"),
-            pybind11::arg_v("Vm",    pybind11::none(), "initial membrane voltage [mV]."),
-            pybind11::arg_v("cm",    pybind11::none(), "membrane capacitance [F/m²]."),
-            pybind11::arg_v("rL",    pybind11::none(), "axial resistivity [Ω·cm]."),
-            pybind11::arg_v("tempK", pybind11::none(), "temperature [Kelvin]."),
-            "Set cable properties on a region.")
+            "region"_a, "Vm"_a=pybind11::none(), "cm"_a=pybind11::none(), "rL"_a=pybind11::none(), "tempK"_a=pybind11::none(),
+            "Set cable properties on a region.\n"
+             "Set global default values for cable and cell properties.\n"
+             " * Vm:    initial membrane voltage [mV].\n"
+             " * cm:    membrane capacitance [F/m²].\n"
+             " * rL:    axial resistivity [Ω·cm].\n"
+             " * tempK: temperature [Kelvin].\n")
         // Paint ion species initial conditions on a region.
         .def("paint",
             [](arb::decor& dec, const char* region, const char* name,
@@ -930,12 +863,13 @@ void register_cells(pybind11::module& m) {
                 if (diff)    dec.paint(r, arb::ion_diffusivity{name, *diff});
                 return dec;
             },
-            "region"_a, pybind11::kw_only(), "ion_name"_a,
-            pybind11::arg_v("int_con", pybind11::none(), "Initial internal concentration [mM]"),
-            pybind11::arg_v("ext_con", pybind11::none(), "Initial external concentration [mM]"),
-            pybind11::arg_v("rev_pot", pybind11::none(), "Initial reversal potential [mV]"),
-            pybind11::arg_v("diff",    pybind11::none(), "Diffusivity [m^2/s]"),
-            "Set ion species properties conditions on a region.")
+            "region"_a, pybind11::kw_only(), "ion"_a, "int_con"_a=pybind11::none(), "ext_con"_a=pybind11::none(), "rev_pot"_a=pybind11::none(), "diff"_a=pybind11::none(),
+            "Set ion species properties conditions on a region.\n"
+             " * int_con: initial internal concentration [mM].\n"
+             " * ext_con: initial external concentration [mM].\n"
+             " * rev_pot: reversal potential [mV].\n"
+             " * method:  mechanism for calculating reversal potential.\n"
+             " * diff:   diffusivity [m^2/s].\n")
         // Place synapses
         .def("place",
             [](arb::decor& dec, const char* locset, const arb::synapse& mechanism, const char* label_name) {
@@ -991,18 +925,14 @@ void register_cells(pybind11::module& m) {
                 if (l) return arb::cable_cell(m, d, l->dict);
                 return arb::cable_cell(m, d);
             }),
-            "morphology"_a,
-             "decor"_a,
-             pybind11::arg_v("labels", pybind11::none(), "Labels"),
+            "morphology"_a, "decor"_a, "labels"_a=pybind11::none(),
             "Construct with a morphology, decor, and label dictionary.")
         .def(pybind11::init(
             [](const arb::segment_tree& t, const arb::decor& d, const std::optional<label_dict_proxy>& l) {
                 if (l) return arb::cable_cell({t}, d, l->dict);
                 return arb::cable_cell({t}, d);
             }),
-            "segment_tree"_a,
-             "decor"_a,
-             pybind11::arg_v("labels", pybind11::none(), "Labels"),
+            "segment_tree"_a, "decor"_a, "labels"_a=pybind11::none(),
             "Construct with a morphology derived from a segment tree, decor, and label dictionary.")
         .def_property_readonly("num_branches",
             [](const arb::cable_cell& c) {return c.morphology().num_branches();},

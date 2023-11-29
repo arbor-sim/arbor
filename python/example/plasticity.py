@@ -1,4 +1,5 @@
 import arbor as A
+from arbor import units as U
 
 
 class recipe(A.recipe):
@@ -34,7 +35,7 @@ class recipe(A.recipe):
     def cell_description(self, gid):
         # Cell 0 is reserved for the spike source, spiking every 0.0125ms.
         if gid == 0:
-            return A.spike_source_cell("source", A.regular_schedule(0.0125))
+            return A.spike_source_cell("source", A.regular_schedule(12.5*U.us))
         # All cells >= 1 are cable cells w/ a simple, soma-only morphology
         # comprising two segments of radius r=3um and length l=3um *each*.
         #
@@ -54,7 +55,7 @@ class recipe(A.recipe):
         #   - synapse to receive incoming spikes from the source cell.
         decor.place("(location 0 0.5)", A.synapse("expsyn"), "synapse")
         #   - detector for reporting spikes on the cable cells.
-        decor.place("(location 0 0.5)", A.threshold_detector(-10.0), "detector")
+        decor.place("(location 0 0.5)", A.threshold_detector(-10.0*U.mV), "detector")
         # return the cable cell description
         return A.cable_cell(tree, decor)
 
@@ -92,7 +93,7 @@ rec.add_connection_to_spike_source(1)
 sim = A.simulation(rec, ctx)
 sim.record(A.spike_recording.all)
 # then run the simulation for a bit
-sim.run(0.25, 0.025)
+sim.run(0.25*U.ms, 0.025*U.ms)
 # update the simulation to
 #
 #    spike_source <gid=0> ----> cable_cell <gid=1>

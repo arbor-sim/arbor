@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-import arbor
-import pandas
-import seaborn
+import arbor as A
+from arbor import units as U
+import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Construct chains of cells linked with gap junctions,
@@ -20,18 +21,16 @@ import matplotlib.pyplot as plt
 
 def make_cable_cell(gid):
     # Build a segment tree
-    tree = arbor.segment_tree()
+    tree = A.segment_tree()
 
     # Soma with radius 5 μm and length 2 * radius = 10 μm, (tag = 1)
-    s = tree.append(
-        arbor.mnpos, arbor.mpoint(-10, 0, 0, 5), arbor.mpoint(0, 0, 0, 5), tag=1
-    )
+    s = tree.append(A.mnpos, A.mpoint(-10, 0, 0, 5), A.mpoint(0, 0, 0, 5), tag=1)
 
     # Single dendrite with radius 2 μm and length 40 μm, (tag = 2)
-    tree.append(s, arbor.mpoint(0, 0, 0, 2), arbor.mpoint(40, 0, 0, 2), tag=2)
+    tree.append(s, A.mpoint(0, 0, 0, 2), A.mpoint(40, 0, 0, 2), tag=2)
 
     # Label dictionary for cell components
-    labels = arbor.label_dict(
+    labels = A.label_dict(
         {
             # Mark location for synapse site at midpoint of dendrite (branch 0  soma + dendrite)
             "synapse_site": "(location 0 0.6)",
@@ -44,26 +43,26 @@ def make_cable_cell(gid):
 
     # Paint dynamics onto the cell, hh on soma and passive properties on dendrite
     decor = (
-        arbor.decor()
-        .paint('"soma"', arbor.density("hh"))
-        .paint('"dend"', arbor.density("pas"))
+        A.decor()
+        .paint('"soma"', A.density("hh"))
+        .paint('"dend"', A.density("pas"))
         # Attach one synapse and gap junction each on their labeled sites
-        .place('"synapse_site"', arbor.synapse("expsyn"), "syn")
-        .place('"gj_site"', arbor.junction("gj"), "gj")
+        .place('"synapse_site"', A.synapse("expsyn"), "syn")
+        .place('"gj_site"', A.junction("gj"), "gj")
         # Attach detector to cell root
-        .place('"root"', arbor.threshold_detector(-10), "detector")
+        .place('"root"', A.threshold_detector(-10 * U.ms), "detector")
     )
 
-    return arbor.cable_cell(tree, decor, labels)
+    return A.cable_cell(tree, decor, labels)
 
 
 # Create a recipe that generates connected chains of cells
-class chain_recipe(arbor.recipe):
+class chain_recipe(A.recipe):
     def __init__(self, ncells_per_chain, nchains):
-        arbor.recipe.__init__(self)
+        A.recipe.__init__(self)
         self.nchains = nchains
         self.ncells_per_chain = ncells_per_chain
-        self.props = arbor.neuron_cable_properties()
+        self.props = A.neuron_cable_properties()
 
     def num_cells(self):
         return self.ncells_per_chain * self.nchains
@@ -72,7 +71,7 @@ class chain_recipe(arbor.recipe):
         return make_cable_cell(gid)
 
     def cell_kind(self, gid):
-        return arbor.cell_kind.cable
+        return A.cell_kind.cable
 
     # Create synapse connection between last cell of one chain and first cell of following chain
     def connections_on(self, gid):
@@ -82,7 +81,7 @@ class chain_recipe(arbor.recipe):
             src = gid - 1
             w = 0.05
             d = 10
-            return [arbor.connection((src, "detector"), "syn", w, d)]
+            return [A.connection((src, "detector"), "syn", w, d)]
 
     # Create gap junction connections between a cell within a chain and its neighbor(s)
     def gap_junctions_on(self, gid):
@@ -95,23 +94,23 @@ class chain_recipe(arbor.recipe):
         prev_cell = gid - 1
 
         if next_cell < chain_end:
-            conns.append(arbor.gap_junction_connection((gid + 1, "gj"), "gj", 0.015))
+            conns.append(A.gap_junction_connection((gid + 1, "gj"), "gj", 0.015))
         if prev_cell >= chain_begin:
-            conns.append(arbor.gap_junction_connection((gid - 1, "gj"), "gj", 0.015))
+            conns.append(A.gap_junction_connection((gid - 1, "gj"), "gj", 0.015))
 
         return conns
 
     # Event generator at first cell
     def event_generators(self, gid):
         if gid == 0:
-            sched = arbor.explicit_schedule([1])
+            sched = A.explicit_schedule([1 * U.ms])
             weight = 0.1
-            return [arbor.event_generator("syn", weight, sched)]
+            return [A.event_generator("syn", weight, sched)]
         return []
 
     # Place a probe at the root of each cell
     def probes(self, gid):
-        return [arbor.cable_probe_membrane_voltage('"root"', "Um")]
+        return [A.cable_probe_membrane_voltage('"root"', "Um")]
 
     def global_properties(self, kind):
         return self.props
@@ -130,18 +129,18 @@ ncells = nchains * ncells_per_chain
 recipe = chain_recipe(ncells_per_chain, nchains)
 
 # Create a default simulation
-sim = arbor.simulation(recipe)
+sim = A.simulation(recipe)
 
 # Set spike generators to record
-sim.record(arbor.spike_recording.all)
+sim.record(A.spike_recording.all)
 
 # Sampler
 handles = [
-    sim.sample((gid, "Um"), arbor.regular_schedule(0.1)) for gid in range(ncells)
+    sim.sample((gid, "Um"), A.regular_schedule(0.1 * U.ms)) for gid in range(ncells)
 ]
 
-# Run simulation for 100 ms
-sim.run(100)
+# Run simulation
+sim.run(100 * U.ms)
 print("Simulation finished")
 
 # Print spike times
@@ -155,11 +154,11 @@ df_list = []
 for gid in range(ncells):
     samples, meta = sim.samples(handles[gid])[0]
     df_list.append(
-        pandas.DataFrame(
+        pd.DataFrame(
             {"t/ms": samples[:, 0], "U/mV": samples[:, 1], "Cell": f"cell {gid}"}
         )
     )
 
-df = pandas.concat(df_list, ignore_index=True)
-seaborn.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", errorbar=None)
+df = pd.concat(df_list, ignore_index=True)
+sns.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", errorbar=None)
 plt.show()

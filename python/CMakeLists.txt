@@ -36,6 +36,7 @@ set(pyarb_source
     mpi.cpp
     profiler.cpp
     pyarb.cpp
+    label_dict.cpp
     recipe.cpp
     schedule.cpp
     simulation.cpp

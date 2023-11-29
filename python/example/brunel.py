@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import arbor
+import arbor as A
+from arbor import units as U
 import argparse
 import numpy as np
 from numpy.random import RandomState
@@ -32,7 +33,7 @@ def sample_subset(gen, gid, start, end, m):
     return idx[:m]
 
 
-class brunel_recipe(arbor.recipe):
+class brunel_recipe(A.recipe):
     def __init__(
         self,
         nexc,
@@ -45,7 +46,7 @@ class brunel_recipe(arbor.recipe):
         poiss_lambda,
         seed=42,
     ):
-        arbor.recipe.__init__(self)
+        A.recipe.__init__(self)
 
         # Make sure that in_degree_prop in the interval (0, 1]
         if not 0.0 < in_degree_prop <= 1.0:
@@ -67,25 +68,25 @@ class brunel_recipe(arbor.recipe):
         self.in_degree_inh_ = round(in_degree_prop * ninh)
         # each cell receives next incoming Poisson sources with mean rate poiss_lambda, which is equivalent
         # to a single Poisson source with mean rate next*poiss_lambda
-        self.lambda_ = next * poiss_lambda
+        self.lambda_ = next * poiss_lambda * U.kHz
 
     def num_cells(self):
         return self.ncells_exc_ + self.ncells_inh_
 
     def cell_kind(self, gid):
-        return arbor.cell_kind.lif
+        return A.cell_kind.lif
 
     def connections_on(self, gid):
         gen = RandomState(gid + self.seed_)
         connections = []
         # Add incoming excitatory connections.
         connections = [
-            arbor.connection((i, "src"), "tgt", self.weight_exc_, self.delay_)
+            A.connection((i, "src"), "tgt", self.weight_exc_, self.delay_)
             for i in sample_subset(gen, gid, 0, self.ncells_exc_, self.in_degree_exc_)
         ]
         # Add incoming inhibitory connections.
         connections += [
-            arbor.connection((i, "src"), "tgt", self.weight_inh_, self.delay_)
+            A.connection((i, "src"), "tgt", self.weight_inh_, self.delay_)
             for i in sample_subset(
                 gen,
                 gid,
@@ -98,7 +99,7 @@ class brunel_recipe(arbor.recipe):
         return connections
 
     def cell_description(self, gid):
-        cell = arbor.lif_cell("src", "tgt")
+        cell = A.lif_cell("src", "tgt")
         cell.tau_m = 10
         cell.V_th = 10
         cell.C_m = 20
@@ -108,9 +109,13 @@ class brunel_recipe(arbor.recipe):
         return cell
 
     def event_generators(self, gid):
-        t0 = 0
-        sched = arbor.poisson_schedule(t0, self.lambda_, gid + self.seed_)
-        return [arbor.event_generator("tgt", self.weight_ext_, sched)]
+        return [
+            A.event_generator(
+                "tgt",
+                self.weight_ext_,
+                A.poisson_schedule(0 * U.ms, self.lambda_, gid + self.seed_),
+            )
+        ]
 
 
 if __name__ == "__main__":
@@ -228,12 +233,12 @@ if __name__ == "__main__":
         for k, v in vars(opt).items():
             print(f"{k} = {v}")
 
-    context = arbor.context()
-    if arbor.config()["profiling"]:
-        arbor.profiler_initialize(context)
+    context = A.context()
+    if A.config()["profiling"]:
+        A.profiler_initialize(context)
     print(context)
 
-    meters = arbor.meter_manager()
+    meters = A.meter_manager()
     meters.start(context)
 
     recipe = brunel_recipe(
@@ -250,27 +255,27 @@ if __name__ == "__main__":
 
     meters.checkpoint("recipe-create", context)
 
-    hint = arbor.partition_hint()
+    hint = A.partition_hint()
     hint.cpu_group_size = 5000
-    hints = {arbor.cell_kind.lif: hint}
-    decomp = arbor.partition_load_balance(recipe, context, hints)
+    hints = {A.cell_kind.lif: hint}
+    decomp = A.partition_load_balance(recipe, context, hints)
     print(decomp)
 
     meters.checkpoint("load-balance", context)
 
-    sim = arbor.simulation(recipe, context, decomp)
-    sim.record(arbor.spike_recording.all)
+    sim = A.simulation(recipe, context, decomp)
+    sim.record(A.spike_recording.all)
 
     meters.checkpoint("simulation-init", context)
 
-    sim.run(opt.tfinal, opt.dt)
+    sim.run(opt.tfinal * U.ms, opt.dt * U.ms)
 
     meters.checkpoint("simulation-run", context)
 
     # Print profiling information
-    print(arbor.meter_report(meters, context))
-    if arbor.config()["profiling"]:
-        print(arbor.profiler_summary())
+    print(A.meter_report(meters, context))
+    if A.config()["profiling"]:
+        print(A.profiler_summary())
 
     # Print spike times
     print(f"{len(sim.spikes())} spikes generated.")

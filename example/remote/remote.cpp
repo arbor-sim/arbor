@@ -75,9 +75,9 @@ int main() {
         std::cerr << "[ARB]" << mpi.rank << " " << mpi.local_rank << '\n';
         std::cerr << "[ARB] Got min delay=" << mid << '\n';
         sim.add_sampler(arb::all_probes,
-                        arb::regular_schedule(0.05),
+                        arb::regular_schedule(0.05*arb::units::ms),
                         sampler);
-        sim.run(T, dt);
+        sim.run(T*arb::units::ms, dt*arb::units::ms);
         std::cout << std::fixed << std::setprecision(4);
         std::cerr << "[ARB] Trace\n";
         for (const auto& [t, v]: trace) std::cout << " " << t << " " << v << '\n';

@@ -12,7 +12,24 @@ void register_units(py::module& m) {
 
     auto u = m.def_submodule("units", "Units and quantities for driving the user interface.");
 
+    py::class_<arb::units::unit> unit(u, "unit", "A unit.");
     py::class_<arb::units::quantity> quantity(u, "quantity", "A quantity, comprising a magnitude and a unit.");
+
+    unit
+        .def(py::self * py::self)
+        .def(py::self / py::self)
+        .def(py::self * double())
+        .def(py::self / double())
+        .def(double() * py::self)
+        .def(double() / py::self)
+        .def("__pow__", [](const arb::units::unit &b, int e) { return b.pow(e); }, py::is_operator())
+        .def("__str__",
+             [](const arb::units::unit& u) { return arb::units::to_string(u) ; },
+             "Convert unit to string.")
+        .def("__repr__",
+             [](const arb::units::unit& u) { return arb::units::to_string(u) ; },
+             "Convert unit to string.");
+
     quantity
         .def(py::self * py::self)
         .def(py::self / py::self)
@@ -42,22 +59,6 @@ void register_units(py::module& m) {
              [](const arb::units::quantity& q) { return arb::units::to_string(q) ; },
              "Convert quantity to string.");
 
-    py::class_<arb::units::unit> unit(u, "unit", "A unit.");
-    unit
-        .def(py::self * py::self)
-        .def(py::self / py::self)
-        .def(py::self * double())
-        .def(py::self / double())
-        .def(double() * py::self)
-        .def(double() / py::self)
-        .def("__pow__", [](const arb::units::unit &b, int e) { return b.pow(e); }, py::is_operator())
-        .def("__str__",
-             [](const arb::units::unit& u) { return arb::units::to_string(u) ; },
-             "Convert unit to string.")
-        .def("__repr__",
-             [](const arb::units::unit& u) { return arb::units::to_string(u) ; },
-             "Convert unit to string.");
-
     u.attr("m")   = py::cast(arb::units::m);
     u.attr("cm")  = py::cast(arb::units::cm);
     u.attr("mm")  = py::cast(arb::units::mm);
@@ -66,6 +67,8 @@ void register_units(py::module& m) {
 
     u.attr("s")   = py::cast(arb::units::s);
     u.attr("ms")  = py::cast(arb::units::ms);
+    u.attr("us")  = py::cast(arb::units::us);
+    u.attr("ns")  = py::cast(arb::units::ns);
     u.attr("Hz")  = py::cast(arb::units::Hz);
     u.attr("kHz") = py::cast(arb::units::kHz);
 

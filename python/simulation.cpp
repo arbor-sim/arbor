@@ -221,30 +221,31 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
                               const std::shared_ptr<context_shim>& ctx_,
                               const std::optional<arb::domain_decomposition>& decomp,
                               std::uint64_t seed) {
-                try {
-                    auto ctx = ctx_ ? ctx_ : std::make_shared<context_shim>(make_context_shim());
-                    auto dec = decomp.value_or(arb::partition_load_balance(py_recipe_shim(rec), ctx->context));
-                    return new simulation_shim(rec, *ctx, dec, seed, global_ptr);
-                }
-                catch (...) {
-                    py_reset_and_throw();
-                    throw;
-                }
-            }),
-            // Release the python gil, so that callbacks into the python recipe don't deadlock.
-            pybind11::call_guard<pybind11::gil_scoped_release>(),
-            "Initialize the model described by a recipe, with cells and network distributed\n"
-            "according to the domain decomposition and computational resources described by a context.",
+                     try {
+                         auto ctx = ctx_ ? ctx_ : std::make_shared<context_shim>(make_context_shim());
+                         auto dec = decomp.value_or(arb::partition_load_balance(py_recipe_shim(rec), ctx->context));
+                         return new simulation_shim(rec, *ctx, dec, seed, global_ptr);
+                     }
+                     catch (...) {
+                         py_reset_and_throw();
+                         throw;
+                     }
+                 }),
+             // Release the python gil, so that callbacks into the python recipe don't deadlock.
+             pybind11::call_guard<pybind11::gil_scoped_release>(),
              "recipe"_a,
-             pybind11::arg_v("context", pybind11::none(), "Execution context"),
-             pybind11::arg_v("domains", pybind11::none(), "Domain decomposition"),
-             pybind11::arg_v("seed", 0u, "Random number generator seed"))
+             "context"_a=pybind11::none(),
+             "domains"_a=pybind11::none(),
+             "seed"_a=0u,
+             "Initialize the model described by a recipe, with cells and network distributed\n"
+             "according to the domain decomposition and computational resources described by a\n"
+             "context. Initialize PRNG using seed")
         .def("set_remote_spike_filter",
-                      &simulation_shim::set_remote_spike_filter,
-                      "pred"_a,
-                      "Add a callback to filter spikes going out over external connections. `pred` is"
-                      "a callable on the `spike` type. **Caution**: This will be extremely slow; use C++ "
-                      "if you want to make use of this.")
+             &simulation_shim::set_remote_spike_filter,
+             "pred"_a,
+             "Add a callback to filter spikes going out over external connections. `pred` is"
+             "a callable on the `spike` type. **Caution**: This will be extremely slow; use C++ "
+             "if you want to make use of this.")
         .def("update", &simulation_shim::update,
              pybind11::call_guard<pybind11::gil_scoped_release>(),
              "Rebuild the connection table from recipe::connections_on and the event"
@@ -266,7 +267,7 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
         .def("run", &simulation_shim::run,
             pybind11::call_guard<pybind11::gil_scoped_release>(),
             "Run the simulation from current simulation time to tfinal [ms], with maximum time step size dt [ms].",
-            "tfinal"_a, "dt"_a=0.025)
+            "tfinal"_a, "dt"_a=0.025*arb::units::ms)
         .def("record", &simulation_shim::record,
             "Disable or enable local or global spike recording.")
         .def("spikes", &simulation_shim::spikes,

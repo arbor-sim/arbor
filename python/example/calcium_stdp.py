@@ -10,12 +10,12 @@
 # The synapse dynamics is affected by additive white noise. The results reproduce the spike
 # timing-dependent plasticity curve for the DP case described in Table S1 (supplemental material).
 
-import arbor
+import arbor as A
+from arbor import units as U
 import random
-import multiprocessing
-import numpy  # You may have to pip install these.
-import pandas  # You may have to pip install these.
-import seaborn  # You may have to pip install these.
+import numpy as np  # You may have to pip install these.
+import pandas as pd  # You may have to pip install these.
+import seaborn as sns  # You may have to pip install these.
 
 # (1) Set simulation paramters
 
@@ -38,48 +38,48 @@ rho_0 = [0] * ensemble_per_rho_0 + [1] * ensemble_per_rho_0
 # We need a synapse for each sample path
 num_synapses = len(rho_0)
 # Time lags between spike pairs (post-pre: < 0, pre-post: > 0)
-stdp_dt = numpy.arange(-stdp_max_dt, stdp_max_dt + stdp_dt_step, stdp_dt_step)
+stdp_dt = np.arange(-stdp_max_dt, stdp_max_dt + stdp_dt_step, stdp_dt_step)
 
 
 # (2) Make the cell
 
 # Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
-tree = arbor.segment_tree()
-tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
+tree = A.segment_tree()
+tree.append(A.mnpos, A.mpoint(-3, 0, 0, 3), A.mpoint(3, 0, 0, 3), tag=1)
 
 # Define the soma and its midpoint
-labels = arbor.label_dict({"soma": "(tag 1)", "midpoint": "(location 0 0.5)"})
+labels = A.label_dict({"soma": "(tag 1)", "midpoint": "(location 0 0.5)"})
 
 # Create and set up a decor object
 decor = (
-    arbor.decor()
+    A.decor()
     .set_property(Vm=-40)
-    .paint('"soma"', arbor.density("pas"))
-    .place('"midpoint"', arbor.synapse("expsyn"), "driving_synapse")
-    .place('"midpoint"', arbor.threshold_detector(-10), "detector")
+    .paint('"soma"', A.density("pas"))
+    .place('"midpoint"', A.synapse("expsyn"), "driving_synapse")
+    .place('"midpoint"', A.threshold_detector(-10 * U.mV), "detector")
 )
 for i in range(num_synapses):
-    mech = arbor.mechanism("calcium_based_synapse")
+    mech = A.mechanism("calcium_based_synapse")
     mech.set("rho_0", rho_0[i])
-    decor.place('"midpoint"', arbor.synapse(mech), f"calcium_synapse_{i}")
+    decor.place('"midpoint"', A.synapse(mech), f"calcium_synapse_{i}")
 
 # Create cell
-cell = arbor.cable_cell(tree, decor, labels)
+cell = A.cable_cell(tree, decor, labels)
 
 
 # (3) Create extended catalogue including stochastic mechanisms
 
-cable_properties = arbor.neuron_cable_properties()
-cable_properties.catalogue = arbor.default_catalogue()
-cable_properties.catalogue.extend(arbor.stochastic_catalogue(), "")
+cable_properties = A.neuron_cable_properties()
+cable_properties.catalogue = A.default_catalogue()
+cable_properties.catalogue.extend(A.stochastic_catalogue(), "")
 
 
 # (4) Recipe
 
 
-class stdp_recipe(arbor.recipe):
+class stdp_recipe(A.recipe):
     def __init__(self, cell, props, gens):
-        arbor.recipe.__init__(self)
+        A.recipe.__init__(self)
         self.the_cell = cell
         self.the_props = props
         self.the_gens = gens
@@ -88,7 +88,7 @@ class stdp_recipe(arbor.recipe):
         return 1
 
     def cell_kind(self, gid):
-        return arbor.cell_kind.cable
+        return A.cell_kind.cable
 
     def cell_description(self, gid):
         return self.the_cell
@@ -97,9 +97,7 @@ class stdp_recipe(arbor.recipe):
         return self.the_props
 
     def probes(self, gid):
-        return [
-            arbor.cable_probe_point_state_cell("calcium_based_synapse", "rho", "rho")
-        ]
+        return [A.cable_probe_point_state_cell("calcium_based_synapse", "rho", "rho")]
 
     def event_generators(self, gid):
         return self.the_gens
@@ -121,38 +119,38 @@ def run(time_lag):
     # Stimulus and sample times
     t0_post = 0.0 if d >= 0 else -d
     t0_pre = d if d >= 0 else 0.0
-    stimulus_times_post = numpy.arange(t0_post, t1, T)
-    stimulus_times_pre = numpy.arange(t0_pre, t1, T)
-    sched_post = arbor.explicit_schedule(stimulus_times_post)
-    sched_pre = arbor.explicit_schedule(stimulus_times_pre)
+    stimulus_times_post = np.arange(t0_post, t1, T) * U.ms
+    stimulus_times_pre = np.arange(t0_pre, t1, T) * U.ms
+    sched_post = A.explicit_schedule(stimulus_times_post)
+    sched_pre = A.explicit_schedule(stimulus_times_pre)
 
     # Create strong enough driving stimulus
-    generators = [arbor.event_generator("driving_synapse", 1.0, sched_post)]
+    generators = [A.event_generator("driving_synapse", 1.0, sched_post)]
 
     # Stimulus for calcium synapses
     for i in range(num_synapses):
         # Zero weight -> just modify synaptic weight via stdp
-        generators.append(arbor.event_generator(f"calcium_synapse_{i}", 0.0, sched_pre))
+        generators.append(A.event_generator(f"calcium_synapse_{i}", 0.0, sched_pre))
 
     # Create recipe
     recipe = stdp_recipe(cell, cable_properties, generators)
 
     # Select one thread and no GPU
-    alloc = arbor.proc_allocation(threads=1, gpu_id=None)
-    context = arbor.context(alloc, mpi=None)
-    domains = arbor.partition_load_balance(recipe, context)
+    alloc = A.proc_allocation(threads=1, gpu_id=None)
+    context = A.context(alloc, mpi=None)
+    domains = A.partition_load_balance(recipe, context)
 
     # Get random seed
     random_seed = random.getrandbits(64)
 
     # Create simulation
-    sim = arbor.simulation(recipe, context, domains, random_seed)
+    sim = A.simulation(recipe, context, domains, random_seed)
 
     # Register prope to read out stdp curve
-    handle = sim.sample((0, "rho"), arbor.explicit_schedule([t1 - dt]))
+    handle = sim.sample((0, "rho"), A.explicit_schedule([(t1 - dt) * U.ms]))
 
     # Run simulation
-    sim.run(t1, dt)
+    sim.run(t1 * U.ms, dt * U.ms)
 
     # Process sampled data
     data, meta = sim.samples(handle)[0]
@@ -172,15 +170,12 @@ def run(time_lag):
         + P_DA * (1 - beta)
         + b * (P_UA * beta + (1 - P_DA) * (1 - beta))
     ) / (beta + (1 - beta) * b)
-    return pandas.DataFrame({"ds": ds_A, "ms": time_lag, "type": "Arbor"})
+    return pd.DataFrame({"ds": ds_A, "ms": time_lag, "type": "Arbor"})
 
-
-with multiprocessing.Pool() as p:
-    results = p.map(run, stdp_dt)
 
 results = map(run, stdp_dt)
 
-ref = numpy.array(
+ref = np.array(
     [
         [-100, 0.9793814432989691],
         [-95, 0.981715028725338],
@@ -225,11 +220,11 @@ ref = numpy.array(
         [100, 0.9918730512544945],
     ]
 )
-df_ref = pandas.DataFrame({"ds": ref[:, 1], "ms": ref[:, 0], "type": "Reference"})
+df_ref = pd.DataFrame({"ds": ref[:, 1], "ms": ref[:, 0], "type": "Reference"})
 
-df = pandas.concat(results, ignore_index=True)
-df = pandas.concat([df, df_ref], ignore_index=True)
-plt = seaborn.relplot(kind="line", data=df, x="ms", y="ds", hue="type")
+df = pd.concat(results, ignore_index=True)
+df = pd.concat([df, df_ref], ignore_index=True)
+plt = sns.relplot(kind="line", data=df, x="ms", y="ds", hue="type")
 plt.set_xlabels("lag time difference (ms)")
 plt.set_ylabels("change in synaptic strenght (after/before)")
 plt._legend.set_title("")

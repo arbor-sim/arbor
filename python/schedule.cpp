@@ -247,7 +247,7 @@ void register_schedules(py::module& m) {
 
     poisson_schedule
         .def(py::init<time_type, time_type, arb::seed_type, std::optional<time_type>>(),
-             "tstart"_a = 0.*arb::units::ms, "freq"_a, "seed"_a = 0, "tstop"_a,
+             "tstart"_a = 0.*arb::units::ms, "freq"_a, "seed"_a = 0, "tstop"_a=py::none(),
             "Construct a Poisson schedule with arguments:\n"
             "  tstart: The delivery time of the first event in the sequence [ms], 0 by default.\n"
             "  freq:   The expected frequency [kHz].\n"

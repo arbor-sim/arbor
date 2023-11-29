@@ -1,5 +1,4 @@
 #include <optional>
-#include <stdexcept>
 
 #include <pybind11/pybind11.h>
 #include "pybind11/pytypes.h"
@@ -12,7 +11,6 @@
 #include "arbor/mechinfo.hpp"
 
 #include "util.hpp"
-#include "conversion.hpp"
 #include "strprintf.hpp"
 
 namespace pyarb {

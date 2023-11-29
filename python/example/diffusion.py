@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import arbor as A
+from arbor import units as U
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -28,7 +29,7 @@ class recipe(A.recipe):
         return self.the_props
 
     def event_generators(self, gid):
-        return [A.event_generator("Zap", 0.005, A.explicit_schedule([0.0]))]
+        return [A.event_generator("Zap", 0.005, A.explicit_schedule([0.0 * U.ms]))]
 
 
 tree = A.segment_tree()
@@ -51,9 +52,9 @@ prb = [
 cel = A.cable_cell(tree, dec)
 rec = recipe(cel, prb)
 sim = A.simulation(rec)
-hdl = (sim.sample((0, "nad"), A.regular_schedule(0.1)),)
+hdl = (sim.sample((0, "nad"), A.regular_schedule(0.1 * U.ms)),)
 
-sim.run(tfinal=0.5)
+sim.run(tfinal=0.5 * U.ms)
 
 sns.set_theme()
 fg, ax = plt.subplots()

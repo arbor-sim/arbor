@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 
-import arbor
+import arbor as A
+from arbor import units as U
 import argparse
 import numpy as np
 
-import pandas  # You may have to pip install these.
-import seaborn  # You may have to pip install these.
+import pandas as pd  # You may have to pip install these.
+import seaborn as sns  # You may have to pip install these.
 import matplotlib.pyplot as plt
 
 
-class TwoCellsWithGapJunction(arbor.recipe):
+class TwoCellsWithGapJunction(A.recipe):
     def __init__(
         self, probes, Vms, length, radius, cm, rL, g, gj_g, cv_policy_max_extent
     ):
@@ -29,7 +30,7 @@ class TwoCellsWithGapJunction(arbor.recipe):
 
         # The base C++ class constructor must be called first, to ensure that
         # all memory in the C++ class is initialized correctly.
-        arbor.recipe.__init__(self)
+        A.recipe.__init__(self)
 
         self.the_probes = probes
 
@@ -43,7 +44,7 @@ class TwoCellsWithGapJunction(arbor.recipe):
 
         self.cv_policy_max_extent = cv_policy_max_extent
 
-        self.the_props = arbor.neuron_cable_properties()
+        self.the_props = A.neuron_cable_properties()
 
     def num_cells(self):
         return 2
@@ -54,7 +55,7 @@ class TwoCellsWithGapJunction(arbor.recipe):
 
     def cell_kind(self, gid):
         assert gid in [0, 1]
-        return arbor.cell_kind.cable
+        return A.cell_kind.cable
 
     def probes(self, gid):
         assert gid in [0, 1]
@@ -71,34 +72,34 @@ class TwoCellsWithGapJunction(arbor.recipe):
         """
         assert gid in [0, 1]
 
-        tree = arbor.segment_tree()
+        tree = A.segment_tree()
 
         tree.append(
-            arbor.mnpos,
-            arbor.mpoint(0, 0, 0, self.radius),
-            arbor.mpoint(self.length, 0, 0, self.radius),
+            A.mnpos,
+            A.mpoint(0, 0, 0, self.radius),
+            A.mpoint(self.length, 0, 0, self.radius),
             tag=1,
         )
 
-        labels = arbor.label_dict({"cell": "(tag 1)", "gj_site": "(location 0 0.5)"})
+        labels = A.label_dict({"cell": "(tag 1)", "gj_site": "(location 0 0.5)"})
 
         decor = (
-            arbor.decor()
+            A.decor()
             .set_property(Vm=self.Vms[gid])
             .set_property(cm=self.cm)
             .set_property(rL=self.rL)
             # add a gap junction mechanism at the "gj_site" location and label that specific mechanism on that location "gj_label"
-            .place('"gj_site"', arbor.junction("gj", g=self.gj_g), "gj_label")
-            .paint('"cell"', arbor.density(f"pas/e={self.Vms[gid]}", g=self.g))
+            .place('"gj_site"', A.junction("gj", g=self.gj_g), "gj_label")
+            .paint('"cell"', A.density(f"pas/e={self.Vms[gid]}", g=self.g))
         )
 
         if self.cv_policy_max_extent is not None:
-            policy = arbor.cv_policy_max_extent(self.cv_policy_max_extent)
+            policy = A.cv_policy_max_extent(self.cv_policy_max_extent)
             decor.discretization(policy)
         else:
-            decor.discretization(arbor.cv_policy_single())
+            decor.discretization(A.cv_policy_single())
 
-        return arbor.cable_cell(tree, decor, labels)
+        return A.cable_cell(tree, decor, labels)
 
     def gap_junctions_on(self, gid):
         # create a bidirectional gap junction from cell 0 at label "gj_label" to cell 1 at label "gj_label" and back.
@@ -109,7 +110,7 @@ class TwoCellsWithGapJunction(arbor.recipe):
             tgt = 0
         else:
             raise RuntimeError("Invalid GID for example.")
-        return [arbor.gap_junction_connection((tgt, "gj_label"), "gj_label", 1)]
+        return [A.gap_junction_connection((tgt, "gj_label"), "gj_label", 1)]
 
 
 if __name__ == "__main__":
@@ -150,20 +151,20 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # set up membrane voltage probes at the position of the gap junction
-    probes = [arbor.cable_probe_membrane_voltage('"gj_site"', "Um")]
+    probes = [A.cable_probe_membrane_voltage('"gj_site"', "Um")]
     recipe = TwoCellsWithGapJunction(probes, **vars(args))
 
     # configure the simulation and handles for the probes
-    sim = arbor.simulation(recipe)
+    sim = A.simulation(recipe)
 
     dt = 0.01
     handles = [
-        sim.sample((gid, "Um"), arbor.regular_schedule(dt))
+        sim.sample((gid, "Um"), A.regular_schedule(dt * U.ms))
         for gid in range(recipe.num_cells())
     ]
 
     # run the simulation for 5 ms
-    sim.run(tfinal=5, dt=dt)
+    sim.run(tfinal=5 * U.ms, dt=dt * U.ms)
 
     # retrieve the sampled membrane voltages and convert to a pandas DataFrame
     print("Plotting results ...")
@@ -171,17 +172,17 @@ if __name__ == "__main__":
     for probe in range(len(handles)):
         samples, meta = sim.samples(handles[probe])[0]
         df_list.append(
-            pandas.DataFrame(
+            pd.DataFrame(
                 {"t/ms": samples[:, 0], "U/mV": samples[:, 1], "Cell": f"{probe}"}
             )
         )
 
-    df = pandas.concat(df_list, ignore_index=True)
+    df = pd.concat(df_list, ignore_index=True)
 
-    fig, ax = plt.subplots()
+    fg, ax = plt.subplots()
 
     # plot the membrane potentials of the two cells as function of time
-    seaborn.lineplot(ax=ax, data=df, x="t/ms", y="U/mV", hue="Cell", errorbar=None)
+    sns.lineplot(ax=ax, data=df, x="t/ms", y="U/mV", hue="Cell", errorbar=None)
 
     # area of cells
     area = args.length * 1e-6 * 2 * np.pi * args.radius * 1e-6
@@ -205,4 +206,4 @@ if __name__ == "__main__":
     for gid, Vm in enumerate(args.Vms):
         ax.axhline(Vm, linestyle="dashed", color="black", alpha=0.5)
 
-    fig.savefig("two_cell_gap_junctions_result.svg")
+    fg.savefig("two_cell_gap_junctions_result.svg")

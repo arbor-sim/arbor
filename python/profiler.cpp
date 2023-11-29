@@ -1,5 +1,3 @@
-#include <sstream>
-
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -32,9 +30,9 @@ void register_profiler(pybind11::module& m) {
                 manager.checkpoint(name, ctx.context);
             },
             "name"_a, "context"_a,
-            "Create a new checkpoint. Records the time since the last checkpoint\
-             (or the call to start if no previous checkpoints exist),\
-             and restarts the timer for the next checkpoint.")
+            "Create a new checkpoint. Records the time since the last checkpoint"
+            "(or the call to start if no previous checkpoints exist),"
+            "and restarts the timer for the next checkpoint.")
         .def_property_readonly("checkpoint_names", &arb::profile::meter_manager::checkpoint_names,
             "A list of all metering checkpoint names.")
         .def_property_readonly("times", &arb::profile::meter_manager::times,
@@ -65,8 +63,8 @@ void register_profiler(pybind11::module& m) {
               arb::profile::print_profiler_summary(stream, limit);
               return stream.str();
           },
-          pybind11::arg_v("limit", 0.0, "Print contributions above <limit> percent. Defaults to showing all.")
-    );
+          "limit"_a=0.0,
+          "Show summary of the profile; printing contributions above `limit` percent. Defaults to showing all.");
 #endif
 }
 

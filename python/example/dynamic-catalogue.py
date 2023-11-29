@@ -2,20 +2,21 @@
 
 from pathlib import Path
 
-import arbor as arb
+import arbor as A
+from arbor import units as U
 
 cat = Path("cat-catalogue.so").resolve()
 
 
-class recipe(arb.recipe):
+class recipe(A.recipe):
     def __init__(self):
-        arb.recipe.__init__(self)
-        self.tree = arb.segment_tree()
-        self.tree.append(arb.mnpos, (0, 0, 0, 10), (1, 0, 0, 10), 1)
-        self.props = arb.neuron_cable_properties()
-        self.props.catalogue = arb.load_catalogue(cat)
-        d = arb.decor().paint("(all)", "dummy").set_property(Vm=0.0)
-        self.cell = arb.cable_cell(self.tree, d)
+        A.recipe.__init__(self)
+        self.tree = A.segment_tree()
+        self.tree.append(A.mnpos, (0, 0, 0, 10), (1, 0, 0, 10), 1)
+        self.props = A.neuron_cable_properties()
+        self.props.catalogue = A.load_catalogue(cat)
+        d = A.decor().paint("(all)", "dummy").set_property(Vm=0.0)
+        self.cell = A.cable_cell(self.tree, d)
 
     def global_properties(self, _):
         return self.props
@@ -24,7 +25,7 @@ class recipe(arb.recipe):
         return 1
 
     def cell_kind(self, gid):
-        return arb.cell_kind.cable
+        return A.cell_kind.cable
 
     def cell_description(self, gid):
         return self.cell
@@ -40,5 +41,5 @@ where <arbor> is the location of the arbor source tree."""
     exit(1)
 
 rcp = recipe()
-sim = arb.simulation(rcp)
-sim.run(tfinal=30)
+sim = A.simulation(rcp)
+sim.run(tfinal=30 * U.ms)

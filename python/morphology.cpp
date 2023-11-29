@@ -1,4 +1,3 @@
-#include <fstream>
 #include <tuple>
 #include <variant>
 
@@ -42,15 +41,23 @@ void check_trailing(std::istream& in, std::string fname) {
 void register_morphology(py::module& m) {
     using namespace py::literals;
 
-    //
-    //  primitives: points, segments, locations, cables... etc.
-    //
-
     m.attr("mnpos") = arb::mnpos;
 
+    py::class_<arb::morphology> morph(m, "morphology", "A cell morphology.");
+    py::class_<arb::mlocation> location(m, "location", "A location on a cable cell.");
+    py::class_<arb::mextent> extent(m, "extent", "A potentially empty region on a morphology.");
+    py::class_<arb::mpoint> mpoint(m, "mpoint");
+    py::class_<arb::mcable> cable(m, "cable");
+    py::class_<arb::isometry> isometry(m, "isometry");
+    py::class_<arb::place_pwlin> place(m, "place_pwlin");
+    py::class_<arb::segment_tree> segment_tree(m, "segment_tree");
+    py::class_<arborio::asc_morphology> asc_morphology(m, "asc_morphology", "The morphology and label dictionary meta-data loaded from a Neurolucida ASCII (.asc) file.");
+    py::class_<arborio::nml_morphology_data> nml_morph_data(m, "neuroml_morph_data");
+    py::class_<arborio::neuroml> neuroml(m, "neuroml");
+    py::class_<arb::mprovider> prov(m, "morphology_provider");
+    py::class_<arb::msegment> msegment(m, "msegment");
+
     // arb::mlocation
-    py::class_<arb::mlocation> location(m, "location",
-        "A location on a cable cell.");
     location
         .def(py::init(
             [](arb::msize_t branch, double pos) {
@@ -73,7 +80,6 @@ void register_morphology(py::module& m) {
             [](arb::mlocation l) { return util::pprintf("(location {} {})", l.branch, l.pos); });
 
     // arb::mpoint
-    py::class_<arb::mpoint> mpoint(m, "mpoint");
     mpoint
         .def(py::init<double, double, double, double>(),
              "x"_a, "y"_a, "z"_a, "radius"_a,
@@ -98,14 +104,12 @@ void register_morphology(py::module& m) {
     py::implicitly_convertible<py::tuple, arb::mpoint>();
 
     // arb::msegment
-    py::class_<arb::msegment> msegment(m, "msegment");
     msegment
         .def_readonly("prox", &arb::msegment::prox, "the location and radius of the proximal end.")
         .def_readonly("dist", &arb::msegment::dist, "the location and radius of the distal end.")
         .def_readonly("tag", &arb::msegment::tag, "tag meta-data.");
 
     // arb::mcable
-    py::class_<arb::mcable> cable(m, "cable");
     cable
         .def(py::init(
             [](arb::msize_t bid, double prox, double dist) {
@@ -127,7 +131,6 @@ void register_morphology(py::module& m) {
         .def("__repr__", [](const arb::mcable& c) { return util::pprintf("{}", c); });
 
     // arb::isometry
-    py::class_<arb::isometry> isometry(m, "isometry");
     isometry
         .def(py::init<>(), "Construct a trivial isometry.")
         .def("__call__", [](arb::isometry& iso, arb::mpoint& p) {
@@ -178,7 +181,6 @@ void register_morphology(py::module& m) {
             "Construct a rotation isometry of angle theta about the given axis in the direction described by a tuple.");
 
     // arb::place_pwlin
-    py::class_<arb::place_pwlin> place(m, "place_pwlin");
     place
         .def(py::init<const arb::morphology&, const arb::isometry&>(),
             "morphology"_a, "isometry"_a=arb::isometry{},
@@ -210,7 +212,6 @@ void register_morphology(py::module& m) {
             "Returns the location and its distance from the point.");
 
     // arb::place_pwlin
-    py::class_<arb::mprovider> prov(m, "morphology_provider");
     prov
         .def(py::init<const arb::morphology&>(),
             "morphology"_a,
@@ -228,14 +229,7 @@ void register_morphology(py::module& m) {
              },
              "Turn a region into an extent.");
 
-
-
-    //
-    // Higher-level data structures (segment_tree, morphology)
-    //
-
     // arb::segment_tree
-    py::class_<arb::segment_tree> segment_tree(m, "segment_tree");
     segment_tree
         // constructors
         .def(py::init<>())
@@ -290,59 +284,7 @@ void register_morphology(py::module& m) {
         .def("__str__", [](const arb::segment_tree& s) {
                 return util::pprintf("<arbor.segment_tree:\n{}>", s);});
 
-    using morph_or_tree = std::variant<arb::segment_tree, arb::morphology>;
-
-    // Function that creates a morphology/segment_tree from an swc file.
-    // Wraps calls to C++ functions arborio::parse_swc() and arborio::load_swc_arbor().
-    m.def("load_swc_arbor",
-        [](py::object fn, bool raw) -> morph_or_tree {
-            try {
-                auto contents = util::read_file_or_buffer(fn);
-                auto data = arborio::parse_swc(contents);
-                if (raw) {
-                    return arborio::load_swc_arbor_raw(data);
-                }
-                return arborio::load_swc_arbor(data);
-            }
-            catch (arborio::swc_error& e) {
-                // Try to produce helpful error messages for SWC parsing errors.
-                throw pyarb_error(util::pprintf("Arbor SWC: parse error: {}", e.what()));
-            }
-        },
-        "filename_or_stream"_a,
-        pybind11::arg_v("raw", false, "Return a segment tree instead of a fully formed morphology"),
-        "Generate a morphology/segment_tree from an SWC file following the rules prescribed by Arbor.\n"
-        "Specifically:\n"
-        " * Single-segment somas are disallowed.\n"
-        " * There are no special rules related to somata. They can be one or multiple branches\n"
-        "   and other segments can connect anywhere along them.\n"
-        " * A segment is always created between a sample and its parent, meaning there\n"
-        "   are no gaps in the resulting morphology.");
-    m.def("load_swc_neuron",
-        [](py::object fn, bool raw) -> morph_or_tree {
-            try {
-                auto contents = util::read_file_or_buffer(fn);
-                auto data = arborio::parse_swc(contents);
-                if (raw) {
-                    return arborio::load_swc_neuron_raw(data);
-                }
-                return arborio::load_swc_neuron(data);
-            }
-            catch (arborio::swc_error& e) {
-                // Try to produce helpful error messages for SWC parsing errors.
-                throw pyarb_error(util::pprintf("NEURON SWC: parse error: {}", e.what()));
-            }
-        },
-        "filename_or_stream"_a,
-        pybind11::arg_v("raw", false, "Return a segment tree instead of a fully formed morphology"),
-        "Generate a morphology from an SWC file following the rules prescribed by NEURON.\n"
-        "See the documentation https://docs.arbor-sim.org/en/latest/fileformat/swc.html\n"
-        "for a detailed description of the interpretation.");
-
-
     // arb::morphology
-
-    py::class_<arb::morphology> morph(m, "morphology");
     morph
         // constructors
         .def(py::init(
@@ -373,10 +315,55 @@ void register_morphology(py::module& m) {
                     return util::pprintf("<arbor.morphology:\n{}>", m);
                 });
 
+    using morph_or_tree = std::variant<arb::segment_tree, arb::morphology>;
+
+    // Function that creates a morphology/segment_tree from an swc file.
+    // Wraps calls to C++ functions arborio::parse_swc() and arborio::load_swc_arbor().
+    m.def("load_swc_arbor",
+        [](py::object fn, bool raw) -> morph_or_tree {
+            try {
+                auto contents = util::read_file_or_buffer(fn);
+                auto data = arborio::parse_swc(contents);
+                if (raw) {
+                    return arborio::load_swc_arbor_raw(data);
+                }
+                return arborio::load_swc_arbor(data);
+            }
+            catch (arborio::swc_error& e) {
+                // Try to produce helpful error messages for SWC parsing errors.
+                throw pyarb_error(util::pprintf("Arbor SWC: parse error: {}", e.what()));
+            }
+        },
+        "filename_or_stream"_a, "raw"_a=false,
+        "Generate a morphology/segment_tree (raw=False/True) from an SWC file following the rules prescribed by Arbor.\n"
+        "Specifically:\n"
+        " * Single-segment somas are disallowed.\n"
+        " * There are no special rules related to somata. They can be one or multiple branches\n"
+        "   and other segments can connect anywhere along them.\n"
+        " * A segment is always created between a sample and its parent, meaning there\n"
+        "   are no gaps in the resulting morphology.");
+    m.def("load_swc_neuron",
+        [](py::object fn, bool raw) -> morph_or_tree {
+            try {
+                auto contents = util::read_file_or_buffer(fn);
+                auto data = arborio::parse_swc(contents);
+                if (raw) {
+                    return arborio::load_swc_neuron_raw(data);
+                }
+                return arborio::load_swc_neuron(data);
+            }
+            catch (arborio::swc_error& e) {
+                // Try to produce helpful error messages for SWC parsing errors.
+                throw pyarb_error(util::pprintf("NEURON SWC: parse error: {}", e.what()));
+            }
+        },
+        "filename_or_stream"_a, "raw"_a=false,
+        "Generate a morphology/segment_tree (raw=False/True) from an SWC file following the rules prescribed by NEURON.\n"
+        "See the documentation https://docs.arbor-sim.org/en/latest/fileformat/swc.html\n"
+        "for a detailed description of the interpretation.");
+
     // Neurolucida ASCII, or .asc, file format support.
 
-    py::class_<arborio::asc_morphology> asc_morphology(m, "asc_morphology",
-            "The morphology and label dictionary meta-data loaded from a Neurolucida ASCII (.asc) file.");
     asc_morphology
         .def_readonly("morphology",
                 &arborio::asc_morphology::morphology,
@@ -404,12 +391,10 @@ void register_morphology(py::module& m) {
                 throw pyarb_error(util::pprintf("error loading neurolucida asc file: {}", e.what()));
             }
         },
-        "filename_or_stream"_a,
-        pybind11::arg_v("raw", false, "Return a segment tree instead of a fully formed morphology"),
-        "Load a morphology or segment_tree and meta data from a Neurolucida ASCII .asc file.");
+        "filename_or_stream"_a, "raw"_a=false,
+        "Load a morphology or segment_tree (raw=True) and meta data from a Neurolucida ASCII .asc file.");
 
     // arborio::morphology_data
-    py::class_<arborio::nml_morphology_data> nml_morph_data(m, "neuroml_morph_data");
     nml_morph_data
         .def_readonly("cell_id",
             &arborio::nml_morphology_data::cell_id,
@@ -434,7 +419,6 @@ void register_morphology(py::module& m) {
             "Map from segmentGroup ids to their corresponding segment ids.");
 
     // arborio::neuroml
-    py::class_<arborio::neuroml> neuroml(m, "neuroml");
     neuroml
         // constructors
         .def(py::init(

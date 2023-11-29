@@ -1,6 +1,5 @@
 #pragma once
 
-#include <any>
 #include <string>
 
 #include <arborio/label_parse.hpp>
