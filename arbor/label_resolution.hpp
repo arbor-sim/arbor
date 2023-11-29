@@ -8,7 +8,6 @@
 #include <arbor/common_types.hpp>
 #include <arbor/util/expected.hpp>
 
-#include "util/partition.hpp"
 #include <arbor/util/hash_def.hpp>
 
 namespace arb {
@@ -26,7 +25,7 @@ struct ARB_ARBOR_API cell_label_range {
     cell_label_range& operator=(const cell_label_range&) = default;
     cell_label_range& operator=(cell_label_range&&) = default;
 
-    cell_label_range(std::vector<cell_size_type> size_vec, std::vector<cell_tag_type> label_vec, std::vector<lid_range> range_vec);
+    cell_label_range(std::vector<cell_size_type> size_vec, std::vector<cell_tag_type> label_vec, std::vector<lid_range> rapfnge_vec);
     cell_label_range(std::vector<cell_size_type> size_vec, std::vector<hash_type> label_vec, std::vector<lid_range> range_vec);
 
     void add_cell();

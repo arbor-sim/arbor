@@ -22,7 +22,7 @@ cell_label_range::cell_label_range(std::vector<cell_size_type> size_vec,
 {
     std::transform(label_vec.begin(), label_vec.end(),
                    std::back_inserter(labels),
-                   internal_hash<const std::string&>);
+                   hash_value<const std::string&>);
     arb_assert(check_invariant());
 };
 
@@ -93,12 +93,12 @@ lid_hopefully label_resolution_map::range_set::at(unsigned idx) const {
 }
 
 const label_resolution_map::range_set& label_resolution_map::at(cell_gid_type gid, const cell_tag_type& tag) const {
-    return map.at(gid).at(internal_hash(tag));
+    return map.at(gid).at(hash_value(tag));
 }
 
 std::size_t label_resolution_map::count(cell_gid_type gid, const cell_tag_type& tag) const {
     if (!map.count(gid)) return 0u;
-    return map.at(gid).count(internal_hash(tag));
+    return map.at(gid).count(hash_value(tag));
 }
 
 label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
@@ -216,7 +216,7 @@ lid_hopefully update_state(resolver::state_variant& v,
 cell_lid_type resolver::resolve(cell_gid_type gid, const cell_local_label_type& label) {
     const auto& [tag, pol] = label;
 
-    auto hash = internal_hash(tag);
+    auto hash = hash_value(tag);
 
     if (!label_map_->count(gid, tag)) throw arb::bad_connection_label(gid, tag, "label does not exist");
     const auto& range_set = label_map_->at(gid, tag);

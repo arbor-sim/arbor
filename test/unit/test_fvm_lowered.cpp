@@ -1,5 +1,4 @@
 #include <cmath>
-#include <numeric>
 #include <string>
 #include <vector>
 
@@ -25,11 +24,8 @@
 #include "backends/multicore/fvm.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "fvm_lowered_cell_impl.hpp"
-#include "util/meta.hpp"
-#include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
-#include "util/transform.hpp"
 
 #include "common.hpp"
 #include "mech_private_field_access.hpp"
@@ -994,10 +990,10 @@ TEST(fvm_lowered, label_data) {
         auto clg = cell_labels_and_gids(fvm_info.target_data, gids);
         std::vector<cell_size_type> expected_sizes = {2, 0, 0, 2, 0, 0, 2, 0, 0, 2};
         std::vector<std::pair<hash_type, lid_range>> expected_labeled_ranges = {
-            {internal_hash("1_synapse"),  {4, 5}}, {internal_hash("4_synapses"), {0, 4}},
-            {internal_hash("1_synapse"),  {4, 5}}, {internal_hash("4_synapses"), {0, 4}},
-            {internal_hash("1_synapse"),  {4, 5}}, {internal_hash("4_synapses"), {0, 4}},
-            {internal_hash("1_synapse"),  {4, 5}}, {internal_hash("4_synapses"), {0, 4}}
+            {hash_value("1_synapse"),  {4, 5}}, {hash_value("4_synapses"), {0, 4}},
+            {hash_value("1_synapse"),  {4, 5}}, {hash_value("4_synapses"), {0, 4}},
+            {hash_value("1_synapse"),  {4, 5}}, {hash_value("4_synapses"), {0, 4}},
+            {hash_value("1_synapse"),  {4, 5}}, {hash_value("4_synapses"), {0, 4}}
         };
 
         std::vector<std::pair<hash_type, lid_range>> actual_labeled_ranges;
@@ -1033,16 +1029,16 @@ TEST(fvm_lowered, label_data) {
         auto clg = cell_labels_and_gids(fvm_info.source_data, gids);
         std::vector<cell_size_type> expected_sizes = {1, 2, 2, 1, 2, 2, 1, 2, 2, 1};
         std::vector<std::pair<hash_type, lid_range>> expected_labeled_ranges = {
-            {internal_hash("1_detector"),  {0, 1}},
-            {internal_hash("2_detectors"), {3, 5}}, {internal_hash("3_detectors"), {0, 3}},
-            {internal_hash("2_detectors"), {3, 5}}, {internal_hash("3_detectors"), {0, 3}},
-            {internal_hash("1_detector"),  {0, 1}},
-            {internal_hash("2_detectors"), {3, 5}}, {internal_hash("3_detectors"), {0, 3}},
-            {internal_hash("2_detectors"), {3, 5}}, {internal_hash("3_detectors"), {0, 3}},
-            {internal_hash("1_detector"),  {0, 1}},
-            {internal_hash("2_detectors"), {3, 5}}, {internal_hash("3_detectors"), {0, 3}},
-            {internal_hash("2_detectors"), {3, 5}}, {internal_hash("3_detectors"), {0, 3}},
-            {internal_hash("1_detector"),  {0, 1}}
+            {hash_value("1_detector"),  {0, 1}},
+            {hash_value("2_detectors"), {3, 5}}, {hash_value("3_detectors"), {0, 3}},
+            {hash_value("2_detectors"), {3, 5}}, {hash_value("3_detectors"), {0, 3}},
+            {hash_value("1_detector"),  {0, 1}},
+            {hash_value("2_detectors"), {3, 5}}, {hash_value("3_detectors"), {0, 3}},
+            {hash_value("2_detectors"), {3, 5}}, {hash_value("3_detectors"), {0, 3}},
+            {hash_value("1_detector"),  {0, 1}},
+            {hash_value("2_detectors"), {3, 5}}, {hash_value("3_detectors"), {0, 3}},
+            {hash_value("2_detectors"), {3, 5}}, {hash_value("3_detectors"), {0, 3}},
+            {hash_value("1_detector"),  {0, 1}}
         };
         std::vector<std::pair<hash_type, lid_range>> actual_labeled_ranges;
 
@@ -1077,12 +1073,12 @@ TEST(fvm_lowered, label_data) {
         auto clg = cell_labels_and_gids(fvm_info.gap_junction_data, gids);
         std::vector<cell_size_type> expected_sizes = {0, 2, 2, 0, 2, 2, 0, 2, 2, 0};
         std::vector<std::pair<hash_type, lid_range>> expected_labeled_ranges = {
-            {internal_hash("1_gap_junction"),  {2, 3}}, {internal_hash("2_gap_junctions"), {0, 2}},
-            {internal_hash("1_gap_junction"),  {2, 3}}, {internal_hash("2_gap_junctions"), {0, 2}},
-            {internal_hash("1_gap_junction"),  {2, 3}}, {internal_hash("2_gap_junctions"), {0, 2}},
-            {internal_hash("1_gap_junction"),  {2, 3}}, {internal_hash("2_gap_junctions"), {0, 2}},
-            {internal_hash("1_gap_junction"),  {2, 3}}, {internal_hash("2_gap_junctions"), {0, 2}},
-            {internal_hash("1_gap_junction"),  {2, 3}}, {internal_hash("2_gap_junctions"), {0, 2}},
+            {hash_value("1_gap_junction"),  {2, 3}}, {hash_value("2_gap_junctions"), {0, 2}},
+            {hash_value("1_gap_junction"),  {2, 3}}, {hash_value("2_gap_junctions"), {0, 2}},
+            {hash_value("1_gap_junction"),  {2, 3}}, {hash_value("2_gap_junctions"), {0, 2}},
+            {hash_value("1_gap_junction"),  {2, 3}}, {hash_value("2_gap_junctions"), {0, 2}},
+            {hash_value("1_gap_junction"),  {2, 3}}, {hash_value("2_gap_junctions"), {0, 2}},
+            {hash_value("1_gap_junction"),  {2, 3}}, {hash_value("2_gap_junctions"), {0, 2}},
         };
 
         EXPECT_EQ(clg.gids, gids);
