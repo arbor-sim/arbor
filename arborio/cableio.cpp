@@ -135,8 +135,10 @@ s_expr mksexp(const decor& d) {
             { return slist("paint"_symbol, round_trip(p.first), mksexp(x)); }, p.second));
     }
     for (const auto& p: d.placements()) {
-        decorations.push_back(std::visit([&](auto& x)
-            { return slist("place"_symbol, round_trip(std::get<0>(p)), mksexp(x), s_expr(std::get<2>(p))); }, std::get<1>(p)));
+        decorations.push_back(std::visit([&](auto& x) {
+            auto lbl = d.tag_of(std::get<2>(p));
+            return slist("place"_symbol, round_trip(std::get<0>(p)), mksexp(x), s_expr(lbl));
+        }, std::get<1>(p)));
     }
     return {"decor"_symbol, slist_range(decorations)};
 }
@@ -282,9 +284,9 @@ decor make_decor(const std::vector<std::variant<place_tuple, paint_pair, default
     decor d;
     for(const auto& a: args) {
         auto decor_visitor = arb::util::overload(
-            [&](const place_tuple & p) { d.place(std::get<0>(p), std::get<1>(p), std::get<2>(p)); },
-            [&](const paint_pair & p) { d.paint(p.first, p.second); },
-            [&](const defaultable & p){ d.set_default(p); });
+            [&](const place_tuple& p) { d.place(std::get<0>(p), std::get<1>(p), std::get<2>(p)); },
+            [&](const paint_pair& p) { d.paint(p.first, p.second); },
+            [&](const defaultable& p){ d.set_default(p); });
         std::visit(decor_visitor, a);
     }
     return d;

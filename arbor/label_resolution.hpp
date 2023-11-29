@@ -8,7 +8,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/util/expected.hpp>
 
-#include "util/partition.hpp"
+#include <arbor/util/hash_def.hpp>
 
 namespace arb {
 
@@ -18,37 +18,32 @@ using lid_hopefully = arb::util::expected<cell_lid_type, std::string>;
 // `sizes` is a partitioning vector for associating a cell with a set of
 // (label, range) pairs in `labels`, `ranges`.
 // gids of the cells are unknown.
-class ARB_ARBOR_API cell_label_range {
-public:
+struct ARB_ARBOR_API cell_label_range {
     cell_label_range() = default;
     cell_label_range(cell_label_range&&) = default;
     cell_label_range(const cell_label_range&) = default;
     cell_label_range& operator=(const cell_label_range&) = default;
     cell_label_range& operator=(cell_label_range&&) = default;
 
-    cell_label_range(std::vector<cell_size_type> size_vec, std::vector<cell_tag_type> label_vec, std::vector<lid_range> range_vec);
+    cell_label_range(std::vector<cell_size_type> size_vec, std::vector<cell_tag_type> label_vec, std::vector<lid_range> rapfnge_vec);
+    cell_label_range(std::vector<cell_size_type> size_vec, std::vector<hash_type> label_vec, std::vector<lid_range> range_vec);
 
     void add_cell();
 
-    void add_label(cell_tag_type label, lid_range range);
+    void add_label(hash_type label, lid_range range);
 
     void append(cell_label_range other);
 
     bool check_invariant() const;
 
-    const auto& sizes() const { return sizes_; }
-    const auto& labels() const { return labels_; }
-    const auto& ranges() const { return ranges_; }
-
-private:
     // The number of labels associated with each cell.
-    std::vector<cell_size_type> sizes_;
+    std::vector<cell_size_type> sizes;
 
     // The labels corresponding to each cell, partitioned according to sizes_.
-    std::vector<cell_tag_type> labels_;
+    std::vector<hash_type> labels;
 
     // The lid_range corresponding to each label.
-    std::vector<lid_range> ranges_;
+    std::vector<lid_range> ranges;
 };
 
 // Struct for associating each cell of `cell_label_range` with a gid.
@@ -83,7 +78,7 @@ public:
     std::size_t count(cell_gid_type gid, const cell_tag_type& tag) const;
 
 private:
-    std::unordered_map<cell_gid_type, std::unordered_map<cell_tag_type, range_set>> map;
+    std::unordered_map<cell_gid_type, std::unordered_map<hash_type, range_set>> map;
 };
 
 struct ARB_ARBOR_API round_robin_state {
@@ -123,6 +118,6 @@ private:
     state_variant construct_state(lid_selection_policy pol, cell_lid_type state);
 
     const label_resolution_map* label_map_;
-    map<cell_gid_type, map<cell_tag_type, map<lid_selection_policy, state_variant>>> state_map_;
+    map<cell_gid_type, map<hash_type, map<lid_selection_policy, state_variant>>> state_map_;
 };
 } // namespace arb
