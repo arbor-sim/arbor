@@ -10,20 +10,24 @@ namespace arb {
 // restricted to non-negative times.
 struct poisson_schedule_impl {
     poisson_schedule_impl(time_type tstart, time_type rate_kHz, seed_type seed, time_type tstop):
-        tstart_(tstart), exp_(rate_kHz), rng_(seed), seed_(seed), next_(tstart), tstop_(tstop) {
+        tstart_(tstart), rate_(rate_kHz), exp_(rate_kHz), rng_(seed), seed_(seed), next_(tstart), tstop_(tstop) {
         if (!std::isfinite(tstart_))  throw std::domain_error("Poisson schedule: start must be finite and in [ms]");
         if (!std::isfinite(tstop_))   throw std::domain_error("Poisson schedule: stop must be finite and in [ms]");
         if (!std::isfinite(rate_kHz)) throw std::domain_error("Poisson schedule: rate must be finite and in [kHz]");
         if (!std::isfinite(tstart_) || tstart_ < 0) throw std::domain_error("Poisson schedule: start must be >= 0 and finite.");
         if (!std::isfinite(tstop_)  || tstop_ < tstart_) throw std::domain_error("Poisson schedule: stop must be >= start and finite.");
+        step();
     }
 
     void reset() {
         rng_ = engine_type{seed_};
+        if (discard_ > 0) rng_.discard(discard_);
+        exp_ = std::exponential_distribution<time_type>{rate_};
         next_ = tstart_;
+        step();
     }
 
-    void discard(std::size_t n) { rng_.discard(n); }
+    void discard(std::size_t n) { discard_ = n; reset(); }
 
     time_event_span events(time_type t0, time_type t1) {
         // if we start after the maximal allowed time, we have nothing to do
@@ -36,7 +40,6 @@ struct poisson_schedule_impl {
 
         while (next_<t0) { step(); }
 
-        step();
         while (next_<t1) {
             times_.push_back(next_);
             step();
@@ -67,12 +70,14 @@ struct poisson_schedule_impl {
     }
 
     time_type tstart_;
+    time_type rate_;
     std::exponential_distribution<time_type> exp_;
     engine_type rng_;
     seed_type seed_;
     time_type next_;
     std::vector<time_type> times_;
     time_type tstop_;
+    std::size_t discard_ = 0;
 };
 
 schedule poisson_schedule(const units::quantity& tstart,
