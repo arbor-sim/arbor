@@ -2,6 +2,7 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/spike.hpp>
 
 #include "strprintf.hpp"
 
@@ -154,10 +155,19 @@ void register_identifiers(py::module& m) {
             "Use multicore backend.");
 
     // Probes
-    pybind11::class_<arb::probe_info> probe(m, "probe");
+    py::class_<arb::probe_info> probe(m, "probe");
     probe
         .def("__repr__", [](const arb::probe_info& p){return util::pprintf("<arbor.probe: tag {}>", p.tag);})
         .def("__str__",  [](const arb::probe_info& p){return util::pprintf("<arbor.probe: tag {}>", p.tag);});
+
+    py::class_<arb::spike> spike(m, "spike");
+    spike
+        .def(py::init([](const arb::cell_member_type& m, arb::time_type t) -> arb::spike { return {m, t}; }))
+        .def_readwrite("source", &arb::spike::source, "The global identifier of the cell.")
+        .def_readwrite("time", &arb::spike::time, "The time of spike.")
+        .def("__repr__", [](const arb::spike& s){return util::pprintf("<arbor.spike: {}>", s);})
+        .def("__str__",  [](const arb::spike& s){return util::pprintf("<arbor.spike: {}>", s);});
+
 }
 
 } // namespace pyarb

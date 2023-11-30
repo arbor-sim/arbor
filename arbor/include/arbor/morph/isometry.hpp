@@ -7,6 +7,7 @@ namespace arb {
 // Represent a 3-d isometry as a rotation (via quaterion q_)
 // and a subsequent translation (tx_, ty_, tz_).
 struct ARB_ARBOR_API isometry {
+    using quaternion = arb::math::quaternion;
 
     isometry() = default;
 
@@ -28,7 +29,6 @@ struct ARB_ARBOR_API isometry {
     }
 
 private:
-    using quaternion = arb::math::quaternion;
     quaternion q_{1, 0, 0, 0};
     double tx_ = 0, ty_ = 0, tz_ = 0;
 

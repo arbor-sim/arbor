@@ -1,12 +1,14 @@
 #include "label_dict.hpp"
 
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 namespace pyarb {
 
 namespace py = pybind11;
-
+using namespace py::literals;
 void register_label_dict(py::module& m) {
+
     py::class_<label_dict_proxy> label_dict(m, "label_dict",
         "A dictionary of labelled region and locset definitions, with a\n"
         "unique label assigned to each definition.");

@@ -21,7 +21,7 @@
 
 #include "util.hpp"
 #include "error.hpp"
-#include "proxy.hpp"
+#include "label_dict.hpp"
 #include "strprintf.hpp"
 
 namespace py = pybind11;
@@ -183,7 +183,7 @@ void register_morphology(py::module& m) {
     // arb::place_pwlin
     place
         .def(py::init<const arb::morphology&, const arb::isometry&>(),
-            "morphology"_a, "isometry"_a=arb::isometry{},
+            "morphology"_a, py::arg_v("isometry", arb::isometry(), "id"),
             "Construct a piecewise-linear placement object from the given morphology and optional isometry.")
         .def("at", &arb::place_pwlin::at, "location"_a,
             "Return an interpolated mpoint corresponding to the location argument.")

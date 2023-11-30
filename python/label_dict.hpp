@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 
 #include <arborio/label_parse.hpp>
 
@@ -26,9 +27,7 @@ struct label_dict_proxy {
     label_dict_proxy() = default;
 
     label_dict_proxy(const str_map& in) {
-        for (auto& i: in) {
-            set(i.first, i.second);
-        }
+        for (auto& [k, v]: in) set(k, v);
     }
 
     label_dict_proxy& add_swc_tags() {

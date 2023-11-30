@@ -1,6 +1,8 @@
 #include <memory>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/functional.h>
 
 #include <arbor/common_types.hpp>
 #include <arbor/sampling.hpp>
@@ -201,8 +203,8 @@ public:
     }
 };
 
-void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
-    using namespace pybind11::literals;
+void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
+    using namespace py::literals;
 
     py::enum_<spike_recording>(m, "spike_recording")
        .value("off", spike_recording::off)
@@ -216,7 +218,7 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
     simulation
         // A custom constructor that wraps a python recipe with arb::py_recipe_shim
         // before forwarding it to the arb::recipe constructor.
-        .def(pybind11::init(
+        .def(py::init(
                  [global_ptr](std::shared_ptr<py_recipe>& rec,
                               const std::shared_ptr<context_shim>& ctx_,
                               const std::optional<arb::domain_decomposition>& decomp,
@@ -232,10 +234,10 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
                      }
                  }),
              // Release the python gil, so that callbacks into the python recipe don't deadlock.
-             pybind11::call_guard<pybind11::gil_scoped_release>(),
+             py::call_guard<py::gil_scoped_release>(),
              "recipe"_a,
-             "context"_a=pybind11::none(),
-             "domains"_a=pybind11::none(),
+             "context"_a=py::none(),
+             "domains"_a=py::none(),
              "seed"_a=0u,
              "Initialize the model described by a recipe, with cells and network distributed\n"
              "according to the domain decomposition and computational resources described by a\n"
@@ -247,27 +249,27 @@ void register_simulation(pybind11::module& m, pyarb_global_ptr global_ptr) {
              "a callable on the `spike` type. **Caution**: This will be extremely slow; use C++ "
              "if you want to make use of this.")
         .def("update", &simulation_shim::update,
-             pybind11::call_guard<pybind11::gil_scoped_release>(),
+             py::call_guard<py::gil_scoped_release>(),
              "Rebuild the connection table from recipe::connections_on and the event"
              "generators based on recipe::event_generators.",
              "recipe"_a)
         .def("deserialize", &simulation_shim::deserialize,
-             pybind11::call_guard<pybind11::gil_scoped_release>(),
+             py::call_guard<py::gil_scoped_release>(),
              "Deserialize the simulation object from a JSON string."
              "json"_a)
         .def("serialize", &simulation_shim::serialize,
-             pybind11::call_guard<pybind11::gil_scoped_release>(),
+             py::call_guard<py::gil_scoped_release>(),
              "Serialize the simulation object to a JSON string.")
         .def("reset", &simulation_shim::reset,
-            pybind11::call_guard<pybind11::gil_scoped_release>(),
+            py::call_guard<py::gil_scoped_release>(),
             "Reset the state of the simulation to its initial state.")
         .def("clear_samplers", &simulation_shim::clear_samplers,
-             pybind11::call_guard<pybind11::gil_scoped_release>(),
+             py::call_guard<py::gil_scoped_release>(),
              "Clearing spike and sample information. restoring memory")
         .def("run", &simulation_shim::run,
-            pybind11::call_guard<pybind11::gil_scoped_release>(),
+            py::call_guard<py::gil_scoped_release>(),
             "Run the simulation from current simulation time to tfinal [ms], with maximum time step size dt [ms].",
-            "tfinal"_a, "dt"_a=0.025*arb::units::ms)
+            "tfinal"_a, py::arg_v("dt", 0.025*arb::units::ms, "0.025"))
         .def("record", &simulation_shim::record,
             "Disable or enable local or global spike recording.")
         .def("spikes", &simulation_shim::spikes,
