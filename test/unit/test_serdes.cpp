@@ -248,7 +248,7 @@ TEST(serdes, network) {
     model.num = 10;
     auto simulation = arb::simulation{model};
     simulation.add_sampler(arb::all_probes,
-                           arb::regular_schedule(dt*arb::units::ms),
+                           arb::regular_schedule(dt),
                            sampler);
 
     // Run simulation forward && snapshot
@@ -300,8 +300,8 @@ TEST(serdes, host_device_arrays) {
 }
 
 TEST(serdes, single_cell_gpu) {
-    double dt = 0.5;
-    double T  = 5;
+    double dt = 0.5*arb::units::ms;
+    double T  = 5*arb::units::ms;
 
     // Result
     std::vector<double> result_pre;
@@ -340,8 +340,8 @@ TEST(serdes, single_cell_gpu) {
 }
 
 TEST(serdes, network_gpu) {
-    double dt = 0.5;
-    double T  = 5;
+    double dt = 0.5*arb::units::ms;
+    double T  = 5*arb::units::ms;
 
     // Result
     std::vector<double> result_pre;

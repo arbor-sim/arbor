@@ -11,8 +11,11 @@ namespace arb {
 struct poisson_schedule_impl {
     poisson_schedule_impl(time_type tstart, time_type rate_kHz, seed_type seed, time_type tstop):
         tstart_(tstart), exp_(rate_kHz), rng_(seed), seed_(seed), next_(tstart), tstop_(tstop) {
-        arb_assert(tstart_>=0);
-        arb_assert(tstart_ <= tstop_);
+        if (!std::isfinite(tstart_))  throw std::domain_error("Poisson schedule: start must be finite and in [ms]");
+        if (!std::isfinite(tstop_))   throw std::domain_error("Poisson schedule: stop must be finite and in [ms]");
+        if (!std::isfinite(rate_kHz)) throw std::domain_error("Poisson schedule: rate must be finite and in [kHz]");
+        if (!std::isfinite(tstart_) || tstart_ < 0) throw std::domain_error("Poisson schedule: start must be >= 0 and finite.");
+        if (!std::isfinite(tstop_)  || tstop_ < tstart_) throw std::domain_error("Poisson schedule: stop must be >= start and finite.");
     }
 
     void reset() {
@@ -117,9 +120,13 @@ schedule::schedule(): schedule(empty_schedule{}) {}
 // Schedule at k·dt for integral k≥0 within the interval [t0, t1).
 struct ARB_ARBOR_API regular_schedule_impl {
     explicit regular_schedule_impl(time_type t0, time_type dt, time_type t1):
-        t0_(t0), t1_(t1), dt_(dt), oodt_(1./dt)
-    {
-        if (t0_<0) t0_ = 0;
+        t0_(t0), t1_(t1), dt_(dt), oodt_(1./dt) {
+        if (!std::isfinite(t0_)) throw std::domain_error("Regular schedule: start must be finite and in [ms]");
+        if (!std::isfinite(t1_)) throw std::domain_error("Regular schedule: stop must be finite and in [ms]");
+        if (!std::isfinite(dt_)) throw std::domain_error("Regular schedule: step must be finite and in [ms]");
+        if (dt_ <= 0)  throw std::domain_error("regular schedule: dt must be > 0 and finite.");
+        if (t0_ < 0)   throw std::domain_error("regular schedule: start must be >= 0 and finite.");
+        if (t1_ < t0_) throw std::domain_error("regular schedule: stop must be >= start and finite.");
     };
 
     void reset() {}
@@ -181,16 +188,14 @@ struct ARB_ARBOR_API regular_schedule_impl {
 };
 
 schedule regular_schedule(const units::quantity& t0,
-                                 const units::quantity& dt,
-                                 const units::quantity& t1) {
+                          const units::quantity& dt,
+                          const units::quantity& t1) {
     return schedule(regular_schedule_impl(t0.value_as(units::ms),
                                           dt.value_as(units::ms),
                                           t1.value_as(units::ms)));
 }
 
-schedule regular_schedule(const units::quantity& dt) {
-    return regular_schedule(0*units::ms, dt);
-}
+schedule regular_schedule(const units::quantity& dt) { return regular_schedule(0*units::ms, dt); }
 
 // Schedule at times given explicitly via a provided sorted sequence.
 struct explicit_schedule_impl {
@@ -199,7 +204,13 @@ struct explicit_schedule_impl {
 
     explicit explicit_schedule_impl(std::vector<time_type> seq):
         start_index_(0), times_(std::move(seq)) {
-        arb_assert(std::is_sorted(times_.begin(), times_.end()));
+        time_type last = -1;
+        for (auto t: times_) {
+            if (!std::isfinite(t)) throw std::domain_error("explicit schedule: times must be finite and in [ms]");
+            if (t < 0)             throw std::domain_error("explicit schedule: times must be >= 0 and finite.");
+            if (t < last)          throw std::domain_error("explicit schedule: times must be sorted.");
+            last = t;
+        }
     }
 
     void reset() { start_index_ = 0; }
