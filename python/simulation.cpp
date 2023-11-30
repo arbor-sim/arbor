@@ -220,11 +220,11 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
         // before forwarding it to the arb::recipe constructor.
         .def(py::init(
                  [global_ptr](std::shared_ptr<py_recipe>& rec,
-                              const std::shared_ptr<context_shim>& ctx_,
+                              std::optional<std::shared_ptr<context_shim>> ctx_,
                               const std::optional<arb::domain_decomposition>& decomp,
                               std::uint64_t seed) {
                      try {
-                         auto ctx = ctx_ ? ctx_ : std::make_shared<context_shim>(make_context_shim());
+                         auto ctx = ctx_ ? ctx_.value() : std::make_shared<context_shim>(make_context_shim());
                          auto dec = decomp.value_or(arb::partition_load_balance(py_recipe_shim(rec), ctx->context));
                          return new simulation_shim(rec, *ctx, dec, seed, global_ptr);
                      }
@@ -269,7 +269,7 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
         .def("run", &simulation_shim::run,
             py::call_guard<py::gil_scoped_release>(),
             "Run the simulation from current simulation time to tfinal [ms], with maximum time step size dt [ms].",
-            "tfinal"_a, py::arg_v("dt", 0.025*arb::units::ms, "0.025"))
+            "tfinal"_a, py::arg_v("dt", 0.025*arb::units::ms, "0.025*arbor.units.ms"))
         .def("record", &simulation_shim::record,
             "Disable or enable local or global spike recording.")
         .def("spikes", &simulation_shim::spikes,

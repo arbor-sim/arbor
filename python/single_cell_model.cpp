@@ -255,7 +255,7 @@ void register_single_cell(pybind11::module& m) {
         .def("run",
              &single_cell_model::run,
              "tfinal"_a,
-             "dt"_a = 0.025,
+             pybind11::arg_v("dt", 0.025*arb::units::ms, "0.025*arbor.units.ms"),
              "Run model from t=0 to t=tfinal ms.")
         .def("probe",
              [](single_cell_model& m, const char* what, const char* where, const char* tag, const arb::units::quantity& frequency) {

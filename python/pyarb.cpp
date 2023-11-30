@@ -93,8 +93,8 @@ PYBIND11_MODULE(_arbor, m) {
     });
 
     // Translate Arbor errors -> Python exceptions.
-    pybind11::register_exception<arb::file_not_found_error>(m, "FileNotFoundError", PyExc_FileNotFoundError);
-    pybind11::register_exception<arb::zero_thread_requested_error>(m, "ValueError", PyExc_ValueError);
+    pybind11::register_exception<arb::file_not_found_error>(m, "ArbFileNotFoundError", PyExc_FileNotFoundError);
+    pybind11::register_exception<arb::zero_thread_requested_error>(m, "ArbValueError", PyExc_ValueError);
 
 
     #ifdef ARB_MPI_ENABLED

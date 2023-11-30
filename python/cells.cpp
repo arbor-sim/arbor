@@ -500,7 +500,7 @@ void register_cells(py::module& m) {
                     return arb::i_clamp::box(ts, dur, cur, frequency, phase);
                 }),
              "tstart"_a, "duration"_a, "current"_a,
-             py::kw_only(), py::arg_v("frequency", 0*arb::units::kHz, "0"), py::arg_v("phase", 0*arb::units::rad, "0"),
+             py::kw_only(), py::arg_v("frequency", 0*arb::units::kHz, "0.0*arbor.units.kHz"), py::arg_v("phase", 0*arb::units::rad, "0.0*arbor.units.rad"),
              "Construct finite duration current clamp, constant amplitude")
         .def(py::init(
                 [](const arb::units::quantity& cur,
@@ -509,7 +509,7 @@ void register_cells(py::module& m) {
                     return arb::i_clamp{cur, frequency, phase};
                 }),
              "current"_a,
-             py::kw_only(), py::arg_v("frequency", 0*arb::units::kHz, "0"), py::arg_v("phase", 0*arb::units::rad, "0"),
+             py::kw_only(), py::arg_v("frequency", 0*arb::units::kHz, "0.0*arbor.units.kHz"), py::arg_v("phase", 0*arb::units::rad, "0.0*arbor.units.rad"),
              "Construct constant amplitude current clamp")
         .def(py::init(
                 [](std::vector<std::pair<const arb::units::quantity&, const arb::units::quantity&>> envl,
@@ -520,7 +520,7 @@ void register_cells(py::module& m) {
                     return arb::i_clamp{env, frequency, phase};
                 }),
              "envelope"_a,
-             py::kw_only(), py::arg_v("frequency", 0*arb::units::kHz, "0"), py::arg_v("phase", 0*arb::units::rad, "0"),
+             py::kw_only(), py::arg_v("frequency", 0*arb::units::kHz, "0.0*arbor.units.kHz"), py::arg_v("phase", 0*arb::units::rad, "0.0*arbor.units.rad"),
              "Construct current clamp according to (time, amplitude) linear envelope")
         .def_property_readonly("envelope",
                 [](const arb::i_clamp& obj) {
@@ -534,9 +534,9 @@ void register_cells(py::module& m) {
         .def_readonly("frequency", &arb::i_clamp::frequency, "Oscillation frequency (kHz), zero implies DC stimulus.")
         .def_readonly("phase", &arb::i_clamp::phase, "Oscillation initial phase (rad)")
         .def("__repr__", [](const arb::i_clamp& c) {
-            return util::pprintf("<arbor.iclamp: frequency {} Hz>", c.frequency);})
+            return util::pprintf("<arbor.iclamp: frequency {} kHz>", c.frequency);})
         .def("__str__", [](const arb::i_clamp& c) {
-            return util::pprintf("<arbor.iclamp: frequency {} Hz>", c.frequency);});
+            return util::pprintf("<arbor.iclamp: frequency {} kHz>", c.frequency);});
 
     detector
         .def(py::init(

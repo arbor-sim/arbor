@@ -247,16 +247,12 @@ void register_schedules(py::module& m) {
 
     poisson_schedule
         .def(py::init<time_type, time_type, arb::seed_type, std::optional<time_type>>(),
-             py::arg_v("tstart", 0.*arb::units::ms, "0"), "freq"_a, "seed"_a = 0, "tstop"_a=py::none(),
-            "Construct a Poisson schedule with arguments:\n"
-            "  tstart: The delivery time of the first event in the sequence [ms], 0 by default.\n"
-            "  freq:   The expected frequency [kHz].\n"
-            "  seed:   The seed for the random number generator, 0 by default.\n"
-            "  tstop:  No events delivered after this time [ms], None by default.")
-        .def(py::init<time_type>(),
-            "freq"_a,
-            "Construct a Poisson schedule, starting from t = 0, default seed, with:\n"
-            "  freq:   The expected frequency [kHz], 10 by default.\n")
+             "freq"_a, py::kw_only(), py::arg_v("tstart", 0.*arb::units::ms, "0.0*arbor.units.ms"), "seed"_a = 0, "tstop"_a=py::none(),
+             "Construct a Poisson schedule with arguments:\n"
+             "  tstart: The delivery time of the first event in the sequence [ms], 0 by default.\n"
+             "  freq:   The expected frequency [kHz].\n"
+             "  seed:   The seed for the random number generator, 0 by default.\n"
+             "  tstop:  No events delivered after this time [ms], None by default.")
         .def_property("tstart", &poisson_schedule_shim::get_tstart, &poisson_schedule_shim::set_tstart,
             "The delivery time of the first event in the sequence [ms].")
         .def_property("freq", &poisson_schedule_shim::get_freq, &poisson_schedule_shim::set_freq,

@@ -102,7 +102,7 @@ sim.run(0.25*U.ms, 0.025*U.ms)
 rec.add_connection_to_spike_source(2)
 sim.update(rec)
 # and run the simulation for another bit.
-sim.run(0.5, 0.025)
+sim.run(0.5*U.ms, 0.025*U.ms)
 # when finished, print spike times and locations.
 source_spikes = 0
 print("Spikes:")
