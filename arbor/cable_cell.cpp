@@ -88,7 +88,7 @@ struct cable_cell_impl {
     decor decorations;
 
     // The placeable label to lid_range map
-    dynamic_typed_map<constant_type<std::unordered_multimap<cell_tag_type, lid_range>>::type> labeled_lid_ranges;
+    dynamic_typed_map<constant_type<std::unordered_multimap<hash_type, lid_range>>::type> labeled_lid_ranges;
 
     cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
         provider(m, labels),
@@ -120,7 +120,7 @@ struct cable_cell_impl {
     }
 
     template <typename Item>
-    void place(const locset& ls, const Item& item, const cell_tag_type& label) {
+    void place(const locset& ls, const Item& item, const hash_type& label) {
         auto& mm = get_location_map(item);
         cell_lid_type& lid = placed_count.get<Item>();
         cell_lid_type first = lid;
@@ -226,7 +226,8 @@ void cable_cell_impl::init(const decor& d) {
     for (const auto& p: d.placements()) {
         auto& where = std::get<0>(p);
         auto& label = std::get<2>(p);
-        std::visit([this, &where, &label] (auto&& what) {return this->place(where, what, label);}, std::get<1>(p));
+        std::visit([this, &where, &label] (auto&& what) {return this->place(where, what, label); },
+                   std::get<1>(p));
     }
 }
 
@@ -280,16 +281,21 @@ const cable_cell_parameter_set& cable_cell::default_parameters() const {
     return impl_->decorations.defaults();
 }
 
-const std::unordered_multimap<cell_tag_type, lid_range>& cable_cell::detector_ranges() const {
+const cable_cell::lid_range_map& cable_cell::detector_ranges() const {
     return impl_->labeled_lid_ranges.get<threshold_detector>();
 }
 
-const std::unordered_multimap<cell_tag_type, lid_range>& cable_cell::synapse_ranges() const {
+const cable_cell::lid_range_map& cable_cell::synapse_ranges() const {
     return impl_->labeled_lid_ranges.get<synapse>();
 }
 
-const std::unordered_multimap<cell_tag_type, lid_range>& cable_cell::junction_ranges() const {
+const cable_cell::lid_range_map& cable_cell::junction_ranges() const {
     return impl_->labeled_lid_ranges.get<junction>();
+}
+
+cell_tag_type decor::tag_of(hash_type hash) const {
+    if (!hashes_.count(hash)) throw arbor_internal_error{util::pprintf("Unknown hash for {}.", std::to_string(hash))};
+    return hashes_.at(hash);
 }
 
 } // namespace arb

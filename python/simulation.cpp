@@ -60,11 +60,11 @@ class simulation_shim {
     std::unordered_map<arb::sampler_association_handle, sampler_callback> sampler_map_;
 
 public:
-    simulation_shim(std::shared_ptr<py_recipe>& rec, const context_shim& ctx, const arb::domain_decomposition& decomp, std::uint64_t seed, pyarb_global_ptr global_ptr):
+    simulation_shim(std::shared_ptr<recipe>& rec, const context_shim& ctx, const arb::domain_decomposition& decomp, std::uint64_t seed, pyarb_global_ptr global_ptr):
         global_ptr_(global_ptr)
     {
         try {
-            sim_.reset(new arb::simulation(py_recipe_shim(rec), ctx.context, decomp, seed));
+            sim_.reset(new arb::simulation(recipe_shim(rec), ctx.context, decomp, seed));
         }
         catch (...) {
             py_reset_and_throw();
@@ -72,9 +72,9 @@ public:
         }
     }
 
-    void update(std::shared_ptr<py_recipe>& rec) {
+    void update(std::shared_ptr<recipe>& rec) {
         try {
-            sim_->update(py_recipe_shim(rec));
+            sim_->update(recipe_shim(rec));
         }
         catch (...) {
             py_reset_and_throw();
@@ -216,16 +216,16 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
         "The executable form of a model.\n"
         "A simulation is constructed from a recipe, and then used to update and monitor model state.");
     simulation
-        // A custom constructor that wraps a python recipe with arb::py_recipe_shim
+        // A custom constructor that wraps a python recipe with arb::recipe_shim
         // before forwarding it to the arb::recipe constructor.
         .def(py::init(
-                 [global_ptr](std::shared_ptr<py_recipe>& rec,
+                 [global_ptr](std::shared_ptr<recipe>& rec,
                               std::optional<std::shared_ptr<context_shim>> ctx_,
-                              const std::optional<arb::domain_decomposition>& decomp,
+                              std::optional<arb::domain_decomposition> decomp,
                               std::uint64_t seed) {
                      try {
                          auto ctx = ctx_ ? ctx_.value() : std::make_shared<context_shim>(make_context_shim());
-                         auto dec = decomp.value_or(arb::partition_load_balance(py_recipe_shim(rec), ctx->context));
+                         auto dec = decomp.value_or(arb::partition_load_balance(recipe_shim(rec), ctx->context));
                          return new simulation_shim(rec, *ctx, dec, seed, global_ptr);
                      }
                      catch (...) {

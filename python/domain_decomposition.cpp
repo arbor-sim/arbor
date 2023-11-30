@@ -1,6 +1,5 @@
 #include <limits>
 #include <string>
-#include <sstream>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -105,9 +104,9 @@ void register_domain_decomposition(pybind11::module& m) {
     // Partition load balancer
     // The Python recipe has to be shimmed for passing to the function that takes a C++ recipe.
     m.def("partition_load_balance",
-        [](std::shared_ptr<py_recipe>& recipe, const context_shim& ctx, arb::partition_hint_map hint_map) {
+        [](std::shared_ptr<recipe>& recipe, const context_shim& ctx, arb::partition_hint_map hint_map) {
             try {
-                return arb::partition_load_balance(py_recipe_shim(recipe), ctx.context, std::move(hint_map));
+                return arb::partition_load_balance(recipe_shim(recipe), ctx.context, std::move(hint_map));
             }
             catch (...) {
                 py_reset_and_throw();
@@ -120,9 +119,9 @@ void register_domain_decomposition(pybind11::module& m) {
         "recipe"_a, "context"_a, "hints"_a=arb::partition_hint_map{});
 
     m.def("partition_by_group",
-          [](std::shared_ptr<py_recipe>& recipe, const context_shim& ctx, const std::vector<arb::group_description>& groups) {
+          [](std::shared_ptr<recipe>& recipe, const context_shim& ctx, const std::vector<arb::group_description>& groups) {
               try {
-                  return arb::domain_decomposition(py_recipe_shim(recipe), ctx.context, groups);
+                  return arb::domain_decomposition(recipe_shim(recipe), ctx.context, groups);
               }
               catch (...) {
                   py_reset_and_throw();
