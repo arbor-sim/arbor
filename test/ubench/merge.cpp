@@ -14,12 +14,12 @@ struct payload {
     payload(std::size_t ncells, std::size_t ev_per_cell) {
         auto dt = T/ev_per_cell;
         for(auto cell = 0ull; cell < ncells; ++cell) {
-            auto gen = arb::poisson_schedule(1/dt, arb::engine_type{cell});
+            auto gen = arb::poisson_schedule(1/(dt*arb::units::ms), arb::engine_type{cell});
             auto times = gen.events(0, T);
             evts.emplace_back();
             auto& evt = evts.back();
             for (auto t: arb::util::make_range(times)) {
-                evt.emplace_back(arb::spike_event{42, t, 0.23});
+                evt.emplace_back(42, t, 0.23);
                 ++size;
             }
             span.emplace_back(arb::util::make_range(evt.data(), evt.data() + evt.size()));
