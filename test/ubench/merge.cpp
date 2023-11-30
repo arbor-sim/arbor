@@ -14,8 +14,8 @@ struct payload {
     payload(std::size_t ncells, std::size_t ev_per_cell) {
         auto dt = T/ev_per_cell;
         for(auto cell = 0ull; cell < ncells; ++cell) {
-            auto gen = arb::poisson_schedule(1/(dt*arb::units::ms), cell);
-            auto times = gen.events(0, T);
+            auto gen = arb::poisson_schedule(1/dt, cell);
+            auto times = gen.events(0, T.value_as(arb::units::ms));
             evts.emplace_back();
             auto& evt = evts.back();
             for (auto t: arb::util::make_range(times)) {
