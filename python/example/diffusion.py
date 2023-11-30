@@ -5,6 +5,7 @@ from arbor import units as U
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+
 class recipe(A.recipe):
     def __init__(self, cell, probes):
         A.recipe.__init__(self)
@@ -36,14 +37,16 @@ s = A.mnpos
 s = tree.append(s, (-3, 0, 0, 3), (3, 0, 0, 3), tag=1)
 _ = tree.append(s, (3, 0, 0, 1), (33, 0, 0, 1), tag=3)
 
-dec = (A.decor()
-       .set_ion("na", int_con=0.0, diff=0.005)
-       .place("(location 0 0.5)", A.synapse("inject/x=na", {"alpha": 200.0}), "Zap")
-       .paint("(all)", A.density("decay/x=na"))
-       .discretization(A.cv_policy("(max-extent 5)"))
-       # Set up ion diffusion
-       .set_ion("na", int_con=1.0, ext_con=140, rev_pot=50, diff=0.005)
-       .paint("(tag 1)", ion="na", int_con=100.0, diff=0.01))
+dec = (
+    A.decor()
+    .set_ion("na", int_con=0.0, diff=0.005)
+    .place("(location 0 0.5)", A.synapse("inject/x=na", {"alpha": 200.0}), "Zap")
+    .paint("(all)", A.density("decay/x=na"))
+    .discretization(A.cv_policy("(max-extent 5)"))
+    # Set up ion diffusion
+    .set_ion("na", int_con=1.0, ext_con=140, rev_pot=50, diff=0.005)
+    .paint("(tag 1)", ion="na", int_con=100.0, diff=0.01)
+)
 
 prb = [
     A.cable_probe_ion_diff_concentration_cell("na", "nad"),

@@ -3,47 +3,85 @@ Units and quantities for driving the user interface.
 """
 from __future__ import annotations
 import typing
-__all__ = ['A', 'C', 'Celsius', 'F', 'Hz', 'Kelvin', 'M', 'MOhm', 'Ohm', 'S', 'V', 'cm', 'deg', 'giga', 'kHz', 'kOhm', 'kilo', 'm', 'mA', 'mM', 'mS', 'mV', 'mega', 'micro', 'milli', 'mm', 'mol', 'ms', 'nA', 'nF', 'nano', 'nm', 'ns', 'pA', 'pF', 'pico', 'quantity', 'rad', 's', 'uA', 'uF', 'uS', 'um', 'unit', 'us']
+
+__all__ = [
+    "A",
+    "C",
+    "Celsius",
+    "F",
+    "Hz",
+    "Kelvin",
+    "M",
+    "MOhm",
+    "Ohm",
+    "S",
+    "V",
+    "cm",
+    "deg",
+    "giga",
+    "kHz",
+    "kOhm",
+    "kilo",
+    "m",
+    "mA",
+    "mM",
+    "mS",
+    "mV",
+    "mega",
+    "micro",
+    "milli",
+    "mm",
+    "mol",
+    "ms",
+    "nA",
+    "nF",
+    "nano",
+    "nm",
+    "ns",
+    "pA",
+    "pF",
+    "pico",
+    "quantity",
+    "rad",
+    "s",
+    "uA",
+    "uF",
+    "uS",
+    "um",
+    "unit",
+    "us",
+]
+
 class quantity:
     """
     A quantity, comprising a magnitude and a unit.
     """
-    def __add__(self, arg0: quantity) -> quantity:
-        ...
+
+    def __add__(self, arg0: quantity) -> quantity: ...
     @typing.overload
-    def __mul__(self, arg0: quantity) -> quantity:
-        ...
+    def __mul__(self, arg0: quantity) -> quantity: ...
     @typing.overload
-    def __mul__(self, arg0: float) -> quantity:
-        ...
+    def __mul__(self, arg0: float) -> quantity: ...
     @typing.overload
-    def __mul__(self, arg0: unit) -> quantity:
-        ...
-    def __pow__(self: unit, arg0: int) -> unit:
-        ...
+    def __mul__(self, arg0: unit) -> quantity: ...
+    def __pow__(self: unit, arg0: int) -> unit: ...
     def __repr__(self) -> str:
         """
         Convert quantity to string.
         """
-    def __rmul__(self, arg0: float) -> quantity:
-        ...
-    def __rtruediv__(self, arg0: float) -> quantity:
-        ...
+    def __rmul__(self, arg0: float) -> quantity: ...
+    def __rtruediv__(self, arg0: float) -> quantity: ...
     def __str__(self) -> str:
         """
         Convert quantity to string.
         """
-    def __sub__(self, arg0: quantity) -> quantity:
-        ...
+    def __sub__(self, arg0: quantity) -> quantity: ...
     @typing.overload
-    def __truediv__(self, arg0: quantity) -> quantity:
-        ...
+    def __truediv__(self, arg0: quantity) -> quantity: ...
     @typing.overload
-    def __truediv__(self, arg0: float) -> quantity:
-        ...
+    def __truediv__(self, arg0: float) -> quantity: ...
     @typing.overload
-    def __truediv__(self, arg0: unit) -> quantity:
-        ...
+    def __truediv__(self, arg0: unit) -> quantity: ...
     def value_as(self, unit: unit) -> float:
         """
         Convert quantity to given unit and return magnitude.
@@ -58,36 +96,32 @@ class quantity:
         """
         Return magnitude.
         """
+
 class unit:
     """
     A unit.
     """
+
     @typing.overload
-    def __mul__(self, arg0: unit) -> unit:
-        ...
+    def __mul__(self, arg0: unit) -> unit: ...
     @typing.overload
-    def __mul__(self, arg0: float) -> quantity:
-        ...
-    def __pow__(self, arg0: int) -> unit:
-        ...
+    def __mul__(self, arg0: float) -> quantity: ...
+    def __pow__(self, arg0: int) -> unit: ...
     def __repr__(self) -> str:
         """
         Convert unit to string.
         """
-    def __rmul__(self, arg0: float) -> quantity:
-        ...
-    def __rtruediv__(self, arg0: float) -> quantity:
-        ...
+    def __rmul__(self, arg0: float) -> quantity: ...
+    def __rtruediv__(self, arg0: float) -> quantity: ...
     def __str__(self) -> str:
         """
         Convert unit to string.
         """
     @typing.overload
-    def __truediv__(self, arg0: unit) -> unit:
-        ...
+    def __truediv__(self, arg0: unit) -> unit: ...
     @typing.overload
-    def __truediv__(self, arg0: float) -> quantity:
-        ...
+    def __truediv__(self, arg0: float) -> quantity: ...
+
 A: unit  # value = A
 C: unit  # value = C
 Celsius: unit  # value = °C
