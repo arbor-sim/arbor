@@ -20,7 +20,7 @@ struct spike_event {
     time_type time = -1;
 
     spike_event() = default;
-    constexpr spike_event(cell_lid_type tgt, time_type t, arb_weight_type w) noexcept: target(tgt), weight(w), time(t) noexcept {}
+    constexpr spike_event(cell_lid_type tgt, time_type t, arb_weight_type w) noexcept: target(tgt), weight(w), time(t) {}
 
     ARB_SERDES_ENABLE(spike_event, target, time, weight);
 };
