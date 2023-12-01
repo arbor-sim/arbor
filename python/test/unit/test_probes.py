@@ -2,6 +2,7 @@
 
 import unittest
 import arbor as A
+from arbor import units as U
 import numpy as np
 
 """
@@ -22,7 +23,7 @@ class cc_recipe(A.recipe):
 
         dec.place("(location 0 0.08)", A.synapse("expsyn"), "syn0")
         dec.place("(location 0 0.09)", A.synapse("exp2syn"), "syn1")
-        dec.place("(location 0 0.1)", A.iclamp(20.0), "iclamp")
+        dec.place("(location 0 0.1)", A.iclamp(20.0 * U.nA), "iclamp")
         dec.paint("(all)", A.density("hh"))
 
         self.cell = A.cable_cell(st, dec)
@@ -202,8 +203,8 @@ class TestLifProbes(unittest.TestCase):
     def test_probe_result(self):
         rec = lif_recipe()
         sim = A.simulation(rec)
-        hdl = sim.sample(0, "Um", A.regular_schedule(0.1))
-        sim.run(1.0, 0.05)
+        hdl = sim.sample(0, "Um", A.regular_schedule(0.1 * U.ms))
+        sim.run(1.0 * U.ms, 0.05 * U.ms)
         smp = sim.samples(hdl)
         exp = np.array(
             [

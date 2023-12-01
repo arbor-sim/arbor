@@ -17,6 +17,8 @@ void register_units(py::module& m) {
 
     unit
         .def(py::self * py::self)
+        .def(py::self == py::self)
+        .def(py::self != py::self)
         .def(py::self / py::self)
         .def(py::self * double())
         .def(py::self / double())
@@ -33,6 +35,8 @@ void register_units(py::module& m) {
     quantity
         .def(py::self * py::self)
         .def(py::self / py::self)
+        .def(py::self == py::self)
+        .def(py::self != py::self)
         .def(py::self + py::self)
         .def(py::self - py::self)
         .def(py::self * double())

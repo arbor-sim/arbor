@@ -6,7 +6,8 @@ import unittest
 import types
 import numpy as np
 
-import arbor as arb
+import arbor as A
+from arbor import units as U
 from .. import fixtures
 
 """
@@ -38,7 +39,7 @@ class TestMultipleConnections(unittest.TestCase):
     # Method creating a new mechanism for a synapse with STDP
     def create_syn_mechanism(self, scale_contrib=1):
         # create new synapse mechanism
-        syn_mechanism = arb.mechanism("expsyn_stdp")
+        syn_mechanism = A.mechanism("expsyn_stdp")
 
         # set pre- and postsynaptic contributions for STDP
         syn_mechanism.set("Apre", 0.01 * scale_contrib)
@@ -89,9 +90,7 @@ class TestMultipleConnections(unittest.TestCase):
         def cell_description(self, gid):
             # spike source neuron
             if gid < 3:
-                return arb.spike_source_cell(
-                    "spike_source", arb.explicit_schedule(self.trains[gid])
-                )
+                return A.spike_source_cell("spike_source", self.schedule(gid))
 
             # spike-receiving cable neuron
             elif gid == 3:
@@ -101,16 +100,16 @@ class TestMultipleConnections(unittest.TestCase):
 
                 decor.place(
                     '"midpoint"',
-                    arb.synapse(create_syn_mechanism(scale_stdp)),
+                    A.synapse(create_syn_mechanism(scale_stdp)),
                     "postsyn_target",
                 )  # place synapse for input from one presynaptic neuron at the center of the soma
                 decor.place(
                     '"midpoint"',
-                    arb.synapse(create_syn_mechanism(scale_stdp)),
+                    A.synapse(create_syn_mechanism(scale_stdp)),
                     "postsyn_target",
                 )  # place synapse for input from another presynaptic neuron at the center of the soma
                 # (using the same label as above!)
-                return arb.cable_cell(tree, decor, labels)
+                return A.cable_cell(tree, decor, labels)
 
         art_spiker_recipe.cell_description = types.MethodType(
             cell_description, art_spiker_recipe
@@ -140,15 +139,15 @@ class TestMultipleConnections(unittest.TestCase):
         self.assertAlmostEqual(connections_from_recipe[3].delay, 1.4)
 
         # construct domain_decomposition and simulation object
-        sim = arb.simulation(art_spiker_recipe, context)
-        sim.record(arb.spike_recording.all)
+        sim = A.simulation(art_spiker_recipe, context)
+        sim.record(A.spike_recording.all)
 
         # create schedule and handle to record the membrane potential of neuron 3
-        reg_sched = arb.regular_schedule(0, self.dt, self.runtime)
+        reg_sched = A.regular_schedule(0 * U.ms, self.dt * U.ms, self.runtime * U.ms)
         handle_mem = sim.sample((3, "Um"), reg_sched)
 
         # run the simulation
-        sim.run(self.runtime, self.dt)
+        sim.run(self.runtime * U.ms, self.dt * U.ms)
 
         return sim, handle_mem
 
@@ -175,28 +174,28 @@ class TestMultipleConnections(unittest.TestCase):
 
             # incoming to neuron 3
             elif gid == 3:
-                source_label_0 = arb.cell_global_label(
+                source_label_0 = A.cell_global_label(
                     0, "spike_source"
                 )  # referring to the "spike_source" label of neuron 0
-                source_label_1 = arb.cell_global_label(
+                source_label_1 = A.cell_global_label(
                     1, "spike_source"
                 )  # referring to the "spike_source" label of neuron 1
 
-                target_label_rr = arb.cell_local_label(
-                    "postsyn_target", arb.selection_policy.round_robin
+                target_label_rr = A.cell_local_label(
+                    "postsyn_target", A.selection_policy.round_robin
                 )  # referring to the current item in the "postsyn_target" label group of neuron 3, moving to the next item afterwards
 
-                conn_0_3_n1 = arb.connection(
+                conn_0_3_n1 = A.connection(
                     source_label_0, target_label_rr, weight, 0.2
                 )  # first connection from neuron 0 to 3
-                conn_0_3_n2 = arb.connection(
+                conn_0_3_n2 = A.connection(
                     source_label_0, target_label_rr, weight, 0.2
                 )  # second connection from neuron 0 to 3
                 # NOTE: this is not connecting to the same target label item as 'conn_0_3_n1' because 'round_robin' has been used before!
-                conn_1_3_n1 = arb.connection(
+                conn_1_3_n1 = A.connection(
                     source_label_1, target_label_rr, weight2, 1.4
                 )  # first connection from neuron 1 to 3
-                conn_1_3_n2 = arb.connection(
+                conn_1_3_n2 = A.connection(
                     source_label_1, target_label_rr, weight2, 1.4
                 )  # second connection from neuron 1 to 3
                 # NOTE: this is not connecting to the same target label item as 'conn_1_3_n1' because 'round_robin' has been used before!
@@ -237,30 +236,30 @@ class TestMultipleConnections(unittest.TestCase):
 
             # incoming to neuron 3
             elif gid == 3:
-                source_label_0 = arb.cell_global_label(
+                source_label_0 = A.cell_global_label(
                     0, "spike_source"
                 )  # referring to the "spike_source" label of neuron 0
-                source_label_1 = arb.cell_global_label(
+                source_label_1 = A.cell_global_label(
                     1, "spike_source"
                 )  # referring to the "spike_source" label of neuron 1
 
-                target_label_rr_halt = arb.cell_local_label(
-                    "postsyn_target", arb.selection_policy.round_robin_halt
+                target_label_rr_halt = A.cell_local_label(
+                    "postsyn_target", A.selection_policy.round_robin_halt
                 )  # referring to the current item in the "postsyn_target" label group of neuron 3
-                target_label_rr = arb.cell_local_label(
-                    "postsyn_target", arb.selection_policy.round_robin
+                target_label_rr = A.cell_local_label(
+                    "postsyn_target", A.selection_policy.round_robin
                 )  # referring to the current item in the "postsyn_target" label group of neuron 3, moving to the next item afterwards
 
-                conn_0_3_n1 = arb.connection(
+                conn_0_3_n1 = A.connection(
                     source_label_0, target_label_rr_halt, weight, 0.2
                 )  # first connection from neuron 0 to 3
-                conn_0_3_n2 = arb.connection(
+                conn_0_3_n2 = A.connection(
                     source_label_0, target_label_rr, weight, 0.2
                 )  # second connection from neuron 0 to 3
-                conn_1_3_n1 = arb.connection(
+                conn_1_3_n1 = A.connection(
                     source_label_1, target_label_rr_halt, weight2, 1.4
                 )  # first connection from neuron 1 to 3
-                conn_1_3_n2 = arb.connection(
+                conn_1_3_n2 = A.connection(
                     source_label_1, target_label_rr, weight2, 1.4
                 )  # second connection from neuron 1 to 3
 
@@ -298,24 +297,24 @@ class TestMultipleConnections(unittest.TestCase):
 
             # incoming to neuron 3
             elif gid == 3:
-                source_label_0 = arb.cell_global_label(
+                source_label_0 = A.cell_global_label(
                     0, "spike_source"
                 )  # referring to the "spike_source" label of neuron 0
-                source_label_1 = arb.cell_global_label(
+                source_label_1 = A.cell_global_label(
                     1, "spike_source"
                 )  # referring to the "spike_source" label of neuron 1
 
-                target_label_uni_n1 = arb.cell_local_label(
-                    "postsyn_target_1", arb.selection_policy.univalent
+                target_label_uni_n1 = A.cell_local_label(
+                    "postsyn_target_1", A.selection_policy.univalent
                 )  # referring to an only item in the "postsyn_target_1" label group of neuron 3
-                target_label_uni_n2 = arb.cell_local_label(
-                    "postsyn_target_2", arb.selection_policy.univalent
+                target_label_uni_n2 = A.cell_local_label(
+                    "postsyn_target_2", A.selection_policy.univalent
                 )  # referring to an only item in the "postsyn_target_2" label group of neuron 3
 
-                conn_0_3 = arb.connection(
+                conn_0_3 = A.connection(
                     source_label_0, target_label_uni_n1, weight, 0.2
                 )  # connection from neuron 0 to 3
-                conn_1_3 = arb.connection(
+                conn_1_3 = A.connection(
                     source_label_1, target_label_uni_n2, weight2, 1.4
                 )  # connection from neuron 1 to 3
 
@@ -331,9 +330,7 @@ class TestMultipleConnections(unittest.TestCase):
         def cell_description(self, gid):
             # spike source neuron
             if gid < 3:
-                return arb.spike_source_cell(
-                    "spike_source", arb.explicit_schedule(self.trains[gid])
-                )
+                return A.spike_source_cell("spike_source", self.schedule(gid))
 
             # spike-receiving cable neuron
             elif gid == 3:
@@ -341,17 +338,17 @@ class TestMultipleConnections(unittest.TestCase):
 
                 decor.place(
                     '"midpoint"',
-                    arb.synapse(create_syn_mechanism()),
+                    A.synapse(create_syn_mechanism()),
                     "postsyn_target_1",
                 )  # place synapse for input from one presynaptic neuron at the center of the soma
                 decor.place(
                     '"midpoint"',
-                    arb.synapse(create_syn_mechanism()),
+                    A.synapse(create_syn_mechanism()),
                     "postsyn_target_2",
                 )  # place synapse for input from another presynaptic neuron at the center of the soma
                 # (using another label as above!)
 
-                return arb.cable_cell(tree, decor, labels)
+                return A.cable_cell(tree, decor, labels)
 
         art_spiker_recipe.cell_description = types.MethodType(
             cell_description, art_spiker_recipe
@@ -371,15 +368,15 @@ class TestMultipleConnections(unittest.TestCase):
         self.assertAlmostEqual(connections_from_recipe[1].delay, 1.4)
 
         # construct simulation object
-        sim = arb.simulation(art_spiker_recipe, context)
-        sim.record(arb.spike_recording.all)
+        sim = A.simulation(art_spiker_recipe, context)
+        sim.record(A.spike_recording.all)
 
         # create schedule and handle to record the membrane potential of neuron 3
-        reg_sched = arb.regular_schedule(0, self.dt, self.runtime)
+        reg_sched = A.regular_schedule(0 * U.ms, self.dt * U.ms, self.runtime * U.ms)
         handle_mem = sim.sample((3, "Um"), reg_sched)
 
         # run the simulation
-        sim.run(self.runtime, self.dt)
+        sim.run(self.runtime * U.ms, self.dt * U.ms)
 
         # evaluate the outcome
         self.evaluate_outcome(sim, handle_mem)

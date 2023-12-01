@@ -4,6 +4,7 @@
 
 import unittest
 import arbor as A
+from arbor import units as U
 from .. import fixtures
 
 """
@@ -18,11 +19,11 @@ class TestSpikes(unittest.TestCase):
         sim = art_spiking_sim
         sim.record(A.spike_recording.all)
         # run simulation in 5 steps, forcing 5 epochs
-        sim.run(1, 0.01)
-        sim.run(2, 0.01)
-        sim.run(3, 0.01)
-        sim.run(4, 0.01)
-        sim.run(5, 0.01)
+        sim.run(1 * U.ms, 0.01 * U.ms)
+        sim.run(2 * U.ms, 0.01 * U.ms)
+        sim.run(3 * U.ms, 0.01 * U.ms)
+        sim.run(4 * U.ms, 0.01 * U.ms)
+        sim.run(5 * U.ms, 0.01 * U.ms)
 
         spikes = sim.spikes()
         times = spikes["time"].tolist()
