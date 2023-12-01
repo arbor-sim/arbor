@@ -156,7 +156,7 @@ handles = [
 meters.checkpoint("simulation-init", context)
 
 # (17) Run simulation
-sim.run(ncells * 5*U.ms)
+sim.run(ncells * 5 * U.ms)
 print("Simulation finished")
 meters.checkpoint("simulation-run", context)
 
