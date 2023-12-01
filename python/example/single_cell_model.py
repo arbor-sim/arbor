@@ -19,8 +19,8 @@ decor = (
     A.decor()
     .set_property(Vm=-40)
     .paint('"soma"', A.density("hh"))
-    .place('"midpoint"', A.iclamp(10*U.ms, 2*U.ms, 0.8*U.nA), "iclamp")
-    .place('"midpoint"', A.threshold_detector(-10*U.mV), "detector")
+    .place('"midpoint"', A.iclamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA), "iclamp")
+    .place('"midpoint"', A.threshold_detector(-10 * U.mV), "detector")
 )
 
 # (4) Create cell and the single cell model based on it
@@ -30,10 +30,10 @@ cell = A.cable_cell(tree, decor, labels)
 m = A.single_cell_model(cell)
 
 # (6) Attach voltage probe sampling at 10 kHz (every 0.1 ms).
-m.probe("voltage", '"midpoint"', tag="Um", frequency=10*U.kHz)
+m.probe("voltage", '"midpoint"', tag="Um", frequency=10 * U.kHz)
 
 # (7) Run simulation for 30 ms of simulated activity.
-m.run(tfinal=30*U.ms)
+m.run(tfinal=30 * U.ms)
 
 # (8) Print spike times.
 if len(m.spikes) > 0:

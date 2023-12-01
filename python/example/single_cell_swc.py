@@ -48,12 +48,12 @@ decor = (
     # Increase resistivity on dendrites.
     .paint('"dend"', rL=500)
     # Attach stimuli that inject 4 nA current for 1 ms, starting at 3 and 8 ms.
-    .place('"root"',      A.iclamp(10*U.ms, 1*U.ms, current=5*U.nA), "iclamp0")
-    .place('"stim_site"', A.iclamp(3*U.ms, 1*U.ms, current=0.5*U.nA), "iclamp1")
-    .place('"stim_site"', A.iclamp(10*U.ms, 1*U.ms, current=0.5*U.nA), "iclamp2")
-    .place('"stim_site"', A.iclamp(8*U.ms, 1*U.ms, current=4*U.nA), "iclamp3")
+    .place('"root"', A.iclamp(10 * U.ms, 1 * U.ms, current=5 * U.nA), "iclamp0")
+    .place('"stim_site"', A.iclamp(3 * U.ms, 1 * U.ms, current=0.5 * U.nA), "iclamp1")
+    .place('"stim_site"', A.iclamp(10 * U.ms, 1 * U.ms, current=0.5 * U.nA), "iclamp2")
+    .place('"stim_site"', A.iclamp(8 * U.ms, 1 * U.ms, current=4 * U.nA), "iclamp3")
     # Detect spikes at the soma with a voltage threshold of -10 mV.
-    .place('"axon_end"', A.threshold_detector(-10*U.mV), "detector")
+    .place('"axon_end"', A.threshold_detector(-10 * U.mV), "detector")
     # Create the policy used to discretise the cell into CVs.
     # Use a single CV for the soma, and CVs of maximum length 1 μm elsewhere.
     .discretization('(replace (single (region "soma")) (max-extent 1.0))')
@@ -66,12 +66,12 @@ cell = A.cable_cell(morpho, decor, labels)
 m = A.single_cell_model(cell)
 
 # Attach voltage probes that sample at 50 kHz.
-m.probe("voltage", tag="Um-root", where='"root"', frequency=50*U.kHz)
-m.probe("voltage", tag="Um-stim", where='"stim_site"', frequency=50*U.kHz)
-m.probe("voltage", tag="Um-axon", where='"axon_end"', frequency=50*U.kHz)
+m.probe("voltage", tag="Um-root", where='"root"', frequency=50 * U.kHz)
+m.probe("voltage", tag="Um-stim", where='"stim_site"', frequency=50 * U.kHz)
+m.probe("voltage", tag="Um-axon", where='"axon_end"', frequency=50 * U.kHz)
 
 # Simulate the cell for 15 ms.
-m.run(15*U.ms)
+m.run(15 * U.ms)
 print("Simulation done.")
 
 # Print spike times.
