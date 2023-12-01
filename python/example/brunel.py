@@ -113,7 +113,7 @@ class brunel_recipe(A.recipe):
             A.event_generator(
                 "tgt",
                 self.weight_ext_,
-                A.poisson_schedule(0 * U.ms, self.lambda_, gid + self.seed_),
+                A.poisson_schedule(freq=self.lambda_, seed=gid + self.seed_),
             )
         ]
 

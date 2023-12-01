@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
-import arbor
+import arbor as A
+from arbor import units as U
 import argparse
 import numpy as np
 
-import pandas
-import seaborn  # You may have to pip install these.
+import pandas as pd
+import seaborn as sns  # You may have to pip install these.
 
 
-class Cable(arbor.recipe):
+class Cable(A.recipe):
     def __init__(
         self,
         probes,
@@ -40,7 +41,7 @@ class Cable(arbor.recipe):
         cv_policy_max_extent -- maximum extent of control volume in μm
         """
 
-        arbor.recipe.__init__(self)
+        A.recipe.__init__(self)
 
         self.the_probes = probes
 
@@ -51,13 +52,13 @@ class Cable(arbor.recipe):
         self.rL = rL
         self.g = g
 
-        self.stimulus_start = stimulus_start
-        self.stimulus_duration = stimulus_duration
-        self.stimulus_amplitude = stimulus_amplitude
+        self.stimulus_start = stimulus_start * U.ms
+        self.stimulus_duration = stimulus_duration * U.ms
+        self.stimulus_amplitude = stimulus_amplitude * U.nA
 
         self.cv_policy_max_extent = cv_policy_max_extent
 
-        self.the_props = arbor.neuron_cable_properties()
+        self.the_props = A.neuron_cable_properties()
 
     def num_cells(self):
         return 1
@@ -66,7 +67,7 @@ class Cable(arbor.recipe):
         return 0
 
     def cell_kind(self, _):
-        return arbor.cell_kind.cable
+        return A.cell_kind.cable
 
     def probes(self, _):
         return self.the_probes
@@ -81,34 +82,34 @@ class Cable(arbor.recipe):
         to build a multi-compartment neuron.
         """
 
-        tree = arbor.segment_tree()
+        tree = A.segment_tree()
 
         tree.append(
-            arbor.mnpos,
-            arbor.mpoint(0, 0, 0, self.radius),
-            arbor.mpoint(self.length, 0, 0, self.radius),
+            A.mnpos,
+            A.mpoint(0, 0, 0, self.radius),
+            A.mpoint(self.length, 0, 0, self.radius),
             tag=1,
         )
 
-        labels = arbor.label_dict({"cable": "(tag 1)", "start": "(location 0 0)"})
+        labels = A.label_dict({"cable": "(tag 1)", "start": "(location 0 0)"})
 
         decor = (
-            arbor.decor()
+            A.decor()
             .set_property(Vm=self.Vm, cm=self.cm, rL=self.rL)
-            .paint('"cable"', arbor.density(f"pas/e={self.Vm}", g=self.g))
+            .paint('"cable"', A.density(f"pas/e={self.Vm}", g=self.g))
             .place(
                 '"start"',
-                arbor.iclamp(
+                A.iclamp(
                     self.stimulus_start, self.stimulus_duration, self.stimulus_amplitude
                 ),
                 "iclamp",
             )
         )
 
-        policy = arbor.cv_policy_max_extent(self.cv_policy_max_extent)
+        policy = A.cv_policy_max_extent(self.cv_policy_max_extent)
         decor.discretization(policy)
 
-        return arbor.cable_cell(tree, decor, labels)
+        return A.cable_cell(tree, decor, labels)
 
 
 def get_rm(g):
@@ -196,34 +197,32 @@ if __name__ == "__main__":
     probe_locations = [
         (f"(location 0 {r})", f"Um-(0, {r})") for r in np.linspace(0, 1, 11)
     ]
-    probes = [
-        arbor.cable_probe_membrane_voltage(loc, tag) for loc, tag in probe_locations
-    ]
+    probes = [A.cable_probe_membrane_voltage(loc, tag) for loc, tag in probe_locations]
     recipe = Cable(probes, **vars(args))
 
     # configure the simulation and handles for the probes
-    sim = arbor.simulation(recipe)
-    dt = 0.001
+    sim = A.simulation(recipe)
+    dt = 1 * U.us
     handles = [
-        sim.sample((0, tag), arbor.regular_schedule(dt)) for _, tag in probe_locations
+        sim.sample((0, tag), A.regular_schedule(dt)) for _, tag in probe_locations
     ]
 
     # run the simulation for 30 ms
-    sim.run(tfinal=30, dt=dt)
+    sim.run(tfinal=30 * U.ms, dt=dt)
 
-    # retrieve the sampled membrane voltages and convert to a pandas DataFrame
+    # retrieve the sampled membrane voltages and convert to a pd DataFrame
     print("Plotting results ...")
     df_list = []
     for probe in range(len(handles)):
         samples, meta = sim.samples(handles[probe])[0]
         df_list.append(
-            pandas.DataFrame(
+            pd.DataFrame(
                 {"t/ms": samples[:, 0], "U/mV": samples[:, 1], "Probe": f"{probe}"}
             )
         )
 
-    df = pandas.concat(df_list, ignore_index=True)
-    seaborn.relplot(
+    df = pd.concat(df_list, ignore_index=True)
+    sns.relplot(
         data=df, kind="line", x="t/ms", y="U/mV", hue="Probe", errorbar=None
     ).set(xlim=(9, 14)).savefig("single_cell_cable_result.svg")
 

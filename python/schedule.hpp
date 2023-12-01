@@ -1,7 +1,6 @@
 #pragma once
 
 #include <optional>
-#include <random>
 #include <vector>
 
 #include <pybind11/pybind11.h>
@@ -16,8 +15,6 @@ namespace pyarb {
 // to an arb::schedule object.
 struct schedule_shim_base {
     schedule_shim_base() = default;
-    schedule_shim_base(const schedule_shim_base&) = delete;
-    schedule_shim_base& operator=(schedule_shim_base&) = delete;
     virtual ~schedule_shim_base() {}
 
     virtual arb::schedule schedule() const = 0;
@@ -81,28 +78,33 @@ struct explicit_schedule_shim: schedule_shim_base {
 struct poisson_schedule_shim: schedule_shim_base {
     arb::units::quantity tstart; // ms
     arb::units::quantity freq;   // kHz
-    std::optional<arb::units::quantity> tstop; // ms
+    arb::units::quantity tstop; // ms
     arb::seed_type seed = arb::default_seed;
+
+    poisson_schedule_shim(const poisson_schedule_shim&) = default;
+    poisson_schedule_shim(poisson_schedule_shim&&) = default;
+
+    poisson_schedule_shim() = default;
+    ~poisson_schedule_shim() = default;
 
     poisson_schedule_shim(const arb::units::quantity& ts,
                           const arb::units::quantity& f,
                           arb::seed_type s,
-                          std::optional<arb::units::quantity> tstop);
-    poisson_schedule_shim(const arb::units::quantity& f);
+                          const arb::units::quantity& tstop);
 
     void set_tstart(const arb::units::quantity& t);
     void set_freq(const arb::units::quantity& f);
-    void set_tstop(std::optional<arb::units::quantity> f);
+    void set_tstop(const arb::units::quantity& f);
 
     const auto& get_tstop() const { return tstop; }
     const auto& get_tstart() const { return tstart; }
     const auto& get_freq() const { return freq; }
 
-
-    arb::schedule schedule() const override;
-
     // TODO(TH) this should be symmetrical...
     std::vector<arb::time_type> events(const arb::units::quantity& t0, const arb::units::quantity& t1);
+
+    arb::schedule schedule() const;
+
 };
 
 }

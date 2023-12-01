@@ -4,7 +4,8 @@
 
 import random
 import subprocess
-import arbor as arb
+import arbor as A
+from arbor import units as U
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -14,8 +15,8 @@ def make_catalogue():
     out = subprocess.getoutput("arbor-build-catalogue ou_lif . --cpu True")
     print(out)
     # load the new catalogue and extend it with builtin stochastic catalogue
-    cat = arb.load_catalogue("./ou_lif-catalogue.so")
-    cat.extend(arb.stochastic_catalogue(), "")
+    cat = A.load_catalogue("./ou_lif-catalogue.so")
+    cat.extend(A.stochastic_catalogue(), "")
     return cat
 
 
@@ -23,16 +24,16 @@ def make_cell():
     # cell morphology
     # ===============
 
-    tree = arb.segment_tree()
+    tree = A.segment_tree()
     radius = 1e-10  # radius of cylinder (in µm)
     height = 2 * radius  # height of cylinder (in µm)
     tree.append(
-        arb.mnpos,
-        arb.mpoint(-height / 2, 0, 0, radius),
-        arb.mpoint(height / 2, 0, 0, radius),
+        A.mnpos,
+        A.mpoint(-height / 2, 0, 0, radius),
+        A.mpoint(height / 2, 0, 0, radius),
         tag=1,
     )
-    labels = arb.label_dict({"center": "(location 0 0.5)"})
+    labels = A.label_dict({"center": "(location 0 0.5)"})
 
     # LIF density mechanism
     # =====================
@@ -50,7 +51,7 @@ def make_cell():
     # reversal potential in mV
     V_rev = -65.0
     # spiking threshold in mV
-    V_th = -55.0
+    V_th = -55.0 * U.mV
     # initial synaptic weight in nC
     h_0 = 4.20075
     # leak resistance in MOhm
@@ -58,7 +59,7 @@ def make_cell():
     # membrane time constant in ms
     tau_mem = 2.0
 
-    lif = arb.mechanism("lif")
+    lif = A.mechanism("lif")
     lif.set("R_leak", R_leak)
     lif.set("R_reset", 1e-10)
     # set to initial value to zero (background input is applied via stochastic ou_bg_mech)
@@ -66,7 +67,7 @@ def make_cell():
     lif.set("i_factor", i_factor)
     lif.set("V_rev", V_rev)
     lif.set("V_reset", -70.0)
-    lif.set("V_th", V_th)
+    lif.set("V_th", V_th.value_as(U.mV))
     # refractory time in ms
     lif.set("t_ref", tau_mem)
 
@@ -80,7 +81,7 @@ def make_cell():
     # volatility in nA
     sigma_bg = 0.5
     # instantiate mechanism
-    ou_bg = arb.mechanism("ou_input")
+    ou_bg = A.mechanism("ou_input")
     ou_bg.set("mu", mu_bg)
     ou_bg.set("sigma", sigma_bg)
     ou_bg.set("tau", tau_syn)
@@ -99,7 +100,7 @@ def make_cell():
     # volatility in nA
     sigma_stim = np.sqrt((1000.0 * N * f) / (2 * tau_syn)) * w_out
     # instantiate mechanism
-    ou_stim = arb.mechanism("ou_input")
+    ou_stim = A.mechanism("ou_input")
     ou_stim.set("mu", mu_stim)
     ou_stim.set("sigma", sigma_stim)
     ou_stim.set("tau", tau_syn)
@@ -107,26 +108,26 @@ def make_cell():
     # paint and place mechanisms
     # ==========================
 
-    decor = arb.decor()
+    decor = A.decor()
     decor.set_property(Vm=V_rev, cm=c_mem)
-    decor.paint("(all)", arb.density(lif))
-    decor.place('"center"', arb.synapse(ou_stim), "ou_stim")
-    decor.place('"center"', arb.synapse(ou_bg), "ou_bg")
-    decor.place('"center"', arb.threshold_detector(V_th), "spike_detector")
+    decor.paint("(all)", A.density(lif))
+    decor.place('"center"', A.synapse(ou_stim), "ou_stim")
+    decor.place('"center"', A.synapse(ou_bg), "ou_bg")
+    decor.place('"center"', A.threshold_detector(V_th), "spike_detector")
 
-    return arb.cable_cell(tree, decor, labels)
+    return A.cable_cell(tree, decor, labels)
 
 
-class ou_recipe(arb.recipe):
+class ou_recipe(A.recipe):
     def __init__(self, cell, cat):
-        arb.recipe.__init__(self)
+        A.recipe.__init__(self)
 
         # simulation runtime parameters in ms
-        self.runtime = 20000
-        self.dt = 0.2
+        self.runtime = 20 * U.s
+        self.dt = 0.2 * U.ms
 
         # initialize catalogue and cell properties
-        self.the_props = arb.neuron_cable_properties()
+        self.the_props = A.neuron_cable_properties()
         self.the_props.catalogue = cat
         self.the_cell = cell
 
@@ -141,7 +142,7 @@ class ou_recipe(arb.recipe):
         }
 
     def cell_kind(self, gid):
-        return arb.cell_kind.cable
+        return A.cell_kind.cable
 
     def cell_description(self, gid):
         return self.the_cell
@@ -155,9 +156,9 @@ class ou_recipe(arb.recipe):
     def probes(self, gid):
         # probe membrane potential, total current, and external input currents
         return [
-            arb.cable_probe_membrane_voltage('"center"'),
-            arb.cable_probe_total_ion_current_cell(),
-            arb.cable_probe_point_state_cell("ou_input", "I_ou"),
+            A.cable_probe_membrane_voltage('"center"', "Um"),
+            A.cable_probe_total_ion_current_cell("Itot"),
+            A.cable_probe_point_state_cell("ou_input", "I_ou", "Iou"),
         ]
 
     def event_generators(self, gid):
@@ -170,81 +171,83 @@ class ou_recipe(arb.recipe):
         gens.extend(self.get_generators(self.bg_prot))
         return gens
 
-    # Returns arb.event_generator instances that describe the specifics of a given
+    # Returns A.event_generator instances that describe the specifics of a given
     # input/stimulation protocol for a mechanism implementing an Ornstein-Uhlenbeck process.
     # Here, if the value of the 'weight' parameter is 1, stimulation is switched on,
     # whereas if it is -1, stimulation is switched off.
     def get_generators(self, protocol):
         prot_name = protocol["scheme"]  # name of the protocol (defining its structure)
-        start_time = protocol["time_start"]  # time at which the stimulus starts in s
+        start_time = (
+            protocol["time_start"] * U.ms
+        )  # time at which the stimulus starts in ms
         label = protocol["label"]  # target synapse (mechanism label)
 
         if prot_name == "ONEPULSE":
             # create regular schedules to implement a stimulation pulse that lasts for 0.1 s
-            stim_on = arb.event_generator(
+            stim_on = A.event_generator(
                 label,
                 1,
-                arb.regular_schedule(start_time, self.dt, start_time + self.dt),
+                A.regular_schedule(start_time, self.dt, start_time + self.dt),
             )
-            stim_off = arb.event_generator(
+            stim_off = A.event_generator(
                 label,
                 -1,
-                arb.regular_schedule(
-                    start_time + 100, self.dt, start_time + 100 + self.dt
+                A.regular_schedule(
+                    start_time + 0.1 * U.s, self.dt, start_time + 0.1 * U.s + self.dt
                 ),
             )
             return [stim_on, stim_off]
 
         elif prot_name == "TRIPLET":
             # create regular schedules to implement pulses that last for 0.1 s each
-            stim1_on = arb.event_generator(
+            stim1_on = A.event_generator(
                 label,
                 1,
-                arb.regular_schedule(start_time, self.dt, start_time + self.dt),
+                A.regular_schedule(start_time, self.dt, start_time + self.dt),
             )
-            stim1_off = arb.event_generator(
+            stim1_off = A.event_generator(
                 label,
                 -1,
-                arb.regular_schedule(
-                    start_time + 100, self.dt, start_time + 100 + self.dt
+                A.regular_schedule(
+                    start_time + 0.1 * U.s, self.dt, start_time + 0.1 * U.s + self.dt
                 ),
             )
-            stim2_on = arb.event_generator(
+            stim2_on = A.event_generator(
                 label,
                 1,
-                arb.regular_schedule(
-                    start_time + 500, self.dt, start_time + 500 + self.dt
+                A.regular_schedule(
+                    start_time + 0.5 * U.s, self.dt, start_time + 0.5 * U.s + self.dt
                 ),
             )
-            stim2_off = arb.event_generator(
+            stim2_off = A.event_generator(
                 label,
                 -1,
-                arb.regular_schedule(
-                    start_time + 600, self.dt, start_time + 600 + self.dt
+                A.regular_schedule(
+                    start_time + 0.6 * U.s, self.dt, start_time + 0.6 * U.s + self.dt
                 ),
             )
-            stim3_on = arb.event_generator(
+            stim3_on = A.event_generator(
                 label,
                 1,
-                arb.regular_schedule(
-                    start_time + 1000, self.dt, start_time + 1000 + self.dt
+                A.regular_schedule(
+                    start_time + 1 * U.s, self.dt, start_time + 1 * U.s + self.dt
                 ),
             )
-            stim3_off = arb.event_generator(
+            stim3_off = A.event_generator(
                 label,
                 -1,
-                arb.regular_schedule(
-                    start_time + 1100, self.dt, start_time + 1100 + self.dt
+                A.regular_schedule(
+                    start_time + 1.1 * U.s, self.dt, start_time + 1.1 * U.s + self.dt
                 ),
             )
             return [stim1_on, stim1_off, stim2_on, stim2_off, stim3_on, stim3_off]
 
         elif prot_name == "FULL":
             # create a regular schedule that lasts for the full runtime
-            stim_on = arb.event_generator(
+            stim_on = A.event_generator(
                 label,
                 1,
-                arb.regular_schedule(start_time, self.dt, start_time + self.dt),
+                A.regular_schedule(start_time, self.dt, start_time + self.dt),
             )
             return [stim_on]
 
@@ -266,23 +269,23 @@ if __name__ == "__main__":
     print("random_seed = " + str(random_seed))
 
     # select one thread and no GPU
-    alloc = arb.proc_allocation(threads=1, gpu_id=None)
-    context = arb.context(alloc, mpi=None)
-    domains = arb.partition_load_balance(recipe, context)
+    alloc = A.proc_allocation(threads=1, gpu_id=None)
+    context = A.context(alloc, mpi=None)
+    domains = A.partition_load_balance(recipe, context)
 
     # create simulation
-    sim = arb.simulation(recipe, context, domains, seed=random_seed)
+    sim = A.simulation(recipe, context, domains, seed=random_seed)
 
     # create schedule for recording
-    reg_sched = arb.regular_schedule(0, recipe.dt, recipe.runtime)
+    reg_sched = A.regular_schedule(0 * U.ms, recipe.dt, recipe.runtime)
 
     # set handles to probe membrane potential and currents
     gid = 0
-    handle_mem = sim.sample((gid, 0), reg_sched)  # membrane potential
-    handle_tot_curr = sim.sample((gid, 1), reg_sched)  # total current
-    handle_curr = sim.sample((gid, 2), reg_sched)  # input current
+    handle_mem = sim.sample((gid, "Um"), reg_sched)  # membrane potential
+    handle_tot_curr = sim.sample((gid, "Itot"), reg_sched)  # total current
+    handle_curr = sim.sample((gid, "Iou"), reg_sched)  # input current
 
-    sim.record(arb.spike_recording.all)
+    sim.record(A.spike_recording.all)
     sim.run(tfinal=recipe.runtime, dt=recipe.dt)
 
     # get traces and spikes from simulator

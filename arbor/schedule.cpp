@@ -4,6 +4,8 @@
 #include <arbor/common_types.hpp>
 #include <arbor/schedule.hpp>
 
+#include <iostream>
+
 namespace arb {
 
 // Schedule at Poisson point process with rate 1/mean_dt,

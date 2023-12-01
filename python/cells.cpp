@@ -590,7 +590,7 @@ void register_cells(py::module& m) {
             [](arb::cable_cell_global_properties& props,
                optional<double> Vm, optional<double> cm,
                optional<double> rL, optional<double> tempK) {
-                if (Vm) props.default_parameters.init_membrane_potential = Vm;
+                if (Vm) props.default_parameters.init_membrane_potential=Vm;
                 if (cm) props.default_parameters.membrane_capacitance=cm;
                 if (rL) props.default_parameters.axial_resistivity=rL;
                 if (tempK) props.default_parameters.temperature_K=tempK;

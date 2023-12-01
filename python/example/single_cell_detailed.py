@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # This script is included in documentation. Adapt line numbers if touched.
 
-import arbor
-import pandas
-import seaborn
+import arbor as A
+from arbor import units as U
+import pandas as pd
+import seaborn as sns
 import sys
-from arbor import density
 
 # (1) Read the morphology from an SWC file.
 
@@ -17,12 +17,10 @@ if len(sys.argv) < 2:
     sys.exit(0)
 
 filename = sys.argv[1]
-morph = arbor.load_swc_arbor(filename)
+morph = A.load_swc_arbor(filename)
 
 # (2) Create and populate the label dictionary.
-
-
-labels = arbor.label_dict(
+labels = A.label_dict(
     {
         # Regions:
         # Add a label for a region that includes the whole morphology
@@ -43,38 +41,35 @@ labels = arbor.label_dict(
 ).add_swc_tags()
 
 # (3) Create and populate the decor.
-# NB. This can be written more compactly using method chaining
-
-decor = arbor.decor()
-# Set the default properties of the cell (this overrides the model defaults).
-decor.set_property(Vm=-55)
-decor.set_ion("na", int_con=10, ext_con=140, rev_pot=50, method="nernst/na")
-decor.set_ion("k", int_con=54.4, ext_con=2.5, rev_pot=-77)
-# Override the cell defaults.
-decor.paint('"custom"', tempK=270)
-decor.paint('"soma"', Vm=-50)
-# Paint density mechanisms.
-decor.paint('"all"', density("pas"))
-decor.paint('"custom"', density("hh"))
-decor.paint('"dend"', density("Ih", gbar=0.001))
-# Place stimuli and detectors.
-decor.place('"root"', arbor.iclamp(10, 1, current=2), "iclamp0")
-decor.place('"root"', arbor.iclamp(30, 1, current=2), "iclamp1")
-decor.place('"root"', arbor.iclamp(50, 1, current=2), "iclamp2")
-decor.place('"axon_terminal"', arbor.threshold_detector(-10), "detector")
-# Set discretisation: Soma as one CV, 1um everywhere else
-decor.discretization('(replace (single (region "soma")) (max-extent 1.0))')
+decor = (
+    A.decor()
+    # Set the default properties of the cell (this overrides the model defaults).
+    .set_property(Vm=-55)
+    .set_ion("na", int_con=10, ext_con=140, rev_pot=50, method="nernst/na")
+    .set_ion("k", int_con=54.4, ext_con=2.5, rev_pot=-77)
+    # Override the cell defaults.
+    .paint('"custom"', tempK=270)
+    .paint('"soma"', Vm=-50)
+    # Paint density mechanisms.
+    .paint('"all"', A.density("pas"))
+    .paint('"custom"', A.density("hh"))
+    .paint('"dend"', A.density("Ih", gbar=0.001))
+    # Place stimuli and detectors.
+    .place('"root"', A.iclamp(10 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp0")
+    .place('"root"', A.iclamp(30 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp1")
+    .place('"root"', A.iclamp(50 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp2")
+    .place('"axon_terminal"', A.threshold_detector(-10 * U.mV), "detector")
+    # Set discretisation: Soma as one CV, 1um everywhere else
+    .discretization('(replace (single (region "soma")) (max-extent 1.0))')
+)
 
 # (4) Create the cell.
-
-cell = arbor.cable_cell(morph, decor, labels)
+cell = A.cable_cell(morph, decor, labels)
 
 # (5) Construct the model
-
-model = arbor.single_cell_model(cell)
+model = A.single_cell_model(cell)
 
 # (6) Set the model default properties
-
 model.properties.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
 model.properties.set_ion("na", int_con=10, ext_con=140, rev_pot=50, method="nernst/na")
 model.properties.set_ion("k", int_con=54.4, ext_con=2.5, rev_pot=-77)
@@ -83,30 +78,26 @@ model.properties.set_ion("k", int_con=54.4, ext_con=2.5, rev_pot=-77)
 # The function takes a second string parameter that can prefix
 # the name of the mechanisms to avoid collisions between catalogues
 # in this case we have no collisions so we use an empty prefix string.
-model.properties.catalogue.extend(arbor.allen_catalogue(), "")
+model.properties.catalogue.extend(A.allen_catalogue(), "")
 
 # (7) Add probes.
-
 # Add voltage probes on the "custom_terminal" locset
 # which sample the voltage at 50 kHz
-model.probe("voltage", where='"custom_terminal"', tag="Um", frequency=50)
+model.probe("voltage", where='"custom_terminal"', tag="Um", frequency=50 * U.kHz)
 
 # (8) Run the simulation for 100 ms, with a dt of 0.025 ms
-
-model.run(tfinal=100, dt=0.025)
+model.run(tfinal=100 * U.ms, dt=25 * U.us)
 
 # (9) Print the spikes.
-
 print(len(model.spikes), "spikes recorded:")
 for s in model.spikes:
-    print(s)
+    print(f" * t={s:.3f} ms")
 
 # (10) Plot the voltages
-
 df_list = []
 for t in model.traces:
     df_list.append(
-        pandas.DataFrame(
+        pd.DataFrame(
             {
                 "t/ms": t.time,
                 "U/mV": t.value,
@@ -115,8 +106,8 @@ for t in model.traces:
             }
         )
     )
-df = pandas.concat(df_list, ignore_index=True)
-seaborn.relplot(
+df = pd.concat(df_list, ignore_index=True)
+sns.relplot(
     data=df,
     kind="line",
     x="t/ms",

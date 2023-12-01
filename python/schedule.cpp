@@ -29,17 +29,10 @@ std::ostream& operator<<(std::ostream& o, const explicit_schedule_shim& e) {
 }
 
 std::ostream& operator<<(std::ostream& o, const poisson_schedule_shim& p) {
-    if (p.tstop) {
-        return o << "<arbor.poisson_schedule: tstart " << arb::units::to_string(p.tstart) << " ms"
-                 << ", tstop " << arb::units::to_string(p.tstop.value()) << " ms"
-                 << ", freq " << arb::units::to_string(p.freq)
-                 << ", seed " << p.seed << ">";
-    }
-    else {
-        return o << "<arbor.poisson_schedule: tstart " << arb::units::to_string(p.tstart)
-                 << ", freq " << arb::units::to_string(p.freq)
-                 << ", seed " << p.seed << ">";
-    }
+    return o << "<arbor.poisson_schedule: tstart " << arb::units::to_string(p.tstart) << " ms"
+             << ", tstop " << arb::units::to_string(p.tstop) << " ms"
+             << ", freq " << arb::units::to_string(p.freq)
+             << ", seed " << p.seed << ">";
 }
 
 static std::vector<arb::time_type> as_vector(std::pair<const arb::time_type*, const arb::time_type*> ts) {
@@ -147,16 +140,11 @@ std::vector<arb::time_type> explicit_schedule_shim::events(arb::time_type t0, ar
 poisson_schedule_shim::poisson_schedule_shim(const arb::units::quantity& ts,
                                              const arb::units::quantity& f,
                                              arb::seed_type s,
-                                             std::optional<arb::units::quantity> tstop) {
+                                             const arb::units::quantity& tstop) {
     set_tstart(ts);
     set_freq(f);
     seed = s;
     set_tstop(tstop);
-}
-
-poisson_schedule_shim::poisson_schedule_shim(const arb::units::quantity& f) {
-    set_tstart(0.*arb::units::ms);
-    set_freq(f);
 }
 
 void poisson_schedule_shim::set_tstart(const arb::units::quantity& t) {
@@ -169,14 +157,13 @@ void poisson_schedule_shim::set_freq(const arb::units::quantity& f) {
     freq = f;
 };
 
-void poisson_schedule_shim::set_tstop(std::optional<arb::units::quantity> t) {
-    // TODO(TH)
-    // if (t.has_value()) pyarb::assert_throw(is_nonneg()(t.value()), "frequency must be a non-negative number");
+void poisson_schedule_shim::set_tstop(const arb::units::quantity& t) {
+    pyarb::assert_throw(is_nonneg()(t.value()), "frequency must be a non-negative number");
     tstop = t;
 };
 
 arb::schedule poisson_schedule_shim::schedule() const {
-    return arb::poisson_schedule(tstart, freq, seed, tstop.value_or(arb::terminal_time*arb::units::ms));
+    return arb::poisson_schedule(tstart, freq, seed, tstop);
 }
 
 std::vector<arb::time_type> poisson_schedule_shim::events(const arb::units::quantity& t0,
@@ -246,7 +233,13 @@ void register_schedules(py::module& m) {
         "Describes a schedule according to a Poisson process within the interval [tstart, tstop).");
 
     poisson_schedule
-        .def(py::init<time_type, time_type, arb::seed_type, std::optional<time_type>>(),
+        .def(py::init<>(
+                 [](const time_type& f,
+                    const time_type& t0,
+                    arb::seed_type s,
+                    std::optional<time_type> t1) -> poisson_schedule_shim {
+                     return poisson_schedule_shim{t0, f, s, t1.value_or(arb::terminal_time*arb::units::ms)};
+                 }),
              "freq"_a, py::kw_only(), py::arg_v("tstart", 0.*arb::units::ms, "0.0*arbor.units.ms"), "seed"_a = 0, "tstop"_a=py::none(),
              "Construct a Poisson schedule with arguments:\n"
              "  tstart: The delivery time of the first event in the sequence [ms], 0 by default.\n"

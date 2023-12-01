@@ -10,9 +10,10 @@
 #     preserve surface area and correct starting locations of cables
 #     attached to the soma.
 
-import arbor
-import pandas
-import seaborn
+import arbor as A
+from arbor import units as U
+import pandas as pd
+import seaborn as sns
 import sys
 
 # Load a cell morphology from an swc file.
@@ -22,10 +23,10 @@ if len(sys.argv) < 2:
     sys.exit(0)
 
 filename = sys.argv[1]
-morpho = arbor.load_swc_arbor(filename)
+morpho = A.load_swc_arbor(filename)
 
 # Define the regions and locsets in the model.
-labels = arbor.label_dict(
+labels = A.label_dict(
     {
         "root": "(root)",  # the start of the soma in this morphology is at the root of the cell.
         "stim_site": "(location 0 0.5)",  # site for the stimulus, in the middle of branch 0.
@@ -34,46 +35,43 @@ labels = arbor.label_dict(
 ).add_swc_tags()  # Finally, add the SWC default labels.
 
 decor = (
-    arbor.decor()
+    A.decor()
     # Set initial membrane potential to -55 mV
     .set_property(Vm=-55)
     # Use Nernst to calculate reversal potential for calcium.
-    .set_ion("ca", method=arbor.mechanism("nernst/x=ca"))
+    .set_ion("ca", method=A.mechanism("nernst/x=ca"))
     # hh mechanism on the soma and axon.
-    .paint('"soma"', arbor.density("hh"))
-    .paint('"axon"', arbor.density("hh"))
+    .paint('"soma"', A.density("hh"))
+    .paint('"axon"', A.density("hh"))
     # pas mechanism the dendrites.
-    .paint('"dend"', arbor.density("pas"))
+    .paint('"dend"', A.density("pas"))
     # Increase resistivity on dendrites.
     .paint('"dend"', rL=500)
     # Attach stimuli that inject 4 nA current for 1 ms, starting at 3 and 8 ms.
-    .place('"root"', arbor.iclamp(10, 1, current=5), "iclamp0")
-    .place('"stim_site"', arbor.iclamp(3, 1, current=0.5), "iclamp1")
-    .place('"stim_site"', arbor.iclamp(10, 1, current=0.5), "iclamp2")
-    .place('"stim_site"', arbor.iclamp(8, 1, current=4), "iclamp3")
+    .place('"root"',      A.iclamp(10*U.ms, 1*U.ms, current=5*U.nA), "iclamp0")
+    .place('"stim_site"', A.iclamp(3*U.ms, 1*U.ms, current=0.5*U.nA), "iclamp1")
+    .place('"stim_site"', A.iclamp(10*U.ms, 1*U.ms, current=0.5*U.nA), "iclamp2")
+    .place('"stim_site"', A.iclamp(8*U.ms, 1*U.ms, current=4*U.nA), "iclamp3")
     # Detect spikes at the soma with a voltage threshold of -10 mV.
-    .place('"axon_end"', arbor.threshold_detector(-10), "detector")
+    .place('"axon_end"', A.threshold_detector(-10*U.mV), "detector")
     # Create the policy used to discretise the cell into CVs.
     # Use a single CV for the soma, and CVs of maximum length 1 μm elsewhere.
     .discretization('(replace (single (region "soma")) (max-extent 1.0))')
 )
 
 # Combine morphology with region and locset definitions to make a cable cell.
-cell = arbor.cable_cell(morpho, decor, labels)
-
-print(cell.locations('"axon_end"'))
+cell = A.cable_cell(morpho, decor, labels)
 
 # Make single cell model.
-m = arbor.single_cell_model(cell)
+m = A.single_cell_model(cell)
 
 # Attach voltage probes that sample at 50 kHz.
-m.probe("voltage", tag="Um-root", where='"root"', frequency=50)
-m.probe("voltage", tag="Um-stim", where='"stim_site"', frequency=50)
-m.probe("voltage", tag="Um-axon", where='"axon_end"', frequency=50)
+m.probe("voltage", tag="Um-root", where='"root"', frequency=50*U.kHz)
+m.probe("voltage", tag="Um-stim", where='"stim_site"', frequency=50*U.kHz)
+m.probe("voltage", tag="Um-axon", where='"axon_end"', frequency=50*U.kHz)
 
 # Simulate the cell for 15 ms.
-tfinal = 15
-m.run(tfinal)
+m.run(15*U.ms)
 print("Simulation done.")
 
 # Print spike times.
@@ -89,7 +87,7 @@ print("Plotting results ...")
 df_list = []
 for t in m.traces:
     df_list.append(
-        pandas.DataFrame(
+        pd.DataFrame(
             {
                 "t/ms": t.time,
                 "U/mV": t.value,
@@ -99,9 +97,9 @@ for t in m.traces:
         )
     )
 
-df = pandas.concat(df_list, ignore_index=True)
+df = pd.concat(df_list, ignore_index=True)
 
-seaborn.relplot(
+sns.relplot(
     data=df,
     kind="line",
     x="t/ms",

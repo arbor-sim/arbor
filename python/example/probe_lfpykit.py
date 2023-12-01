@@ -13,13 +13,14 @@
 # import modules
 import sys
 import numpy as np
-import arbor
+import arbor as A
+from arbor import units as U
 import lfpykit
 import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection
 
 
-class Recipe(arbor.recipe):
+class Recipe(A.recipe):
     def __init__(self, cell):
         super().__init__()
 
@@ -29,7 +30,7 @@ class Recipe(arbor.recipe):
         self.iprobeset_id = (0, 1)
         self.cprobeset_id = (0, 2)
 
-        self.the_props = arbor.neuron_cable_properties()
+        self.the_props = A.neuron_cable_properties()
 
     def num_cells(self):
         return 1
@@ -38,7 +39,7 @@ class Recipe(arbor.recipe):
         return 0
 
     def cell_kind(self, gid):
-        return arbor.cell_kind.cable
+        return A.cell_kind.cable
 
     def cell_description(self, gid):
         return self.the_cell
@@ -48,9 +49,9 @@ class Recipe(arbor.recipe):
 
     def probes(self, gid):
         return [
-            arbor.cable_probe_membrane_voltage_cell("Um-all"),
-            arbor.cable_probe_total_current_cell("Itotal-all"),
-            arbor.cable_probe_stimulus_current_cell("Istim-all"),
+            A.cable_probe_membrane_voltage_cell("Um-all"),
+            A.cable_probe_total_current_cell("Itotal-all"),
+            A.cable_probe_stimulus_current_cell("Istim-all"),
         ]
 
 
@@ -62,11 +63,11 @@ if len(sys.argv) < 2:
 
 filename = sys.argv[1]
 
-# define morphology (needed for ``arbor.place_pwlin`` and ``arbor.cable_cell`` below)
-morphology = arbor.load_swc_arbor(filename)
+# define morphology (needed for ``A.place_pwlin`` and ``A.cable_cell`` below)
+morphology = A.load_swc_arbor(filename)
 
 # define a location on morphology for current clamp
-clamp_location = arbor.location(4, 1 / 6)
+clamp_location = A.location(4, 1 / 6)
 
 
 def make_cable_cell(morphology, clamp_location):
@@ -74,11 +75,11 @@ def make_cable_cell(morphology, clamp_location):
     cvs_per_branch = 3
 
     # Label dictionary
-    labels = arbor.label_dict()
+    labels = A.label_dict()
 
     # decor
     decor = (
-        arbor.decor()
+        A.decor()
         # set initial voltage, temperature, axial resistivity, membrane capacitance
         .set_property(
             Vm=-65,  # Initial membrane voltage (mV)
@@ -88,28 +89,28 @@ def make_cable_cell(morphology, clamp_location):
         )
         # set passive mechanism all over
         # passive mech w. leak reversal potential (mV)
-        .paint("(all)", arbor.density("pas/e=-65", g=0.0001))
+        .paint("(all)", A.density("pas/e=-65", g=0.0001))
     )
 
     # set number of CVs per branch
-    policy = arbor.cv_policy_fixed_per_branch(cvs_per_branch)
+    policy = A.cv_policy_fixed_per_branch(cvs_per_branch)
     decor.discretization(policy)
 
     # place sinusoid input current
-    iclamp = arbor.iclamp(
-        5,  # stimulation onset (ms)
-        1e8,  # stimulation duration (ms)
-        -0.001,  # stimulation amplitude (nA)
-        frequency=0.1,  # stimulation frequency (kHz)
-        phase=0,
+    iclamp = A.iclamp(
+        5 * U.ms,  # stimulation onset (ms)
+        1e8 * U.ms,  # stimulation duration (ms)
+        -0.001 * U.nA,  # stimulation amplitude (nA)
+        frequency=0.1 * U.kHz,  # stimulation frequency (kHz)
+        phase=0 * U.rad,
     )  # stimulation phase)
     decor.place(str(clamp_location), iclamp, '"iclamp"')
 
-    # create ``arbor.place_pwlin`` object
-    p = arbor.place_pwlin(morphology)
+    # create ``A.place_pwlin`` object
+    p = A.place_pwlin(morphology)
 
     # create cell and set properties
-    cell = arbor.cable_cell(morphology, decor, labels)
+    cell = A.cable_cell(morphology, decor, labels)
 
     return p, cell
 
@@ -121,16 +122,16 @@ p, cell = make_cable_cell(morphology, clamp_location)
 recipe = Recipe(cell)
 
 # instantiate simulation
-sim = arbor.simulation(recipe)
+sim = A.simulation(recipe)
 
 # set up sampling on probes with sampling every 1 ms
-schedule = arbor.regular_schedule(1.0)
+schedule = A.regular_schedule(1.0 * U.ms)
 v_handle = sim.sample(0, "Um-all", schedule)
 i_handle = sim.sample(0, "Itotal-all", schedule)
 c_handle = sim.sample(0, "Istim-all", schedule)
 
 # run simulation for 500 ms of simulated activity and collect results.
-sim.run(tfinal=500)
+sim.run(tfinal=500 * U.ms)
 
 # extract time, V_m, I_m and I_c for each CV
 V_m_samples, V_m_meta = sim.samples(v_handle)[0]
@@ -169,16 +170,16 @@ I_m = I_c_samples[:, 1:] + I_m_samples[:, 1:]  # (nA)
 class ArborCellGeometry(lfpykit.CellGeometry):
     """
     Class inherited from  ``lfpykit.CellGeometry`` for easier forward-model
-    predictions in Arbor that keeps track of arbor.segment information
+    predictions in Arbor that keeps track of A.segment information
     for each CV.
 
     Parameters
     ----------
-    p: ``arbor.place_pwlin`` object
-        3-d locations and cables in a morphology (cf. ``arbor.place_pwlin``)
+    p: ``A.place_pwlin`` object
+        3-d locations and cables in a morphology (cf. ``A.place_pwlin``)
     cables: ``list``
-        ``list`` of corresponding ``arbor.cable`` objects where transmembrane
-        currents are recorded (cf. ``arbor.cable_probe_total_current_cell``)
+        ``list`` of corresponding ``A.cable`` objects where transmembrane
+        currents are recorded (cf. ``A.cable_probe_total_current_cell``)
 
     See also
     --------
