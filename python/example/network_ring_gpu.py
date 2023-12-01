@@ -156,7 +156,7 @@ handles = [
 meters.checkpoint("simulation-init", context)
 
 # (17) Run simulation
-sim.run(ncells * 5)
+sim.run(ncells * 5*U.ms)
 print("Simulation finished")
 meters.checkpoint("simulation-run", context)
 
@@ -166,8 +166,8 @@ print(f"{A.meter_report(meters, context)}")
 
 # Print spike times
 print("spikes:")
-for sp in sim.spikes():
-    print(" ", sp)
+for (gid, lid), t in sim.spikes():
+    print(f" * t={t:.3f}ms gid={gid} lid={lid}")
 
 # Plot the recorded voltages over time.
 print("Plotting results ...")

@@ -141,7 +141,7 @@ sim.record(A.spike_recording.all)
 handles = [sim.sample((gid, 0), A.regular_schedule(1 * U.ms)) for gid in range(ncells)]
 
 # (16) Run simulation
-sim.run(ncells * 5)
+sim.run(ncells * 5*U.ms)
 print("Simulation finished")
 
 # (17) Store the recorded voltages
