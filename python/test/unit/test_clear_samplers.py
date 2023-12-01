@@ -22,11 +22,11 @@ class TestClearSamplers(unittest.TestCase):
     def test_spike_clearing(self, art_spiking_sim):
         sim = art_spiking_sim
         sim.record(A.spike_recording.all)
-        handle = sim.sample((3, "Um"), A.regular_schedule(0.1*U.ms))
+        handle = sim.sample((3, "Um"), A.regular_schedule(0.1 * U.ms))
 
         # baseline to test against Run in exactly the same stepping to make sure there are no rounding differences
-        sim.run(3*U.ms, 0.01*U.ms)
-        sim.run(5*U.ms, 0.01*U.ms)
+        sim.run(3 * U.ms, 0.01 * U.ms)
+        sim.run(5 * U.ms, 0.01 * U.ms)
         spikes = sim.spikes()
         times = spikes["time"].tolist()
         gids = spikes["source"]["gid"].tolist()
@@ -35,7 +35,7 @@ class TestClearSamplers(unittest.TestCase):
         sim.reset()
 
         # simulated with clearing the memory inbetween the steppings
-        sim.run(3*U.ms, 0.01*U.ms)
+        sim.run(3 * U.ms, 0.01 * U.ms)
         spikes = sim.spikes()
         times_t = spikes["time"].tolist()
         gids_t = spikes["source"]["gid"].tolist()
@@ -52,7 +52,7 @@ class TestClearSamplers(unittest.TestCase):
         self.assertEqual(0, data_test.size)
 
         # run the next part of the simulation
-        sim.run(5*U.ms, 0.01*U.ms)
+        sim.run(5 * U.ms, 0.01 * U.ms)
         spikes = sim.spikes()
         times_t.extend(spikes["time"].tolist())
         gids_t.extend(spikes["source"]["gid"].tolist())
