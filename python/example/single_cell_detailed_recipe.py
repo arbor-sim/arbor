@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # This script is included in documentation. Adapt line numbers if touched.
 
-import arbor
-import pandas
-import seaborn
+import arbor as A
+from arbor import units as U
+import pandas as pd
+import seaborn as sns
 import sys
-from arbor import density
 
 # (1) Read the morphology from an SWC file.
 
@@ -17,11 +17,11 @@ if len(sys.argv) < 2:
     sys.exit(0)
 
 filename = sys.argv[1]
-morph = arbor.load_swc_arbor(filename)
+morph = A.load_swc_arbor(filename)
 
 # (2) Create and populate the label dictionary.
 
-labels = arbor.label_dict(
+labels = A.label_dict(
     {
         # Regions:
         # Add a label for a region that includes the whole morphology
@@ -44,7 +44,7 @@ labels = arbor.label_dict(
 # (3) Create and populate the decor.
 
 decor = (
-    arbor.decor()
+    A.decor()
     # Set the default properties of the cell (this overrides the model defaults).
     .set_property(Vm=-55)
     .set_ion("na", int_con=10, ext_con=140, rev_pot=50, method="nernst/na")
@@ -53,14 +53,14 @@ decor = (
     .paint('"custom"', tempK=270)
     .paint('"soma"', Vm=-50)
     # Paint density mechanisms.
-    .paint('"all"', density("pas"))
-    .paint('"custom"', density("hh"))
-    .paint('"dend"', density("Ih", gbar=0.001))
+    .paint('"all"', A.density("pas"))
+    .paint('"custom"', A.density("hh"))
+    .paint('"dend"', A.density("Ih", gbar=0.001))
     # Place stimuli and detectors.
-    .place('"root"', arbor.iclamp(10, 1, current=2), "iclamp0")
-    .place('"root"', arbor.iclamp(30, 1, current=2), "iclamp1")
-    .place('"root"', arbor.iclamp(50, 1, current=2), "iclamp2")
-    .place('"axon_terminal"', arbor.threshold_detector(-10), "detector")
+    .place('"root"', A.iclamp(10 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp0")
+    .place('"root"', A.iclamp(30 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp1")
+    .place('"root"', A.iclamp(50 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp2")
+    .place('"axon_terminal"', A.threshold_detector(-10 * U.mV), "detector")
     # Set discretisation: Soma as one CV, 1um everywhere else
     .discretization('(replace (single (region "soma")) (max-extent 1.0))')
 )
@@ -68,25 +68,25 @@ decor = (
 
 # (4) Create the cell.
 
-cell = arbor.cable_cell(morph, decor, labels)
+cell = A.cable_cell(morph, decor, labels)
 
 
-# (5) Create a class that inherits from arbor.recipe
-class single_recipe(arbor.recipe):
+# (5) Create a class that inherits from A.recipe
+class single_recipe(A.recipe):
     # (5.1) Define the class constructor
     def __init__(self):
         # The base C++ class constructor must be called first, to ensure that
         # all memory in the C++ class is initialized correctly.
-        arbor.recipe.__init__(self)
+        A.recipe.__init__(self)
 
-        self.the_props = arbor.cable_global_properties()
+        self.the_props = A.cable_global_properties()
         self.the_props.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
         self.the_props.set_ion(
             ion="na", int_con=10, ext_con=140, rev_pot=50, method="nernst/na"
         )
         self.the_props.set_ion(ion="k", int_con=54.4, ext_con=2.5, rev_pot=-77)
         self.the_props.set_ion(ion="ca", int_con=5e-5, ext_con=2, rev_pot=132.5)
-        self.the_props.catalogue.extend(arbor.allen_catalogue(), "")
+        self.the_props.catalogue.extend(A.allen_catalogue(), "")
 
     # (5.2) Override the num_cells method
     def num_cells(self):
@@ -94,7 +94,7 @@ class single_recipe(arbor.recipe):
 
     # (5.3) Override the cell_kind method
     def cell_kind(self, _):
-        return arbor.cell_kind.cable
+        return A.cell_kind.cable
 
     # (5.4) Override the cell_description method
     def cell_description(self, _):
@@ -102,7 +102,7 @@ class single_recipe(arbor.recipe):
 
     # (5.5) Override the probes method
     def probes(self, _):
-        return [arbor.cable_probe_membrane_voltage('"custom_terminal"', "Um")]
+        return [A.cable_probe_membrane_voltage('"custom_terminal"', "Um")]
 
     # (5.6) Override the global_properties method
     def global_properties(self, gid):
@@ -113,21 +113,21 @@ class single_recipe(arbor.recipe):
 recipe = single_recipe()
 
 # (6) Create a simulation
-sim = arbor.simulation(recipe)
+sim = A.simulation(recipe)
 
 # Instruct the simulation to record the spikes and sample the probe
-sim.record(arbor.spike_recording.all)
+sim.record(A.spike_recording.all)
 
-handle = sim.sample((0, "Um"), arbor.regular_schedule(0.02))
+handle = sim.sample((0, "Um"), A.regular_schedule(0.02 * U.ms))
 
 # (7) Run the simulation
-sim.run(tfinal=100, dt=0.025)
+sim.run(tfinal=100 * U.ms, dt=0.025 * U.ms)
 
 # (8) Print or display the results
 spikes = sim.spikes()
 print(len(spikes), "spikes recorded:")
-for s in spikes:
-    print(s)
+for (gid, lid), t in spikes:
+    print(f" * t={t:.3f}ms gid={gid} lid={lid}")
 
 data = []
 meta = []
@@ -138,7 +138,7 @@ for d, m in sim.samples(handle):
 df_list = []
 for i in range(len(data)):
     df_list.append(
-        pandas.DataFrame(
+        pd.DataFrame(
             {
                 "t/ms": data[i][:, 0],
                 "U/mV": data[i][:, 1],
@@ -147,8 +147,8 @@ for i in range(len(data)):
             }
         )
     )
-df = pandas.concat(df_list, ignore_index=True)
-seaborn.relplot(
+df = pd.concat(df_list, ignore_index=True)
+sns.relplot(
     data=df,
     kind="line",
     x="t/ms",
