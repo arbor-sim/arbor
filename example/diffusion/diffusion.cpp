@@ -21,6 +21,8 @@
 using namespace arborio::literals;
 using namespace arb;
 
+namespace U = arb::units;
+
 struct linear: public recipe {
      linear(double ext, double dx, double Xi, double beta): l{ext}, d{dx}, i{Xi}, b{beta} {
         gprop.default_parameters = neuron_parameter_defaults;
@@ -41,9 +43,9 @@ struct linear: public recipe {
         tree.append(0, { -l, 0, 0, 3}, {l, 0, 0, 3}, 2);
         // Setup
         decor decor;
-        decor.set_default(init_int_concentration{"na", i});
-        decor.set_default(ion_diffusivity{"na", b});
-        decor.paint("(tag 1)"_reg, ion_diffusivity{"na", b});
+        decor.set_default(init_int_concentration{"na", i*U::mM});
+        decor.set_default(ion_diffusivity{"na", b*U::mM});
+        decor.paint("(tag 1)"_reg, ion_diffusivity{"na", b*U::mM});
         decor.place("(location 0 0.5)"_ls, synapse("inject/x=bla", {{"alpha", 200.0*l}}), "Zap");
         decor.paint("(all)"_reg, density("decay/x=bla"));
         return cable_cell({tree}, decor);
@@ -123,7 +125,7 @@ int main(int argc, char** argv) {
     auto C = make_context({1, O.gpu});
     auto R = linear{O.L, O.dx, O.Xi, O.dX};
     simulation S(R, C, partition_load_balance(R, C));
-    S.add_sampler(all_probes, regular_schedule(O.ds*arb::units::ms), sampler);
-    S.run(O.T*arb::units::ms, O.dt*arb::units::ms);
+    S.add_sampler(all_probes, regular_schedule(O.ds*U::ms), sampler);
+    S.run(O.T*U::ms, O.dt*U::ms);
     out.close();
 }

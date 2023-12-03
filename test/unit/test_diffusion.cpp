@@ -25,6 +25,7 @@ using namespace std::string_literals;
 using namespace arborio::literals;
 
 using namespace arb;
+namespace U = arb::units;
 
 constexpr double epsilon  = 1e-6;
 #ifdef ARB_GPU_ENABLED
@@ -71,13 +72,13 @@ struct linear: public recipe {
     linear& add_inject() { decor.place("(location 0 0.5)"_ls, arb::synapse("inject/x=na", {{"alpha", 200.0*cv_length}}), "Zap"); return *this; }
     linear& add_event(double t, float w) { inject_at.push_back({t, w}); return *this; }
     linear& set_diffusivity(double d, std::optional<region> rg = {}) {
-        if (rg) decor.paint(*rg, ion_diffusivity{"na", d});
-        else    decor.set_default(ion_diffusivity{"na", d});
+        if (rg) decor.paint(*rg, ion_diffusivity{"na", d*U::m2/U::s});
+        else    decor.set_default(ion_diffusivity{"na", d*U::m2/U::s});
         return *this;
     }
     linear& set_concentration(double d, std::optional<region> rg = {}) {
-        if (rg) decor.paint(*rg, init_int_concentration{"na", d});
-        else    decor.set_default(init_int_concentration{"na", d});
+        if (rg) decor.paint(*rg, init_int_concentration{"na", d*U::mM});
+        else    decor.set_default(init_int_concentration{"na", d*U::mM});
         return *this;
     }
 };
@@ -321,29 +322,29 @@ TEST(diffusion, setting_diffusivity) {
     {
         R r;
         r.gprop.add_ion("bla", 1, 23, 42, 0, 0);
-        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m.pow(2)/U::s});
         EXPECT_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms), cable_cell_error);
     }
     // OK: Using the global default
     {
         R r;
         r.gprop.add_ion("bla", 1, 23, 42, 0, 8);
-        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m.pow(2)/U::s});
         EXPECT_NO_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms));
     }
     // OK: Using the cell default
     {
         R r;
         r.gprop.add_ion("bla", 1, 23, 42, 0, 0);
-        r.dec.set_default(ion_diffusivity{"bla", 8});
-        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
+        r.dec.set_default(ion_diffusivity{"bla", 8*U::m.pow(2)/U::s});
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m.pow(2)/U::s});
         EXPECT_NO_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms));
     }
     // BAD: Using an unknown species
     {
         R r;
-        r.dec.set_default(ion_diffusivity{"bla", 8});
-        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
+        r.dec.set_default(ion_diffusivity{"bla", 8*U::m.pow(2)/U::s});
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m.pow(2)/U::s});
         EXPECT_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms), cable_cell_error);
     }
 

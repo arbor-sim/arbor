@@ -15,7 +15,7 @@ labels = A.label_dict({"soma": "(tag 1)", "midpoint": "(location 0 0.5)"})
 # (3) Create and set up a decor object
 decor = (
     A.decor()
-    .set_property(Vm=-40)
+    .set_property(Vm=-40 * U.mV)
     .paint('"soma"', A.density("hh"))
     .paint('"soma"', A.voltage_process("v_clamp/v0=-42"))
     .place('"midpoint"', A.iclamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA), "iclamp")

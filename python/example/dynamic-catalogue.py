@@ -15,7 +15,7 @@ class recipe(A.recipe):
         self.tree.append(A.mnpos, (0, 0, 0, 10), (1, 0, 0, 10), 1)
         self.props = A.neuron_cable_properties()
         self.props.catalogue = A.load_catalogue(cat)
-        d = A.decor().paint("(all)", "dummy").set_property(Vm=0.0)
+        d = A.decor().paint("(all)", "dummy").set_property(Vm=0.0 * U.mV)
         self.cell = A.cable_cell(self.tree, d)
 
     def global_properties(self, _):

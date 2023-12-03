@@ -38,6 +38,7 @@ using arb::time_type;
 using arb::cable_probe_membrane_voltage;
 
 using namespace arborio::literals;
+namespace U = arb::units;
 
 // Writes voltage trace as a json file.
 void write_trace_json(std::string fname, const arb::trace_data<double>& trace);
@@ -228,7 +229,7 @@ int main(int argc, char** argv) {
             // the cell_member type points to (cell 0, probe 0)
             auto probe_id = arb::cell_address_type{0, "Um"};
             // The schedule for sampling is 10 samples every 1 ms.
-            auto sched = arb::regular_schedule(0.1*arb::units::ms);
+            auto sched = arb::regular_schedule(0.1*U::ms);
             // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
             sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
         }
@@ -247,7 +248,7 @@ int main(int argc, char** argv) {
         // Run the simulation.
         if (root) sim.set_epoch_callback(arb::epoch_progress_bar());
         if (root) std::cout << "running simulation\n" << std::endl;
-        sim.run(params.duration*arb::units::ms, params.dt*arb::units::ms);
+        sim.run(params.duration*U::ms, params.dt*U::ms);
 
         meters.checkpoint("model-run", context);
 
@@ -391,14 +392,14 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
 
     arb::decor decor;
 
-    decor.paint(rall, arb::init_reversal_potential{"k",  -107.0});
-    decor.paint(rall, arb::init_reversal_potential{"na", 53.0});
+    decor.paint(rall, arb::init_reversal_potential{"k",  -107.0*U::mV});
+    decor.paint(rall, arb::init_reversal_potential{"na",   53.0*U::mV});
 
-    decor.paint(soma, arb::axial_resistivity{133.577});
-    decor.paint(soma, arb::membrane_capacitance{4.21567e-2});
+    decor.paint(soma, arb::axial_resistivity{133.577*U::Ohm*U::cm});
+    decor.paint(soma, arb::membrane_capacitance{4.21567e-2*U::F/U::m2});
 
-    decor.paint(dend, arb::axial_resistivity{68.355});
-    decor.paint(dend, arb::membrane_capacitance{2.11248e-2});
+    decor.paint(dend, arb::axial_resistivity{68.355*U::Ohm*U::cm});
+    decor.paint(dend, arb::membrane_capacitance{2.11248e-2*U::F/U::m2});
 
     decor.paint(soma, arb::density("pas/e=-76.4024", {{"g", 0.000119174}}));
     decor.paint(soma, arb::density("NaV",            {{"gbar", 0.0499779}}));
@@ -420,7 +421,7 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
         decor.place(syns, arb::synapse("expsyn"), "s");
     }
 
-    decor.place(cntr, arb::threshold_detector{-20.0*arb::units::mV}, "d");
+    decor.place(cntr, arb::threshold_detector{-20.0*U::mV}, "d");
 
     decor.set_default(arb::cv_policy_every_segment());
 
@@ -440,10 +441,10 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
 
     decor.paint(soma, arb::density{"hh"});
     decor.paint(dnds, arb::density{"pas"});
-    decor.set_default(arb::axial_resistivity{100}); // [Ω·cm]
+    decor.set_default(arb::axial_resistivity{100*U::Ohm*U::cm}); // [Ω·cm]
 
     // Add spike threshold detector at the soma.
-    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10*arb::units::mV}, "d");
+    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10*U::mV}, "d");
 
     // Add a synapse to proximal end of first dendrite.
     decor.place(arb::mlocation{1, 0}, arb::synapse{"expsyn"}, "p");

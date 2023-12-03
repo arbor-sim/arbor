@@ -109,7 +109,7 @@ def make_cell():
     # ==========================
 
     decor = A.decor()
-    decor.set_property(Vm=V_rev, cm=c_mem)
+    decor.set_property(Vm=V_rev * U.mV, cm=c_mem * U.Ohm * U.cm)
     decor.paint("(all)", A.density(lif))
     decor.place('"center"', A.synapse(ou_stim), "ou_stim")
     decor.place('"center"', A.synapse(ou_bg), "ou_bg")

@@ -128,7 +128,7 @@ __all__ = [
     "spike_source_cell",
     "stochastic_catalogue",
     "synapse",
-    "temperature_K",
+    "temperature",
     "threshold_detector",
     "trace",
     "units",
@@ -180,7 +180,7 @@ class axial_resistivity:
     Setting the axial resistivity.
     """
 
-    def __init__(self, arg0: float) -> None: ...
+    def __init__(self, arg0: units.quantity) -> None: ...
     def __repr__(self) -> str: ...
 
 class backend:
@@ -350,12 +350,12 @@ class cable_global_properties:
     def set_ion(
         self,
         ion: str,
-        valence: float | None = None,
-        int_con: float | None = None,
-        ext_con: float | None = None,
-        rev_pot: float | None = None,
+        valence: int | None = None,
+        int_con: units.quantity | None = None,
+        ext_con: units.quantity | None = None,
+        rev_pot: units.quantity | None = None,
         method: typing.Any = None,
-        diff: float | None = None,
+        diff: units.quantity | None = None,
     ) -> None:
         """
         Set the global default properties of ion species named 'ion'.
@@ -376,10 +376,10 @@ class cable_global_properties:
         """
     def set_property(
         self,
-        Vm: float | None = None,
-        cm: float | None = None,
-        rL: float | None = None,
-        tempK: float | None = None,
+        Vm: units.quantity | None = None,
+        cm: units.quantity | None = None,
+        rL: units.quantity | None = None,
+        tempK: units.quantity | None = None,
     ) -> None:
         """
         Set global default values for cable and cell properties.
@@ -872,7 +872,7 @@ class decor:
     ) -> list[
         membrane_potential
         | axial_resistivity
-        | temperature_K
+        | temperature
         | membrane_capacitance
         | ion_diffusivity
         | int_concentration
@@ -913,10 +913,10 @@ class decor:
     def paint(
         self,
         region: str,
-        Vm: float | str | None = None,
-        cm: float | str | None = None,
-        rL: float | str | None = None,
-        tempK: float | str | None = None,
+        Vm: units.quantity | str | None = None,
+        cm: units.quantity | str | None = None,
+        rL: units.quantity | str | None = None,
+        tempK: units.quantity | str | None = None,
     ) -> decor:
         """
         Set cable properties on a region.
@@ -932,10 +932,10 @@ class decor:
         region: str,
         *,
         ion: str,
-        int_con: float | None = None,
-        ext_con: float | None = None,
-        rev_pot: float | None = None,
-        diff: float | None = None,
+        int_con: units.quantity | None = None,
+        ext_con: units.quantity | None = None,
+        rev_pot: units.quantity | None = None,
+        diff: units.quantity | None = None,
     ) -> decor:
         """
         Set ion species properties conditions on a region.
@@ -952,7 +952,7 @@ class decor:
             str,
             membrane_potential
             | axial_resistivity
-            | temperature_K
+            | temperature
             | membrane_capacitance
             | ion_diffusivity
             | int_concentration
@@ -995,11 +995,11 @@ class decor:
     def set_ion(
         self,
         ion: str,
-        int_con: float | None = None,
-        ext_con: float | None = None,
-        rev_pot: float | None = None,
+        int_con: units.quantity | None = None,
+        ext_con: units.quantity | None = None,
+        rev_pot: units.quantity | None = None,
         method: typing.Any = None,
-        diff: float | None = None,
+        diff: units.quantity | None = None,
     ) -> decor:
         """
         Set the cell-level properties of ion species named 'ion'.
@@ -1019,10 +1019,10 @@ class decor:
         """
     def set_property(
         self,
-        Vm: float | None = None,
-        cm: float | None = None,
-        rL: float | None = None,
-        tempK: float | None = None,
+        Vm: units.quantity | None = None,
+        cm: units.quantity | None = None,
+        rL: units.quantity | None = None,
+        tempK: units.quantity | None = None,
     ) -> decor:
         """
         Set default values for cable and cell properties:
@@ -1163,7 +1163,7 @@ class ext_concentration:
     Setting the initial external ion concentration.
     """
 
-    def __init__(self, arg0: str, arg1: float) -> None: ...
+    def __init__(self, arg0: str, arg1: units.quantity) -> None: ...
     def __repr__(self) -> str: ...
 
 class extent:
@@ -1299,7 +1299,7 @@ class int_concentration:
     Setting the initial internal ion concentration.
     """
 
-    def __init__(self, arg0: str, arg1: float) -> None: ...
+    def __init__(self, arg0: str, arg1: units.quantity) -> None: ...
     def __repr__(self) -> str: ...
 
 class ion_data:
@@ -1361,7 +1361,7 @@ class ion_diffusivity:
     Setting the ion diffusivity.
     """
 
-    def __init__(self, arg0: str, arg1: float) -> None: ...
+    def __init__(self, arg0: str, arg1: units.quantity) -> None: ...
     def __repr__(self) -> str: ...
 
 class ion_settings:
@@ -1722,7 +1722,7 @@ class membrane_capacitance:
     Setting the membrane capacitance.
     """
 
-    def __init__(self, arg0: float) -> None: ...
+    def __init__(self, arg0: units.quantity) -> None: ...
     def __repr__(self) -> str: ...
 
 class membrane_potential:
@@ -1730,7 +1730,7 @@ class membrane_potential:
     Setting the initial membrane voltage.
     """
 
-    def __init__(self, arg0: float) -> None: ...
+    def __init__(self, arg0: units.quantity, arg1: str | None) -> None: ...
     def __repr__(self) -> str: ...
 
 class meter_manager:
@@ -2049,12 +2049,12 @@ class poisson_schedule(schedule_base):
     @tstart.setter
     def tstart(self, arg1: units.quantity) -> None: ...
     @property
-    def tstop(self) -> units.quantity | None:
+    def tstop(self) -> units.quantity:
         """
         No events delivered after this time [ms].
         """
     @tstop.setter
-    def tstop(self, arg1: units.quantity | None) -> None: ...
+    def tstop(self, arg1: units.quantity) -> None: ...
 
 class probe:
     def __repr__(self) -> str: ...
@@ -2219,7 +2219,7 @@ class reversal_potential:
     Setting the initial reversal potential.
     """
 
-    def __init__(self, arg0: str, arg1: float) -> None: ...
+    def __init__(self, arg0: str, arg1: units.quantity) -> None: ...
     def __repr__(self) -> str: ...
 
 class reversal_potential_method:
@@ -2649,12 +2649,12 @@ class synapse:
         The underlying mechanism.
         """
 
-class temperature_K:
+class temperature:
     """
     Setting the temperature.
     """
 
-    def __init__(self, arg0: float) -> None: ...
+    def __init__(self, arg0: units.quantity) -> None: ...
     def __repr__(self) -> str: ...
 
 class threshold_detector:

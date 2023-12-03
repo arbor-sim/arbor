@@ -39,13 +39,19 @@ _ = tree.append(s, (3, 0, 0, 1), (33, 0, 0, 1), tag=3)
 
 dec = (
     A.decor()
-    .set_ion("na", int_con=0.0, diff=0.005)
+    .set_ion("na", int_con=0.0 * U.mM, diff=0.005 * U.m2 / U.s)
     .place("(location 0 0.5)", A.synapse("inject/x=na", {"alpha": 200.0}), "Zap")
     .paint("(all)", A.density("decay/x=na"))
     .discretization(A.cv_policy("(max-extent 5)"))
     # Set up ion diffusion
-    .set_ion("na", int_con=1.0, ext_con=140, rev_pot=50, diff=0.005)
-    .paint("(tag 1)", ion="na", int_con=100.0, diff=0.01)
+    .set_ion(
+        "na",
+        int_con=1.0 * U.mM,
+        ext_con=140 * U.mM,
+        rev_pot=50 * U.mV,
+        diff=0.005 * U.m2 / U.s,
+    )
+    .paint("(tag 1)", ion="na", int_con=100.0 * U.mM, diff=0.01 * U.m2 / U.s)
 )
 
 prb = [

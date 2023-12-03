@@ -92,16 +92,27 @@ def make_cell(base, swc, fit):
     decor = A.decor()
 
     # (5) assign global electro-physiology parameters
-    decor.set_property(tempK=dflt.tempK, Vm=dflt.Vm, cm=dflt.cm, rL=dflt.rL)
+    decor.set_property(
+        tempK=dflt.tempK * U.Kelvin,
+        Vm=dflt.Vm * U.mV,
+        cm=dflt.cm * U.F / U.m2,
+        rL=dflt.rL * U.Ohm * U.cm,
+    )
 
     # (6) override regional electro-physiology parameters
     for region, vs in regions:
-        decor.paint(f'"{region}"', tempK=vs.tempK, Vm=vs.Vm, cm=vs.cm, rL=vs.rL)
+        decor.paint(
+            f'"{region}"',
+            tempK=vs.tempK * U.Kelvin,
+            Vm=vs.Vm * U.Vm,
+            cm=vs.cm * U.F / U.m2,
+            rL=vs.rL * U.Ohm * U.cm,
+        )
 
     # (7) set reversal potentials
     for region, ion, e in ions:
         decor.paint(f'"{region}"', ion=ion, rev_pot=e)
-    decor.set_ion("ca", int_con=5e-5, ext_con=2.0, method="nernst/x=ca")
+    decor.set_ion("ca", int_con=5e-5 * U.mM, ext_con=2.0 * U.mM, method="nernst/x=ca")
 
     # (8) assign ion dynamics
     for region, mech, values in mechanisms:

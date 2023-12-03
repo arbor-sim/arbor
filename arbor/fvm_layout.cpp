@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <optional>
 #include <set>
-#include <stdexcept>
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
@@ -20,16 +19,10 @@
 #include "fvm_layout.hpp"
 #include "threading/threading.hpp"
 #include "util/maputil.hpp"
-#include "util/meta.hpp"
-#include "util/partition.hpp"
 #include "util/piecewise.hpp"
 #include "util/pw_over_cable.hpp"
 #include "util/rangeutil.hpp"
-#include "util/transform.hpp"
-#include "util/unique.hpp"
 #include "util/strprintf.hpp"
-
-#include <iostream>
 
 namespace arb {
 
@@ -275,16 +268,16 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
 
     double dflt_resistivity = *(dflt.axial_resistivity | global_dflt.axial_resistivity);
     double dflt_capacitance = *(dflt.membrane_capacitance | global_dflt.membrane_capacitance);
-    double dflt_potential =   *(dflt.init_membrane_potential | global_dflt.init_membrane_potential);
+    double dflt_potential   = *(dflt.init_membrane_potential | global_dflt.init_membrane_potential);
     double dflt_temperature = *(dflt.temperature_K | global_dflt.temperature_K);
 
-    const auto& assignments = cell.region_assignments();
-    const auto& resistivity = assignments.get<axial_resistivity>();
-    const auto& capacitance = assignments.get<membrane_capacitance>();
-    const auto& potential   = assignments.get<init_membrane_potential>();
-    const auto& temperature = assignments.get<temperature_K>();
-    const auto& diffusivity = assignments.get<ion_diffusivity>();
-    const auto& provider    = cell.provider();
+    const auto& assignments   = cell.region_assignments();
+    const auto& resistivity   = assignments.get<axial_resistivity>();
+    const auto& capacitance   = assignments.get<membrane_capacitance>();
+    const auto& potential     = assignments.get<init_membrane_potential>();
+    const auto& temperature_K = assignments.get<temperature>();
+    const auto& diffusivity   = assignments.get<ion_diffusivity>();
+    const auto& provider      = cell.provider();
 
     struct inv_diff {
         iexpr value;
@@ -310,8 +303,9 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
         auto diffusive = std::any_of(data.begin(),
                                      data.end(),
                                      [](const auto& kv) {
-                                         const auto& v = kv.second.value.get_scalar();
-                                         return !v || *v != 0.0 || *v == *v;
+                                         const auto& [k, v] = kv;
+                                         auto s = v.scale.get_scalar();
+                                         return !s || *s*v.value != 0.0;
                                      });
         if (diffusive) {
             // Provide a (non-sensical) default.
@@ -337,8 +331,8 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
         for (msize_t i = 0; i<n_branch; ++i) {
             auto cable = mcable{i, 0., 1.};
             auto scale_param = [&, ion=ion](const auto&,
-                                   const inv_diff& par) {
-                auto ie = thingify(par.value, provider);
+                                   const inv_diff& par) -> double {
+                auto ie = thingify(par.value, provider); // TODO
                 auto sc = ie->eval(provider, cable);
                 if (def <= 0.0 || std::isnan(def)) {
                     throw make_cc_error("Illegal diffusivity '{}' for ion '{}' at cable {}."
@@ -360,9 +354,9 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
     for (msize_t i = 0; i<n_branch; ++i) {
         auto cable = mcable{i, 0., 1.};
         auto scale_param = [&](const auto&,
-                               const axial_resistivity& par) {
-            auto ie = thingify(par.value, provider);
-            auto sc = ie->eval(provider, cable);
+                               const axial_resistivity& par) -> double {
+            auto ie = thingify(par.scale, provider);
+            auto sc = par.value*ie->eval(provider, cable);
             return sc;
         };
         ax_res_0.emplace_back(pw_over_cable(resistivity, cable, dflt_resistivity, scale_param));
@@ -419,15 +413,15 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
         double cv_length = 0;
 
         for (mcable cable: cv_cables) {
-            auto scale_param = [&](const auto&, const auto& par) {
-                auto ie = thingify(par.value, provider);
-                auto sc = ie->eval(provider, cable);
+            auto scale_param = [&](const auto&, const auto& par) -> double {
+                auto ie = thingify(par.scale, provider);
+                auto sc = par.value*ie->eval(provider, cable);
                 return sc;
             };
 
-            auto pw_capacitance = pw_over_cable(capacitance, cable, dflt_capacitance, scale_param);
-            auto pw_potential   = pw_over_cable(potential,   cable, dflt_potential,   scale_param);
-            auto pw_temperature = pw_over_cable(temperature, cable, dflt_temperature, scale_param);
+            auto pw_capacitance = pw_over_cable(capacitance,   cable, dflt_capacitance, scale_param);
+            auto pw_potential   = pw_over_cable(potential,     cable, dflt_potential,   scale_param);
+            auto pw_temperature = pw_over_cable(temperature_K, cable, dflt_temperature, scale_param);
 
             D.cv_area[i]                 += embedding.integrate_area(cable);
             D.cv_capacitance[i]          += embedding.integrate_area(cable.branch, pw_capacitance);
@@ -544,7 +538,7 @@ bool cables_intersect_location(Seq&& cables, const mlocation& x) {
     auto eqr = std::equal_range(begin(cables), end(cables), x.branch, cmp_branch{});
 
     return util::any_of(util::make_range(eqr),
-        [&x](const mcable& c) { return c.prox_pos<=x.pos && x.pos<=c.dist_pos; });
+                        [&x](const mcable& c) { return c.prox_pos<=x.pos && x.pos<=c.dist_pos; });
 }
 
 voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, const cv_geometry& geom, arb_size_type cell_idx, const mlocation& site) {
@@ -1312,9 +1306,9 @@ make_ion_config(fvm_ion_map build_data,
 
             for (const mcable& cable: data.D.geometry.cables(cv)) {
                 auto scale_param = [&](const auto&,
-                                   const auto& par) {
-                    auto ie = thingify(par.value, provider);
-                    auto sc = ie->eval(provider, cable);
+                                   const auto& par) -> double {
+                    auto ie = thingify(par.scale, provider);
+                    auto sc = par.value*ie->eval(provider, cable);
                     return sc;
                 };
 

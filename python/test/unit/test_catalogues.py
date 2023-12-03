@@ -23,7 +23,7 @@ class recipe(A.recipe):
 
         d = A.decor()
         d.paint("(all)", A.density("pas"))
-        d.set_property(Vm=0.0)
+        d.set_property(Vm=0.0 * U.mV)
         self.cell = A.cable_cell(self.tree, d)
 
     def global_properties(self, _):

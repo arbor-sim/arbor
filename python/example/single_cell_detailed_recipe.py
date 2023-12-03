@@ -46,12 +46,18 @@ labels = A.label_dict(
 decor = (
     A.decor()
     # Set the default properties of the cell (this overrides the model defaults).
-    .set_property(Vm=-55)
-    .set_ion("na", int_con=10, ext_con=140, rev_pot=50, method="nernst/na")
-    .set_ion("k", int_con=54.4, ext_con=2.5, rev_pot=-77)
+    .set_property(Vm=-55 * U.mV)
+    .set_ion(
+        "na",
+        int_con=10 * U.mM,
+        ext_con=140 * U.mM,
+        rev_pot=50 * U.mV,
+        method="nernst/na",
+    )
+    .set_ion("k", int_con=54.4 * U.mM, ext_con=2.5 * U.mM, rev_pot=-77 * U.mV)
     # Override the cell defaults.
-    .paint('"custom"', tempK=270)
-    .paint('"soma"', Vm=-50)
+    .paint('"custom"', tempK=270 * U.Kelvin)
+    .paint('"soma"', Vm=-50 * U.mV)
     # Paint density mechanisms.
     .paint('"all"', A.density("pas"))
     .paint('"custom"', A.density("hh"))
@@ -80,12 +86,25 @@ class single_recipe(A.recipe):
         A.recipe.__init__(self)
 
         self.the_props = A.cable_global_properties()
-        self.the_props.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
-        self.the_props.set_ion(
-            ion="na", int_con=10, ext_con=140, rev_pot=50, method="nernst/na"
+        self.the_props.set_property(
+            Vm=-65 * U.mV,
+            tempK=300 * U.Kelvin,
+            rL=35.4 * U.Ohm * U.cm,
+            cm=0.01 * U.F / U.m2,
         )
-        self.the_props.set_ion(ion="k", int_con=54.4, ext_con=2.5, rev_pot=-77)
-        self.the_props.set_ion(ion="ca", int_con=5e-5, ext_con=2, rev_pot=132.5)
+        self.the_props.set_ion(
+            ion="na",
+            int_con=10 * U.mM,
+            ext_con=140 * U.mM,
+            rev_pot=50 * U.mV,
+            method="nernst/na",
+        )
+        self.the_props.set_ion(
+            ion="k", int_con=54.4 * U.mM, ext_con=2.5 * U.mM, rev_pot=-77 * U.mV
+        )
+        self.the_props.set_ion(
+            ion="ca", int_con=5e-5 * U.mM, ext_con=2 * U.mM, rev_pot=132.5 * U.mV
+        )
         self.the_props.catalogue.extend(A.allen_catalogue(), "")
 
     # (5.2) Override the num_cells method

@@ -82,10 +82,10 @@ def make_cable_cell(morphology, clamp_location):
         A.decor()
         # set initial voltage, temperature, axial resistivity, membrane capacitance
         .set_property(
-            Vm=-65,  # Initial membrane voltage (mV)
-            tempK=300,  # Temperature (Kelvin)
-            rL=10000,  # Axial resistivity (Ω cm)
-            cm=0.01,  # Membrane capacitance (F/m**2)
+            Vm=-65 * U.mV,  # Initial membrane voltage (mV)
+            tempK=300 * U.Kelvin,  # Temperature (Kelvin)
+            rL=10 * U.kOhm * U.cm,  # Axial resistivity (Ω cm)
+            cm=0.01 * U.F / U.m2,  # Membrane capacitance (F/m**2)
         )
         # set passive mechanism all over
         # passive mech w. leak reversal potential (mV)

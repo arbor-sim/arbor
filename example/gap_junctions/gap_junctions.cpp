@@ -34,6 +34,8 @@
 
 using namespace arborio::literals;
 
+namespace U = arb::units;
+
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
 #include <arborenv/with_mpi.hpp>
@@ -175,7 +177,7 @@ int main(int argc, char** argv) {
 
         // Set up the probe that will measure voltage in the cell.
 
-        auto sched = arb::regular_schedule(0.025*arb::units::ms);
+        auto sched = arb::regular_schedule(0.025*U::ms);
         // This is where the voltage samples will be stored as (time, value) pairs
         std::vector<arb::trace_vector<double>> voltage_traces(decomp.num_local_cells());
 
@@ -200,7 +202,7 @@ int main(int argc, char** argv) {
 
         std::cout << "running simulation" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
-        sim.run(params.sim_duration*arb::units::ms, 0.025*arb::units::ms);
+        sim.run(params.sim_duration*U::ms, 0.025*U::ms);
 
         meters.checkpoint("model-run", context);
 
@@ -275,15 +277,15 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
     tree.append(0, {0,0,2*soma_rad, dend_rad}, {0,0,2*soma_rad+300, dend_rad}, 3);  // dendrite
 
     auto decor = arb::decor{}
-        .set_default(arb::axial_resistivity{100})       // [Ω·cm]
-        .set_default(arb::membrane_capacitance{0.018})  // [F/m²]
+        .set_default(arb::axial_resistivity{100*U::Ohm*U::cm})     // [Ω·cm]
+        .set_default(arb::membrane_capacitance{0.018*U::F/U::m2})  // [F/m²]
         // Paint density channels on all parts of the cell
         .paint("(all)"_reg, arb::density{"nax", {{"gbar", 0.04}, {"sh", 10}}})
         .paint("(all)"_reg, arb::density{"kdrmt", {{"gbar", 0.0001}}})
         .paint("(all)"_reg, arb::density{"kamt", {{"gbar", 0.004}}})
         .paint("(all)"_reg, arb::density{"pas/e=-65", {{"g", 1.0/12000.0}}})
         // Add a spike detector to the soma.
-        .place(arb::mlocation{0,0}, arb::threshold_detector{10*arb::units::mV}, "detector")
+        .place(arb::mlocation{0,0}, arb::threshold_detector{10*U::mV}, "detector")
         // Add two gap junction sites.
         .place(arb::mlocation{0, 1}, arb::junction{"gj"}, "local_1")
         .place(arb::mlocation{0, 0}, arb::junction{"gj"}, "local_0")
@@ -292,7 +294,7 @@ arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncell, double stim_duration)
 
     // Attach a stimulus to the first cell of the first group
     if (!gid) {
-        auto stim = arb::i_clamp::box(0*arb::units::ms, stim_duration*arb::units::ms, 0.4*arb::units::nA);
+        auto stim = arb::i_clamp::box(0*U::ms, stim_duration*U::ms, 0.4*U::nA);
         decor.place(arb::mlocation{0, 0.5}, stim, "stim");
     }
 

@@ -53,7 +53,7 @@ labels = A.label_dict({"soma": "(tag 1)", "midpoint": "(location 0 0.5)"})
 # Create and set up a decor object
 decor = (
     A.decor()
-    .set_property(Vm=-40)
+    .set_property(Vm=-40 * U.mV)
     .paint('"soma"', A.density("pas"))
     .place('"midpoint"', A.synapse("expsyn"), "driving_synapse")
     .place('"midpoint"', A.threshold_detector(-10 * U.mV), "detector")

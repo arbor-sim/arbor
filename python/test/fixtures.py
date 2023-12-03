@@ -233,11 +233,13 @@ class art_spiker_recipe(A.recipe):
         labels = A.label_dict({"soma": "(tag 1)", "midpoint": "(location 0 0.5)"})
 
         # (3) Create cell and set properties
-        decor = A.decor()
-        decor.set_property(Vm=-40)
-        decor.paint('"soma"', A.density("hh"))
-        decor.place('"midpoint"', A.iclamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA), "iclamp")
-        decor.place('"midpoint"', A.threshold_detector(-10 * U.mV), "detector")
+        decor = (
+            A.decor()
+            .set_property(Vm=-40 * U.mV)
+            .paint('"soma"', A.density("hh"))
+            .place('"midpoint"', A.iclamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA), "iclamp")
+            .place('"midpoint"', A.threshold_detector(-10 * U.mV), "detector")
+        )
 
         # return tuple of tree, labels, and decor for creating a cable cell (can still
         # be modified before calling A.cable_cell())

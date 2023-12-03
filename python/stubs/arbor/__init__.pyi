@@ -119,7 +119,7 @@ from arbor._arbor import spike_recording
 from arbor._arbor import spike_source_cell
 from arbor._arbor import stochastic_catalogue
 from arbor._arbor import synapse
-from arbor._arbor import temperature_K
+from arbor._arbor import temperature
 from arbor._arbor import threshold_detector
 from arbor._arbor import trace
 from arbor._arbor import units
@@ -251,7 +251,7 @@ __all__ = [
     "spike_source_cell",
     "stochastic_catalogue",
     "synapse",
-    "temperature_K",
+    "temperature",
     "threshold_detector",
     "trace",
     "units",
@@ -271,17 +271,17 @@ __config__: dict = {
     "neuroml": True,
     "bundled": True,
     "version": "0.9.1-dev",
-    "source": "2023-11-29T17:19:01+01:00 6da38a89d33ed51eb4b611c1e85444222b15f60d",
-    "build_config": "DEBUG",
+    "source": "2023-11-30T15:24:09+01:00 7681c0154bc75d0c1cc3193b1b5d9ab45a055b5b modified",
+    "build_config": "RELEASE",
     "arch": "native",
     "prefix": "/usr/local",
-    "python_lib_path": "",
+    "python_lib_path": "/opt/homebrew/lib/python3.11/site-packages",
     "binary_path": "bin",
     "lib_path": "lib",
     "data_path": "share",
     "CXX": "/opt/homebrew/bin/clang++",
     "pybind-version": "2.11.1",
-    "timestamp": "Nov 29 2023 17:34:30",
+    "timestamp": "Dec  1 2023 07:35:07",
 }
 __version__: str = "0.9.1-dev"
 mnpos: int = 4294967295

@@ -37,7 +37,7 @@ labels = A.label_dict(
 decor = (
     A.decor()
     # Set initial membrane potential to -55 mV
-    .set_property(Vm=-55)
+    .set_property(Vm=-55 * U.mV)
     # Use Nernst to calculate reversal potential for calcium.
     .set_ion("ca", method=A.mechanism("nernst/x=ca"))
     # hh mechanism on the soma and axon.
@@ -46,7 +46,7 @@ decor = (
     # pas mechanism the dendrites.
     .paint('"dend"', A.density("pas"))
     # Increase resistivity on dendrites.
-    .paint('"dend"', rL=500)
+    .paint('"dend"', rL=500 * U.Ohm * U.cm)
     # Attach stimuli that inject 4 nA current for 1 ms, starting at 3 and 8 ms.
     .place('"root"', A.iclamp(10 * U.ms, 1 * U.ms, current=5 * U.nA), "iclamp0")
     .place('"stim_site"', A.iclamp(3 * U.ms, 1 * U.ms, current=0.5 * U.nA), "iclamp1")

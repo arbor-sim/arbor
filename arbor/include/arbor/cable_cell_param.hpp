@@ -123,48 +123,96 @@ struct ARB_SYMBOL_VISIBLE threshold_detector {
 // cell-wide default:
 
 struct ARB_SYMBOL_VISIBLE init_membrane_potential {
-    iexpr value = NAN;         // [mV]
-};
-
-struct ARB_SYMBOL_VISIBLE init_membrane_potential_ {
     double value = NAN;      // [mV]
     iexpr scale = 1;         // [1]
 
-    init_membrane_potential_(const units::quantity& m, iexpr scale=1): value(m.value_as(units::mV)), scale{scale} {}
-
+    init_membrane_potential() = default;
+    init_membrane_potential(const units::quantity& m, iexpr scale=1):
+      value(m.value_as(units::mV)), scale{scale} {
+        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mV]."};
+    }
 };
 
 
-struct ARB_SYMBOL_VISIBLE temperature_K {
-    iexpr value = NAN;         // [K]
+struct ARB_SYMBOL_VISIBLE temperature {
+    double value = NAN;      // [K]
+    iexpr scale = 1;         // [1]
+
+    temperature() = default;
+    temperature(const units::quantity& m, iexpr scale=1):
+      value(m.value_as(units::Kelvin)), scale{scale} {
+        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [K]."};
+    }
 };
 
 struct ARB_SYMBOL_VISIBLE axial_resistivity {
-    iexpr value = NAN;         // [Ω·cm]
+    double value = NAN;      // [Ω·cm]
+    iexpr scale = 1;         // [1]
+
+    axial_resistivity() = default;
+    axial_resistivity(const units::quantity& m, iexpr scale=1):
+      value(m.value_as(units::cm*units::Ohm)), scale{scale} {
+        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [Ω·cm]."};
+    }
 };
 
 struct ARB_SYMBOL_VISIBLE membrane_capacitance {
-    iexpr value = NAN;         // [F/m²]
+    double value = NAN;      // [F/m²]
+    iexpr scale = 1;         // [1]
+
+    membrane_capacitance() = default;
+    membrane_capacitance(const units::quantity& m, iexpr scale=1):
+      value(m.value_as(units::F/units::m2)), scale{scale} {
+        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [F/m²]."};
+    }
 };
 
 struct ARB_SYMBOL_VISIBLE init_int_concentration {
     std::string ion = "";
-    iexpr value = NAN;         // [mM]
+    double value = NAN;      // [mM]
+    iexpr scale = 1;         // [1]
+
+    init_int_concentration() = default;
+    init_int_concentration(const std::string& ion, const units::quantity& m, iexpr scale=1):
+      ion{ion}, value(m.value_as(units::mM)), scale{scale} {
+        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mM]."};
+    }
 };
 
 struct ARB_SYMBOL_VISIBLE ion_diffusivity {
     std::string ion = "";
-    iexpr value = NAN;         // [m^2/s]
+    double value = NAN;      // [m²/s]
+    iexpr scale = 1;         // [1]
+
+    ion_diffusivity() = default;
+    ion_diffusivity(const std::string& ion, const units::quantity& m, iexpr scale=1):
+      ion{ion}, value(m.value_as(units::m2/units::s)), scale{scale} {
+        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [m²/s]."};
+    }
 };
 
 struct ARB_SYMBOL_VISIBLE init_ext_concentration {
     std::string ion = "";
-    iexpr value = NAN;         // [mM]
+    double value = NAN;      // [mM]
+    iexpr scale = 1;         // [1]
+
+    init_ext_concentration() = default;
+    init_ext_concentration(const std::string& ion, const units::quantity& m, iexpr scale=1):
+      ion{ion}, value(m.value_as(units::mM)), scale{scale} {
+        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mM]."};
+    }
 };
 
 struct ARB_SYMBOL_VISIBLE init_reversal_potential {
     std::string ion = "";
-    iexpr value = NAN;         // [mV]
+    double value = NAN;      // [mV]
+    iexpr scale = 1;         // [1]
+
+    init_reversal_potential() = default;
+    init_reversal_potential(const std::string& ion, const units::quantity& m, iexpr scale=1):
+      ion{ion}, value(m.value_as(units::mV)), scale{scale} {
+        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mV]."};
+    }
 };
 
 // Mechanism description, viz. mechanism name and
@@ -293,7 +341,7 @@ struct ARB_SYMBOL_VISIBLE scaled_mechanism {
 using paintable =
     std::variant<init_membrane_potential,
                  axial_resistivity,
-                 temperature_K,
+                 temperature,
                  membrane_capacitance,
                  ion_diffusivity,
                  init_int_concentration,
@@ -312,7 +360,7 @@ using placeable =
 using defaultable =
     std::variant<init_membrane_potential,
                  axial_resistivity,
-                 temperature_K,
+                 temperature,
                  membrane_capacitance,
                  ion_diffusivity,
                  init_int_concentration,

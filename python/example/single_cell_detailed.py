@@ -44,12 +44,18 @@ labels = A.label_dict(
 decor = (
     A.decor()
     # Set the default properties of the cell (this overrides the model defaults).
-    .set_property(Vm=-55)
-    .set_ion("na", int_con=10, ext_con=140, rev_pot=50, method="nernst/na")
-    .set_ion("k", int_con=54.4, ext_con=2.5, rev_pot=-77)
+    .set_property(Vm=-55 * U.mV)
+    .set_ion(
+        "na",
+        int_con=10 * U.mM,
+        ext_con=140 * U.mM,
+        rev_pot=50 * U.mV,
+        method="nernst/na",
+    )
+    .set_ion("k", int_con=54.4 * U.mM, ext_con=2.5 * U.mM, rev_pot=-77 * U.mV)
     # Override the cell defaults.
-    .paint('"custom"', tempK=270)
-    .paint('"soma"', Vm=-50)
+    .paint('"custom"', tempK=270 * U.Kelvin)
+    .paint('"soma"', Vm=-50 * U.mV)
     # Paint density mechanisms.
     .paint('"all"', A.density("pas"))
     .paint('"custom"', A.density("hh"))
@@ -70,9 +76,15 @@ cell = A.cable_cell(morph, decor, labels)
 model = A.single_cell_model(cell)
 
 # (6) Set the model default properties
-model.properties.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
-model.properties.set_ion("na", int_con=10, ext_con=140, rev_pot=50, method="nernst/na")
-model.properties.set_ion("k", int_con=54.4, ext_con=2.5, rev_pot=-77)
+model.properties.set_property(
+    Vm=-65 * U.mV, tempK=300 * U.Kelvin, rL=35.4 * U.Ohm * U.cm, cm=0.01 * U.F / U.m2
+)
+model.properties.set_ion(
+    "na", int_con=10 * U.mM, ext_con=140 * U.mM, rev_pot=50 * U.mV, method="nernst/na"
+)
+model.properties.set_ion(
+    "k", int_con=54.4 * U.mM, ext_con=2.5 * U.mM, rev_pot=-77 * U.mV
+)
 
 # Extend the default catalogue with the Allen catalogue.
 # The function takes a second string parameter that can prefix

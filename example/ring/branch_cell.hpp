@@ -17,6 +17,8 @@
 
 using namespace arborio::literals;
 
+namespace U = arb::units;
+
 // Parameters used to generate the random cell morphologies.
 struct cell_parameters {
     cell_parameters() = default;
@@ -113,8 +115,8 @@ inline arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters
     auto decor = arb::decor{}
         .paint("soma"_lab, arb::density("hh"))
         .paint("dend"_lab, arb::density("pas"))
-        .set_default(arb::axial_resistivity{100}) // [Ω·cm]
-        .place(arb::mlocation{0,0}, arb::threshold_detector{10*arb::units::mV}, "detector")   // Add spike threshold detector at the soma.
+        .set_default(arb::axial_resistivity{100*U::Ohm*U::cm}) // [Ω·cm]
+        .place(arb::mlocation{0,0}, arb::threshold_detector{10*U::mV}, "detector")   // Add spike threshold detector at the soma.
         .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "primary_syn"); // Add a synapse to the mid point of the first dendrite.
     // Add additional synapses that will not be connected to anything.
     if (params.synapses > 1) {

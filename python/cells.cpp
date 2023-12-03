@@ -75,8 +75,8 @@ std::string to_string(const arb::cable_cell_global_properties& props) {
     }
     s += "}\n";
     s += util::pprintf("  parameters: {Vm: {}, cm: {}, rL: {}, tempK: {}}\n",
-            D.init_membrane_potential, D.membrane_capacitance,
-            D.axial_resistivity, D.temperature_K);
+                       D.init_membrane_potential, D.membrane_capacitance,
+                       D.axial_resistivity, D.temperature_K);
     s += "}";
     return s;
 }
@@ -161,26 +161,26 @@ void register_cells(py::module& m) {
     py::class_<arb::cell_cv_data> cell_cv_data(m, "cell_cv_data",
             "Provides information on the CVs representing the discretization of a cable-cell.");
     py::class_<arb::benchmark_cell> benchmark_cell(m, "benchmark_cell",
-        "A benchmarking cell, used by Arbor developers to test communication performance.\n"
-        "A benchmark cell generates spikes at a user-defined sequence of time points, and\n"
-        "the time taken to integrate a cell can be tuned by setting the realtime_ratio,\n"
-        "for example if realtime_ratio=2, a cell will take 2 seconds of CPU time to\n"
-        "simulate 1 second.\n");
+                                                   "A benchmarking cell, used by Arbor developers to test communication performance.\n"
+                                                   "A benchmark cell generates spikes at a user-defined sequence of time points, and\n"
+                                                   "the time taken to integrate a cell can be tuned by setting the realtime_ratio,\n"
+                                                   "for example if realtime_ratio=2, a cell will take 2 seconds of CPU time to\n"
+                                                   "simulate 1 second.\n");
     py::class_<arb::lif_cell> lif_cell(m, "lif_cell", "A leaky integrate-and-fire cell.");
     py::class_<arb::cv_policy> cv_policy(m, "cv_policy",
-            "Describes the rules used to discretize (compartmentalise) a cable cell morphology.");
+                                         "Describes the rules used to discretize (compartmentalise) a cable cell morphology.");
     py::class_<ion_settings> py_ion_data(m, "ion_settings");
     py::class_<arb::cable_cell_global_properties> gprop(m, "cable_global_properties");
     py::class_<arb::decor> decor(m, "decor",
-            "Description of the decorations to be applied to a cable cell, that is the painted,\n"
-            "placed and defaulted properties, mecahanisms, ion species etc.");
+                                 "Description of the decorations to be applied to a cable cell, that is the painted,\n"
+                                 "placed and defaulted properties, mecahanisms, ion species etc.");
     py::class_<arb::cable_cell> cable_cell(m, "cable_cell",
                                            "Represents morphologically-detailed cell models, with morphology represented as a\n"
                                            "tree of one-dimensional cable segments.");
     py::class_<arb::init_membrane_potential> membrane_potential(m, "membrane_potential", "Setting the initial membrane voltage.");
     py::class_<arb::ion_reversal_potential_method> revpot_method(m, "reversal_potential_method", "Describes the mechanism used to compute eX for ion X.");
     py::class_<arb::membrane_capacitance> membrane_capacitance(m, "membrane_capacitance", "Setting the membrane capacitance.");
-    py::class_<arb::temperature_K> temperature_K(m, "temperature_K", "Setting the temperature.");
+    py::class_<arb::temperature> temperature_K(m, "temperature", "Setting the temperature.");
     py::class_<arb::axial_resistivity> axial_resistivity(m, "axial_resistivity", "Setting the axial resistivity.");
     py::class_<arb::init_reversal_potential> reversal_potential(m, "reversal_potential", "Setting the initial reversal potential.");
     py::class_<arb::init_int_concentration> int_concentration(m, "int_concentration", "Setting the initial internal ion concentration.");
@@ -370,44 +370,47 @@ void register_cells(py::module& m) {
     );
 
     membrane_potential
-        .def(py::init([](double v) -> arb::init_membrane_potential { return {v}; }))
+        .def(py::init([](const arb::units::quantity& v,
+                         std::optional<std::string> s) -> arb::init_membrane_potential {
+            return {v };
+        }))
         .def("__repr__", [](const arb::init_membrane_potential& d){
             return "Vm=" + to_string(d.value);});
 
     revpot_method
         .def(py::init([](const std::string& ion,
-                               const arb::mechanism_desc& d) -> arb::ion_reversal_potential_method {
+                         const arb::mechanism_desc& d) -> arb::ion_reversal_potential_method {
             return {ion, d};
         }))
         .def("__repr__", [](const arb::ion_reversal_potential_method& d) {
             return "ion" + d.ion + " method=" + d.method.name();});
 
     membrane_capacitance
-        .def(py::init([](double v) -> arb::membrane_capacitance { return {v}; }))
+        .def(py::init([](const arb::units::quantity& v) -> arb::membrane_capacitance { return {v}; }))
         .def("__repr__", [](const arb::membrane_capacitance& d){return "Cm=" + to_string(d.value);});
 
     temperature_K
-        .def(py::init([](double v) -> arb::temperature_K { return {v}; }))
-        .def("__repr__", [](const arb::temperature_K& d){return "T=" + to_string(d.value);});
+        .def(py::init([](const arb::units::quantity& v) -> arb::temperature { return {v}; }))
+        .def("__repr__", [](const arb::temperature& d){return "T=" + to_string(d.value);});
 
     axial_resistivity
-        .def(py::init([](double v) -> arb::axial_resistivity { return {v}; }))
+        .def(py::init([](const arb::units::quantity& v) -> arb::axial_resistivity { return {v}; }))
         .def("__repr__", [](const arb::axial_resistivity& d){return "Ra" + to_string(d.value);});
 
     reversal_potential
-        .def(py::init([](const std::string& i, double v) -> arb::init_reversal_potential { return {i, v}; }))
+        .def(py::init([](const std::string& i, const arb::units::quantity& v) -> arb::init_reversal_potential { return {i, v}; }))
         .def("__repr__", [](const arb::init_reversal_potential& d){return "e" + d.ion + "=" + to_string(d.value);});
 
     int_concentration
-        .def(py::init([](const std::string& i, double v) -> arb::init_int_concentration { return {i, v}; }))
+        .def(py::init([](const std::string& i, const arb::units::quantity& v) -> arb::init_int_concentration { return {i, v}; }))
         .def("__repr__", [](const arb::init_int_concentration& d){return d.ion + "i" + "=" + to_string(d.value);});
 
     ext_concentration
-        .def(py::init([](const std::string& i, double v) -> arb::init_ext_concentration { return {i, v}; }))
+        .def(py::init([](const std::string& i, const arb::units::quantity& v) -> arb::init_ext_concentration { return {i, v}; }))
         .def("__repr__", [](const arb::init_ext_concentration& d){return d.ion + "o" + "=" + to_string(d.value);});
 
     ion_diffusivity
-        .def(py::init([](const std::string& i, double v) -> arb::ion_diffusivity { return {i, v}; }))
+        .def(py::init([](const std::string& i, const arb::units::quantity& v) -> arb::ion_diffusivity { return {i, v}; }))
         .def("__repr__", [](const arb::ion_diffusivity& d){return "D" + d.ion + "=" + to_string(d.value);});
 
     density
@@ -588,12 +591,12 @@ void register_cells(py::module& m) {
                       [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.axial_resistivity = u; })
         .def("set_property",
             [](arb::cable_cell_global_properties& props,
-               optional<double> Vm, optional<double> cm,
-               optional<double> rL, optional<double> tempK) {
-                if (Vm) props.default_parameters.init_membrane_potential=Vm;
-                if (cm) props.default_parameters.membrane_capacitance=cm;
-                if (rL) props.default_parameters.axial_resistivity=rL;
-                if (tempK) props.default_parameters.temperature_K=tempK;
+               optional<arb::units::quantity> Vm, optional<arb::units::quantity> cm,
+               optional<arb::units::quantity> rL, optional<arb::units::quantity> tempK) {
+                if (Vm) props.default_parameters.init_membrane_potential=Vm.value().value_as(arb::units::mV);
+                if (cm) props.default_parameters.membrane_capacitance=cm.value().value_as(arb::units::F/arb::units::m2);
+                if (rL) props.default_parameters.axial_resistivity=rL.value().value_as(arb::units::Ohm*arb::units::cm);
+                if (tempK) props.default_parameters.temperature_K=tempK.value().value_as(arb::units::Kelvin);
             },
              "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
              "Set global default values for cable and cell properties.\n"
@@ -612,19 +615,19 @@ void register_cells(py::module& m) {
              "Remove ion species from properties.")
         .def("set_ion",
              [](arb::cable_cell_global_properties& props, const char* ion,
-                optional<double> valence, optional<double> int_con,
-                optional<double> ext_con, optional<double> rev_pot,
-                py::object method, optional<double> diff) {
+                optional<int> valence, optional<arb::units::quantity> int_con,
+                optional<arb::units::quantity> ext_con, optional<arb::units::quantity> rev_pot,
+                py::object method, optional<arb::units::quantity> diff) {
                  if (!props.ion_species.count(ion) && !valence) {
                      throw std::runtime_error(util::pprintf("New ion species: '{}', missing valence", ion));
                  }
                  if (valence) props.ion_species[ion] = *valence;
 
                  auto& data = props.default_parameters.ion_data[ion];
-                 if (int_con) data.init_int_concentration  = *int_con;
-                 if (ext_con) data.init_ext_concentration  = *ext_con;
-                 if (rev_pot) data.init_reversal_potential = *rev_pot;
-                 if (diff)    data.diffusivity             = *diff;
+                 if (int_con) data.init_int_concentration  = int_con.value().value_as(arb::units::mM);
+                 if (ext_con) data.init_ext_concentration  = ext_con.value().value_as(arb::units::mM);
+                 if (rev_pot) data.init_reversal_potential = rev_pot.value().value_as(arb::units::mV);
+                 if (diff)    data.diffusivity             = diff.value().value_as(arb::units::m2/arb::units::s);
 
                  if (auto m = maybe_method(method)) {
                      props.default_parameters.reversal_potential_method[ion] = *m;
@@ -692,12 +695,12 @@ void register_cells(py::module& m) {
         // Set cell-wide default values for properties
         .def("set_property",
              [](arb::decor& d,
-                optional<double> Vm, optional<double> cm,
-                optional<double> rL, optional<double> tempK) {
+                optional<arb::units::quantity> Vm, optional<arb::units::quantity> cm,
+                optional<arb::units::quantity> rL, optional<arb::units::quantity> tempK) {
                  if (Vm) d.set_default(arb::init_membrane_potential{*Vm});
                  if (cm) d.set_default(arb::membrane_capacitance{*cm});
                  if (rL) d.set_default(arb::axial_resistivity{*rL});
-                 if (tempK) d.set_default(arb::temperature_K{*tempK});
+                 if (tempK) d.set_default(arb::temperature{*tempK});
                  return d;
              },
              "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
@@ -710,9 +713,9 @@ void register_cells(py::module& m) {
         // modify parameters for an ion species.
         .def("set_ion",
              [](arb::decor& d, const char* ion,
-                optional<double> int_con, optional<double> ext_con,
-                optional<double> rev_pot, py::object method,
-                optional<double> diff) {
+                optional<arb::units::quantity> int_con, optional<arb::units::quantity> ext_con,
+                optional<arb::units::quantity> rev_pot, py::object method,
+                optional<arb::units::quantity> diff) {
                  if (int_con) d.set_default(arb::init_int_concentration{ion, *int_con});
                  if (ext_con) d.set_default(arb::init_ext_concentration{ion, *ext_con});
                  if (rev_pot) d.set_default(arb::init_reversal_potential{ion, *rev_pot});
@@ -781,49 +784,49 @@ void register_cells(py::module& m) {
         .def("paint",
             [](arb::decor& dec,
                const char* region,
-               optional<std::variant<double, std::string>> Vm,
-               optional<std::variant<double, std::string>> cm,
-               optional<std::variant<double, std::string>> rL,
-               optional<std::variant<double, std::string>> tempK) {
+               optional<std::variant<arb::units::quantity, std::string>> Vm,
+               optional<std::variant<arb::units::quantity, std::string>> cm,
+               optional<std::variant<arb::units::quantity, std::string>> rL,
+               optional<std::variant<arb::units::quantity, std::string>> tempK) {
                 auto r = arborio::parse_region_expression(region).unwrap();
                 if (Vm) {
-                    if (std::holds_alternative<double>(*Vm)) {
-                        dec.paint(r, arb::init_membrane_potential{std::get<double>(*Vm)});
+                    if (std::holds_alternative<arb::units::quantity>(*Vm)) {
+                        dec.paint(r, arb::init_membrane_potential{std::get<arb::units::quantity>(*Vm)});
                     }
                     else {
                         const auto& s = std::get<std::string>(*Vm);
                         auto ie = arborio::parse_iexpr_expression(s).unwrap();
-                        dec.paint(r, arb::init_membrane_potential{ie});
+                        dec.paint(r, arb::init_membrane_potential{1*arb::units::mV, ie});
                     }
                 }
                 if (cm) {
-                    if (std::holds_alternative<double>(*cm)) {
-                        dec.paint(r, arb::membrane_capacitance{std::get<double>(*cm)});
+                    if (std::holds_alternative<arb::units::quantity>(*cm)) {
+                        dec.paint(r, arb::membrane_capacitance{std::get<arb::units::quantity>(*cm)});
                     }
                     else {
                         const auto& s = std::get<std::string>(*cm);
                         auto ie = arborio::parse_iexpr_expression(s).unwrap();
-                        dec.paint(r, arb::membrane_capacitance{ie});
+                        dec.paint(r, arb::membrane_capacitance{1*arb::units::F/arb::units::m.pow(2), ie});
                     }
                 }
                 if (rL) {
-                    if (std::holds_alternative<double>(*rL)) {
-                        dec.paint(r, arb::axial_resistivity{std::get<double>(*rL)});
+                    if (std::holds_alternative<arb::units::quantity>(*rL)) {
+                        dec.paint(r, arb::axial_resistivity{std::get<arb::units::quantity>(*rL)});
                     }
                     else {
                         const auto& s = std::get<std::string>(*rL);
                         auto ie = arborio::parse_iexpr_expression(s).unwrap();
-                        dec.paint(r, arb::axial_resistivity{ie});
+                        dec.paint(r, arb::axial_resistivity{1*arb::units::Ohm/arb::units::cm, ie});
                     }
                 }
                 if (tempK) {
-                    if (std::holds_alternative<double>(*tempK)) {
-                        dec.paint(r, arb::temperature_K{std::get<double>(*tempK)});
+                    if (std::holds_alternative<arb::units::quantity>(*tempK)) {
+                        dec.paint(r, arb::temperature{std::get<arb::units::quantity>(*tempK)});
                     }
                     else {
                         const auto& s = std::get<std::string>(*tempK);
                         auto ie = arborio::parse_iexpr_expression(s).unwrap();
-                        dec.paint(r, arb::temperature_K{ie});
+                        dec.paint(r, arb::temperature{1*arb::units::Kelvin, ie});
                     }
                 }
                 return dec;
@@ -838,8 +841,8 @@ void register_cells(py::module& m) {
         // Paint ion species initial conditions on a region.
         .def("paint",
             [](arb::decor& dec, const char* region, const char* name,
-               optional<double> int_con, optional<double> ext_con,
-               optional<double> rev_pot, optional<double> diff) {
+               optional<arb::units::quantity> int_con, optional<arb::units::quantity> ext_con,
+               optional<arb::units::quantity> rev_pot, optional<arb::units::quantity> diff) {
                 auto r = arborio::parse_region_expression(region).unwrap();
                 if (int_con) dec.paint(r, arb::init_int_concentration{name, *int_con});
                 if (ext_con) dec.paint(r, arb::init_ext_concentration{name, *ext_con});

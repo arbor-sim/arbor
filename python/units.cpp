@@ -69,6 +69,12 @@ void register_units(py::module& m) {
     u.attr("um")  = py::cast(arb::units::um);
     u.attr("nm")  = py::cast(arb::units::nm);
 
+    u.attr("m2")   = py::cast(arb::units::m2);
+    u.attr("cm2")  = py::cast(arb::units::cm2);
+    u.attr("mm2")  = py::cast(arb::units::mm2);
+    u.attr("um2")  = py::cast(arb::units::um2);
+    u.attr("nm2")  = py::cast(arb::units::nm2);
+
     u.attr("s")   = py::cast(arb::units::s);
     u.attr("ms")  = py::cast(arb::units::ms);
     u.attr("us")  = py::cast(arb::units::us);

@@ -63,14 +63,8 @@ class Cable(A.recipe):
     def num_cells(self):
         return 1
 
-    def num_sources(self, _):
-        return 0
-
     def cell_kind(self, _):
         return A.cell_kind.cable
-
-    def probes(self, _):
-        return self.the_probes
 
     def global_properties(self, _):
         return self.the_props
@@ -86,8 +80,8 @@ class Cable(A.recipe):
 
         tree.append(
             A.mnpos,
-            A.mpoint(0, 0, 0, self.radius),
-            A.mpoint(self.length, 0, 0, self.radius),
+            (0, 0, 0, self.radius),
+            (self.length, 0, 0, self.radius),
             tag=1,
         )
 
@@ -95,7 +89,9 @@ class Cable(A.recipe):
 
         decor = (
             A.decor()
-            .set_property(Vm=self.Vm, cm=self.cm, rL=self.rL)
+            .set_property(
+                Vm=self.Vm * U.mV, cm=self.cm * U.F / U.m2, rL=self.rL * U.Ohm * U.cm
+            )
             .paint('"cable"', A.density(f"pas/e={self.Vm}", g=self.g))
             .place(
                 '"start"',

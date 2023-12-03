@@ -25,25 +25,25 @@ acc = """(arbor-component
         (location 0 0.5)))
     (decor
       (default
-        (membrane-potential -40.000000))
+        (membrane-potential -40.000000 (scalar 1)))
       (default
-        (ion-internal-concentration "ca" 0.000050))
+        (ion-internal-concentration "ca" 0.000050 (scalar 1)))
       (default
-        (ion-external-concentration "ca" 2.000000))
+        (ion-external-concentration "ca" 2.000000 (scalar 1)))
       (default
-        (ion-reversal-potential "ca" 132.457934))
+        (ion-reversal-potential "ca" 132.457934 (scalar 1)))
       (default
-        (ion-internal-concentration "k" 54.400000))
+        (ion-internal-concentration "k" 54.400000 (scalar 1)))
       (default
-        (ion-external-concentration "k" 2.500000))
+        (ion-external-concentration "k" 2.500000 (scalar 1)))
       (default
-        (ion-reversal-potential "k" -77.000000))
+        (ion-reversal-potential "k" -77.000000 (scalar 1)))
       (default
-        (ion-internal-concentration "na" 10.000000))
+        (ion-internal-concentration "na" 10.000000 (scalar 1)))
       (default
-        (ion-external-concentration "na" 140.000000))
+        (ion-external-concentration "na" 140.000000 (scalar 1)))
       (default
-        (ion-reversal-potential "na" 50.000000))
+        (ion-reversal-potential "na" 50.000000 (scalar 1)))
       (paint
         (tag 1)
         (density

@@ -17,6 +17,8 @@
 
 using namespace arborio::literals;
 
+namespace U = arb::units;
+
 // Parameters used to generate the random cell morphologies.
 struct cell_parameters {
     cell_parameters() = default;
@@ -110,11 +112,11 @@ inline arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters
     labels.set("dend", tagged(dtag));
 
     auto decor = arb::decor()
-        .set_default(arb::axial_resistivity{100})                          // [Ω·cm]
+        .set_default(arb::axial_resistivity{100*U::Ohm*U::cm})                          // [Ω·cm]
         .paint("soma"_lab, arb::density("hh"))                             // Add HH dynamics to soma.
         .paint("dend"_lab, arb::density("pas"))                            // Leaky current everywhere else.
         .place(arb::mlocation{0,0},
-               arb::threshold_detector{10*arb::units::mV},
+               arb::threshold_detector{10*U::mV},
                "detector")                                                 // Add spike threshold detector at the soma.
         .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "synapse")  // Add a synapse to the mid point of the first dendrite.
         .set_default(arb::cv_policy_every_segment());                      // Make a CV between every sample in the sample tree.

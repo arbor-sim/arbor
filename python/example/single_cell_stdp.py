@@ -29,7 +29,7 @@ class single_recipe(A.recipe):
 
         decor = (
             A.decor()
-            .set_property(Vm=-40)
+            .set_property(Vm=-40 * U.mV)
             .paint("(all)", A.density("hh"))
             .place('"center"', A.threshold_detector(-10 * U.mV), "detector")
             .place('"center"', A.synapse("expsyn"), "synapse")

@@ -85,9 +85,11 @@ class TwoCellsWithGapJunction(A.recipe):
 
         decor = (
             A.decor()
-            .set_property(Vm=self.Vms[gid])
-            .set_property(cm=self.cm)
-            .set_property(rL=self.rL)
+            .set_property(
+                Vm=self.Vms[gid] * U.mV,
+                cm=self.cm * U.Ohm * U.cm,
+                rL=self.rL * U.F / U.m2,
+            )
             # add a gap junction mechanism at the "gj_site" location and label that specific mechanism on that location "gj_label"
             .place('"gj_site"', A.junction("gj", g=self.gj_g), "gj_label")
             .paint('"cell"', A.density(f"pas/e={self.Vms[gid]}", g=self.g))

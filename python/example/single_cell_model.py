@@ -17,7 +17,7 @@ labels = A.label_dict({"soma": "(tag 1)", "midpoint": "(location 0 0.5)"})
 
 decor = (
     A.decor()
-    .set_property(Vm=-40)
+    .set_property(Vm=-40 * U.mV)
     .paint('"soma"', A.density("hh"))
     .place('"midpoint"', A.iclamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA), "iclamp")
     .place('"midpoint"', A.threshold_detector(-10 * U.mV), "detector")

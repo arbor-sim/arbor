@@ -596,10 +596,11 @@ void simulation::reset() {
 void simulation::update(const connectivity& rec) { impl_->update(rec); }
 
 time_type simulation::run(const units::quantity& tfinal, const units::quantity& dt) {
-    if (dt.value() <= 0.0) {
-        throw domain_error("Finite time-step must be supplied.");
-    }
-    return impl_->run(tfinal.value_as(units::ms), dt.value_as(units::ms));
+    auto dt_ms = dt.value_as(units::ms);
+    if (dt_ms <= 0.0 || std::isnan(dt_ms)) throw domain_error("Finite time-step must be supplied.");
+    auto tfinal_ms = tfinal.value_as(units::ms);
+    if (tfinal_ms <= 0.0 || std::isnan(tfinal_ms)) throw domain_error("Finite time-step must be supplied.");
+    return impl_->run(tfinal_ms, dt_ms);
 }
 
 sampler_association_handle simulation::add_sampler(
