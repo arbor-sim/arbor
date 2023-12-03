@@ -107,6 +107,9 @@ class Cable(A.recipe):
 
         return A.cable_cell(tree, decor, labels)
 
+    def probes(self, _):
+        return self.the_probes
+
 
 def get_rm(g):
     """Return membrane resistivity in Ohm*m^2
