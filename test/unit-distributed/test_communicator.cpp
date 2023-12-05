@@ -22,6 +22,7 @@
 #endif
 
 using namespace arb;
+namespace U = arb::units;
 
 TEST(communicator, policy_basics) {
 
@@ -219,10 +220,9 @@ namespace {
             // delay is 1
             cell_global_label_type src = {gid==0? size_-1: gid-1, "src"};
             cell_local_label_type dst = {"tgt"};
-            return {cell_connection(
-                        src, dst,   // end points
-                        float(gid), // weight
-                        1.0f)};     // delay
+            return {cell_connection(src, dst,    // end points
+                                    float(gid),  // weight
+                                    1.0*U::ms)}; // delay
         }
 
         std::any get_global_properties(arb::cell_kind kind) const override {
@@ -287,12 +287,10 @@ namespace {
             std::vector<cell_connection> cons;
             cons.reserve(size_);
             for (auto sid: util::make_span(0, size_)) {
-                cell_connection con(
-                        {sid, {"src", arb::lid_selection_policy::round_robin}}, // source
-                        {"tgt", arb::lid_selection_policy::round_robin},        // destination
-                        float(gid+sid), // weight
-                        1.0f);          // delay
-                cons.push_back(con);
+                cons.emplace_back(cell_connection{{sid, {"src", arb::lid_selection_policy::round_robin}}, // source
+                                                  {"tgt", arb::lid_selection_policy::round_robin},        // destination
+                                                  float(gid+sid),                                         // weight
+                                                  1.0f*U::ms});                                           // delay
             }
             return cons;
         }
@@ -400,20 +398,17 @@ namespace {
             if (gid%3 != 1) {
                 for (auto sid: util::make_span(0, ncells_)) {
                     if (sid%3 == 1) {
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_1", pol::assert_univalent}, 1.0, 1.0});
-
-                        cons.push_back({{sid, "detectors_1", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-                        cons.push_back({{sid, "detectors_1", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-
-                        cons.push_back({{sid, "detectors_1", pol::assert_univalent}, {"synapses_1", pol::round_robin}, 1.0, 1.0});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_1", pol::assert_univalent}, 1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_1", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_1", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_1", pol::assert_univalent}, {"synapses_1", pol::round_robin}, 1.0, 1.0*U::ms});
                     }
                 }
             }

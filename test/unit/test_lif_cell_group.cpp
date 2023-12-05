@@ -13,6 +13,9 @@
 #include <arbor/spike_source_cell.hpp>
 
 using namespace arb;
+
+namespace U = arb::units;
+
 // Simple ring network of LIF neurons.
 // with one regularly spiking cell (fake cell) connected to the first cell in the ring.
 class ring_recipe: public arb::recipe {
@@ -42,14 +45,14 @@ public:
         std::vector<cell_connection> connections;
         // gid-1 >= 0 since gid != 0
         auto src_gid = (gid - 1) % n_lif_cells_;
-        cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_);
+        cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_*U::ms);
         connections.push_back(conn);
 
         // If first LIF cell, then add
         // the connection from the last LIF cell as well
         if (gid == 1) {
             auto src_gid = n_lif_cells_;
-            cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_);
+            cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_*U::ms);
             connections.push_back(conn);
         }
 
@@ -88,14 +91,8 @@ public:
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
-        if (gid == 0) {
-            return {};
-        }
-        std::vector<cell_connection> connections;
-        cell_connection conn({gid-1, "src"}, {"tgt"}, weight_, delay_);
-        connections.push_back(conn);
-
-        return connections;
+        if (gid == 0) return {};
+        return {{{gid-1, "src"}, {"tgt"}, weight_, delay_*U::ms}};
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
@@ -125,7 +122,7 @@ public:
         for (size_t ix = 0; ix < n_conn_; ++ix) res.emplace_back(cell_global_label_type{0, "src"},
                                                                  cell_local_label_type{"tgt"},
                                                                  0.0,
-                                                                 0.005);
+                                                                 5*U::us);
         return res;
     }
     util::unique_any get_cell_description(cell_gid_type gid) const override {

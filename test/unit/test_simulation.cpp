@@ -17,6 +17,7 @@
 #include "util/transform.hpp"
 
 using namespace arb;
+namespace U = arb::units;
 
 struct play_spikes: public recipe {
     play_spikes(std::vector<schedule> spike_times): spike_times_(std::move(spike_times)) {}
@@ -131,21 +132,13 @@ struct lif_chain: public recipe {
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type target) const override {
-        if (target) {
-            return {cell_connection({target-1, "src"}, {"tgt"}, weight_, delay_)};
-        }
-        else {
-            return {};
-        }
+        if (target) return {cell_connection({target-1, "src"}, {"tgt"}, weight_, delay_*U::ms)};
+        return {};
     }
 
     std::vector<event_generator> event_generators(cell_gid_type target) const override {
-        if (target) {
-            return {};
-        }
-        else {
-            return {event_generator({"tgt"}, weight_, triggers_)};
-        }
+        if (target) return {};
+        return {event_generator({"tgt"}, weight_, triggers_)};
     }
 
     static constexpr double weight_ = 2.0;

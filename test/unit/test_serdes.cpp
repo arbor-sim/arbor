@@ -19,6 +19,8 @@
 
 using arb::serialize;
 
+namespace U = arb::units;
+
 using json = nlohmann::json;
 using io = arborio::json_serdes;
 using serdes = arb::serializer;
@@ -162,7 +164,7 @@ struct serdes_recipe: public arb::recipe {
         return {{{src, "detector"},
                  {"synapse"},
                  0.5,
-                 0.125}};
+                 0.125*U::ms}};
     }
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {

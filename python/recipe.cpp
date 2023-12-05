@@ -21,6 +21,8 @@
 
 namespace pyarb {
 
+namespace U = arb::units;
+
 // Convert a cell description inside a Python object to a cell description in a
 // unique_any, as required by the recipe interface.
 // This helper is only to be called while holding the GIL. We require this guard
@@ -137,7 +139,7 @@ void register_recipe(pybind11::module& m) {
         "Describes a connection between two cells:\n"
         "  Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively), a connection weight and a delay time.");
     cell_connection
-        .def(pybind11::init<arb::cell_global_label_type, arb::cell_local_label_type, float, float>(),
+        .def(pybind11::init<arb::cell_global_label_type, arb::cell_local_label_type, float, const U::quantity&>(),
             "source"_a, "dest"_a, "weight"_a, "delay"_a,
             "Construct a connection with arguments:\n"
             "  source:      The source end point of the connection.\n"

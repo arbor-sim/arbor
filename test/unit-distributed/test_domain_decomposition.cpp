@@ -1,10 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <cstdio>
-#include <fstream>
-#include <iostream>
-#include <stdexcept>
-#include <string>
 #include <vector>
 
 #include <arbor/context.hpp>
@@ -12,13 +7,12 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/version.hpp>
+#include <arbor/units.hpp>
 
 #include <arborenv/default_env.hpp>
 
 #include "util/span.hpp"
-
 #include "../simple_recipes.hpp"
-#include "test.hpp"
 
 #ifdef TEST_MPI
 #include <mpi.h>
