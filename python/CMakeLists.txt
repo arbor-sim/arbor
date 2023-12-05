@@ -83,10 +83,14 @@ endif()
 add_subdirectory(test)
 
 # Create the Python module in the build directory.
-# The module contains the dynamic library, __init__.py and VERSION information.
+# The module contains the dynamic library, __init__.py, the .pyi type stubs, py.typed
+# marker and VERSION information.
 set(python_mod_path "${CMAKE_CURRENT_BINARY_DIR}/arbor")
 set_target_properties(pyarb PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${python_mod_path}")
 file(COPY "${PROJECT_SOURCE_DIR}/python/__init__.py" DESTINATION "${python_mod_path}")
+file(COPY "${PROJECT_SOURCE_DIR}/python/env.pyi" DESTINATION "${python_mod_path}")
+file(COPY "${PROJECT_SOURCE_DIR}/python/__init__.pyi" DESTINATION "${python_mod_path}")
+file(COPY "${PROJECT_SOURCE_DIR}/python/py.typed" DESTINATION "${python_mod_path}")
 file(COPY "${PROJECT_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
 
 # Set the installation path
