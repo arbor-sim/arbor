@@ -118,7 +118,7 @@ Cable cell morphology
 
         Radius of the cable (μm)
 
-.. class:: segment
+.. class:: msegment
 
     .. attribute:: prox
         :type: mpoint
@@ -295,7 +295,7 @@ Cable cell morphology
         A list of parent indexes of the segments.
 
     .. attribute:: segments
-        :type: list
+        :type: list[msegment]
 
         A list of the segments.
 
@@ -350,7 +350,7 @@ Cable cell morphology
             A list of the segments in a branch, ordered from proximal to distal.
 
             :param int i: branch index
-            :rtype: list
+            :rtype: list[msegment]
 
 .. py:class:: place_pwlin
 
@@ -374,13 +374,13 @@ Cable cell morphology
        Return all points corresponding to the given :class:`location` ``loc``
        the placement.
 
-    .. py:method:: segments(cables: list[cable]) -> list[segment]
+    .. py:method:: segments(cables: list[cable]) -> list[msegment]
 
        Return any minimal collection of segments and partial segments whose
        union is coterminous with the sub-region of the morphology covered by
        the given cables in the placement.
 
-    .. py:method:: all_segments(cables: list[cable]) -> list[segment]
+    .. py:method:: all_segments(cables: list[cable]) -> list[msegment]
 
        Return the maximal set of segments and partial segments whose
        union is coterminous with the sub-region of the morphology covered by
@@ -602,7 +602,7 @@ SWC
 
     The samples in the SWC files are treated as the end points of segments, where a
     sample and its parent form a segment.
-    The :py:attr:`tag <segment.tag>` of each segment is the
+    The :py:attr:`tag <msegment.tag>` of each segment is the
     `structure identifier <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_
     of the distal sample.
     The structure identifier of the first (root) sample is ignored, as it can only be the
