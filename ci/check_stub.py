@@ -5,7 +5,7 @@ import arbor
 
 with open(Path(__file__).resolve().parent / "../python/__init__.pyi", "r") as stubfile:
     stub = ast.parse(stubfile.read())
-typed = set()
+typed = {'env'}
 
 for node in stub.body:
     if isinstance(node, ast.AnnAssign):
