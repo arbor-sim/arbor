@@ -302,8 +302,8 @@ TEST(serdes, host_device_arrays) {
 }
 
 TEST(serdes, single_cell_gpu) {
-    double dt = 0.5*arb::units::ms;
-    double T  = 5*arb::units::ms;
+    auto dt = 0.5*arb::units::ms;
+    auto T  = 5*arb::units::ms;
 
     // Result
     std::vector<double> result_pre;
@@ -342,8 +342,8 @@ TEST(serdes, single_cell_gpu) {
 }
 
 TEST(serdes, network_gpu) {
-    double dt = 0.5*arb::units::ms;
-    double T  = 5*arb::units::ms;
+    auto dt = 0.5*arb::units::ms;
+    auto T  = 5*arb::units::ms;
 
     // Result
     std::vector<double> result_pre;
