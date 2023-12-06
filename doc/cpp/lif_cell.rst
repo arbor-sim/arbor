@@ -25,30 +25,30 @@ LIF cells
         The label of the single built-in target on the cell. Used for forming connections to the cell in the
         :cpp:class:`recipe` by creating a :cpp:class:`connection`.
 
-    .. cpp:member:: double tau_m
+    .. cpp:member:: const arb::units::quantity& tau_m
 
-        Membrane potential decaying constant [ms].
+        Membrane potential decaying constant [ms]. Must be finite and positive.
 
-    .. cpp:member:: double V_th
+    .. cpp:member:: const arb::units::quantity& V_th
 
-        Firing threshold [mV].
+        Firing threshold [mV], must be finite.
 
-    .. cpp:member:: double C_m
+    .. cpp:member:: const arb::units::quantity& C_m
 
-        Membrane capacitance [pF].
+        Membrane capacitance [pF], must be finite and positive.
 
-    .. cpp:member:: double E_L
+    .. cpp:member:: const arb::units::quantity& E_L
 
-        Resting potential [mV].
+        Resting potential [mV], must be finite.
 
-    .. cpp:member:: double E_R
+    .. cpp:member:: const arb::units::quantity& E_R
 
-        Reset potential [mV].
+        Reset potential [mV], must be finite.
 
-    .. cpp:member:: double V_m
+    .. cpp:member:: const arb::units::quantity& V_m
 
-        Initial value of the Membrane potential [mV].
+        Initial value of the Membrane potential [mV], must be finite.
 
-    .. cpp:member:: double t_ref
+    .. cpp:member:: const arb::units::quantity& t_ref
 
-        Refractory period [ms].
+        Refractory period [ms]. Must be finite and positive.

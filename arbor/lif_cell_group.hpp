@@ -45,7 +45,7 @@ struct ARB_SYMBOL_VISIBLE lif_lowered_cell {
 
         if (std::isnan(V_th)) throw std::out_of_range("V_th must be finite and in [mV]");
         if (std::isnan(tau_m) || tau_m < 0) throw std::out_of_range("tau_m must be positive, finite, and in [ms]");
-        if (std::isnan(C_m)) throw std::out_of_range("C_m must be finite and in [pF]");
+        if (std::isnan(C_m) || C_m < 0) throw std::out_of_range("C_m must be positive, finite, and in [pF]");
         if (std::isnan(E_L)) throw std::out_of_range("E_L must be finite and in [mV]");
         if (std::isnan(E_R)) throw std::out_of_range("E_R must be finite and in [mV]");
         if (std::isnan(V_m)) throw std::out_of_range("V_m must be finite and in [mV]");

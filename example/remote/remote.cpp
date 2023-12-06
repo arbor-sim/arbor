@@ -1,11 +1,14 @@
 #include <iomanip>
 #include <iostream>
-#include <cassert>
 
 #include <arbor/context.hpp>
 #include <arbor/lif_cell.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/units.hpp>
+
+namespace U = arb::units;
 
 #include <mpi.h>
 #include <arbor/communication/remote.hpp>
@@ -19,20 +22,20 @@ struct remote_recipe: public arb::recipe {
         arb::cell_size_type num_cells() const override { return size; }
         arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
             auto lif = arb::lif_cell("src", "tgt");
-            lif.tau_m =   2.0;
-            lif.V_th  = -10.0;
-            lif.C_m   =  20.0;
-            lif.E_L   = -23.0;
-            lif.V_m   = -23.0;
-            lif.E_R   = -23.0;
-            lif.t_ref =   0.2;
+            lif.tau_m =   2.0*U::ms;
+            lif.V_th  = -10.0*U::mV;
+            lif.C_m   =  20.0*U::pF;
+            lif.E_L   = -23.0*U::mV;
+            lif.V_m   = -23.0*U::mV;
+            lif.E_R   = -23.0*U::mV;
+            lif.t_ref =   0.2*U::ms;
             return lif;
         }
         std::vector<arb::ext_cell_connection> external_connections_on(arb::cell_gid_type) const override {
             std::vector<arb::ext_cell_connection> res;
             // Invent some fictious cells outside of Arbor's realm
             for (arb::cell_gid_type gid = 0; gid < 10; gid++) {
-                res.emplace_back(arb::cell_remote_label_type{gid}, arb::cell_local_label_type{"tgt"}, weight, delay);
+                res.emplace_back(arb::cell_remote_label_type{gid}, arb::cell_local_label_type{"tgt"}, weight, delay*U::ms);
             }
             return res;
         }

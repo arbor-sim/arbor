@@ -38,7 +38,7 @@ Interconnectivity
 
     .. attribute:: delay
 
-        The delay time of the connection [ms]. Must be positive.
+        The delay time of the connection [ms]. Must be positive and finite.
 
     .. note::
 
@@ -66,7 +66,7 @@ Interconnectivity
                src  = (2, "detector") # gid and locset label of the source
                dest = "syn" # gid of the destination is determined by the argument to `connections_on`.
                w    = 0.01  # weight of the connection. Correspondes to 0.01 μS on expsyn mechanisms
-               d    = 10 # delay in ms
+               d    = 10 * arbor.units.ms # delay
                return [arbor.connection(src, dest, w, d)]
 
 .. class:: gap_junction_connection

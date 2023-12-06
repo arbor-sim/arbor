@@ -169,19 +169,19 @@ value should be taken from the cell or global parameter set.
    Internal and external concentrations are given in millimolars, i.e. mol/m³.
    Reversal potential is given in millivolts.
 
-   .. cpp:member:: util::optional<double> init_membrane_potential
+   .. cpp:member:: util::optional<units::quantity> init_membrane_potential
 
    Initial membrane potential in millivolts.
 
-   .. cpp:member:: util::optional<double> temperature_K
+   .. cpp:member:: util::optional<units::quantity> temperature
 
    Local temperature in Kelvin.
 
-   .. cpp:member:: util::optional<double> axial_resistivity
+   .. cpp:member:: util::optional<units::quantity> axial_resistivity
 
    Local resistivity of the intracellular medium, in ohm-centimetres.
 
-   .. cpp:member:: util::optional<double> membrane_capacitance
+   .. cpp:member:: util::optional<units::quantity> membrane_capacitance
 
    Local areal capacitance of the cell membrane, in Farads per square metre.
 

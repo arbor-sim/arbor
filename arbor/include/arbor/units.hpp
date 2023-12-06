@@ -18,6 +18,7 @@ using ::units::nano;
 using ::units::micro;
 using ::units::milli;
 using ::units::centi;
+using ::units::deci;
 
 using ::units::kilo;
 using ::units::mega;
