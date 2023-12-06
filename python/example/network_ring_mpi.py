@@ -100,7 +100,7 @@ class ring_recipe(A.recipe):
     def connections_on(self, gid):
         src = (gid - 1) % self.ncells
         w = 0.01  # 0.01 μS on expsyn
-        d = 5  # ms delay
+        d = 5 * U.ms  # delay
         return [A.connection((src, "detector"), "syn", w, d)]
 
     # (9) Attach a generator to the first cell in the ring.

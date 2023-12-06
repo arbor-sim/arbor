@@ -79,9 +79,7 @@ class chain_recipe(A.recipe):
             return []
         else:
             src = gid - 1
-            w = 0.05
-            d = 10
-            return [A.connection((src, "detector"), "syn", w, d)]
+            return [A.connection((src, "detector"), "syn", 0.05, 10 * U.ms)]
 
     # Create gap junction connections between a cell within a chain and its neighbor(s)
     def gap_junctions_on(self, gid):

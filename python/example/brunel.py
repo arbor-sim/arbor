@@ -107,7 +107,8 @@ class brunel_recipe(A.recipe):
             V_m=0 * U.mV,
             E_L=0 * U.mV,
             C_m=20 * U.pF,
-            t_ref=2 * U.ms,)
+            t_ref=2 * U.ms,
+        )
 
     def event_generators(self, gid):
         return [

@@ -11,7 +11,7 @@ class recipe(A.recipe):
         self.cells = n
         # Uniform weights and delays for the connectivity.
         self.weight = 0.75
-        self.delay = 0.1
+        self.delay = 0.1 * U.ms
         # Track the connections from the source cell to a given gid.
         self.connected = set()
 

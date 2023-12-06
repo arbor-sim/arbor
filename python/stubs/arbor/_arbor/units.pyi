@@ -3,52 +3,93 @@ Units and quantities for driving the user interface.
 """
 from __future__ import annotations
 import typing
-__all__ = ['A', 'C', 'Celsius', 'F', 'Hz', 'Kelvin', 'M', 'MOhm', 'Ohm', 'S', 'V', 'cm', 'cm2', 'deg', 'giga', 'kHz', 'kOhm', 'kilo', 'm', 'm2', 'mA', 'mM', 'mS', 'mV', 'mega', 'micro', 'milli', 'mm', 'mm2', 'mol', 'ms', 'nA', 'nF', 'nano', 'nm', 'nm2', 'ns', 'pA', 'pF', 'pico', 'quantity', 'rad', 's', 'uA', 'uF', 'uS', 'um', 'um2', 'unit', 'us']
+
+__all__ = [
+    "A",
+    "C",
+    "Celsius",
+    "F",
+    "Hz",
+    "Kelvin",
+    "M",
+    "MOhm",
+    "Ohm",
+    "S",
+    "V",
+    "cm",
+    "cm2",
+    "deg",
+    "giga",
+    "kHz",
+    "kOhm",
+    "kilo",
+    "m",
+    "m2",
+    "mA",
+    "mM",
+    "mS",
+    "mV",
+    "mega",
+    "micro",
+    "milli",
+    "mm",
+    "mm2",
+    "mol",
+    "ms",
+    "nA",
+    "nF",
+    "nano",
+    "nm",
+    "nm2",
+    "ns",
+    "pA",
+    "pF",
+    "pico",
+    "quantity",
+    "rad",
+    "s",
+    "uA",
+    "uF",
+    "uS",
+    "um",
+    "um2",
+    "unit",
+    "us",
+]
+
 class quantity:
     """
     A quantity, comprising a magnitude and a unit.
     """
+
     __hash__: typing.ClassVar[None] = None
-    def __add__(self, arg0: quantity) -> quantity:
-        ...
-    def __eq__(self, arg0: quantity) -> bool:
-        ...
+    def __add__(self, arg0: quantity) -> quantity: ...
+    def __eq__(self, arg0: quantity) -> bool: ...
     @typing.overload
-    def __mul__(self, arg0: quantity) -> quantity:
-        ...
+    def __mul__(self, arg0: quantity) -> quantity: ...
     @typing.overload
-    def __mul__(self, arg0: float) -> quantity:
-        ...
+    def __mul__(self, arg0: float) -> quantity: ...
     @typing.overload
-    def __mul__(self, arg0: unit) -> quantity:
-        ...
-    def __ne__(self, arg0: quantity) -> bool:
-        ...
-    def __pow__(self: unit, arg0: int) -> unit:
-        ...
+    def __mul__(self, arg0: unit) -> quantity: ...
+    def __ne__(self, arg0: quantity) -> bool: ...
+    def __pow__(self: unit, arg0: int) -> unit: ...
     def __repr__(self) -> str:
         """
         Convert quantity to string.
         """
-    def __rmul__(self, arg0: float) -> quantity:
-        ...
-    def __rtruediv__(self, arg0: float) -> quantity:
-        ...
+    def __rmul__(self, arg0: float) -> quantity: ...
+    def __rtruediv__(self, arg0: float) -> quantity: ...
     def __str__(self) -> str:
         """
         Convert quantity to string.
         """
-    def __sub__(self, arg0: quantity) -> quantity:
-        ...
+    def __sub__(self, arg0: quantity) -> quantity: ...
     @typing.overload
-    def __truediv__(self, arg0: quantity) -> quantity:
-        ...
+    def __truediv__(self, arg0: quantity) -> quantity: ...
     @typing.overload
-    def __truediv__(self, arg0: float) -> quantity:
-        ...
+    def __truediv__(self, arg0: float) -> quantity: ...
     @typing.overload
-    def __truediv__(self, arg0: unit) -> quantity:
-        ...
+    def __truediv__(self, arg0: unit) -> quantity: ...
     def value_as(self, unit: unit) -> float:
         """
         Convert quantity to given unit and return magnitude.
@@ -63,41 +104,35 @@ class quantity:
         """
         Return magnitude.
         """
+
 class unit:
     """
     A unit.
     """
+
     __hash__: typing.ClassVar[None] = None
-    def __eq__(self, arg0: unit) -> bool:
-        ...
+    def __eq__(self, arg0: unit) -> bool: ...
     @typing.overload
-    def __mul__(self, arg0: unit) -> unit:
-        ...
+    def __mul__(self, arg0: unit) -> unit: ...
     @typing.overload
-    def __mul__(self, arg0: float) -> quantity:
-        ...
-    def __ne__(self, arg0: unit) -> bool:
-        ...
-    def __pow__(self, arg0: int) -> unit:
-        ...
+    def __mul__(self, arg0: float) -> quantity: ...
+    def __ne__(self, arg0: unit) -> bool: ...
+    def __pow__(self, arg0: int) -> unit: ...
     def __repr__(self) -> str:
         """
         Convert unit to string.
         """
-    def __rmul__(self, arg0: float) -> quantity:
-        ...
-    def __rtruediv__(self, arg0: float) -> quantity:
-        ...
+    def __rmul__(self, arg0: float) -> quantity: ...
+    def __rtruediv__(self, arg0: float) -> quantity: ...
     def __str__(self) -> str:
         """
         Convert unit to string.
         """
     @typing.overload
-    def __truediv__(self, arg0: unit) -> unit:
-        ...
+    def __truediv__(self, arg0: unit) -> unit: ...
     @typing.overload
-    def __truediv__(self, arg0: float) -> quantity:
-        ...
+    def __truediv__(self, arg0: float) -> quantity: ...
+
 A: unit  # value = A
 C: unit  # value = C
 Celsius: unit  # value = °C

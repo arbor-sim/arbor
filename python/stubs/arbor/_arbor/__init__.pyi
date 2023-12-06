@@ -5,30 +5,160 @@ from __future__ import annotations
 import typing
 from . import env
 from . import units
-__all__ = ['ArbFileNotFoundError', 'ArbValueError', 'MechCatItemIterator', 'MechCatKeyIterator', 'MechCatValueIterator', 'allen_catalogue', 'asc_morphology', 'axial_resistivity', 'backend', 'bbp_catalogue', 'benchmark_cell', 'cable', 'cable_cell', 'cable_component', 'cable_global_properties', 'cable_probe_axial_current', 'cable_probe_density_state', 'cable_probe_density_state_cell', 'cable_probe_ion_current_cell', 'cable_probe_ion_current_density', 'cable_probe_ion_diff_concentration', 'cable_probe_ion_diff_concentration_cell', 'cable_probe_ion_ext_concentration', 'cable_probe_ion_ext_concentration_cell', 'cable_probe_ion_int_concentration', 'cable_probe_ion_int_concentration_cell', 'cable_probe_membrane_voltage', 'cable_probe_membrane_voltage_cell', 'cable_probe_point_info', 'cable_probe_point_state', 'cable_probe_point_state_cell', 'cable_probe_stimulus_current_cell', 'cable_probe_total_current_cell', 'cable_probe_total_ion_current_cell', 'cable_probe_total_ion_current_density', 'catalogue', 'cell_address', 'cell_cv_data', 'cell_global_label', 'cell_kind', 'cell_local_label', 'cell_member', 'component_meta_data', 'config', 'connection', 'context', 'cv_data', 'cv_policy', 'cv_policy_every_segment', 'cv_policy_explicit', 'cv_policy_fixed_per_branch', 'cv_policy_max_extent', 'cv_policy_single', 'decor', 'default_catalogue', 'density', 'domain_decomposition', 'env', 'event_generator', 'explicit_schedule', 'ext_concentration', 'extent', 'gap_junction_connection', 'group_description', 'iclamp', 'int_concentration', 'intersect_region', 'ion_data', 'ion_dependency', 'ion_diffusivity', 'ion_settings', 'isometry', 'junction', 'label_dict', 'lif_cell', 'lif_probe_metadata', 'lif_probe_voltage', 'load_asc', 'load_catalogue', 'load_component', 'load_swc_arbor', 'load_swc_neuron', 'location', 'mechanism', 'mechanism_field', 'mechanism_info', 'membrane_capacitance', 'membrane_potential', 'meter_manager', 'meter_report', 'mnpos', 'morphology', 'morphology_provider', 'mpoint', 'msegment', 'neuroml', 'neuroml_morph_data', 'neuron_cable_properties', 'partition_by_group', 'partition_hint', 'partition_load_balance', 'place_pwlin', 'poisson_schedule', 'print_config', 'probe', 'proc_allocation', 'recipe', 'regular_schedule', 'reversal_potential', 'reversal_potential_method', 'scaled_mechanism', 'schedule_base', 'segment_tree', 'selection_policy', 'simulation', 'single_cell_model', 'spike', 'spike_recording', 'spike_source_cell', 'stochastic_catalogue', 'synapse', 'temperature', 'threshold_detector', 'trace', 'units', 'voltage_process', 'write_component']
+
+__all__ = [
+    "ArbFileNotFoundError",
+    "ArbValueError",
+    "MechCatItemIterator",
+    "MechCatKeyIterator",
+    "MechCatValueIterator",
+    "allen_catalogue",
+    "asc_morphology",
+    "axial_resistivity",
+    "backend",
+    "bbp_catalogue",
+    "benchmark_cell",
+    "cable",
+    "cable_cell",
+    "cable_component",
+    "cable_global_properties",
+    "cable_probe_axial_current",
+    "cable_probe_density_state",
+    "cable_probe_density_state_cell",
+    "cable_probe_ion_current_cell",
+    "cable_probe_ion_current_density",
+    "cable_probe_ion_diff_concentration",
+    "cable_probe_ion_diff_concentration_cell",
+    "cable_probe_ion_ext_concentration",
+    "cable_probe_ion_ext_concentration_cell",
+    "cable_probe_ion_int_concentration",
+    "cable_probe_ion_int_concentration_cell",
+    "cable_probe_membrane_voltage",
+    "cable_probe_membrane_voltage_cell",
+    "cable_probe_point_info",
+    "cable_probe_point_state",
+    "cable_probe_point_state_cell",
+    "cable_probe_stimulus_current_cell",
+    "cable_probe_total_current_cell",
+    "cable_probe_total_ion_current_cell",
+    "cable_probe_total_ion_current_density",
+    "catalogue",
+    "cell_address",
+    "cell_cv_data",
+    "cell_global_label",
+    "cell_kind",
+    "cell_local_label",
+    "cell_member",
+    "component_meta_data",
+    "config",
+    "connection",
+    "context",
+    "cv_data",
+    "cv_policy",
+    "cv_policy_every_segment",
+    "cv_policy_explicit",
+    "cv_policy_fixed_per_branch",
+    "cv_policy_max_extent",
+    "cv_policy_single",
+    "decor",
+    "default_catalogue",
+    "density",
+    "domain_decomposition",
+    "env",
+    "event_generator",
+    "explicit_schedule",
+    "ext_concentration",
+    "extent",
+    "gap_junction_connection",
+    "group_description",
+    "iclamp",
+    "int_concentration",
+    "intersect_region",
+    "ion_data",
+    "ion_dependency",
+    "ion_diffusivity",
+    "ion_settings",
+    "isometry",
+    "junction",
+    "label_dict",
+    "lif_cell",
+    "lif_probe_metadata",
+    "lif_probe_voltage",
+    "load_asc",
+    "load_catalogue",
+    "load_component",
+    "load_swc_arbor",
+    "load_swc_neuron",
+    "location",
+    "mechanism",
+    "mechanism_field",
+    "mechanism_info",
+    "membrane_capacitance",
+    "membrane_potential",
+    "meter_manager",
+    "meter_report",
+    "mnpos",
+    "morphology",
+    "morphology_provider",
+    "mpoint",
+    "msegment",
+    "neuroml",
+    "neuroml_morph_data",
+    "neuron_cable_properties",
+    "partition_by_group",
+    "partition_hint",
+    "partition_load_balance",
+    "place_pwlin",
+    "poisson_schedule",
+    "print_config",
+    "probe",
+    "proc_allocation",
+    "recipe",
+    "regular_schedule",
+    "reversal_potential",
+    "reversal_potential_method",
+    "scaled_mechanism",
+    "schedule_base",
+    "segment_tree",
+    "selection_policy",
+    "simulation",
+    "single_cell_model",
+    "spike",
+    "spike_recording",
+    "spike_source_cell",
+    "stochastic_catalogue",
+    "synapse",
+    "temperature",
+    "threshold_detector",
+    "trace",
+    "units",
+    "voltage_process",
+    "write_component",
+]
+
 class ArbFileNotFoundError(FileNotFoundError):
     pass
+
 class ArbValueError(ValueError):
     pass
+
 class MechCatItemIterator:
-    def __iter__(self) -> MechCatItemIterator:
-        ...
-    def __next__(self) -> tuple[str, mechanism_info]:
-        ...
+    def __iter__(self) -> MechCatItemIterator: ...
+    def __next__(self) -> tuple[str, mechanism_info]: ...
+
 class MechCatKeyIterator:
-    def __iter__(self) -> MechCatKeyIterator:
-        ...
-    def __next__(self) -> str:
-        ...
+    def __iter__(self) -> MechCatKeyIterator: ...
+    def __next__(self) -> str: ...
+
 class MechCatValueIterator:
-    def __iter__(self) -> MechCatValueIterator:
-        ...
-    def __next__(self) -> mechanism_info:
-        ...
+    def __iter__(self) -> MechCatValueIterator: ...
+    def __next__(self) -> mechanism_info: ...
+
 class asc_morphology:
     """
     The morphology and label dictionary meta-data loaded from a Neurolucida ASCII (.asc) file.
     """
+
     @property
     def labels(self) -> label_dict:
         """
@@ -44,53 +174,46 @@ class asc_morphology:
         """
         The raw segment tree.
         """
+
 class axial_resistivity:
     """
     Setting the axial resistivity.
     """
-    def __init__(self, arg0: units.quantity) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
+
+    def __init__(self, arg0: units.quantity) -> None: ...
+    def __repr__(self) -> str: ...
+
 class backend:
     """
     Enumeration used to indicate which hardware backend to execute a cell group on.
-    
+
     Members:
-    
+
       gpu : Use GPU backend.
-    
+
       multicore : Use multicore backend.
     """
-    __members__: typing.ClassVar[dict[str, backend]]  # value = {'gpu': <backend.gpu: 1>, 'multicore': <backend.multicore: 0>}
+
+    __members__: typing.ClassVar[
+        dict[str, backend]
+    ]  # value = {'gpu': <backend.gpu: 1>, 'multicore': <backend.multicore: 0>}
     gpu: typing.ClassVar[backend]  # value = <backend.gpu: 1>
     multicore: typing.ClassVar[backend]  # value = <backend.multicore: 0>
-    def __eq__(self, other: typing.Any) -> bool:
-        ...
-    def __getstate__(self) -> int:
-        ...
-    def __hash__(self) -> int:
-        ...
-    def __index__(self) -> int:
-        ...
-    def __init__(self, value: int) -> None:
-        ...
-    def __int__(self) -> int:
-        ...
-    def __ne__(self, other: typing.Any) -> bool:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __setstate__(self, state: int) -> None:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __eq__(self, other: typing.Any) -> bool: ...
+    def __getstate__(self) -> int: ...
+    def __hash__(self) -> int: ...
+    def __index__(self) -> int: ...
+    def __init__(self, value: int) -> None: ...
+    def __int__(self) -> int: ...
+    def __ne__(self, other: typing.Any) -> bool: ...
+    def __repr__(self) -> str: ...
+    def __setstate__(self, state: int) -> None: ...
+    def __str__(self) -> str: ...
     @property
-    def name(self) -> str:
-        ...
+    def name(self) -> str: ...
     @property
-    def value(self) -> int:
-        ...
+    def value(self) -> int: ...
+
 class benchmark_cell:
     """
     A benchmarking cell, used by Arbor developers to test communication performance.
@@ -99,38 +222,52 @@ class benchmark_cell:
     for example if realtime_ratio=2, a cell will take 2 seconds of CPU time to
     simulate 1 second.
     """
+
     @typing.overload
-    def __init__(self, source_label: str, target_label: str, schedule: regular_schedule, realtime_ratio: float = 1.0) -> None:
+    def __init__(
+        self,
+        source_label: str,
+        target_label: str,
+        schedule: regular_schedule,
+        realtime_ratio: float = 1.0,
+    ) -> None:
         """
         Construct a benchmark cell that generates spikes on 'source_label' at regular intervals.
         The cell has one source labeled 'source_label', and one target labeled 'target_label'.
         """
     @typing.overload
-    def __init__(self, source_label: str, target_label: str, schedule: explicit_schedule, realtime_ratio: float = 1.0) -> None:
+    def __init__(
+        self,
+        source_label: str,
+        target_label: str,
+        schedule: explicit_schedule,
+        realtime_ratio: float = 1.0,
+    ) -> None:
         """
         Construct a benchmark cell that generates spikes on 'source_label' at a sequence of user-defined times.
         The cell has one source labeled 'source_label', and one target labeled 'target_label'.
         """
     @typing.overload
-    def __init__(self, source_label: str, target_label: str, schedule: poisson_schedule, realtime_ratio: float = 1.0) -> None:
+    def __init__(
+        self,
+        source_label: str,
+        target_label: str,
+        schedule: poisson_schedule,
+        realtime_ratio: float = 1.0,
+    ) -> None:
         """
         Construct a benchmark cell that generates spikeson 'source_label' at times defined by a Poisson sequence.
         The cell has one source labeled 'source_label', and one target labeled 'target_label'.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
+
 class cable:
     __hash__: typing.ClassVar[None] = None
-    def __eq__(self, arg0: cable) -> bool:
-        ...
-    def __init__(self, branch: int, prox: float, dist: float) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __eq__(self, arg0: cable) -> bool: ...
+    def __init__(self, branch: int, prox: float, dist: float) -> None: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def branch(self) -> int:
         """
@@ -146,25 +283,29 @@ class cable:
         """
         The relative position of the proximal end of the cable on its branch ∈ [0,1].
         """
+
 class cable_cell:
     """
     Represents morphologically-detailed cell models, with morphology represented as a
     tree of one-dimensional cable segments.
     """
+
     @typing.overload
-    def __init__(self, morphology: morphology, decor: decor, labels: label_dict | None = None) -> None:
+    def __init__(
+        self, morphology: morphology, decor: decor, labels: label_dict | None = None
+    ) -> None:
         """
         Construct with a morphology, decor, and label dictionary.
         """
     @typing.overload
-    def __init__(self, segment_tree: segment_tree, decor: decor, labels: label_dict | None = None) -> None:
+    def __init__(
+        self, segment_tree: segment_tree, decor: decor, labels: label_dict | None = None
+    ) -> None:
         """
         Construct with a morphology derived from a segment tree, decor, and label dictionary.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     def cables(self, label: str) -> list[cable]:
         """
         The cable segments of the cell morphology for a region label.
@@ -178,11 +319,10 @@ class cable_cell:
         """
         The number of unbranched cable sections in the morphology.
         """
+
 class cable_component:
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def component(self) -> morphology | label_dict | decor | cable_cell:
         """
@@ -194,23 +334,29 @@ class cable_component:
         cable-cell component meta-data.
         """
     @meta_data.setter
-    def meta_data(self, arg0: component_meta_data) -> None:
-        ...
+    def meta_data(self, arg0: component_meta_data) -> None: ...
+
 class cable_global_properties:
     membrane_voltage_limit: float | None
     @typing.overload
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
     @typing.overload
-    def __init__(self, arg0: cable_global_properties) -> None:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __init__(self, arg0: cable_global_properties) -> None: ...
+    def __str__(self) -> str: ...
     def check(self) -> None:
         """
         Test whether all default parameters and ion species properties have been set.
         """
-    def set_ion(self, ion: str, valence: int | None = None, int_con: units.quantity | None = None, ext_con: units.quantity | None = None, rev_pot: units.quantity | None = None, method: typing.Any = None, diff: units.quantity | None = None) -> None:
+    def set_ion(
+        self,
+        ion: str,
+        valence: int | None = None,
+        int_con: units.quantity | None = None,
+        ext_con: units.quantity | None = None,
+        rev_pot: units.quantity | None = None,
+        method: typing.Any = None,
+        diff: units.quantity | None = None,
+    ) -> None:
         """
         Set the global default properties of ion species named 'ion'.
          * valence: valence of the ion species [e].
@@ -228,7 +374,13 @@ class cable_global_properties:
         reversal potential is global for all compartments in the cell, and can't be
         overriden locally.
         """
-    def set_property(self, Vm: units.quantity | None = None, cm: units.quantity | None = None, rL: units.quantity | None = None, tempK: units.quantity | None = None) -> None:
+    def set_property(
+        self,
+        Vm: units.quantity | None = None,
+        cm: units.quantity | None = None,
+        rL: units.quantity | None = None,
+        tempK: units.quantity | None = None,
+    ) -> None:
         """
         Set global default values for cable and cell properties.
          * Vm:    initial membrane voltage [mV].
@@ -242,114 +394,99 @@ class cable_global_properties:
         Remove ion species from properties.
         """
     @property
-    def axial_resistivity(self) -> float | None:
-        ...
+    def axial_resistivity(self) -> float | None: ...
     @axial_resistivity.setter
-    def axial_resistivity(self, arg1: float) -> None:
-        ...
+    def axial_resistivity(self, arg1: float) -> None: ...
     @property
     def catalogue(self) -> catalogue:
         """
         The mechanism catalogue.
         """
     @catalogue.setter
-    def catalogue(self, arg0: catalogue) -> None:
-        ...
+    def catalogue(self, arg0: catalogue) -> None: ...
     @property
     def coalesce_synapses(self) -> bool:
         """
         Flag for enabling/disabling linear syanpse coalescing.
         """
     @coalesce_synapses.setter
-    def coalesce_synapses(self, arg0: bool) -> None:
-        ...
+    def coalesce_synapses(self, arg0: bool) -> None: ...
     @property
-    def ion_data(self) -> dict[str, ion_data]:
-        ...
+    def ion_data(self) -> dict[str, ion_data]: ...
     @property
-    def ion_reversal_potential(self) -> dict[str, mechanism]:
-        ...
+    def ion_reversal_potential(self) -> dict[str, mechanism]: ...
     @property
-    def ion_valence(self) -> dict[str, int]:
-        ...
+    def ion_valence(self) -> dict[str, int]: ...
     @property
     def ions(self) -> dict[str, ion_settings]:
         """
         Return a view of all ion settings.
         """
     @property
-    def membrane_capacitance(self) -> float | None:
-        ...
+    def membrane_capacitance(self) -> float | None: ...
     @membrane_capacitance.setter
-    def membrane_capacitance(self, arg1: float) -> None:
-        ...
+    def membrane_capacitance(self, arg1: float) -> None: ...
     @property
-    def membrane_potential(self) -> float | None:
-        ...
+    def membrane_potential(self) -> float | None: ...
     @membrane_potential.setter
-    def membrane_potential(self, arg1: float) -> None:
-        ...
+    def membrane_potential(self, arg1: float) -> None: ...
     @property
-    def temperature(self) -> float | None:
-        ...
+    def temperature(self) -> float | None: ...
     @temperature.setter
-    def temperature(self, arg1: float) -> None:
-        ...
+    def temperature(self, arg1: float) -> None: ...
+
 class cable_probe_point_info:
     """
     Probe metadata associated with a cable cell probe for point process state.
     """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def location(self) -> location:
         """
         Location of point process instance on cell.
         """
     @location.setter
-    def location(self, arg0: location) -> None:
-        ...
+    def location(self, arg0: location) -> None: ...
     @property
     def multiplicity(self) -> int:
         """
         Number of coalesced point processes (linear synapses) associated with this instance.
         """
     @multiplicity.setter
-    def multiplicity(self, arg0: int) -> None:
-        ...
+    def multiplicity(self, arg0: int) -> None: ...
     @property
     def target(self) -> int:
         """
         The target index of the point process instance on the cell.
         """
     @target.setter
-    def target(self, arg0: int) -> None:
-        ...
+    def target(self, arg0: int) -> None: ...
+
 class catalogue:
     def __contains__(self, name: str) -> bool:
         """
         Is 'name' in the catalogue?
         """
-    def __getitem__(self, arg0: str) -> mechanism_info:
-        ...
+    def __getitem__(self, arg0: str) -> mechanism_info: ...
     @typing.overload
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
     @typing.overload
-    def __init__(self, arg0: catalogue) -> None:
-        ...
+    def __init__(self, arg0: catalogue) -> None: ...
     def __iter__(self) -> MechCatKeyIterator:
         """
         Return an iterator over all mechanism names in this catalogues.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
-    def derive(self, name: str, parent: str, globals: dict[str, float] = {}, ions: dict[str, str] = {}) -> None:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
+    def derive(
+        self,
+        name: str,
+        parent: str,
+        globals: dict[str, float] = {},
+        ions: dict[str, str] = {},
+    ) -> None: ...
     def extend(self, other: catalogue, prefix: str) -> None:
         """
         Import another catalogue, possibly with a prefix. Will overwrite in case of name collisions.
@@ -370,17 +507,18 @@ class catalogue:
         """
         Return an iterator over all mechanism info values in this catalogues.
         """
+
 class cell_address:
     gid: int
     tag: str
+
 class cell_cv_data:
     """
     Provides information on the CVs representing the discretization of a cable-cell.
     """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     def cables(self, index: int) -> list[cable]:
         """
         Return a list of cables representing the CV at the given index.
@@ -398,14 +536,16 @@ class cell_cv_data:
         """
         Return the number of CVs in the cell.
         """
+
 class cell_global_label:
     """
     For global identification of an item.
-    
+
     cell_global_label members:
     (1) a unique cell identified by its gid.
     (2) a cell_local_label, referring to a labeled group of items on the cell and a policy for selecting a single item out of the group.
     """
+
     @typing.overload
     def __init__(self, gid: int, label: str) -> None:
         """
@@ -426,79 +566,69 @@ class cell_global_label:
           gid:   The global identifier of the cell.
           label: The cell_local_label representing the label and selection policy of an item on the cell.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def gid(self) -> int:
         """
         The global identifier of the cell.
         """
     @gid.setter
-    def gid(self, arg0: int) -> None:
-        ...
+    def gid(self, arg0: int) -> None: ...
     @property
     def label(self) -> cell_local_label:
         """
         The cell_local_label representing the label and selection policy of an item on the cell.
         """
     @label.setter
-    def label(self, arg0: cell_local_label) -> None:
-        ...
+    def label(self, arg0: cell_local_label) -> None: ...
+
 class cell_kind:
     """
     Enumeration used to identify the cell kind, used by the model to group equal kinds in the same cell group.
-    
+
     Members:
-    
+
       benchmark : Proxy cell used for benchmarking.
-    
+
       cable : A cell with morphology described by branching 1D cable segments.
-    
+
       lif : Leaky-integrate and fire neuron.
-    
+
       spike_source : Proxy cell that generates spikes from a spike sequence provided by the user.
     """
-    __members__: typing.ClassVar[dict[str, cell_kind]]  # value = {'benchmark': <cell_kind.benchmark: 3>, 'cable': <cell_kind.cable: 0>, 'lif': <cell_kind.lif: 1>, 'spike_source': <cell_kind.spike_source: 2>}
+
+    __members__: typing.ClassVar[
+        dict[str, cell_kind]
+    ]  # value = {'benchmark': <cell_kind.benchmark: 3>, 'cable': <cell_kind.cable: 0>, 'lif': <cell_kind.lif: 1>, 'spike_source': <cell_kind.spike_source: 2>}
     benchmark: typing.ClassVar[cell_kind]  # value = <cell_kind.benchmark: 3>
     cable: typing.ClassVar[cell_kind]  # value = <cell_kind.cable: 0>
     lif: typing.ClassVar[cell_kind]  # value = <cell_kind.lif: 1>
     spike_source: typing.ClassVar[cell_kind]  # value = <cell_kind.spike_source: 2>
-    def __eq__(self, other: typing.Any) -> bool:
-        ...
-    def __getstate__(self) -> int:
-        ...
-    def __hash__(self) -> int:
-        ...
-    def __index__(self) -> int:
-        ...
-    def __init__(self, value: int) -> None:
-        ...
-    def __int__(self) -> int:
-        ...
-    def __ne__(self, other: typing.Any) -> bool:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __setstate__(self, state: int) -> None:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __eq__(self, other: typing.Any) -> bool: ...
+    def __getstate__(self) -> int: ...
+    def __hash__(self) -> int: ...
+    def __index__(self) -> int: ...
+    def __init__(self, value: int) -> None: ...
+    def __int__(self) -> int: ...
+    def __ne__(self, other: typing.Any) -> bool: ...
+    def __repr__(self) -> str: ...
+    def __setstate__(self, state: int) -> None: ...
+    def __str__(self) -> str: ...
     @property
-    def name(self) -> str:
-        ...
+    def name(self) -> str: ...
     @property
-    def value(self) -> int:
-        ...
+    def value(self) -> int: ...
+
 class cell_local_label:
     """
     For local identification of an item.
-    
+
     cell_local_label identifies:
     (1) a labeled group of one or more items on one or more locations on the cell.
     (2) a policy for selecting one of the items.
     """
+
     @typing.overload
     def __init__(self, label: str) -> None:
         """
@@ -519,34 +649,32 @@ class cell_local_label:
           label:  The identifier of a group of one or more items on a cell.
           policy: The policy for selecting one of possibly multiple items associated with the label.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def label(self) -> str:
         """
         The identifier of a a group of one or more items on a cell.
         """
     @label.setter
-    def label(self, arg0: str) -> None:
-        ...
+    def label(self, arg0: str) -> None: ...
     @property
     def policy(self) -> selection_policy:
         """
         The policy for selecting one of possibly multiple items associated with the label.
         """
     @policy.setter
-    def policy(self, arg0: selection_policy) -> None:
-        ...
+    def policy(self, arg0: selection_policy) -> None: ...
+
 class cell_member:
     """
     For global identification of a cell-local item.
-    
+
     Items of cell_member must:
       (1) be associated with a unique cell, identified by the member gid;
       (2) identify an item within a cell-local collection by the member index.
     """
+
     @typing.overload
     def __init__(self, gid: int, index: int) -> None:
         """
@@ -561,26 +689,23 @@ class cell_member:
           gid:     The global identifier of the cell.
           index:   The cell-local index of the item.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def gid(self) -> int:
         """
         The global identifier of the cell.
         """
     @gid.setter
-    def gid(self, arg0: int) -> None:
-        ...
+    def gid(self, arg0: int) -> None: ...
     @property
     def index(self) -> int:
         """
         Cell-local index of the item.
         """
     @index.setter
-    def index(self, arg0: int) -> None:
-        ...
+    def index(self, arg0: int) -> None: ...
+
 class component_meta_data:
     @property
     def version(self) -> str:
@@ -588,14 +713,21 @@ class component_meta_data:
         cable-cell component version.
         """
     @version.setter
-    def version(self, arg0: str) -> None:
-        ...
+    def version(self, arg0: str) -> None: ...
+
 class connection:
     """
     Describes a connection between two cells:
       Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively), a connection weight and a delay time.
     """
-    def __init__(self, source: cell_global_label, dest: cell_local_label, weight: float, delay: units.quantity) -> None:
+
+    def __init__(
+        self,
+        source: cell_global_label,
+        dest: cell_local_label,
+        weight: float,
+        delay: units.quantity,
+    ) -> None:
         """
         Construct a connection with arguments:
           source:      The source end point of the connection.
@@ -603,53 +735,58 @@ class connection:
           weight:      The weight delivered to the target synapse (unit defined by the type of synapse target).
           delay:       The delay of the connection [ms].
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def delay(self) -> float:
         """
         The delay time of the connection [ms].
         """
     @delay.setter
-    def delay(self, arg0: float) -> None:
-        ...
+    def delay(self, arg0: float) -> None: ...
     @property
     def dest(self) -> cell_local_label:
         """
         The destination label of the connection.
         """
     @dest.setter
-    def dest(self, arg0: cell_local_label) -> None:
-        ...
+    def dest(self, arg0: cell_local_label) -> None: ...
     @property
     def source(self) -> cell_global_label:
         """
         The source gid and label of the connection.
         """
     @source.setter
-    def source(self, arg0: cell_global_label) -> None:
-        ...
+    def source(self, arg0: cell_global_label) -> None: ...
     @property
     def weight(self) -> float:
         """
         The weight of the connection.
         """
     @weight.setter
-    def weight(self, arg0: float) -> None:
-        ...
+    def weight(self, arg0: float) -> None: ...
+
 class context:
     """
     An opaque handle for the hardware resources used in a simulation.
     """
+
     @typing.overload
     def __init__(self) -> None:
         """
         Construct a local context with proc_allocation = env.default_allocation().
         """
     @typing.overload
-    def __init__(self, *, threads: int = 1, gpu_id: typing.Any = None, mpi: typing.Any = None, inter: typing.Any = None, bind_procs: bool = False, bind_threads: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        threads: int = 1,
+        gpu_id: typing.Any = None,
+        mpi: typing.Any = None,
+        inter: typing.Any = None,
+        bind_procs: bool = False,
+        bind_threads: bool = False,
+    ) -> None:
         """
         Construct a context with arguments:
           threads: The number of threads available locally for execution. Must be set to 1 at minimum. 1 by default.
@@ -660,17 +797,21 @@ class context:
           bind_threads: Create thread binding mask.
         """
     @typing.overload
-    def __init__(self, alloc: proc_allocation, *, mpi: typing.Any = None, inter: typing.Any = None) -> None:
+    def __init__(
+        self,
+        alloc: proc_allocation,
+        *,
+        mpi: typing.Any = None,
+        inter: typing.Any = None,
+    ) -> None:
         """
         Construct a context with arguments:
           alloc:   The computational resources to be used for the simulation.
           mpi:     The MPI communicator, None by default. Only available if arbor.__config__['mpi']==True.
           inter:   An MPI intercommunicator used to connect to external simulations, None by default. Only available if arbor.__config__['mpi']==True.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def has_gpu(self) -> bool:
         """
@@ -696,39 +837,50 @@ class context:
         """
         The number of threads in the context's thread pool.
         """
+
 class cv_policy:
     """
     Describes the rules used to discretize (compartmentalise) a cable cell morphology.
     """
-    def __add__(self, arg0: cv_policy) -> cv_policy:
-        ...
+
+    def __add__(self, arg0: cv_policy) -> cv_policy: ...
     def __init__(self, expression: str) -> None:
         """
         A valid CV policy expression
         """
-    def __or__(self, arg0: cv_policy) -> cv_policy:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __or__(self, arg0: cv_policy) -> cv_policy: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def domain(self) -> str:
         """
         The domain on which the policy is applied.
         """
+
 class decor:
     """
     Description of the decorations to be applied to a cable cell, that is the painted,
     placed and defaulted properties, mecahanisms, ion species etc.
     """
+
     @typing.overload
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
     @typing.overload
-    def __init__(self, arg0: decor) -> None:
-        ...
-    def defaults(self) -> list[membrane_potential | axial_resistivity | temperature | membrane_capacitance | ion_diffusivity | int_concentration | ext_concentration | reversal_potential | reversal_potential_method | cv_policy]:
+    def __init__(self, arg0: decor) -> None: ...
+    def defaults(
+        self,
+    ) -> list[
+        membrane_potential
+        | axial_resistivity
+        | temperature
+        | membrane_capacitance
+        | ion_diffusivity
+        | int_concentration
+        | ext_concentration
+        | reversal_potential
+        | reversal_potential_method
+        | cv_policy
+    ]:
         """
         Return a view of all defaults.
         """
@@ -758,7 +910,14 @@ class decor:
         Associate a scaled density mechanism with a region.
         """
     @typing.overload
-    def paint(self, region: str, Vm: units.quantity | str | None = None, cm: units.quantity | str | None = None, rL: units.quantity | str | None = None, tempK: units.quantity | str | None = None) -> decor:
+    def paint(
+        self,
+        region: str,
+        Vm: units.quantity | str | None = None,
+        cm: units.quantity | str | None = None,
+        rL: units.quantity | str | None = None,
+        tempK: units.quantity | str | None = None,
+    ) -> decor:
         """
         Set cable properties on a region.
         Set global default values for cable and cell properties.
@@ -768,7 +927,16 @@ class decor:
          * tempK: temperature [Kelvin].
         """
     @typing.overload
-    def paint(self, region: str, *, ion: str, int_con: units.quantity | None = None, ext_con: units.quantity | None = None, rev_pot: units.quantity | None = None, diff: units.quantity | None = None) -> decor:
+    def paint(
+        self,
+        region: str,
+        *,
+        ion: str,
+        int_con: units.quantity | None = None,
+        ext_con: units.quantity | None = None,
+        rev_pot: units.quantity | None = None,
+        diff: units.quantity | None = None,
+    ) -> decor:
         """
         Set ion species properties conditions on a region.
          * int_con: initial internal concentration [mM].
@@ -777,7 +945,24 @@ class decor:
          * method:  mechanism for calculating reversal potential.
          * diff:   diffusivity [m^2/s].
         """
-    def paintings(self) -> list[tuple[str, membrane_potential | axial_resistivity | temperature | membrane_capacitance | ion_diffusivity | int_concentration | ext_concentration | reversal_potential | density | voltage_process | scaled_mechanism]]:
+    def paintings(
+        self,
+    ) -> list[
+        tuple[
+            str,
+            membrane_potential
+            | axial_resistivity
+            | temperature
+            | membrane_capacitance
+            | ion_diffusivity
+            | int_concentration
+            | ext_concentration
+            | reversal_potential
+            | density
+            | voltage_process
+            | scaled_mechanism,
+        ]
+    ]:
         """
         Return a view of all painted items.
         """
@@ -801,11 +986,21 @@ class decor:
         """
         Add a voltage spike detector at each location in locations.The group of spike detectors has the label 'label', used for forming connections between cells.
         """
-    def placements(self) -> list[tuple[str, iclamp | threshold_detector | synapse | junction, str]]:
+    def placements(
+        self,
+    ) -> list[tuple[str, iclamp | threshold_detector | synapse | junction, str]]:
         """
         Return a view of all placed items.
         """
-    def set_ion(self, ion: str, int_con: units.quantity | None = None, ext_con: units.quantity | None = None, rev_pot: units.quantity | None = None, method: typing.Any = None, diff: units.quantity | None = None) -> decor:
+    def set_ion(
+        self,
+        ion: str,
+        int_con: units.quantity | None = None,
+        ext_con: units.quantity | None = None,
+        rev_pot: units.quantity | None = None,
+        method: typing.Any = None,
+        diff: units.quantity | None = None,
+    ) -> decor:
         """
         Set the cell-level properties of ion species named 'ion'.
          * int_con: initial internal concentration [mM].
@@ -822,7 +1017,13 @@ class decor:
         reversal potential is global for all compartments in the cell, and can't be
         overriden locally.
         """
-    def set_property(self, Vm: units.quantity | None = None, cm: units.quantity | None = None, rL: units.quantity | None = None, tempK: units.quantity | None = None) -> decor:
+    def set_property(
+        self,
+        Vm: units.quantity | None = None,
+        cm: units.quantity | None = None,
+        rL: units.quantity | None = None,
+        tempK: units.quantity | None = None,
+    ) -> decor:
         """
         Set default values for cable and cell properties:
          * Vm:    initial membrane voltage [mV].
@@ -831,45 +1032,39 @@ class decor:
          * tempK: temperature [Kelvin].
         These values can be overridden on specific regions using the paint interface.
         """
+
 class density:
     """
     For painting a density mechanism on a region.
     """
+
     @typing.overload
-    def __init__(self, arg0: str) -> None:
-        ...
+    def __init__(self, arg0: str) -> None: ...
     @typing.overload
-    def __init__(self, arg0: mechanism) -> None:
-        ...
+    def __init__(self, arg0: mechanism) -> None: ...
     @typing.overload
-    def __init__(self, arg0: str, arg1: dict[str, float]) -> None:
-        ...
+    def __init__(self, arg0: str, arg1: dict[str, float]) -> None: ...
     @typing.overload
-    def __init__(self, arg0: mechanism, arg1: dict[str, float]) -> None:
-        ...
+    def __init__(self, arg0: mechanism, arg1: dict[str, float]) -> None: ...
     @typing.overload
-    def __init__(self, arg0: str, **kwargs) -> None:
-        ...
+    def __init__(self, arg0: str, **kwargs) -> None: ...
     @typing.overload
-    def __init__(self, arg0: mechanism, **kwargs) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __init__(self, arg0: mechanism, **kwargs) -> None: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def mech(self) -> mechanism:
         """
         The underlying mechanism.
         """
+
 class domain_decomposition:
     """
     The domain decomposition is responsible for describing the distribution of cells across cell groups and domains.
     """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     def gid_domain(self, gid: int) -> int:
         """
         Query the domain id that a cell assigned to (using global identifier gid).
@@ -905,38 +1100,39 @@ class domain_decomposition:
         """
         Total number of cells in the local domain.
         """
+
 class event_generator:
-    def __init__(self, target: cell_local_label, weight: float, sched: schedule_base) -> None:
+    def __init__(
+        self, target: cell_local_label, weight: float, sched: schedule_base
+    ) -> None:
         """
         Construct an event generator with arguments:
           target: The target synapse label and selection policy.
           weight: The weight of events to deliver.
           sched:  A schedule of the events.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def target(self) -> cell_local_label:
         """
         The target synapse (gid, local_id).
         """
     @target.setter
-    def target(self, arg0: cell_local_label) -> None:
-        ...
+    def target(self, arg0: cell_local_label) -> None: ...
     @property
     def weight(self) -> float:
         """
         The weight of events to deliver.
         """
     @weight.setter
-    def weight(self, arg0: float) -> None:
-        ...
+    def weight(self, arg0: float) -> None: ...
+
 class explicit_schedule(schedule_base):
     """
     Describes an explicit schedule at a predetermined (sorted) sequence of times.
     """
+
     @typing.overload
     def __init__(self) -> None:
         """
@@ -948,10 +1144,8 @@ class explicit_schedule(schedule_base):
         Construct an explicit schedule with argument:
           times: A list of times [ms], [] by default.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     def events(self, arg0: float, arg1: float) -> list[float]:
         """
         A view of monotonically increasing time values in the half-open interval [t0, t1) in [ms].
@@ -962,71 +1156,70 @@ class explicit_schedule(schedule_base):
         A list of times [ms].
         """
     @times_ms.setter
-    def times_ms(self, arg1: list[float]) -> None:
-        ...
+    def times_ms(self, arg1: list[float]) -> None: ...
+
 class ext_concentration:
     """
     Setting the initial external ion concentration.
     """
-    def __init__(self, arg0: str, arg1: units.quantity) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
+
+    def __init__(self, arg0: str, arg1: units.quantity) -> None: ...
+    def __repr__(self) -> str: ...
+
 class extent:
     """
     A potentially empty region on a morphology.
     """
+
 class gap_junction_connection:
     """
     Describes a gap junction between two gap junction sites.
     """
-    def __init__(self, peer: cell_global_label, local: cell_local_label, weight: float) -> None:
+
+    def __init__(
+        self, peer: cell_global_label, local: cell_local_label, weight: float
+    ) -> None:
         """
         Construct a gap junction connection with arguments:
           peer:  remote half of the gap junction connection.
           local: local half of the gap junction connection.
           weight:  Gap junction connection weight [unit-less].
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def local(self) -> cell_local_label:
         """
         Local label of the gap junction connection.
         """
     @local.setter
-    def local(self, arg0: cell_local_label) -> None:
-        ...
+    def local(self, arg0: cell_local_label) -> None: ...
     @property
     def peer(self) -> cell_global_label:
         """
         Remote gid and label of the gap junction connection.
         """
     @peer.setter
-    def peer(self, arg0: cell_global_label) -> None:
-        ...
+    def peer(self, arg0: cell_global_label) -> None: ...
     @property
     def weight(self) -> float:
         """
         Gap junction connection weight [unit-less].
         """
     @weight.setter
-    def weight(self, arg0: float) -> None:
-        ...
+    def weight(self, arg0: float) -> None: ...
+
 class group_description:
     """
     The indexes of a set of cells of the same kind that are grouped together in a cell group.
     """
+
     def __init__(self, kind: cell_kind, gids: list[int], backend: backend) -> None:
         """
         Construct a group description with cell kind, list of gids, and backend kind.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def backend(self) -> backend:
         """
@@ -1042,29 +1235,49 @@ class group_description:
         """
         The type of cell in the cell group.
         """
+
 class iclamp:
     """
     A current clamp for injecting a DC or fixed frequency current governed by a piecewise linear envelope.
     """
+
     @typing.overload
-    def __init__(self, tstart: units.quantity, duration: units.quantity, current: units.quantity, *, frequency: units.quantity = ..., phase: units.quantity = ...) -> None:
+    def __init__(
+        self,
+        tstart: units.quantity,
+        duration: units.quantity,
+        current: units.quantity,
+        *,
+        frequency: units.quantity = ...,
+        phase: units.quantity = ...,
+    ) -> None:
         """
         Construct finite duration current clamp, constant amplitude
         """
     @typing.overload
-    def __init__(self, current: units.quantity, *, frequency: units.quantity = ..., phase: units.quantity = ...) -> None:
+    def __init__(
+        self,
+        current: units.quantity,
+        *,
+        frequency: units.quantity = ...,
+        phase: units.quantity = ...,
+    ) -> None:
         """
         Construct constant amplitude current clamp
         """
     @typing.overload
-    def __init__(self, envelope: list[tuple[units.quantity, units.quantity]], *, frequency: units.quantity = ..., phase: units.quantity = ...) -> None:
+    def __init__(
+        self,
+        envelope: list[tuple[units.quantity, units.quantity]],
+        *,
+        frequency: units.quantity = ...,
+        phase: units.quantity = ...,
+    ) -> None:
         """
         Construct current clamp according to (time, amplitude) linear envelope
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def envelope(self) -> list[tuple[float, float]]:
         """
@@ -1080,14 +1293,15 @@ class iclamp:
         """
         Oscillation initial phase (rad)
         """
+
 class int_concentration:
     """
     Setting the initial internal ion concentration.
     """
-    def __init__(self, arg0: str, arg1: units.quantity) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
+
+    def __init__(self, arg0: str, arg1: units.quantity) -> None: ...
+    def __repr__(self) -> str: ...
+
 class ion_data:
     @property
     def charge(self) -> int:
@@ -1124,38 +1338,35 @@ class ion_data:
         """
         Reversal potential method.
         """
+
 class ion_dependency:
     """
     Information about a mechanism's dependence on an ion species.
     """
-    def __init__(self, arg0: ion_dependency) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+
+    def __init__(self, arg0: ion_dependency) -> None: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
-    def read_rev_pot(self) -> bool:
-        ...
+    def read_rev_pot(self) -> bool: ...
     @property
-    def write_ext_con(self) -> bool:
-        ...
+    def write_ext_con(self) -> bool: ...
     @property
-    def write_int_con(self) -> bool:
-        ...
+    def write_int_con(self) -> bool: ...
     @property
-    def write_rev_pot(self) -> bool:
-        ...
+    def write_rev_pot(self) -> bool: ...
+
 class ion_diffusivity:
     """
     Setting the ion diffusivity.
     """
-    def __init__(self, arg0: str, arg1: units.quantity) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
+
+    def __init__(self, arg0: str, arg1: units.quantity) -> None: ...
+    def __repr__(self) -> str: ...
+
 class ion_settings:
     pass
+
 class isometry:
     @staticmethod
     @typing.overload
@@ -1201,53 +1412,46 @@ class isometry:
         """
         Construct a trivial isometry.
         """
-    def __mul__(self, arg0: isometry) -> isometry:
-        ...
+    def __mul__(self, arg0: isometry) -> isometry: ...
+
 class junction:
     """
     For placing a gap-junction mechanism on a locset.
     """
+
     @typing.overload
-    def __init__(self, arg0: str) -> None:
-        ...
+    def __init__(self, arg0: str) -> None: ...
     @typing.overload
-    def __init__(self, arg0: mechanism) -> None:
-        ...
+    def __init__(self, arg0: mechanism) -> None: ...
     @typing.overload
-    def __init__(self, arg0: str, arg1: dict[str, float]) -> None:
-        ...
+    def __init__(self, arg0: str, arg1: dict[str, float]) -> None: ...
     @typing.overload
-    def __init__(self, arg0: str, **kwargs) -> None:
-        ...
+    def __init__(self, arg0: str, **kwargs) -> None: ...
     @typing.overload
-    def __init__(self, arg0: mechanism, arg1: dict[str, float]) -> None:
-        ...
+    def __init__(self, arg0: mechanism, arg1: dict[str, float]) -> None: ...
     @typing.overload
-    def __init__(self, arg0: mechanism, **kwargs) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __init__(self, arg0: mechanism, **kwargs) -> None: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def mech(self) -> mechanism:
         """
         The underlying mechanism.
         """
+
 class label_dict:
     """
     A dictionary of labelled region and locset definitions, with a
     unique label assigned to each definition.
     """
+
     @staticmethod
     def append(*args, **kwargs) -> None:
         """
         Import the entries of a another label dictionary with an optional prefix.
         """
-    def __contains__(self, arg0: str) -> bool:
-        ...
-    def __getitem__(self, arg0: str) -> str:
-        ...
+    def __contains__(self, arg0: str) -> bool: ...
+    def __getitem__(self, arg0: str) -> str: ...
     @typing.overload
     def __init__(self) -> None:
         """
@@ -1268,16 +1472,11 @@ class label_dict:
         """
         Initialize a label dictionary from an iterable of key, definition pairs
         """
-    def __iter__(self) -> typing.Iterator:
-        ...
-    def __len__(self) -> int:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __setitem__(self, arg0: str, arg1: str) -> None:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __iter__(self) -> typing.Iterator: ...
+    def __len__(self) -> int: ...
+    def __repr__(self) -> str: ...
+    def __setitem__(self, arg0: str, arg1: str) -> None: ...
+    def __str__(self) -> str: ...
     def add_swc_tags(self) -> label_dict:
         """
         Add standard SWC tagged regions.
@@ -1286,16 +1485,13 @@ class label_dict:
          - dend: (tag 3)
          - apic: (tag 4)
         """
-    def items(self) -> typing.Iterator:
-        ...
-    def keys(self) -> typing.Iterator:
-        ...
+    def items(self) -> typing.Iterator: ...
+    def keys(self) -> typing.Iterator: ...
     def update(self, other: label_dict) -> None:
         """
         The label_dict to be importedImport the entries of a another label dictionary.
         """
-    def values(self) -> typing.Iterator:
-        ...
+    def values(self) -> typing.Iterator: ...
     @property
     def locsets(self) -> list[str]:
         """
@@ -1306,111 +1502,113 @@ class label_dict:
         """
         The region definitions.
         """
+
 class lif_cell:
     """
     A leaky integrate-and-fire cell.
     """
-    def __init__(self, source_label: str, target_label: str, *, tau_m: units.quantity | None = None, V_th: units.quantity | None = None, C_m: units.quantity | None = None, E_L: units.quantity | None = None, V_m: units.quantity | None = None, t_ref: units.quantity | None = None) -> None:
+
+    def __init__(
+        self,
+        source_label: str,
+        target_label: str,
+        *,
+        tau_m: units.quantity | None = None,
+        V_th: units.quantity | None = None,
+        C_m: units.quantity | None = None,
+        E_L: units.quantity | None = None,
+        V_m: units.quantity | None = None,
+        t_ref: units.quantity | None = None,
+    ) -> None:
         """
         Construct a lif cell with one source labeled 'source_label', and one target labeled 'target_label'.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def C_m(self) -> units.quantity:
         """
         Membrane capacitance [pF].
         """
     @C_m.setter
-    def C_m(self, arg0: units.quantity) -> None:
-        ...
+    def C_m(self, arg0: units.quantity) -> None: ...
     @property
     def E_L(self) -> units.quantity:
         """
         Resting potential [mV].
         """
     @E_L.setter
-    def E_L(self, arg0: units.quantity) -> None:
-        ...
+    def E_L(self, arg0: units.quantity) -> None: ...
     @property
     def E_R(self) -> units.quantity:
         """
         Reset potential [mV].
         """
     @E_R.setter
-    def E_R(self, arg0: units.quantity) -> None:
-        ...
+    def E_R(self, arg0: units.quantity) -> None: ...
     @property
     def V_m(self) -> units.quantity:
         """
         Initial value of the Membrane potential [mV].
         """
     @V_m.setter
-    def V_m(self, arg0: units.quantity) -> None:
-        ...
+    def V_m(self, arg0: units.quantity) -> None: ...
     @property
     def V_th(self) -> units.quantity:
         """
         Firing threshold [mV].
         """
     @V_th.setter
-    def V_th(self, arg0: units.quantity) -> None:
-        ...
+    def V_th(self, arg0: units.quantity) -> None: ...
     @property
     def source(self) -> str:
         """
         Label of the single build-in source on the cell.
         """
     @source.setter
-    def source(self, arg0: str) -> None:
-        ...
+    def source(self, arg0: str) -> None: ...
     @property
     def t_ref(self) -> units.quantity:
         """
         Refractory period [ms].
         """
     @t_ref.setter
-    def t_ref(self, arg0: units.quantity) -> None:
-        ...
+    def t_ref(self, arg0: units.quantity) -> None: ...
     @property
     def target(self) -> str:
         """
         Label of the single build-in target on the cell.
         """
     @target.setter
-    def target(self, arg0: str) -> None:
-        ...
+    def target(self, arg0: str) -> None: ...
     @property
     def tau_m(self) -> units.quantity:
         """
         Membrane potential decaying constant [ms].
         """
     @tau_m.setter
-    def tau_m(self, arg0: units.quantity) -> None:
-        ...
+    def tau_m(self, arg0: units.quantity) -> None: ...
+
 class lif_probe_metadata:
     """
     Probe metadata associated with a LIF cell probe.
     """
+
 class location:
     """
     A location on a cable cell.
     """
+
     __hash__: typing.ClassVar[None] = None
-    def __eq__(self, arg0: location) -> bool:
-        ...
+    def __eq__(self, arg0: location) -> bool: ...
     def __init__(self, branch: int, pos: float) -> None:
         """
         Construct a location specification holding:
           branch:   The id of the branch.
           pos:      The relative position (from 0., proximal, to 1., distal) on the branch.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def branch(self) -> int:
         """
@@ -1421,6 +1619,7 @@ class location:
         """
         The relative position on the branch (∈ [0.,1.], where 0. means proximal and 1. distal).
         """
+
 class mechanism:
     @typing.overload
     def __init__(self, name: str) -> None:
@@ -1435,7 +1634,7 @@ class mechanism:
         will create parameters for the 'expsyn' mechanism, with the provided value
         for 'tau' overrides the default. If a parameter is not set, the default
         (as defined in NMODL) is used.
-        
+
         Example overriding a global parameter:
           m = arbor.mechanism('nernst/R=8.3145,F=96485')
         """
@@ -1447,14 +1646,12 @@ class mechanism:
         will create parameters for the 'expsyn' mechanism, with the provided value
         for 'tau' overrides the default. If a parameter is not set, the default
         (as defined in NMODL) is used.
-        
+
         Example overriding a global parameter:
           m = arbor.mechanism('nernst/R=8.3145,F=96485')
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     def set(self, name: str, value: float) -> None:
         """
         Set parameter value.
@@ -1469,38 +1666,32 @@ class mechanism:
         """
         A dictionary of parameter values with parameter name as key.
         """
+
 class mechanism_field:
     """
     Basic information about a mechanism field.
     """
-    def __init__(self, arg0: mechanism_field) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+
+    def __init__(self, arg0: mechanism_field) -> None: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
-    def default(self) -> float:
-        ...
+    def default(self) -> float: ...
     @property
-    def max(self) -> float:
-        ...
+    def max(self) -> float: ...
     @property
-    def min(self) -> float:
-        ...
+    def min(self) -> float: ...
     @property
-    def units(self) -> str:
-        ...
+    def units(self) -> str: ...
+
 class mechanism_info:
     """
     Meta data about a mechanism's fields and ion dependendencies.
     """
-    def __init__(self, arg0: mechanism_info) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+
+    def __init__(self, arg0: mechanism_info) -> None: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def globals(self) -> dict[str, mechanism_field]:
         """
@@ -1536,32 +1727,31 @@ class mechanism_info:
         """
         State fields vary in time and across the extent of a mechanism, and potentially can be sampled at run-time.
         """
+
 class membrane_capacitance:
     """
     Setting the membrane capacitance.
     """
-    def __init__(self, arg0: units.quantity) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
+
+    def __init__(self, arg0: units.quantity) -> None: ...
+    def __repr__(self) -> str: ...
+
 class membrane_potential:
     """
     Setting the initial membrane voltage.
     """
-    def __init__(self, arg0: units.quantity, arg1: str | None) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
+
+    def __init__(self, arg0: units.quantity, arg1: str | None) -> None: ...
+    def __repr__(self) -> str: ...
+
 class meter_manager:
     """
     Manage metering by setting checkpoints and starting the timing region.
     """
-    def __init__(self) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+
+    def __init__(self) -> None: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     def checkpoint(self, name: str, context: context) -> None:
         """
         Create a new checkpoint. Records the time since the last checkpoint(or the call to start if no previous checkpoints exist),and restarts the timer for the next checkpoint.
@@ -1580,25 +1770,24 @@ class meter_manager:
         """
         A list of all metering times.
         """
+
 class meter_report:
     """
     Summarises the performance meter results, used to print a report to screen or file.
     If a distributed context is used, the report will contain a summary of results from all MPI ranks.
     """
-    def __init__(self, manager: meter_manager, context: context) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+
+    def __init__(self, manager: meter_manager, context: context) -> None: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
+
 class morphology:
     """
     A cell morphology.
     """
-    def __init__(self, arg0: segment_tree) -> None:
-        ...
-    def __str__(self) -> str:
-        ...
+
+    def __init__(self, arg0: segment_tree) -> None: ...
+    def __str__(self) -> str: ...
     def branch_children(self, i: int) -> list[int]:
         """
         The child branches of branch i.
@@ -1625,6 +1814,7 @@ class morphology:
         """
         The number of branches in the morphology.
         """
+
 class morphology_provider:
     def __init__(self, morphology: morphology) -> None:
         """
@@ -1638,10 +1828,10 @@ class morphology_provider:
         """
         Turn a region into an extent.
         """
+
 class mpoint:
     __hash__: typing.ClassVar[None] = None
-    def __eq__(self, arg0: mpoint) -> bool:
-        ...
+    def __eq__(self, arg0: mpoint) -> bool: ...
     @typing.overload
     def __init__(self, x: float, y: float, z: float, radius: float) -> None:
         """
@@ -1652,10 +1842,8 @@ class mpoint:
         """
         Create an mpoint object from a tuple (x, y, z, radius), specified in µm.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def radius(self) -> float:
         """
@@ -1676,6 +1864,7 @@ class mpoint:
         """
         Z coordinate [μm].
         """
+
 class msegment:
     @property
     def dist(self) -> mpoint:
@@ -1692,6 +1881,7 @@ class msegment:
         """
         tag meta-data.
         """
+
 class neuroml:
     def __init__(self, arg0: typing.Any) -> None:
         """
@@ -1701,11 +1891,15 @@ class neuroml:
         """
         Query top-level cells.
         """
-    def cell_morphology(self, cell_id: str, allow_spherical_root: bool = False) -> neuroml_morph_data | None:
+    def cell_morphology(
+        self, cell_id: str, allow_spherical_root: bool = False
+    ) -> neuroml_morph_data | None:
         """
         Retrieve nml_morph_data associated with cell_id.
         """
-    def morphology(self, morph_id: str, allow_spherical_root: bool = False) -> neuroml_morph_data | None:
+    def morphology(
+        self, morph_id: str, allow_spherical_root: bool = False
+    ) -> neuroml_morph_data | None:
         """
         Retrieve top-level nml_morph_data associated with morph_id.
         """
@@ -1713,6 +1907,7 @@ class neuroml:
         """
         Query top-level standalone morphologies.
         """
+
 class neuroml_morph_data:
     def groups(self) -> label_dict:
         """
@@ -1746,12 +1941,19 @@ class neuroml_morph_data:
         """
         Morphology constructed from a signle NeuroML <morphology> element.
         """
+
 class partition_hint:
     """
     Provide a hint on how the cell groups should be partitioned.
     """
+
     max_size: typing.ClassVar[int] = 18446744073709551615
-    def __init__(self, cpu_group_size: int = 1, gpu_group_size: int = 18446744073709551615, prefer_gpu: bool = True) -> None:
+    def __init__(
+        self,
+        cpu_group_size: int = 1,
+        gpu_group_size: int = 18446744073709551615,
+        prefer_gpu: bool = True,
+    ) -> None:
         """
         Construct a partition hint with arguments:
           cpu_group_size: The size of cell group assigned to CPU, each cell in its own group by default.
@@ -1760,34 +1962,30 @@ class partition_hint:
                           Must be positive, else set to default value.
           prefer_gpu:     Whether GPU is preferred, True by default.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def cpu_group_size(self) -> int:
         """
         The size of cell group assigned to CPU.
         """
     @cpu_group_size.setter
-    def cpu_group_size(self, arg0: int) -> None:
-        ...
+    def cpu_group_size(self, arg0: int) -> None: ...
     @property
     def gpu_group_size(self) -> int:
         """
         The size of cell group assigned to GPU.
         """
     @gpu_group_size.setter
-    def gpu_group_size(self, arg0: int) -> None:
-        ...
+    def gpu_group_size(self, arg0: int) -> None: ...
     @property
     def prefer_gpu(self) -> bool:
         """
         Whether GPU usage is preferred.
         """
     @prefer_gpu.setter
-    def prefer_gpu(self, arg0: bool) -> None:
-        ...
+    def prefer_gpu(self, arg0: bool) -> None: ...
+
 class place_pwlin:
     def __init__(self, morphology: morphology, isometry: isometry = ...) -> None:
         """
@@ -1813,11 +2011,20 @@ class place_pwlin:
         """
         Return minimal list of full or partial msegments whose union is coterminous with the extent of the given list of cables.
         """
+
 class poisson_schedule(schedule_base):
     """
     Describes a schedule according to a Poisson process within the interval [tstart, tstop).
     """
-    def __init__(self, freq: units.quantity, *, tstart: units.quantity = ..., seed: int = 0, tstop: units.quantity | None = None) -> None:
+
+    def __init__(
+        self,
+        freq: units.quantity,
+        *,
+        tstart: units.quantity = ...,
+        seed: int = 0,
+        tstop: units.quantity | None = None,
+    ) -> None:
         """
         Construct a Poisson schedule with arguments:
           tstart: The delivery time of the first event in the sequence [ms], 0 by default.
@@ -1825,10 +2032,8 @@ class poisson_schedule(schedule_base):
           seed:   The seed for the random number generator, 0 by default.
           tstop:  No events delivered after this time [ms], None by default.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     def events(self, arg0: units.quantity, arg1: units.quantity) -> list[float]:
         """
         A view of monotonically increasing time values in the half-open interval [t0, t1).
@@ -1839,42 +2044,46 @@ class poisson_schedule(schedule_base):
         The expected frequency [kHz].
         """
     @freq.setter
-    def freq(self, arg1: units.quantity) -> None:
-        ...
+    def freq(self, arg1: units.quantity) -> None: ...
     @property
     def seed(self) -> int:
         """
         The seed for the random number generator.
         """
     @seed.setter
-    def seed(self, arg0: int) -> None:
-        ...
+    def seed(self, arg0: int) -> None: ...
     @property
     def tstart(self) -> units.quantity:
         """
         The delivery time of the first event in the sequence [ms].
         """
     @tstart.setter
-    def tstart(self, arg1: units.quantity) -> None:
-        ...
+    def tstart(self, arg1: units.quantity) -> None: ...
     @property
     def tstop(self) -> units.quantity:
         """
         No events delivered after this time [ms].
         """
     @tstop.setter
-    def tstop(self, arg1: units.quantity) -> None:
-        ...
+    def tstop(self, arg1: units.quantity) -> None: ...
+
 class probe:
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
+
 class proc_allocation:
     """
     Enumerates the computational resources on a node to be used for simulation.
     """
-    def __init__(self, *, threads: int = 1, gpu_id: typing.Any = None, bind_procs: bool = False, bind_threads: bool = False) -> None:
+
+    def __init__(
+        self,
+        *,
+        threads: int = 1,
+        gpu_id: typing.Any = None,
+        bind_procs: bool = False,
+        bind_threads: bool = False,
+    ) -> None:
         """
         Construct an allocation with arguments:
           threads:      The number of threads available locally for execution. Must be set to 1 at minimum. 1 by default.
@@ -1882,26 +2091,22 @@ class proc_allocation:
           bind_procs:   Create process binding mask.
           bind_threads: Create thread binding mask.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def bind_procs(self) -> bool:
         """
         Try to bind MPI procs?
         """
     @bind_procs.setter
-    def bind_procs(self, arg1: bool) -> None:
-        ...
+    def bind_procs(self, arg1: bool) -> None: ...
     @property
     def bind_threads(self) -> bool:
         """
         Try to bind threads?
         """
     @bind_threads.setter
-    def bind_threads(self, arg1: bool) -> None:
-        ...
+    def bind_threads(self, arg1: bool) -> None: ...
     @property
     def gpu_id(self) -> int | None:
         """
@@ -1909,8 +2114,7 @@ class proc_allocation:
         Corresponds to the integer parameter used to identify GPUs in CUDA API calls.
         """
     @gpu_id.setter
-    def gpu_id(self, arg1: typing.Any) -> None:
-        ...
+    def gpu_id(self, arg1: typing.Any) -> None: ...
     @property
     def has_gpu(self) -> bool:
         """
@@ -1922,18 +2126,16 @@ class proc_allocation:
         The number of threads available locally for execution.
         """
     @threads.setter
-    def threads(self, arg1: int) -> None:
-        ...
+    def threads(self, arg1: int) -> None: ...
+
 class recipe:
     """
     A description of a model, describing the cells and the network via a cell-centric interface.
     """
-    def __init__(self) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+
+    def __init__(self) -> None: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     def cell_description(self, gid: int) -> typing.Any:
         """
         High level description of the cell with global identifier gid.
@@ -1970,12 +2172,19 @@ class recipe:
         """
         The probes to allow monitoring.
         """
+
 class regular_schedule(schedule_base):
     """
     Describes a regular schedule with multiples of dt within the interval [tstart, tstop).
     """
+
     @typing.overload
-    def __init__(self, tstart: units.quantity, dt: units.quantity, tstop: units.quantity | None = None) -> None:
+    def __init__(
+        self,
+        tstart: units.quantity,
+        dt: units.quantity,
+        tstop: units.quantity | None = None,
+    ) -> None:
         """
         Construct a regular schedule with arguments:
           tstart: The delivery time of the first event in the sequence [ms].
@@ -1988,10 +2197,8 @@ class regular_schedule(schedule_base):
         Construct a regular schedule, starting from t = 0 and never terminating, with arguments:
           dt:     The interval between time points [ms].
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     def events(self, arg0: float, arg1: float) -> list[float]:
         """
         A view of monotonically increasing time values in the half-open interval [t0, t1).
@@ -2002,70 +2209,64 @@ class regular_schedule(schedule_base):
         The interval between time points [ms].
         """
     @dt.setter
-    def dt(self, arg1: units.quantity) -> None:
-        ...
+    def dt(self, arg1: units.quantity) -> None: ...
     @property
     def tstart(self) -> units.quantity:
         """
         The delivery time of the first event in the sequence [ms].
         """
     @tstart.setter
-    def tstart(self, arg1: units.quantity) -> None:
-        ...
+    def tstart(self, arg1: units.quantity) -> None: ...
     @property
     def tstop(self) -> units.quantity | None:
         """
         No events delivered after this time [ms].
         """
     @tstop.setter
-    def tstop(self, arg1: units.quantity | None) -> None:
-        ...
+    def tstop(self, arg1: units.quantity | None) -> None: ...
+
 class reversal_potential:
     """
     Setting the initial reversal potential.
     """
-    def __init__(self, arg0: str, arg1: units.quantity) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
+
+    def __init__(self, arg0: str, arg1: units.quantity) -> None: ...
+    def __repr__(self) -> str: ...
+
 class reversal_potential_method:
     """
     Describes the mechanism used to compute eX for ion X.
     """
-    def __init__(self, arg0: str, arg1: mechanism) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
+
+    def __init__(self, arg0: str, arg1: mechanism) -> None: ...
+    def __repr__(self) -> str: ...
+
 class scaled_mechanism:
     """
     For painting a scaled density mechanism on a region.
     """
+
     @typing.overload
-    def __init__(self, arg0: density) -> None:
-        ...
+    def __init__(self, arg0: density) -> None: ...
     @typing.overload
-    def __init__(self, arg0: density, arg1: dict[str, str]) -> None:
-        ...
+    def __init__(self, arg0: density, arg1: dict[str, str]) -> None: ...
     @typing.overload
-    def __init__(self, arg0: density, **kwargs) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __init__(self, arg0: density, **kwargs) -> None: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     def scale(self, name: str, ex: str) -> scaled_mechanism:
         """
         Add a scaling expression to a parameter.
         """
+
 class schedule_base:
     """
     Schedule abstract base class.
     """
+
 class segment_tree:
-    def __init__(self) -> None:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __init__(self) -> None: ...
+    def __str__(self) -> str: ...
     @typing.overload
     def append(self, parent: int, prox: mpoint, dist: mpoint, tag: int) -> int:
         """
@@ -2077,7 +2278,9 @@ class segment_tree:
         Append a segment to the tree.
         """
     @typing.overload
-    def append(self, parent: int, x: float, y: float, z: float, radius: float, tag: int) -> int:
+    def append(
+        self, parent: int, x: float, y: float, z: float, radius: float, tag: int
+    ) -> int:
         """
         Append a segment to the tree, using the distal location of the parent segment as the proximal end.
         """
@@ -2105,8 +2308,7 @@ class segment_tree:
         """
         Join two subtrees at a given id, such that said id becomes the parent of the inserted sub-tree.
         """
-    def reserve(self, arg0: int) -> None:
-        ...
+    def reserve(self, arg0: int) -> None: ...
     def split_at(self, arg0: int) -> tuple[segment_tree, segment_tree]:
         """
         Split into a pair of trees at the given id, such that one tree is the subtree rooted at id and the other is the original tree without said subtree.
@@ -2135,57 +2337,62 @@ class segment_tree:
         """
         The number of segments in the tree.
         """
+
 class selection_policy:
     """
     Enumeration used to identify a selection policy, used by the model for selecting one of possibly multiple locations on the cell associated with a labeled item.
-    
+
     Members:
-    
+
       round_robin : Iterate round-robin over all possible locations.
-    
+
       round_robin_halt : Halts at the current location until the round_robin policy is called (again).
-    
+
       univalent : Assert that there is only one possible location associated with a labeled item on the cell. The model throws an exception if the assertion fails.
     """
-    __members__: typing.ClassVar[dict[str, selection_policy]]  # value = {'round_robin': <selection_policy.round_robin: 0>, 'round_robin_halt': <selection_policy.round_robin_halt: 1>, 'univalent': <selection_policy.univalent: 2>}
-    round_robin: typing.ClassVar[selection_policy]  # value = <selection_policy.round_robin: 0>
-    round_robin_halt: typing.ClassVar[selection_policy]  # value = <selection_policy.round_robin_halt: 1>
-    univalent: typing.ClassVar[selection_policy]  # value = <selection_policy.univalent: 2>
-    def __eq__(self, other: typing.Any) -> bool:
-        ...
-    def __getstate__(self) -> int:
-        ...
-    def __hash__(self) -> int:
-        ...
-    def __index__(self) -> int:
-        ...
-    def __init__(self, value: int) -> None:
-        ...
-    def __int__(self) -> int:
-        ...
-    def __ne__(self, other: typing.Any) -> bool:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __setstate__(self, state: int) -> None:
-        ...
-    def __str__(self) -> str:
-        ...
+
+    __members__: typing.ClassVar[
+        dict[str, selection_policy]
+    ]  # value = {'round_robin': <selection_policy.round_robin: 0>, 'round_robin_halt': <selection_policy.round_robin_halt: 1>, 'univalent': <selection_policy.univalent: 2>}
+    round_robin: typing.ClassVar[
+        selection_policy
+    ]  # value = <selection_policy.round_robin: 0>
+    round_robin_halt: typing.ClassVar[
+        selection_policy
+    ]  # value = <selection_policy.round_robin_halt: 1>
+    univalent: typing.ClassVar[
+        selection_policy
+    ]  # value = <selection_policy.univalent: 2>
+    def __eq__(self, other: typing.Any) -> bool: ...
+    def __getstate__(self) -> int: ...
+    def __hash__(self) -> int: ...
+    def __index__(self) -> int: ...
+    def __init__(self, value: int) -> None: ...
+    def __int__(self) -> int: ...
+    def __ne__(self, other: typing.Any) -> bool: ...
+    def __repr__(self) -> str: ...
+    def __setstate__(self, state: int) -> None: ...
+    def __str__(self) -> str: ...
     @property
-    def name(self) -> str:
-        ...
+    def name(self) -> str: ...
     @property
-    def value(self) -> int:
-        ...
+    def value(self) -> int: ...
+
 class simulation:
     """
     The executable form of a model.
     A simulation is constructed from a recipe, and then used to update and monitor model state.
     """
+
     @staticmethod
-    def deserialize(*args, **kwargs) -> None:
-        ...
-    def __init__(self, recipe: recipe, context: context | None = None, domains: domain_decomposition | None = None, seed: int = 0) -> None:
+    def deserialize(*args, **kwargs) -> None: ...
+    def __init__(
+        self,
+        recipe: recipe,
+        context: context | None = None,
+        domains: domain_decomposition | None = None,
+        seed: int = 0,
+    ) -> None:
         """
         Initialize the model described by a recipe, with cells and network distributed
         according to the domain decomposition and computational resources described by a
@@ -2272,17 +2479,23 @@ class simulation:
         """
         Rebuild the connection table from recipe::connections_on and the eventgenerators based on recipe::event_generators.
         """
+
 class single_cell_model:
     """
     Wrapper for simplified description, and execution, of single cell models.
     """
+
     @typing.overload
-    def __init__(self, tree: segment_tree, decor: decor, labels: label_dict = ...) -> None:
+    def __init__(
+        self, tree: segment_tree, decor: decor, labels: label_dict = ...
+    ) -> None:
         """
         Build single cell model from cable cell components
         """
     @typing.overload
-    def __init__(self, morph: morphology, decor: decor, labels: label_dict = ...) -> None:
+    def __init__(
+        self, morph: morphology, decor: decor, labels: label_dict = ...
+    ) -> None:
         """
         Build single cell model from cable cell components
         """
@@ -2291,10 +2504,8 @@ class single_cell_model:
         """
         Initialise a single cell model for a cable cell.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     def event_generator(self, event_generator: event_generator) -> None:
         """
         Register an event generator.
@@ -2310,7 +2521,9 @@ class single_cell_model:
          frequency: The target frequency at which to sample [kHz].
         """
     @typing.overload
-    def probe(self, what: str, where: location, tag: str, frequency: units.quantity) -> None:
+    def probe(
+        self, what: str, where: location, tag: str, frequency: units.quantity
+    ) -> None:
         """
         Sample a variable on the cell.
          what:      Name of the variable to record (currently only 'voltage').
@@ -2333,8 +2546,7 @@ class single_cell_model:
         Global properties.
         """
     @properties.setter
-    def properties(self, arg0: cable_global_properties) -> None:
-        ...
+    def properties(self, arg0: cable_global_properties) -> None: ...
     @property
     def spikes(self) -> list[float]:
         """
@@ -2345,73 +2557,63 @@ class single_cell_model:
         """
         Holds sample traces after a call to run().
         """
+
 class spike:
-    def __init__(self, arg0: cell_member, arg1: float) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __init__(self, arg0: cell_member, arg1: float) -> None: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def source(self) -> cell_member:
         """
         The global identifier of the cell.
         """
     @source.setter
-    def source(self, arg0: cell_member) -> None:
-        ...
+    def source(self, arg0: cell_member) -> None: ...
     @property
     def time(self) -> float:
         """
         The time of spike.
         """
     @time.setter
-    def time(self, arg0: float) -> None:
-        ...
+    def time(self, arg0: float) -> None: ...
+
 class spike_recording:
     """
     Members:
-    
+
       off
-    
+
       local
-    
+
       all
     """
-    __members__: typing.ClassVar[dict[str, spike_recording]]  # value = {'off': <spike_recording.off: 0>, 'local': <spike_recording.local: 1>, 'all': <spike_recording.all: 2>}
+
+    __members__: typing.ClassVar[
+        dict[str, spike_recording]
+    ]  # value = {'off': <spike_recording.off: 0>, 'local': <spike_recording.local: 1>, 'all': <spike_recording.all: 2>}
     all: typing.ClassVar[spike_recording]  # value = <spike_recording.all: 2>
     local: typing.ClassVar[spike_recording]  # value = <spike_recording.local: 1>
     off: typing.ClassVar[spike_recording]  # value = <spike_recording.off: 0>
-    def __eq__(self, other: typing.Any) -> bool:
-        ...
-    def __getstate__(self) -> int:
-        ...
-    def __hash__(self) -> int:
-        ...
-    def __index__(self) -> int:
-        ...
-    def __init__(self, value: int) -> None:
-        ...
-    def __int__(self) -> int:
-        ...
-    def __ne__(self, other: typing.Any) -> bool:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __setstate__(self, state: int) -> None:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __eq__(self, other: typing.Any) -> bool: ...
+    def __getstate__(self) -> int: ...
+    def __hash__(self) -> int: ...
+    def __index__(self) -> int: ...
+    def __init__(self, value: int) -> None: ...
+    def __int__(self) -> int: ...
+    def __ne__(self, other: typing.Any) -> bool: ...
+    def __repr__(self) -> str: ...
+    def __setstate__(self, state: int) -> None: ...
+    def __str__(self) -> str: ...
     @property
-    def name(self) -> str:
-        ...
+    def name(self) -> str: ...
     @property
-    def value(self) -> int:
-        ...
+    def value(self) -> int: ...
+
 class spike_source_cell:
     """
     A spike source cell, that generates a user-defined sequence of spikes that act as inputs for other cells in the network.
     """
+
     @typing.overload
     def __init__(self, source_label: str, schedule: regular_schedule) -> None:
         """
@@ -2430,74 +2632,66 @@ class spike_source_cell:
         Construct a spike source cell with a single source labeled 'source_label'.
         The cell generates spikes on 'source_label' at times defined by a Poisson sequence.
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
+
 class synapse:
     """
     For placing a synaptic mechanism on a locset.
     """
+
     @typing.overload
-    def __init__(self, arg0: str) -> None:
-        ...
+    def __init__(self, arg0: str) -> None: ...
     @typing.overload
-    def __init__(self, arg0: mechanism) -> None:
-        ...
+    def __init__(self, arg0: mechanism) -> None: ...
     @typing.overload
-    def __init__(self, arg0: str, arg1: dict[str, float]) -> None:
-        ...
+    def __init__(self, arg0: str, arg1: dict[str, float]) -> None: ...
     @typing.overload
-    def __init__(self, arg0: mechanism, arg1: dict[str, float]) -> None:
-        ...
+    def __init__(self, arg0: mechanism, arg1: dict[str, float]) -> None: ...
     @typing.overload
-    def __init__(self, arg0: str, **kwargs) -> None:
-        ...
+    def __init__(self, arg0: str, **kwargs) -> None: ...
     @typing.overload
-    def __init__(self, arg0: mechanism, **kwargs) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __init__(self, arg0: mechanism, **kwargs) -> None: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def mech(self) -> mechanism:
         """
         The underlying mechanism.
         """
+
 class temperature:
     """
     Setting the temperature.
     """
-    def __init__(self, arg0: units.quantity) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
+
+    def __init__(self, arg0: units.quantity) -> None: ...
+    def __repr__(self) -> str: ...
+
 class threshold_detector:
     """
     A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an arbor.connection.
     """
+
     def __init__(self, threshold: units.quantity) -> None:
         """
         Voltage threshold of spike detector [mV]
         """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def threshold(self) -> float:
         """
         Voltage threshold of spike detector [mV]
         """
+
 class trace:
     """
     Values and meta-data for a sample-trace on a single cell model.
     """
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def location(self) -> location:
         """
@@ -2518,168 +2712,195 @@ class trace:
         """
         Name of the variable being recorded.
         """
+
 class voltage_process:
     """
     For painting a voltage_process mechanism on a region.
     """
+
     @typing.overload
-    def __init__(self, arg0: str) -> None:
-        ...
+    def __init__(self, arg0: str) -> None: ...
     @typing.overload
-    def __init__(self, arg0: mechanism) -> None:
-        ...
+    def __init__(self, arg0: mechanism) -> None: ...
     @typing.overload
-    def __init__(self, arg0: str, arg1: dict[str, float]) -> None:
-        ...
+    def __init__(self, arg0: str, arg1: dict[str, float]) -> None: ...
     @typing.overload
-    def __init__(self, arg0: mechanism, arg1: dict[str, float]) -> None:
-        ...
+    def __init__(self, arg0: mechanism, arg1: dict[str, float]) -> None: ...
     @typing.overload
-    def __init__(self, arg0: mechanism, **kwargs) -> None:
-        ...
+    def __init__(self, arg0: mechanism, **kwargs) -> None: ...
     @typing.overload
-    def __init__(self, arg0: str, **kwargs) -> None:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __str__(self) -> str:
-        ...
+    def __init__(self, arg0: str, **kwargs) -> None: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
     @property
     def mech(self) -> mechanism:
         """
         The underlying mechanism.
         """
-def allen_catalogue() -> catalogue:
-    ...
-def bbp_catalogue() -> catalogue:
-    ...
+
+def allen_catalogue() -> catalogue: ...
+def bbp_catalogue() -> catalogue: ...
 def cable_probe_axial_current(where: str, tag: str) -> probe:
     """
     Probe specification for cable cell axial current at points in a location set.
     """
-def cable_probe_density_state(where: str, mechanism: str, state: str, tag: str) -> probe:
+
+def cable_probe_density_state(
+    where: str, mechanism: str, state: str, tag: str
+) -> probe:
     """
     Probe specification for a cable cell density mechanism state variable at points in a location set.
     """
+
 def cable_probe_density_state_cell(mechanism: str, state: str, tag: str) -> probe:
     """
     Probe specification for a cable cell density mechanism state variable on each cable in each CV where defined.
     """
+
 def cable_probe_ion_current_cell(ion: str, tag: str) -> probe:
     """
     Probe specification for cable cell ionic current across each cable in each CV.
     """
+
 def cable_probe_ion_current_density(where: str, ion: str, tag: str) -> probe:
     """
     Probe specification for cable cell ionic current density at points in a location set.
     """
+
 def cable_probe_ion_diff_concentration(where: str, ion: str, tag: str) -> probe:
     """
     Probe specification for cable cell diffusive ionic concentration at points in a location set.
     """
+
 def cable_probe_ion_diff_concentration_cell(ion: str, tag: str) -> probe:
     """
     Probe specification for cable cell diffusive ionic concentration for each cable in each CV.
     """
+
 def cable_probe_ion_ext_concentration(where: str, ion: str, tag: str) -> probe:
     """
     Probe specification for cable cell external ionic concentration at points in a location set.
     """
+
 def cable_probe_ion_ext_concentration_cell(ion: str, tag: str) -> probe:
     """
     Probe specification for cable cell external ionic concentration for each cable in each CV.
     """
+
 def cable_probe_ion_int_concentration(where: str, ion: str, tag: str) -> probe:
     """
     Probe specification for cable cell internal ionic concentration at points in a location set.
     """
+
 def cable_probe_ion_int_concentration_cell(ion: str, tag: str) -> probe:
     """
     Probe specification for cable cell internal ionic concentration for each cable in each CV.
     """
+
 def cable_probe_membrane_voltage(where: str, tag: str) -> probe:
     """
     Probe specification for cable cell membrane voltage interpolated at points in a location set.
     """
+
 def cable_probe_membrane_voltage_cell(tag: str) -> probe:
     """
     Probe specification for cable cell membrane voltage associated with each cable in each CV.
     """
+
 def cable_probe_point_state(target: int, mechanism: str, state: str, tag: str) -> probe:
     """
     Probe specification for a cable cell point mechanism state variable value at a given target index.
     """
+
 def cable_probe_point_state_cell(mechanism: str, state: str, tag: str) -> probe:
     """
     Probe specification for a cable cell point mechanism state variable value at every corresponding target.
     """
+
 def cable_probe_stimulus_current_cell(tag: str) -> probe:
     """
     Probe specification for cable cell stimulus current across each cable in each CV.
     """
+
 def cable_probe_total_current_cell(tag: str) -> probe:
     """
     Probe specification for cable cell total transmembrane current for each cable in each CV.
     """
+
 def cable_probe_total_ion_current_cell(tag: str) -> probe:
     """
     Probe specification for cable cell total transmembrane current excluding capacitive currents for each cable in each CV.
     """
+
 def cable_probe_total_ion_current_density(where: str, tag: str) -> probe:
     """
     Probe specification for cable cell total transmembrane current density excluding capacitive currents at points in a location set.
     """
+
 def config() -> dict:
     """
     Get Arbor's configuration.
     """
+
 def cv_data(cell: cable_cell) -> cell_cv_data | None:
     """
     Returns a cell_cv_data object representing the CVs comprising the cable-cell according to the discretization policy provided in the decor of the cell. Returns None if no CV-policy was provided in the decor.
     """
-def cv_policy_every_segment(domain: str = '(all)') -> cv_policy:
+
+def cv_policy_every_segment(domain: str = "(all)") -> cv_policy:
     """
     Policy to create one compartment per component of a region.
     """
-def cv_policy_explicit(locset: str, domain: str = '(all)') -> cv_policy:
+
+def cv_policy_explicit(locset: str, domain: str = "(all)") -> cv_policy:
     """
     Policy to create compartments at explicit locations.
     """
-def cv_policy_fixed_per_branch(n: int, domain: str = '(all)') -> cv_policy:
+
+def cv_policy_fixed_per_branch(n: int, domain: str = "(all)") -> cv_policy:
     """
     Policy to use the same number of CVs for each branch.
     """
-def cv_policy_max_extent(length: float, domain: str = '(all)') -> cv_policy:
+
+def cv_policy_max_extent(length: float, domain: str = "(all)") -> cv_policy:
     """
     Policy to use as many CVs as required to ensure that no CV has a length longer than a given value.
     """
-def cv_policy_single(domain: str = '(all)') -> cv_policy:
+
+def cv_policy_single(domain: str = "(all)") -> cv_policy:
     """
     Policy to create one compartment per component of a region.
     """
-def default_catalogue() -> catalogue:
-    ...
+
+def default_catalogue() -> catalogue: ...
 def intersect_region(reg: str, data: cell_cv_data, integrate_along: str) -> list[tuple]:
     """
     Returns a list of [index, proportion] tuples identifying the CVs present in the region.
     `index` is the index of the CV in the cell_cv_data object provided as an argument.
     `proportion` is the proportion of the CV (itegrated by area or length) included in the region.
     """
+
 def lif_probe_voltage(tag: str) -> probe:
     """
     Probe specification for LIF cell membrane voltage.
     """
-def load_asc(filename_or_stream: typing.Any, raw: bool = False) -> segment_tree | asc_morphology:
+
+def load_asc(
+    filename_or_stream: typing.Any, raw: bool = False
+) -> segment_tree | asc_morphology:
     """
     Load a morphology or segment_tree (raw=True) and meta data from a Neurolucida ASCII .asc file.
     """
-def load_catalogue(arg0: typing.Any) -> catalogue:
-    ...
+
+def load_catalogue(arg0: typing.Any) -> catalogue: ...
 def load_component(filename_or_descriptor: typing.Any) -> cable_component:
     """
     Load arbor-component (decor, morphology, label_dict, cable_cell) from file.
     """
-def load_swc_arbor(filename_or_stream: typing.Any, raw: bool = False) -> segment_tree | morphology:
+
+def load_swc_arbor(
+    filename_or_stream: typing.Any, raw: bool = False
+) -> segment_tree | morphology:
     """
     Generate a morphology/segment_tree (raw=False/True) from an SWC file following the rules prescribed by Arbor.
     Specifically:
@@ -2689,58 +2910,76 @@ def load_swc_arbor(filename_or_stream: typing.Any, raw: bool = False) -> segment
      * A segment is always created between a sample and its parent, meaning there
        are no gaps in the resulting morphology.
     """
-def load_swc_neuron(filename_or_stream: typing.Any, raw: bool = False) -> segment_tree | morphology:
+
+def load_swc_neuron(
+    filename_or_stream: typing.Any, raw: bool = False
+) -> segment_tree | morphology:
     """
     Generate a morphology/segment_tree (raw=False/True) from an SWC file following the rules prescribed by NEURON.
     See the documentation https://docs.arbor-sim.org/en/latest/fileformat/swc.html
     for a detailed description of the interpretation.
     """
+
 def neuron_cable_properties() -> cable_global_properties:
     """
     default NEURON cable_global_properties
     """
-def partition_by_group(recipe: recipe, context: context, groups: list[group_description]) -> domain_decomposition:
+
+def partition_by_group(
+    recipe: recipe, context: context, groups: list[group_description]
+) -> domain_decomposition:
     """
-    Construct a domain_decomposition that assigned the groups of cell provided as argument 
+    Construct a domain_decomposition that assigned the groups of cell provided as argument
     to the local hardware resources described by context on the calling rank.
     The cell_groups are guaranteed to be present on the calling rank.
     """
-def partition_load_balance(recipe: recipe, context: context, hints: dict[cell_kind, partition_hint] = {}) -> domain_decomposition:
+
+def partition_load_balance(
+    recipe: recipe, context: context, hints: dict[cell_kind, partition_hint] = {}
+) -> domain_decomposition:
     """
     Construct a domain_decomposition that distributes the cells in the model described by recipe
     over the distributed and local hardware resources described by context.
     Optionally, provide a dictionary of partition hints for certain cell kinds, by default empty.
     """
+
 def print_config() -> None:
     """
     Print Arbor's configuration.
     """
-def stochastic_catalogue() -> catalogue:
-    ...
+
+def stochastic_catalogue() -> catalogue: ...
 @typing.overload
-def write_component(object: cable_component, filename_or_descriptor: typing.Any) -> None:
+def write_component(
+    object: cable_component, filename_or_descriptor: typing.Any
+) -> None:
     """
     Write cable_component to file.
     """
+
 @typing.overload
 def write_component(object: decor, filename_or_descriptor: typing.Any) -> None:
     """
     Write decor to file.
     """
+
 @typing.overload
 def write_component(object: label_dict, filename_or_descriptor: typing.Any) -> None:
     """
     Write label_dict to file.
     """
+
 @typing.overload
 def write_component(object: morphology, filename_or_descriptor: typing.Any) -> None:
     """
     Write morphology to file.
     """
+
 @typing.overload
 def write_component(object: cable_cell, filename_or_descriptor: typing.Any) -> None:
     """
     Write cable_cell to file.
     """
-__version__: str = '0.9.1-dev'
+
+__version__: str = "0.9.1-dev"
 mnpos: int = 4294967295
