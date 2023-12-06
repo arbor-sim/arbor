@@ -3,7 +3,11 @@
 #include <units/units.hpp>
 
 namespace arb::units {
+
 using quantity = ::units::measurement;
+
+// Allow unary minus on quantities. Seemingly doesn't catch literals such as -10_mV
+inline quantity operator-(const quantity& q) { return (-1*q); }
 
 using ::units::unit;
 using ::units::to_string;
@@ -178,8 +182,4 @@ inline quantity operator ""_mM(unsigned long long v) { return v*mM; }
 
 inline quantity operator ""_C(unsigned long long v) { return v*C; }
 } // literals
-} // namespace arb::units
-
-// Allow unary minus on quantities. Seemingly doesn't catch literals such as -10_mV
-inline arb::units::quantity
-operator-(const arb::units::quantity& q) { return (-1*q); }
+} // units
