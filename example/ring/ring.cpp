@@ -84,7 +84,7 @@ public:
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
         std::vector<arb::cell_connection> cons;
         cell_gid_type src = gid? gid-1: num_cells_-1;
-        cons.push_back(arb::cell_connection({src, "detector"}, {"primary_syn"}, event_weight_, min_delay_));
+        cons.push_back(arb::cell_connection({src, "detector"}, {"primary_syn"}, event_weight_, min_delay_*U::ms));
         return cons;
     }
 

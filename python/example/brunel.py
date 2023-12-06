@@ -57,7 +57,7 @@ class brunel_recipe(A.recipe):
 
         self.ncells_exc_ = nexc
         self.ncells_inh_ = ninh
-        self.delay_ = delay
+        self.delay_ = delay * U.ms
         self.seed_ = seed
 
         # Set up the parameters.
@@ -99,14 +99,15 @@ class brunel_recipe(A.recipe):
         return connections
 
     def cell_description(self, gid):
-        cell = A.lif_cell("src", "tgt")
-        cell.tau_m = 10
-        cell.V_th = 10
-        cell.C_m = 20
-        cell.E_L = 0
-        cell.V_m = 0
-        cell.t_ref = 2
-        return cell
+        return A.lif_cell(
+            "src",
+            "tgt",
+            tau_m=10 * U.ms,
+            V_th=10 * U.mV,
+            V_m=0 * U.mV,
+            E_L=0 * U.mV,
+            C_m=20 * U.pF,
+            t_ref=2 * U.ms,)
 
     def event_generators(self, gid):
         return [

@@ -186,17 +186,17 @@ class TestMultipleConnections(unittest.TestCase):
                 )  # referring to the current item in the "postsyn_target" label group of neuron 3, moving to the next item afterwards
 
                 conn_0_3_n1 = A.connection(
-                    source_label_0, target_label_rr, weight, 0.2
+                    source_label_0, target_label_rr, weight, 0.2 * U.ms
                 )  # first connection from neuron 0 to 3
                 conn_0_3_n2 = A.connection(
-                    source_label_0, target_label_rr, weight, 0.2
+                    source_label_0, target_label_rr, weight, 0.2 * U.ms
                 )  # second connection from neuron 0 to 3
                 # NOTE: this is not connecting to the same target label item as 'conn_0_3_n1' because 'round_robin' has been used before!
                 conn_1_3_n1 = A.connection(
-                    source_label_1, target_label_rr, weight2, 1.4
+                    source_label_1, target_label_rr, weight2, 1.4 * U.ms
                 )  # first connection from neuron 1 to 3
                 conn_1_3_n2 = A.connection(
-                    source_label_1, target_label_rr, weight2, 1.4
+                    source_label_1, target_label_rr, weight2, 1.4 * U.ms
                 )  # second connection from neuron 1 to 3
                 # NOTE: this is not connecting to the same target label item as 'conn_1_3_n1' because 'round_robin' has been used before!
 
@@ -251,16 +251,16 @@ class TestMultipleConnections(unittest.TestCase):
                 )  # referring to the current item in the "postsyn_target" label group of neuron 3, moving to the next item afterwards
 
                 conn_0_3_n1 = A.connection(
-                    source_label_0, target_label_rr_halt, weight, 0.2
+                    source_label_0, target_label_rr_halt, weight, 0.2 * U.ms
                 )  # first connection from neuron 0 to 3
                 conn_0_3_n2 = A.connection(
-                    source_label_0, target_label_rr, weight, 0.2
+                    source_label_0, target_label_rr, weight, 0.2 * U.ms
                 )  # second connection from neuron 0 to 3
                 conn_1_3_n1 = A.connection(
-                    source_label_1, target_label_rr_halt, weight2, 1.4
+                    source_label_1, target_label_rr_halt, weight2, 1.4 * U.ms
                 )  # first connection from neuron 1 to 3
                 conn_1_3_n2 = A.connection(
-                    source_label_1, target_label_rr, weight2, 1.4
+                    source_label_1, target_label_rr, weight2, 1.4 * U.ms
                 )  # second connection from neuron 1 to 3
 
                 return [conn_0_3_n1, conn_0_3_n2, conn_1_3_n1, conn_1_3_n2]
@@ -312,10 +312,10 @@ class TestMultipleConnections(unittest.TestCase):
                 )  # referring to an only item in the "postsyn_target_2" label group of neuron 3
 
                 conn_0_3 = A.connection(
-                    source_label_0, target_label_uni_n1, weight, 0.2
+                    source_label_0, target_label_uni_n1, weight, 0.2 * U.ms
                 )  # connection from neuron 0 to 3
                 conn_1_3 = A.connection(
-                    source_label_1, target_label_uni_n2, weight2, 1.4
+                    source_label_1, target_label_uni_n2, weight2, 1.4 * U.ms
                 )  # connection from neuron 1 to 3
 
                 return [conn_0_3, conn_1_3]

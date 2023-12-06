@@ -131,6 +131,6 @@ def build_catalogue():
     ...
 def modcc():
     ...
-__config__: dict = {'mpi': False, 'mpi4py': False, 'gpu': None, 'vectorize': True, 'profiling': False, 'neuroml': True, 'bundled': True, 'version': '0.9.1-dev', 'source': '2023-12-04T19:48:46+01:00 e8c3cc77b8fae2eb7c9aa7486eac943fdbaaf9af modified', 'build_config': 'RELEASE', 'arch': 'native', 'prefix': '/usr/local', 'python_lib_path': '', 'binary_path': 'bin', 'lib_path': 'lib', 'data_path': 'share', 'CXX': '/opt/homebrew/bin/clang++', 'pybind-version': '2.11.1', 'timestamp': 'Dec  5 2023 08:36:34'}
+__config__: dict = {'mpi': False, 'mpi4py': False, 'gpu': None, 'vectorize': True, 'profiling': False, 'neuroml': True, 'bundled': True, 'version': '0.9.1-dev', 'source': '2023-12-05T09:01:34+01:00 05b67c3dd3a31f9b76b71a6c69f3d8faa47d2817 modified', 'build_config': 'RELEASE', 'arch': 'native', 'prefix': '/usr/local', 'python_lib_path': '/opt/homebrew/lib/python3.11/site-packages', 'binary_path': 'bin', 'lib_path': 'lib', 'data_path': 'share', 'CXX': '/opt/homebrew/bin/clang++', 'pybind-version': '2.11.1', 'timestamp': 'Dec  6 2023 10:56:28'}
 __version__: str = '0.9.1-dev'
 mnpos: int = 4294967295

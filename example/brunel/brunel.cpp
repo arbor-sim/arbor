@@ -128,12 +128,12 @@ public:
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
         auto cell = lif_cell("src", "tgt");
-        cell.tau_m = 10;
-        cell.V_th = 10;
-        cell.C_m = 20;
-        cell.E_L = 0;
-        cell.V_m = 0;
-        cell.t_ref = 2;
+        cell.tau_m = 10*U::ms;
+        cell.V_th = 10*U::mV;
+        cell.C_m = 20*U::pF;
+        cell.E_L = 0*U::mV;
+        cell.V_m = 0*U::mV;
+        cell.t_ref = 2*U::ms;
         return cell;
     }
 
@@ -320,7 +320,7 @@ void add_subset(cell_gid_type gid,
     while(m) {
         cell_gid_type val = dis(gen);
         if (!seen.count(val)) {
-            conns.push_back({{val, src}, {tgt}, weight, delay});
+            conns.push_back({{val, src}, {tgt}, weight, delay*U::ms});
             seen.insert(val);
             m--;
         }

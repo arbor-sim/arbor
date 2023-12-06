@@ -185,9 +185,9 @@ class lif_recipe(A.recipe):
 
     def cell_description(self, gid):
         cell = A.lif_cell("src", "tgt")
-        cell.E_L = -42
-        cell.V_m = -23
-        cell.t_ref = 0.2
+        cell.E_L = -42 * U.mV
+        cell.V_m = -23 * U.mV
+        cell.t_ref = 0.2 * U.ms
         return cell
 
 

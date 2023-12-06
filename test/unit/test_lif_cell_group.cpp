@@ -15,6 +15,7 @@
 using namespace arb;
 
 namespace U = arb::units;
+using namespace U::literals;
 
 // Simple ring network of LIF neurons.
 // with one regularly spiking cell (fake cell) connected to the first cell in the ring.
@@ -128,11 +129,11 @@ public:
     util::unique_any get_cell_description(cell_gid_type gid) const override {
         auto cell = lif_cell("src", "tgt");
         if (gid == 0) {
-            cell.E_R = -23;
-            cell.V_m = -18;
-            cell.E_L = -13;
-            cell.t_ref = 0.8;
-            cell.tau_m = 5;
+            cell.E_R = -23.0*U::mV;
+            cell.V_m = -18.0*U::mV;
+            cell.E_L = -13.0*U::mV;
+            cell.t_ref = 0.8*U::ms;
+            cell.tau_m = 5*U::ms;
         }
         return cell;
     }

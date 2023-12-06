@@ -97,7 +97,7 @@ public:
         auto src = source_distribution(src_gen);
         if (src>=gid) ++src;
 
-        return {arb::cell_connection({src, "detector"}, {"synapse"}, event_weight_, min_delay_)};
+        return {arb::cell_connection({src, "detector"}, {"synapse"}, event_weight_, min_delay_*U::ms)};
     }
 
     // Return an event generator on every 20th gid. This function needs to generate events

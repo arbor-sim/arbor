@@ -4,6 +4,7 @@
 
 namespace arb::units {
 using quantity = ::units::measurement;
+
 using ::units::unit;
 using ::units::to_string;
 using ::units::unit_cast_from_string;
@@ -128,7 +129,57 @@ inline quantity operator ""_mM(long double v) { return v*mM; }
 
 inline quantity operator ""_C(long double v) { return v*C; }
 
+inline quantity operator ""_s(unsigned long long v) { return v*s; }
+inline quantity operator ""_ms(unsigned long long v) { return v*ms; }
+inline quantity operator ""_us(unsigned long long v) { return v*us; }
+inline quantity operator ""_ns(unsigned long long v) { return v*ns; }
 
-}
+inline quantity operator ""_m(unsigned long long v) { return v*m; }
+inline quantity operator ""_cm(unsigned long long v) { return v*cm; }
+inline quantity operator ""_mm(unsigned long long v) { return v*mm; }
+inline quantity operator ""_um(unsigned long long v) { return v*um; }
+inline quantity operator ""_nm(unsigned long long v) { return v*nm; }
 
-}
+inline quantity operator ""_m2(unsigned long long v) { return v*m2; }
+inline quantity operator ""_cm2(unsigned long long v) { return v*cm2; }
+inline quantity operator ""_mm2(unsigned long long v) { return v*mm2; }
+inline quantity operator ""_um2(unsigned long long v) { return v*um2; }
+inline quantity operator ""_nm2(unsigned long long v) { return v*nm2; }
+
+inline quantity operator ""_Ohm(unsigned long long v) { return v*Ohm; }
+inline quantity operator ""_kOhm(unsigned long long v) { return v*kOhm; }
+inline quantity operator ""_MOhm(unsigned long long v) { return v*MOhm; }
+
+inline quantity operator ""_S(unsigned long long v) { return v*S; }
+inline quantity operator ""_mS(unsigned long long v) { return v*mS; }
+inline quantity operator ""_uS(unsigned long long v) { return v*uS; }
+
+inline quantity operator ""_A(unsigned long long v) { return v*A; }
+inline quantity operator ""_mA(unsigned long long v) { return v*mA; }
+inline quantity operator ""_uA(unsigned long long v) { return v*uA; }
+inline quantity operator ""_nA(unsigned long long v) { return v*nA; }
+inline quantity operator ""_pA(unsigned long long v) { return v*pA; }
+
+inline quantity operator ""_V(unsigned long long v) { return v*V; }
+inline quantity operator ""_mV(unsigned long long v) { return v*mV; }
+
+inline quantity operator ""_Hz(unsigned long long v) { return v*Hz; }
+inline quantity operator ""_kHz(unsigned long long v) { return v*kHz; }
+
+inline quantity operator ""_F(unsigned long long v)  { return v*F; }
+inline quantity operator ""_mF(unsigned long long v) { return v*mF; }
+inline quantity operator ""_uF(unsigned long long v) { return v*uF; }
+inline quantity operator ""_nF(unsigned long long v) { return v*nF; }
+inline quantity operator ""_pF(unsigned long long v) { return v*pF; }
+
+inline quantity operator ""_mol(unsigned long long v) { return v*mol; }
+inline quantity operator ""_M(unsigned long long v) { return v*M; }
+inline quantity operator ""_mM(unsigned long long v) { return v*mM; }
+
+inline quantity operator ""_C(unsigned long long v) { return v*C; }
+} // literals
+} // namespace arb::units
+
+// Allow unary minus on quantities. Seemingly doesn't catch literals such as -10_mV
+inline arb::units::quantity
+operator-(const arb::units::quantity& q) { return (-1*q); }

@@ -86,7 +86,7 @@ public:
         if(gid % params_.n_cells_per_cable || (int)gid - 1 < 0) {
             return{};
         }
-        return {arb::cell_connection({gid - 1, "detector"}, {"syn"}, params_.event_weight, params_.event_min_delay)};
+        return {arb::cell_connection({gid - 1, "detector"}, {"syn"}, params_.event_weight, params_.event_min_delay*U::ms)};
     }
 
     std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {

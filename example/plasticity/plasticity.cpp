@@ -13,6 +13,8 @@
 
 using namespace arborio::literals;
 
+namespace U = arb::units;
+
 // Fan out network with n members
 // - one spike source at gid 0
 // - n-1 passive, soma-only cable cells
@@ -55,7 +57,8 @@ struct recipe: public arb::recipe {
         return {};
     }
     // Connect cell `to` to the spike source
-    void add_connection(arb::cell_gid_type to) { assert(to > 0); connected[to] = {arb::cell_connection({0, src}, {syn}, weight, delay)}; }
+    void add_connection(arb::cell_gid_type to) { assert(to > 0); connected[to] = {
+        arb::cell_connection({0, src}, {syn}, weight, delay*U::ms)}; }
     // Return the cell at gid
     arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override {
         // source at gid 0

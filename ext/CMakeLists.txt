@@ -128,5 +128,4 @@ if (ARB_USE_BUNDLED_UNITS)
     set(UNITS_INSTALL OFF CACHE INTERNAL "")
 
     add_subdirectory("${PROJECT_SOURCE_DIR}/ext/units" "${PROJECT_BINARY_DIR}/ext/units")
-    message("Units ${units_LIBRARY} target ${arbor-targets}")
 endif()

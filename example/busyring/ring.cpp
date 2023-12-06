@@ -88,7 +88,7 @@ public:
         const auto group_start = s*group;
         const auto group_end = std::min(group_start+s, num_cells_);
         cell_gid_type src = gid==group_start? group_end-1: gid-1;
-        cons.push_back(arb::cell_connection({src, "d"}, {"p"}, event_weight_, min_delay_));
+        cons.push_back(arb::cell_connection({src, "d"}, {"p"}, event_weight_, min_delay_*U::ms));
 
         // Used to pick source cell for a connection.
         std::uniform_int_distribution<cell_gid_type> dist(0, num_cells_-2);
@@ -102,7 +102,7 @@ public:
             if (src==gid) ++src;
             const float delay = min_delay_+delay_dist(src_gen);
             cons.push_back(
-                arb::cell_connection({src, "d"}, {"p"}, 0.f, delay));
+                arb::cell_connection({src, "d"}, {"p"}, 0.f, delay*U::ms));
         }
         return cons;
     }

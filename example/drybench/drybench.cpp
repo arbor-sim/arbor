@@ -24,6 +24,8 @@
 #include <sup/json_meter.hpp>
 #include <sup/json_params.hpp>
 
+namespace U = arb::units;
+
 struct bench_params {
     struct cell_params {
         double spike_freq_hz = 20;   // Frequency in hz that cell will generate (poisson) spikes.
@@ -112,7 +114,7 @@ public:
         for (unsigned i=0; i<params_.network.fan_in; ++i) {
             auto src = source_distribution(src_gen);
             if (src>=gid) ++src;
-            conns.push_back(arb::cell_connection({src, "src"}, {"tgt"}, 1.f, params_.network.min_delay));
+            conns.push_back(arb::cell_connection({src, "src"}, {"tgt"}, 1.f, params_.network.min_delay*U::ms));
         }
 
         return conns;

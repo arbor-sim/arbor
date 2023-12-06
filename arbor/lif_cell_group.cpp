@@ -18,7 +18,7 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids,
     for (auto gid: gids_) {
         const auto& cell = util::any_cast<lif_cell>(rec.get_cell_description(gid));
         // set up cell state
-        cells_.push_back(cell);
+        cells_.emplace_back(cell);
         last_time_updated_.push_back(0.0);
         last_time_sampled_.push_back(-1.0);
         // tell our caller about this cell's connections
@@ -95,7 +95,7 @@ void lif_cell_group::reset() {
 
 // produce voltage V_m at t1, given cell state at t0 and no spikes in [t0, t1)
 static double
-lif_decay(const lif_cell& cell, double t0, double t1) {
+lif_decay(const lif_lowered_cell& cell, double t0, double t1) {
     return (cell.V_m - cell.E_L)*exp((t0 - t1)/cell.tau_m) + cell.E_L;
 }
 

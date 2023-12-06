@@ -1310,7 +1310,7 @@ class lif_cell:
     """
     A leaky integrate-and-fire cell.
     """
-    def __init__(self, source_label: str, target_label: str) -> None:
+    def __init__(self, source_label: str, target_label: str, *, tau_m: units.quantity | None = None, V_th: units.quantity | None = None, C_m: units.quantity | None = None, E_L: units.quantity | None = None, V_m: units.quantity | None = None, t_ref: units.quantity | None = None) -> None:
         """
         Construct a lif cell with one source labeled 'source_label', and one target labeled 'target_label'.
         """
@@ -1319,44 +1319,44 @@ class lif_cell:
     def __str__(self) -> str:
         ...
     @property
-    def C_m(self) -> float:
+    def C_m(self) -> units.quantity:
         """
         Membrane capacitance [pF].
         """
     @C_m.setter
-    def C_m(self, arg0: float) -> None:
+    def C_m(self, arg0: units.quantity) -> None:
         ...
     @property
-    def E_L(self) -> float:
+    def E_L(self) -> units.quantity:
         """
         Resting potential [mV].
         """
     @E_L.setter
-    def E_L(self, arg0: float) -> None:
+    def E_L(self, arg0: units.quantity) -> None:
         ...
     @property
-    def E_R(self) -> float:
+    def E_R(self) -> units.quantity:
         """
         Reset potential [mV].
         """
     @E_R.setter
-    def E_R(self, arg0: float) -> None:
+    def E_R(self, arg0: units.quantity) -> None:
         ...
     @property
-    def V_m(self) -> float:
+    def V_m(self) -> units.quantity:
         """
         Initial value of the Membrane potential [mV].
         """
     @V_m.setter
-    def V_m(self, arg0: float) -> None:
+    def V_m(self, arg0: units.quantity) -> None:
         ...
     @property
-    def V_th(self) -> float:
+    def V_th(self) -> units.quantity:
         """
         Firing threshold [mV].
         """
     @V_th.setter
-    def V_th(self, arg0: float) -> None:
+    def V_th(self, arg0: units.quantity) -> None:
         ...
     @property
     def source(self) -> str:
@@ -1367,12 +1367,12 @@ class lif_cell:
     def source(self, arg0: str) -> None:
         ...
     @property
-    def t_ref(self) -> float:
+    def t_ref(self) -> units.quantity:
         """
         Refractory period [ms].
         """
     @t_ref.setter
-    def t_ref(self, arg0: float) -> None:
+    def t_ref(self, arg0: units.quantity) -> None:
         ...
     @property
     def target(self) -> str:
@@ -1383,12 +1383,12 @@ class lif_cell:
     def target(self, arg0: str) -> None:
         ...
     @property
-    def tau_m(self) -> float:
+    def tau_m(self) -> units.quantity:
         """
         Membrane potential decaying constant [ms].
         """
     @tau_m.setter
-    def tau_m(self, arg0: float) -> None:
+    def tau_m(self, arg0: units.quantity) -> None:
         ...
 class lif_probe_metadata:
     """

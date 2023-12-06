@@ -125,9 +125,9 @@ struct lif_chain: public recipe {
     util::unique_any get_cell_description(cell_gid_type) const override {
         // A hair-trigger LIF cell with tiny time constant and no refractory period.
         lif_cell lif("src", "tgt");
-        lif.tau_m = 0.01;           // time constant (ms)
-        lif.t_ref = 0;              // refactory period (ms)
-        lif.V_th = lif.E_L + 0.001; // threshold voltage 1 µV higher than resting
+        lif.tau_m = 0.01*U::ms;           // time constant (ms)
+        lif.t_ref = 0*U::ms;              // refactory period (ms)
+        lif.V_th = lif.E_L + 0.001*U::mV; // threshold voltage 1 µV higher than resting
         return lif;
     }
 

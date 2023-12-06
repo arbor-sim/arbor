@@ -30,6 +30,8 @@
 #include <arborenv/with_mpi.hpp>
 #endif
 
+namespace U = arb::units;
+
 struct bench_params {
     struct cell_params {
         double spike_freq_hz = 10;   // Frequency in hz that cell will generate (poisson) spikes.
@@ -118,7 +120,7 @@ public:
             // Draw random source and adjust to avoid self-connections if neccesary.
             arb::cell_gid_type src = dist(rng);
             if (src>=gid) ++src;
-            arb::cell_connection con({src, "src"}, {"tgt"}, 1.f, params_.network.min_delay);
+            arb::cell_connection con({src, "src"}, {"tgt"}, 1.f, params_.network.min_delay*U::ms);
             cons.push_back(con);
         }
 
