@@ -1034,7 +1034,7 @@ TEST(sde, gpu) {
     unsigned ncells = 4;
     unsigned nsynapses = 100;
     unsigned ncvs = 100;
-    double const dt = 0.5;
+    auto dt = 0.5*U::ms;
     unsigned nsteps = 50;
 
     // make labels (and locations for synapses)
