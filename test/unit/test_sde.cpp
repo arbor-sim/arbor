@@ -22,6 +22,7 @@
 
 #include <arborenv/default_env.hpp>
 
+#include "unit_test_catalogue.hpp"
 #include "../simple_recipes.hpp"
 
 namespace U = arb::units;
