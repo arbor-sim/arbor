@@ -442,7 +442,7 @@ TEST(sde, reproducibility) {
         simulation sim = simulation::create(rec)
             .set_context(context)
             .set_seed(137);
-        sim.run(nsteps*dt*U::ms, dt*U::ms);
+        sim.run(nsteps*dt, dt);
 
         std::vector<int> expected = {
               4126426,  -2456988,  -733209,  -4275001, -14477658,    722421,   9384951,  -5140958,
@@ -539,7 +539,7 @@ TEST(sde, normality) {
         simulation sim = simulation::create(rec)
             .set_context(context)
             .set_seed(42);
-        sim.run(nsteps*dt*U::ms, dt*U::ms);
+        sim.run(nsteps*dt, dt);
 
         // sort data and store for comparison
         std::sort(arch.data_.begin(), arch.data_.end());
@@ -553,7 +553,7 @@ TEST(sde, normality) {
             .set_context(context)
             .set_seed(42);
         arch.reset();
-        sim.run(nsteps*dt*U::ms, dt*U::ms);
+        sim.run(nsteps*dt, dt);
 
         // sort data
         std::sort(arch.data_.begin(), arch.data_.end());
@@ -575,7 +575,7 @@ TEST(sde, normality) {
             .set_decomposition(decomp)
             .set_seed(42);
         arch.reset();
-        sim.run(nsteps*dt*U::ms, dt*U::ms);
+        sim.run(nsteps*dt, dt);
 
         // sort data
         std::sort(arch.data_.begin(), arch.data_.end());
@@ -597,7 +597,7 @@ TEST(sde, normality) {
             .set_decomposition(decomp)
             .set_seed(42);
         arch.reset();
-        sim.run(nsteps*dt*U::ms, dt*U::ms);
+        sim.run(nsteps*dt, dt);
 
         // sort data
         std::sort(arch.data_.begin(), arch.data_.end());
@@ -613,7 +613,7 @@ TEST(sde, normality) {
             .set_context(context)
             .set_seed(0);
         arch.reset();
-        sim.run(nsteps*dt*U::ms, dt*U::ms);
+        sim.run(nsteps*dt, dt);
 
         // sort data
         std::sort(arch.data_.begin(), arch.data_.end());
@@ -746,7 +746,7 @@ TEST(sde, solver) {
         sim.add_sampler(arb::one_tag("s-m4-cell"), regular_schedule(dt), sampler_m4);
         
         // run the simulation
-        sim.run(nsteps*dt*U::ms, dt*U::ms);
+        sim.run(nsteps*dt, dt);
 
         // accumulate statistics for sampled data
         for (unsigned int k=0; k<ncells; ++k){
@@ -880,7 +880,7 @@ TEST(sde, coupled) {
         sim.add_sampler(arb::one_tag("sigma-m1"), regular_schedule(dt), sampler_sigma);
 
         // run the simulation
-        sim.run(nsteps*dt*U::ms, dt*U::ms);
+        sim.run(nsteps*dt, dt);
 
         // accumulate statistics for sampled data
         for (unsigned int k=0; k<ncells; ++k){
@@ -1068,7 +1068,7 @@ TEST(sde, gpu) {
             .set_context(context)
             .set_decomposition(decomp)
             .set_seed(42);
-        sim.run(nsteps*dt*U::ms, dt*U::ms);
+        sim.run(nsteps*dt, dt);
     }
 
     // on GPU
@@ -1078,7 +1078,7 @@ TEST(sde, gpu) {
         simulation sim = simulation::create(rec)
             .set_context(context)
             .set_seed(42);
-        sim.run(nsteps*dt*U::ms, dt*U::ms);
+        sim.run(nsteps*dt, dt);
     }
 
     // compare values
