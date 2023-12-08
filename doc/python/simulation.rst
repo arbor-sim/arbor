@@ -131,7 +131,7 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
         spike time.
 
         The spikes are sorted in ascending order of spike time, and spikes with
-        the same time are sorted accourding to source gid then index.
+        the same time are sorted according to source gid then index.
 
     **Sampling probes:**
 
