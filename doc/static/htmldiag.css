@@ -1,7 +1,7 @@
 .diag-cont {
     display: flex;
     max-width: 50%;
-    margin: auto;
+    margin-left: 10%;
 }
 .diag-cont code {
     font-family: monospace;
@@ -27,35 +27,35 @@
     background-color: rgb(195, 221, 146);
     border-radius: 10px 10px 10px 0px;
     float: left;
-    width: 75%;
+    width: 80%;
 }
 .diag-cont .diag-left2 {
     border: none;
     background-color: rgb(194, 146, 221);
     border-radius: 10px 10px 10px 0px;
     float: left;
-    width: 75%;
+    width: 80%;
 }
 .diag-cont .diag-right {
     border: none;
     background-color: rgb(221, 164, 146);
     border-radius: 10px 10px 0px 10px;
     float: right;
-    width: 75%;
+    width: 80%;
 }
 .diag-cont .diag-right2 {
     border: none;
     background-color: rgb(146, 151, 221);
     border-radius: 10px 10px 0px 10px;
     float: right;
-    width: 75%;
+    width: 80%;
 }
 .diag-cont .diag-right3 {
     border: none;
     background-color: rgb(255, 231, 196);
     border-radius: 10px 10px 0px 10px;
     float: right;
-    width: 75%;
+    width: 80%;
 }
 .diag-cont div {
     border: 1px solid rgb(0, 0, 0, 0.5);

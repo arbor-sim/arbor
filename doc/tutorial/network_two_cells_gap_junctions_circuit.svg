@@ -15,6 +15,7 @@
    width="342.25732"
    height="258.55066"
    viewBox="0 0 342.25732 258.55066"
+   style="background-color:white"
    sodipodi:docname="gap_junction_circuit.svg"
    inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"><metadata
      id="metadata8"><rdf:RDF><cc:Work
@@ -27,7 +28,7 @@
      objecttolerance="10"
      gridtolerance="10"
      guidetolerance="10"
-     inkscape:pageopacity="0"
+     inkscape:pageopacity="1"
      inkscape:pageshadow="2"
      inkscape:window-width="640"
      inkscape:window-height="480"
