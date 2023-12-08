@@ -134,6 +134,8 @@ class Arbor(CMakePackage, CudaPackage):
             self.spec.compiler.name, self.spec.compiler.version
         )
         args.append("-DARB_CXX_FLAGS_TARGET=" + opt_flags)
+        # Needed, spack has no units package
+        args.append("-DARB_USE_BUNDLED_UNITS=ON")
 
         return args
 
