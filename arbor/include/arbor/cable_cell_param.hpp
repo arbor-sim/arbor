@@ -1,12 +1,10 @@
 #pragma once
 
 #include <cmath>
-#include <memory>
 #include <optional>
 #include <unordered_map>
 #include <string>
 #include <variant>
-#include <any>
 
 #include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
@@ -313,8 +311,9 @@ struct ARB_ARBOR_API cable_cell_parameter_set {
 // are to be applied to a morphology in a cable_cell.
 class ARB_ARBOR_API decor {
     std::vector<std::pair<region, paintable>> paintings_;
-    std::vector<std::tuple<locset, placeable, cell_tag_type>> placements_;
+    std::vector<std::tuple<locset, placeable, hash_type>> placements_;
     cable_cell_parameter_set defaults_;
+    std::unordered_map<hash_type, cell_tag_type> hashes_;
 
 public:
     const auto& paintings()  const {return paintings_;  }
@@ -324,6 +323,8 @@ public:
     decor& paint(region, paintable);
     decor& place(locset, placeable, cell_tag_type);
     decor& set_default(defaultable);
+
+    cell_tag_type tag_of(hash_type) const;
 };
 
 ARB_ARBOR_API extern cable_cell_parameter_set neuron_parameter_defaults;

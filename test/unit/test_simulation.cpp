@@ -186,7 +186,7 @@ TEST(simulation, restart) {
         collected.insert(collected.end(), spikes.begin(), spikes.end());
     });
 
-    double tfinal = trigger_times.back()+delay*(n/2+0.1);
+    double tfinal = trigger_times.back()+delay*(0.5*n + 0.1);
     constexpr double dt = 0.01;
 
     auto cut_from = std::partition_point(expected_spikes.begin(), expected_spikes.end(), [tfinal](auto spike) { return spike.time<tfinal; });
@@ -206,7 +206,6 @@ TEST(simulation, restart) {
             t = sim.run(run_to, dt);
             ASSERT_EQ(t, run_to);
         } while (t<tfinal);
-
         ASSERT_EQ(expected_spikes.size(), collected.size());
         for (unsigned i = 0; i<expected_spikes.size(); ++i) {
             EXPECT_EQ(expected_spikes[i].source, collected[i].source);

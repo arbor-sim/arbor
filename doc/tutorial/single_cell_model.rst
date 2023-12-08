@@ -119,7 +119,7 @@ the threshold detector and a voltage probes from our model have produced.
 
 .. literalinclude:: ../../python/example/single_cell_model.py
    :language: python
-   :lines: 34-46
+   :lines: 34-51
 
 Step **(8)** accesses :meth:`arbor.single_cell_model.spikes`
 to print the spike times. A single spike should be generated at around the same time the stimulus

@@ -59,13 +59,11 @@ struct mpi_context_impl {
     }
 
     cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
-        std::vector<cell_size_type> sizes;
-        std::vector<cell_tag_type> labels;
-        std::vector<lid_range> ranges;
-        sizes  = mpi::gather_all(local_ranges.sizes(), comm_);
-        labels = mpi::gather_all(local_ranges.labels(), comm_);
-        ranges = mpi::gather_all(local_ranges.ranges(), comm_);
-        return cell_label_range(sizes, labels, ranges);
+        cell_label_range res;
+        res.sizes  = mpi::gather_all(local_ranges.sizes, comm_);
+        res.labels = mpi::gather_all(local_ranges.labels, comm_);
+        res.ranges = mpi::gather_all(local_ranges.ranges, comm_);
+        return res;
     }
 
     cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const {

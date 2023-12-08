@@ -829,7 +829,7 @@ void register_cells(pybind11::module& m) {
             [](arb::decor& dec) {
                 std::vector<std::tuple<std::string, arb::placeable, std::string>> result;
                 for (const auto& [k, v, t]: dec.placements()) {
-                    result.emplace_back(to_string(k), v, t);
+                    result.emplace_back(to_string(k), v, dec.tag_of(t));
                 }
                 return result;
             },

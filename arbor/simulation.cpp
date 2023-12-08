@@ -38,14 +38,12 @@ auto split_sorted_range(Seq&& seq, const Value& v, Less cmp = Less{}) {
 
 // Create a new cell event_lane vector from sorted pending events, previous event_lane events,
 // and events from event generators for the given interval.
-ARB_ARBOR_API void merge_cell_events(
-    time_type t_from,
-    time_type t_to,
-    event_span old_events,
-    event_span pending,
-    std::vector<event_generator>& generators,
-    pse_vector& new_events)
-{
+ARB_ARBOR_API void merge_cell_events(time_type t_from,
+                                     time_type t_to,
+                                     event_span old_events,
+                                     event_span pending,
+                                     std::vector<event_generator>& generators,
+                                     pse_vector& new_events) {
     PE(communication:enqueue:setup);
     new_events.clear();
     old_events = split_sorted_range(old_events, t_from, event_time_less()).second;
@@ -343,28 +341,18 @@ void simulation_state::reset() {
 
     // Clear all pending events in the event lanes.
     for (auto& lanes: event_lanes_) {
-        for (auto& lane: lanes) {
-            lane.clear();
-        }
+        for (auto& lane: lanes) lane.clear();
     }
 
     // Reset all event generators.
     for (auto& lane: event_generators_) {
-        for (auto& gen: lane) {
-            gen.reset();
-        }
+        for (auto& gen: lane) gen.reset();
     }
 
-    for (auto& lane: pending_events_) {
-        lane.clear();
-    }
+    for (auto& lane: pending_events_) lane.clear();
+    for (auto& spikes: local_spikes_) spikes.clear();
 
     communicator_.reset();
-
-    for (auto& spikes: local_spikes_) {
-        spikes.clear();
-    }
-
     epoch_.reset();
 }
 
@@ -443,21 +431,17 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         PL();
         communicator_.remote_ctrl_send_continue(prev);
         // Gather generated spikes across all ranks.
-        const auto& [global_spikes, remote_spikes] = communicator_.exchange(all_local_spikes);
+        auto spikes = communicator_.exchange(all_local_spikes);
 
         // Present spikes to user-supplied callbacks.
         PE(communication:spikeio);
-        if (local_export_callback_) {
-            local_export_callback_(all_local_spikes);
-        }
-        if (global_export_callback_) {
-            global_export_callback_(global_spikes.values());
-        }
+        if (local_export_callback_) local_export_callback_(all_local_spikes);
+        if (global_export_callback_) global_export_callback_(spikes.from_local.values());
         PL();
 
         // Append events formed from global spikes to per-cell pending event queues.
         PE(communication:walkspikes);
-        communicator_.make_event_queues(global_spikes, pending_events_, remote_spikes);
+        communicator_.make_event_queues(spikes, pending_events_);
         PL();
     };
 
@@ -466,6 +450,29 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     auto enqueue = [this](epoch next) {
         foreach_cell(
             [&](cell_size_type i) {
+                // NOTE Despite the superficial optics, we need to sort by the
+                // full key here and _not_ purely by time. With different
+                // parallel distributions, the ordering of events with the same
+                // time may change. Consider synapses like this
+                //
+                // NET_RECEIVE (weight) {
+                //   if (state < threshold) {
+                //      state = state + weight
+                //   }
+                // }
+                //
+                // DERIVATIVE dState {
+                //   state' = -tau
+                // }
+                //
+                // and we'd end with different behaviours when events with
+                // different weights occur at the same time. We also cannot
+                // collapse events as with LIF cells by summing weights as this
+                // disturbs dynamics in a different way, eg when
+                //
+                // NET_RECEIVE (weight) {
+                //   state = state + 42
+                // }
                 PE(communication:enqueue:sort);
                 util::sort(pending_events_[i]);
                 PL();
