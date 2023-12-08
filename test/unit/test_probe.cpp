@@ -842,7 +842,7 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
                 ASSERT_NE(nullptr, s);
                 auto [s_beg, s_end] = *s;
                 ASSERT_EQ(s_end - s_beg, n_cv);
-                for (int ix = 0; ix < n_cv; ++ix) i_memb[ix] = *s_beg++;
+                for (unsigned ix = 0; ix < n_cv; ++ix) i_memb[ix] = *s_beg++;
             }
             else if (pm.id.tag == "I-stimulus") {
                 auto m = any_cast<const mcable_list*>(pm.meta);
@@ -853,7 +853,7 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
                 ASSERT_NE(nullptr, s);
                 auto [s_beg, s_end] = *s;
                 ASSERT_EQ(s_end - s_beg, n_cv);
-                for (int ix = 0; ix < n_cv; ++ix) i_stim[ix] = *s_beg++;
+                for (unsigned ix = 0; ix < n_cv; ++ix) i_stim[ix] = *s_beg++;
             }
             else {
                 // Probe id tells us which axial current this is.

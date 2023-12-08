@@ -55,7 +55,7 @@ inline constexpr std::size_t internal_hash(T&& data) {
     if constexpr (std::is_integral_v<D>) {
         unsigned long long bytes = data;
         std::size_t hash = offset_basis;
-        for (int ix = 0; ix < sizeof(data); ++ix) {
+        for (std::size_t ix = 0; ix < sizeof(data); ++ix) {
             uint8_t byte = bytes & 255;
             bytes >>= 8;
             hash = hash ^ byte;
@@ -66,7 +66,7 @@ inline constexpr std::size_t internal_hash(T&& data) {
     if constexpr (std::is_pointer_v<D>) {
         unsigned long long bytes = reinterpret_cast<unsigned long long>(data);
         std::size_t hash = offset_basis;
-        for (int ix = 0; ix < sizeof(data); ++ix) {
+        for (std::size_t ix = 0; ix < sizeof(data); ++ix) {
             uint8_t byte = bytes & 255;
             bytes >>= 8;
             hash = hash ^ byte;
