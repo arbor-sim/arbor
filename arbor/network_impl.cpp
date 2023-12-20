@@ -58,6 +58,15 @@ void push_back(const domain_decomposition& dom_dec,
         dom_dec.index_on_domain(target.info.gid)});
 }
 
+void push_back(const domain_decomposition& dom_dec,
+    std::vector<network_connection_info>& vec,
+    const network_site_info_extended& source,
+    const network_site_info_extended& target,
+    double weight,
+    double delay) {
+    vec.emplace_back(source.info, target.info, weight, delay);
+}
+
 template <typename ConnectionType>
 std::vector<ConnectionType> generate_network_connections(const recipe& rec,
     const context& ctx,
@@ -109,9 +118,8 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
                         throw bad_cell_description(kind, gid);
                     }
 
-                    auto lid_to_label =
-                        [](const std::unordered_multimap<hash_type, lid_range>& map,
-                            cell_lid_type lid) -> hash_type {
+                    auto lid_to_label = [](const std::unordered_multimap<hash_type, lid_range>& map,
+                                            cell_lid_type lid) -> hash_type {
                         for (const auto& [label, range]: map) {
                             if (lid >= range.begin && lid < range.end) return label;
                         }
@@ -203,16 +211,15 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
         }
     }
 
-
     auto src_sites = std::move(src_site_batches.back());
     src_site_batches.pop_back();
     for (const auto& batch: src_site_batches)
-            src_sites.insert(src_sites.end(), batch.begin(), batch.end());
+        src_sites.insert(src_sites.end(), batch.begin(), batch.end());
 
     auto tgt_sites = std::move(tgt_site_batches.back());
     tgt_site_batches.pop_back();
     for (const auto& batch: tgt_site_batches)
-            tgt_sites.insert(tgt_sites.end(), batch.begin(), batch.end());
+        tgt_sites.insert(tgt_sites.end(), batch.begin(), batch.end());
 
     // create octree
     const std::size_t max_depth = selection.max_distance().has_value() ? 10 : 1;
@@ -283,22 +290,20 @@ std::vector<connection> generate_connections(const recipe& rec,
 ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(const recipe& rec,
     const context& ctx,
     const domain_decomposition& dom_dec) {
-    // auto connections = generate_network_connections<network_connection_info>(rec, ctx, dom_dec);
+    auto connections = generate_network_connections<network_connection_info>(rec, ctx, dom_dec);
 
-    // // generated connections may have different order each time due to multi-threading.
-    // // Sort before returning to user for reproducibility.
-    // std::sort(connections.begin(), connections.end());
+    // generated connections may have different order each time due to multi-threading.
+    // Sort before returning to user for reproducibility.
+    std::sort(connections.begin(), connections.end());
 
-    // return connections;
-    return {};
+    return connections;
 }
 
 ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(const recipe& rec) {
     auto ctx = arb::make_context();
-    // auto decomp = arb::partition_load_balance(rec, ctx);
+    auto decomp = arb::partition_load_balance(rec, ctx);
 
-    // return generate_network_connections(rec, ctx, decomp);
-    return {};
+    return generate_network_connections<network_connection_info>(rec, ctx, decomp);
 }
 
 }  // namespace arb

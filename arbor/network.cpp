@@ -15,6 +15,7 @@
 #include <variant>
 #include <vector>
 
+#include "backends/rand_impl.hpp"
 #include "network_impl.hpp"
 
 namespace arb {
@@ -38,12 +39,11 @@ std::uint64_t location_hash(const mlocation& loc) {
 double uniform_rand(std::array<unsigned, 4> seed,
     const network_site_info& source,
     const network_site_info& target) {
-    using rand_type = r123::Threefry4x64;
-    const rand_type::ctr_type seed_input = {{seed[0], seed[1], seed[2], seed[3]}};
+    const cbprng::array_type seed_input = {{seed[0], seed[1], seed[2], seed[3]}};
 
-    const rand_type::key_type key = {
+    const cbprng::array_type key = {
         {source.gid, location_hash(source.location), target.gid, location_hash(target.location)}};
-    rand_type gen;
+    cbprng::generator gen;
     return r123::u01<double>(gen(seed_input, key)[0]);
 }
 

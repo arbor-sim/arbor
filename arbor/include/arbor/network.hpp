@@ -25,16 +25,16 @@ namespace arb {
 using network_hash_type = std::uint64_t;
 
 struct ARB_SYMBOL_VISIBLE network_site_info {
-    // network_site_info(cell_gid_type gid,
-    //     cell_kind kind,
-    //     hash_type label,
-    //     mlocation location,
-    //     mpoint global_location):
-    //     gid(gid),
-    //     kind(kind),
-    //     label(label),
-    //     location(location),
-    //     global_location(global_location) {}
+    network_site_info(cell_gid_type gid,
+        cell_kind kind,
+        hash_type label,
+        mlocation location,
+        mpoint global_location):
+        gid(gid),
+        kind(kind),
+        label(label),
+        location(location),
+        global_location(global_location) {}
 
     cell_gid_type gid;
     cell_kind kind;
@@ -53,13 +53,22 @@ struct ARB_SYMBOL_VISIBLE network_connection_info {
     network_site_info source, target;
     double weight, delay;
 
+    network_connection_info(network_site_info source,
+        network_site_info target,
+        double weight,
+        double delay):
+        source(source),
+        target(target),
+        weight(weight),
+        delay(delay) {}
+
     ARB_ARBOR_API friend std::ostream& operator<<(std::ostream& os,
         const network_connection_info& s);
 };
 
 ARB_DEFINE_LEXICOGRAPHIC_ORDERING(network_connection_info,
-    (a.source, a.target),
-    (b.source, b.target))
+    (a.source, a.target, a.weight, a.delay),
+    (b.source, b.target, b.weight, b.delay))
 
 struct network_selection_impl;
 
