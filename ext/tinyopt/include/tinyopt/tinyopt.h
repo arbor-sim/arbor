@@ -892,7 +892,7 @@ struct saved_options: private std::vector<std::string> {
         bool quote = false; // true => within single quotes.
         bool escape = false; // true => previous character was backslash.
         while (in) {
-            char c = in.get();
+            int c = in.get();
             if (c==EOF) break;
 
             if (quote) {
