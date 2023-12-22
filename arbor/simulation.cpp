@@ -2,13 +2,14 @@
 #include <set>
 #include <vector>
 
-#include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
+#include <arbor/export.hpp>
 #include <arbor/generic_event.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/schedule.hpp>
+#include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 
 #include "epoch.hpp"
