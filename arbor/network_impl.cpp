@@ -68,7 +68,7 @@ void push_back(const domain_decomposition& dom_dec,
 }
 
 template <typename ConnectionType>
-std::vector<ConnectionType> generate_network_connections(const recipe& rec,
+std::vector<ConnectionType> generate_network_connections_impl(const recipe& rec,
     const context& ctx,
     const domain_decomposition& dom_dec) {
     const auto description_opt = rec.network_description();
@@ -284,13 +284,13 @@ std::vector<ConnectionType> generate_network_connections(const recipe& rec,
 std::vector<connection> generate_connections(const recipe& rec,
     const context& ctx,
     const domain_decomposition& dom_dec) {
-    return generate_network_connections<connection>(rec, ctx, dom_dec);
+    return generate_network_connections_impl<connection>(rec, ctx, dom_dec);
 }
 
 ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(const recipe& rec,
     const context& ctx,
     const domain_decomposition& dom_dec) {
-    auto connections = generate_network_connections<network_connection_info>(rec, ctx, dom_dec);
+    auto connections = generate_network_connections_impl<network_connection_info>(rec, ctx, dom_dec);
 
     // generated connections may have different order each time due to multi-threading.
     // Sort before returning to user for reproducibility.
@@ -302,8 +302,7 @@ ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(
 ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(const recipe& rec) {
     auto ctx = arb::make_context();
     auto decomp = arb::partition_load_balance(rec, ctx);
-
-    return generate_network_connections<network_connection_info>(rec, ctx, decomp);
+    return generate_network_connections(rec, ctx, decomp);
 }
 
 }  // namespace arb
