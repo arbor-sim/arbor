@@ -14,7 +14,6 @@ tree.append(A.mnpos, A.mpoint(-3, 0, 0, 3), A.mpoint(3, 0, 0, 3), tag=1)
 labels = A.label_dict({"soma": "(tag 1)", "midpoint": "(location 0 0.5)"})
 
 # (3) Create and set up a decor object
-
 decor = (
     A.decor()
     .set_property(Vm=-40 * U.mV)
@@ -36,12 +35,9 @@ m.probe("voltage", '"midpoint"', tag="Um", frequency=10 * U.kHz)
 m.run(tfinal=30 * U.ms)
 
 # (8) Print spike times.
-if len(m.spikes) > 0:
-    print("{} spikes:".format(len(m.spikes)))
-    for s in m.spikes:
-        print(f" * {s:3.3f} ms")
-else:
-    print("no spikes")
+print("{} spikes:".format(len(m.spikes)))
+for s in m.spikes:
+    print(f" * {s:3.3f} ms")
 
 # (9) Plot the recorded voltages over time.
 print("Plotting results ...")

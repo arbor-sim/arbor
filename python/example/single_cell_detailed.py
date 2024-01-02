@@ -6,17 +6,19 @@ from arbor import units as U
 import pandas as pd
 import seaborn as sns
 import sys
+from pathlib import Path
 
 # (1) Read the morphology from an SWC file.
-
-# Read the SWC filename from input
-# Example from docs: single_cell_detailed.swc
-
-if len(sys.argv) < 2:
-    print("No SWC file passed to the program")
+if len(sys.argv) == 1:
+    print("No SWC file passed to the program, using default.")
+    filename = Path(__file__).parent / "single_cell_detailed.swc"
     sys.exit(0)
+elif len(sys.argv) == 2:
+    filename = Path(sys.argv[1])
+else:
+    print("Usage: single_cell_detailed.py [SWC file name]")
+    sys.exit(1)
 
-filename = sys.argv[1]
 morph = A.load_swc_arbor(filename)
 
 # (2) Create and populate the label dictionary.
@@ -44,7 +46,12 @@ labels = A.label_dict(
 decor = (
     A.decor()
     # Set the default properties of the cell (this overrides the model defaults).
-    .set_property(Vm=-55 * U.mV)
+    .set_property(
+        Vm=-55 * U.mV,
+        tempK=300 * U.Kelvin,
+        rL=35.4 * U.Ohm * U.cm,
+        cm=0.01 * U.F / U.m2,
+    )
     .set_ion(
         "na",
         int_con=10 * U.mM,
@@ -86,15 +93,14 @@ model.properties.set_ion(
     "k", int_con=54.4 * U.mM, ext_con=2.5 * U.mM, rev_pot=-77 * U.mV
 )
 
-# Extend the default catalogue with the Allen catalogue.
-# The function takes a second string parameter that can prefix
-# the name of the mechanisms to avoid collisions between catalogues
-# in this case we have no collisions so we use an empty prefix string.
+# Extend the default catalogue with the Allen catalogue. The function takes a
+# second string parameter that can prefix the name of the mechanisms to avoid
+# collisions between catalogues in this case we have no collisions so we use an
+# empty prefix string.
 model.properties.catalogue.extend(A.allen_catalogue(), "")
 
 # (7) Add probes.
-# Add voltage probes on the "custom_terminal" locset
-# which sample the voltage at 50 kHz
+# Add a voltage probe on "custom_terminal"
 model.probe("voltage", where='"custom_terminal"', tag="Um", frequency=50 * U.kHz)
 
 # (8) Run the simulation for 100 ms, with a dt of 0.025 ms
@@ -106,9 +112,8 @@ for s in model.spikes:
     print(f" * t={s:.3f} ms")
 
 # (10) Plot the voltages
-df_list = []
-for t in model.traces:
-    df_list.append(
+df = pd.concat(
+    [
         pd.DataFrame(
             {
                 "t/ms": t.time,
@@ -117,8 +122,11 @@ for t in model.traces:
                 "Variable": t.variable,
             }
         )
-    )
-df = pd.concat(df_list, ignore_index=True)
+        for t in model.traces
+    ],
+    ignore_index=True,
+)
+
 sns.relplot(
     data=df,
     kind="line",
