@@ -74,6 +74,8 @@ constexpr auto mm2 = mm*mm;
 constexpr auto um2 = um*um;
 constexpr auto nm2 = nm*nm;
 
+constexpr auto nil = ::units::one;
+
 // Coulomb
 constexpr auto C = ::units::coulomb;
 

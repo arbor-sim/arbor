@@ -48,14 +48,14 @@ class TwoCellsWithGapJunction(A.recipe):
         self.the_props = A.neuron_cable_properties()
 
     def num_cells(self):
+        # NOTE: This *must* be 2 and 2 only.
         return 2
 
     def cell_kind(self, gid):
-        assert gid in [0, 1]
         return A.cell_kind.cable
 
     def global_properties(self, kind):
-        assert kind == arbor.cell_kind.cable
+        assert kind == A.cell_kind.cable
         return self.the_props
 
     def cell_description(self, gid):
@@ -64,7 +64,6 @@ class TwoCellsWithGapJunction(A.recipe):
         For example the morphology, synapses and ion channels required
         to build a multi-compartment neuron.
         """
-        assert gid in [0, 1]
 
         tree = A.segment_tree()
 
@@ -98,13 +97,8 @@ class TwoCellsWithGapJunction(A.recipe):
         return A.cable_cell(tree, decor, labels)
 
     def gap_junctions_on(self, gid):
-        # create a bidirectional gap junction from cell 0 at label "gj_label" to cell 1 at label "gj_label" and back.
-        if gid == 0:
-            tgt = 1
-        elif gid == 1:
-            tgt = 0
-        else:
-            raise RuntimeError("Invalid GID for example.")
+        # a bidirectional gap junction between cells 0 and 1 at label "gj_label".
+        tgt = (gid + 1) % 2
         return [A.gap_junction_connection((tgt, "gj_label"), "gj_label", 1)]
 
     def probes(self, gid):
@@ -156,18 +150,21 @@ if __name__ == "__main__":
     # configure the simulation and handles for the probes
     sim = A.simulation(recipe)
 
-    T = 5
-    dt = 0.01
+    T = 5 * U.ms
+    dt = 0.01 * U.ms
+
+    # generate handles for all probes and gids.
+    # NOTE We have only one probe, so this is just a reminder.
     handles = [
-        sim.sample((gid, "Um"), A.regular_schedule(dt * U.ms))
+        sim.sample((gid, "Um"), A.regular_schedule(dt))
         for _ in enumerate(probes)
         for gid in range(recipe.num_cells())
     ]
 
-    # run the simulation for 5 ms
-    sim.run(tfinal=5 * U.ms, dt=dt * U.ms)
+    # run the simulation
+    sim.run(tfinal=T, dt=dt)
 
-    # retrieve the sampled membrane voltages and convert to a pandas DataFrame
+    # retrieve the sampled membrane voltages
     print("Plotting results ...")
     df_list = []
     for probe, handle in enumerate(handles):
@@ -186,18 +183,20 @@ if __name__ == "__main__":
     sns.lineplot(ax=ax, data=df, x="t/ms", y="U/mV", hue="Cell", errorbar=None)
 
     # area of cells
-    area = args.length * 1e-6 * 2 * np.pi * args.radius * 1e-6
+    area = args.length * U.um * 2 * np.pi * args.radius * U.um
 
     # total and gap junction conductance in base units
-    cell_g = area * args.g / 1e-4
-    si_gj_g = args.gj_g * 1e-6
+    cell_g = area * args.g * U.S / U.cm2
+    si_gj_g = args.gj_g * U.uS
 
     # weight
     w = (si_gj_g + cell_g) / (2 * si_gj_g + cell_g)
 
+    assert w.units == U.nil, f"weight must be dimensionless, but has units {w.units}"
+
     # indicate the expected equilibrium potentials
     for i, j in [[0, 1], [1, 0]]:
-        weighted_potential = args.Vms[i] + w * (args.Vms[j] - args.Vms[i])
+        weighted_potential = args.Vms[i] + w.value * (args.Vms[j] - args.Vms[i])
         ax.axhline(weighted_potential, linestyle="dashed", color="black", alpha=0.5)
         ax.text(
             2,
@@ -211,7 +210,7 @@ if __name__ == "__main__":
             2, args.Vms[j], f"$U_{j}$", va="center", ha="center", backgroundcolor="w"
         )
 
-    ax.set_xlim(0, T)
+    ax.set_xlim(0, T.value)
 
     # plot the initial/nominal resting potentials
     for gid, Vm in enumerate(args.Vms):

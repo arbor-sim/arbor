@@ -26,10 +26,10 @@ void register_units(py::module& m) {
         .def(double() / py::self)
         .def("__pow__", [](const arb::units::unit &b, int e) { return b.pow(e); }, py::is_operator())
         .def("__str__",
-             [](const arb::units::unit& u) { return arb::units::to_string(u) ; },
+             [](const arb::units::unit& u) { return arb::units::to_string(u); },
              "Convert unit to string.")
         .def("__repr__",
-             [](const arb::units::unit& u) { return arb::units::to_string(u) ; },
+             [](const arb::units::unit& u) { return arb::units::to_string(u); },
              "Convert unit to string.");
 
     quantity
@@ -57,10 +57,10 @@ void register_units(py::module& m) {
                                [](const arb::units::quantity& q) { return q.units(); },
                                "Return units.")
         .def("__str__",
-             [](const arb::units::quantity& q) { return arb::units::to_string(q) ; },
+             [](const arb::units::quantity& q) { return arb::units::to_string(q); },
              "Convert quantity to string.")
         .def("__repr__",
-             [](const arb::units::quantity& q) { return arb::units::to_string(q) ; },
+             [](const arb::units::quantity& q) { return arb::units::to_string(q); },
              "Convert quantity to string.");
 
     u.attr("m")   = py::cast(arb::units::m);
@@ -123,5 +123,7 @@ void register_units(py::module& m) {
     u.attr("kilo")  = py::cast(arb::units::kilo);
     u.attr("mega")  = py::cast(arb::units::mega);
     u.attr("giga")  = py::cast(arb::units::giga);
+
+    u.attr("nil") = py::cast(arb::units::nil);
 }
 } // pyarb
