@@ -17,7 +17,7 @@ class Arbor(CMakePackage, CudaPackage):
     submodules = True
 
     version("master", branch="master", submodules=True)
-    version("develop", submodules=True)
+    version("develop", branch="master", submodules=True)
     version(
         "0.9.0",
         sha256="5f9740955c821aca81e23298c17ad64f33f635756ad9b4a0c1444710f564306a",
