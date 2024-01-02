@@ -1,63 +1,70 @@
-<div class="diag-cont">
+<div class="diag-cont" style="color: #202020; max-width: 100%; margin-left: 0%;">
     <div id="recipe_src">Recipe
         <div>Cell descriptions
-            <div>gid 1
-                <div>type <code>lif_cell_0</code>
-                    <div>...</div>
-                </div>
+            <div>
+                gid 1</br>
+                type <code>lif_cell</code></br>
+                description</br>
+                ...
             </div>
             <div>...</div>
-            <div> gid 37
-                <div>type <code>cable_cell_A</code>
-                    <div>Morphology</div>
-                    <div>Decor
-                        <div>Mechanisms</div>
-                        <div>Connection sites</div>
-                    </div>
-                    <div>Label dictionary</div>
-                </div>
+            <div>
+                gid 37</br>
+                type <code>cable_cell</code></br>
+                description
+                <ul>
+                    <li>Morphology</li>
+                    <li>Ion channels</li>
+                    <li>Connection sites</li>
+                    <li>Labels</li>
+                </ul>
             </div>
         </div>
         <div>Cell kinds
-            <div>gid 1
-                <div>type <code>arbor.lif_cell</code>
-                </div>
-            </div>
+            <div>gid 1 <code>lif_cell</code></div>
             <div>...</div>
-            <div>gid 37
-                <div>type <code>arbor.cable_cell</code></div>
-            </div>
+            <div>gid 37 <code>cable_cell</code></div>
         </div>
-        <div>...
-        </div>
+        <div>...</div>
     </div>
-    <div class="diag-col">
+
+    <div class="diag-col" style="width: auto;">
         <div class="diag-right">
-            Simulator: requests cell description of <code>gid=37</code>
+            Simulator: kind of <code>gid=1</code>?
         </div>
         <div class="diag-left">
-            Recipe: <code>type=cable_cell_A</code>.
-        </div>
-        <div class="diag-right">
-            Simulator: requests cell kind of <code>gid=37</code>
-        </div>
-        <div class="diag-left">
-            Recipe: <code>kind=arbor.cable_cell</code>.
-        </div>
-        <div class="diag-right">
-            Simulator: look up cell group implementation for kind <code>arbor.cable_cell</code>.
+            Recipe: <code>lif_cell</code>.
         </div>
         <div class="diag-right2">
-            Domain decomposition: <code>cable_cell_group_gpu</code>
+            ...
         </div>
         <div class="diag-right">
-            Simulator: <code>cable_cell_group_gpu</code> construct <code>cable_cell_A</code> object.
+            Simulator: kind of <code>gid=37</code>?
         </div>
-        <div class="diag-right3">
-            <code>cable_cell_group_gpu</code>: Construction complete.
+        <div class="diag-left">
+            Recipe: <code>cable_cell</code>.
+        </div>
+        <div class="diag-right2">
+            Group implementations for <code>lif_cell</code>, <code>cable_cell</code></br>
+            Domain decomposition: <code>group-0</code>, <code>group-1</code>
+        </div>
+
+        <div class="diag-right">
+            Simulator requests cell description of <code>gid=37</code>
+        </div>
+        <div class="diag-left">
+            Recipe: <code>morphology, ...</code>.
+        </div>
+        <div class="diag-right2">
+            Simulator:</br>
+            <code>group-0</code> make <code>cable_cell</code></br>
+            <code>group-1</code> make <code>lif_cell</code>
         </div>
         <div class="diag-right">
-            Simulator: <code>cable_cell_group_gpu</code> simulate for <code>t .. t + dt</code>
+            Simulator:</br>
+            <code>group-0</code> simulate for <code>dt</code>
+            </br>
+            <code>group-1</code> simulate for <code>dt</code>
         </div>
     </div>
     <div>Simulation
@@ -72,8 +79,16 @@
         </div>
         <div id="domdec_src">Domain decomposition
             <div>
-                cable_cell_group_gpu
-                <div>1 GPU</div>
+                <code>group-0</code></br>
+                kind: <code>cable</code></br>
+                hardware: 1 GPU</br>
+                gids: <code>37, ...</code>
+            </div>
+            <div>
+                <code>group-1</code></br>
+                kind: <code>lif</code></br>
+                hardware: 12 threads</br>
+                gids: <code>1, ...</code>
             </div>
             <div>
                 ...

@@ -15,7 +15,7 @@ Cell groups are created by domain decomposition methods on consideration of soft
 be in the same group) constraints.
 
 Cable Cell group ``cable_cell_group``
-----------------------------------
+-------------------------------------
 
 Cable cell groups have backing store in ``shared_state`` (given the
 introduction, we now understand that the ``shared`` stands for 'shared' between
