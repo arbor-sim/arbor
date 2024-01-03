@@ -160,7 +160,7 @@ def run(time_lag):
     return pd.DataFrame({"ds": ds_A, "ms": time_lag.value, "type": "Arbor"})
 
 
-results = map(run, stdp_dt[:2])
+results = map(run, stdp_dt)
 
 ref = np.array(
     [

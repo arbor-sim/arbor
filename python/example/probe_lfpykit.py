@@ -65,7 +65,7 @@ else:
 morphology = A.load_swc_arbor(filename)
 
 # define a location on morphology for current clamp
-clamp_location = f"(location 4 {1 / 6})"
+clamp_location = A.location(4, 1 / 6)
 
 # define a sinusoid input current
 iclamp = A.iclamp(
@@ -88,7 +88,7 @@ decor = (
     # set passive mech w. leak reversal potential (mV)
     .paint("(all)", A.density("pas/e=-65", g=0.0001))
     # attach the stimulus
-    .place(clamp_location, iclamp, "iclamp")
+    .place(str(clamp_location), iclamp, "iclamp")
     # use a fixed 3 CVs per branch
     .discretization(A.cv_policy_fixed_per_branch(3))
 )
