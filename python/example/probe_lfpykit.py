@@ -18,6 +18,7 @@ from arbor import units as U
 import lfpykit
 import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection
+from pathlib import Path
 
 
 class Recipe(A.recipe):
@@ -30,24 +31,19 @@ class Recipe(A.recipe):
         self.iprobeset_id = (0, 1)
         self.cprobeset_id = (0, 2)
 
-        self.the_props = A.neuron_cable_properties()
-
     def num_cells(self):
         return 1
 
-    def num_sources(self, gid):
-        return 0
-
-    def cell_kind(self, gid):
+    def cell_kind(self, _):
         return A.cell_kind.cable
 
-    def cell_description(self, gid):
+    def cell_description(self, _):
         return self.the_cell
 
-    def global_properties(self, kind):
-        return self.the_props
+    def global_properties(self, _):
+        return A.neuron_cable_properties()
 
-    def probes(self, gid):
+    def probes(self, _):
         return [
             A.cable_probe_membrane_voltage_cell("Um-all"),
             A.cable_probe_total_current_cell("Itotal-all"),
@@ -56,73 +52,55 @@ class Recipe(A.recipe):
 
 
 # Read the SWC filename from input
-# Example from docs: single_cell_detailed.swc
-if len(sys.argv) < 2:
-    print("No SWC file passed to the program")
-    sys.exit(0)
-
-filename = sys.argv[1]
+if len(sys.argv) == 1:
+    print("No SWC file passed to the program, using default.")
+    filename = Path(__file__).parent / "single_cell_detailed.swc"
+elif len(sys.argv) == 2:
+    filename = Path(sys.argv[1])
+else:
+    print("Usage: single_cell_detailed.py [SWC file name]")
+    sys.exit(1)
 
 # define morphology (needed for ``A.place_pwlin`` and ``A.cable_cell`` below)
 morphology = A.load_swc_arbor(filename)
 
 # define a location on morphology for current clamp
-clamp_location = A.location(4, 1 / 6)
+clamp_location = f"(location 4 {1 / 6})"
 
+# define a sinusoid input current
+iclamp = A.iclamp(
+    5 * U.ms,  # stimulation onset
+    1e8 * U.ms,  # stimulation duration
+    -0.001 * U.nA,  # stimulation amplitude
+    frequency=100 * U.Hz,  # stimulation frequency
+    phase=0 * U.rad,  # stimulation phase
+)
 
-def make_cable_cell(morphology, clamp_location):
-    # number of CVs per branch
-    cvs_per_branch = 3
-
-    # Label dictionary
-    labels = A.label_dict()
-
-    # decor
-    decor = (
-        A.decor()
-        # set initial voltage, temperature, axial resistivity, membrane capacitance
-        .set_property(
-            Vm=-65 * U.mV,  # Initial membrane voltage (mV)
-            tempK=300 * U.Kelvin,  # Temperature (Kelvin)
-            rL=10 * U.kOhm * U.cm,  # Axial resistivity (Ω cm)
-            cm=0.01 * U.F / U.m2,  # Membrane capacitance (F/m**2)
-        )
-        # set passive mechanism all over
-        # passive mech w. leak reversal potential (mV)
-        .paint("(all)", A.density("pas/e=-65", g=0.0001))
+decor = (
+    A.decor()
+    # set initial voltage, temperature, axial resistivity, membrane capacitance
+    .set_property(
+        Vm=-65 * U.mV,  # Initial membrane voltage (mV)
+        tempK=300 * U.Kelvin,  # Temperature (Kelvin)
+        rL=10 * U.kOhm * U.cm,  # Axial resistivity (Ω cm)
+        cm=0.01 * U.F / U.m2,  # Membrane capacitance (F/m**2)
     )
+    # set passive mech w. leak reversal potential (mV)
+    .paint("(all)", A.density("pas/e=-65", g=0.0001))
+    # attach the stimulus
+    .place(clamp_location, iclamp, "iclamp")
+    # use a fixed 3 CVs per branch
+    .discretization(A.cv_policy_fixed_per_branch(3))
+)
 
-    # set number of CVs per branch
-    policy = A.cv_policy_fixed_per_branch(cvs_per_branch)
-    decor.discretization(policy)
-
-    # place sinusoid input current
-    iclamp = A.iclamp(
-        5 * U.ms,  # stimulation onset (ms)
-        1e8 * U.ms,  # stimulation duration (ms)
-        -0.001 * U.nA,  # stimulation amplitude (nA)
-        frequency=0.1 * U.kHz,  # stimulation frequency (kHz)
-        phase=0 * U.rad,
-    )  # stimulation phase)
-    decor.place(str(clamp_location), iclamp, '"iclamp"')
-
-    # create ``A.place_pwlin`` object
-    p = A.place_pwlin(morphology)
-
-    # create cell and set properties
-    cell = A.cable_cell(morphology, decor, labels)
-
-    return p, cell
-
-
-# get place_pwlin and cable_cell objects
-p, cell = make_cable_cell(morphology, clamp_location)
+p = A.place_pwlin(morphology)
+cell = A.cable_cell(morphology, decor)
 
 # instantiate recipe with cell
-recipe = Recipe(cell)
+rec = Recipe(cell)
 
 # instantiate simulation
-sim = A.simulation(recipe)
+sim = A.simulation(rec)
 
 # set up sampling on probes with sampling every 1 ms
 schedule = A.regular_schedule(1.0 * U.ms)
@@ -145,8 +123,8 @@ inds = np.array([m.dist != m.prox for m in V_m_meta])
 V_m_samples = V_m_samples[:, np.r_[True, inds]]
 V_m_meta = np.array(V_m_meta)[inds].tolist()
 
-# assert that the remaining cables comprising the metadata for each probe
-# are identical, as well as the reported sample times.
+# assert that the remaining cables comprising the metadata for each probe are
+# identical, as well as the reported sample times.
 assert V_m_meta == I_m_meta
 assert (V_m_samples[:, 0] == I_m_samples[:, 0]).all()
 

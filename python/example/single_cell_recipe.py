@@ -31,8 +31,7 @@ cell = A.cable_cell(tree, decor, labels)
 # This constitutes the corresponding generic recipe version of
 # `single_cell_model.py`.
 class single_recipe(A.recipe):
-    # (4.1) The base class constructor must be called first, to ensure that
-    # all memory in the wrapped C++ class is initialized correctly.
+    # (4.1) Base constructor must be called, to ensure correct initialization.
     def __init__(self):
         A.recipe.__init__(self)
         self.the_props = A.neuron_cable_properties()
@@ -77,15 +76,11 @@ sim.run(tfinal=30 * U.ms)
 spikes = sim.spikes()
 data, meta = sim.samples(handle)[0]
 
-if len(spikes) > 0:
-    print("{} spikes:".format(len(spikes)))
-    for t in spikes["time"]:
-        print(f" * {t:3.3f} ms")
-else:
-    print("no spikes")
+print("{} spikes:".format(len(spikes)))
+for t in spikes["time"]:
+    print(f" * {t:3.3f} ms")
 
 print("Plotting results ...")
-
 df = pd.DataFrame({"t/ms": data[:, 0], "U/mV": data[:, 1]})
 sns.relplot(data=df, kind="line", x="t/ms", y="U/mV", errorbar=None).savefig(
     "single_cell_recipe_result.svg"

@@ -12,12 +12,12 @@ from pathlib import Path
 if len(sys.argv) == 1:
     print("No SWC file passed to the program, using default.")
     filename = Path(__file__).parent / "single_cell_detailed.swc"
-    sys.exit(0)
 elif len(sys.argv) == 2:
     filename = Path(sys.argv[1])
 else:
     print("Usage: single_cell_detailed.py [SWC file name]")
     sys.exit(1)
+
 
 morph = A.load_swc_arbor(filename)
 

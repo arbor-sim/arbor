@@ -18,11 +18,10 @@ import pandas as pd  # You may have to pip install these.
 import seaborn as sns  # You may have to pip install these.
 
 # (1) Set simulation paramters
-
 # Spike response delay (ms)
-D = 13.7
+D = 13.7 * U.ms
 # Spike frequency in Hertz
-f = 1.0
+f = 1.0 * U.Hz
 # Number of spike pairs
 num_spikes = 30
 # time lag resolution
@@ -32,20 +31,19 @@ stdp_max_dt = 100.0
 # Ensemble size per initial value
 ensemble_per_rho_0 = 100
 # Simulation time step
-dt = 0.1
+dt = 0.1 * U.ms
 # List of initial values for 2 states
 rho_0 = [0] * ensemble_per_rho_0 + [1] * ensemble_per_rho_0
 # We need a synapse for each sample path
 num_synapses = len(rho_0)
 # Time lags between spike pairs (post-pre: < 0, pre-post: > 0)
-stdp_dt = np.arange(-stdp_max_dt, stdp_max_dt + stdp_dt_step, stdp_dt_step)
+stdp_dt = np.arange(-stdp_max_dt, stdp_max_dt + stdp_dt_step, stdp_dt_step) * U.ms
 
 
 # (2) Make the cell
-
 # Create a morphology with a single (cylindrical) segment of length=diameter=6 μm
 tree = A.segment_tree()
-tree.append(A.mnpos, A.mpoint(-3, 0, 0, 3), A.mpoint(3, 0, 0, 3), tag=1)
+tree.append(A.mnpos, (-3, 0, 0, 3), (3, 0, 0, 3), tag=1)
 
 # Define the soma and its midpoint
 labels = A.label_dict({"soma": "(tag 1)", "midpoint": "(location 0 0.5)"})
@@ -59,24 +57,21 @@ decor = (
     .place('"midpoint"', A.threshold_detector(-10 * U.mV), "detector")
 )
 for i in range(num_synapses):
-    mech = A.mechanism("calcium_based_synapse")
-    mech.set("rho_0", rho_0[i])
-    decor.place('"midpoint"', A.synapse(mech), f"calcium_synapse_{i}")
+    decor.place(
+        '"midpoint"',
+        A.synapse("calcium_based_synapse", rho_0=rho_0[i]),
+        f"calcium_synapse_{i}",
+    )
 
 # Create cell
 cell = A.cable_cell(tree, decor, labels)
 
-
 # (3) Create extended catalogue including stochastic mechanisms
-
 cable_properties = A.neuron_cable_properties()
-cable_properties.catalogue = A.default_catalogue()
 cable_properties.catalogue.extend(A.stochastic_catalogue(), "")
 
 
 # (4) Recipe
-
-
 class stdp_recipe(A.recipe):
     def __init__(self, cell, props, gens):
         A.recipe.__init__(self)
@@ -87,25 +82,23 @@ class stdp_recipe(A.recipe):
     def num_cells(self):
         return 1
 
-    def cell_kind(self, gid):
+    def cell_kind(self, _):
         return A.cell_kind.cable
 
-    def cell_description(self, gid):
+    def cell_description(self, _):
         return self.the_cell
 
-    def global_properties(self, kind):
+    def global_properties(self, _):
         return self.the_props
 
-    def probes(self, gid):
+    def probes(self, _):
         return [A.cable_probe_point_state_cell("calcium_based_synapse", "rho", "rho")]
 
-    def event_generators(self, gid):
+    def event_generators(self, _):
         return self.the_gens
 
 
 # (5) run simulation for a given time lag
-
-
 def run(time_lag):
     # Time between stimuli
     T = 1000.0 / f
@@ -114,15 +107,14 @@ def run(time_lag):
     t1 = num_spikes * T
 
     # Time difference between post and pre spike including delay
-    d = -time_lag + D
+    d = D - time_lag
 
     # Stimulus and sample times
-    t0_post = 0.0 if d >= 0 else -d
-    t0_pre = d if d >= 0 else 0.0
-    stimulus_times_post = np.arange(t0_post, t1, T) * U.ms
-    stimulus_times_pre = np.arange(t0_pre, t1, T) * U.ms
-    sched_post = A.explicit_schedule(stimulus_times_post)
-    sched_pre = A.explicit_schedule(stimulus_times_pre)
+    t0_post = max(-d.value, 0) * U.ms
+    t0_pre = max(d.value, 0) * U.ms
+    print(t0_post, t0_pre, t1)
+    sched_post = A.regular_schedule(t0_post, T, t1)
+    sched_pre = A.regular_schedule(t0_pre, T, t1)
 
     # Create strong enough driving stimulus
     generators = [A.event_generator("driving_synapse", 1.0, sched_post)]
@@ -135,25 +127,20 @@ def run(time_lag):
     # Create recipe
     recipe = stdp_recipe(cell, cable_properties, generators)
 
-    # Select one thread and no GPU
-    alloc = A.proc_allocation(threads=1, gpu_id=None)
-    context = A.context(alloc, mpi=None)
-    domains = A.partition_load_balance(recipe, context)
-
     # Get random seed
     random_seed = random.getrandbits(64)
 
     # Create simulation
-    sim = A.simulation(recipe, context, domains, random_seed)
+    sim = A.simulation(recipe, seed=random_seed)
 
     # Register prope to read out stdp curve
-    handle = sim.sample((0, "rho"), A.explicit_schedule([(t1 - dt) * U.ms]))
+    handle = sim.sample((0, "rho"), A.explicit_schedule([t1 - dt]))
 
     # Run simulation
-    sim.run(t1 * U.ms, dt * U.ms)
+    sim.run(t1, dt)
 
     # Process sampled data
-    data, meta = sim.samples(handle)[0]
+    data, _ = sim.samples(handle)[0]
     data_down = data[-1, 1 : ensemble_per_rho_0 + 1]
     data_up = data[-1, ensemble_per_rho_0 + 1 :]
     # Initial fraction of synapses in DOWN state
@@ -170,10 +157,10 @@ def run(time_lag):
         + P_DA * (1 - beta)
         + b * (P_UA * beta + (1 - P_DA) * (1 - beta))
     ) / (beta + (1 - beta) * b)
-    return pd.DataFrame({"ds": ds_A, "ms": time_lag, "type": "Arbor"})
+    return pd.DataFrame({"ds": ds_A, "ms": time_lag.value, "type": "Arbor"})
 
 
-results = map(run, stdp_dt)
+results = map(run, stdp_dt[:2])
 
 ref = np.array(
     [
@@ -222,8 +209,7 @@ ref = np.array(
 )
 df_ref = pd.DataFrame({"ds": ref[:, 1], "ms": ref[:, 0], "type": "Reference"})
 
-df = pd.concat(results, ignore_index=True)
-df = pd.concat([df, df_ref], ignore_index=True)
+df = pd.concat(list(results) + [df_ref], ignore_index=True)
 plt = sns.relplot(kind="line", data=df, x="ms", y="ds", hue="type")
 plt.set_xlabels("lag time difference (ms)")
 plt.set_ylabels("change in synaptic strenght (after/before)")

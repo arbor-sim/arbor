@@ -85,7 +85,7 @@ def make_cell(base, swc, fit):
     labels = A.label_dict().add_swc_tags()
     labels["midpoint"] = "(location 0 0.5)"
 
-    # (3) A function that parses the Allen parameter fit file into components for an A.decor
+    # (3) A function that parses the Allen parameter fit file into components
     dflt, regions, ions, mechanisms, offset = load_allen_fit(base / fit)
 
     # (4) Instantiate an empty decor.

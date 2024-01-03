@@ -7,42 +7,37 @@ import pandas  # You may have to pip install these
 import seaborn  # You may have to pip install these
 from math import sqrt
 
-print(A.__path__)
-
-# Construct a cell with the following morphology.
-# The soma (at the root of the tree) is marked 's', and
-# the end of each branch i is marked 'bi'.
-#
-#         b1
-#        /
-# s----b0
-#        \
-#         b2
-
 
 def make_cable_cell(gid):
     # (1) Build a segment tree
+    # The dendrite (dend) attaches to the soma and has two simple segments
+    # attached.
+    #
+    #             left
+    #            /
+    # soma - dend
+    #            \
+    #             right
     tree = A.segment_tree()
-
+    root = A.mnpos
     # Soma (tag=1) with radius 6 μm, modelled as cylinder of length 2*radius
-    s = tree.append(A.mnpos, (-12, 0, 0, 6), (0, 0, 0, 6), tag=1)
-
-    # (b0) Single dendrite (tag=3) of length 50 μm and radius 2 μm attached to soma.
-    b0 = tree.append(s, (0, 0, 0, 2), (50, 0, 0, 2), tag=3)
-
+    soma = tree.append(root, (-12, 0, 0, 6), (0, 0, 0, 6), tag=1)
+    # Single dendrite (tag=3) of length 50 μm and radius 2 μm attached to soma.
+    dend = tree.append(soma, (0, 0, 0, 2), (50, 0, 0, 2), tag=3)
     # Attach two dendrites (tag=3) of length 50 μm to the end of the first dendrite.
-    # (b1) Radius tapers from 2 to 0.5 μm over the length of the dendrite.
-    tree.append(
-        b0,
+    # Radius tapers from 2 to 0.5 μm over the length of the dendrite.
+    l = 50 / sqrt(2)
+    _ = tree.append(
+        dend,
         (50, 0, 0, 2),
-        (50 + 50 / sqrt(2), 50 / sqrt(2), 0, 0.5),
+        (50 + l, l, 0, 0.5),
         tag=3,
     )
-    # (b2) Constant radius of 1 μm over the length of the dendrite.
-    tree.append(
-        b0,
+    # Constant radius of 1 μm over the length of the dendrite.
+    _ = tree.append(
+        dend,
         (50, 0, 0, 1),
-        (50 + 50 / sqrt(2), -50 / sqrt(2), 0, 1),
+        (50 + l, -l, 0, 1),
         tag=3,
     )
 
@@ -75,14 +70,12 @@ def make_cable_cell(gid):
 # (5) Create a recipe that generates a network of connected cells.
 class ring_recipe(A.recipe):
     def __init__(self, ncells):
-        # The base C++ class constructor must be called first, to ensure that
-        # all memory in the C++ class is initialized correctly.
+        # Base class constructor must be called first for proper initialization.
         A.recipe.__init__(self)
         self.ncells = ncells
         self.props = A.neuron_cable_properties()
 
-    # (6) The num_cells method that returns the total number of cells in the model
-    # must be implemented.
+    # (6) Returns the total number of cells in the model; must be implemented.
     def num_cells(self):
         return self.ncells
 
@@ -90,13 +83,14 @@ class ring_recipe(A.recipe):
     def cell_description(self, gid):
         return make_cable_cell(gid)
 
-    # The kind method returns the type of cell with gid.
-    # Note: this must agree with the type returned by cell_description.
+    # Return the type of cell; must be implemented and match cell_description.
     def cell_kind(self, _):
         return A.cell_kind.cable
 
-    # (8) Make a ring network. For each gid, provide a list of incoming connections.
+    # (8) For each gid, provide a list of incoming connections.
     def connections_on(self, gid):
+        # This defines the ring by connecting from the last gid. The first src
+        # comes from the _last_ gid, closing the ring.
         src = (gid - 1) % self.ncells
         w = 0.01  # 0.01 μS on expsyn
         d = 5 * U.ms
@@ -149,16 +143,15 @@ for sp in sim.spikes():
 
 # (17) Plot the recorded voltages over time.
 print("Plotting results ...")
-df_list = []
+dfs = []
 for gid in range(ncells):
     samples, meta = sim.samples(handles[gid])[0]
-    df_list.append(
+    dfs.append(
         pandas.DataFrame(
             {"t/ms": samples[:, 0], "U/mV": samples[:, 1], "Cell": f"cell {gid}"}
         )
     )
-
-df = pandas.concat(df_list, ignore_index=True)
+df = pandas.concat(dfs, ignore_index=True)
 seaborn.relplot(
     data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", errorbar=None
 ).savefig("network_ring_result.svg")

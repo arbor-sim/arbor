@@ -6,21 +6,21 @@ from arbor import units as U
 import pandas as pd
 import seaborn as sns
 import sys
+from pathlib import Path
 
 # (1) Read the morphology from an SWC file.
+if len(sys.argv) == 1:
+    print("No SWC file passed to the program, using default.")
+    filename = Path(__file__).parent / "single_cell_detailed.swc"
+elif len(sys.argv) == 2:
+    filename = Path(sys.argv[1])
+else:
+    print("Usage: single_cell_detailed.py [SWC file name]")
+    sys.exit(1)
 
-# Read the SWC filename from input
-# Example from docs: single_cell_detailed.swc
-
-if len(sys.argv) < 2:
-    print("No SWC file passed to the program")
-    sys.exit(0)
-
-filename = sys.argv[1]
 morph = A.load_swc_arbor(filename)
 
 # (2) Create and populate the label dictionary.
-
 labels = A.label_dict(
     {
         # Regions:
@@ -42,7 +42,6 @@ labels = A.label_dict(
 ).add_swc_tags()  # Add SWC pre-defined regions
 
 # (3) Create and populate the decor.
-
 decor = (
     A.decor()
     # Set the default properties of the cell (this overrides the model defaults).
@@ -73,7 +72,6 @@ decor = (
 
 
 # (4) Create the cell.
-
 cell = A.cable_cell(morph, decor, labels)
 
 
@@ -124,7 +122,7 @@ class single_recipe(A.recipe):
         return [A.cable_probe_membrane_voltage('"custom_terminal"', "Um")]
 
     # (5.6) Override the global_properties method
-    def global_properties(self, gid):
+    def global_properties(self, _):
         return self.the_props
 
 
@@ -142,31 +140,28 @@ handle = sim.sample((0, "Um"), A.regular_schedule(0.02 * U.ms))
 # (7) Run the simulation
 sim.run(tfinal=100 * U.ms, dt=0.025 * U.ms)
 
-# (8) Print or display the results
+# (8) Print spikes
 spikes = sim.spikes()
 print(len(spikes), "spikes recorded:")
 for (gid, lid), t in spikes:
     print(f" * t={t:.3f}ms gid={gid} lid={lid}")
 
-data = []
-meta = []
-for d, m in sim.samples(handle):
-    data.append(d)
-    meta.append(m)
-
-df_list = []
-for i in range(len(data)):
-    df_list.append(
+# (8) Plot the membrane potential
+df = pd.concat(
+    [
         pd.DataFrame(
             {
-                "t/ms": data[i][:, 0],
-                "U/mV": data[i][:, 1],
-                "Location": str(meta[i]),
+                "t/ms": data[:, 0],
+                "U/mV": data[:, 1],
+                "Location": str(meta),
                 "Variable": "voltage",
             }
         )
-    )
-df = pd.concat(df_list, ignore_index=True)
+        for data, meta in sim.samples(handle)
+    ],
+    ignore_index=True,
+)
+
 sns.relplot(
     data=df,
     kind="line",

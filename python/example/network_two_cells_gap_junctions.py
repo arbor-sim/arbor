@@ -1,219 +1,148 @@
 #!/usr/bin/env python3
 
-
 import arbor as A
 from arbor import units as U
-import argparse
+from argparse import ArgumentParser
 import numpy as np
-
 import pandas as pd  # You may have to pip install these.
 import seaborn as sns  # You may have to pip install these.
 import matplotlib.pyplot as plt
 
 
 class TwoCellsWithGapJunction(A.recipe):
-    def __init__(
-        self, probes, Vms, length, radius, cm, rL, g, gj_g, cv_policy_max_extent
-    ):
+    def __init__(self, Vms, length, radius, cm, rL, g, gj_g, max_extent):
         """
-        probes -- list of probes
-
         Vms -- membrane leak potentials of the two cells
         length -- length of cable in μm
         radius -- radius of cable in μm
-        cm -- membrane capacitance in F/m^2
+        cm -- membrane capacitance in F/m²
         rL -- axial resistivity in Ω·cm
-        g -- membrane conductivity in S/cm^2
+        g -- membrane conductivity in S/cm²
         gj_g -- gap junction conductivity in μS
-
-        cv_policy_max_extent -- maximum extent of control volume in μm
+        max_extent -- maximum extent of control volume in μm
         """
 
-        # The base C++ class constructor must be called first, to ensure that
-        # all memory in the C++ class is initialized correctly.
+        # Call base constructor first to ensure proper initialization
         A.recipe.__init__(self)
 
-        self.the_probes = probes
-
-        self.Vms = Vms
-        self.length = length
-        self.radius = radius
-        self.cm = cm
-        self.rL = rL
-        self.g = g
-        self.gj_g = gj_g
-
-        self.cv_policy_max_extent = cv_policy_max_extent
-
+        self.Vms = [Vm * U.mV for Vm in Vms]
+        self.length = length * U.um
+        self.radius = radius * U.um
+        self.area = self.length * 2 * np.pi * self.radius
+        self.cm = cm * U.F / U.m2
+        self.rL = rL * U.Ohm * U.cm
+        self.g = g * U.S / U.cm2
+        self.gj_g = gj_g * U.uS
+        self.max_extent = max_extent
         self.the_props = A.neuron_cable_properties()
 
     def num_cells(self):
-        # NOTE: This *must* be 2 and 2 only.
         return 2
 
-    def cell_kind(self, gid):
+    def cell_kind(self, _):
         return A.cell_kind.cable
 
-    def global_properties(self, kind):
-        assert kind == A.cell_kind.cable
+    def global_properties(self, _):
         return self.the_props
 
     def cell_description(self, gid):
-        """A high level description of the cell with global identifier gid.
-
-        For example the morphology, synapses and ion channels required
-        to build a multi-compartment neuron.
-        """
-
         tree = A.segment_tree()
+        r, l = self.radius.value, self.length.value
+        tree.append(A.mnpos, (0, 0, 0, r), (l, 0, 0, r), tag=1)
 
-        tree.append(
-            A.mnpos,
-            A.mpoint(0, 0, 0, self.radius),
-            A.mpoint(self.length, 0, 0, self.radius),
-            tag=1,
-        )
-
-        labels = A.label_dict({"cell": "(tag 1)", "gj_site": "(location 0 0.5)"})
+        labels = A.label_dict({"midpoint": "(location 0 0.5)"})
 
         decor = (
             A.decor()
-            .set_property(
-                Vm=self.Vms[gid] * U.mV,
-                cm=self.cm * U.F / U.m2,
-                rL=self.rL * U.Ohm * U.cm,
-            )
-            # add a gap junction mechanism at the "gj_site" location and label that specific mechanism on that location "gj_label"
-            .place('"gj_site"', A.junction("gj", g=self.gj_g), "gj_label")
-            .paint('"cell"', A.density(f"pas/e={self.Vms[gid]}", g=self.g))
+            .set_property(Vm=self.Vms[gid], cm=self.cm, rL=self.rL)
+            .place('"midpoint"', A.junction("gj", g=self.gj_g.value), "gj")
+            .paint("(all)", A.density(f"pas/e={self.Vms[gid].value}", g=self.g.value))
         )
 
-        if self.cv_policy_max_extent is not None:
-            policy = A.cv_policy_max_extent(self.cv_policy_max_extent)
-            decor.discretization(policy)
+        if self.max_extent is not None:
+            decor.discretization(A.cv_policy_max_extent(self.max_extent))
         else:
             decor.discretization(A.cv_policy_single())
 
         return A.cable_cell(tree, decor, labels)
 
     def gap_junctions_on(self, gid):
-        # a bidirectional gap junction between cells 0 and 1 at label "gj_label".
-        tgt = (gid + 1) % 2
-        return [A.gap_junction_connection((tgt, "gj_label"), "gj_label", 1)]
+        return [A.gap_junction_connection(((gid + 1) % 2, "gj"), "gj", 1)]
 
-    def probes(self, gid):
-        assert gid in [0, 1]
-        return self.the_probes
+    def probes(self, _):
+        return [A.cable_probe_membrane_voltage('"midpoint"', "Um")]
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Two cells connected via a gap junction"
+# parse the command line arguments
+parser = ArgumentParser(description="Two cells connected via a gap junction")
+
+parser.add_argument(
+    "--Vms",
+    help="membrane leak potentials [mV]",
+    type=float,
+    default=[-100, -60],
+    nargs=2,
+)
+parser.add_argument("--length", help="cell length [μm]", type=float, default=100)
+parser.add_argument("--radius", help="cell radius [μm]", type=float, default=3)
+parser.add_argument(
+    "--cm", help="membrane capacitance [F/m²]", type=float, default=0.005
+)
+parser.add_argument("--rL", help="axial resistivity [Ω·cm]", type=float, default=90)
+parser.add_argument("--g", help="leak conductivity [S/cm²]", type=float, default=0.001)
+parser.add_argument(
+    "--gj_g", help="gap junction conductivity [μS]", type=float, default=0.01
+)
+parser.add_argument("--max-extent", help="discretization length [μm]", type=float)
+
+args = parser.parse_args()
+
+# set up membrane voltage probes at the position of the gap junction
+rec = TwoCellsWithGapJunction(**vars(args))
+
+# configure the simulation and handles for the probes
+sim = A.simulation(rec)
+
+T = 5 * U.ms
+dt = 0.01 * U.ms
+
+# generate handles for all probes and gids.
+handles = [sim.sample((gid, "Um"), A.regular_schedule(dt)) for gid in [0, 1]]
+
+# run the simulation
+sim.run(tfinal=T, dt=dt)
+
+# retrieve the sampled membrane voltages
+print("Plotting results ...")
+df_list = []
+for gid, handle in enumerate(handles):
+    data, meta = sim.samples(handle)[0]
+    df_list.append(
+        pd.DataFrame({"t/ms": data[:, 0], "U/mV": data[:, 1], "Cell": f"{gid}"})
     )
+df = pd.concat(df_list, ignore_index=True)
 
-    parser.add_argument(
-        "--Vms",
-        help="membrane leak potentials in mV",
-        type=float,
-        default=[-100, -60],
-        nargs=2,
-    )
-    parser.add_argument("--length", help="cell length in μm", type=float, default=100)
-    parser.add_argument("--radius", help="cell radius in μm", type=float, default=3)
-    parser.add_argument(
-        "--cm", help="membrane capacitance in F/m^2", type=float, default=0.005
-    )
-    parser.add_argument(
-        "--rL", help="axial resistivity in Ω·cm", type=float, default=90
-    )
-    parser.add_argument(
-        "--g", help="membrane conductivity in S/cm^2", type=float, default=0.001
-    )
+# plot the membrane potentials of the two cells as function of time
+fg, ax = plt.subplots()
+sns.lineplot(ax=ax, data=df, x="t/ms", y="U/mV", hue="Cell", errorbar=None)
 
-    parser.add_argument(
-        "--gj_g", help="gap junction conductivity in μS", type=float, default=0.01
-    )
+# use total and gap junction conductance to compute weight
+w = (rec.gj_g + rec.area * rec.g) / (2 * rec.gj_g + rec.area * rec.g)
 
-    parser.add_argument(
-        "--cv_policy_max_extent",
-        help="maximum extent of control volume in μm",
-        type=float,
-    )
 
-    # parse the command line arguments
-    args = parser.parse_args()
+# indicate the expected equilibrium potentials
+def note(ax, x, y, txt):
+    ax.text(x, y, txt, va="center", ha="center", backgroundcolor="w")
 
-    # set up membrane voltage probes at the position of the gap junction
-    probes = [A.cable_probe_membrane_voltage('"gj_site"', "Um")]
-    recipe = TwoCellsWithGapJunction(probes, **vars(args))
 
-    # configure the simulation and handles for the probes
-    sim = A.simulation(recipe)
+for i, j in [[0, 1], [1, 0]]:
+    Vj, Vi = args.Vms[j], args.Vms[i]
+    Vw = Vi + w.value * (Vj - Vi)
+    ax.axhline(Vi, linestyle="dashed", color="black", alpha=0.5)
+    ax.axhline(Vw, linestyle="dashed", color="black", alpha=0.5)
+    note(ax, 2, Vw, rf"$\tilde U_{j} = U_{j} + w\cdot(U_{j} - U_{i})$")
+    note(ax, 2, Vj, rf"$U_{j}$")
 
-    T = 5 * U.ms
-    dt = 0.01 * U.ms
+ax.set_xlim(0, T.value)
 
-    # generate handles for all probes and gids.
-    # NOTE We have only one probe, so this is just a reminder.
-    handles = [
-        sim.sample((gid, "Um"), A.regular_schedule(dt))
-        for _ in enumerate(probes)
-        for gid in range(recipe.num_cells())
-    ]
-
-    # run the simulation
-    sim.run(tfinal=T, dt=dt)
-
-    # retrieve the sampled membrane voltages
-    print("Plotting results ...")
-    df_list = []
-    for probe, handle in enumerate(handles):
-        samples, meta = sim.samples(handle)[0]
-        df_list.append(
-            pd.DataFrame(
-                {"t/ms": samples[:, 0], "U/mV": samples[:, 1], "Cell": f"{probe}"}
-            )
-        )
-
-    df = pd.concat(df_list, ignore_index=True)
-
-    fg, ax = plt.subplots()
-
-    # plot the membrane potentials of the two cells as function of time
-    sns.lineplot(ax=ax, data=df, x="t/ms", y="U/mV", hue="Cell", errorbar=None)
-
-    # area of cells
-    area = args.length * U.um * 2 * np.pi * args.radius * U.um
-
-    # total and gap junction conductance in base units
-    cell_g = area * args.g * U.S / U.cm2
-    si_gj_g = args.gj_g * U.uS
-
-    # weight
-    w = (si_gj_g + cell_g) / (2 * si_gj_g + cell_g)
-
-    assert w.units == U.nil, f"weight must be dimensionless, but has units {w.units}"
-
-    # indicate the expected equilibrium potentials
-    for i, j in [[0, 1], [1, 0]]:
-        weighted_potential = args.Vms[i] + w.value * (args.Vms[j] - args.Vms[i])
-        ax.axhline(weighted_potential, linestyle="dashed", color="black", alpha=0.5)
-        ax.text(
-            2,
-            weighted_potential,
-            f"$\\tilde U_{j} = U_{j} + w\\cdot(U_{j} - U_{i})$",
-            va="center",
-            ha="center",
-            backgroundcolor="w",
-        )
-        ax.text(
-            2, args.Vms[j], f"$U_{j}$", va="center", ha="center", backgroundcolor="w"
-        )
-
-    ax.set_xlim(0, T.value)
-
-    # plot the initial/nominal resting potentials
-    for gid, Vm in enumerate(args.Vms):
-        ax.axhline(Vm, linestyle="dashed", color="black", alpha=0.5)
-
-    fg.savefig("two_cell_gap_junctions_result.svg")
+fg.savefig("two_cell_gap_junctions_result.svg")
