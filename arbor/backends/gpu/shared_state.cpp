@@ -57,7 +57,6 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
     Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end()),
     Xd_(ion_data.cv.size(), NAN),
     Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end()),
-    gX_(ion_data.cv.size(), NAN),
     init_Xi_(make_const_view(ion_data.init_iconc)),
     init_Xo_(make_const_view(ion_data.init_econc)),
     reset_Xi_(make_const_view(ion_data.reset_iconc)),
@@ -77,7 +76,6 @@ void ion_state::init_concentration() {
 }
 
 void ion_state::zero_current() {
-    memory::fill(gX_, 0);
     memory::fill(iX_, 0);
 }
 
@@ -263,7 +261,6 @@ void shared_state::instantiate(mechanism& m,
         ion_state.external_concentration  = oion->Xo_.data();
         ion_state.diffusive_concentration = oion->Xd_.data();
         ion_state.ionic_charge            = oion->charge.data();
-        ion_state.conductivity            = oion->gX_.data();
     }
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.

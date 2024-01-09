@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cmath>
 #include <iosfwd>
 #include <string>
 #include <unordered_map>
@@ -15,18 +14,12 @@
 #include <arbor/simd/simd.hpp>
 
 #include "fvm_layout.hpp"
-#include "timestep_range.hpp"
-
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
-
 #include "threading/threading.hpp"
-
-#include "backends/event.hpp"
 #include "backends/common_types.hpp"
 #include "backends/rand_fwd.hpp"
 #include "backends/shared_state_base.hpp"
-
 #include "backends/multicore/threshold_watcher.hpp"
 #include "backends/multicore/multicore_common.hpp"
 #include "backends/multicore/partition_by_constraint.hpp"
@@ -63,7 +56,6 @@ struct ARB_ARBOR_API ion_state {
     array Xi_;              // (mM)    internal concentration
     array Xd_;              // (mM)    diffusive internal concentration
     array Xo_;              // (mM)    external concentration
-    array gX_;              // (kS/m²) per-species conductivity
 
     array init_Xi_;         // (mM) area-weighted initial internal concentration
     array init_Xo_;         // (mM) area-weighted initial external concentration
@@ -256,7 +248,7 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const shared_state& s);
 } // namespace multicore
 
 // Xd and gX are the only things that persist
-ARB_SERDES_ENABLE_EXT(multicore::ion_state, Xd_, gX_);
+ARB_SERDES_ENABLE_EXT(multicore::ion_state, Xd_);
 ARB_SERDES_ENABLE_EXT(multicore::mech_storage,
                       data_,
                       // NOTE(serdes) ion_states_, this is just a bunch of pointers

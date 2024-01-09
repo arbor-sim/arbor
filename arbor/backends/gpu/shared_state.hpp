@@ -9,10 +9,7 @@
 #include <arbor/fvm_types.hpp>
 
 #include "fvm_layout.hpp"
-#include "timestep_range.hpp"
-
 #include "threading/threading.hpp"
-
 #include "backends/common_types.hpp"
 #include "backends/shared_state_base.hpp"
 #include "backends/gpu/rand.hpp"
@@ -50,7 +47,6 @@ struct ARB_ARBOR_API ion_state {
     array Xi_;          // (mM) internal concentration
     array Xd_;          // (mM) diffusive concentration
     array Xo_;          // (mM) external concentration
-    array gX_;          // (kS/m²) per-species conductivity
 
     array init_Xi_;     // (mM) area-weighted initial internal concentration
     array init_Xo_;     // (mM) area-weighted initial external concentration
@@ -249,7 +245,7 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s);
 
 } // namespace gpu
 
-ARB_SERDES_ENABLE_EXT(gpu::ion_state, Xd_, gX_);
+ARB_SERDES_ENABLE_EXT(gpu::ion_state, Xd_);
 ARB_SERDES_ENABLE_EXT(gpu::mech_storage,
                       data_,
                       // NOTE(serdes) ion_states_, this is just a bunch of pointers

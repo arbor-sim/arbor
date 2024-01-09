@@ -1,3 +1,4 @@
+
 .. _tutorial:
 
 Tutorials
@@ -69,6 +70,15 @@ Hardware
 
    network_ring_mpi
    network_ring_gpu
+
+Diverse
+--------
+
+.. toctree::
+   :maxdepth: 1
+
+   full-feature-diffusion
+
 
 Demonstrations
 --------------

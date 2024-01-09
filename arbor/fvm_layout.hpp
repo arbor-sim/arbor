@@ -142,7 +142,7 @@ struct fvm_diffusion_info {
     using value_type = arb_value_type;
     value_type default_value;
     std::vector<value_type> face_diffusivity;
-    std::vector<std::vector<pw_constant_fn>> axial_inv_diffusivity;
+    std::vector<std::vector<pw_constant_fn>> axial_resistivity;
 
     fvm_diffusion_info(value_type d): default_value(d) {}
     fvm_diffusion_info(): fvm_diffusion_info{0.0} {}
@@ -162,6 +162,7 @@ struct fvm_cv_discretization {
     // Following members have one element per CV.
     std::vector<value_type> face_conductance; // [µS]
     std::vector<value_type> cv_area;          // [µm²]
+    std::vector<value_type> cv_volume;        // [µm3]//
     std::vector<value_type> cv_capacitance;   // [pF]
     std::vector<value_type> init_membrane_potential; // [mV]
     std::vector<value_type> temperature_K;    // [K]

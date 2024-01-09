@@ -37,7 +37,6 @@ class NrnCurrentRewriter: public BlockRewriterBase {
                         if (src==sourceKind::current_density ||
                             src==sourceKind::current ||
                             src==sourceKind::ion_current_density ||
-                            src==sourceKind::ion_conductivity ||
                             src==sourceKind::ion_current)
                         {
                             return src;
@@ -59,8 +58,6 @@ public:
     using BlockRewriterBase::visit;
 
     virtual void finalize() override {
-        // Take current name 'iX' and strip off leading 'i' to get ion name.
-        auto i2ion = [this](const auto& name) { return id("conductivity_" + name.substr(1) + "_"); };
         if (has_current_update_) {
             expression_ptr current_sum, conductivity_sum;
             for (auto& curr: current_vars_) {
@@ -78,11 +75,6 @@ public:
                 } else {
                     conductivity_sum = make_expression<AddBinaryExpression>(
                             Location{}, std::move(conductivity_sum), cond->clone());
-                }
-                if (name != non_specific_current) {
-                    statements_.push_back(make_expression<AssignmentExpression>(loc_,
-                                                                                i2ion(name),
-                                                                                cond->clone()));
                 }
             }
             if (current_sum) {
@@ -784,11 +776,6 @@ void Module::add_variables_to_symbols() {
     for(auto const& ion: neuron_block_.ions) {
         for(auto const& var: ion.write) {
             update_ion_symbols(var, accessKind::write, ion.name);
-            auto name = "conductivity_" + ion.name + "_";
-            if (cond.find(name) == cond.end()) {
-                create_indexed_variable(name, sourceKind::ion_conductivity, accessKind::write, ion.name, var.location);
-                cond.insert(name);
-            }
         }
 
         for(auto const& var: ion.read) {

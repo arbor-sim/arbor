@@ -1,9 +1,7 @@
 #pragma once
 
 #include <cstring>
-
 #include <vector>
-#include <type_traits>
 
 #include <arbor/common_types.hpp>
 
@@ -21,7 +19,6 @@ namespace gpu {
 
 template <typename T, typename I>
 struct diffusion_state {
-public:
     using value_type = T;
     using size_type = I;
 
@@ -37,7 +34,7 @@ public:
     array rhs;   // [nA]
 
     // Required for matrix assembly
-    array cv_area;             // [μm^2]
+    array cv_volume;           // [μm^3]
 
     // Invariant part of the matrix diagonal
     array invariant_d;         // [μS]
@@ -88,7 +85,7 @@ public:
     diffusion_state(const std::vector<size_type>& p,
                     const std::vector<size_type>& cell_cv_divs,
                     const std::vector<value_type>& face_diffusivity,
-                    const std::vector<value_type>& area) {
+                    const std::vector<value_type>& volume) {
         using util::make_span;
         constexpr unsigned npos = unsigned(-1);
 
@@ -356,7 +353,6 @@ public:
         // d, u, rhs        : packed
         // invariant_d      : flat
         // cv_to_cell       : flat
-        // area             : flat
 
         // the invariant part of d is stored in in flat form
         std::vector<value_type> invariant_d_tmp(matrix_size, 0);
@@ -382,8 +378,8 @@ public:
         // transform u_shuffled values into packed u vector.
         flat_to_packed(u_shuffled, u);
 
-        // the invariant part of d and cv_area are in flat form
-        cv_area = memory::make_const_view(area);
+        // data in flat form
+        cv_volume = memory::make_const_view(volume);
         invariant_d = memory::make_const_view(invariant_d_tmp);
 
         // calculate the cv -> cell mappings
@@ -399,18 +395,12 @@ public:
     // Afterwards the diagonal and RHS will have been set given dt, voltage, current, and conductivity.
     //   dt [ms] (scalar)
     //   voltage [mV]
-    //   current density [A/m²]
-    //   conductivity [kS/m²]
-    void assemble(const value_type dt, const_view concentration, const_view voltage, const_view current, const_view conductivity, arb_value_type q) {
+    void assemble(const value_type dt, const_view concentration) {
         assemble_diffusion(d.data(),
                            rhs.data(),
                            invariant_d.data(),
                            concentration.data(),
-                           voltage.data(),
-                           current.data(),
-                           q,
-                           conductivity.data(),
-                           cv_area.data(),
+                           cv_volume.data(),
                            dt,
                            perm.data(),
                            size());
@@ -433,12 +423,8 @@ public:
     }
 
     void solve(array& concentration,
-               const value_type dt,
-               const_view voltage,
-               const_view current,
-               const_view conductivity,
-               arb_value_type q) {
-        assemble(dt, concentration, voltage, current, conductivity, q);
+               const value_type dt) {
+        assemble(dt, concentration);
         solve(concentration);
     }
 
