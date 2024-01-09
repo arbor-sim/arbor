@@ -447,6 +447,7 @@ static std::string index_i_name(const std::string& index_var) {
 namespace {
     // Access through ppack
     std::string data_via_ppack(const indexed_variable_info& i) { return pp_var_pfx + i.data_var; }
+    std::string delta_data_via_ppack(const indexed_variable_info& i) { return pp_var_pfx + i.data_var + "_delta"; }
     std::string node_index_i_name(const indexed_variable_info& i) { return i.node_index_var + "i_"; }
     std::string source_index_i_name(const index_prop& i) { return i.source_var + "i_"; }
     std::string source_var(const index_prop& i) { return pp_var_pfx + i.source_var; }
@@ -462,6 +463,15 @@ namespace {
             auto i_name = index_i_name(index_var);
             index_var = pp_var_pfx + index_var;
             return o << data_via_ppack(wrap.d) << '[' << (wrap.d.scalar() ? "0": i_name) << ']';
+        }
+    };
+
+    struct deref_delta {
+        indexed_variable_info d;
+        deref_delta(indexed_variable_info d): d(d) {}
+
+        friend std::ostream& operator<<(std::ostream& o, const deref_delta& wrap) {
+            return o << delta_data_via_ppack(wrap.d) << '[' << (wrap.d.scalar() ? "0": "i_") << ']';
         }
     };
 }
@@ -494,7 +504,7 @@ std::list<index_prop> gather_indexed_vars(const std::vector<LocalVariable*>& ind
                     indices.push_back(outer_index_prop);
                 }
             }
-            else {
+            else if (!d.outer_index_var().empty()) {
                 // Need to read 1 index: outer[index]
                 index_prop outer_index_prop = {d.outer_index_var(), index, d.index_var_kind};
                 auto it = std::find(indices.begin(), indices.end(), outer_index_prop);
@@ -562,9 +572,13 @@ void emit_api_body(std::ostream& out, APIMethod* method, const ApiFlags& flags) 
                 std::stringstream v; v << deref(d); var = v.str();
             }
             if (d.additive && flags.use_additive) {
+                std::string delta_var;
+                {
+                    std::stringstream v; v << deref_delta(d); delta_var = v.str();
+                }
                 out << fmt::format("{3} -= {0};\n"
-                                   "{0} = fma({1}{2}, {3}, {0});\n",
-                                   var, scale, weight, name);
+                                   "{4} = {1}{2}*{3};\n",
+                                   var, scale, weight, name, delta_var);
             }
             else if (write_voltage) {
                 // SAFETY: we only ever allow *one* V-PROCESS per CV, so this is OK.
@@ -783,6 +797,7 @@ void emit_simd_state_update(std::ostream& out,
     auto ext = external->name();
     auto name = from->name();
     auto data = data_via_ppack(d);
+    auto delta_data = delta_data_via_ppack(d);
     auto node = node_index_i_name(d);
     auto index = index_i_name(d.outer_index_var());
 
@@ -801,26 +816,31 @@ void emit_simd_state_update(std::ostream& out,
     if (d.additive && flags.use_additive) {
         if (d.index_var_kind == index_kind::node) {
             if (constraint == simd_expr_constraint::contiguous) {
-                out << fmt::format("indirect({} + {}, simd_width_) = S::mul({}, {});\n",
-                                   data, node, weight, scaled);
+                // We need this instead of simple assignment!
+                out << fmt::format("{{\n"
+                                   "  simd_value t_{0}0_ = {0};\n"
+                                   "  assign(t_{0}0_, indirect({1} + {2}, simd_width_));\n"
+                                   "  {0} = S::sub({0}, t_{0}0_);\n"
+                                   "  indirect({5} + index_, simd_width_) = S::mul({3}, {4});\n"
+                                   "}}\n",
+                                   name, data, node, weight, scaled, delta_data);
             }
             else {
-                    // We need this instead of simple assignment!
-                    out << fmt::format("{{\n"
-                                       "  simd_value t_{}0_ = simd_cast<simd_value>(0.0);\n"
-                                       "  assign(t_{}0_, indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_));\n"
-                                       "  {} = S::sub({}, t_{}0_);\n"
-                                       "  indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_) += S::mul({}, {});\n"
-                                       "}}\n",
-                                       name,
-                                       name, data, node,
-                                       scaled, scaled, name,
-                                       data, node, weight, scaled);
+                // We need this instead of simple assignment!
+                out << fmt::format("{{\n"
+                                   "  simd_value t_{0}0_ = {0};\n"
+                                   "  assign(t_{0}0_, indirect({1}, simd_cast<simd_index>({2}), simd_width_, constraint_category_));\n"
+                                   "  {0} = S::sub({0}, t_{0}0_);\n"
+                                   "  indirect({5} + index_, simd_width_) = S::mul({3}, {4});\n"
+                                   "}}\n",
+                                   name, data, node, weight, scaled, delta_data);
             }
         }
         else {
-            out << fmt::format("indirect({}, {}, simd_width_, index_constraint::none) = S::mul({}, {});\n",
-                               data, index, weight, scaled);
+            //out << fmt::format("indirect({}, {}, simd_width_, index_constraint::none) = S::mul({}, {});\n",
+            //                   data, index, weight, scaled);
+            //only additive node variables allowed
+            throw compiler_exception("Cannot write to additive non-node variables: "+external->to_string());
         }
     }
     else if (write_voltage) {

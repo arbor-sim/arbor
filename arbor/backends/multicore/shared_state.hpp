@@ -73,6 +73,10 @@ struct ARB_ARBOR_API ion_state {
 
     array charge;           // charge of ionic species (global value, length 1)
 
+    std::vector<std::pair<arb_value_type*,arb_index_type>> Xd_contribution_map;
+    std::vector<arb_value_type*> Xd_contribution;
+    std::vector<arb_index_type> Xd_index;
+
     solver_ptr solver = nullptr;
 
     ion_state() = default;
@@ -230,6 +234,8 @@ struct ARB_ARBOR_API shared_state:
                      const mechanism_overrides&,
                      const mechanism_layout&,
                      const std::vector<std::pair<std::string, std::vector<arb_value_type>>>&);
+
+    void apply_diffusive_concentration_delta();
 
     void update_prng_state(mechanism&);
 

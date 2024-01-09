@@ -329,6 +329,17 @@ std::size_t extend_width(const arb::mechanism& mech, std::size_t width) {
 }
 } // anonymous namespace
 
+void shared_state::apply_diffusive_concentration_delta() {
+    for (auto& [name, state] : ion_data) {
+        auto* Xd_ = state.Xd_.data();
+        const auto& Xd_c = state.Xd_contribution;
+        const auto& Xd_i = state.Xd_index;
+        for (auto i : util::count_along(Xd_c)) {
+            Xd_[Xd_i[i]] += std::exchange(*Xd_c[i], 0);
+        }
+    }
+}
+
 void shared_state::update_prng_state(mechanism& m) {
     if (!m.mech_.n_random_variables) return;
     const auto mech_id = m.mechanism_id();
@@ -418,6 +429,7 @@ void shared_state::instantiate(arb::mechanism& m,
     store.ion_states_.resize(m.mech_.n_ions);       m.ppack_.ion_states = store.ion_states_.data();
 
     // Set ion views
+    arb_size_type n_ions_with_written_xd = 0;
     for (auto idx: make_span(m.mech_.n_ions)) {
         auto ion = m.mech_.ions[idx].name;
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
@@ -433,6 +445,8 @@ void shared_state::instantiate(arb::mechanism& m,
         ion_state.diffusive_concentration = oion->Xd_.data();
         ion_state.ionic_charge            = oion->charge.data();
         ion_state.conductivity            = oion->gX_.data();
+
+        n_ions_with_written_xd += m.mech_.ions[idx].write_diff_concentration;
     }
 
     // Initialize state and parameter vectors with default values.
@@ -446,7 +460,7 @@ void shared_state::instantiate(arb::mechanism& m,
         // Allocate bulk storage
         std::size_t value_width_padded = extend_width<arb_value_type>(m, pos_data.cv.size());
         store.value_width_padded = value_width_padded;
-        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1 +
+        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1 + n_ions_with_written_xd +
             random_number_storage)*value_width_padded + m.mech_.n_globals;
         store.data_ = array(count, NAN, pad);
         chunk_writer writer(store.data_.data(), value_width_padded);
@@ -469,6 +483,11 @@ void shared_state::instantiate(arb::mechanism& m,
         // Set initial state values
         for (auto idx: make_span(m.mech_.n_state_vars)) {
             m.ppack_.state_vars[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
+        }
+        // Set diffusive concentration deltas if needed
+        for (auto idx: make_span(m.mech_.n_ions)) {
+            m.ppack_.ion_states[idx].diffusive_concentration_delta =
+                m.mech_.ions[idx].write_diff_concentration ? writer.fill(0) : nullptr;
         }
         // Set random numbers
         for (auto idx_v: make_span(num_random_numbers_per_cv))
@@ -530,7 +549,30 @@ void shared_state::instantiate(arb::mechanism& m,
             m.ppack_.ion_states[idx].index = writer.append(indices, util::back(indices));
             // Check SIMD constraints
             arb_assert(compatible_index_constraints(node_index, util::range_n(m.ppack_.ion_states[idx].index, index_width_padded), m.iface_.partition_width));
+
+            if (m.mech_.ions[idx].write_diff_concentration) {
+                auto mech_ion_index       = m.ppack_.ion_states[idx].index;
+                auto& Xd_contribution_map = oion->Xd_contribution_map;
+                auto& Xd_contribution     = oion->Xd_contribution;
+                auto& Xd_index            = oion->Xd_index;
+                util::append(
+                    Xd_contribution_map,
+                    util::transform_view(
+                        util::make_span(width),
+                        [mech_ion_index, d = store.ion_states_[idx].diffusive_concentration_delta](const auto& i) {
+                            return std::make_pair(d+i, mech_ion_index[i]);
+                        }));
+                // sort contribution map according to index and transpose from AoS to SoA
+                util::stable_sort_by(Xd_contribution_map, [](const auto& p) { return p.second; });
+                Xd_contribution.clear(); Xd_contribution.reserve(Xd_contribution_map.size());
+                Xd_index.clear(); Xd_index.reserve(Xd_contribution_map.size());
+                for (auto [ptr, idx] : Xd_contribution_map) {
+                    Xd_contribution.push_back(ptr);
+                    Xd_index.push_back(idx);
+                }
+            }
         }
+
         if (mult_in_place) m.ppack_.multiplicity = writer.append(pos_data.multiplicity, 0);
         // `peer_index` holds the peer CV of each CV in node_index.
         // Peer CVs are only filled for gap junction mechanisms. They are used

@@ -213,6 +213,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             m->update_current();
         }
 
+        state_->apply_diffusive_concentration_delta();
+
         // Add stimulus current contributions.
         // NOTE: performed after dt, time_to calculation, in case we want to
         // use mean current contributions as opposed to point sample.
@@ -236,10 +238,14 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             m->update_state();
         }
 
+        state_->apply_diffusive_concentration_delta();
+
         // Update ion concentrations.
         PE(advance:integrate:ionupdate);
         update_ion_state();
         PL();
+
+        // TODO: can `write_ions` affect xd?
 
         // voltage mechs run now; after the cable_solver, but before the
         // threshold test

@@ -20,7 +20,7 @@ extern "C" {
 
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
-#define ARB_MECH_ABI_VERSION_MINOR 6
+#define ARB_MECH_ABI_VERSION_MINOR 7
 #define ARB_MECH_ABI_VERSION_PATCH 0
 #define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000L * 10000L) + (ARB_MECH_ABI_VERSION_MAJOR * 10000L) + ARB_MECH_ABI_VERSION_PATCH)
 
@@ -59,6 +59,7 @@ typedef struct arb_ion_state {
     arb_value_type* internal_concentration;
     arb_value_type* external_concentration;
     arb_value_type* diffusive_concentration;
+    arb_value_type* diffusive_concentration_delta;
     arb_value_type* ionic_charge;
     arb_index_type* index;
 } arb_ion_state;
@@ -193,6 +194,7 @@ typedef struct arb_ion_info {
     const char* name;
     bool write_int_concentration;
     bool write_ext_concentration;
+    bool write_diff_concentration;
     bool use_diff_concentration;
     bool write_rev_potential;
     bool read_rev_potential;
