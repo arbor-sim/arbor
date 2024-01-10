@@ -438,7 +438,6 @@ class TestDiffusion(unittest.TestCase):
             diffusion_catalogue, 3, 50, l_1=5, l_2=5, l_3=5, r_1=4, r_2=4, r_3=4
         )  # 3 segments with radius 4 µm
 
-    """ TODO: not succeeding as of Arbor v0.9.0:
     # test_diffusion_different_length
     # Test: simulations with segments of different length but equal radius
     # - diffusion_catalogue: catalogue of diffusion mechanisms
@@ -454,6 +453,7 @@ class TestDiffusion(unittest.TestCase):
             diffusion_catalogue, 3, 50, l_1=5, l_2=3, l_3=3, r_1=4, r_2=4, r_3=4
         )  # 3 segments with radius 4 µm
 
+    """ TODO: not succeeding as of Arbor v0.9.0:
     # test_diffusion_different_radii
     # Test: simulations with segments of equal length but different radius
     # - diffusion_catalogue: catalogue of diffusion mechanisms
