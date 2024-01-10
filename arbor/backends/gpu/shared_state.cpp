@@ -22,8 +22,6 @@
 #include "util/range.hpp"
 #include "util/strprintf.hpp"
 
-#include <iostream>
-
 using arb::memory::make_const_view;
 
 namespace arb {
@@ -204,7 +202,9 @@ shared_state::shared_state(task_system_handle tp,
 }
 
 void shared_state::apply_diffusive_concentration_delta() {
-    apply_diffusive_concentration_delta_impl(state.Xd_contribution.size(), state.Xd_.data(), state.Xd_contribution_d.data(), state.Xd_index_d.data());
+    for (auto& [name, state] : ion_data) {
+        apply_diffusive_concentration_delta_impl(state.Xd_contribution.size(), state.Xd_.data(), state.Xd_contribution_d.data(), state.Xd_index_d.data());
+    }
 }
 
 void shared_state::update_prng_state(mechanism& m) {
@@ -262,15 +262,15 @@ void shared_state::instantiate(mechanism& m,
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
         ion_state* oion = ptr_by_key(ion_data, ion_binding);
         if (!oion) throw arbor_internal_error("gpu/mechanism: mechanism holds ion with no corresponding shared state");
-        auto& ion_state = store.ion_states_[idx];
-        ion_state = {0};
-        ion_state.current_density         = oion->iX_.data();
-        ion_state.reversal_potential      = oion->eX_.data();
-        ion_state.internal_concentration  = oion->Xi_.data();
-        ion_state.external_concentration  = oion->Xo_.data();
-        ion_state.diffusive_concentration = oion->Xd_.data();
-        ion_state.ionic_charge            = oion->charge.data();
-        ion_state.conductivity            = oion->gX_.data();
+        auto& ion_state_ = store.ion_states_[idx]; // arb_ion_state
+        ion_state_ = {0};
+        ion_state_.current_density         = oion->iX_.data();
+        ion_state_.reversal_potential      = oion->eX_.data();
+        ion_state_.internal_concentration  = oion->Xi_.data();
+        ion_state_.external_concentration  = oion->Xo_.data();
+        ion_state_.diffusive_concentration = oion->Xd_.data();
+        ion_state_.ionic_charge            = oion->charge.data();
+        ion_state_.conductivity            = oion->gX_.data();
 
         n_ions_with_written_xd += m.mech_.ions[idx].write_diff_concentration;
     }
@@ -281,7 +281,7 @@ void shared_state::instantiate(mechanism& m,
     // Allocate and initialize state and parameter vectors with default values.
     {
         // Allocate bulk storage
-        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*width_padded + m.mech_.n_globals;
+        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1 + n_ions_with_written_xd)*width_padded + m.mech_.n_globals;
         store.data_ = array(count, NAN);
         chunk_writer writer(store.data_.data(), width_padded);
 
@@ -306,7 +306,7 @@ void shared_state::instantiate(mechanism& m,
         }
         // Set diffusive concentration deltas if needed
         for (auto idx: make_span(m.mech_.n_ions)) {
-            m.ppack_.ion_states[idx].diffusive_concentration_delta =
+            store.ion_states_[idx].diffusive_concentration_delta =
                 m.mech_.ions[idx].write_diff_concentration ? writer.fill(0) : nullptr;
         }
         // Assign global scalar parameters. NB: Last chunk, since it breaks the width striding.
@@ -328,7 +328,7 @@ void shared_state::instantiate(mechanism& m,
     // Allocate and initialize index vectors, viz. node_index_ and any ion indices.
     {
         // Allocate bulk storage
-        std::size_t count = mult_in_place + peer_indices + m.mech_.n_ions + 1 + n_ions_with_written_xd;
+        std::size_t count = mult_in_place + peer_indices + m.mech_.n_ions + 1;
         store.indices_ = iarray(count*width_padded);
         chunk_writer writer(store.indices_.data(), width_padded);
 
@@ -364,9 +364,9 @@ void shared_state::instantiate(mechanism& m,
                 util::stable_sort_by(Xd_contribution_map, [](const auto& p) { return p.second; });
                 Xd_contribution.clear(); Xd_contribution.reserve(Xd_contribution_map.size());
                 Xd_index.clear(); Xd_index.reserve(Xd_contribution_map.size());
-                for (auto [ptr, idx] : Xd_contribution_map) {
+                for (auto [ptr, idx_] : Xd_contribution_map) {
                     Xd_contribution.push_back(ptr);
-                    Xd_index.push_back(idx);
+                    Xd_index.push_back(idx_);
                 }
                 Xd_contribution_d = memory::on_gpu(Xd_contribution);
                 Xd_index_d = memory::on_gpu(Xd_index);
@@ -378,20 +378,6 @@ void shared_state::instantiate(mechanism& m,
         // Peer CVs are only filled for gap junction mechanisms. They are used
         // to index the voltage at the other side of a gap-junction connection.
         m.ppack_.peer_index = peer_indices? writer.append_with_padding(pos_data.peer_cv, 0): nullptr;
-    }
-
-    for (auto& [ptr, v] : ion_concentration_index_map) {
-        util::stable_sort_by(v, (const auto& p) { return p.second; });
-        auto& ptr_vec = ion_concentration_index_map_contribution_ptr[ptr];
-        auto& index_vec = ion_concentration_index_map_index[ptr];
-        ptr_vec.reserve(v.size());
-        index_vec.reserve(v.size());
-        for ([ptr, idx] : v) {
-            ptr_vec.push_back(ptr);
-            index_vec.push_back(idx);
-        }
-        ion_concentration_index_map_contribution_ptr_d[ptr] = memory::on_gpu(ptr_vec);
-        ion_concentration_index_map_index_d[ptr] = memory::on_gpu(index_vec);
     }
 
     // Shift data to GPU, set up pointers

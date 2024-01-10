@@ -44,14 +44,14 @@ __global__ void take_samples_impl(
 __global__ void apply_diffusive_concentration_delta_impl(
     std::size_t n,
     arb_value_type         * __restrict__ const Xd,
-    arb_value_type * const * __restrict__ const  Xd_contribution,
+    arb_value_type * const * __restrict__ const Xd_contribution,
     arb_index_type   const * __restrict__ const Xd_index)
 {
     const unsigned i = threadIdx.x+blockIdx.x*blockDim.x;
     const unsigned mask = gpu::ballot(0xffffffff, i<n);
     if (i < n) {
-        reduce_by_key(Xd_contribution[i], Xd, Xd_index[i], mask);
-        Xd_index[i] = 0;
+        reduce_by_key(*Xd_contribution[i], Xd, Xd_index[i], mask);
+        *Xd_contribution[i] = 0;
     }
 }
 
@@ -70,9 +70,9 @@ void take_samples_impl(
 
 void apply_diffusive_concentration_delta_impl(
     std::size_t n,
-    arb_value_type* Xd,
-    arb_value_type* const * Xd_contribution,
-    arb_index_type const * Xd_index) {
+    arb_value_type         * Xd,
+    arb_value_type * const * Xd_contribution,
+    arb_index_type   const * Xd_index) {
     launch_1d(n, 128, kernel::apply_diffusive_concentration_delta_impl, n, Xd, Xd_contribution, Xd_index);
 }
 
