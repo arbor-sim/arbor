@@ -232,11 +232,12 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                        "        const auto tid_ = (begin_ + ii_)->mech_index;\n"
                                        "        if ((ii_ > 0) && ((begin_ + (ii_ - 1))->mech_index == tid_)) return;\n"
                                        "        for (auto i_ = begin_ + ii_; i_ < end_; ++i_) {{\n"
+                                       "            int n_ = 0;\n"
                                        "            if (i_->mech_index != tid_) break;\n"
                                        "            [[maybe_unused]] auto {0} = i_->weight;\n"),
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
         out << indent << indent << indent;
-        emit_api_body_cu(out, net_receive_api, ApiFlags{}.point(is_point_proc).loop(false).iface(false));
+        emit_api_body_cu(out, net_receive_api, ApiFlags{}.point(is_point_proc).additive(true).loop(false).iface(false));
         out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n\n";
     }
 
