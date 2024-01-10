@@ -337,8 +337,12 @@ class TestDiffusion(unittest.TestCase):
         # set probes
         prb = [
             A.cable_probe_ion_diff_concentration('"soma-start"', "s", "s_pt"),
-            A.cable_probe_density_state('"soma-start"', "neuron_with_diffusion", "sV", "sV_pt"),
-            A.cable_probe_density_state_cell("neuron_with_diffusion", "sV", "sV_cell_pt"),
+            A.cable_probe_density_state(
+                '"soma-start"', "neuron_with_diffusion", "sV", "sV_pt"
+            ),
+            A.cable_probe_density_state_cell(
+                "neuron_with_diffusion", "sV", "sV_cell_pt"
+            ),
         ]
 
         # ---------------------------------------------------------------------------------------
@@ -349,8 +353,12 @@ class TestDiffusion(unittest.TestCase):
 
         # ---------------------------------------------------------------------------------------
         # set handles
-        hdl_s = sim.sample((0, "s_pt"), A.regular_schedule(self.dt))  # s at "soma-start"
-        hdl_sV = sim.sample((0, "sV_pt"), A.regular_schedule(self.dt))  # sV at "soma-start"
+        hdl_s = sim.sample(
+            (0, "s_pt"), A.regular_schedule(self.dt)
+        )  # s at "soma-start"
+        hdl_sV = sim.sample(
+            (0, "sV_pt"), A.regular_schedule(self.dt)
+        )  # sV at "soma-start"
         hdl_sV_all = sim.sample(
             (0, "sV_cell_pt"), A.regular_schedule(self.dt)
         )  # sV (cell-wide array)
