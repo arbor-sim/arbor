@@ -89,8 +89,8 @@ TEST(reduce_by_key, scatter)
     // onto an array of length 12.
     std::size_t n = 12;
     std::vector<int> index = {0,0,0,1,2,2,2,2,3,3,7,7,7,7,7,11};
-    std::vector<double> in(index.size(), 1);
-    std::vector<double> expected = {3., 1., 4., 2., 0., 0., 0., 5., 0., 0., 0., 1.};
+    std::vector<double> in(index.size(), 0.5);
+    std::vector<double> expected = {1.5, 0.5, 2., 1., 0., 0., 0., 2.5, 0., 0., 0., 0.5};
 
     EXPECT_EQ(n, expected.size());
 
