@@ -60,9 +60,6 @@ private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
 
-    // Hash table for converting gid to local index
-    std::unordered_map<cell_gid_type, cell_gid_type> gid_index_map_;
-
     // The lowered cell state (e.g. FVM) of the cell.
     fvm_lowered_cell_ptr lowered_;
 

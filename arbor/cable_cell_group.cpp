@@ -1,6 +1,3 @@
-#include <functional>
-#include <optional>
-#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -18,8 +15,6 @@
 #include "cable_cell_group.hpp"
 #include "profile/profiler_macro.hpp"
 #include "sampler_map.hpp"
-#include "util/filter.hpp"
-#include "util/maputil.hpp"
 #include "util/partition.hpp"
 #include "util/range.hpp"
 #include "util/span.hpp"
@@ -33,10 +28,6 @@ cable_cell_group::cable_cell_group(const std::vector<cell_gid_type>& gids,
                                    fvm_lowered_cell_ptr lowered):
     gids_(gids), lowered_(std::move(lowered))
 {
-    // Build lookup table for gid to local index.
-    for (auto i: util::count_along(gids_)) {
-        gid_index_map_[gids_[i]] = i;
-    }
 
     // Construct cell implementation, retrieving handles and maps.
     auto fvm_info = lowered_->initialize(gids_, rec);
