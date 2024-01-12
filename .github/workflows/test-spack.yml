@@ -19,7 +19,9 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.10']
-        spack-version: ['develop', 'latest_release']
+        # disable latest_release for now, pending a compatible buildcache
+        #spack-version: ['develop', 'latest_release']
+        spack-version: ['develop']
 
       fail-fast: false
 
