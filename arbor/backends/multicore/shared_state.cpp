@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <cfloat>
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -15,8 +14,6 @@
 #include <arbor/mechanism.hpp>
 #include <arbor/simd/simd.hpp>
 
-#include "backends/event.hpp"
-#include "backends/rand_impl.hpp"
 #include "io/sepval.hpp"
 #include "util/index_into.hpp"
 #include "util/padded_alloc.hpp"
@@ -31,7 +28,6 @@
 namespace arb {
 namespace multicore {
 
-using util::make_range;
 using util::make_span;
 using util::ptr_by_key;
 using util::value_by_key;

@@ -372,48 +372,54 @@ void run_samples(
     std::visit([&](auto& x) {run_samples(x, sc, raw_times, raw_samples, sample_records, scratch); }, sc.pdata_ptr->info);
 }
 
-void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
-    time_type tstart = lowered_->time();
-
-    // Bin and collate deliverable events from event lanes.
-
+auto make_event_map(const event_lane_subrange& event_lanes,
+                    const std::vector<target_handle>& target_handles,
+                    const std::vector<std::size_t>& target_handle_divisions,
+                    const timestep_range& timesteps,
+                    std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id) {
     PE(advance:eventsetup:clear);
-    // Split epoch into equally sized timesteps (last timestep is chosen to match end of epoch)
-    timesteps_.reset(ep, dt);
-    for (auto& vv : staged_events_per_mech_id_) {
-        vv.resize(timesteps_.size());
-        for (auto& v : vv) {
-            v.clear();
-        }
-    }
-    sample_events_.resize(timesteps_.size());
-    for (auto& v : sample_events_) {
-        v.clear();
+    for (auto& vv: staged_events_per_mech_id) {
+        vv.resize(timesteps.size());
+        for (auto& v: vv) v.clear();
     }
     PL();
 
     // Skip event handling if nothing to deliver.
+    if (0 == util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) return;
+
     PE(advance:eventsetup:push);
-    if (util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) {
-        auto lid = 0;
-        for (auto& lane: event_lanes) {
-            arb_size_type timestep_index = 0;
-            for (auto e: lane) {
-                // Events coinciding with epoch's upper boundary belong to next epoch
-                const auto time = e.time;
-                if (time >= ep.t1) break;
-                while(time >= timesteps_[timestep_index].t_end()) {
-                    ++timestep_index;
-                }
-                arb_assert(timestep_index < timesteps_.size());
-                const auto offset = target_handle_divisions_[lid]+e.target;
-                const auto h = target_handles_[offset];
-                staged_events_per_mech_id_[h.mech_id][timestep_index].emplace_back(e.time, h, e.weight);
-            }
-            ++lid;
+    auto lid = 0;
+    for (auto& lane: event_lanes) {
+        auto div = target_handle_divisions[lid];
+        arb_size_type timestep_index = 0;
+        for (auto evt: lane) {
+            auto time = evt.time;
+            auto weight = evt.weight;
+            auto target = evt.target;
+            // Events coinciding with epoch's upper boundary belong to next epoch
+            while(timestep_index < timesteps.size() && time >= timesteps[timestep_index].t_end()) ++timestep_index;
+            if (timestep_index >= timesteps.size()) break;
+            auto& handle = target_handles[div + target];
+            staged_events_per_mech_id[handle.mech_id][timestep_index].emplace_back(time, handle, weight);
         }
+        ++lid;
     }
     PL();
+}
+
+void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
+    time_type tstart = lowered_->time();
+
+    // Bin and collate deliverable events from event lanes.
+    // Split epoch into equally sized timesteps (last timestep is chosen to match end of epoch)
+    timesteps_.reset(ep, dt);
+
+    PE(advance:samplesetup:clear);
+    sample_events_.resize(timesteps_.size());
+    for (auto& v: sample_events_) v.clear();
+    PL();
+
+    make_event_map(event_lanes, target_handles_, target_handle_divisions_, timesteps_, staged_events_per_mech_id_);
 
     // Create sample events and delivery information.
     //

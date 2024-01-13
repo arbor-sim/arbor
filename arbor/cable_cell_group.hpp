@@ -26,14 +26,12 @@ namespace arb {
 struct ARB_ARBOR_API cable_cell_group: public cell_group {
     cable_cell_group() = default;
     cable_cell_group(const std::vector<cell_gid_type>& gids,
-                  const recipe& rec,
-                  cell_label_range& cg_sources,
-                  cell_label_range& cg_targets,
-                  fvm_lowered_cell_ptr lowered);
+                     const recipe& rec,
+                     cell_label_range& cg_sources,
+                     cell_label_range& cg_targets,
+                     fvm_lowered_cell_ptr lowered);
 
-    cell_kind get_cell_kind() const override {
-        return cell_kind::cable;
-    }
+    cell_kind get_cell_kind() const override { return cell_kind::cable; }
 
     void reset() override;
 
