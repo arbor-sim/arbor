@@ -17,11 +17,13 @@
 
 namespace arb {
 
+namespace U = arb::units;
+
 // Specialized arbor exception for errors in cell building.
 
 struct ARB_SYMBOL_VISIBLE cable_cell_error: arbor_exception {
     cable_cell_error(const std::string& what):
-        arbor_exception("cable_cell: "+what) {}
+        arbor_exception("cable_cell: " + what) {}
 };
 
 // Ion inital concentration and reversal potential
@@ -31,10 +33,10 @@ struct ARB_SYMBOL_VISIBLE cable_cell_error: arbor_exception {
 // separately (see below).
 
 struct cable_cell_ion_data {
-    std::optional<double> init_int_concentration;
-    std::optional<double> init_ext_concentration;
-    std::optional<double> init_reversal_potential;
-    std::optional<double> diffusivity;
+    std::optional<double> init_int_concentration;  // mM
+    std::optional<double> init_ext_concentration;  // mM
+    std::optional<double> init_reversal_potential; // mV
+    std::optional<double> diffusivity;             // m²/s
 };
 
 /**
@@ -60,11 +62,14 @@ struct ARB_SYMBOL_VISIBLE i_clamp {
          * @param t, must be convertible to time
          * @param amplitude must be convertible to current
          */
-        envelope_point(const units::quantity& t,
-                       const units::quantity& amplitude):
-            t(t.value_as(units::ms)),
-            amplitude(amplitude.value_as(units::nA))
-        {}
+        envelope_point(const U::quantity& time,
+                       const U::quantity& current):
+            t(time.value_as(U::ms)),
+            amplitude(current.value_as(U::nA)) {
+
+            if (std::isnan(t)) throw std::domain_error{"Time must be finite and convertible to ms."};
+            if (std::isnan(amplitude)) throw std::domain_error{"Amplitude must be finite and convertible to nA."};
+    }
         double t;         // [ms]
         double amplitude; // [nA]
     };
@@ -85,28 +90,31 @@ struct ARB_SYMBOL_VISIBLE i_clamp {
      * @param frequency, must be convertible to radians, phase shift of sine.
      */
 
-    explicit i_clamp(const units::quantity& amplitude,
-                     const units::quantity& frequency = 0*units::kHz,
-                     const units::quantity& phase = 0*units::rad):
-        i_clamp{{{0.0*units::ms, amplitude}}, frequency, phase}
+    explicit i_clamp(const U::quantity& amplitude,
+                     const U::quantity& frequency = 0*U::kHz,
+                     const U::quantity& phase = 0*U::rad):
+        i_clamp{{{0.0*U::ms, amplitude}}, frequency, phase}
     {}
 
     // Describe a stimulus by envelope and frequency.
     explicit i_clamp(std::vector<envelope_point> envelope,
-                     const units::quantity& frequency = 0*units::kHz,
-                     const units::quantity& phase = 0*units::rad):
+                     const U::quantity& f = 0*U::kHz,
+                     const U::quantity& phi = 0*U::rad):
         envelope(std::move(envelope)),
-        frequency(frequency.value_as(units::kHz)),
-        phase(phase.value_as(units::rad))
-    {}
+        frequency(f.value_as(U::kHz)),
+        phase(phi.value_as(U::rad))
+    {
+        if (std::isnan(frequency)) throw std::domain_error{"Frequency must be finite and convertible to kHz."};
+        if (std::isnan(phase)) throw std::domain_error{"Phase must be finite and convertible to rad."};
+    }
 
     // A 'box' stimulus with fixed onset time, duration, and constant amplitude.
-    static i_clamp box(const units::quantity& onset,
-                       const units::quantity& duration,
-                       const units::quantity& amplitude,
-                       const units::quantity& frequency =  0*units::kHz,
-                       const units::quantity& phase = 0*units::rad) {
-        return i_clamp({{onset, amplitude}, {onset+duration, amplitude}, {onset+duration, 0.*units::nA}},
+    static i_clamp box(const U::quantity& onset,
+                       const U::quantity& duration,
+                       const U::quantity& amplitude,
+                       const U::quantity& frequency =  0*U::kHz,
+                       const U::quantity& phase = 0*U::rad) {
+        return i_clamp({{onset, amplitude}, {onset+duration, amplitude}, {onset+duration, 0.*U::nA}},
                        frequency,
                        phase);
     }
@@ -114,8 +122,10 @@ struct ARB_SYMBOL_VISIBLE i_clamp {
 
 // Threshold detector description.
 struct ARB_SYMBOL_VISIBLE threshold_detector {
-    threshold_detector(const units::quantity& m): threshold(m.value_as(units::mV)) {}
-    static threshold_detector from_raw_millivolts(double v) { return {v*units::mV}; }
+    threshold_detector(const U::quantity& m): threshold(m.value_as(U::mV)) {
+        if (std::isnan(threshold)) throw std::domain_error{"Threshold must be finite and in [mV]."};
+    }
+    static threshold_detector from_raw_millivolts(double v) { return {v*U::mV}; }
     double threshold; // [mV]
 };
 
@@ -127,9 +137,9 @@ struct ARB_SYMBOL_VISIBLE init_membrane_potential {
     iexpr scale = 1;         // [1]
 
     init_membrane_potential() = default;
-    init_membrane_potential(const units::quantity& m, iexpr scale=1):
-      value(m.value_as(units::mV)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mV]."};
+    init_membrane_potential(const U::quantity& m, iexpr scale=1):
+      value(m.value_as(U::mV)), scale{scale} {
+        if (!std::isnan(value)) throw std::domain_error{"Value must be finite and in [mV]."};
     }
 };
 
@@ -139,8 +149,8 @@ struct ARB_SYMBOL_VISIBLE temperature {
     iexpr scale = 1;         // [1]
 
     temperature() = default;
-    temperature(const units::quantity& m, iexpr scale=1):
-      value(m.value_as(units::Kelvin)), scale{scale} {
+    temperature(const U::quantity& m, iexpr scale=1):
+      value(m.value_as(U::Kelvin)), scale{scale} {
         if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [K]."};
     }
 };
@@ -150,8 +160,8 @@ struct ARB_SYMBOL_VISIBLE axial_resistivity {
     iexpr scale = 1;         // [1]
 
     axial_resistivity() = default;
-    axial_resistivity(const units::quantity& m, iexpr scale=1):
-      value(m.value_as(units::cm*units::Ohm)), scale{scale} {
+    axial_resistivity(const U::quantity& m, iexpr scale=1):
+      value(m.value_as(U::cm*U::Ohm)), scale{scale} {
         if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [Ω·cm]."};
     }
 };
@@ -161,8 +171,8 @@ struct ARB_SYMBOL_VISIBLE membrane_capacitance {
     iexpr scale = 1;         // [1]
 
     membrane_capacitance() = default;
-    membrane_capacitance(const units::quantity& m, iexpr scale=1):
-      value(m.value_as(units::F/units::m2)), scale{scale} {
+    membrane_capacitance(const U::quantity& m, iexpr scale=1):
+      value(m.value_as(U::F/U::m2)), scale{scale} {
         if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [F/m²]."};
     }
 };
@@ -173,8 +183,8 @@ struct ARB_SYMBOL_VISIBLE init_int_concentration {
     iexpr scale = 1;         // [1]
 
     init_int_concentration() = default;
-    init_int_concentration(const std::string& ion, const units::quantity& m, iexpr scale=1):
-      ion{ion}, value(m.value_as(units::mM)), scale{scale} {
+    init_int_concentration(const std::string& ion, const U::quantity& m, iexpr scale=1):
+      ion{ion}, value(m.value_as(U::mM)), scale{scale} {
         if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mM]."};
     }
 };
@@ -185,8 +195,8 @@ struct ARB_SYMBOL_VISIBLE ion_diffusivity {
     iexpr scale = 1;         // [1]
 
     ion_diffusivity() = default;
-    ion_diffusivity(const std::string& ion, const units::quantity& m, iexpr scale=1):
-      ion{ion}, value(m.value_as(units::m2/units::s)), scale{scale} {
+    ion_diffusivity(const std::string& ion, const U::quantity& m, iexpr scale=1):
+      ion{ion}, value(m.value_as(U::m2/U::s)), scale{scale} {
         if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [m²/s]."};
     }
 };
@@ -197,8 +207,8 @@ struct ARB_SYMBOL_VISIBLE init_ext_concentration {
     iexpr scale = 1;         // [1]
 
     init_ext_concentration() = default;
-    init_ext_concentration(const std::string& ion, const units::quantity& m, iexpr scale=1):
-      ion{ion}, value(m.value_as(units::mM)), scale{scale} {
+    init_ext_concentration(const std::string& ion, const U::quantity& m, iexpr scale=1):
+      ion{ion}, value(m.value_as(U::mM)), scale{scale} {
         if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mM]."};
     }
 };
@@ -209,8 +219,8 @@ struct ARB_SYMBOL_VISIBLE init_reversal_potential {
     iexpr scale = 1;         // [1]
 
     init_reversal_potential() = default;
-    init_reversal_potential(const std::string& ion, const units::quantity& m, iexpr scale=1):
-      ion{ion}, value(m.value_as(units::mV)), scale{scale} {
+    init_reversal_potential(const std::string& ion, const U::quantity& m, iexpr scale=1):
+      ion{ion}, value(m.value_as(U::mV)), scale{scale} {
         if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mV]."};
     }
 };
@@ -236,8 +246,12 @@ struct ARB_SYMBOL_VISIBLE mechanism_desc {
     };
 
     // implicit
-    mechanism_desc(std::string name): name_(std::move(name)) {}
-    mechanism_desc(const char* name): name_(name) {}
+    mechanism_desc(std::string name): name_(std::move(name)) {
+        if (name_.empty()) throw cable_cell_error("mechanism_desc: null name");
+    }
+    mechanism_desc(const char* name): name_(name) {
+        if (name_.empty()) throw cable_cell_error("mechanism_desc: null name");
+    }
 
     mechanism_desc() = default;
     mechanism_desc(const mechanism_desc&) = default;
@@ -439,26 +453,30 @@ struct ARB_SYMBOL_VISIBLE cable_cell_global_properties {
     // Convenience methods for adding a new ion together with default ion values.
     void add_ion(const std::string& ion_name,
                  int charge,
-                 double init_iconc,
-                 double init_econc,
-                 double init_revpot,
-                 double diffusivity=0.0) {
+                 const U::quantity& init_iconc,
+                 const U::quantity& init_econc,
+                 const U::quantity& init_revpot,
+                 const U::quantity& diffusivity=0.0*U::m2/U::s) {
         ion_species[ion_name] = charge;
 
         auto &ion_data = default_parameters.ion_data[ion_name];
-        ion_data.init_int_concentration  = init_iconc;
-        ion_data.init_ext_concentration  = init_econc;
-        ion_data.init_reversal_potential = init_revpot;
-        ion_data.diffusivity             = diffusivity;
+        ion_data.init_int_concentration = init_iconc.value_as(U::mM);
+        if (std::isnan(*ion_data.init_int_concentration)) throw cable_cell_error("init_int_concentration must be finite and convertible to mM");
+        ion_data.init_ext_concentration = init_econc.value_as(U::mM);
+        if (std::isnan(*ion_data.init_ext_concentration)) throw cable_cell_error("init_ext_concentration must be finite and convertible to mM");
+        ion_data.init_reversal_potential = init_revpot.value_as(U::mV);
+        if (std::isnan(*ion_data.init_reversal_potential)) throw cable_cell_error("init_reversal_potential must be finite and convertible to mV");
+        ion_data.diffusivity = diffusivity.value_as(U::m2/U::s);
+        if (std::isnan(*ion_data.diffusivity) || *ion_data.diffusivity < 0) throw cable_cell_error("diffusivity must be positive, finite, and convertible to m2/s");
     }
 
     void add_ion(const std::string& ion_name,
                  int charge,
-                 double init_iconc,
-                 double init_econc,
+                 const U::quantity& init_iconc,
+                 const U::quantity& init_econc,
                  mechanism_desc revpot_mechanism,
-                 double diffusivity=0.0) {
-        add_ion(ion_name, charge, init_iconc, init_econc, 0, diffusivity);
+                 const U::quantity& diffusivity=0.0*U::m2/U::s) {
+        add_ion(ion_name, charge, init_iconc, init_econc, 0*U::mV, diffusivity);
         default_parameters.reversal_potential_method[ion_name] = std::move(revpot_mechanism);
     }
 };

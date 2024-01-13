@@ -332,7 +332,7 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
             auto cable = mcable{i, 0., 1.};
             auto scale_param = [&, ion=ion](const auto&,
                                    const inv_diff& par) -> double {
-                auto ie = thingify(par.value, provider); // TODO
+                auto ie = thingify(par.value, provider);
                 auto sc = ie->eval(provider, cable);
                 if (def <= 0.0 || std::isnan(def)) {
                     throw make_cc_error("Illegal diffusivity '{}' for ion '{}' at cable {}."
