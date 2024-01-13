@@ -315,27 +315,27 @@ TEST(diffusion, setting_diffusivity) {
     // BAD: Trying to use a diffusive ion, but b=0.
     {
         R r;
-        r.gprop.add_ion("bla", 1, 23, 42, 0, 0);
+        r.gprop.add_ion("bla", 1, 23*U::mM, 42*U::mM, 0*U::mV, 0*U::m2/U::s);
         EXPECT_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms), illegal_diffusive_mechanism);
     }
     // BAD: Trying to use a partially diffusive ion
     {
         R r;
-        r.gprop.add_ion("bla", 1, 23, 42, 0, 0);
+        r.gprop.add_ion("bla", 1, 23*U::mM, 42*U::mM, 0*U::mV, 0*U::m2/U::s);
         r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m.pow(2)/U::s});
         EXPECT_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms), cable_cell_error);
     }
     // OK: Using the global default
     {
         R r;
-        r.gprop.add_ion("bla", 1, 23, 42, 0, 8);
+        r.gprop.add_ion("bla", 1, 23*U::mM, 42*U::mM, 0*U::mV, 8*U::m2/U::s);
         r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m.pow(2)/U::s});
         EXPECT_NO_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms));
     }
     // OK: Using the cell default
     {
         R r;
-        r.gprop.add_ion("bla", 1, 23, 42, 0, 0);
+        r.gprop.add_ion("bla", 1, 23*U::mM, 42*U::mM, 0*U::mV, 0*U::m2/U::s);
         r.dec.set_default(ion_diffusivity{"bla", 8*U::m.pow(2)/U::s});
         r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m.pow(2)/U::s});
         EXPECT_NO_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms));

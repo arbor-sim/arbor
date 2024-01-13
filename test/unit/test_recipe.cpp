@@ -62,7 +62,7 @@ cable_cell custom_cell(cell_size_type num_detectors, cell_size_type num_synapses
     // Add a num_detectors detectors to the cell.
     for (auto i: util::make_span(num_detectors)) {
         decorations.place(arb::mlocation{0,(double)i/num_detectors},
-                          arb::threshold_detector{10*arb::units::ms}, "detector"+std::to_string(i));
+                          arb::threshold_detector{10*arb::units::mV}, "detector"+std::to_string(i));
     }
 
     // Add a num_synapses synapses to the cell.

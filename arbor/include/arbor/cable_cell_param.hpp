@@ -139,7 +139,7 @@ struct ARB_SYMBOL_VISIBLE init_membrane_potential {
     init_membrane_potential() = default;
     init_membrane_potential(const U::quantity& m, iexpr scale=1):
       value(m.value_as(U::mV)), scale{scale} {
-        if (!std::isnan(value)) throw std::domain_error{"Value must be finite and in [mV]."};
+        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mV]."};
     }
 };
 
@@ -461,13 +461,13 @@ struct ARB_SYMBOL_VISIBLE cable_cell_global_properties {
 
         auto &ion_data = default_parameters.ion_data[ion_name];
         ion_data.init_int_concentration = init_iconc.value_as(U::mM);
-        if (std::isnan(*ion_data.init_int_concentration)) throw cable_cell_error("init_int_concentration must be finite and convertible to mM");
+        if (std::isnan(*ion_data.init_int_concentration)) throw std::domain_error("init_int_concentration must be finite and convertible to mM");
         ion_data.init_ext_concentration = init_econc.value_as(U::mM);
-        if (std::isnan(*ion_data.init_ext_concentration)) throw cable_cell_error("init_ext_concentration must be finite and convertible to mM");
+        if (std::isnan(*ion_data.init_ext_concentration)) throw std::domain_error("init_ext_concentration must be finite and convertible to mM");
         ion_data.init_reversal_potential = init_revpot.value_as(U::mV);
-        if (std::isnan(*ion_data.init_reversal_potential)) throw cable_cell_error("init_reversal_potential must be finite and convertible to mV");
+        if (std::isnan(*ion_data.init_reversal_potential)) throw std::domain_error("init_reversal_potential must be finite and convertible to mV");
         ion_data.diffusivity = diffusivity.value_as(U::m2/U::s);
-        if (std::isnan(*ion_data.diffusivity) || *ion_data.diffusivity < 0) throw cable_cell_error("diffusivity must be positive, finite, and convertible to m2/s");
+        if (std::isnan(*ion_data.diffusivity) || *ion_data.diffusivity < 0) throw std::domain_error("diffusivity must be positive, finite, and convertible to m2/s");
     }
 
     void add_ion(const std::string& ion_name,

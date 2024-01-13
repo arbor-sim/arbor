@@ -1626,9 +1626,9 @@ TEST(fvm_layout, revpot) {
     gprop.catalogue = make_unit_test_catalogue();
 
     gprop.ion_species = {{"a", 1}, {"b", 2}, {"c", 3}};
-    gprop.add_ion("a", 1, 10., 0, 0);
-    gprop.add_ion("b", 2, 30., 0, 0);
-    gprop.add_ion("c", 3, 50., 0, 0);
+    gprop.add_ion("a", 1, 10.*U::mM, 0*U::mM, 0*U::mV);
+    gprop.add_ion("b", 2, 30.*U::mM, 0*U::mM, 0*U::mV);
+    gprop.add_ion("c", 3, 50.*U::mM, 0*U::mM, 0*U::mV);
 
     gprop.default_parameters.reversal_potential_method["a"] = "write_eX/a";
     mechanism_desc write_eb_ec = "write_multiple_eX/x=b,y=c";
