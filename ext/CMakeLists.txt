@@ -129,4 +129,8 @@ if (ARB_USE_BUNDLED_UNITS)
     # set(UNITS_NAMESPACE "llnl::units" CACHE INTERNAL "")
 
     add_subdirectory("${PROJECT_SOURCE_DIR}/ext/units" "${PROJECT_BINARY_DIR}/ext/units")
+
+    mark_as_advanced(UNITS_BUILD_OBJECT_LIBRARY)
+    mark_as_advanced(UNITS_HEADER_ONLY)
+    mark_as_advanced(UNITS_NAMESPACE)
 endif()
