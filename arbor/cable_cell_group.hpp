@@ -1,10 +1,6 @@
 #pragma once
 
-#include <cstdint>
-#include <functional>
-#include <iterator>
 #include <mutex>
-#include <unordered_map>
 #include <vector>
 
 #include <arbor/export.hpp>
@@ -70,14 +66,8 @@ private:
     // Range of timesteps within current epoch
     timestep_range timesteps_;
 
-    // List of events to deliver per mechanism id
-    std::vector<std::vector<std::vector<deliverable_event>>> staged_events_per_mech_id_;
-
     // List of samples to be taken
     std::vector<std::vector<sample_event>> sample_events_;
-
-    // Handles for accessing lowered cell.
-    std::vector<target_handle> target_handles_;
 
     // Maps probe ids to probe handles (from lowered cell) and tags (from probe descriptions).
     probe_association_map probe_map_;
@@ -87,9 +77,6 @@ private:
 
     // Mutex for thread-safe access to sampler associations.
     std::mutex sampler_mex_;
-
-    // Lookup table for target ids -> local target handle indices.
-    std::vector<std::size_t> target_handle_divisions_;
 };
 
 } // namespace arb
