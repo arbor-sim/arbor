@@ -3,16 +3,15 @@
 // Indexed collection of pop-only event queues --- multicore back-end implementation.
 
 #include "backends/event_stream_base.hpp"
-#include "util/range.hpp"
 #include "util/rangeutil.hpp"
 
 namespace arb {
 namespace multicore {
 
 template <typename Event>
-class event_stream : public event_stream_base<Event, util::range<::arb::event_data_type<Event>*>> {
+class event_stream : public event_stream_base<Event> {
 public:
-    using base = event_stream_base<Event, util::range<::arb::event_data_type<Event>*>>;
+    using base = event_stream_base<Event>;
     using size_type = typename base::size_type;
 
     event_stream() = default;
@@ -33,19 +32,17 @@ public:
         if (!num_events) return;
 
         // allocate space for spans and data
-        base::ev_spans_.reserve(staged.size());
+        base::ev_spans_.reserve(staged.size() + 1);
         base::ev_data_.reserve(num_events);
 
         // add event data and spans
         for (const auto& v : staged) {
-            auto ptr = base::ev_data_.data() + base::ev_data_.size();
-            base::ev_spans_.emplace_back(ptr, ptr + v.size());
-            for (const auto& ev : v) {
-                base::ev_data_.push_back(event_data(ev));
-            }
+            base::ev_spans_.push_back(base::ev_data_.size() + v.size());
+            for (const auto& ev: v) base::ev_data_.push_back(event_data(ev));
         }
 
         arb_assert(num_events == base::ev_data_.size());
+        arb_assert(staged.size() + 1 == base::ev_spans_.size());
     }
 
     ARB_SERDES_ENABLE(event_stream<Event>, ev_data_, ev_spans_, index_);
