@@ -16,11 +16,11 @@
 #include <arbor/recipe.hpp>
 #include <arbor/serdes.hpp>
 #include <arbor/util/any_ptr.hpp>
+#include <arbor/sampling.hpp>
 
 #include "backends/event.hpp"
 #include "backends/common_types.hpp"
 #include "execution_context.hpp"
-#include "sampler_map.hpp"
 #include "timestep_range.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"

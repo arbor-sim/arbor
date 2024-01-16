@@ -12,6 +12,8 @@
 
 namespace arb {
 
+using event_lane_subrange = util::subrange_view_type<std::vector<pse_vector>>;
+
 // Common functionality for CPU/GPU shared state.
 template <typename D, typename array, typename ion_state>
 struct shared_state_base {
@@ -27,18 +29,14 @@ struct shared_state_base {
         d->time = d->time_to;
     }
 
-    void begin_epoch(const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
+    void begin_epoch(const event_lane_subrange& lanes,
                      const std::vector<std::vector<sample_event>>& samples,
-                     const timestep_range& dts) {
+                     const timestep_range& dts,
+                     const std::vector<target_handle>& handles,
+                     const std::vector<size_t>& divs) {
         auto d = static_cast<D*>(this);
         // events
-        auto& storage = d->storage;
-        for (auto& [mech_id, store] : storage) {
-            if (mech_id < staged_events_per_mech_id.size() && staged_events_per_mech_id[mech_id].size())
-            {
-                store.deliverable_events_.init(staged_events_per_mech_id[mech_id]);
-            }
-        }
+        d->init_events(lanes, handles, divs, dts);
         // samples
         auto n_samples = util::sum_by(samples, [] (const auto& s) {return s.size();});
         if (d->sample_time.size() < n_samples) {
@@ -92,17 +90,17 @@ struct shared_state_base {
 
     void mark_events() {
         auto d = static_cast<D*>(this);
-        auto& storage = d->storage;
-        for (auto& s : storage) {
-            s.second.deliverable_events_.mark();
+        auto& storage = d->streams;
+        for (auto& s: storage) {
+            s.second.mark();
         }
     }
 
     void deliver_events(mechanism& m) {
         auto d = static_cast<D*>(this);
-        auto& storage = d->storage;
+        auto& storage = d->streams;
         if (auto it = storage.find(m.mechanism_id()); it != storage.end()) {
-            auto& deliverable_events = it->second.deliverable_events_;
+            auto& deliverable_events = it->second;
             if (!deliverable_events.empty()) {
                 auto state = deliverable_events.marked_events();
                 m.deliver_events(state);

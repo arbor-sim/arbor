@@ -21,7 +21,7 @@ protected: // private member types
 
 protected: // members
     std::vector<event_data_type> ev_data_;
-    std::vector<std::size_t> ev_spans_;
+        std::vector<std::size_t> ev_spans_ = {0};
     size_type index_ = 0;
 
 public:
@@ -29,25 +29,23 @@ public:
 
     // returns true if the currently marked time step has no events
     bool empty() const {
-        return ev_spans_.empty()
-            || ev_data_.empty()
+        return ev_data_.empty()
             || !index_
             || index_ > ev_spans_.size()
             || ev_spans_[index_-1] >= ev_spans_[index_];
     }
 
-    void mark() {
-        index_ += 1;
-    }
+    void mark() { index_ += 1; }
 
     auto marked_events() {
-        if (empty()) {
-            return make_event_stream_state((event_data_type*)nullptr, (event_data_type*)nullptr);
-        } else {
+        auto beg = (event_data_type*)nullptr;
+        auto end = (event_data_type*)nullptr;
+        if (!empty()) {
             auto ptr = ev_data_.data();
-            return make_event_stream_state(ptr + ev_spans_[index_-1],
-                                           ptr + ev_spans_[index_]);
+            beg = ptr + ev_spans_[index_-1];
+            end = ptr + ev_spans_[index_];
         }
+        return make_event_stream_state(beg, end);
     }
 
     // clear all previous data

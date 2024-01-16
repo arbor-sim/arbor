@@ -24,6 +24,7 @@
 
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
+#include "fvm.hpp"
 
 namespace arb {
 namespace multicore {
@@ -383,6 +384,7 @@ void shared_state::instantiate(arb::mechanism& m,
     if (storage.find(id) != storage.end()) {
         throw arbor_internal_error("Duplicate mechanism id in MC shared state.");
     }
+    streams[id] = deliverable_event_stream{};
     auto& store = storage[id];
     auto width = pos_data.cv.size();
     // Assign non-owning views onto shared state:
@@ -534,6 +536,14 @@ void shared_state::instantiate(arb::mechanism& m,
         if (peer_indices) m.ppack_.peer_index = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
     }
 }
+
+void shared_state::init_events(const event_lane_subrange& lanes,
+                               const std::vector<target_handle>& handles,
+                               const std::vector<size_t>& divs,
+                               const timestep_range& dts) {
+    arb::multicore::event_stream<deliverable_event>::multi_event_stream(lanes, handles, divs, dts, streams);
+}
+
 
 } // namespace multicore
 } // namespace arb

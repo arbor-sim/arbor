@@ -20,6 +20,7 @@
 
 #include "execution_context.hpp"
 #include "fvm_layout.hpp"
+
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
 #include "profile/profiler_macro.hpp"
@@ -28,8 +29,6 @@
 #include "util/rangeutil.hpp"
 #include "util/strprintf.hpp"
 #include "util/transform.hpp"
-
-#include <iostream>
 
 namespace arb {
 template <class Backend>
@@ -224,7 +223,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
     // Integration setup
     PE(advance:integrate:setup);
     // Push samples and events down to the state and reset the spike thresholds.
-    state_->begin_epoch(staged_events_per_mech_id_, staged_samples, dts);
+    state_->begin_epoch(event_lanes, staged_samples, dts, target_handles_, target_handle_divisions_);
     PL();
 
     // loop over timesteps
