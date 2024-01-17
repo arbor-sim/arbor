@@ -54,7 +54,7 @@ struct event_stream: public event_stream_base<Event> {
 
     // Construct a mapping of mech_id to a stream s.t. streams are partitioned into
     // time step buckets by `ev_span`
-    static auto
+    static void
     multi_event_stream(const event_lane_subrange& lanes,
                        const std::vector<target_handle>& handles,
                        const std::vector<std::size_t>& divs,
