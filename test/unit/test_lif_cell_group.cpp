@@ -145,7 +145,7 @@ public:
         }
     }
     std::vector<event_generator> event_generators(cell_gid_type) const override {
-        return {regular_generator({"tgt"}, 200.0, 2.0*arb::units::ms, 1.0*arb::units::ms, 6.0*arb::units::ms)};
+        return {regular_generator({"tgt"}, 200.0, 2.0*U::ms, 1.0*U::ms, 6.0*U::ms)};
     }
 
     size_t n_conn_ = 0;
@@ -191,7 +191,7 @@ TEST(lif_cell_group, spikes) {
     events.push_back({0, {{0, 50, 1000}}});
 
     sim.inject_events(events);
-    sim.run(100*arb::units::ms, 0.01*arb::units::ms);
+    sim.run(100*U::ms, 0.01*U::ms);
 
     // we expect 4 spikes: 2 by both neurons
     EXPECT_EQ(4u, sim.num_spikes());
@@ -217,7 +217,7 @@ TEST(lif_cell_group, ring)
     );
 
     // Runs the simulation for simulation_time with given timestep
-    sim.run(100*arb::units::ms, 0.01*arb::units::ms);
+    sim.run(100*U::ms, 0.01*U::ms);
     // The total number of cells in all the cell groups.
     // There is one additional fake cell (regularly spiking cell).
     EXPECT_EQ(num_lif_cells + 1u, recipe.num_cells());
@@ -264,7 +264,7 @@ TEST(lif_cell_group, probe) {
     auto rec = probe_recipe{};
     auto sim = simulation(rec);
 
-    sim.add_sampler(all_probes, regular_schedule(0.025*arb::units::ms), fun);
+    sim.add_sampler(all_probes, regular_schedule(0.025*U::ms), fun);
 
     std::vector<double> spikes;
 
@@ -272,7 +272,7 @@ TEST(lif_cell_group, probe) {
         [&spikes](const std::vector<spike>& spk) { for (const auto& s: spk) spikes.push_back(s.time); }
     );
 
-    sim.run(10*arb::units::ms, 0.005*arb::units::ms);
+    sim.run(10*U::ms, 0.005*U::ms);
     std::vector<Um_type> exp = {{ 0, -18 },
                                 { 0.025, -17.9750624 },
                                 { 0.05, -17.9502492 },
@@ -700,7 +700,7 @@ TEST(lif_cell_group, probe_with_connections) {
     auto rec = probe_recipe{5};
     auto sim = simulation(rec);
 
-    sim.add_sampler(all_probes, regular_schedule(0.025*arb::units::ms), fun);
+    sim.add_sampler(all_probes, regular_schedule(0.025*U::ms), fun);
 
     std::vector<double> spikes;
 
@@ -708,7 +708,7 @@ TEST(lif_cell_group, probe_with_connections) {
         [&spikes](const std::vector<spike>& spk) { for (const auto& s: spk) spikes.push_back(s.time); }
     );
 
-    sim.run(10*arb::units::ms, 0.005*arb::units::ms);
+    sim.run(10*U::ms, 0.005*U::ms);
     std::vector<Um_type> exp = {{ 0, -18 },
                                 { 0.025, -17.9750624 },
                                 { 0.05, -17.9502492 },

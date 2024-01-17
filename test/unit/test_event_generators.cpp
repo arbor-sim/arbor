@@ -129,7 +129,7 @@ TEST(event_generators, poisson) {
     cell_lid_type lid = 2;
     float weight = 42;
 
-    event_generator gen = poisson_generator(label, weight, t0*arb::units::ms, lambda*arb::units::Hz);
+    event_generator gen = poisson_generator(label, weight, t0*arb::units::ms, lambda*arb::units::kHz);
     gen.resolve_label([lid](const cell_local_label_type&) {return lid;});
 
     pse_vector int1 = as_vector(gen.events(0, t1));

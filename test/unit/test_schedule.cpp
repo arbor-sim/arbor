@@ -50,7 +50,7 @@ void run_invariant_checks(schedule S, time_type t0, time_type t1, unsigned n, in
 void run_reset_check(schedule S, time_type t0, time_type t1, unsigned n, int seed=0) {
     if (!n) return;
 
-    std::mt19937_64 R(seed);
+    engine_type R(seed);
     std::uniform_real_distribution<time_type> U(t0, t1);
 
     std::vector<time_type> first_div = {t0, t1};
@@ -236,7 +236,7 @@ TEST(schedule, poisson_rate) {
     double cdf = poisson::poisson_cdf_approx(n, lambda);
 
     EXPECT_GT(cdf, alpha/2);
-    EXPECT_LT(cdf, 1-alpha/2);
+    EXPECT_LT(cdf, 1 - alpha/2);
 }
 
 TEST(schedule, poisson_invariants) {
@@ -258,15 +258,13 @@ TEST(schedule, poisson_offset) {
     // same sequence, after the offset, as a regular zero-based Poisson.
 
     const double offset = 3.3;
-
+    auto T = 100.0;
     auto sched1 = poisson_schedule(.234*arb::units::kHz);
     sched1.discard(300);
     std::vector<time_type> expected;
-    for (auto t: as_vector(sched1.events(0., 100.))) {
+    for (auto t: as_vector(sched1.events(0., T))) {
         t += offset;
-        if (t<100.) {
-            expected.push_back(t);
-        }
+        if (t < T) expected.push_back(t);
     }
 
     auto sched2 = poisson_schedule(offset*arb::units::ms, .234*arb::units::kHz);
@@ -285,12 +283,13 @@ TEST(schedule, poisson_offset_reset) {
 TEST(schedule, poisson_tstop) {
     SCOPED_TRACE("poisson_tstop");
 
-    auto sched = poisson_schedule(0*arb::units::ms, 0.234*arb::units::kHz, default_seed, 50*arb::units::ms);
+    auto T = 50.0;
+    auto sched = poisson_schedule(0*arb::units::ms, 0.234*arb::units::kHz, default_seed, T*arb::units::ms);
     sched.discard(500);
     auto const times = as_vector(sched.events(0., 100.));
     auto const max = std::max_element(begin(times), end(times));
 
     EXPECT_TRUE(max != end(times));
-    EXPECT_TRUE(*max <= 50);
+    EXPECT_TRUE(*max <= T);
 }
 

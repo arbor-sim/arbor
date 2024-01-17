@@ -4,8 +4,6 @@
 #include <arbor/common_types.hpp>
 #include <arbor/schedule.hpp>
 
-#include <iostream>
-
 namespace arb {
 
 // Schedule at Poisson point process with rate 1/mean_dt,
@@ -99,7 +97,7 @@ schedule poisson_schedule(const units::quantity& rate,
 }
 
 
-struct empty_schedule {
+struct empty_schedule_impl {
     void reset() {}
     time_event_span events(time_type t0, time_type t1) {
         static time_type no_time;
@@ -122,7 +120,7 @@ struct empty_schedule {
     void discard(std::size_t) {}
 };
 
-schedule::schedule(): schedule(empty_schedule{}) {}
+schedule::schedule(): schedule(empty_schedule_impl{}) {}
 
 // Schedule at k·dt for integral k≥0 within the interval [t0, t1).
 struct ARB_ARBOR_API regular_schedule_impl {
@@ -258,8 +256,9 @@ struct explicit_schedule_impl {
 
 schedule explicit_schedule(const std::vector<units::quantity>& seq) {
     std::vector<time_type> res;
+    res.reserve(seq.size());
     for (const auto& t: seq) res.push_back(t.value_as(units::ms));
-    return schedule(explicit_schedule_impl(res));
+    return schedule(explicit_schedule_impl(std::move(res)));
 }
 
 schedule explicit_schedule_from_milliseconds(const std::vector<time_type>& seq) {

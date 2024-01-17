@@ -7,7 +7,6 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/version.hpp>
-#include <arbor/units.hpp>
 
 #include <arborenv/default_env.hpp>
 
