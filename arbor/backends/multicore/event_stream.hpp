@@ -87,8 +87,6 @@ struct event_stream: public event_stream_base<Event> {
         }
 
         for (auto& [k, v]: streams) util::make_partition(v.ev_spans_, dt_sizes[k]);
-
-        return streams;
     }
 };
 } // namespace multicore
