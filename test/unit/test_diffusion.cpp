@@ -322,29 +322,29 @@ TEST(diffusion, setting_diffusivity) {
     {
         R r;
         r.gprop.add_ion("bla", 1, 23*U::mM, 42*U::mM, 0*U::mV, 0*U::m2/U::s);
-        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m.pow(2)/U::s});
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m2/U::s});
         EXPECT_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms), cable_cell_error);
     }
     // OK: Using the global default
     {
         R r;
         r.gprop.add_ion("bla", 1, 23*U::mM, 42*U::mM, 0*U::mV, 8*U::m2/U::s);
-        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m.pow(2)/U::s});
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m2/U::s});
         EXPECT_NO_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms));
     }
     // OK: Using the cell default
     {
         R r;
         r.gprop.add_ion("bla", 1, 23*U::mM, 42*U::mM, 0*U::mV, 0*U::m2/U::s);
-        r.dec.set_default(ion_diffusivity{"bla", 8*U::m.pow(2)/U::s});
-        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m.pow(2)/U::s});
+        r.dec.set_default(ion_diffusivity{"bla", 8*U::m2/U::s});
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m2/U::s});
         EXPECT_NO_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms));
     }
     // BAD: Using an unknown species
     {
         R r;
-        r.dec.set_default(ion_diffusivity{"bla", 8*U::m.pow(2)/U::s});
-        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m.pow(2)/U::s});
+        r.dec.set_default(ion_diffusivity{"bla", 8*U::m2/U::s});
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m2/U::s});
         EXPECT_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms), cable_cell_error);
     }
 

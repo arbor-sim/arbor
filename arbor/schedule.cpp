@@ -38,9 +38,9 @@ struct poisson_schedule_impl {
 
         times_.clear();
 
-        while (next_<t0) { step(); }
+        while (next_ < t0) { step(); }
 
-        while (next_<t1) {
+        while (next_ < t1) {
             times_.push_back(next_);
             step();
         }

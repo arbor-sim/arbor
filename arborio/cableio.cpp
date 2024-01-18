@@ -19,7 +19,7 @@ namespace arborio {
 
 using namespace arb;
 
-ARB_ARBORIO_API std::string acc_version() {return "0.1-dev";}
+ARB_ARBORIO_API std::string acc_version() {return "0.9-dev";}
 
 cableio_parse_error::cableio_parse_error(const std::string& msg, const arb::src_location& loc):
     arb::arbor_exception(msg+" at :"+

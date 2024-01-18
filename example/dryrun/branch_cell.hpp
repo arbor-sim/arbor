@@ -112,7 +112,7 @@ inline arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters
     labels.set("dend", tagged(dtag));
 
     auto decor = arb::decor()
-        .set_default(arb::axial_resistivity{100*U::Ohm*U::cm})                          // [Ω·cm]
+        .set_default(arb::axial_resistivity{100*U::Ohm*U::cm})             // [Ω·cm]
         .paint("soma"_lab, arb::density("hh"))                             // Add HH dynamics to soma.
         .paint("dend"_lab, arb::density("pas"))                            // Leaky current everywhere else.
         .place(arb::mlocation{0,0},

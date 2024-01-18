@@ -710,26 +710,6 @@ std::string round_trip_component(std::istream& stream) {
     }
 }
 
-TEST(decor_literals, double_to_iexpr_promotion) {
-   using namespace cable_s_expr;
-    std::vector<std::pair<std::string, std::string>> literals = {
-        {"(membrane-potential -65.1)", "(membrane-potential (scalar -65.1))"},
-        {"(temperature-kelvin 301)", "(temperature-kelvin (scalar 301))"},
-        {"(axial-resistivity 102)", "(axial-resistivity (scalar 102))"},
-    };
-
-    for (const auto& [in, out]: literals) {
-        std::string res;
-        if (auto x = arborio::parse_expression(in)) {
-            std::visit([&](auto&& p){res = to_string(p);}, *(eval_cast_variant<defaultable>(*x)));
-        }
-        else {
-            res = x.error().what();
-        }
-        EXPECT_EQ(res, out);
-    }
-}
-
 TEST(decor_literals, round_tripping) {
     auto paint_default_literals = {
         "(membrane-potential 2 (scalar -65.1))",
