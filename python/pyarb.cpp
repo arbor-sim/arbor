@@ -35,6 +35,8 @@ void register_single_cell(pybind11::module& m);
 void register_mpi(pybind11::module& m);
 #endif
 
+void register_remote(pybind11::module& m);
+
 } // namespace pyarb
 
 PYBIND11_MODULE(_arbor, m) {
@@ -63,6 +65,7 @@ PYBIND11_MODULE(_arbor, m) {
     pyarb::register_simulation(m, global_ptr);
     pyarb::register_single_cell(m);
     pyarb::register_arborenv(m);
+    pyarb::register_remote(m);
 
     // This is the fallback. All specific translators take precedence by being
     // registered *later*.
