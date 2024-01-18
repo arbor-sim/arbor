@@ -50,7 +50,7 @@ def make_cable_cell(gid):
         .place('"synapse_site"', A.synapse("expsyn"), "syn")
         .place('"gj_site"', A.junction("gj"), "gj")
         # Attach detector to cell root
-        .place('"root"', A.threshold_detector(-10 * U.ms), "detector")
+        .place('"root"', A.threshold_detector(-10 * U.mV), "detector")
     )
 
     return A.cable_cell(tree, decor, labels)

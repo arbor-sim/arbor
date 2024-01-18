@@ -10,7 +10,7 @@ from functools import partial
 
 acc = """(arbor-component
   (meta-data
-    (version "0.1-dev"))
+    (version "0.9-dev"))
   (cable-cell
     (morphology
       (branch 0 -1
