@@ -11,8 +11,6 @@
 #include <arbor/context.hpp>
 
 #include "cell_group_factory.hpp"
-#include "execution_context.hpp"
-#include "gpu_context.hpp"
 #include "util/maputil.hpp"
 #include "util/partition.hpp"
 #include "util/span.hpp"

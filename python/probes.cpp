@@ -9,6 +9,7 @@
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/adex_cell.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
@@ -94,6 +95,24 @@ struct recorder_lif: recorder_base<arb::lif_probe_metadata> {
     recorder_lif(const arb::lif_probe_metadata* meta_ptr): recorder_base<arb::lif_probe_metadata>(meta_ptr, 1) {}
 };
 
+struct recorder_adex: recorder_base<arb::adex_probe_metadata> {
+    using recorder_base<arb::adex_probe_metadata>::sample_raw_;
+
+    void record(any_ptr, std::size_t n_sample, const arb::sample_record* records) override {
+        for (std::size_t i = 0; i<n_sample; ++i) {
+            if (auto* v_ptr = any_cast<const double*>(records[i].data)) {
+                sample_raw_.push_back(records[i].time);
+                sample_raw_.push_back(*v_ptr);
+            }
+            else {
+                std::string ty = records[i].data.type().name();
+                throw arb::arbor_internal_error("ADEX recorder: unexpected sample type " + ty);
+            }
+        }
+    }
+
+    recorder_adex(const arb::adex_probe_metadata* meta_ptr): recorder_base<arb::adex_probe_metadata>(meta_ptr, 1) {}
+};
 
 template <typename Meta>
 struct recorder_cable_vector: recorder_base<Meta> {
@@ -243,6 +262,15 @@ arb::probe_info lif_probe_voltage(const std::string& tag) {
 }
 
 
+// ADEX cell probes
+arb::probe_info adex_probe_voltage(const std::string& tag) {
+    return {arb::adex_probe_voltage{}, tag};
+}
+
+arb::probe_info adex_probe_adaption(const std::string& tag) {
+    return {arb::adex_probe_adaption{}, tag};
+}
+
 // Add wrappers to module, recorder factories to global data.
 
 void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
@@ -253,6 +281,9 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
 
     py::class_<arb::lif_probe_metadata> lif_probe_metadata(m, "lif_probe_metadata",
         "Probe metadata associated with a LIF cell probe.");
+
+    py::class_<arb::adex_probe_metadata> adex_probe_metadata(m, "adex_probe_metadata",
+        "Probe metadata associated with a AdEx cell probe.");
 
     py::class_<arb::cable_probe_point_info> cable_probe_point_info(m, "cable_probe_point_info",
         "Probe metadata associated with a cable cell probe for point process state.");
@@ -273,6 +304,12 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
 
     m.def("lif_probe_voltage", &lif_probe_voltage,
           "Probe specification for LIF cell membrane voltage.",
+          "tag"_a);
+    m.def("adex_probe_voltage", &adex_probe_voltage,
+          "Probe specification for ADEX cell membrane voltage.",
+          "tag"_a);
+    m.def("adex_probe_adaption", &adex_probe_adaption,
+          "Probe specification for ADEX cell adaption variable.",
           "tag"_a);
     m.def("cable_probe_membrane_voltage", &cable_probe_membrane_voltage,
           "Probe specification for cable cell membrane voltage interpolated at points in a location set.",
@@ -354,6 +391,7 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
     register_probe_meta_maps<arb::mcable_list, recorder_cable_vector_mcable>(global_ptr);
     register_probe_meta_maps<std::vector<arb::cable_probe_point_info>, recorder_cable_vector_point_info>(global_ptr);
     register_probe_meta_maps<arb::lif_probe_metadata, recorder_lif>(global_ptr);
+    register_probe_meta_maps<arb::adex_probe_metadata, recorder_adex>(global_ptr);
 }
 
 } // namespace pyarb
