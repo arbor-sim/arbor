@@ -409,12 +409,10 @@ void register_cells(py::module& m) {
     );
 
     membrane_potential
-        .def(py::init([](const U::quantity& v,
-                         std::optional<std::string> s) -> arb::init_membrane_potential {
-            return {v };
-        }))
-        .def("__repr__", [](const arb::init_membrane_potential& d){
-            return "Vm=" + to_string(d.value);});
+        .def(py::init([](const U::quantity& v) -> arb::init_membrane_potential { return {v }; }))
+        .def("__repr__",
+             [](const arb::init_membrane_potential& d){
+                 return "Vm=" + to_string(d.value) + " scale=" + to_string(d.scale);});
 
     revpot_method
         .def(py::init([](const std::string& ion,
@@ -612,22 +610,18 @@ void register_cells(py::module& m) {
                 "Test whether all default parameters and ion species properties have been set.")
         .def_readwrite("coalesce_synapses",  &arb::cable_cell_global_properties::coalesce_synapses,
                 "Flag for enabling/disabling linear syanpse coalescing.")
-        // set cable properties
-        .def_property("membrane_potential",
-                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.init_membrane_potential; },
-                      [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.init_membrane_potential = u; })
         .def_property("membrane_voltage_limit",
                       [](const arb::cable_cell_global_properties& props) { return props.membrane_voltage_limit_mV; },
                       [](arb::cable_cell_global_properties& props, std::optional<double> u) { props.membrane_voltage_limit_mV = u; })
-        .def_property("membrane_capacitance",
-                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.membrane_capacitance; },
-                      [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.membrane_capacitance = u; })
-        .def_property("temperature",
-                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.temperature_K; },
-                      [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.temperature_K = u; })
-        .def_property("axial_resistivity",
-                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.axial_resistivity; },
-                      [](arb::cable_cell_global_properties& props, double u) { props.default_parameters.axial_resistivity = u; })
+        // set cable properties
+        .def_property_readonly("membrane_potential",
+                               [](const arb::cable_cell_global_properties& props) { return props.default_parameters.init_membrane_potential; })
+        .def_property_readonly("membrane_capacitance",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.membrane_capacitance; })
+        .def_property_readonly("temperature",
+                      [](const arb::cable_cell_global_properties& props) { return props.default_parameters.temperature_K; })
+        .def_property_readonly("axial_resistivity",
+                               [](const arb::cable_cell_global_properties& props) { return props.default_parameters.axial_resistivity; })
         .def("set_property",
             [](arb::cable_cell_global_properties& props,
                optional<U::quantity> Vm, optional<U::quantity> cm,

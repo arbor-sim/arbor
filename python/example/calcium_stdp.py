@@ -55,7 +55,6 @@ decor = (
     .paint('"soma"', A.density("pas"))
     .place('"midpoint"', A.synapse("expsyn"), "driving_synapse")
     .place('"midpoint"', A.threshold_detector(-10 * U.mV), "detector")
-    .discretization(A.cv_policy_max_extent(10))
 )
 for ix, rho in enumerate(rho_0):
     decor.place(
