@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <optional>
 #include <string>
-#include <unordered_map>
 #include <utility>
 
 #include <pybind11/operators.h>
@@ -153,6 +152,21 @@ std::string mechanism_desc_str(const arb::mechanism_desc& md) {
 std::string scaled_density_desc_str(const arb::scaled_mechanism<arb::density>& p) {
     return util::pprintf("({}, {})",
             mechanism_desc_str(p.t_mech.mech), util::dictionary_csv(p.scale_expr));
+}
+
+// Argument to construct a paintable object.
+using Q = U::quantity;
+using QnS = std::tuple<U::quantity, std::string>;
+using paintable_arg = std::variant<Q, QnS>;
+
+std::tuple<Q, arb::iexpr> value_and_scale(const paintable_arg& arg) {
+    if (std::holds_alternative<Q>(arg)) {
+        return {std::get<Q>(arg), 1};
+    }
+    else {
+        const auto& [val, scale] = std::get<QnS>(arg);
+        return {val, arborio::parse_iexpr_expression(scale).unwrap()};
+    }
 }
 
 void register_cells(py::module& m) {
@@ -809,50 +823,24 @@ void register_cells(py::module& m) {
         .def("paint",
             [](arb::decor& dec,
                const char* region,
-               optional<std::variant<U::quantity, std::string>> Vm,
-               optional<std::variant<U::quantity, std::string>> cm,
-               optional<std::variant<U::quantity, std::string>> rL,
-               optional<std::variant<U::quantity, std::string>> tempK) {
-                auto r = arborio::parse_region_expression(region).unwrap();
+               optional<paintable_arg> Vm, optional<paintable_arg> cm,
+               optional<paintable_arg> rL, optional<paintable_arg> tempK) {
+                auto reg = arborio::parse_region_expression(region).unwrap();
                 if (Vm) {
-                    if (std::holds_alternative<U::quantity>(*Vm)) {
-                        dec.paint(r, arb::init_membrane_potential{std::get<U::quantity>(*Vm)});
-                    }
-                    else {
-                        const auto& s = std::get<std::string>(*Vm);
-                        auto ie = arborio::parse_iexpr_expression(s).unwrap();
-                        dec.paint(r, arb::init_membrane_potential{1*U::mV, ie});
-                    }
+                    const auto& [v, s] = value_and_scale(*Vm);
+                    dec.paint(reg, arb::init_membrane_potential{v, s});
                 }
                 if (cm) {
-                    if (std::holds_alternative<U::quantity>(*cm)) {
-                        dec.paint(r, arb::membrane_capacitance{std::get<U::quantity>(*cm)});
-                    }
-                    else {
-                        const auto& s = std::get<std::string>(*cm);
-                        auto ie = arborio::parse_iexpr_expression(s).unwrap();
-                        dec.paint(r, arb::membrane_capacitance{1*U::F/U::m.pow(2), ie});
-                    }
+                    const auto& [v, s] = value_and_scale(*cm);
+                    dec.paint(reg, arb::membrane_capacitance{v, s});
                 }
                 if (rL) {
-                    if (std::holds_alternative<U::quantity>(*rL)) {
-                        dec.paint(r, arb::axial_resistivity{std::get<U::quantity>(*rL)});
-                    }
-                    else {
-                        const auto& s = std::get<std::string>(*rL);
-                        auto ie = arborio::parse_iexpr_expression(s).unwrap();
-                        dec.paint(r, arb::axial_resistivity{1*U::Ohm/U::cm, ie});
-                    }
+                    const auto& [v, s] = value_and_scale(*rL);
+                    dec.paint(reg, arb::axial_resistivity{v, s});
                 }
                 if (tempK) {
-                    if (std::holds_alternative<U::quantity>(*tempK)) {
-                        dec.paint(r, arb::temperature{std::get<U::quantity>(*tempK)});
-                    }
-                    else {
-                        const auto& s = std::get<std::string>(*tempK);
-                        auto ie = arborio::parse_iexpr_expression(s).unwrap();
-                        dec.paint(r, arb::temperature{1*U::Kelvin, ie});
-                    }
+                    const auto& [v, s] = value_and_scale(*tempK);
+                    dec.paint(reg, arb::temperature{v, s});
                 }
                 return dec;
             },
@@ -862,17 +850,30 @@ void register_cells(py::module& m) {
              " * Vm:    initial membrane voltage [mV].\n"
              " * cm:    membrane capacitance [F/m²].\n"
              " * rL:    axial resistivity [Ω·cm].\n"
-             " * tempK: temperature [Kelvin].\n")
+             " * tempK: temperature [Kelvin].\n"
+             "Each value can be given as a plain quantity or a tuple of (quantity, 'scale') where scale is an iexpr.")
         // Paint ion species initial conditions on a region.
         .def("paint",
             [](arb::decor& dec, const char* region, const char* name,
-               optional<U::quantity> int_con, optional<U::quantity> ext_con,
-               optional<U::quantity> rev_pot, optional<U::quantity> diff) {
+               optional<paintable_arg> int_con, optional<paintable_arg> ext_con,
+               optional<paintable_arg> rev_pot, optional<paintable_arg> diff) {
                 auto r = arborio::parse_region_expression(region).unwrap();
-                if (int_con) dec.paint(r, arb::init_int_concentration{name, *int_con});
-                if (ext_con) dec.paint(r, arb::init_ext_concentration{name, *ext_con});
-                if (rev_pot) dec.paint(r, arb::init_reversal_potential{name, *rev_pot});
-                if (diff)    dec.paint(r, arb::ion_diffusivity{name, *diff});
+                if (int_con) {
+                    const auto& [v, s] = value_and_scale(*int_con);
+                    dec.paint(r, arb::init_int_concentration{name, v, s});
+                }
+                if (ext_con) {
+                    const auto& [v, s] = value_and_scale(*ext_con);
+                    dec.paint(r, arb::init_ext_concentration{name, v, s});
+                }
+                if (rev_pot) {
+                    const auto& [v, s] = value_and_scale(*rev_pot);
+                    dec.paint(r, arb::init_reversal_potential{name, v, s});
+                }
+                if (diff) {
+                    const auto& [v, s] = value_and_scale(*diff);
+                    dec.paint(r, arb::ion_diffusivity{name, v, s});
+                }
                 return dec;
             },
             "region"_a, py::kw_only(), "ion"_a, "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "diff"_a=py::none(),
@@ -881,7 +882,8 @@ void register_cells(py::module& m) {
              " * ext_con: initial external concentration [mM].\n"
              " * rev_pot: reversal potential [mV].\n"
              " * method:  mechanism for calculating reversal potential.\n"
-             " * diff:   diffusivity [m^2/s].\n")
+             " * diff:   diffusivity [m^2/s].\n"
+             "Each value can be given as a plain quantity or a tuple of (quantity, 'scale') where scale is an iexpr.\n")
         // Place synapses
         .def("place",
             [](arb::decor& dec, const char* locset, const arb::synapse& mechanism, const char* label_name) {
