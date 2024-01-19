@@ -73,7 +73,7 @@ C++ and Python modules.
    =============   =======
 
 Further units may be derived from existing ones by mean of multiplication and
-division with the obvious semantics, the exist metric prefixes, or by extending
+division with the obvious semantics, the existing metric prefixes, or by extending
 the catalogue of units via the underlying units library.
 
 .. table:: Provided metric prefixes
