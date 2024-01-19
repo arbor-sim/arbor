@@ -81,7 +81,7 @@ def make_cell(base, swc, fit):
     morphology = A.load_swc_neuron(base / swc)
 
     # (2) Label the region tags found in the swc with the names used in the parameter fit file.
-    # In addition, label the midpoint of the somA.
+    # In addition, label the midpoint of the soma.
     labels = A.label_dict().add_swc_tags()
     labels["midpoint"] = "(location 0 0.5)"
 

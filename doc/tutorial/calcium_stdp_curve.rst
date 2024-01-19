@@ -128,12 +128,11 @@ Our cell and cell properties can then later be used to create a simple recipe:
    :language: python
    :lines: 74-98
 
-Note, that the recipe takes a cell, cell properties and a list of event
-generators as constructor arguments and returns them with its corresponding
-methods. Furthermore, the recipe also returns a list of probes which contains
-only one item: A query for our mechanism's state variable :math:`\rho`. Since we
-placed a number of these mechanisms on our cell, we will receive a vector of
-values when probing.
+Note, that the recipe takes a cell and a list of time offsets as constructor
+arguments, which are used to create the cells of the ensemble. Furthermore, the
+recipe also returns a list of probes which contains only one item: A query for
+our mechanism's state variable :math:`\rho`. Since we placed a number of these
+mechanisms on our cell, we will receive a vector of values when probing.
 
 Next we set up the simulation logic:
 

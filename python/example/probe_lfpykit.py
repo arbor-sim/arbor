@@ -93,7 +93,10 @@ decor = (
     .discretization(A.cv_policy_fixed_per_branch(3))
 )
 
-p = A.place_pwlin(morphology)
+# place_pwlin can be queried with region/locset expressions to obtain
+# geometrical objects, like points and segments, essentially recovering
+# geometry from morphology.
+ppwl = A.place_pwlin(morphology)
 cell = A.cable_cell(morphology, decor)
 
 # instantiate recipe with cell
@@ -169,7 +172,7 @@ class ArborCellGeometry(lfpykit.CellGeometry):
         CV_ind = np.array([], dtype=int)  # tracks which CV owns segment
         for i, m in enumerate(cables):
             segs = p.segments([m])
-            for j, seg in enumerate(segs):
+            for seg in segs:
                 x = np.row_stack([x, [seg.prox.x, seg.dist.x]])
                 y = np.row_stack([y, [seg.prox.y, seg.dist.y]])
                 z = np.row_stack([z, [seg.prox.z, seg.dist.z]])
@@ -232,7 +235,7 @@ class ArborLineSourcePotential(lfpykit.LineSourcePotential):
 
 
 # create ``ArborCellGeometry`` instance
-cell_geometry = ArborCellGeometry(p, I_m_meta)
+cell_geometry = ArborCellGeometry(ppwl, I_m_meta)
 
 # define locations where extracellular potential is predicted in vicinity
 # of cell.
@@ -400,7 +403,7 @@ cb2.set_label(r"$V_m$ (mV)")
 ax.add_collection(get_segment_outlines(cell_geometry))
 
 # add marker denoting clamp location
-point = p.at(clamp_location)
+point = ppwl.at(clamp_location)
 ax.plot(point.x, point.y, "ko", ms=10, label="stimulus")
 
 ax.legend()

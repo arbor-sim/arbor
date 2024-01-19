@@ -29,8 +29,8 @@ std::ostream& operator<<(std::ostream& o, const explicit_schedule_shim& e) {
 }
 
 std::ostream& operator<<(std::ostream& o, const poisson_schedule_shim& p) {
-    return o << "<arbor.poisson_schedule: tstart " << arb::units::to_string(p.tstart) << " ms"
-             << ", tstop " << arb::units::to_string(p.tstop) << " ms"
+    return o << "<arbor.poisson_schedule: tstart " << arb::units::to_string(p.tstart)
+             << ", tstop " << arb::units::to_string(p.tstop)
              << ", freq " << arb::units::to_string(p.freq)
              << ", seed " << p.seed << ">";
 }
@@ -100,6 +100,7 @@ std::vector<arb::time_type> regular_schedule_shim::events(arb::time_type t0, arb
 
 explicit_schedule_shim::explicit_schedule_shim(const std::vector<arb::units::quantity>& seq) {
     std::vector<arb::time_type> ts;
+    ts.reserve(seq.size());
     for (const auto t: seq) ts.push_back(t.value_as(arb::units::ms));
     set_times_ms(std::move(ts));
 }

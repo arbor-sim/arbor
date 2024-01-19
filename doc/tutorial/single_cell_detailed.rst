@@ -55,7 +55,7 @@ insertion order below, but different orders will produce the same morphology.
     tree = arbor.segment_tree()
 
     # The root of the tree has no parent
-    root = A.mnpos
+    root = arbor.mnpos
 
     # The root segment: a cylindrical soma with tag 1
     # NOTE: append returns the added segment's id, which we can use to
@@ -89,7 +89,7 @@ insertion order below, but different orders will produce the same morphology.
     axon = tree.append(axon, (-70.0, 0.0, 0.0, 0.4), (-100.0, 0.0, 0.0, 0.4), tag=2)
 
     # Turn segment tree into a morphology.
-    morph = A.morphology(tree);
+    morph = arbor.morphology(tree);
 
 The same morphology can be represented using an SWC file (interpreted according
 to :ref:`Arbor's specifications <morph-formats>`). We can save the following in
@@ -257,14 +257,14 @@ This will generate the following 2 locsets when applied to the previously define
 
    .. code-block:: python
 
-       decor.paint('(all)', A.density("pas"))
+       decor.paint('(all)', arbor.density("pas"))
 
    is perfectly acceptable, as is
 
    .. code-block:: python
 
        all = '(all)'
-       decor.paint(all, A.density("pas"))
+       decor.paint(all, arbor.density("pas"))
 
 
 The decorations

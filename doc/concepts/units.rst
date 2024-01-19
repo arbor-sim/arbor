@@ -7,7 +7,7 @@ Units in Arbor
 
    This is a work in progress. The near goal term is to make this coverage
    complete, but expect some exceptions. Notably, the interfaces of individual
-   mechanis are not yet integrate, since NMODL files -- despite explicitly
+   mechanism are not yet integrated, since NMODL files -- despite explicitly
    specifying units -- do not make good use of the feature.
 
 A large part of the interface of Arbor -- both in C++ and Python -- is covered
@@ -88,6 +88,26 @@ the catalogue of units via the underlying units library.
     milli           1e-3
     centi           1e-2
    =============   =======   =============   =======
+
+Parameters are passed into Arbor via a ``quantity``, which comprise a value and
+a unit. We construct a quantity by multiplication of a scalar value by a unit.
+Multiplication of two quantities will result in the pointwise product of the
+values and units; like one would expect.
+
+.. code-block:: python
+
+    # two kilometers, dimension is length
+    l = 2 * km
+
+    # three kilometers, but with the scaling factored out
+    s = 3 * kilo * m
+
+    # multiplication of two lengths gives an area
+    a = l * s
+    # is now 6 square kilometers
+
+Units and quantities work intuitively and largely the same across C++ and
+Python, but we provide some details below.
 
 C++
 ---
