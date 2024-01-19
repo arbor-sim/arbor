@@ -10,12 +10,13 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/units.hpp>
 #include <arbor/util/unique_any.hpp>
 
 
-#include "util/rangeutil.hpp"
-
 namespace arb {
+
+namespace U = units;
 
 // Common functionality: maintain an unordered map of probe data
 // per gid, built with `add_probe()`.
@@ -48,7 +49,7 @@ public:
     }
 
     void add_ion(const std::string& ion_name, int charge, double init_iconc, double init_econc, double init_revpot) {
-        cell_gprop_.add_ion(ion_name, charge, init_iconc, init_econc, init_revpot);
+        cell_gprop_.add_ion(ion_name, charge, init_iconc*U::mM, init_econc*U::mM, init_revpot*U::mV);
     }
 
     void nernst_ion(const std::string& ion_name) {

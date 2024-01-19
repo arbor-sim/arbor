@@ -1,7 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <stdexcept>
-
 #include <arbor/context.hpp>
 #include <arbor/domdecexcept.hpp>
 #include <arbor/domain_decomposition.hpp>
