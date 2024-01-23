@@ -3,7 +3,6 @@
 #include <arbor/arb_types.hpp>
 
 #include <iosfwd>
-#include <tuple>
 #include <vector>
 
 #include <arbor/export.hpp>

@@ -1,8 +1,6 @@
 #pragma once
 
-#include <array>
 #include <memory>
-#include <unordered_map>
 #include <vector>
 #include <functional>
 
@@ -50,7 +48,7 @@ public:
 
     void reset();
 
-    time_type run(time_type tfinal, time_type dt);
+    time_type run(const units::quantity& tfinal, const units::quantity& dt);
 
     // Minimum delay in network τ
     time_type min_delay();

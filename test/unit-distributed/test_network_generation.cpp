@@ -18,6 +18,7 @@
 
 using namespace arb;
 using namespace arborio::literals;
+namespace U = arb::units;
 
 namespace {
 // Create alternatingly a cable, lif and spike source cell with at most one source or target
@@ -57,8 +58,8 @@ public:
         auto decor = arb::decor{}
                          .paint("soma"_lab, arb::density("hh"))
                          .paint("dend"_lab, arb::density("pas"))
-                         .set_default(arb::axial_resistivity{100})  // [Ω·cm]
-                         .place(arb::mlocation{0, 0}, arb::threshold_detector{10}, "detector")
+                         .set_default(arb::axial_resistivity{100*U::Ohm*U::cm})  // [Ω·cm]
+                         .place(arb::mlocation{0, 0}, arb::threshold_detector{10*U::mV}, "detector")
                          .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "primary_syn");
 
         return arb::cable_cell(arb::morphology(tree), decor, labels);

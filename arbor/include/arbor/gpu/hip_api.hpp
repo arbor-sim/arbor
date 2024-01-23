@@ -1,5 +1,6 @@
 #include <utility>
 #include <string>
+#include <type_traits>
 
 #include <hip/hip_runtime.h>
 #include <hip/hip_runtime_api.h>
@@ -118,6 +119,14 @@ inline float gpu_atomic_sub(float* address, float val) {
 
 /// Warp-level Primitives
 
+template<typename T>
+__device__ __inline__
+std::enable_if_t< !std::is_same_v<std::decay_t<T>, double>, std::decay_t<T>>
+shfl(T x, int lane)
+{
+    return __shfl(x, lane);
+}
+
 __device__ __inline__ double shfl(double x, int lane)
 {
     auto tmp = static_cast<uint64_t>(x);
@@ -137,12 +146,14 @@ __device__ __inline__ unsigned any(unsigned mask, unsigned width) {
     return __any(width);
 }
 
-__device__ __inline__ double shfl_up(unsigned mask, int idx, unsigned lane_id, unsigned shift) {
-    return shfl(idx, lane_id - shift);
+template<typename T>
+__device__ __inline__ T shfl_up(unsigned mask, T var, unsigned lane_id, unsigned shift) {
+    return shfl(var, (int)lane_id - shift);
 }
 
-__device__ __inline__ double shfl_down(unsigned mask, int idx, unsigned lane_id, unsigned shift) {
-    return shfl(idx, lane_id + shift);
+template<typename T>
+__device__ __inline__ T shfl_down(unsigned mask, T var, unsigned lane_id, unsigned shift) {
+    return shfl(var, (int)lane_id + shift);
 }
 
 } // namespace gpu
