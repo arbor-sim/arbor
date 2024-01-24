@@ -22,8 +22,6 @@
 #include "util/range.hpp"
 #include "util/strprintf.hpp"
 
-#include <iostream>
-
 using arb::memory::make_const_view;
 
 namespace arb {
@@ -36,6 +34,8 @@ void take_samples_impl(
     const arb_value_type& time, arb_value_type* sample_time, arb_value_type* sample_value);
 
 void add_scalar(std::size_t n, arb_value_type* data, arb_value_type v);
+
+void apply_diffusive_concentration_delta_impl(std::size_t, arb_value_type*, arb_value_type* const *, arb_index_type const *);
 
 // GPU-side minmax: consider CUDA kernel replacement.
 std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, const arb_value_type* v) {
@@ -201,6 +201,12 @@ shared_state::shared_state(task_system_handle tp,
     add_scalar(temperature_degC.size(), temperature_degC.data(), -273.15);
 }
 
+void shared_state::apply_diffusive_concentration_delta() {
+    for (auto& [name, state] : ion_data) {
+        apply_diffusive_concentration_delta_impl(state.Xd_contribution.size(), state.Xd_.data(), state.Xd_contribution_d.data(), state.Xd_index_d.data());
+    }
+}
+
 void shared_state::update_prng_state(mechanism& m) {
     if (!m.mech_.n_random_variables) return;
     auto const mech_id = m.mechanism_id();
@@ -250,20 +256,23 @@ void shared_state::instantiate(mechanism& m,
     store.globals_    = std::vector<arb_value_type>(m.mech_.n_globals);
 
     // Set ion views
+    arb_size_type n_ions_with_written_xd = 0;
     for (auto idx: make_span(m.mech_.n_ions)) {
         auto ion = m.mech_.ions[idx].name;
         auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
         ion_state* oion = ptr_by_key(ion_data, ion_binding);
         if (!oion) throw arbor_internal_error("gpu/mechanism: mechanism holds ion with no corresponding shared state");
-        auto& ion_state = store.ion_states_[idx];
-        ion_state = {0};
-        ion_state.current_density         = oion->iX_.data();
-        ion_state.reversal_potential      = oion->eX_.data();
-        ion_state.internal_concentration  = oion->Xi_.data();
-        ion_state.external_concentration  = oion->Xo_.data();
-        ion_state.diffusive_concentration = oion->Xd_.data();
-        ion_state.ionic_charge            = oion->charge.data();
-        ion_state.conductivity            = oion->gX_.data();
+        auto& ion_state_ = store.ion_states_[idx]; // arb_ion_state
+        ion_state_ = {0};
+        ion_state_.current_density         = oion->iX_.data();
+        ion_state_.reversal_potential      = oion->eX_.data();
+        ion_state_.internal_concentration  = oion->Xi_.data();
+        ion_state_.external_concentration  = oion->Xo_.data();
+        ion_state_.diffusive_concentration = oion->Xd_.data();
+        ion_state_.ionic_charge            = oion->charge.data();
+        ion_state_.conductivity            = oion->gX_.data();
+
+        n_ions_with_written_xd += m.mech_.ions[idx].write_diff_concentration;
     }
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
@@ -272,7 +281,7 @@ void shared_state::instantiate(mechanism& m,
     // Allocate and initialize state and parameter vectors with default values.
     {
         // Allocate bulk storage
-        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1)*width_padded + m.mech_.n_globals;
+        std::size_t count = (m.mech_.n_state_vars + m.mech_.n_parameters + 1 + n_ions_with_written_xd)*width_padded + m.mech_.n_globals;
         store.data_ = array(count, NAN);
         chunk_writer writer(store.data_.data(), width_padded);
 
@@ -294,6 +303,11 @@ void shared_state::instantiate(mechanism& m,
         // Make STATE var the default
         for (auto idx: make_span(m.mech_.n_state_vars)) {
             store.state_vars_[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
+        }
+        // Set diffusive concentration deltas if needed
+        for (auto idx: make_span(m.mech_.n_ions)) {
+            store.ion_states_[idx].diffusive_concentration_delta =
+                m.mech_.ions[idx].write_diff_concentration ? writer.fill(0) : nullptr;
         }
         // Assign global scalar parameters. NB: Last chunk, since it breaks the width striding.
         for (auto idx: make_span(m.mech_.n_globals)) store.globals_[idx] = m.mech_.globals[idx].default_value;
@@ -332,6 +346,31 @@ void shared_state::instantiate(mechanism& m,
             auto indices = util::index_into(pos_data.cv, ni);
             std::vector<arb_index_type> mech_ion_index(indices.begin(), indices.end());
             store.ion_states_[idx].index = writer.append_with_padding(mech_ion_index, 0);
+
+            if (m.mech_.ions[idx].write_diff_concentration) {
+                auto& Xd_contribution_map = oion->Xd_contribution_map;
+                auto& Xd_contribution     = oion->Xd_contribution;
+                auto& Xd_index            = oion->Xd_index;
+                auto& Xd_contribution_d   = oion->Xd_contribution_d;
+                auto& Xd_index_d          = oion->Xd_index_d;
+                util::append(
+                    Xd_contribution_map,
+                    util::transform_view(
+                        util::make_span(width),
+                        [mech_ion_index, d = store.ion_states_[idx].diffusive_concentration_delta](const auto& i) {
+                            return std::make_pair(d+i, mech_ion_index[i]);
+                        }));
+                // sort contribution map according to index and transpose from AoS to SoA
+                util::stable_sort_by(Xd_contribution_map, [](const auto& p) { return p.second; });
+                Xd_contribution.clear(); Xd_contribution.reserve(Xd_contribution_map.size());
+                Xd_index.clear(); Xd_index.reserve(Xd_contribution_map.size());
+                for (auto [ptr, idx_] : Xd_contribution_map) {
+                    Xd_contribution.push_back(ptr);
+                    Xd_index.push_back(idx_);
+                }
+                Xd_contribution_d = memory::on_gpu(Xd_contribution);
+                Xd_index_d = memory::on_gpu(Xd_index);
+            }
         }
 
         m.ppack_.multiplicity = mult_in_place? writer.append_with_padding(pos_data.multiplicity, 0): nullptr;
