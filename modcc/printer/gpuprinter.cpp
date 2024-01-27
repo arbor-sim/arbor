@@ -217,7 +217,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                        "}}\n\n"),
                            pp_var_pfx);
     }
-    emit_api_kernel(state_api);
+    emit_api_kernel(state_api, true);
     emit_api_kernel(current_api, true);
     emit_api_kernel(write_ions_api);
 
@@ -232,11 +232,12 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                        "        const auto tid_ = (begin_ + ii_)->mech_index;\n"
                                        "        if ((ii_ > 0) && ((begin_ + (ii_ - 1))->mech_index == tid_)) return;\n"
                                        "        for (auto i_ = begin_ + ii_; i_ < end_; ++i_) {{\n"
+                                       "            int n_ = 0;\n"
                                        "            if (i_->mech_index != tid_) break;\n"
                                        "            [[maybe_unused]] auto {0} = i_->weight;\n"),
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
         out << indent << indent << indent;
-        emit_api_body_cu(out, net_receive_api, ApiFlags{}.point(is_point_proc).loop(false).iface(false));
+        emit_api_body_cu(out, net_receive_api, ApiFlags{}.point(is_point_proc).additive(true).loop(false).iface(false));
         out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n\n";
     }
 
@@ -433,6 +434,16 @@ namespace {
                      << (wrap.v.scalar()? "0": index_i_name(index_var)) << ']';
         }
     };
+
+    struct deref_delta {
+        indexed_variable_info v;
+        deref_delta(indexed_variable_info v): v(v) {}
+
+        friend std::ostream& operator<<(std::ostream& o, const deref_delta& wrap) {
+            return o << pp_var_pfx + wrap.v.data_var + "_delta" << '['
+                     << (wrap.v.scalar()? "0": "tid_") << ']';
+        }
+    };
 }
 
 void emit_state_read_cu(std::ostream& out, LocalVariable* local, const ApiFlags& flags) {
@@ -475,12 +486,7 @@ void emit_state_update_cu(std::ostream& out,
 
     if (d.additive && flags.use_additive) {
         out << name << " -= " << var << ";\n";
-        if (flags.is_point) {
-            out << fmt::format("::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n", weight, name, data, index);
-        }
-        else {
-            out << var << " = fma(" << weight << ", " << name << ", " << var << ");\n";
-        }
+        out << deref_delta(d) << " = " << weight << "*" << name << ";\n";
     }
     else if (write_voltage) {
         /* SAFETY:

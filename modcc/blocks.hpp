@@ -45,6 +45,9 @@ struct IonDep {
     bool writes_concentration_int() const {
         return writes_variable(name + "i");
     };
+    bool writes_concentration_diff() const {
+        return writes_variable(name + "d");
+    };
     bool writes_concentration_ext() const {
         return writes_variable(name + "o");
     };
