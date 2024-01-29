@@ -66,7 +66,7 @@ string(TOUPPER "${CMAKE_BUILD_TYPE}" arb_config_str)
 add_custom_command(
     OUTPUT version.hpp-test
     DEPENDS _always_rebuild
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/git-source-id ${FULL_VERSION_STRING} ${ARB_ARCH} ${arb_config_str} ${arb_features} > version.hpp-test
+    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/git-source-id ${FULL_VERSION_STRING} ${ARB_ARCH} ${arb_config_str} ${arb_features} > version.hpp-test
 )
 
 set(version_hpp_path arbor/version.hpp)
