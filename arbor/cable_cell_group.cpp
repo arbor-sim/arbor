@@ -1,6 +1,3 @@
-#include <functional>
-#include <optional>
-#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -18,8 +15,6 @@
 #include "cable_cell_group.hpp"
 #include "profile/profiler_macro.hpp"
 #include "sampler_map.hpp"
-#include "util/filter.hpp"
-#include "util/maputil.hpp"
 #include "util/partition.hpp"
 #include "util/range.hpp"
 #include "util/span.hpp"
@@ -225,7 +220,7 @@ void run_samples(
 
     auto& tmp = std::get<std::vector<double>>(scratch);
     tmp.clear();
-    tmp.reserve(n_raw_per_sample*n_sample);
+    tmp.reserve(static_cast<std::size_t>(n_raw_per_sample)*n_sample);
 
     for (sample_size_type j = 0; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
@@ -270,7 +265,7 @@ void run_samples(
 
     auto& tmp = std::get<std::vector<double>>(scratch);
     tmp.clear();
-    tmp.reserve(n_interp_per_sample*n_sample);
+    tmp.reserve(static_cast<std::size_t>(n_interp_per_sample)*n_sample);
 
     for (sample_size_type j = 0; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;

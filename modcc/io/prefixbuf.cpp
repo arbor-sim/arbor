@@ -76,9 +76,8 @@ int indent_manip::xindex() {
 static void apply_indent_prefix(std::ios& s, int index) {
     if (auto pbuf = dynamic_cast<prefixbuf*>(s.rdbuf())) {
         indent_stack* stack_ptr = static_cast<indent_stack*>(s.pword(index));
-        unsigned tabwidth = s.iword(index);
-
-        unsigned tabs = (!stack_ptr || stack_ptr->empty())? 0: stack_ptr->top();
+        size_t tabs = (!stack_ptr || stack_ptr->empty())? 0 : stack_ptr->top();
+        size_t tabwidth = s.iword(index);
         pbuf->prefix = std::string(tabs*tabwidth, ' ');
     }
 }
