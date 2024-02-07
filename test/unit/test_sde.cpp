@@ -378,7 +378,7 @@ public:
 // first argument indicates the number of random variables
 void advance_common(unsigned int n_rv, arb_mechanism_ppack* pp) {
     const auto width = pp->width;
-    arb_value_type* ptr = archive_ptr->claim(width * n_rv);
+    arb_value_type* ptr = archive_ptr->claim(std::size_t{width} * n_rv);
     for (arb_size_type j=0; j<n_rv; ++j) {
         for (arb_size_type i=0; i<width; ++i) {
             ptr[j*width+i] = pp->random_numbers[j][i];
