@@ -244,14 +244,12 @@ void run_samples(
     sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
 }
 
-void run_samples(
-    const fvm_probe_interpolated_multi& p,
-    const sampler_call_info& sc,
-    const arb_value_type* raw_times,
-    const arb_value_type* raw_samples,
-    std::vector<sample_record>& sample_records,
-    fvm_probe_scratch& scratch)
-{
+void run_samples(const fvm_probe_interpolated_multi& p,
+                 const sampler_call_info& sc,
+                 const arb_value_type* raw_times,
+                 const arb_value_type* raw_samples,
+                 std::vector<sample_record>& sample_records,
+                 fvm_probe_scratch& scratch) {
     const sample_size_type n_raw_per_sample = p.raw_handles.size();
     const sample_size_type n_interp_per_sample = n_raw_per_sample/2;
     sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
@@ -265,7 +263,7 @@ void run_samples(
 
     auto& tmp = std::get<std::vector<double>>(scratch);
     tmp.clear();
-    tmp.reserve(static_cast<std::size_t>(n_interp_per_sample)*n_sample);
+    tmp.reserve(n_interp_per_sample*n_sample);
 
     for (sample_size_type j = 0; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
