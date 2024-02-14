@@ -377,7 +377,7 @@ public:
 // generic advance method used for all pertinent mechanisms
 // first argument indicates the number of random variables
 void advance_common(unsigned int n_rv, arb_mechanism_ppack* pp) {
-    auto width = static_cast<size_t>(pp->width);
+    std::size_t width = static_cast<size_t>(pp->width);
     arb_value_type* ptr = archive_ptr->claim(width*n_rv);
     for (arb_size_type j=0; j<n_rv; ++j) {
         for (arb_size_type i=0; i<width; ++i) {
@@ -413,7 +413,7 @@ TEST(sde, reproducibility) {
     // simulation parameters
     unsigned ncells = 4;
     unsigned ncvs = 2;
-    auto const dt = 0.5*arb::units::ms;
+    auto const dt = 0.5*U::ms;
     unsigned nsteps = 6;
 
     // Decorations with a bunch of stochastic processes
@@ -494,7 +494,7 @@ TEST(sde, normality) {
     unsigned ncells = 4;
     unsigned nsynapses = 100;
     unsigned ncvs = 100;
-    auto dt = 0.5*arb::units::ms;;
+    auto dt = 0.5*U::ms;;
     unsigned nsteps = 50;
 
     // make labels (and locations for synapses)
@@ -651,7 +651,7 @@ TEST(sde, solver) {
     unsigned ncells = 4;
     unsigned nsynapses = 2000;
     unsigned ncvs = 1;
-    auto dt = 1.0/512*arb::units::ms; // need relatively small time steps due to low accuracy
+    auto dt = 1.0/512*U::ms; // need relatively small time steps due to low accuracy
     unsigned nsteps = 100;
     unsigned nsims = 4;
 
@@ -806,7 +806,7 @@ TEST(sde, coupled) {
     unsigned ncells = 4;
     unsigned nsynapses = 2000;
     unsigned ncvs = 1;
-    auto dt = 1.0/512*arb::units::ms; // need relatively small time steps due to low accuracy
+    auto dt = 1.0/512*U::ms; // need relatively small time steps due to low accuracy
     unsigned nsteps = 100;
     unsigned nsims = 4;
 
