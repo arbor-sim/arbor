@@ -29,10 +29,10 @@ public:
 
     // returns true if the currently marked time step has no events
     bool empty() const {
-        return ev_data_.empty()
-            || !index_
-            || index_ > ev_spans_.size()
-            || ev_spans_[index_-1] >= ev_spans_[index_];
+        return ev_data_.empty()                          // No events
+            || index_ < 1                                // Since we index with a left bias, index_ must be at least 1
+            || index_ >= ev_spans_.size()                // Cannot index at container length
+            || ev_spans_[index_-1] >= ev_spans_[index_]; // Current span is empty
     }
 
     void mark() { index_ += 1; }
@@ -51,6 +51,7 @@ public:
     // clear all previous data
     void clear() {
         ev_data_.clear();
+        // Clear + push doesn't allocate a new vector
         ev_spans_.clear();
         ev_spans_.push_back(0);
         index_ = 0;
