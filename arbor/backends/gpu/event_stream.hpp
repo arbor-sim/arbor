@@ -2,10 +2,7 @@
 
 // Indexed collection of pop-only event queues --- CUDA back-end implementation.
 
-#include "backends/event_stream_base.hpp"
-#include "memory/memory.hpp"
 #include "util/partition.hpp"
-#include "util/range.hpp"
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
 #include "threading/threading.hpp"

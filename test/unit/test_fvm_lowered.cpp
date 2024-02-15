@@ -697,8 +697,6 @@ TEST(fvm_lowered, point_ionic_current) {
 
     // Only one target, corresponding to our point process on soma.
     double ica_nA = 12.3;
-    deliverable_event ev = {0.04, target_handle{0, 0}, (float)ica_nA};
-
     std::vector<pse_vector> events{{{0, 0.04, (float)ica_nA}}};
     auto lanes = util::subrange_view(events, 0, events.size());
 
