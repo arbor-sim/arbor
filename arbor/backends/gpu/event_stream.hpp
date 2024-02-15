@@ -2,10 +2,11 @@
 
 // Indexed collection of pop-only event queues --- CUDA back-end implementation.
 
-#include "util/partition.hpp"
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
 #include "threading/threading.hpp"
+#include "timestep_range.hpp"
+
 #include <arbor/mechanism_abi.h>
 
 ARB_SERDES_ENABLE_EXT(arb_deliverable_event_data, mech_index, weight);
@@ -14,11 +15,9 @@ namespace arb {
 namespace gpu {
 
 template <typename Event>
-class event_stream :
-        public event_stream_base<Event,
-                                 typename memory::device_vector<::arb::event_data_type<Event>>::view_type> {
+class event_stream: public event_stream_base<Event> {
 public:
-    using base = event_stream_base<Event, typename memory::device_vector<::arb::event_data_type<Event>>::view_type>;
+    using base = event_stream_base<Event>;
     using size_type = typename base::size_type;
     using event_data_type = typename base::event_data_type;
     using device_array = memory::device_vector<event_data_type>;
@@ -87,6 +86,15 @@ public:
 
         arb_assert(num_events == base::ev_data_.size());
     }
+
+    static void multi_event_stream(const event_lane_subrange& lanes,
+                                   const std::vector<target_handle>& handles,
+                                   const std::vector<std::size_t>& divs,
+                                   const timestep_range& steps,
+                                   std::unordered_map<unsigned, event_stream>& streams) {
+
+    }
+
 
     friend void serialize(serializer& ser, const std::string& k, const event_stream<Event>& t) {
         ser.begin_write_map(::arb::to_serdes_key(k));

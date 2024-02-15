@@ -381,9 +381,7 @@ void shared_state::instantiate(arb::mechanism& m,
 
     util::padded_allocator<> pad(m.data_alignment());
 
-    if (storage.find(id) != storage.end()) {
-        throw arbor_internal_error("Duplicate mechanism id in MC shared state.");
-    }
+    if (storage.count(id)) throw arbor_internal_error("Duplicate mechanism id in MC shared state.");
     streams[id] = deliverable_event_stream{};
     auto& store = storage[id];
     auto width = pos_data.cv.size();
