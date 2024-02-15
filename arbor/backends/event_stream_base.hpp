@@ -21,7 +21,7 @@ protected: // private member types
 
 protected: // members
     std::vector<event_data_type> ev_data_;
-        std::vector<std::size_t> ev_spans_ = {0};
+    std::vector<std::size_t> ev_spans_ = {0};
     size_type index_ = 0;
 
 public:
