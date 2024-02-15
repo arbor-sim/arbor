@@ -11,7 +11,6 @@
 namespace arb {
 namespace multicore {
 
-
 using event_lane_subrange = util::subrange_view_type<std::vector<pse_vector>>;
 
 template <typename Event>
@@ -50,7 +49,10 @@ struct event_stream: public event_stream_base<Event> {
         arb_assert(staged.size() + 1 == base::ev_spans_.size());
     }
 
-    ARB_SERDES_ENABLE(event_stream<Event>, ev_data_, ev_spans_, index_);
+    ARB_SERDES_ENABLE(event_stream<Event>,
+                      ev_data_,
+                      ev_spans_,
+                      index_);
 
     // Construct a mapping of mech_id to a stream s.t. streams are partitioned into
     // time step buckets by `ev_span`

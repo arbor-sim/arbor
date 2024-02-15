@@ -3,9 +3,13 @@
 #include <vector>
 
 #include <arbor/generic_event.hpp>
+#include <arbor/mechanism_abi.h>
+
 
 #include "backends/event.hpp"
 #include "backends/event_stream_state.hpp"
+
+ARB_SERDES_ENABLE_EXT(arb_deliverable_event_data, mech_index, weight);
 
 namespace arb {
 

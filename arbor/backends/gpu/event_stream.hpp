@@ -13,8 +13,6 @@
 
 #include <arbor/mechanism_abi.h>
 
-ARB_SERDES_ENABLE_EXT(arb_deliverable_event_data, mech_index, weight);
-
 namespace arb {
 namespace gpu {
 
@@ -100,7 +98,11 @@ public:
 
     }
 
-    ARB_SERDES_ENABLE(event_stream<Event>, ev_data_, ev_spans_, device_ev_data_, index_);
+    ARB_SERDES_ENABLE(event_stream<Event>,
+                      ev_data_,
+                      ev_spans_,
+                      // device_ev_data_,
+                      index_);
 
 private:
     template<typename D>

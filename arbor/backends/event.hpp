@@ -59,7 +59,6 @@ struct deliverable_event_data {
         mech_index(idx),
         weight(w) {}
     ARB_SERDES_ENABLE(deliverable_event_data,
-                      // mech_id,
                       mech_index,
                       weight);
 };
