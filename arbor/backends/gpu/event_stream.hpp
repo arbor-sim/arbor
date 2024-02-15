@@ -68,13 +68,15 @@ public:
             [this, &staged](size_type i) {
                 const auto beg = base::ev_spans_[i];
                 const auto end = base::ev_spans_[i + 1];
+                arb_assert(end >= beg);
+                const auto len = end - beg;
                 // host span
                 auto host_span = memory::make_view(base::ev_data_)(beg, end);
 
                 // make event data and copy
                 std::copy_n(util::transform_view(staged[i],
                                                  [](const auto& x) { return event_data(x); }).begin(),
-                            size,
+                            len,
                             host_span.begin());
                 // sort if necessary
                 if constexpr (has_event_index<Event>::value) {
