@@ -4,6 +4,7 @@
 
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
+#include "util/partition.hpp"
 #include "threading/threading.hpp"
 #include "timestep_range.hpp"
 
@@ -25,7 +26,6 @@ public:
 private: // members
     task_system_handle thread_pool_;
     device_array device_ev_data_;
-    std::vector<size_type> offsets_;
 
 public:
     event_stream() = default;
@@ -33,7 +33,6 @@ public:
 
     void clear() {
         base::clear();
-        offsets_.clear();
     }
 
     // Initialize event streams from a vector of vector of events
@@ -50,26 +49,24 @@ public:
         if (!num_events) return;
 
         // allocate space for spans and data
-        base::ev_spans_.resize(staged.size());
+        base::ev_spans_.resize(staged.size() + 1);
         base::ev_data_.resize(num_events);
-        offsets_.resize(staged.size()+1);
         resize(device_ev_data_, num_events);
 
         // compute offsets by exclusive scan over staged events
-        util::make_partition(offsets_,
-            util::transform_view(staged, [&](const auto& v) { return v.size(); }),
-            (size_type)0u);
+        util::make_partition(base::ev_spans_,
+                             util::transform_view(staged, [&](const auto& v) { return v.size(); }),
+                             (std::size_t)0u);
 
         // assign, copy to device (and potentially sort) the event data in parallel
         arb_assert(thread_pool_);
         threading::parallel_for::apply(0, staged.size(), thread_pool_.get(),
-            [this,&staged](size_type i) {
-                const auto offset = offsets_[i];
-                const auto size = staged[i].size();
-                // add device range
-                base::ev_spans_[i] = device_ev_data_(offset, offset + size);
+            [this, &staged](size_type i) {
+                const auto beg = base::ev_spans_[i];
+                const auto end = base::ev_spans_[i + 1];
                 // host span
-                auto host_span = memory::make_view(base::ev_data_)(offset, offset + size);
+                auto host_span = memory::make_view(base::ev_data_)(beg, end);
+
                 // make event data and copy
                 std::copy_n(util::transform_view(staged[i],
                                                  [](const auto& x) { return event_data(x); }).begin(),
