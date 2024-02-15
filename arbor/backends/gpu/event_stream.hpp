@@ -9,6 +9,7 @@
 #include "util/partition.hpp"
 #include "threading/threading.hpp"
 #include "timestep_range.hpp"
+#include "memory/memory.hpp"
 
 #include <arbor/mechanism_abi.h>
 
@@ -70,8 +71,9 @@ public:
                 const auto end = base::ev_spans_[i + 1];
                 arb_assert(end >= beg);
                 const auto len = end - beg;
-                // host span
+
                 auto host_span = memory::make_view(base::ev_data_)(beg, end);
+                auto device_span = memory::make_view(device_ev_data_)(beg, end);
 
                 // make event data and copy
                 std::copy_n(util::transform_view(staged[i],
@@ -84,7 +86,7 @@ public:
                                          [](const event_data_type& ed) { return event_index(ed); });
                 }
                 // copy to device
-                memory::copy_async(host_span, base::ev_spans_[i]);
+                memory::copy_async(host_span, device_span);
             });
 
         arb_assert(num_events == base::ev_data_.size());
