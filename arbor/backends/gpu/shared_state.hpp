@@ -256,12 +256,12 @@ ARB_SERDES_ENABLE_EXT(gpu::ion_state, Xd_, gX_);
 ARB_SERDES_ENABLE_EXT(gpu::mech_storage,
                       data_,
                       // NOTE(serdes) ion_states_, this is just a bunch of pointers
-                      random_numbers_,
-                      deliverable_events_);
+                      random_numbers_);
 ARB_SERDES_ENABLE_EXT(gpu::shared_state,
                       cbprng_seed,
                       ion_data,
                       storage,
+                      streams,
                       voltage,
                       current_density,
                       conductivity,
