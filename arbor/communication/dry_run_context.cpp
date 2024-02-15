@@ -47,7 +47,7 @@ struct dry_run_context_impl {
     void remote_ctrl_send_done() const {}
     gathered_vector<cell_gid_type>
     gather_gids(const std::vector<cell_gid_type>& local_gids) const {
-        size_t local_size = local_gids.size();
+        std::size_t local_size = local_gids.size();
 
         std::vector<cell_gid_type> gathered_gids;
         gathered_gids.reserve(local_size*num_ranks_);
@@ -57,14 +57,14 @@ struct dry_run_context_impl {
         }
 
         for (size_t i = 0; i < num_ranks_; i++) {
-            for (size_t j = i*local_size; j < (i+1)*local_size; j++){
+            for (std::size_t j = i*local_size; j < (i+1)*local_size; j++){
                 gathered_gids[j] += num_cells_per_tile_*i;
             }
         }
 
         using count_type = typename gathered_vector<cell_gid_type>::count_type;
         std::vector<count_type> partition;
-        for (size_t i = 0; i <= num_ranks_; i++) {
+        for (std::size_t i = 0; i <= num_ranks_; i++) {
             partition.push_back(static_cast<count_type>(i*local_size));
         }
 

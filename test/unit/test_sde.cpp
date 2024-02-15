@@ -377,7 +377,7 @@ public:
 // generic advance method used for all pertinent mechanisms
 // first argument indicates the number of random variables
 void advance_common(unsigned int n_rv, arb_mechanism_ppack* pp) {
-    std::size_t width = static_cast<size_t>(pp->width);
+    auto width = static_cast<size_t>(pp->width);
     arb_value_type* ptr = archive_ptr->claim(width*n_rv);
     for (arb_size_type j=0; j<n_rv; ++j) {
         for (arb_size_type i=0; i<width; ++i) {
