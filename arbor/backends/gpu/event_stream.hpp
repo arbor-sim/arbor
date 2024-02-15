@@ -2,6 +2,8 @@
 
 // Indexed collection of pop-only event queues --- CUDA back-end implementation.
 
+#include "arbor/spike_event.hpp"
+#include "backends/event_stream_base.hpp"
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
 #include "util/partition.hpp"
@@ -14,6 +16,8 @@ ARB_SERDES_ENABLE_EXT(arb_deliverable_event_data, mech_index, weight);
 
 namespace arb {
 namespace gpu {
+
+using event_lane_subrange = util::subrange_view_type<std::vector<pse_vector>>;
 
 template <typename Event>
 class event_stream: public event_stream_base<Event> {
