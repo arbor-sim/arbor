@@ -29,7 +29,7 @@ public:
     using base::clear;
     using base::ev_data_;
     using base::ev_spans_;
-    using base::base_ptr;
+    using base::base_ptr_;
 
     event_stream() = default;
     event_stream(task_system_handle t): base(), thread_pool_{t} {}
@@ -84,7 +84,7 @@ public:
                 memory::copy_async(host_span, device_span);
             });
 
-        base_ptr = device_ev_data_.data();
+        base_ptr_ = device_ev_data_.data();
 
         arb_assert(num_events == device_ev_data_.size());
         arb_assert(num_events == ev_data_.size());
@@ -125,6 +125,7 @@ public:
         for (auto& [id, stream]: streams) {
             util::make_partition(stream.ev_spans_, dt_sizes[id]);
             resize(stream.device_ev_data_, stream.ev_data_.size());
+            stream.base_ptr_ = stream.device_ev_data_.data();
 
             threading::parallel_for::apply(0, stream.ev_spans_.size() - 1,
                                            stream.thread_pool_.get(),
@@ -154,7 +155,6 @@ public:
         if (d.size() < size) {
             d = D(size);
         }
-        d.base_ptr = d.device_ev_data_.data();
     }
 
     ARB_SERDES_ENABLE(event_stream<Event>,

@@ -24,7 +24,7 @@ protected: // members
     std::vector<event_data_type> ev_data_;
     std::vector<std::size_t> ev_spans_ = {0};
     size_type index_ = 0;
-    event_data_type* base_ptr = nullptr;
+    event_data_type* base_ptr_ = nullptr;
 
 public:
     event_stream_base() = default;
@@ -43,8 +43,8 @@ public:
         auto beg = (event_data_type*)nullptr;
         auto end = (event_data_type*)nullptr;
         if (!empty()) {
-            beg = base_ptr + ev_spans_[index_-1];
-            end = base_ptr + ev_spans_[index_];
+            beg = base_ptr_ + ev_spans_[index_-1];
+            end = base_ptr_ + ev_spans_[index_];
         }
         return make_event_stream_state(beg, end);
     }
@@ -55,7 +55,7 @@ public:
         // Clear + push doesn't allocate a new vector
         ev_spans_.clear();
         ev_spans_.push_back(0);
-        base_ptr = nullptr;
+        base_ptr_ = nullptr;
         index_ = 0;
     }
 };
