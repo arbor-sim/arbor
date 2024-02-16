@@ -83,7 +83,7 @@ public:
                 memory::copy_async(host_span, device_span);
             });
         
-        arb_assert(num_events == ev_device_data_.size());
+        arb_assert(num_events == device_ev_data_.size());
         arb_assert(num_events == ev_data_.size());
     }
 
