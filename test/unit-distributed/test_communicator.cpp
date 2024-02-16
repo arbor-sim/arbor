@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include "test.hpp"
 
-#include <tuple>
 #include <vector>
 
 #include <arbor/domain_decomposition.hpp>
@@ -11,7 +10,6 @@
 #include <arbor/spike_event.hpp>
 
 #include "communication/communicator.hpp"
-#include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "lif_cell_group.hpp"
 #include "cable_cell_group.hpp"
@@ -24,6 +22,7 @@
 #endif
 
 using namespace arb;
+namespace U = arb::units;
 
 TEST(communicator, policy_basics) {
 
@@ -204,7 +203,7 @@ namespace {
                 tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
                 arb::decor decor;
                 decor.set_default(arb::cv_policy_fixed_per_branch(10));
-                decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10}, "src");
+                decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10*arb::units::mV}, "src");
                 decor.place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "tgt");
                 return arb::cable_cell(arb::morphology(tree), decor);
             }
@@ -221,10 +220,9 @@ namespace {
             // delay is 1
             cell_global_label_type src = {gid==0? size_-1: gid-1, "src"};
             cell_local_label_type dst = {"tgt"};
-            return {cell_connection(
-                        src, dst,   // end points
-                        float(gid), // weight
-                        1.0f)};     // delay
+            return {cell_connection(src, dst,    // end points
+                                    float(gid),  // weight
+                                    1.0*U::ms)}; // delay
         }
 
         std::any get_global_properties(arb::cell_kind kind) const override {
@@ -277,7 +275,7 @@ namespace {
             tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
             arb::decor decor;
             decor.set_default(arb::cv_policy_fixed_per_branch(10));
-            decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10}, "src");
+            decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10*arb::units::mV}, "src");
             decor.place(arb::ls::uniform(arb::reg::all(), 0, size_, gid), arb::synapse("expsyn"), "tgt");
             return arb::cable_cell(arb::morphology(tree), decor);
         }
@@ -289,12 +287,10 @@ namespace {
             std::vector<cell_connection> cons;
             cons.reserve(size_);
             for (auto sid: util::make_span(0, size_)) {
-                cell_connection con(
-                        {sid, {"src", arb::lid_selection_policy::round_robin}}, // source
-                        {"tgt", arb::lid_selection_policy::round_robin},        // destination
-                        float(gid+sid), // weight
-                        1.0f);          // delay
-                cons.push_back(con);
+                cons.emplace_back(cell_connection{{sid, {"src", arb::lid_selection_policy::round_robin}}, // source
+                                                  {"tgt", arb::lid_selection_policy::round_robin},        // destination
+                                                  float(gid+sid),                                         // weight
+                                                  1.0f*U::ms});                                           // delay
             }
             return cons;
         }
@@ -354,8 +350,8 @@ namespace {
                 decor.place(arb::ls::uniform(arb::reg::all(), 2, 2, gid), arb::synapse("expsyn"), "synapses_1");
             }
             else {
-                decor.place(arb::ls::uniform(arb::reg::all(), 0, 2, gid), arb::threshold_detector{10}, "detectors_0");
-                decor.place(arb::ls::uniform(arb::reg::all(), 3, 3, gid), arb::threshold_detector{10}, "detectors_1");
+                decor.place(arb::ls::uniform(arb::reg::all(), 0, 2, gid), arb::threshold_detector{10*arb::units::mV}, "detectors_0");
+                decor.place(arb::ls::uniform(arb::reg::all(), 3, 3, gid), arb::threshold_detector{10*arb::units::mV}, "detectors_1");
             }
             return arb::cable_cell(arb::morphology(tree), decor);
         }
@@ -402,20 +398,17 @@ namespace {
             if (gid%3 != 1) {
                 for (auto sid: util::make_span(0, ncells_)) {
                     if (sid%3 == 1) {
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_1", pol::assert_univalent}, 1.0, 1.0});
-
-                        cons.push_back({{sid, "detectors_1", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-                        cons.push_back({{sid, "detectors_1", pol::round_robin}, {"synapses_0", pol::round_robin}, 1.0, 1.0});
-
-                        cons.push_back({{sid, "detectors_1", pol::assert_univalent}, {"synapses_1", pol::round_robin}, 1.0, 1.0});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_1", pol::assert_univalent}, 1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_1", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_1", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_1", pol::assert_univalent}, {"synapses_1", pol::round_robin}, 1.0, 1.0*U::ms});
                     }
                 }
             }

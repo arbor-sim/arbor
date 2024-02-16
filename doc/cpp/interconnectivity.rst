@@ -34,9 +34,9 @@ Interconnectivity
         the `expsyn` synapse interprets it as a conductance
         with units μS (micro-Siemens).
 
-    .. cpp:member:: float delay
+    .. cpp:member:: units::quantity delay
 
-        Delay of the connection (milliseconds).
+        Delay of the connection (milliseconds), must be positive and finite.
 
 .. cpp:class:: ext_cell_connection
 

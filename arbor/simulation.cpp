@@ -1,5 +1,4 @@
 #include <memory>
-#include <set>
 #include <vector>
 
 #include <arbor/export.hpp>
@@ -15,13 +14,10 @@
 #include "cell_group.hpp"
 #include "cell_group_factory.hpp"
 #include "communication/communicator.hpp"
-#include "execution_context.hpp"
 #include "merge_events.hpp"
 #include "thread_private_spike_store.hpp"
 #include "threading/threading.hpp"
-#include "util/filter.hpp"
 #include "util/maputil.hpp"
-#include "util/partition.hpp"
 #include "util/span.hpp"
 #include "profile/profiler_macro.hpp"
 
@@ -398,6 +394,9 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     // Requires state at end of run(), with epoch_.id==k:
     //     * U(k) and D(k) have completed.
 
+    if (!std::isfinite(tfinal) || tfinal < 0) throw std::domain_error("simulation: tfinal must be finite, positive, and in [ms]");
+    if (!std::isfinite(dt) || tfinal < 0) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
+
     if (tfinal<=epoch_.t1) return epoch_.t1;
 
     // Compute following epoch, with max time tfinal.
@@ -596,11 +595,12 @@ void simulation::reset() {
 
 void simulation::update(const connectivity& rec) { impl_->update(rec); }
 
-time_type simulation::run(time_type tfinal, time_type dt) {
-    if (dt <= 0.0) {
-        throw domain_error("Finite time-step must be supplied.");
-    }
-    return impl_->run(tfinal, dt);
+time_type simulation::run(const units::quantity& tfinal, const units::quantity& dt) {
+    auto dt_ms = dt.value_as(units::ms);
+    if (dt_ms <= 0.0 || std::isnan(dt_ms)) throw domain_error("Finite time-step must be supplied.");
+    auto tfinal_ms = tfinal.value_as(units::ms);
+    if (tfinal_ms <= 0.0 || std::isnan(tfinal_ms)) throw domain_error("Finite time-step must be supplied.");
+    return impl_->run(tfinal_ms, dt_ms);
 }
 
 sampler_association_handle simulation::add_sampler(

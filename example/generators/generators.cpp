@@ -10,7 +10,6 @@
 #include <cassert>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 
 #include <nlohmann/json.hpp>
 
@@ -99,15 +98,14 @@ public:
 
         // Add excitatory generator
         gens.push_back(
-            arb::poisson_generator({"syn"},               // Target synapse index on cell `gid`
-                                   w_e,                   // Weight of events to deliver
-                                   t0,                    // Events start being delivered from this time
-                                   lambda_e,              // Expected frequency (kHz)
-                                   RNG(29562872)));       // Random number generator to use
+            arb::poisson_generator({"syn"},                  // Target synapse index on cell `gid`
+                                   w_e,                      // Weight of events to deliver
+                                   t0*arb::units::ms,        // Events start being delivered from this time
+                                   lambda_e*arb::units::kHz, // Expected frequency (kHz)
+                                   29562872));               // Random number generator to use
 
         // Add inhibitory generator
-        gens.emplace_back(
-            arb::poisson_generator({"syn"}, w_i, t0, lambda_i,  RNG(86543891)));
+        gens.emplace_back(arb::poisson_generator({"syn"}, w_i, t0*arb::units::ms, lambda_i*arb::units::kHz, 86543891));
 
         return gens;
     }
@@ -138,14 +136,14 @@ int main() {
     // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
     auto probeset_id = arb::cell_address_type{0, "Um"};
     // The schedule for sampling is 10 samples every 1 ms.
-    auto sched = arb::regular_schedule(0.1);
+    auto sched = arb::regular_schedule(0.1*arb::units::ms);
     // This is where the voltage samples will be stored as (time, value) pairs
     arb::trace_vector<double> voltage;
     // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
     sim.add_sampler(arb::one_probe(probeset_id), sched, arb::make_simple_sampler(voltage));
 
     // Run the simulation for 100 ms, with time steps of 0.01 ms.
-    sim.run(100, 0.01);
+    sim.run(100*arb::units::ms, 0.01*arb::units::ms);
 
     // Write the samples to a json file.
     write_trace_json(voltage.at(0));

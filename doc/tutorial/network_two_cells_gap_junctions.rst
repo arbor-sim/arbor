@@ -3,9 +3,11 @@
 Two cells connected via a gap junction
 ======================================
 
-In this example, we will set up two cells connected via a gap junction.
-The cells have different leak potentials.
-We will investigate how the equilibrium potentials of the two cells change because of the gap junction connection.
+In this example, we will set up two cells connected via a gap junction. Each of
+the cells has a passive leak current as its only dynamics. This plus the gap
+junction will produce an equilibrium potential different from both the resting
+potentials. We will investigate how the equilibrium potentials of the two cells
+change due of the gap junction connection.
 
 .. figure:: network_two_cells_gap_junctions_circuit.svg
     :width: 400
@@ -22,6 +24,9 @@ We will investigate how the equilibrium potentials of the two cells change becau
    3. Running the simulation and extracting the results.
    4. Adding a gap junction connection.
 
+We assume prior exposure to the concepts of cable cells, recipes, and simple
+networks.
+
 Walk-through
 ************
 
@@ -29,54 +34,73 @@ We set up a recipe for the simulation of two cells
 
 .. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
    :language: python
-   :lines: 13-45
+   :lines: 13-37
 
 in which we store the relevant parameters for the two cells, all of which are
-shared except the equilibrium potentials in ``Vms``. Next, we define callbacks
-to define our cell population:
+shared except the equilibrium potentials in ``Vms``. These are used to build
+the network.
 
-- ``num_cells`` returns the number of cells in the network, ie 2
+Let's quickly check some standard callbacks:
+
+- ``num_cells`` returns the number of cells in the network, fixed as 2
 - ``cell_kind`` specifies that we handle ``cable_cell`` exclusively.
-- ``global_properties`` returns a list of standard parameters based on the defaults of the NEURON simulator.
-- ``cell_description`` member function constructs the morphology and sets the properties of the cells as well as the gap junction mechanisms and the discretization policy. It returns the finished ``cable_cell``, matching the ``cell_kind`` callback.
+- ``global_properties`` returns a list of standard parameters based on the
+  defaults of the NEURON simulator.
+- ``probes`` record the membrane potential at the cell mid.
+
+The two remaining methods are:
+
+``cell_description``
+--------------------
+
+We construct a basic, single segment morphology from the ``length`` and
+``radius`` parameters. The decor sets the basic parameters and adds the passive
+leak current ``pas`` with the given resting value ``Vms[gid]`` and conductivity
+``g``.
 
 .. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
    :language: python
-   :lines: 49-93
+   :lines: 58
 
-We build the network conections, here a single, bidirectional gap junction
+The only new item is the placement of the gap junction endpoint at ``midpoint``
+with the basic, builtin ``gj`` dynamics type (other dynamics may be defined and
+used).
 
-.. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
-   :language: python
-   :lines: 97-105
 
-And, finally, we return a set of probes which are passed in during construction
+``gap_junctions_on``
+-------------------
 
-.. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
-   :language: python
-   :lines: 108-109
-
-We parse the command line arguments which are used to set parameters in the recipe
+Similar to ``connections_on``, this method returns a list of gap junction
+connections and these are defined in the same manner.
 
 .. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
    :language: python
-   :lines: 113-147
+   :lines: 69-70
 
-Next, we define a list of probes and construct the recipe and simulation
+By ``(gid + 1) % 2`` we define two connections, one per cell, between the cells.
+This is due to the uni-directional definition of gap junctions in Arbor.
+
+Running the simulation
+**********************
+
+To allow runtime configuration, we define a parser for command line arguments
+which are used to set parameters in the recipe
 
 .. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
    :language: python
-   :lines: 149-154
+   :lines: 76-98
 
-Having set up the simulation, we setting probe sampling on a regular grid with
-width equal to the timestep :math:`dt`. Now, we can run it and access the sampling values
+
+We then set up the simulation and configure sampling width equal to the timestep
+:math:`dt`. Now, we can run the network.
 
 .. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
    :language: python
-   :lines: 156-178
+   :lines: 100-110
 
 All that is left to do is to put this into a plot. The output plot below shows
-how the potential of the two cells approaches their equilibrium potentials
+how the potential of the two cells approaches their equilibrium potentials, which
+can be computed from the given parameters.
 
 .. math::
 
@@ -90,7 +114,7 @@ how the potential of the two cells approaches their equilibrium potentials
 
 
 The full code
-*************
+**************
 
 You can find the full code of the example at ``python/examples/network_two_cells_gap_junctions.py``
 
