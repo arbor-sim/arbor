@@ -18,11 +18,13 @@ struct event_stream: public event_stream_base<Event> {
     using base = event_stream_base<Event>;
     using size_type = typename base::size_type;
 
-    event_stream() = default;
 
     using base::clear;
     using base::ev_spans_;
     using base::ev_data_;
+    using base::base_ptr;
+
+    event_stream() = default;
 
     // Initialize event streams from a vector of vector of events
     // Outer vector represents time step bins
@@ -49,6 +51,7 @@ struct event_stream: public event_stream_base<Event> {
 
         arb_assert(num_events == ev_data_.size());
         arb_assert(staged.size() + 1 == ev_spans_.size());
+        base_ptr = ev_data_.data();
     }
 
     ARB_SERDES_ENABLE(event_stream<Event>,
@@ -90,7 +93,10 @@ struct event_stream: public event_stream_base<Event> {
             ++cell;
         }
 
-        for (auto& [k, v]: streams) util::make_partition(v.ev_spans_, dt_sizes[k]);
+        for (auto& [id, stream]: streams) {
+            util::make_partition(stream.ev_spans_, dt_sizes[id]);
+            stream.base_ptr = stream.ev_data_.data();
+        }
     }
 };
 } // namespace multicore

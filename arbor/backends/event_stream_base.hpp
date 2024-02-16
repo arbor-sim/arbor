@@ -14,19 +14,17 @@ ARB_SERDES_ENABLE_EXT(arb_deliverable_event_data, mech_index, weight);
 namespace arb {
 
 template <typename Event>
-class event_stream_base {
-public: // member types
+struct event_stream_base {
     using size_type = std::size_t;
     using event_type = Event;
     using event_time_type = ::arb::event_time_type<Event>;
     using event_data_type = ::arb::event_data_type<Event>;
 
-protected: // private member types
-
 protected: // members
     std::vector<event_data_type> ev_data_;
     std::vector<std::size_t> ev_spans_ = {0};
     size_type index_ = 0;
+    event_data_type* base_ptr = nullptr;
 
 public:
     event_stream_base() = default;
@@ -45,9 +43,8 @@ public:
         auto beg = (event_data_type*)nullptr;
         auto end = (event_data_type*)nullptr;
         if (!empty()) {
-            auto ptr = ev_data_.data();
-            beg = ptr + ev_spans_[index_-1];
-            end = ptr + ev_spans_[index_];
+            beg = base_ptr + ev_spans_[index_-1];
+            end = base_ptr + ev_spans_[index_];
         }
         return make_event_stream_state(beg, end);
     }
@@ -58,6 +55,7 @@ public:
         // Clear + push doesn't allocate a new vector
         ev_spans_.clear();
         ev_spans_.push_back(0);
+        base_ptr = nullptr;
         index_ = 0;
     }
 };
