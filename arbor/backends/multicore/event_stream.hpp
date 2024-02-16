@@ -21,6 +21,8 @@ struct event_stream: public event_stream_base<Event> {
     event_stream() = default;
 
     using base::clear;
+    using base::ev_spans_;
+    using base::ev_data_;
 
     // Initialize event streams from a vector of vector of events
     // Outer vector represents time step bins
@@ -36,17 +38,17 @@ struct event_stream: public event_stream_base<Event> {
         if (!num_events) return;
 
         // allocate space for spans and data
-        base::ev_spans_.reserve(staged.size() + 1);
-        base::ev_data_.reserve(num_events);
+        ev_spans_.reserve(staged.size() + 1);
+        ev_data_.reserve(num_events);
 
         // add event data and spans
         for (const auto& v : staged) {
-            for (const auto& ev: v) base::ev_data_.push_back(event_data(ev));
-            base::ev_spans_.push_back(base::ev_data_.size());
+            for (const auto& ev: v) ev_data_.push_back(event_data(ev));
+            ev_spans_.push_back(ev_data_.size());
         }
 
-        arb_assert(num_events == base::ev_data_.size());
-        arb_assert(staged.size() + 1 == base::ev_spans_.size());
+        arb_assert(num_events == ev_data_.size());
+        arb_assert(staged.size() + 1 == ev_spans_.size());
     }
 
     ARB_SERDES_ENABLE(event_stream<Event>,

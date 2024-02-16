@@ -27,6 +27,8 @@ public:
     using device_array = memory::device_vector<event_data_type>;
 
     using base::clear;
+    using base::ev_data_;
+    using base::ev_spans_;
 
     event_stream() = default;
     event_stream(task_system_handle t): base(), thread_pool_{t} {}
@@ -45,27 +47,26 @@ public:
         if (!num_events) return;
 
         // allocate space for spans and data
-        base::ev_spans_.resize(staged.size() + 1);
-        base::ev_data_.resize(num_events);
+        ev_spans_.resize(staged.size() + 1);
+        ev_data_.resize(num_events);
         resize(device_ev_data_, num_events);
 
         // compute offsets by exclusive scan over staged events
-        util::make_partition(base::ev_spans_,
-                             util::transform_view(staged, [&](const auto& v) { return v.size(); }),
-                             (std::size_t)0u);
+        util::make_partition(ev_spans_,
+                             util::transform_view(staged, [](const auto& v) { return v.size(); }),
+                             0ull);
 
         // assign, copy to device (and potentially sort) the event data in parallel
         arb_assert(thread_pool_);
-        arb_assert(base::ev_spans_.size() == staged.size() + 1);
-        threading::parallel_for::apply(0, base::ev_spans_.size() -1, thread_pool_.get(),
+        arb_assert(ev_spans_.size() == staged.size() + 1);
+        threading::parallel_for::apply(0, ev_spans_.size() - 1, thread_pool_.get(),
             [this, &staged](size_type i) {
-                const auto beg = base::ev_spans_[i];
-                const auto end = base::ev_spans_[i + 1];
+                const auto beg = ev_spans_[i];
+                const auto end = ev_spans_[i + 1];
                 arb_assert(end >= beg);
                 const auto len = end - beg;
 
-                auto host_span = memory::make_view(base::ev_data_)(beg, end);
-                auto device_span = memory::make_view(device_ev_data_)(beg, end);
+                auto host_span = memory::make_view(ev_data_)(beg, end);
 
                 // make event data and copy
                 std::copy_n(util::transform_view(staged[i],
@@ -78,10 +79,12 @@ public:
                                          [](const event_data_type& ed) { return event_index(ed); });
                 }
                 // copy to device
+                auto device_span = memory::make_view(device_ev_data_)(beg, end);
                 memory::copy_async(host_span, device_span);
             });
-
-        arb_assert(num_events == base::ev_data_.size());
+        
+        arb_assert(num_events == ev_device_data_.size());
+        arb_assert(num_events == ev_data_.size());
     }
 
     static void multi_event_stream(const event_lane_subrange& lanes,
@@ -118,6 +121,8 @@ public:
 
         for (auto& [id, stream]: streams) {
             util::make_partition(stream.ev_spans_, dt_sizes[id]);
+            resize(stream.device_ev_data_, stream.ev_data.size());
+            
             threading::parallel_for::apply(0, stream.ev_spans_.size() - 1,
                                            stream.thread_pool_.get(),
                                            [&stream=stream](size_type i) {
