@@ -22,7 +22,7 @@ struct event_stream: public event_stream_base<Event> {
     using base::clear;
     using base::ev_spans_;
     using base::ev_data_;
-    using base::base_ptr;
+    using base::base_ptr_;
 
     event_stream() = default;
 
@@ -51,7 +51,7 @@ struct event_stream: public event_stream_base<Event> {
 
         arb_assert(num_events == ev_data_.size());
         arb_assert(staged.size() + 1 == ev_spans_.size());
-        base_ptr = ev_data_.data();
+        base_ptr_ = ev_data_.data();
     }
 
     ARB_SERDES_ENABLE(event_stream<Event>,
@@ -95,7 +95,7 @@ struct event_stream: public event_stream_base<Event> {
 
         for (auto& [id, stream]: streams) {
             util::make_partition(stream.ev_spans_, dt_sizes[id]);
-            stream.base_ptr = stream.ev_data_.data();
+            stream.base_ptr_ = stream.ev_data_.data();
         }
     }
 };
