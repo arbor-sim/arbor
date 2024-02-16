@@ -29,7 +29,7 @@ public:
     using base::clear;
     using base::ev_data_;
     using base::ev_spans_;
-    using base::base_ptr
+    using base::base_ptr;
 
     event_stream() = default;
     event_stream(task_system_handle t): base(), thread_pool_{t} {}
