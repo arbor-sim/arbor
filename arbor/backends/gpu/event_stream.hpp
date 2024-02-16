@@ -101,7 +101,7 @@ public:
     ARB_SERDES_ENABLE(event_stream<Event>,
                       ev_data_,
                       ev_spans_,
-                      // device_ev_data_,
+                      device_ev_data_,
                       index_);
 
 private:
