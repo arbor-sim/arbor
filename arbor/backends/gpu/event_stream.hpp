@@ -121,7 +121,7 @@ public:
 
         for (auto& [id, stream]: streams) {
             util::make_partition(stream.ev_spans_, dt_sizes[id]);
-            resize(stream.device_ev_data_, stream.ev_data.size());
+            resize(stream.device_ev_data_, stream.ev_data_.size());
             
             threading::parallel_for::apply(0, stream.ev_spans_.size() - 1,
                                            stream.thread_pool_.get(),
