@@ -578,12 +578,14 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
         }
     }
 
-    // Create lookup structure for target ids.
-    util::make_partition(target_handle_divisions_,
-        util::transform_view(gids, [&](cell_gid_type i) { return fvm_info.num_targets[i]; }));
-
     add_probes(gids, cells, rec, D, mechptr_by_name, mech_data, target_handles_, fvm_info.probe_map);
 
+    // Create lookup structure for target ids.
+    util::make_partition(target_handle_divisions_,
+        util::transform_view(gids,
+                             [&](cell_gid_type i) { return fvm_info.num_targets[i]; }));
+
+    
     reset();
     return fvm_info;
 }

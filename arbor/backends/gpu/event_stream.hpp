@@ -56,7 +56,8 @@ public:
 
         // assign, copy to device (and potentially sort) the event data in parallel
         arb_assert(thread_pool_);
-        threading::parallel_for::apply(0, staged.size(), thread_pool_.get(),
+        arb_assert(base::ev_spans_.size() == staged.size() + 1);
+        threading::parallel_for::apply(0, base::ev_spans_.size() -1, thread_pool_.get(),
             [this, &staged](size_type i) {
                 const auto beg = base::ev_spans_[i];
                 const auto end = base::ev_spans_[i + 1];
