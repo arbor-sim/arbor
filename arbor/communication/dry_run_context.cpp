@@ -57,7 +57,7 @@ struct dry_run_context_impl {
         }
 
         for (count_type i = 0; i < num_ranks_; i++) {
-            for (std::size_t j = i*local_size; j < (i+1)*local_size; j++){
+            for (count_type j = i*local_size; j < (i+1)*local_size; j++){
                 gathered_gids[j] += num_cells_per_tile_*i;
             }
         }
