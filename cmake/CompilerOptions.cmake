@@ -95,7 +95,7 @@ set(CXXOPT_WALL
 # Architectures are given by the same names that GCC uses for its
 # -mcpu or -march options.
 
-function(set_arch_target optvar arch)
+function(set_arch_target optvar optvar_cuda_guarded arch)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         # Correct compiler option unfortunately depends upon the target architecture family.
         # Extract this information from running the configured compiler with --verbose.
@@ -125,6 +125,7 @@ function(set_arch_target optvar arch)
         endif()
     endif()
 
+    set("${optvar}" "${arch_opt}" PARENT_SCOPE)
     get_property(enabled_languages GLOBAL PROPERTY ENABLED_LANGUAGES)
     if ("CUDA" IN_LIST enabled_languages)
         # Prefix architecture options with `-Xcompiler=` when compiling CUDA sources, i.e.
@@ -134,16 +135,17 @@ function(set_arch_target optvar arch)
             list(APPEND arch_opt_cuda_guarded "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>${opt}")
         endforeach()
 
-        set("${optvar}" "${arch_opt_cuda_guarded}" PARENT_SCOPE)
-    else()
-        set("${optvar}" "${arch_opt}" PARENT_SCOPE)
+        set("${optvar_cuda_guarded}" "${arch_opt_cuda_guarded}" PARENT_SCOPE)
     endif()
 
 endfunction()
 
 # Set ${has_sve} and ${sve_length} in parent scope according to auto detection.
 function(get_sve_length has_sve sve_length)
-    try_run(run_var cc_var ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/cmake/sve_length.cpp RUN_OUTPUT_VARIABLE out_var)
+    try_run(run_var cc_var
+        ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/cmake/sve_length.cpp
+        COMPILE_DEFINITIONS ${ARB_CXX_FLAGS_TARGET_FULL_CPU}
+        RUN_OUTPUT_VARIABLE out_var)
 
     if(NOT cc_var)
         message(FATAL_ERROR "compilation of ${PROJECT_SOURCE_DIR}/cmake/sve_length.cpp failed")
