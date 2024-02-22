@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -6,12 +5,12 @@
 
 #include "distributed_context.hpp"
 #include "label_resolution.hpp"
-#include "threading/threading.hpp"
 #include "util/rangeutil.hpp"
 
 namespace arb {
 
 struct dry_run_context_impl {
+    using count_type = typename gathered_vector<spike>::count_type;
 
     explicit dry_run_context_impl(unsigned num_ranks, unsigned num_cells_per_tile):
         num_ranks_(num_ranks), num_cells_per_tile_(num_cells_per_tile) {};
@@ -21,7 +20,6 @@ struct dry_run_context_impl {
     }
     gathered_vector<spike>
     gather_spikes(const std::vector<spike>& local_spikes) const {
-        using count_type = typename gathered_vector<spike>::count_type;
 
         count_type local_size = local_spikes.size();
 
@@ -49,8 +47,6 @@ struct dry_run_context_impl {
     void remote_ctrl_send_done() const {}
     gathered_vector<cell_gid_type>
     gather_gids(const std::vector<cell_gid_type>& local_gids) const {
-        using count_type = typename gathered_vector<cell_gid_type>::count_type;
-
         count_type local_size = local_gids.size();
 
         std::vector<cell_gid_type> gathered_gids;
@@ -68,7 +64,7 @@ struct dry_run_context_impl {
 
         std::vector<count_type> partition;
         for (count_type i = 0; i <= num_ranks_; i++) {
-            partition.push_back(static_cast<count_type>(i*local_size));
+            partition.push_back(i*local_size);
         }
 
         return gathered_vector<cell_gid_type>(std::move(gathered_gids), std::move(partition));

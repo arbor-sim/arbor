@@ -1,6 +1,7 @@
 """
 Units and quantities for driving the user interface.
 """
+
 from __future__ import annotations
 import typing
 
@@ -78,12 +79,14 @@ class quantity:
         """
         Convert quantity to string.
         """
+
     def __rmul__(self, arg0: float) -> quantity: ...
     def __rtruediv__(self, arg0: float) -> quantity: ...
     def __str__(self) -> str:
         """
         Convert quantity to string.
         """
+
     def __sub__(self, arg0: quantity) -> quantity: ...
     @typing.overload
     def __truediv__(self, arg0: quantity) -> quantity: ...
@@ -95,11 +98,13 @@ class quantity:
         """
         Convert quantity to given unit and return magnitude.
         """
+
     @property
     def units(self) -> unit:
         """
         Return units.
         """
+
     @property
     def value(self) -> float:
         """
@@ -123,12 +128,14 @@ class unit:
         """
         Convert unit to string.
         """
+
     def __rmul__(self, arg0: float) -> quantity: ...
     def __rtruediv__(self, arg0: float) -> quantity: ...
     def __str__(self) -> str:
         """
         Convert unit to string.
         """
+
     @typing.overload
     def __truediv__(self, arg0: unit) -> unit: ...
     @typing.overload
