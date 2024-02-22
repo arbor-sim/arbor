@@ -82,8 +82,6 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         assert(gid==0); // There is only one cell in the model
 
-        using RNG = std::mt19937_64;
-
         auto hz_to_freq = [](double hz) { return hz*1e-3; };
         time_type t0 = 0;
 

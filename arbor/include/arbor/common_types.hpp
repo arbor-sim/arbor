@@ -138,8 +138,8 @@ using time_type = double;
 constexpr time_type terminal_time = std::numeric_limits<time_type>::max();
 
 // For holding counts and indexes into generated sample data.
-
-using sample_size_type = std::int32_t;
+using sample_index_type = std::int32_t;
+using sample_size_type  = std::uint32_t;
 
 // Enumeration for execution back-end targets, as specified in domain decompositions.
 
