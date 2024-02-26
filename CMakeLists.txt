@@ -322,6 +322,18 @@ set(arbor_supported_components)
 # Target microarchitecture for building arbor libraries, tests and examples
 #---------------------------------------------------------------------------
 
+# Set the full set of target flags in ARB_CXX_FLAGS_TARGET_FULL, which
+# will include target-specific -march flags if ARB_ARCH is not "none".
+if(ARB_ARCH STREQUAL "none")
+    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET})
+    set(ARB_CXX_FLAGS_TARGET_FULL_CPU ${ARB_CXX_FLAGS_TARGET})
+else()
+    set_arch_target(ARB_CXXOPT_ARCH_CPU ARB_CXXOPT_ARCH ${ARB_ARCH})
+    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH})
+    set(ARB_CXX_FLAGS_TARGET_FULL_CPU ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH_CPU})
+endif()
+
+# Add SVE compiler flags if detected/desired
 set(ARB_SVE_WIDTH "auto" CACHE STRING "Default SVE vector length in bits. Default: auto (detection during configure time).")
 mark_as_advanced(ARB_SVE_WIDTH)
 if (ARB_SVE_WIDTH STREQUAL "auto")
@@ -337,15 +349,8 @@ else()
     set(ARB_SVE_BITS ${ARB_SVE_WIDTH})
     set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
 endif()
-
-# Set the full set of target flags in ARB_CXX_FLAGS_TARGET_FULL, which
-# will include target-specific -march flags if ARB_ARCH is not "none".
-if(ARB_ARCH STREQUAL "none")
-    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXX_SVE_FLAGS})
-else()
-    set_arch_target(ARB_CXXOPT_ARCH ${ARB_ARCH})
-    set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH} ${ARB_CXX_SVE_FLAGS})
-endif()
+list(APPEND ARB_CXX_FLAGS_TARGET_FULL
+    "$<$<BUILD_INTERFACE:$<COMPILE_LANGUAGE:CXX>>:${ARB_CXX_SVE_FLAGS}>")
 
 # Compile with `-fvisibility=hidden` to ensure that the symbols of the generated
 # arbor static libraries are hidden from the dynamic symbol tables of any shared
