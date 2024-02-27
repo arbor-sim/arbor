@@ -1,10 +1,6 @@
 #pragma once
 
-#include <cstdint>
-#include <functional>
-#include <iterator>
 #include <mutex>
-#include <unordered_map>
 #include <vector>
 
 #include <arbor/export.hpp>
@@ -26,14 +22,12 @@ namespace arb {
 struct ARB_ARBOR_API cable_cell_group: public cell_group {
     cable_cell_group() = default;
     cable_cell_group(const std::vector<cell_gid_type>& gids,
-                  const recipe& rec,
-                  cell_label_range& cg_sources,
-                  cell_label_range& cg_targets,
-                  fvm_lowered_cell_ptr lowered);
+                     const recipe& rec,
+                     cell_label_range& cg_sources,
+                     cell_label_range& cg_targets,
+                     fvm_lowered_cell_ptr lowered);
 
-    cell_kind get_cell_kind() const override {
-        return cell_kind::cable;
-    }
+    cell_kind get_cell_kind() const override { return cell_kind::cable; }
 
     void reset() override;
 
@@ -60,9 +54,6 @@ private:
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
 
-    // Hash table for converting gid to local index
-    std::unordered_map<cell_gid_type, cell_gid_type> gid_index_map_;
-
     // The lowered cell state (e.g. FVM) of the cell.
     fvm_lowered_cell_ptr lowered_;
 
@@ -75,14 +66,8 @@ private:
     // Range of timesteps within current epoch
     timestep_range timesteps_;
 
-    // List of events to deliver per mechanism id
-    std::vector<std::vector<std::vector<deliverable_event>>> staged_events_per_mech_id_;
-
     // List of samples to be taken
     std::vector<std::vector<sample_event>> sample_events_;
-
-    // Handles for accessing lowered cell.
-    std::vector<target_handle> target_handles_;
 
     // Maps probe ids to probe handles (from lowered cell) and tags (from probe descriptions).
     probe_association_map probe_map_;
@@ -92,9 +77,6 @@ private:
 
     // Mutex for thread-safe access to sampler associations.
     std::mutex sampler_mex_;
-
-    // Lookup table for target ids -> local target handle indices.
-    std::vector<std::size_t> target_handle_divisions_;
 };
 
 } // namespace arb

@@ -28,31 +28,15 @@ cable_cell_group::cable_cell_group(const std::vector<cell_gid_type>& gids,
                                    fvm_lowered_cell_ptr lowered):
     gids_(gids), lowered_(std::move(lowered))
 {
-    // Build lookup table for gid to local index.
-    for (auto i: util::count_along(gids_)) {
-        gid_index_map_[gids_[i]] = i;
-    }
 
     // Construct cell implementation, retrieving handles and maps.
     auto fvm_info = lowered_->initialize(gids_, rec);
-
-    for (auto [mech_id, n_targets] : fvm_info.num_targets_per_mech_id) {
-        if (n_targets > 0u && mech_id >= staged_events_per_mech_id_.size()) {
-            staged_events_per_mech_id_.resize(mech_id+1);
-        }
-    }
 
     // Propagate source and target ranges to the simulator object
     cg_sources = std::move(fvm_info.source_data);
     cg_targets = std::move(fvm_info.target_data);
 
-    // Store consistent data from fvm_lowered_cell
-    target_handles_ = std::move(fvm_info.target_handles);
     probe_map_ = std::move(fvm_info.probe_map);
-
-    // Create lookup structure for target ids.
-    util::make_partition(target_handle_divisions_,
-        util::transform_view(gids_, [&](cell_gid_type i) { return fvm_info.num_targets[i]; }));
 
     // Create a list of the global identifiers for the spike sources
     for (auto source_gid: gids_) {
@@ -378,43 +362,12 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     time_type tstart = lowered_->time();
 
     // Bin and collate deliverable events from event lanes.
-
-    PE(advance:eventsetup:clear);
     // Split epoch into equally sized timesteps (last timestep is chosen to match end of epoch)
     timesteps_.reset(ep, dt);
-    for (auto& vv : staged_events_per_mech_id_) {
-        vv.resize(timesteps_.size());
-        for (auto& v : vv) {
-            v.clear();
-        }
-    }
-    sample_events_.resize(timesteps_.size());
-    for (auto& v : sample_events_) {
-        v.clear();
-    }
-    PL();
 
-    // Skip event handling if nothing to deliver.
-    PE(advance:eventsetup:push);
-    if (util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) {
-        auto lid = 0;
-        for (auto& lane: event_lanes) {
-            arb_size_type timestep_index = 0;
-            for (auto e: lane) {
-                // Events coinciding with epoch's upper boundary belong to next epoch
-                const auto time = e.time;
-                if (time >= ep.t1) break;
-                while(time >= timesteps_[timestep_index].t_end()) {
-                    ++timestep_index;
-                }
-                arb_assert(timestep_index < timesteps_.size());
-                const auto offset = target_handle_divisions_[lid]+e.target;
-                const auto h = target_handles_[offset];
-                staged_events_per_mech_id_[h.mech_id][timestep_index].emplace_back(e.time, h, e.weight);
-            }
-            ++lid;
-        }
-    }
+    PE(advance:samplesetup:clear);
+    sample_events_.resize(timesteps_.size());
+    for (auto& v: sample_events_) v.clear();
     PL();
 
     // Create sample events and delivery information.
@@ -472,7 +425,7 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     PL();
 
     // Run integration and collect samples, spikes.
-    auto result = lowered_->integrate(timesteps_, staged_events_per_mech_id_, sample_events_);
+    auto result = lowered_->integrate(timesteps_, event_lanes, sample_events_);
 
     // For each sampler callback registered in `call_info`, construct the
     // vector of sample entries from the lowered cell sample times and values

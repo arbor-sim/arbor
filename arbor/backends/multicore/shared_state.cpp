@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <cfloat>
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -15,8 +14,6 @@
 #include <arbor/mechanism.hpp>
 #include <arbor/simd/simd.hpp>
 
-#include "backends/event.hpp"
-#include "backends/rand_impl.hpp"
 #include "io/sepval.hpp"
 #include "util/index_into.hpp"
 #include "util/padded_alloc.hpp"
@@ -27,11 +24,11 @@
 
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
+#include "fvm.hpp"
 
 namespace arb {
 namespace multicore {
 
-using util::make_range;
 using util::make_span;
 using util::ptr_by_key;
 using util::value_by_key;
@@ -384,9 +381,8 @@ void shared_state::instantiate(arb::mechanism& m,
 
     util::padded_allocator<> pad(m.data_alignment());
 
-    if (storage.find(id) != storage.end()) {
-        throw arbor_internal_error("Duplicate mechanism id in MC shared state.");
-    }
+    if (storage.count(id)) throw arbor_internal_error("Duplicate mechanism id in MC shared state.");
+    streams[id] = deliverable_event_stream{};
     auto& store = storage[id];
     auto width = pos_data.cv.size();
     // Assign non-owning views onto shared state:
@@ -538,6 +534,14 @@ void shared_state::instantiate(arb::mechanism& m,
         if (peer_indices) m.ppack_.peer_index = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
     }
 }
+
+void shared_state::init_events(const event_lane_subrange& lanes,
+                               const std::vector<target_handle>& handles,
+                               const std::vector<size_t>& divs,
+                               const timestep_range& dts) {
+    arb::multicore::event_stream<deliverable_event>::multi_event_stream(lanes, handles, divs, dts, streams);
+}
+
 
 } // namespace multicore
 } // namespace arb

@@ -5,7 +5,6 @@
 //
 // Defines array, iarray, and specialized multi-event stream classes.
 
-#include <utility>
 #include <vector>
 
 #include <arbor/fvm_types.hpp>

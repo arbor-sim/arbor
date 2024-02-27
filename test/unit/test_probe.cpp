@@ -281,7 +281,7 @@ void run_expsyn_g_probe_test(context ctx) {
         fvm_cell lcell(*ctx);
         auto fvm_info = lcell.initialize({0}, rec);
         const auto& probe_map = fvm_info.probe_map;
-        const auto& targets = fvm_info.target_handles;
+        const auto& targets = lcell.target_handles_;
 
         EXPECT_EQ(2u, rec.get_probes(0).size());
         EXPECT_EQ(2u, probe_map.size());
@@ -309,14 +309,12 @@ void run_expsyn_g_probe_test(context ctx) {
         // and another at 2ms to second, weight 1.
 
         arb_assert(targets[0].mech_id == targets[1].mech_id);
-        std::vector<std::vector<std::vector<deliverable_event>>> events(targets[0].mech_id+1);
         const double tfinal = 3.0;
         const double dt = 0.001;
         const timestep_range dts{tfinal, dt};
-        events[targets[0].mech_id].resize(dts.size());
-        events[targets[0].mech_id][dts.find(1.0)-dts.begin()].push_back(deliverable_event{1.0, targets[0], 0.5});
-        events[targets[0].mech_id][dts.find(2.0)-dts.begin()].push_back(deliverable_event{2.0, targets[1], 1.0});
-        lcell.integrate(dts, events, {});
+        std::vector<pse_vector> events{{{0, 1.0, 0.5}, {1, 2.0, 1.0}}};
+        auto lanes = util::subrange_view(events, 0, events.size());
+        lcell.integrate(dts, lanes, {});
 
         arb_value_type g0 = deref(p0);
         arb_value_type g1 = deref(p1);
@@ -392,23 +390,20 @@ void run_expsyn_g_cell_probe_test(context ctx) {
         fvm_cell lcell(*ctx);
         auto fvm_info = lcell.initialize({0, 1}, rec);
         const auto& probe_map = fvm_info.probe_map;
-        const auto& targets = fvm_info.target_handles;
+        const auto& targets = lcell.target_handles_;
 
         // Send an event to each expsyn synapse with a weight = target+100*cell_gid, and
         // integrate for a tiny time step.
-
-        std::vector<std::vector<std::vector<deliverable_event>>> events(2, std::vector<std::vector<deliverable_event>>(1));
-        for (unsigned i: {0u, 1u}) {
-            // Cells have the same number of targets, so the offset for cell 1 is exactly...
-            cell_local_size_type cell_offset = i==0? 0: targets.size()/2;
-
+        std::vector<pse_vector> events;
+        events.resize(targets.size());
+        for (unsigned gid: {0u, 1u}) {
             for (auto target_id: util::keys(expsyn_target_loc_map)) {
-                auto h = targets.at(target_id+cell_offset);
-                deliverable_event ev{0., h, float(target_id+100*i)};
-                events[h.mech_id][0].push_back(ev);
+                events[gid].emplace_back(target_id, 0., float(target_id+100*gid));
             }
         }
-        (void)lcell.integrate({1e-5, 1e-5}, events, {});
+
+        auto lanes = util::subrange_view(events, 0, events.size());
+        (void)lcell.integrate({1e-5, 1e-5}, lanes, {});
 
         // Independently get cv geometry to compute CV indices.
 

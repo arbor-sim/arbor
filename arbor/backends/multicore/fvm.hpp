@@ -1,19 +1,14 @@
 #pragma once
 
 #include <string>
-#include <vector>
 
 #include <arbor/mechanism.hpp>
 
-#include "backends/event.hpp"
-#include "backends/multicore/event_stream.hpp"
 #include "backends/multicore/multicore_common.hpp"
 #include "backends/multicore/shared_state.hpp"
 #include "backends/multicore/diffusion_solver.hpp"
 #include "backends/multicore/cable_solver.hpp"
 #include "backends/multicore/threshold_watcher.hpp"
-#include "execution_context.hpp"
-#include "util/padded_alloc.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
 

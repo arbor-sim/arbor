@@ -20,6 +20,7 @@
 
 #include "execution_context.hpp"
 #include "fvm_layout.hpp"
+
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
 #include "profile/profiler_macro.hpp"
@@ -30,10 +31,8 @@
 #include "util/transform.hpp"
 
 namespace arb {
-
 template <class Backend>
-class fvm_lowered_cell_impl: public fvm_lowered_cell {
-public:
+struct fvm_lowered_cell_impl: public fvm_lowered_cell {
     using backend = Backend;
     using value_type = arb_value_type;
     using index_type = arb_index_type;
@@ -50,10 +49,9 @@ public:
         const std::vector<cell_gid_type>& gids,
         const recipe& rec) override;
 
-    fvm_integration_result integrate(
-        const timestep_range& dts,
-        const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
-        const std::vector<std::vector<sample_event>>& staged_samples) override;
+    fvm_integration_result integrate(const timestep_range& dts,
+                                     const event_lane_subrange& event_lanes,
+                                     const std::vector<std::vector<sample_event>>& staged_samples) override;
 
     value_type time() const override { return state_->time; }
 
@@ -67,7 +65,6 @@ public:
     void t_serialize(serializer& ser, const std::string& k) const override { serialize(ser, k, *this); }
     void t_deserialize(serializer& ser, const std::string& k) override { deserialize(ser, k, *this); }
 
-private:
     // Host or GPU-side back-end dependent storage.
     using array               = typename backend::array;
     using shared_state        = typename backend::shared_state;
@@ -79,6 +76,11 @@ private:
     std::vector<mechanism_ptr> mechanisms_; // excludes reversal potential calculators.
     std::vector<mechanism_ptr> revpot_mechanisms_;
     std::vector<mechanism_ptr> voltage_mechanisms_;
+
+    // Handles for accessing event targets.
+    std::vector<target_handle> target_handles_;
+    // Lookup table for target ids -> local target handle indices.
+    std::vector<std::size_t> target_handle_divisions_;
 
     // Optional non-physical voltage check threshold
     std::optional<double> check_voltage_mV_;
@@ -164,18 +166,16 @@ void fvm_lowered_cell_impl<Backend>::reset() {
 }
 
 template <typename Backend>
-fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
-    const timestep_range& dts,
-    const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
-    const std::vector<std::vector<sample_event>>& staged_samples)
-{
+fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_range& dts,
+                                                                 const event_lane_subrange& event_lanes,
+                                                                 const std::vector<std::vector<sample_event>>& staged_samples) {
     arb_assert(state_->time == dts.t_begin());
     set_gpu();
 
     // Integration setup
     PE(advance:integrate:setup);
     // Push samples and events down to the state and reset the spike thresholds.
-    state_->begin_epoch(staged_events_per_mech_id, staged_samples, dts);
+    state_->begin_epoch(event_lanes, staged_samples, dts, target_handles_, target_handle_divisions_);
     PL();
 
     // loop over timesteps
@@ -477,10 +477,9 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                                             data_alignment? data_alignment: 1u,
                                             seed_);
 
-    fvm_info.target_handles.resize(mech_data.n_target);
-
     // Keep track of mechanisms by name for probe lookup.
     std::unordered_map<std::string, mechanism*> mechptr_by_name;
+    target_handles_.resize(mech_data.n_target);
 
     unsigned mech_id = 0;
     for (const auto& [name, config]: mech_data.mechanisms) {
@@ -516,11 +515,11 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
 
                 target_handle handle(mech_id, i);
                 if (config.multiplicity.empty()) {
-                    fvm_info.target_handles[config.target[i]] = handle;
+                    target_handles_[config.target[i]] = handle;
                 }
                 else {
                     for (auto j: make_span(multiplicity_part[i])) {
-                        fvm_info.target_handles[config.target[j]] = handle;
+                        target_handles_[config.target[j]] = handle;
                     }
                 }
             }
@@ -579,8 +578,14 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
         }
     }
 
-    add_probes(gids, cells, rec, D, mechptr_by_name, mech_data, fvm_info.target_handles, fvm_info.probe_map);
+    add_probes(gids, cells, rec, D, mechptr_by_name, mech_data, target_handles_, fvm_info.probe_map);
 
+    // Create lookup structure for target ids.
+    util::make_partition(target_handle_divisions_,
+        util::transform_view(gids,
+                             [&](cell_gid_type i) { return fvm_info.num_targets[i]; }));
+
+    
     reset();
     return fvm_info;
 }
