@@ -558,28 +558,28 @@ std::ostream& operator<<(std::ostream& o, const threshold_detector& p) {
     return o << "(threshold-detector " << p.threshold << ')';
 }
 std::ostream& operator<<(std::ostream& o, const init_membrane_potential& p) {
-    return o << "(membrane-potential " << p.value << ')';
+    return o << "(membrane-potential " << p.value << " " << p.scale << ')';
 }
-std::ostream& operator<<(std::ostream& o, const temperature_K& p) {
-    return o << "(temperature-kelvin " << p.value << ')';
+std::ostream& operator<<(std::ostream& o, const temperature& p) {
+    return o << "(temperature-kelvin " << p.value << " " << p.scale << ')';
 }
 std::ostream& operator<<(std::ostream& o, const axial_resistivity& p) {
-    return o << "(axial-resistivity " << p.value << ')';
+    return o << "(axial-resistivity " << p.value << " " << p.scale << ')';
 }
 std::ostream& operator<<(std::ostream& o, const membrane_capacitance& p) {
-    return o << "(membrane-capacitance " << p.value << ')';
+    return o << "(membrane-capacitance " << p.value << " " << p.scale << ')';
 }
 std::ostream& operator<<(std::ostream& o, const init_int_concentration& p) {
-    return o << "(ion-internal-concentration \"" << p.ion << "\" " << p.value << ')';
+    return o << "(ion-internal-concentration \"" << p.ion << "\" " << p.value << " " << p.scale << ')';
 }
 std::ostream& operator<<(std::ostream& o, const ion_diffusivity& p) {
-    return o << "(ion-diffusivity \"" << p.ion << "\" " << p.value << ')';
+    return o << "(ion-diffusivity \"" << p.ion << "\" " << p.value << " " << p.scale << ')';
 }
 std::ostream& operator<<(std::ostream& o, const init_ext_concentration& p) {
-    return o << "(ion-external-concentration \"" << p.ion << "\" " << p.value << ')';
+    return o << "(ion-external-concentration \"" << p.ion << "\" " << p.value << " " << p.scale << ')';
 }
 std::ostream& operator<<(std::ostream& o, const init_reversal_potential& p) {
-    return o << "(ion-reversal-potential \"" << p.ion << "\" " << p.value << ')';
+    return o << "(ion-reversal-potential \"" << p.ion << "\" " << p.value << " " << p.scale << ')';
 }
 std::ostream& operator<<(std::ostream& o, const mechanism_desc& m) {
     o << "(mechanism \"" << m.name() << "\"";
@@ -710,35 +710,15 @@ std::string round_trip_component(std::istream& stream) {
     }
 }
 
-TEST(decor_literals, double_to_iexpr_promotion) {
-    using namespace cable_s_expr;
-    std::vector<std::pair<std::string, std::string>> literals = {
-        {"(membrane-potential -65.1)", "(membrane-potential (scalar -65.1))"},
-        {"(temperature-kelvin 301)", "(temperature-kelvin (scalar 301))"},
-        {"(axial-resistivity 102)", "(axial-resistivity (scalar 102))"},
-    };
-
-    for (const auto& [in, out]: literals) {
-        std::string res;
-        if (auto x = arborio::parse_expression(in)) {
-            std::visit([&](auto&& p){res = to_string(p);}, *(eval_cast_variant<defaultable>(*x)));
-        }
-        else {
-            res = x.error().what();
-        }
-        EXPECT_EQ(res, out);
-    }
-}
-
 TEST(decor_literals, round_tripping) {
     auto paint_default_literals = {
-        "(membrane-potential (scalar -65.1))",
-        "(temperature-kelvin (scalar 301))",
-        "(axial-resistivity (scalar 102))",
-        "(membrane-capacitance (scalar 0.01))",
-        "(ion-internal-concentration \"ca\" (scalar 75.1))",
-        "(ion-external-concentration \"h\" (scalar -50.1))",
-        "(ion-reversal-potential \"na\" (scalar 30))"};
+        "(membrane-potential 2 (scalar -65.1))",
+        "(temperature-kelvin 3 (scalar 301))",
+        "(axial-resistivity 4 (scalar 102))",
+        "(membrane-capacitance 5 (scalar 0.01))",
+        "(ion-internal-concentration \"ca\" 6 (scalar 75.1))",
+        "(ion-external-concentration \"h\" 7 (scalar -50.1))",
+        "(ion-reversal-potential \"na\" 8 (scalar 30))"};
     auto paint_literals = {
         "(voltage-process (mechanism \"hh\"))",
         "(density (mechanism \"hh\"))",
@@ -791,25 +771,25 @@ TEST(decor_literals, round_tripping) {
 TEST(decor_expressions, round_tripping) {
     using namespace cable_s_expr;
     auto decorate_paint_literals = {
-        "(paint (region \"all\") (membrane-potential (scalar -65.1)))",
-        "(paint (tag 1) (temperature-kelvin (scalar 301)))",
-        "(paint (distal-interval (location 3 0)) (axial-resistivity (scalar 102)))",
-        "(paint (join (region \"dend\") (all)) (membrane-capacitance (scalar 0.01)))",
-        "(paint (radius-gt (tag 3) 1) (ion-internal-concentration \"ca\" (scalar 75.1)))",
-        "(paint (intersect (cable 2 0 0.5) (region \"axon\")) (ion-external-concentration \"h\" (scalar -50.1)))",
-        "(paint (region \"my_region\") (ion-reversal-potential \"na\" (scalar 30)))",
+        "(paint (region \"all\") (membrane-potential 1 (scalar -65.1)))",
+        "(paint (tag 1) (temperature-kelvin 2 (scalar 301)))",
+        "(paint (distal-interval (location 3 0)) (axial-resistivity 2 (scalar 102)))",
+        "(paint (join (region \"dend\") (all)) (membrane-capacitance 3 (scalar 0.01)))",
+        "(paint (radius-gt (tag 3) 1) (ion-internal-concentration \"ca\" 4 (scalar 75.1)))",
+        "(paint (intersect (cable 2 0 0.5) (region \"axon\")) (ion-external-concentration \"h\" 5 (scalar -50.1)))",
+        "(paint (region \"my_region\") (ion-reversal-potential \"na\" 6 (scalar 30)))",
         "(paint (cable 2 0.1 0.4) (density (mechanism \"hh\")))",
         "(paint (cable 2 0.1 0.4) (scaled-mechanism (density (mechanism \"pas\" (\"g\" 0.02))) (\"g\" (exp (add (distance 2.1 (region \"my_region\")) (scalar 3.2))))))",
         "(paint (all) (density (mechanism \"pas\" (\"g\" 0.02))))"
     };
     auto decorate_default_literals = {
-        "(default (membrane-potential (scalar -65.1)))",
-        "(default (temperature-kelvin (scalar 301)))",
-        "(default (axial-resistivity (scalar 102)))",
-        "(default (membrane-capacitance (scalar 0.01)))",
-        "(default (ion-internal-concentration \"ca\" (scalar 75.1)))",
-        "(default (ion-external-concentration \"h\" (scalar -50.1)))",
-        "(default (ion-reversal-potential \"na\" (scalar 30)))",
+        "(default (membrane-potential 1 (scalar -65.1)))",
+        "(default (temperature-kelvin 2 (scalar 301)))",
+        "(default (axial-resistivity 3 (scalar 102)))",
+        "(default (membrane-capacitance 4 (scalar 0.01)))",
+        "(default (ion-internal-concentration \"ca\" 5 (scalar 75.1)))",
+        "(default (ion-external-concentration \"h\" 6 (scalar -50.1)))",
+        "(default (ion-reversal-potential \"na\" 7 (scalar 30)))",
         "(default (ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\")))",
         "(default (cv-policy (max-extent 2 (region \"soma\") 2)))"
     };
@@ -875,14 +855,19 @@ TEST(morphology_literals, round_tripping) {
     }
 }
 
+TEST(decor, quantity) {
+    std::string q = "(quantity 10.0 \"Ohm\")";
+    parse_expression(q).value();
+}
+
 TEST(decor, round_tripping) {
     std::string component_str = "(arbor-component \n"
                                 "  (meta-data \n"
                                 "    (version \"" + arborio::acc_version() +"\"))\n"
                                 "  (decor \n"
                                 "    (default \n"
-                                "      (axial-resistivity \n"
-                                "        (scalar 100)))\n"
+                                "      (axial-resistivity 100.000000 \n"
+                                "        (scalar 1)))\n"
                                 "    (default \n"
                                 "      (ion-reversal-potential-method \"na\" \n"
                                 "        (mechanism \"nernst\")))\n"
@@ -915,7 +900,7 @@ TEST(decor, round_tripping) {
                                 "      (join \n"
                                 "        (tag 1)\n"
                                 "        (tag 2))\n"
-                                "      (ion-internal-concentration \"ca\" \n"
+                                "      (ion-internal-concentration \"ca\" 1.000000 \n"
                                 "        (scalar 0.5)))\n"
                                 "    (place \n"
                                 "      (location 0 0)\n"
@@ -1225,11 +1210,10 @@ TEST(doc_expressions, parse) {
                      "(mechanism \"hh\" (\"gl\" 0.5) (\"el\" 2))",
                      "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))",
                      "(current-clamp (envelope (0 10) (50 10) (50 0)) 40 0.25)",
-                     "(paint (tag 1) (membrane-capacitance 0.02))",
+                     "(paint (tag 1) (membrane-capacitance 0.02 (scalar 1)))",
                      "(place (locset \"mylocset\") (threshold-detector 10) \"mydetectors\")",
-                     "(default (membrane-potential -65))",
-                     "(segment 3 (point 0 0 0 5) (point 0 0 10 2) 1)"})
-    {
+                     "(default (membrane-potential -65.000000 (scalar 1)))",
+                     "(segment 3 (point 0 0 0 5) (point 0 0 10 2) 1)"}) {
         EXPECT_TRUE(arborio::parse_expression(expr));
     }
 
@@ -1241,9 +1225,9 @@ TEST(doc_expressions, parse) {
                      "  (region-def \"my_region\" (radius-ge (region \"my_soma\") 1.5))\n"
                      "  (locset-def \"terminal\" (terminal)))",
                      "(decor\n"
-                     "  (default (membrane-potential -55.000000))\n"
-                     "  (paint (region \"custom\") (temperature-kelvin 270))\n"
-                     "  (paint (region \"soma\") (membrane-potential -50.000000))\n"
+                     "  (default (membrane-potential -55.000000 (scalar 1)))\n"
+                     "  (paint (region \"custom\") (temperature-kelvin 270 (scalar 1)))\n"
+                     "  (paint (region \"soma\") (membrane-potential -50.000000 (scalar 1)))\n"
                      "  (paint (all) (density (mechanism \"pas\")))\n"
                      "  (paint (tag 4) (density (mechanism \"Ih\" (\"gbar\" 0.001))))\n"
                      "  (place (locset \"root\") (synapse (mechanism \"expsyn\")) \"root_synapse\")\n"
@@ -1274,9 +1258,9 @@ TEST(doc_expressions, parse) {
                      "    (region-def \"my_region\" (radius-ge (region \"my_soma\") 1.5))\n"
                      "    (locset-def \"terminal\" (terminal)))\n"
                      "  (decor\n"
-                     "    (default (membrane-potential -55.000000))\n"
-                     "    (paint (region \"my_soma\") (temperature-kelvin 270))\n"
-                     "    (paint (region \"my_region\") (membrane-potential -50.000000))\n"
+                     "    (default (membrane-potential -55.000000 (scalar 1)))\n"
+                     "    (paint (region \"my_soma\") (temperature-kelvin 270 (scalar 1)))\n"
+                     "    (paint (region \"my_region\") (membrane-potential -50.000000 (scalar 1)))\n"
                      "    (paint (tag 4) (density (mechanism \"Ih\" (\"gbar\" 0.001))))\n"
                      "    (place (locset \"root\") (synapse (mechanism \"expsyn\")) \"root_synapse\")\n"
                      "    (place (location 1 0.2) (junction (mechanism \"gj\")) \"terminal_gj\"))\n"
@@ -1315,9 +1299,9 @@ TEST(doc_expressions, parse) {
                             "(arbor-component\n"
                             "  (meta-data (version \"" + arborio::acc_version() +"\"))\n"
                             "  (decor\n"
-                            "    (default (membrane-potential -55.000000))\n"
+                            "    (default (membrane-potential -55.000000 (scalar 1)))\n"
                             "    (place (locset \"root\") (synapse (mechanism \"expsyn\")) \"root_synapse\")\n"
-                            "    (paint (region \"my_soma\") (temperature-kelvin 270))))",
+                            "    (paint (region \"my_soma\") (temperature-kelvin 270 (scalar 1)))))",
                             "(arbor-component\n"
                             "  (meta-data (version \"" + arborio::acc_version() +"\"))\n"
                             "  (morphology\n"
@@ -1332,9 +1316,9 @@ TEST(doc_expressions, parse) {
                             "      (region-def \"my_soma\" (tag 1))\n"
                             "      (locset-def \"root\" (root)))\n"
                             "    (decor\n"
-                            "      (default (membrane-potential -55.000000))\n"
+                            "      (default (membrane-potential -55.000000 (scalar 1)))\n"
                             "      (place (locset \"root\") (synapse (mechanism \"expsyn\")) \"root_synapse\")\n"
-                            "      (paint (region \"my_soma\") (temperature-kelvin 270)))\n"
+                            "      (paint (region \"my_soma\") (temperature-kelvin 270 (scalar 1))))\n"
                             "    (morphology\n"
                             "       (branch 0 -1\n"
                             "         (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)\n"

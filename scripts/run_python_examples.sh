@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs all Python examples
 
-set -Eeuo pipefail
+set -Eeuox pipefail
 
 if [[ "$#" -gt 1 ]]; then
     echo "usage: run_python_examples.sh <prefix>"

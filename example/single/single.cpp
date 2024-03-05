@@ -1,6 +1,5 @@
 #include <any>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -48,7 +47,7 @@ struct single_recipe: public arb::recipe {
         // Probe info consists of a probe address and an optional tag, for use
         // by the sampler callback.
 
-        return {arb::probe_info{probe, 0}};
+        return {arb::probe_info{probe, "Um"}};
     }
 
     arb::cell_kind get_cell_kind(arb::cell_gid_type) const override {
@@ -88,18 +87,18 @@ int main(int argc, char** argv) {
         arb::simulation sim(R);
 
         // Attach a sampler to the probe described in the recipe, sampling every 0.1 ms.
-
         arb::trace_vector<double> traces;
-        sim.add_sampler(arb::all_probes, arb::regular_schedule(0.1), arb::make_simple_sampler(traces));
+        sim.add_sampler(arb::all_probes,
+                        arb::regular_schedule(0.1*arb::units::ms),
+                        arb::make_simple_sampler(traces));
 
-        // Trigger the single synapse (target is gid 0, index 0) at t = 1 ms with
-        // the given weight.
-
+        // Trigger the single synapse (target is gid 0, index 0) at t = 1 ms
+        // with the given weight.
         arb::spike_event spike = {0, 1., opt.syn_weight};
         arb::cell_spike_events cell_spikes = {0, {spike}};
         sim.inject_events({cell_spikes});
 
-        sim.run(opt.t_end, opt.dt);
+        sim.run(opt.t_end*arb::units::ms, opt.dt*arb::units::ms);
 
         for (auto entry: traces.at(0)) {
             std::cout << entry.t << ", " << entry.v << "\n";

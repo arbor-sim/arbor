@@ -12,9 +12,11 @@
 #include <arbor/simulation.hpp>
 #include <arbor/spike_source_cell.hpp>
 
-#include "lif_cell_group.hpp"
-
 using namespace arb;
+
+namespace U = arb::units;
+using namespace U::literals;
+
 // Simple ring network of LIF neurons.
 // with one regularly spiking cell (fake cell) connected to the first cell in the ring.
 class ring_recipe: public arb::recipe {
@@ -44,14 +46,14 @@ public:
         std::vector<cell_connection> connections;
         // gid-1 >= 0 since gid != 0
         auto src_gid = (gid - 1) % n_lif_cells_;
-        cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_);
+        cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_*U::ms);
         connections.push_back(conn);
 
         // If first LIF cell, then add
         // the connection from the last LIF cell as well
         if (gid == 1) {
             auto src_gid = n_lif_cells_;
-            cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_);
+            cell_connection conn({src_gid, "src"}, {"tgt"}, weight_, delay_*U::ms);
             connections.push_back(conn);
         }
 
@@ -62,7 +64,7 @@ public:
         // regularly spiking cell.
         if (gid == 0) {
             // Produces just a single spike at time 0ms.
-            return spike_source_cell("src", explicit_schedule({0.f}));
+            return spike_source_cell("src", explicit_schedule_from_milliseconds({0.}));
         }
         // LIF cell.
         auto cell = lif_cell("src", "tgt");
@@ -90,14 +92,8 @@ public:
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
-        if (gid == 0) {
-            return {};
-        }
-        std::vector<cell_connection> connections;
-        cell_connection conn({gid-1, "src"}, {"tgt"}, weight_, delay_);
-        connections.push_back(conn);
-
-        return connections;
+        if (gid == 0) return {};
+        return {{{gid-1, "src"}, {"tgt"}, weight_, delay_*U::ms}};
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
@@ -127,29 +123,29 @@ public:
         for (size_t ix = 0; ix < n_conn_; ++ix) res.emplace_back(cell_global_label_type{0, "src"},
                                                                  cell_local_label_type{"tgt"},
                                                                  0.0,
-                                                                 0.005);
+                                                                 5*U::us);
         return res;
     }
     util::unique_any get_cell_description(cell_gid_type gid) const override {
         auto cell = lif_cell("src", "tgt");
         if (gid == 0) {
-            cell.E_R = -23;
-            cell.V_m = -18;
-            cell.E_L = -13;
-            cell.t_ref = 0.8;
-            cell.tau_m = 5;
+            cell.E_R = -23.0*U::mV;
+            cell.V_m = -18.0*U::mV;
+            cell.E_L = -13.0*U::mV;
+            cell.t_ref = 0.8*U::ms;
+            cell.tau_m = 5*U::ms;
         }
         return cell;
     }
     std::vector<probe_info> get_probes(cell_gid_type gid) const override {
         if (gid == 0) {
-            return {arb::lif_probe_voltage{}, arb::lif_probe_voltage{}};
+            return {{arb::lif_probe_voltage{}, "a"}, {arb::lif_probe_voltage{}, "b"}};
         } else {
-            return {arb::lif_probe_voltage{}};
+            return {{arb::lif_probe_voltage{}, "a"}};
         }
     }
     std::vector<event_generator> event_generators(cell_gid_type) const override {
-        return {regular_generator({"tgt"}, 200.0, 2.0, 1.0, 6.0)};
+        return {regular_generator({"tgt"}, 200.0, 2.0*U::ms, 1.0*U::ms, 6.0*U::ms)};
     }
 
     size_t n_conn_ = 0;
@@ -195,10 +191,7 @@ TEST(lif_cell_group, spikes) {
     events.push_back({0, {{0, 50, 1000}}});
 
     sim.inject_events(events);
-
-    time_type tfinal = 100;
-    time_type dt = 0.01;
-    sim.run(tfinal, dt);
+    sim.run(100*U::ms, 0.01*U::ms);
 
     // we expect 4 spikes: 2 by both neurons
     EXPECT_EQ(4u, sim.num_spikes());
@@ -210,9 +203,6 @@ TEST(lif_cell_group, ring)
     cell_size_type num_lif_cells = 99;
     double weight = 1000;
     double delay = 1;
-
-    // Total simulation time.
-    time_type simulation_time = 100;
 
     auto recipe = ring_recipe(num_lif_cells, weight, delay);
     // Creates a simulation with a ring recipe of lif neurons
@@ -227,7 +217,7 @@ TEST(lif_cell_group, ring)
     );
 
     // Runs the simulation for simulation_time with given timestep
-    sim.run(simulation_time, 0.01);
+    sim.run(100*U::ms, 0.01*U::ms);
     // The total number of cells in all the cell groups.
     // There is one additional fake cell (regularly spiking cell).
     EXPECT_EQ(num_lif_cells + 1u, recipe.num_cells());
@@ -246,7 +236,6 @@ TEST(lif_cell_group, ring)
 
 struct Um_type {
     constexpr static double delta = 1e-6;
-
     double t;
     double u;
 
@@ -262,7 +251,7 @@ struct Um_type {
 };
 
 TEST(lif_cell_group, probe) {
-    auto ums = std::unordered_map<cell_member_type, std::vector<Um_type>>{};
+    auto ums = std::unordered_map<cell_address_type, std::vector<Um_type>>{};
     auto fun = [&ums](probe_metadata pm,
                       std::size_t n,
                       const sample_record* samples) {
@@ -275,7 +264,7 @@ TEST(lif_cell_group, probe) {
     auto rec = probe_recipe{};
     auto sim = simulation(rec);
 
-    sim.add_sampler(all_probes, regular_schedule(0.025), fun);
+    sim.add_sampler(all_probes, regular_schedule(0.025*U::ms), fun);
 
     std::vector<double> spikes;
 
@@ -283,7 +272,7 @@ TEST(lif_cell_group, probe) {
         [&spikes](const std::vector<spike>& spk) { for (const auto& s: spk) spikes.push_back(s.time); }
     );
 
-    sim.run(10, 0.005);
+    sim.run(10*U::ms, 0.005*U::ms);
     std::vector<Um_type> exp = {{ 0, -18 },
                                 { 0.025, -17.9750624 },
                                 { 0.05, -17.9502492 },
@@ -685,11 +674,11 @@ TEST(lif_cell_group, probe) {
                                 { 9.95, -17.3604929 },
                                 { 9.975, -17.3387448 },};
 
-    ASSERT_TRUE(testing::seq_eq(ums[{0, 0}], exp));
-    ASSERT_TRUE(testing::seq_eq(ums[{0, 1}], exp));
+    ASSERT_TRUE(testing::seq_eq(ums[{0, "a"}], exp));
+    ASSERT_TRUE(testing::seq_eq(ums[{0, "b"}], exp));
     // gid == 1 is different, but of same size
-    EXPECT_EQ((ums[{1, 0}].size()), exp.size());
-    ASSERT_FALSE(testing::seq_eq(ums[{1, 0}], exp));
+    EXPECT_EQ((ums[{1, "a"}].size()), exp.size());
+    ASSERT_FALSE(testing::seq_eq(ums[{1, "a"}], exp));
     // now check the spikes
     std::sort(spikes.begin(), spikes.end());
     EXPECT_EQ(spikes.size(), 3u);
@@ -698,7 +687,7 @@ TEST(lif_cell_group, probe) {
 }
 
 TEST(lif_cell_group, probe_with_connections) {
-    auto ums = std::unordered_map<cell_member_type, std::vector<Um_type>>{};
+    auto ums = std::unordered_map<cell_address_type, std::vector<Um_type>>{};
     auto fun = [&ums](probe_metadata pm,
                       std::size_t n,
                       const sample_record* samples) {
@@ -711,7 +700,7 @@ TEST(lif_cell_group, probe_with_connections) {
     auto rec = probe_recipe{5};
     auto sim = simulation(rec);
 
-    sim.add_sampler(all_probes, regular_schedule(0.025), fun);
+    sim.add_sampler(all_probes, regular_schedule(0.025*U::ms), fun);
 
     std::vector<double> spikes;
 
@@ -719,7 +708,7 @@ TEST(lif_cell_group, probe_with_connections) {
         [&spikes](const std::vector<spike>& spk) { for (const auto& s: spk) spikes.push_back(s.time); }
     );
 
-    sim.run(10, 0.005);
+    sim.run(10*U::ms, 0.005*U::ms);
     std::vector<Um_type> exp = {{ 0, -18 },
                                 { 0.025, -17.9750624 },
                                 { 0.05, -17.9502492 },
@@ -1121,11 +1110,11 @@ TEST(lif_cell_group, probe_with_connections) {
                                 { 9.95, -17.3604929 },
                                 { 9.975, -17.3387448 },};
 
-    ASSERT_TRUE(testing::seq_eq(ums[{0, 0}], exp));
-    ASSERT_TRUE(testing::seq_eq(ums[{0, 1}], exp));
+    ASSERT_TRUE(testing::seq_eq(ums[{0, "a"}], exp));
+    ASSERT_TRUE(testing::seq_eq(ums[{0, "b"}], exp));
     // gid == 1 is different, but of same size
-    EXPECT_EQ((ums[{1, 0}].size()), exp.size());
-    ASSERT_FALSE(testing::seq_eq(ums[{1, 0}], exp));
+    EXPECT_EQ((ums[{1, "a"}].size()), exp.size());
+    ASSERT_FALSE(testing::seq_eq(ums[{1, "a"}], exp));
     // now check the spikes
     std::sort(spikes.begin(), spikes.end());
     EXPECT_EQ(spikes.size(), 3u);
