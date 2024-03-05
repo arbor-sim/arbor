@@ -4,14 +4,18 @@ from arbor import units as U
 import pandas as pd
 import seaborn as sns
 import sys
+from pathlib import Path
 
 # Load a cell morphology from an nml file.
 # Example present here: morph.nml
-if len(sys.argv) < 2:
-    print("No NeuroML file passed to the program")
-    sys.exit(0)
-
-filename = sys.argv[1]
+if len(sys.argv) == 1:
+    print("No NML file passed to the program, using default.")
+    filename = Path(__file__).parent / "morph.nml"
+elif len(sys.argv) == 2:
+    filename = Path(sys.argv[1])
+else:
+    print("Usage: single_cell_nml.py [NML file name]")
+    sys.exit(1)
 
 # Read the NeuroML morphology from the file.
 morpho_nml = A.neuroml(filename)
@@ -22,12 +26,7 @@ morpho_data = morpho_nml.morphology("m1")
 # Get the morphology.
 morpho = morpho_data.morphology
 
-# Get the region label dictionaries associated with the morphology.
-morpho_segments = morpho_data.segments()
-morpho_named = morpho_data.named_segments()
-morpho_groups = morpho_data.groups()
-
-# Create new label dict with some locsets.
+# Create new label dict with some locsets and add to it all the NeuroML dictionaries.
 labels = A.label_dict(
     {
         "stim_site": "(location 1 0.5)",  # site for the stimulus, in the middle of branch 1.
@@ -35,10 +34,7 @@ labels = A.label_dict(
         "root": "(root)",  # the start of the soma in this morphology is at the root of the cell.
     }
 )
-# Add to it all the NeuroML dictionaries.
-labels.append(morpho_segments)
-labels.append(morpho_named)
-labels.append(morpho_groups)
+labels.append(morpho_data.labels)
 
 # Optional: print out the regions and locsets available in the label dictionary.
 print("Label dictionary regions: ", labels.regions, "\n")

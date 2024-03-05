@@ -18,8 +18,7 @@ else:
     print("Usage: single_cell_detailed.py [SWC file name]")
     sys.exit(1)
 
-
-morph = A.load_swc_arbor(filename)
+morph = A.load_swc_arbor(filename).morphology
 
 # (2) Create and populate the label dictionary.
 labels = A.label_dict(

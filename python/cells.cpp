@@ -305,6 +305,7 @@ void register_cells(py::module& m) {
         .def("__repr__", &lif_str)
         .def("__str__",  &lif_str);
 
+    // arb::cv_policy wrappers
     cv_policy
         .def(py::init([](const std::string& expression) { return arborio::parse_cv_policy_expression(expression).unwrap(); }),
             "expression"_a, "A valid CV policy expression")

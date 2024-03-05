@@ -23,10 +23,10 @@ def load_allen_fit(fit):
     # cable parameters convenience class
     @dataclass
     class parameters:
-        cm: Optional[float] = None
-        tempK: Optional[float] = None
-        Vm: Optional[float] = None
-        rL: Optional[float] = None
+        cm: Optional[U.quantity] = None
+        temp: Optional[U.quantity] = None
+        Vm: Optional[U.quantity] = None
+        rL: Optional[U.quantity] = None
 
     param = defaultdict(parameters)
     mechs = defaultdict(dict)
@@ -40,14 +40,13 @@ def load_allen_fit(fit):
         elif mech == "pas":
             # transform names and values
             if name == "cm":
-                # scaling factor NEURON -> Arbor
-                param[region].cm = value / 100.0
+                param[region].cm = value * U.uF / U.cm2
             elif name == "Ra":
-                param[region].rL = value
+                param[region].rL = value * U.Ohm * U.cm
             elif name == "Vm":
-                param[region].Vm = value
+                param[region].Vm = value * U.mV
             elif name == "celsius":
-                param[region].tempK = value + 273.15
+                param[region].temp = value * U.Celsius
             else:
                 raise Exception(f"Unknown key: {name}")
             continue
@@ -59,9 +58,9 @@ def load_allen_fit(fit):
     mechs = [(r, m, vs) for (r, m), vs in mechs.items()]
 
     default = parameters(
-        tempK=float(fit["conditions"][0]["celsius"]) + 273.15,
-        Vm=float(fit["conditions"][0]["v_init"]),
-        rL=float(fit["passive"][0]["ra"]),
+        temp=float(fit["conditions"][0]["celsius"]) * U.Celsius,
+        Vm=float(fit["conditions"][0]["v_init"]) * U.mV,
+        rL=float(fit["passive"][0]["ra"]) * U.Ohm * U.cm,
     )
 
     ions = []
@@ -71,14 +70,14 @@ def load_allen_fit(fit):
             if k == "section":
                 continue
             ion = k[1:]
-            ions.append((region, ion, float(v)))
+            ions.append((region, ion, float(v) * U.mV))
 
     return default, regs, ions, mechs, fit["fitting"][0]["junction_potential"]
 
 
 def make_cell(base, swc, fit):
     # (1) Load the swc file passed into this function
-    morphology = A.load_swc_neuron(base / swc)
+    morphology = A.load_swc_neuron(base / swc).morphology
 
     # (2) Label the region tags found in the swc with the names used in the parameter fit file.
     # In addition, label the midpoint of the soma.
@@ -93,20 +92,20 @@ def make_cell(base, swc, fit):
 
     # (5) assign global electro-physiology parameters
     decor.set_property(
-        tempK=dflt.tempK * U.Kelvin,
-        Vm=dflt.Vm * U.mV,
-        cm=dflt.cm * U.F / U.m2,
-        rL=dflt.rL * U.Ohm * U.cm,
+        tempK=dflt.temp,
+        Vm=dflt.Vm,
+        cm=dflt.cm,
+        rL=dflt.rL,
     )
 
     # (6) override regional electro-physiology parameters
     for region, vs in regions:
         decor.paint(
             f'"{region}"',
-            tempK=vs.tempK * U.Kelvin,
-            Vm=vs.Vm * U.Vm,
-            cm=vs.cm * U.F / U.m2,
-            rL=vs.rL * U.Ohm * U.cm,
+            tempK=vs.temp,
+            Vm=vs.Vm,
+            cm=vs.cm,
+            rL=vs.rL,
         )
 
     # (7) set reversal potentials
@@ -153,7 +152,7 @@ model.run(tfinal=1.4 * U.s, dt=5 * U.us)
 
 # (16) Load and scale reference
 reference = (
-    1e3 * pd.read_csv(here / "single_cell_allen_neuron_ref.csv")["U/mV"] + offset
+    1e3 * pd.read_csv(here / "single_cell_allen_neuron_ref.csv")["U/mV"][:-1] + offset
 )
 
 # (17) Plot

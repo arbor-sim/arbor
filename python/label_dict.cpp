@@ -68,13 +68,13 @@ void register_label_dict(py::module& m) {
              },
              py::keep_alive<0, 1>())
         .def("append", [](label_dict_proxy& l, const label_dict_proxy& other, const char* prefix) {
-                l.import(other, prefix);
+                return l.extend(other, prefix);
             },
             "other"_a, "The label_dict to be imported"
             "prefix"_a="", "optional prefix appended to the region and locset labels",
             "Import the entries of a another label dictionary with an optional prefix.")
         .def("update", [](label_dict_proxy& l, const label_dict_proxy& other) {
-                l.import(other);
+                return l.extend(other);
             },
             "other"_a, "The label_dict to be imported"
             "Import the entries of a another label dictionary.")

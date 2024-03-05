@@ -50,9 +50,14 @@ void register_identifiers(py::module& m) {
              "Construct a cell_local_label identifier with arguments:\n"
              "  label:  The identifier of a group of one or more items on a cell.\n"
              "  policy: The policy for selecting one of possibly multiple items associated with the label.\n")
-        .def(py::init([](py::tuple t) {
-               if (py::len(t)!=2) throw std::runtime_error("tuple length != 2");
-               return arb::cell_local_label_type{t[0].cast<arb::cell_tag_type>(), t[1].cast<arb::lid_selection_policy>()};
+        .def(py::init([](const std::tuple<arb::cell_tag_type, arb::lid_selection_policy>& t) {
+               return arb::cell_local_label_type{std::get<arb::cell_tag_type>(t), std::get<arb::lid_selection_policy>(t)};
+             }),
+             "Construct a cell_local_label identifier with tuple argument (label, policy):\n"
+             "  label:  The identifier of a group of one or more items on a cell.\n"
+             "  policy: The policy for selecting one of possibly multiple items associated with the label.\n")
+        .def(py::init([](const std::pair<arb::cell_tag_type, arb::lid_selection_policy>& t) {
+               return arb::cell_local_label_type{std::get<arb::cell_tag_type>(t), std::get<arb::lid_selection_policy>(t)};
              }),
              "Construct a cell_local_label identifier with tuple argument (label, policy):\n"
              "  label:  The identifier of a group of one or more items on a cell.\n"
@@ -64,8 +69,10 @@ void register_identifiers(py::module& m) {
         .def("__str__", [](arb::cell_local_label_type m) {return pprintf("<arbor.cell_local_label: label {}, policy {}>", m.tag, m.policy);})
         .def("__repr__",[](arb::cell_local_label_type m) {return pprintf("<arbor.cell_local_label: label {}, policy {}>", m.tag, m.policy);});
 
+    py::implicitly_convertible<std::pair<arb::cell_tag_type, arb::lid_selection_policy>, arb::cell_local_label_type>();
+    py::implicitly_convertible<std::tuple<arb::cell_tag_type, arb::lid_selection_policy>, arb::cell_local_label_type>();
     py::implicitly_convertible<py::tuple, arb::cell_local_label_type>();
-    py::implicitly_convertible<py::str, arb::cell_local_label_type>();
+    py::implicitly_convertible<arb::cell_tag_type, arb::cell_local_label_type>();
 
     py::class_<arb::cell_global_label_type> cell_global_label_type(m, "cell_global_label",
         "For global identification of an item.\n\n"
@@ -89,13 +96,18 @@ void register_identifiers(py::module& m) {
              "Construct a cell_global_label identifier with arguments:\n"
              "  gid:   The global identifier of the cell.\n"
              "  label: The cell_local_label representing the label and selection policy of an item on the cell.\n")
-        .def(py::init([](py::tuple t) {
-               if (py::len(t)!=2) throw std::runtime_error("tuple length != 2");
-               return arb::cell_global_label_type{t[0].cast<arb::cell_gid_type>(), t[1].cast<arb::cell_local_label_type>()};
+        .def(py::init([](const std::tuple<arb::cell_gid_type, arb::cell_local_label_type>& t) {
+               return arb::cell_global_label_type{std::get<arb::cell_gid_type>(t), std::get<arb::cell_local_label_type>(t)};
              }),
              "Construct a cell_global_label identifier with tuple argument (gid, label):\n"
              "  gid:   The global identifier of the cell.\n"
              "  label: The cell_local_label representing the label and selection policy of an item on the cell.\n")
+        .def(py::init([](const std::tuple<arb::cell_gid_type, arb::cell_tag_type>& t) {
+               return arb::cell_global_label_type{std::get<arb::cell_gid_type>(t), std::get<arb::cell_tag_type>(t)};
+             }),
+             "Construct a cell_global_label identifier with tuple argument (gid, label):\n"
+             "  gid:   The global identifier of the cell.\n"
+             "  label: The tag of an item on the cell.\n")
         .def_readwrite("gid",  &arb::cell_global_label_type::gid,
              "The global identifier of the cell.")
         .def_readwrite("label", &arb::cell_global_label_type::label,
@@ -103,6 +115,8 @@ void register_identifiers(py::module& m) {
         .def("__str__", [](arb::cell_global_label_type m) {return pprintf("<arbor.cell_global_label: gid {}, label ({}, {})>", m.gid, m.label.tag, m.label.policy);})
         .def("__repr__",[](arb::cell_global_label_type m) {return pprintf("<arbor.cell_global_label: gid {}, label ({}, {})>", m.gid, m.label.tag, m.label.policy);});
 
+    py::implicitly_convertible<std::tuple<arb::cell_gid_type, arb::cell_local_label_type>, arb::cell_global_label_type>();
+    py::implicitly_convertible<std::tuple<arb::cell_gid_type, arb::cell_tag_type>, arb::cell_global_label_type>();
     py::implicitly_convertible<py::tuple, arb::cell_global_label_type>();
 
     py::class_<arb::cell_member_type> cell_member(m, "cell_member",
