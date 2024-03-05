@@ -1,7 +1,8 @@
 #pragma once
 
 #include <variant>
-#include <any>
+
+#include <arborio/export.hpp>
 
 #include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/morphology.hpp>
@@ -9,29 +10,29 @@
 
 namespace arborio {
 
-struct ARB_SYMBOL_VISIBLE swc_metadata {};
+struct ARB_ARBORIO_API swc_metadata {};
 
-struct ARB_SYMBOL_VISIBLE asc_color {
+struct ARB_ARBORIO_API asc_color {
     uint8_t r = 0;
     uint8_t g = 0;
     uint8_t b = 0;
 };
 
-struct ARB_SYMBOL_VISIBLE asc_spine {
+struct ARB_ARBORIO_API asc_spine {
     std::string name;
     arb::mpoint location;
 };
 
-enum ARB_SYMBOL_VISIBLE asc_marker { dot, circle, cross, none };
+enum ARB_ARBORIO_API asc_marker { dot, circle, cross, none };
 
-struct ARB_SYMBOL_VISIBLE asc_marker_set {
+struct ARB_ARBORIO_API asc_marker_set {
     asc_color color;
     asc_marker marker = asc_marker::none;
     std::string name;
     std::vector<arb::mpoint> locations;
 };
 
-struct ARB_SYMBOL_VISIBLE asc_metadata {
+struct ARB_ARBORIO_API asc_metadata {
     std::vector<asc_marker_set> markers;
     std::vector<asc_spine> spines;
 };
@@ -58,7 +59,7 @@ struct ARB_SYMBOL_VISIBLE nml_metadata {
 };
 
 // Interface for ingesting morphology data
-struct ARB_SYMBOL_VISIBLE loaded_morphology {
+struct ARB_ARBORIO_API loaded_morphology {
     // Raw segment tree, identical to morphology.
     arb::segment_tree segment_tree;
 
