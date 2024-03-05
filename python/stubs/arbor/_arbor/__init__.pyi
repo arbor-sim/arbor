@@ -653,11 +653,19 @@ class cell_global_label:
         """
 
     @typing.overload
-    def __init__(self, arg0: tuple) -> None:
+    def __init__(self, arg0: tuple[int, cell_local_label]) -> None:
         """
         Construct a cell_global_label identifier with tuple argument (gid, label):
           gid:   The global identifier of the cell.
           label: The cell_local_label representing the label and selection policy of an item on the cell.
+        """
+
+    @typing.overload
+    def __init__(self, arg0: tuple[int, str]) -> None:
+        """
+        Construct a cell_global_label identifier with tuple argument (gid, label):
+          gid:   The global identifier of the cell.
+          label: The tag of an item on the cell.
         """
 
     def __repr__(self) -> str: ...
@@ -741,7 +749,15 @@ class cell_local_label:
         """
 
     @typing.overload
-    def __init__(self, arg0: tuple) -> None:
+    def __init__(self, arg0: tuple[str, selection_policy]) -> None:
+        """
+        Construct a cell_local_label identifier with tuple argument (label, policy):
+          label:  The identifier of a group of one or more items on a cell.
+          policy: The policy for selecting one of possibly multiple items associated with the label.
+        """
+
+    @typing.overload
+    def __init__(self, arg0: tuple[str, selection_policy]) -> None:
         """
         Construct a cell_local_label identifier with tuple argument (label, policy):
           label:  The identifier of a group of one or more items on a cell.
@@ -1621,7 +1637,7 @@ class label_dict:
     """
 
     @staticmethod
-    def append(*args, **kwargs) -> None:
+    def append(*args, **kwargs) -> label_dict:
         """
         Import the entries of a another label dictionary with an optional prefix.
         """
@@ -1668,7 +1684,7 @@ class label_dict:
 
     def items(self) -> typing.Iterator: ...
     def keys(self) -> typing.Iterator: ...
-    def update(self, other: label_dict) -> None:
+    def update(self, other: label_dict) -> label_dict:
         """
         The label_dict to be importedImport the entries of a another label dictionary.
         """
@@ -2056,7 +2072,7 @@ class mpoint:
         """
 
     @typing.overload
-    def __init__(self, arg0: tuple) -> None:
+    def __init__(self, arg0: tuple[float, float, float, float]) -> None:
         """
         Create an mpoint object from a tuple (x, y, z, radius), specified in µm.
         """
