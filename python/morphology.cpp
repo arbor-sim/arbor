@@ -111,7 +111,8 @@ void register_morphology(py::module& m) {
         .def("__repr__",
             [](const arb::mpoint& p) {return util::pprintf("{}", p);});
 
-    py::implicitly_convertible<std::tuple<double, double, double, double>, arb::mpoint>();
+    py::implicitly_convertible<const std::tuple<double, double, double, double>&, arb::mpoint>();
+    py::implicitly_convertible<py::tuple, arb::mpoint>();
 
     // arb::msegment
     msegment
@@ -293,6 +294,39 @@ void register_morphology(py::module& m) {
             "Get roots of tag region of this segment tree.")
         .def("__str__", [](const arb::segment_tree& s) {
                 return util::pprintf("<arbor.segment_tree:\n{}>", s);});
+
+    // arb::morphology
+    morph
+        // constructors
+        .def(py::init(
+                [](arb::segment_tree t){
+                    return arb::morphology(std::move(t));
+                }))
+        // morphology's interface is read-only by design, so most of it can
+        // be implemented as read-only properties.
+        .def_property_readonly("empty",
+                [](const arb::morphology& m){return m.empty();},
+                "Whether the morphology is empty.")
+        .def_property_readonly("num_branches",
+                [](const arb::morphology& m){return m.num_branches();},
+                "The number of branches in the morphology.")
+        .def("branch_parent", &arb::morphology::branch_parent,
+                "i"_a, "The parent branch of branch i.")
+        .def("branch_children", &arb::morphology::branch_children,
+                "i"_a, "The child branches of branch i.")
+        .def("branch_segments",
+                [](const arb::morphology& m, arb::msize_t i) {
+                    return m.branch_segments(i);
+                },
+                "i"_a, "A list of the segments in branch i, ordered from proximal to distal ends of the branch.")
+        .def("to_segment_tree", &arb::morphology::to_segment_tree,
+                "Convert this morphology to a segment_tree.")
+        .def("__str__",
+                [](const arb::morphology& m) {
+                    return util::pprintf("<arbor.morphology:\n{}>", m);
+                });
+
+    py::implicitly_convertible<arb::segment_tree, arb::morphology>();
 
     // Function that creates a morphology/segment_tree from an swc file.
     // Wraps calls to C++ functions arborio::parse_swc() and arborio::load_swc_arbor().

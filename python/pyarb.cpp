@@ -9,6 +9,7 @@
 #include <arbor/version.hpp>
 
 #include "pyarb.hpp"
+#include "arbor/morph/primitives.hpp"
 
 // Forward declarations of functions used to register API
 // types and functions to be exposed to Python.
@@ -96,6 +97,7 @@ PYBIND11_MODULE(_arbor, m) {
     pybind11::register_exception<arb::file_not_found_error>(m, "ArbFileNotFoundError", PyExc_FileNotFoundError);
     pybind11::register_exception<arb::zero_thread_requested_error>(m, "ArbValueError", PyExc_ValueError);
 
+    pybind11::implicitly_convertible<const std::tuple<double, double, double, double>&, arb::mpoint>();
 
     #ifdef ARB_MPI_ENABLED
     pyarb::register_mpi(m);
