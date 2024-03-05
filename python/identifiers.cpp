@@ -71,6 +71,7 @@ void register_identifiers(py::module& m) {
 
     py::implicitly_convertible<std::pair<arb::cell_tag_type, arb::lid_selection_policy>, arb::cell_local_label_type>();
     py::implicitly_convertible<std::tuple<arb::cell_tag_type, arb::lid_selection_policy>, arb::cell_local_label_type>();
+    py::implicitly_convertible<py::tuple, arb::cell_local_label_type>();
     py::implicitly_convertible<arb::cell_tag_type, arb::cell_local_label_type>();
 
     py::class_<arb::cell_global_label_type> cell_global_label_type(m, "cell_global_label",
@@ -116,6 +117,7 @@ void register_identifiers(py::module& m) {
 
     py::implicitly_convertible<std::tuple<arb::cell_gid_type, arb::cell_local_label_type>, arb::cell_global_label_type>();
     py::implicitly_convertible<std::tuple<arb::cell_gid_type, arb::cell_tag_type>, arb::cell_global_label_type>();
+    py::implicitly_convertible<py::tuple, arb::cell_global_label_type>();
 
     py::class_<arb::cell_member_type> cell_member(m, "cell_member",
         "For global identification of a cell-local item.\n\n"
