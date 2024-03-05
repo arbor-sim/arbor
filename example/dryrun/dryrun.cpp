@@ -1,8 +1,3 @@
-/*
- * A miniapp that demonstrates how to use dry_run mode
- *
- */
-
 #include <any>
 #include <cassert>
 #include <fstream>
@@ -56,7 +51,6 @@ run_params read_options(int argc, char** argv);
 using arb::cell_gid_type;
 using arb::cell_lid_type;
 using arb::cell_size_type;
-using arb::cell_member_type;
 using arb::cell_kind;
 using arb::time_type;
 
@@ -103,7 +97,7 @@ public:
         auto src = source_distribution(src_gen);
         if (src>=gid) ++src;
 
-        return {arb::cell_connection({src, "detector"}, {"synapse"}, event_weight_, min_delay_)};
+        return {arb::cell_connection({src, "detector"}, {"synapse"}, event_weight_, min_delay_*U::ms)};
     }
 
     // Return an event generator on every 20th gid. This function needs to generate events
@@ -112,14 +106,14 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (gid%20 == 0) {
-            gens.push_back(arb::explicit_generator({"synapse"}, event_weight_, std::vector<float>{1.0f}));
+            gens.push_back(arb::explicit_generator_from_milliseconds({"synapse"}, event_weight_, std::vector{1.0}));
         }
         return gens;
     }
 
     std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
         // One probe per cell, sampling membrane voltage at end of soma.
-        return {arb::cable_probe_membrane_voltage{arb::mlocation{0, 0.0}}};
+        return {{arb::cable_probe_membrane_voltage{arb::mlocation{0, 0.0}}, "Um"}};
     }
 
 private:
@@ -178,9 +172,9 @@ int main(int argc, char** argv) {
         arb::simulation sim(recipe, ctx);
 
         // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
-        auto probeset_id = cell_member_type{0, 0};
-        // The schedule for sampling is 10 samples every 1 ms.
-        auto sched = arb::regular_schedule(1);
+        auto probeset_id = arb::cell_address_type{0, "Um"};
+        // The schedule for sampling every 1 ms.
+        auto sched = arb::regular_schedule(1*arb::units::ms);
         // This is where the voltage samples will be stored as (time, value) pairs
         arb::trace_vector<double> voltage;
         // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
@@ -198,7 +192,7 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-init", ctx);
 
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
-        sim.run(params.duration, 0.025);
+        sim.run(params.duration*arb::units::ms, 0.025*arb::units::ms);
 
         meters.checkpoint("model-run", ctx);
 

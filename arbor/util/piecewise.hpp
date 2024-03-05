@@ -166,7 +166,7 @@ struct pw_element_proxy {
     double lower_bound() const { return extent.first; }
     double upper_bound() const { return extent.second; }
 
-    const std::pair<double, double>& extent;
+    const std::pair<double, double> extent;
     X& value;
 };
 
@@ -181,7 +181,7 @@ struct pw_element_proxy<const X> {
     double lower_bound() const { return extent.first; }
     double upper_bound() const { return extent.second; }
 
-    const std::pair<double, double>& extent;
+    const std::pair<double, double> extent;
     const X& value;
 };
 

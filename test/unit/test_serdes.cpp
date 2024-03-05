@@ -19,6 +19,8 @@
 
 using arb::serialize;
 
+namespace U = arb::units;
+
 using json = nlohmann::json;
 using io = arborio::json_serdes;
 using serdes = arb::serializer;
@@ -126,7 +128,7 @@ TEST(serdes, round_trip) {
 struct serdes_recipe: public arb::recipe {
     arb::cell_size_type num_cells() const override { return num; }
     std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override {
-        return {{arb::cable_probe_membrane_voltage{arb::ls::location(0, 0.5)}, 0}};
+        return {{arb::cable_probe_membrane_voltage{arb::ls::location(0, 0.5)}, "Um-(0, 0.5)"}};
     }
     arb::cell_kind get_cell_kind(arb::cell_gid_type) const override { return arb::cell_kind::cable; }
     std::any get_global_properties(arb::cell_kind) const override {
@@ -143,7 +145,7 @@ struct serdes_recipe: public arb::recipe {
             .paint(arb::join(arb::reg::tagged(2), arb::reg::tagged(3)),
                    arb::density("pas"))
             .place(arb::mlocation{0, 0.0},
-                   arb::threshold_detector{10},
+                   arb::threshold_detector{10*arb::units::mV},
                    "detector")
             .place(arb::mlocation{0, 1.0},
                    arb::synapse("exp2syn"),
@@ -162,12 +164,12 @@ struct serdes_recipe: public arb::recipe {
         return {{{src, "detector"},
                  {"synapse"},
                  0.5,
-                 0.125}};
+                 0.125*U::ms}};
     }
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
         std::vector<arb::event_generator> res;
-        if (!gid) res.push_back(arb::regular_generator({"synapse"}, 1, 0.5, 0.73));
+        if (!gid) res.push_back(arb::regular_generator({"synapse"}, 1, 0.5*arb::units::ms, 0.73*arb::units::ms));
         return {};
     }
 
@@ -190,8 +192,8 @@ void sampler(arb::probe_metadata pm,
 }
 
 TEST(serdes, single_cell) {
-    double dt = 0.5;
-    double T  = 5;
+    auto dt = 0.5*arb::units::ms;
+    auto T  = 5*arb::units::ms;
 
     // Result
     std::vector<double> result_pre;
@@ -231,8 +233,8 @@ TEST(serdes, single_cell) {
 }
 
 TEST(serdes, network) {
-    double dt = 0.5;
-    double T  = 5;
+    auto dt = 0.5*arb::units::ms;
+    auto T  = 5*arb::units::ms;
 
     // Result
     std::vector<double> result_pre;
@@ -300,8 +302,8 @@ TEST(serdes, host_device_arrays) {
 }
 
 TEST(serdes, single_cell_gpu) {
-    double dt = 0.5;
-    double T  = 5;
+    auto dt = 0.5*arb::units::ms;
+    auto T  = 5*arb::units::ms;
 
     // Result
     std::vector<double> result_pre;
@@ -340,8 +342,8 @@ TEST(serdes, single_cell_gpu) {
 }
 
 TEST(serdes, network_gpu) {
-    double dt = 0.5;
-    double T  = 5;
+    auto dt = 0.5*arb::units::ms;
+    auto T  = 5*arb::units::ms;
 
     // Result
     std::vector<double> result_pre;

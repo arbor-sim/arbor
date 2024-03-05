@@ -18,7 +18,7 @@ namespace arb {
 struct sampler_association {
     schedule sched;
     sampler_function sampler;
-    std::vector<cell_member_type> probeset_ids;
+    std::vector<cell_address_type> probeset_ids;
 };
 
 using sampler_association_map = std::unordered_map<sampler_association_handle, sampler_association>;

@@ -31,6 +31,13 @@ bad_cell_probe::bad_cell_probe(cell_kind kind, cell_gid_type gid):
     kind(kind)
 {}
 
+dup_cell_probe::dup_cell_probe(cell_kind kind, cell_gid_type gid, cell_tag_type tag):
+    arbor_exception(pprintf("Probe tag {} duplicated for cell gid {} of kind {}.", tag, gid, kind)),
+    gid(gid),
+    kind(kind),
+    tag(std::move(tag))
+{}
+
 bad_cell_description::bad_cell_description(cell_kind kind, cell_gid_type gid):
     arbor_exception(pprintf("recipe::get_cell_kind(gid={}) -> {} does not match the cell type provided by recipe::get_cell_description(gid={})", gid, kind, gid)),
     gid(gid),

@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
-#include <tuple>
 #include <vector>
 
 #include <arbor/constants.hpp>
@@ -10,7 +9,6 @@
 #include <arbor/cable_cell.hpp>
 
 #include "backends/multicore/fvm.hpp"
-#include "util/maputil.hpp"
 #include "util/range.hpp"
 
 #include "../common_cells.hpp"

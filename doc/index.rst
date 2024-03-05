@@ -150,15 +150,21 @@ A full list of our software attributions can be found `here <https://github.com/
    concepts/index
    concepts/recipe
    concepts/cell
+   concepts/units
    concepts/interconnectivity
    concepts/hardware
    concepts/domdec
    concepts/simulation
+   concepts/probe_sample
+
+.. toctree::
+   :caption: Cell Types:
+   :maxdepth: 1
+
    concepts/cable_cell
    concepts/lif_cell
    concepts/spike_source_cell
    concepts/benchmark_cell
-   concepts/probe_sample
 
 .. toctree::
    :caption: File formats:

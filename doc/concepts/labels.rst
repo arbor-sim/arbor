@@ -201,6 +201,13 @@ dendritic tree where the radius first is less than or equal to 0.2 μm.
     thing could be achieved using hoc in NEURON, and whether it would be free of bugs
     and applicable to arbitrary morphologies.
 
+.. figure:: ../gen-images/label_branch.svg
+  :width: 800
+  :align: center
+
+  The input morphology with branch numbers for reference in the examples below.
+
+
 .. _labels-locset-expr:
 
 Locset expressions
@@ -209,13 +216,6 @@ Locset expressions
 .. label:: (locset-nil)
 
     The empty locset.
-
-.. figure:: ../gen-images/label_branch.svg
-  :width: 800
-  :align: center
-
-  The input morphology with branch numbers for reference in the examples below.
-
 
 .. label:: (root)
 

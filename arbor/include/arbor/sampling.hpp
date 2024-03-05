@@ -8,13 +8,27 @@
 
 namespace arb {
 
-using cell_member_predicate = std::function<bool (cell_member_type)>;
+using cell_member_predicate = std::function<bool (const cell_address_type&)>;
 
-static cell_member_predicate all_probes = [](cell_member_type pid) { return true; };
+static cell_member_predicate all_probes = [](const cell_address_type&) { return true; };
 
-inline cell_member_predicate one_probe(cell_member_type pid) {
-    return [pid](cell_member_type x) { return pid==x; };
-}
+struct one_probe {
+    one_probe(cell_address_type p): pid{std::move(p)} {}
+    cell_address_type pid;
+    bool operator()(const cell_address_type& x) { return x == pid; }
+};
+
+struct one_gid {
+    one_gid(cell_gid_type p): gid{std::move(p)} {}
+    cell_gid_type gid;
+    bool operator()(const cell_address_type& x) { return x.gid == gid; }
+};
+struct one_tag {
+    one_tag(cell_tag_type p): tag{std::move(p)} {}
+    cell_tag_type tag;
+    bool operator()(const cell_address_type& x) { return x.tag == tag; }
+};
+
 
 // Probe-specific metadata is provided by cell group implementations.
 //
@@ -23,10 +37,9 @@ inline cell_member_predicate one_probe(cell_member_type pid) {
 // correct interpretation of sample data provided to sampler callbacks.
 
 struct probe_metadata {
-    cell_member_type id; // probe id
-    probe_tag tag;       // probe tag associated with id
-    unsigned index;      // index of probe source within those supplied by probe id
-    util::any_ptr meta;  // probe-specific metadata
+    cell_address_type id; // probe id
+    unsigned index;       // index of probe source within those supplied by probe id
+    util::any_ptr meta;   // probe-specific metadata
 };
 
 struct sample_record {

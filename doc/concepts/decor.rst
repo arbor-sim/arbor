@@ -204,7 +204,8 @@ resistivity, and membrane capacitance, as well as all ion parameters
 
 
     # initial value for the membrane potential as inhomogeneous expression.
-    decor.paint('(all)', Vm='(mul 42 (diameter))')
+    # we give a pair of a base value and a scaling iexpr
+    decor.paint('(all)', Vm=(23, '(mul 42 (diameter))'))
 
 .. _cablecell-ions:
 

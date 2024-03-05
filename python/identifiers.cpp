@@ -1,9 +1,8 @@
-#include <ostream>
-#include <string>
-
 #include <pybind11/pybind11.h>
 
 #include <arbor/common_types.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/spike.hpp>
 
 #include "strprintf.hpp"
 
@@ -23,6 +22,11 @@ void register_identifiers(py::module& m) {
                "Halts at the current location until the round_robin policy is called (again).")
         .value("univalent", arb::lid_selection_policy::assert_univalent,
                "Assert that there is only one possible location associated with a labeled item on the cell. The model throws an exception if the assertion fails.");
+
+    py::class_<arb::cell_address_type> cell_address(m, "cell_address");
+    cell_address
+        .def_readwrite("gid", &arb::cell_address_type::gid)
+        .def_readwrite("tag", &arb::cell_address_type::tag);
 
     py::class_<arb::cell_local_label_type> cell_local_label_type(m, "cell_local_label",
         "For local identification of an item.\n\n"
@@ -149,6 +153,21 @@ void register_identifiers(py::module& m) {
             "Use GPU backend.")
         .value("multicore", arb::backend_kind::multicore,
             "Use multicore backend.");
+
+    // Probes
+    py::class_<arb::probe_info> probe(m, "probe");
+    probe
+        .def("__repr__", [](const arb::probe_info& p){return util::pprintf("<arbor.probe: tag {}>", p.tag);})
+        .def("__str__",  [](const arb::probe_info& p){return util::pprintf("<arbor.probe: tag {}>", p.tag);});
+
+    py::class_<arb::spike> spike(m, "spike");
+    spike
+        .def(py::init([](const arb::cell_member_type& m, arb::time_type t) -> arb::spike { return {m, t}; }))
+        .def_readwrite("source", &arb::spike::source, "The global identifier of the cell.")
+        .def_readwrite("time", &arb::spike::time, "The time of spike.")
+        .def("__repr__", [](const arb::spike& s){return util::pprintf("<arbor.spike: {}>", s);})
+        .def("__str__",  [](const arb::spike& s){return util::pprintf("<arbor.spike: {}>", s);});
+
 }
 
 } // namespace pyarb

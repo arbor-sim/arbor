@@ -1,4 +1,3 @@
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -15,13 +14,14 @@
 #include <arbor/recipe.hpp>
 
 #include "arbor/cable_cell_param.hpp"
-#include "conversion.hpp"
 #include "error.hpp"
 #include "event_generator.hpp"
 #include "strprintf.hpp"
 #include "recipe.hpp"
 
 namespace pyarb {
+
+namespace U = arb::units;
 
 // Convert a cell description inside a Python object to a cell description in a
 // unique_any, as required by the recipe interface.
@@ -56,7 +56,7 @@ static arb::util::unique_any convert_cell(pybind11::object o) {
 
 // The py::recipe::cell_decription returns a pybind11::object, that is
 // unwrapped and copied into a arb::util::unique_any.
- arb::util::unique_any py_recipe_shim::get_cell_description(arb::cell_gid_type gid) const {
+ arb::util::unique_any recipe_shim::get_cell_description(arb::cell_gid_type gid) const {
     return try_catch_pyexception([&](){
         pybind11::gil_scoped_acquire guard;
         return convert_cell(impl_->cell_description(gid));
@@ -79,7 +79,7 @@ static std::any convert_gprop(pybind11::object o) {
 
 // The py::recipe::global_properties returns a pybind11::object, that is
 // unwrapped and copied into an std::any.
-std::any py_recipe_shim::get_global_properties(arb::cell_kind kind) const {
+std::any recipe_shim::get_global_properties(arb::cell_kind kind) const {
     return try_catch_pyexception([&](){
         pybind11::gil_scoped_acquire guard;
         return convert_gprop(impl_->global_properties(kind));
@@ -113,7 +113,7 @@ static std::vector<arb::event_generator> convert_gen(std::vector<pybind11::objec
     return gens;
 }
 
-std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid_type gid) const {
+std::vector<arb::event_generator> recipe_shim::event_generators(arb::cell_gid_type gid) const {
     return try_catch_pyexception([&](){
         pybind11::gil_scoped_acquire guard;
         return convert_gen(impl_->event_generators(gid), gid);
@@ -139,7 +139,7 @@ void register_recipe(pybind11::module& m) {
         "Describes a connection between two cells:\n"
         "  Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively), a connection weight and a delay time.");
     cell_connection
-        .def(pybind11::init<arb::cell_global_label_type, arb::cell_local_label_type, float, float>(),
+        .def(pybind11::init<arb::cell_global_label_type, arb::cell_local_label_type, float, const U::quantity&>(),
             "source"_a, "dest"_a, "weight"_a, "delay"_a,
             "Construct a connection with arguments:\n"
             "  source:      The source end point of the connection.\n"
@@ -177,48 +177,43 @@ void register_recipe(pybind11::module& m) {
         .def("__repr__", &gj_to_string);
 
     // Recipes
-    pybind11::class_<py_recipe,
-                     py_recipe_trampoline,
-                     std::shared_ptr<py_recipe>>
+    pybind11::class_<recipe,
+                     recipe_trampoline,
+                     std::shared_ptr<recipe>>
         recipe(m, "recipe", pybind11::dynamic_attr(),
         "A description of a model, describing the cells and the network via a cell-centric interface.");
     recipe
         .def(pybind11::init<>())
-        .def("num_cells", &py_recipe::num_cells, "The number of cells in the model.")
-        .def("cell_description", &py_recipe::cell_description, pybind11::return_value_policy::copy,
+        .def("num_cells", &recipe::num_cells, "The number of cells in the model.")
+        .def("cell_description", &recipe::cell_description, pybind11::return_value_policy::copy,
             "gid"_a,
             "High level description of the cell with global identifier gid.")
         .def("cell_kind",
-             &py_recipe::cell_kind,
+             &recipe::cell_kind,
             "gid"_a,
             "The kind of cell with global identifier gid.")
-        .def("event_generators", &py_recipe::event_generators,
+        .def("event_generators", &recipe::event_generators,
             "gid"_a,
             "A list of all the event generators that are attached to gid, [] by default.")
-        .def("connections_on", &py_recipe::connections_on,
+        .def("connections_on", &recipe::connections_on,
              pybind11::call_guard<pybind11::gil_scoped_release>(),
             "gid"_a,
             "A list of all the incoming connections to gid, [] by default.")
-        .def("external_connections_on", &py_recipe::external_connections_on,
+        .def("external_connections_on", &recipe::external_connections_on,
             "gid"_a,
             "A list of all the incoming connections from _remote_ locations to gid, [] by default.")
-        .def("gap_junctions_on", &py_recipe::gap_junctions_on,
+        .def("gap_junctions_on", &recipe::gap_junctions_on,
             "gid"_a,
             "A list of the gap junctions connected to gid, [] by default.")
-        .def("probes", &py_recipe::probes,
+        .def("probes", &recipe::probes,
             "gid"_a,
             "The probes to allow monitoring.")
-        .def("global_properties", &py_recipe::global_properties,
+        .def("global_properties", &recipe::global_properties,
             "kind"_a,
             "The default properties applied to all cells of type 'kind' in the model.")
-        // TODO: py_recipe::global_properties
-        .def("__str__",  [](const py_recipe&){return "<arbor.recipe>";})
-        .def("__repr__", [](const py_recipe&){return "<arbor.recipe>";});
+        // TODO: recipe::global_properties
+        .def("__str__",  [](const ::pyarb::recipe&){return "<arbor.recipe>";})
+        .def("__repr__", [](const ::pyarb::recipe&){return "<arbor.recipe>";});
 
-    // Probes
-    pybind11::class_<arb::probe_info> probe(m, "probe");
-    probe
-        .def("__repr__", [](const arb::probe_info& p){return util::pprintf("<arbor.probe: tag {}>", p.tag);})
-        .def("__str__",  [](const arb::probe_info& p){return util::pprintf("<arbor.probe: tag {}>", p.tag);});
 }
 } // namespace pyarb

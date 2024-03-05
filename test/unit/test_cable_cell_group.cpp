@@ -7,7 +7,6 @@
 #include "epoch.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "cable_cell_group.hpp"
-#include "util/rangeutil.hpp"
 
 #include "common.hpp"
 #include "../common_cells.hpp"
@@ -29,8 +28,8 @@ namespace {
         auto d = builder.make_cell();
         d.decorations.paint("soma"_lab, density("hh"));
         d.decorations.paint("dend"_lab, density("pas"));
-        d.decorations.place(builder.location({1,1}), i_clamp::box(5, 80, 0.3), "clamp0");
-        d.decorations.place(builder.location({0, 0}), threshold_detector{0}, "detector0");
+        d.decorations.place(builder.location({1,1}), i_clamp::box(5*arb::units::ms, 80*arb::units::ms, 0.3*arb::units::nA), "clamp0");
+        d.decorations.place(builder.location({0, 0}), threshold_detector{0*arb::units::mV}, "detector0");
         return d;
     }
 }
@@ -72,7 +71,7 @@ TEST(cable_cell_group, sources) {
     for (int i=0; i<20; ++i) {
         auto desc = make_cell();
         if (i==0 || i==3 || i==17) {
-            desc.decorations.place(mlocation{0, 0.3}, threshold_detector{2.3}, "detector1");
+            desc.decorations.place(mlocation{0, 0.3}, threshold_detector{2.3*arb::units::mV}, "detector1");
         }
         cells.emplace_back(desc);
 

@@ -393,8 +393,43 @@ multiple soma and dendrite segments in branch 0.
    are no longer of much use for the user and it is better to think of the
    cell structure as Arbor does: in terms of branches.
 
+Connectivity of Components
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When building regions, Arbor considers two points in a region of the morphology
+as *connected* if they are
+
+1. located on the same branch,
+2. located on adjacent branches, where one is distal to the other,
+3. or separated by fully connected branches.
+
+Two components are connected -- and thus one component -- if there are points in
+both that are connected. In short, a component is defined as the maximal set of
+connected points.
+
+.. figure:: ../gen-images/label_branch.svg
+  :width: 800
+  :align: center
+
+This means a simple fork -- as that between branches 2, 3, and 4 in the image
+above gives rise to the following scenarios
+
+- ``(join (segment 2) (segment 3))`` is connected as 3 is distal to 2.
+- ``(join (segment 2) (segment 4))`` is connected as 4 is distal to 2.
+- ``(join (segment 3) (segment 4))`` is **not** connected as 3 and 4 are at equivalent depth.
+
+One can observe the difference when using the ``on-components`` expression, see below.
+
+.. figure:: ../gen-images/connected_components.svg
+  :width: 800
+  :align: center
+
+  **Left**: ``(on-components 0.5 (join (branch 2) (branch 3)))``
+
+  **Right**: ``(on-components 0.5 (join (branch 3) (branch 4)))``
+
 Examples
-~~~~~~~~~~~~~~~
+~~~~~~~~
 
 Here we present a series of morphology examples of increasing complexity.
 The examples use the Python API are two-dimensional, with the z-dimension set to zero.
