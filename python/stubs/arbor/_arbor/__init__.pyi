@@ -413,8 +413,6 @@ class cable_global_properties:
 
     @property
     def axial_resistivity(self) -> float | None: ...
-    @axial_resistivity.setter
-    def axial_resistivity(self, arg1: float) -> None: ...
     @property
     def catalogue(self) -> catalogue:
         """
@@ -445,16 +443,10 @@ class cable_global_properties:
 
     @property
     def membrane_capacitance(self) -> float | None: ...
-    @membrane_capacitance.setter
-    def membrane_capacitance(self, arg1: float) -> None: ...
     @property
     def membrane_potential(self) -> float | None: ...
-    @membrane_potential.setter
-    def membrane_potential(self, arg1: float) -> None: ...
     @property
     def temperature(self) -> float | None: ...
-    @temperature.setter
-    def temperature(self, arg1: float) -> None: ...
 
 class cable_probe_point_info:
     """
@@ -980,10 +972,10 @@ class decor:
     def paint(
         self,
         region: str,
-        Vm: units.quantity | str | None = None,
-        cm: units.quantity | str | None = None,
-        rL: units.quantity | str | None = None,
-        tempK: units.quantity | str | None = None,
+        Vm: units.quantity | tuple[units.quantity, str] | None = None,
+        cm: units.quantity | tuple[units.quantity, str] | None = None,
+        rL: units.quantity | tuple[units.quantity, str] | None = None,
+        tempK: units.quantity | tuple[units.quantity, str] | None = None,
     ) -> decor:
         """
         Set cable properties on a region.
@@ -992,6 +984,7 @@ class decor:
          * cm:    membrane capacitance [F/m²].
          * rL:    axial resistivity [Ω·cm].
          * tempK: temperature [Kelvin].
+        Each value can be given as a plain quantity or a tuple of (quantity, 'scale') where scale is an iexpr.
         """
 
     @typing.overload
@@ -1000,10 +993,10 @@ class decor:
         region: str,
         *,
         ion: str,
-        int_con: units.quantity | None = None,
-        ext_con: units.quantity | None = None,
-        rev_pot: units.quantity | None = None,
-        diff: units.quantity | None = None,
+        int_con: units.quantity | tuple[units.quantity, str] | None = None,
+        ext_con: units.quantity | tuple[units.quantity, str] | None = None,
+        rev_pot: units.quantity | tuple[units.quantity, str] | None = None,
+        diff: units.quantity | tuple[units.quantity, str] | None = None,
     ) -> decor:
         """
         Set ion species properties conditions on a region.
@@ -1012,6 +1005,7 @@ class decor:
          * rev_pot: reversal potential [mV].
          * method:  mechanism for calculating reversal potential.
          * diff:   diffusivity [m^2/s].
+        Each value can be given as a plain quantity or a tuple of (quantity, 'scale') where scale is an iexpr.
         """
 
     def paintings(
@@ -1893,7 +1887,7 @@ class membrane_potential:
     Setting the initial membrane voltage.
     """
 
-    def __init__(self, arg0: units.quantity, arg1: str | None) -> None: ...
+    def __init__(self, arg0: units.quantity) -> None: ...
     def __repr__(self) -> str: ...
 
 class meter_manager:

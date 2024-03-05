@@ -95,9 +95,8 @@ void register_morphology(py::module& m) {
         .def(py::init<double, double, double, double>(),
              "x"_a, "y"_a, "z"_a, "radius"_a,
              "Create an mpoint object from parameters x, y, z, and radius, specified in µm.")
-        .def(py::init([](py::tuple t) {
-                if (py::len(t)!=4) throw std::runtime_error("tuple length != 4");
-                return arb::mpoint{t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>(), t[3].cast<double>()}; }),
+        .def(py::init([](const std::tuple<double, double, double, double>& t) {
+                return arb::mpoint{std::get<0>(t), std::get<1>(t), std::get<2>(t), std::get<3>(t)}; }),
              "Create an mpoint object from a tuple (x, y, z, radius), specified in µm.")
         .def_readonly("x", &arb::mpoint::x, "X coordinate [μm].")
         .def_readonly("y", &arb::mpoint::y, "Y coordinate [μm].")
@@ -112,7 +111,7 @@ void register_morphology(py::module& m) {
         .def("__repr__",
             [](const arb::mpoint& p) {return util::pprintf("{}", p);});
 
-    py::implicitly_convertible<py::tuple, arb::mpoint>();
+    py::implicitly_convertible<std::tuple<double, double, double, double>, arb::mpoint>();
 
     // arb::msegment
     msegment

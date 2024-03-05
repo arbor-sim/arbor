@@ -271,17 +271,17 @@ __config__: dict = {
     "neuroml": True,
     "bundled": True,
     "version": "0.9.1-dev",
-    "source": "2023-12-08T14:40:50+01:00 327c56d229571dac097e7400a9b5e04fc8d7a514 modified",
-    "build_config": "DEBUG",
+    "source": "2024-02-21T20:23:01+01:00 2e2f329f5e2afd70c180dec5578eb886d9119141 modified",
+    "build_config": "RELEASE",
     "arch": "native",
     "prefix": "/usr/local",
     "python_lib_path": "/opt/homebrew/lib/python3.11/site-packages",
     "binary_path": "bin",
     "lib_path": "lib",
     "data_path": "share",
-    "CXX": "/opt/homebrew/bin/clang++",
+    "CXX": "/opt/homebrew/bin/g++-13",
     "pybind-version": "2.11.1",
-    "timestamp": "Jan  2 2024 09:57:33",
+    "timestamp": "Feb 21 2024 21:48:32",
 }
 __version__: str = "0.9.1-dev"
 mnpos: int = 4294967295
