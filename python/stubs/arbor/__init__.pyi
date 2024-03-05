@@ -5,7 +5,11 @@ from arbor._arbor import MechCatItemIterator
 from arbor._arbor import MechCatKeyIterator
 from arbor._arbor import MechCatValueIterator
 from arbor._arbor import allen_catalogue
-from arbor._arbor import asc_morphology
+from arbor._arbor import asc_color
+from arbor._arbor import asc_marker
+from arbor._arbor import asc_marker_set
+from arbor._arbor import asc_metadata
+from arbor._arbor import asc_spine
 from arbor._arbor import axial_resistivity
 from arbor._arbor import backend
 from arbor._arbor import bbp_catalogue
@@ -81,6 +85,7 @@ from arbor._arbor import load_catalogue
 from arbor._arbor import load_component
 from arbor._arbor import load_swc_arbor
 from arbor._arbor import load_swc_neuron
+from arbor._arbor import loaded_morphology
 from arbor._arbor import location
 from arbor._arbor import mechanism
 from arbor._arbor import mechanism_field
@@ -94,8 +99,8 @@ from arbor._arbor import morphology_provider
 from arbor._arbor import mpoint
 from arbor._arbor import msegment
 from arbor._arbor import neuroml
-from arbor._arbor import neuroml_morph_data
 from arbor._arbor import neuron_cable_properties
+from arbor._arbor import nml_metadata
 from arbor._arbor import partition_by_group
 from arbor._arbor import partition_hint
 from arbor._arbor import partition_load_balance
@@ -118,6 +123,7 @@ from arbor._arbor import spike
 from arbor._arbor import spike_recording
 from arbor._arbor import spike_source_cell
 from arbor._arbor import stochastic_catalogue
+from arbor._arbor import swc_metadata
 from arbor._arbor import synapse
 from arbor._arbor import temperature
 from arbor._arbor import threshold_detector
@@ -126,162 +132,11 @@ from arbor._arbor import units
 from arbor._arbor import voltage_process
 from arbor._arbor import write_component
 from . import _arbor
-
-__all__ = [
-    "ArbFileNotFoundError",
-    "ArbValueError",
-    "MechCatItemIterator",
-    "MechCatKeyIterator",
-    "MechCatValueIterator",
-    "allen_catalogue",
-    "asc_morphology",
-    "axial_resistivity",
-    "backend",
-    "bbp_catalogue",
-    "benchmark_cell",
-    "build_catalogue",
-    "cable",
-    "cable_cell",
-    "cable_component",
-    "cable_global_properties",
-    "cable_probe_axial_current",
-    "cable_probe_density_state",
-    "cable_probe_density_state_cell",
-    "cable_probe_ion_current_cell",
-    "cable_probe_ion_current_density",
-    "cable_probe_ion_diff_concentration",
-    "cable_probe_ion_diff_concentration_cell",
-    "cable_probe_ion_ext_concentration",
-    "cable_probe_ion_ext_concentration_cell",
-    "cable_probe_ion_int_concentration",
-    "cable_probe_ion_int_concentration_cell",
-    "cable_probe_membrane_voltage",
-    "cable_probe_membrane_voltage_cell",
-    "cable_probe_point_info",
-    "cable_probe_point_state",
-    "cable_probe_point_state_cell",
-    "cable_probe_stimulus_current_cell",
-    "cable_probe_total_current_cell",
-    "cable_probe_total_ion_current_cell",
-    "cable_probe_total_ion_current_density",
-    "catalogue",
-    "cell_address",
-    "cell_cv_data",
-    "cell_global_label",
-    "cell_kind",
-    "cell_local_label",
-    "cell_member",
-    "component_meta_data",
-    "config",
-    "connection",
-    "context",
-    "cv_data",
-    "cv_policy",
-    "cv_policy_every_segment",
-    "cv_policy_explicit",
-    "cv_policy_fixed_per_branch",
-    "cv_policy_max_extent",
-    "cv_policy_single",
-    "decor",
-    "default_catalogue",
-    "density",
-    "domain_decomposition",
-    "env",
-    "event_generator",
-    "explicit_schedule",
-    "ext_concentration",
-    "extent",
-    "gap_junction_connection",
-    "group_description",
-    "iclamp",
-    "int_concentration",
-    "intersect_region",
-    "ion_data",
-    "ion_dependency",
-    "ion_diffusivity",
-    "ion_settings",
-    "isometry",
-    "junction",
-    "label_dict",
-    "lif_cell",
-    "lif_probe_metadata",
-    "lif_probe_voltage",
-    "load_asc",
-    "load_catalogue",
-    "load_component",
-    "load_swc_arbor",
-    "load_swc_neuron",
-    "location",
-    "mechanism",
-    "mechanism_field",
-    "mechanism_info",
-    "membrane_capacitance",
-    "membrane_potential",
-    "meter_manager",
-    "meter_report",
-    "mnpos",
-    "modcc",
-    "morphology",
-    "morphology_provider",
-    "mpoint",
-    "msegment",
-    "neuroml",
-    "neuroml_morph_data",
-    "neuron_cable_properties",
-    "partition_by_group",
-    "partition_hint",
-    "partition_load_balance",
-    "place_pwlin",
-    "poisson_schedule",
-    "print_config",
-    "probe",
-    "proc_allocation",
-    "recipe",
-    "regular_schedule",
-    "reversal_potential",
-    "reversal_potential_method",
-    "scaled_mechanism",
-    "schedule_base",
-    "segment_tree",
-    "selection_policy",
-    "simulation",
-    "single_cell_model",
-    "spike",
-    "spike_recording",
-    "spike_source_cell",
-    "stochastic_catalogue",
-    "synapse",
-    "temperature",
-    "threshold_detector",
-    "trace",
-    "units",
-    "voltage_process",
-    "write_component",
-]
-
-def build_catalogue(): ...
-def modcc(): ...
-
-__config__: dict = {
-    "mpi": False,
-    "mpi4py": False,
-    "gpu": None,
-    "vectorize": True,
-    "profiling": False,
-    "neuroml": True,
-    "bundled": True,
-    "version": "0.9.1-dev",
-    "source": "2024-02-21T20:23:01+01:00 2e2f329f5e2afd70c180dec5578eb886d9119141 modified",
-    "build_config": "RELEASE",
-    "arch": "native",
-    "prefix": "/usr/local",
-    "python_lib_path": "/opt/homebrew/lib/python3.11/site-packages",
-    "binary_path": "bin",
-    "lib_path": "lib",
-    "data_path": "share",
-    "CXX": "/opt/homebrew/bin/g++-13",
-    "pybind-version": "2.11.1",
-    "timestamp": "Feb 21 2024 21:48:32",
-}
-__version__: str = "0.9.1-dev"
+__all__ = ['ArbFileNotFoundError', 'ArbValueError', 'MechCatItemIterator', 'MechCatKeyIterator', 'MechCatValueIterator', 'allen_catalogue', 'asc_color', 'asc_marker', 'asc_marker_set', 'asc_metadata', 'asc_spine', 'axial_resistivity', 'backend', 'bbp_catalogue', 'benchmark_cell', 'build_catalogue', 'cable', 'cable_cell', 'cable_component', 'cable_global_properties', 'cable_probe_axial_current', 'cable_probe_density_state', 'cable_probe_density_state_cell', 'cable_probe_ion_current_cell', 'cable_probe_ion_current_density', 'cable_probe_ion_diff_concentration', 'cable_probe_ion_diff_concentration_cell', 'cable_probe_ion_ext_concentration', 'cable_probe_ion_ext_concentration_cell', 'cable_probe_ion_int_concentration', 'cable_probe_ion_int_concentration_cell', 'cable_probe_membrane_voltage', 'cable_probe_membrane_voltage_cell', 'cable_probe_point_info', 'cable_probe_point_state', 'cable_probe_point_state_cell', 'cable_probe_stimulus_current_cell', 'cable_probe_total_current_cell', 'cable_probe_total_ion_current_cell', 'cable_probe_total_ion_current_density', 'catalogue', 'cell_address', 'cell_cv_data', 'cell_global_label', 'cell_kind', 'cell_local_label', 'cell_member', 'component_meta_data', 'config', 'connection', 'context', 'cv_data', 'cv_policy', 'cv_policy_every_segment', 'cv_policy_explicit', 'cv_policy_fixed_per_branch', 'cv_policy_max_extent', 'cv_policy_single', 'decor', 'default_catalogue', 'density', 'domain_decomposition', 'env', 'event_generator', 'explicit_schedule', 'ext_concentration', 'extent', 'gap_junction_connection', 'group_description', 'iclamp', 'int_concentration', 'intersect_region', 'ion_data', 'ion_dependency', 'ion_diffusivity', 'ion_settings', 'isometry', 'junction', 'label_dict', 'lif_cell', 'lif_probe_metadata', 'lif_probe_voltage', 'load_asc', 'load_catalogue', 'load_component', 'load_swc_arbor', 'load_swc_neuron', 'loaded_morphology', 'location', 'mechanism', 'mechanism_field', 'mechanism_info', 'membrane_capacitance', 'membrane_potential', 'meter_manager', 'meter_report', 'mnpos', 'modcc', 'morphology', 'morphology_provider', 'mpoint', 'msegment', 'neuroml', 'neuron_cable_properties', 'nml_metadata', 'partition_by_group', 'partition_hint', 'partition_load_balance', 'place_pwlin', 'poisson_schedule', 'print_config', 'probe', 'proc_allocation', 'recipe', 'regular_schedule', 'reversal_potential', 'reversal_potential_method', 'scaled_mechanism', 'schedule_base', 'segment_tree', 'selection_policy', 'simulation', 'single_cell_model', 'spike', 'spike_recording', 'spike_source_cell', 'stochastic_catalogue', 'swc_metadata', 'synapse', 'temperature', 'threshold_detector', 'trace', 'units', 'voltage_process', 'write_component']
+def build_catalogue():
+    ...
+def modcc():
+    ...
+__config__: dict = {'mpi': False, 'mpi4py': False, 'gpu': None, 'vectorize': True, 'profiling': False, 'neuroml': True, 'bundled': True, 'version': '0.9.1-dev', 'source': '2024-03-01T14:59:23+01:00 dcdfe101f389cb4854ac3d0a067feeb280600c88 modified', 'build_config': 'DEBUG', 'arch': 'native', 'prefix': '/usr/local', 'python_lib_path': '/usr/local/lib/python3.12/site-packages', 'binary_path': 'bin', 'lib_path': 'lib', 'data_path': 'share', 'CXX': '/opt/homebrew/bin/clang++', 'pybind-version': '2.11.1', 'timestamp': 'Mar  4 2024 20:56:20'}
+__version__: str = '0.9.1-dev'
 mnpos: int = 4294967295

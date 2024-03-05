@@ -23,10 +23,10 @@ def load_allen_fit(fit):
     # cable parameters convenience class
     @dataclass
     class parameters:
-        cm: Optional[float] = None
-        temp: Optional[float] = None
-        Vm: Optional[float] = None
-        rL: Optional[float] = None
+        cm: Optional[U.quantity] = None
+        temp: Optional[U.quantity] = None
+        Vm: Optional[U.quantity] = None
+        rL: Optional[U.quantity] = None
 
     param = defaultdict(parameters)
     mechs = defaultdict(dict)
@@ -42,7 +42,7 @@ def load_allen_fit(fit):
             if name == "cm":
                 param[region].cm = value * U.uF / U.cm2
             elif name == "Ra":
-                param[region].rL = (value * U.Ohm * U.cm,)
+                param[region].rL = value * U.Ohm * U.cm
             elif name == "Vm":
                 param[region].Vm = value * U.mV
             elif name == "celsius":
@@ -103,9 +103,9 @@ def make_cell(base, swc, fit):
         decor.paint(
             f'"{region}"',
             tempK=vs.temp,
-            # Vm=vs.Vm,
-            # cm=vs.cm,
-            # rL=vs.rL,
+            Vm=vs.Vm,
+            cm=vs.cm,
+            rL=vs.rL,
         )
 
     # (7) set reversal potentials
@@ -152,7 +152,7 @@ model.run(tfinal=1.4 * U.s, dt=5 * U.us)
 
 # (16) Load and scale reference
 reference = (
-    1e3 * pd.read_csv(here / "single_cell_allen_neuron_ref.csv")["U/mV"] + offset
+    1e3 * pd.read_csv(here / "single_cell_allen_neuron_ref.csv")["U/mV"][:-1] + offset
 )
 
 # (17) Plot

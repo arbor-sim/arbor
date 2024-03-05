@@ -294,9 +294,6 @@ void register_morphology(py::module& m) {
         .def("__str__", [](const arb::segment_tree& s) {
                 return util::pprintf("<arbor.segment_tree:\n{}>", s);});
 
-
-    using morph_or_tree = std::variant<arb::segment_tree, arb::morphology>;
-
     // Function that creates a morphology/segment_tree from an swc file.
     // Wraps calls to C++ functions arborio::parse_swc() and arborio::load_swc_arbor().
     m.def("load_swc_arbor",
