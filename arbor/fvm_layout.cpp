@@ -305,7 +305,7 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
                                      [](const auto& kv) {
                                          const auto& [k, v] = kv;
                                          auto s = v.scale.get_scalar();
-                                         return !s || *s*v.value != 0.0;
+                                         return !s || (*s != 0.0 && std::isfinite(*s));
                                      });
         if (diffusive) {
             // Provide a (non-sensical) default.
@@ -1197,7 +1197,6 @@ make_density_mechanism_config(const region_assignment<density>& assignments,
     for (const auto& [name, cables]: assignments) {
         const auto& info = data.catalogue[name];
         auto config = make_mechanism_config(info, arb_mechanism_kind_density);
-
 
         auto parameters = ordered_parameters(info);
         auto n_param = parameters.size();
