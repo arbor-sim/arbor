@@ -1,5 +1,7 @@
+#include <numeric>
 #include <stdexcept>
 #include <map>
+#include <set>
 #include <vector>
 
 #include <arbor/morph/morphexcept.hpp>
@@ -8,6 +10,7 @@
 #include "io/sepval.hpp"
 #include "util/span.hpp"
 #include "util/transform.hpp"
+#include "util/strprintf.hpp"
 
 using arb::util::make_span;
 
@@ -245,7 +248,6 @@ ARB_ARBOR_API std::vector<msize_t> tag_roots(const segment_tree& t, int tag) {
 
     return tag_roots;
 }
-
 
 } // namespace arb
 
