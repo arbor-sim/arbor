@@ -6,15 +6,16 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/locset.hpp>
 
+#include <gtest/gtest.h>
+
 #include "fvm_layout.hpp"
 #include "util/span.hpp"
 
-#include "common.hpp"
 #include "common_morphologies.hpp"
 #include "../common_cells.hpp"
 
 using namespace arb;
-using util::make_span;
+namespace U = arb::units;
 
 TEST(cv_layout, empty) {
     using namespace common_morphology;
@@ -92,9 +93,9 @@ TEST(cv_layout, cable) {
     params.init_membrane_potential = 0;
 
     decor decs;
-    decs.paint(reg::cable(0, 0.0, 0.2), init_membrane_potential{10});
-    decs.paint(reg::cable(0, 0.2, 0.7), init_membrane_potential{20});
-    decs.paint(reg::cable(0, 0.7, 1.0), init_membrane_potential{30});
+    decs.paint(reg::cable(0, 0.0, 0.2), init_membrane_potential{10*U::mV});
+    decs.paint(reg::cable(0, 0.2, 0.7), init_membrane_potential{20*U::mV});
+    decs.paint(reg::cable(0, 0.7, 1.0), init_membrane_potential{30*U::mV});
     cable_cell c(morph, decs);
 
     params.discretization = cv_policy_explicit(ls::nil());

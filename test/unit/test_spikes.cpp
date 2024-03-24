@@ -203,8 +203,8 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
 }
 
 TEST(SPIKES_TEST_CLASS, threshold_watcher_interpolation) {
-    double dt = 0.025;
-    double duration = 1;
+    auto dt = 0.025*arb::units::ms;
+    auto duration = 1*arb::units::ms;
 
     arb::segment_tree tree;
     tree.append(arb::mnpos, { -6.3, 0.0, 0.0, 6.3}, {  6.3, 0.0, 0.0, 6.3}, 1);
@@ -223,8 +223,8 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher_interpolation) {
     for (unsigned i = 0; i < 8; i++) {
         arb::decor decor;
         decor.set_default(arb::cv_policy_every_segment());
-        decor.place("mid"_lab, arb::threshold_detector{10}, "detector");
-        decor.place("mid"_lab, arb::i_clamp::box(0.01+i*dt, duration, 0.5), "clamp");
+        decor.place("mid"_lab, arb::threshold_detector{10*arb::units::mV}, "detector");
+        decor.place("mid"_lab, arb::i_clamp::box(0.01*arb::units::ms + i*dt, duration, 0.5*arb::units::nA), "clamp");
         decor.place("mid"_lab, arb::synapse("expsyn"), "synapse");
 
         arb::cable_cell cell(morpho, decor, dict);
@@ -243,7 +243,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher_interpolation) {
     }
 
     for (unsigned i = 1; i < spikes.size(); ++i) {
-        EXPECT_NEAR(dt, spikes[i].time - spikes[i-1].time, 1e-4);
+        EXPECT_NEAR(dt.value(), spikes[i].time - spikes[i-1].time, 1e-4);
     }
 }
 

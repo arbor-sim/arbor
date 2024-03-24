@@ -41,7 +41,7 @@ struct v_proc_recipe: public arb::recipe {
                  {arb::cable_probe_membrane_voltage{"(location 0 0.625)"_ls}, "Um-(0, 0.625)"}}; // dend center: 0.75/2 + 0.25
     }
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type) const override {
-        return {arb::regular_generator({"tgt"}, 5.0, 0.2, 0.05)};
+        return {arb::regular_generator({"tgt"}, 5.0, 0.2*arb::units::ms, 0.05*arb::units::ms)};
     }
     std::any get_global_properties(arb::cell_kind) const override { return gprop; }
 
@@ -90,8 +90,8 @@ TEST(v_process, clamp) {
         }
     };
     auto sim = arb::simulation(v_proc_recipe{true, false});
-    sim.add_sampler(arb::all_probes, arb::regular_schedule(0.05), fun);
-    sim.run(1.0, 0.005);
+    sim.add_sampler(arb::all_probes, arb::regular_schedule(0.05*arb::units::ms), fun);
+    sim.run(1.0*arb::units::ms, 0.005*arb::units::ms);
 
     um_s_type exp_soma{{ 0, -65 },
                        { 0.05, -42 },
@@ -158,8 +158,8 @@ TEST(v_process, limit) {
         }
     };
     auto sim = arb::simulation(v_proc_recipe{false, true});
-    sim.add_sampler(arb::all_probes, arb::regular_schedule(0.05), fun);
-    sim.run(1.0, 0.005);
+    sim.add_sampler(arb::all_probes, arb::regular_schedule(0.05*arb::units::ms), fun);
+    sim.run(1.0*arb::units::ms, 0.005*arb::units::ms);
 
     um_s_type exp_soma{{ 0, -65 },
                        { 0.05, -60 },
@@ -228,8 +228,8 @@ TEST(v_process, clamp_fine) {
     auto rec = v_proc_recipe{true, false};
     rec.gprop.default_parameters.discretization = arb::cv_policy_max_extent(0.5);
     auto sim = arb::simulation(rec);
-    sim.add_sampler(arb::all_probes, arb::regular_schedule(0.05), fun);
-    sim.run(1.0, 0.005);
+    sim.add_sampler(arb::all_probes, arb::regular_schedule(0.05*arb::units::ms), fun);
+    sim.run(1.0*arb::units::ms, 0.005*arb::units::ms);
 
     um_s_type exp_soma{{ 0, -65 },
                        { 0.05, -42 },

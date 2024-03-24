@@ -4,7 +4,6 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include <arbor/export.hpp>
@@ -239,7 +238,7 @@ using location_assignment =
 
 using cable_cell_region_map = static_typed_map<region_assignment,
     density, voltage_process, init_membrane_potential, axial_resistivity,
-    temperature_K, membrane_capacitance, init_int_concentration,
+    temperature, membrane_capacitance, init_int_concentration,
     ion_diffusivity, init_ext_concentration, init_reversal_potential>;
 
 using cable_cell_location_map = static_typed_map<location_assignment,

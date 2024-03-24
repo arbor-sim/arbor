@@ -10,15 +10,16 @@ variables:
   PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/software/arbor_daint_gpu:$CI_COMMIT_SHORT_SHA
 
 build-base:
-  extends: .container-builder-dynamic-name
+  extends: [.container-builder-cscs-zen2, .dynamic-image-name]
   stage: build_base
   variables:
     DOCKERFILE: ci/cscs/daint_gpu/Dockerfile.base
     PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/base/arbor_daint_gpu_base_image
     WATCH_FILECHANGES: 'ci/cscs/daint_gpu/Dockerfile.base'
+    DOCKER_BUILD_ARGS: '["TARGET_SYSTEM=daint-mc"]'
 
 build-arbor:
-  extends: .container-builder
+  extends: .container-builder-cscs-zen2
   stage: build
   variables:
     DOCKERFILE: ci/cscs/daint_gpu/Dockerfile

@@ -120,10 +120,10 @@ int main(int argc, char** argv) {
     // setup sampler and add it to the simulation with regular schedule
     std::vector<arb_value_type> data;
     sampler s{data, ncvs, nsteps};
-    sim.add_sampler(arb::all_probes, arb::regular_schedule(dt), s);
+    sim.add_sampler(arb::all_probes, arb::regular_schedule(dt*arb::units::ms), s);
 
     // run the simulation
-    sim.run(nsteps*dt, dt);
+    sim.run(nsteps*dt*arb::units::ms, dt*arb::units::ms);
 
     // evaluate the mean for each time step across the ensembe of realizations
     // (each control volume is a independent realization of the Ornstein-Uhlenbeck process)

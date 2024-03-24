@@ -33,11 +33,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build ccache
       - name: Set up cmake
-        uses: jwlawson/actions-setup-cmake@v1.13
+        uses: jwlawson/actions-setup-cmake@v2.0.0
         with:
           cmake-version: 3.19.x
       - name: Clone w/ submodules
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Update pip

@@ -1,10 +1,4 @@
-/*
- * A miniapp that demonstrates how to use dry_run mode
- *
- */
-
 #include <fstream>
-#include <iomanip>
 #include <iostream>
 
 #include <nlohmann/json.hpp>
@@ -29,6 +23,8 @@
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
 #include <sup/json_params.hpp>
+
+namespace U = arb::units;
 
 struct bench_params {
     struct cell_params {
@@ -79,7 +75,6 @@ std::ostream& operator<<(std::ostream& o, const bench_params& p);
 using arb::cell_gid_type;
 using arb::cell_lid_type;
 using arb::cell_size_type;
-using arb::cell_member_type;
 using arb::cell_kind;
 using arb::time_type;
 
@@ -100,8 +95,7 @@ public:
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        using RNG = std::mt19937_64;
-        auto gen = arb::poisson_schedule(params_.cell.spike_freq_hz/1000, RNG(gid));
+        auto gen = arb::poisson_schedule(params_.cell.spike_freq_hz*arb::units::Hz, gid);
         return arb::benchmark_cell("src", "tgt", std::move(gen), params_.cell.realtime_ratio);
     }
 
@@ -120,7 +114,7 @@ public:
         for (unsigned i=0; i<params_.network.fan_in; ++i) {
             auto src = source_distribution(src_gen);
             if (src>=gid) ++src;
-            conns.push_back(arb::cell_connection({src, "src"}, {"tgt"}, 1.f, params_.network.min_delay));
+            conns.push_back(arb::cell_connection({src, "src"}, {"tgt"}, 1.f, params_.network.min_delay*U::ms));
         }
 
         return conns;
@@ -162,7 +156,7 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-init", ctx);
 
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
-        sim.run(params.duration, 0.025);
+        sim.run(params.duration*arb::units::ms, 0.025*arb::units::ms);
 
         meters.checkpoint("model-run", ctx);
 

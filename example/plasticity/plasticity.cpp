@@ -13,6 +13,8 @@
 
 using namespace arborio::literals;
 
+namespace U = arb::units;
+
 // Fan out network with n members
 // - one spike source at gid 0
 // - n-1 passive, soma-only cable cells
@@ -55,17 +57,18 @@ struct recipe: public arb::recipe {
         return {};
     }
     // Connect cell `to` to the spike source
-    void add_connection(arb::cell_gid_type to) { assert(to > 0); connected[to] = {arb::cell_connection({0, src}, {syn}, weight, delay)}; }
+    void add_connection(arb::cell_gid_type to) { assert(to > 0); connected[to] = {
+        arb::cell_connection({0, src}, {syn}, weight, delay*U::ms)}; }
     // Return the cell at gid
     arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override {
         // source at gid 0
-        if (gid == 0) return arb::spike_source_cell{src, arb::regular_schedule(f_spike)};
+        if (gid == 0) return arb::spike_source_cell{src, arb::regular_schedule(f_spike*arb::units::ms)};
         // all others are receiving cable cells; single CV w/ HH
         arb::segment_tree tree; tree.append(arb::mnpos, {-r_soma, 0, 0, r_soma}, {r_soma, 0, 0, r_soma}, 1);
         auto decor = arb::decor{}
             .paint(all, arb::density("hh", {{"gl", 5}}))
             .place(center, arb::synapse("expsyn"), syn)
-            .place(center, arb::threshold_detector{-10.0}, det)
+            .place(center, arb::threshold_detector{-10.0*arb::units::mV}, det)
             .set_default(arb::cv_policy_every_segment());
         return arb::cable_cell({tree}, decor);
     }
@@ -110,11 +113,11 @@ int main(int argc, char** argv) {
     rec.add_connection(1);
     auto ctx = arb::make_context(arb::proc_allocation{8, -1});
     auto sim = arb::simulation(rec, ctx);
-    sim.add_sampler(arb::all_probes, arb::regular_schedule(dt), sampler);
+    sim.add_sampler(arb::all_probes, arb::regular_schedule(dt*arb::units::ms), sampler);
     sim.set_global_spike_callback(spike_cb);
     print_header(0, 1);
-    sim.run(1.0, dt);
+    sim.run(1.0*arb::units::ms, dt*arb::units::ms);
     rec.add_connection(2);
     print_header(1, 2);
-    sim.run(2.0, dt);
+    sim.run(2.0*arb::units::ms, dt*arb::units::ms);
 }

@@ -37,11 +37,13 @@ set(pyarb_source
     network.cpp
     profiler.cpp
     pyarb.cpp
+    label_dict.cpp
     recipe.cpp
     schedule.cpp
     simulation.cpp
     single_cell_model.cpp
     env.cpp
+    units.cpp
 )
 
 set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_BINARY="${CMAKE_INSTALL_BINDIR}"         APPEND)
@@ -118,4 +120,5 @@ endif()
 
 install(TARGETS pyarb DESTINATION ${_python_module_install_path})
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py DESTINATION ${_python_module_install_path})
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/stubs/arbor/ DESTINATION ${_python_module_install_path})
 install(FILES ${PROJECT_SOURCE_DIR}/VERSION ${PROJECT_SOURCE_DIR}/README.md ${PROJECT_SOURCE_DIR}/LICENSE DESTINATION ${_python_module_install_path})

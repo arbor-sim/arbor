@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <random>
 #include <vector>
 #include <any>
 
@@ -17,18 +16,15 @@
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
 
-#include "common.hpp"
 using namespace arb;
+namespace U = arb::units;
 
 struct play_spikes: public recipe {
     play_spikes(std::vector<schedule> spike_times): spike_times_(std::move(spike_times)) {}
 
     cell_size_type num_cells() const override { return spike_times_.size(); }
     cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::spike_source; }
-    util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return spike_source_cell("src", spike_times_.at(gid));
-    }
-
+    util::unique_any get_cell_description(cell_gid_type gid) const override { return spike_source_cell("src", spike_times_.at(gid)); }
     std::vector<schedule> spike_times_;
 };
 
@@ -52,7 +48,7 @@ TEST(simulation, null) {
     auto c = arb::make_context();
     auto d = arb::partition_load_balance(r, c);
     auto s = arb::simulation(r, c, d);
-    s.run(0.05, 0.01);
+    s.run(0.05*arb::units::ms, 0.01*arb::units::ms);
 }
 
 // Test with simulation builder
@@ -60,22 +56,23 @@ TEST(simulation, null_builder) {
     auto r = null_recipe{};
     {
         arb::simulation s = arb::simulation::create(r);
-        s.run(0.05, 0.01);
+        s.run(0.05*arb::units::ms,
+              0.01*arb::units::ms);
     }
     {
         arb::simulation s = arb::simulation::create(r).set_seed(42);
-        s.run(0.05, 0.01);
+        s.run(0.05*arb::units::ms, 0.01*arb::units::ms);
     }
     {
         auto c = arb::make_context();
         arb::simulation s = arb::simulation::create(r).set_context(c);
-        s.run(0.05, 0.01);
+        s.run(0.05*arb::units::ms, 0.01*arb::units::ms);
     }
     {
         auto c = arb::make_context();
         auto d = arb::partition_load_balance(r, c);
         arb::simulation s = arb::simulation::create(r).set_context(c).set_decomposition(d);
-        s.run(0.05, 0.01);
+        s.run(0.05*arb::units::ms, 0.01*arb::units::ms);
     }
 }
 
@@ -85,7 +82,7 @@ TEST(simulation, spike_global_callback) {
 
     std::vector<schedule> spike_times;
     for (unsigned i = 0; i<n; ++i) {
-        spike_times.push_back(poisson_schedule(0., 20./t_max, std::minstd_rand(1000+i)));
+        spike_times.push_back(poisson_schedule(0.*arb::units::ms, 20./t_max*arb::units::kHz, 1000 + i));
     }
 
     std::vector<spike> expected_spikes;
@@ -107,7 +104,7 @@ TEST(simulation, spike_global_callback) {
 
     double tfinal = 0.7*t_max;
     constexpr double dt = 0.01;
-    sim.run(tfinal, dt);
+    sim.run(tfinal*arb::units::ms, dt*arb::units::ms);
 
     auto spike_lt = [](spike a, spike b) { return a.time<b.time || (a.time==b.time && a.source<b.source); };
     std::sort(expected_spikes.begin(), expected_spikes.end(), spike_lt);
@@ -128,28 +125,20 @@ struct lif_chain: public recipe {
     util::unique_any get_cell_description(cell_gid_type) const override {
         // A hair-trigger LIF cell with tiny time constant and no refractory period.
         lif_cell lif("src", "tgt");
-        lif.tau_m = 0.01;           // time constant (ms)
-        lif.t_ref = 0;              // refactory period (ms)
-        lif.V_th = lif.E_L + 0.001; // threshold voltage 1 µV higher than resting
+        lif.tau_m = 0.01*U::ms;           // time constant (ms)
+        lif.t_ref = 0*U::ms;              // refactory period (ms)
+        lif.V_th = lif.E_L + 0.001*U::mV; // threshold voltage 1 µV higher than resting
         return lif;
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type target) const override {
-        if (target) {
-            return {cell_connection({target-1, "src"}, {"tgt"}, weight_, delay_)};
-        }
-        else {
-            return {};
-        }
+        if (target) return {cell_connection({target-1, "src"}, {"tgt"}, weight_, delay_*U::ms)};
+        return {};
     }
 
     std::vector<event_generator> event_generators(cell_gid_type target) const override {
-        if (target) {
-            return {};
-        }
-        else {
-            return {event_generator({"tgt"}, weight_, triggers_)};
-        }
+        if (target) return {};
+        return {event_generator({"tgt"}, weight_, triggers_)};
     }
 
     static constexpr double weight_ = 2.0;
@@ -162,7 +151,7 @@ TEST(simulation, restart) {
     std::vector<double> trigger_times = {1., 2., 3.};
     double delay = 10;
     unsigned n = 5;
-    lif_chain rec(n, delay, explicit_schedule(trigger_times));
+    lif_chain rec(n, delay, explicit_schedule_from_milliseconds(trigger_times));
 
     // Expect spike times to be almost exactly according to trigger times,
     // plus delays along the chain of cells.
@@ -203,7 +192,7 @@ TEST(simulation, restart) {
         double t = 0;
         do {
             double run_to = std::min(tfinal, t + run_time);
-            t = sim.run(run_to, dt);
+            t = sim.run(run_to*arb::units::ms, dt*arb::units::ms);
             ASSERT_EQ(t, run_to);
         } while (t<tfinal);
         ASSERT_EQ(expected_spikes.size(), collected.size());

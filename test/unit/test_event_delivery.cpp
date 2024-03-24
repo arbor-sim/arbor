@@ -37,7 +37,7 @@ struct test_recipe: public n_cable_cell_recipe {
 
         decor decorations;
         decorations.place(mlocation{0, 0.5}, synapse("expsyn"), "synapse");
-        decorations.place(mlocation{0, 0.5}, threshold_detector{-64}, "detector");
+        decorations.place(mlocation{0, 0.5}, threshold_detector{-64*arb::units::mV}, "detector");
         decorations.place(mlocation{0, 0.5}, junction("gj"), "gapjunction");
         cable_cell c(st, decorations, labels);
 
@@ -74,7 +74,7 @@ std::vector<cell_gid_type> run_test_sim(const recipe& R, const group_gids_type& 
     }
 
     sim.inject_events(cell_events);
-    sim.run((n+1)*ev_delta_t, 0.01);
+    sim.run((n+1)*ev_delta_t*arb::units::ms, 0.01*arb::units::ms);
 
     std::vector<cell_gid_type> spike_gids;
     util::sort_by(spikes, [](auto s) { return s.time; });

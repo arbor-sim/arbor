@@ -15,7 +15,7 @@ static constexpr unsigned vls_sve_width = @ARB_SVE_BITS@/64;
 
 // Check required compiler features for VLS_SVE
 #if (!defined(__ARM_FEATURE_SVE_BITS) || __ARM_FEATURE_SVE_BITS != @ARB_SVE_BITS@)
-#error "Vector length specific scalable vector extension (VLS_SVE) not enabled - did you compile with -msve-vector-bits=@ARB_SVE_BITS@?" 
+#error "Vector length specific scalable vector extension (VLS_SVE) not enabled - consider setting ARB_SVE_LENGTH=@ARB_SVE_BITS@"
 #endif
 
 // We currently do not rely on GNU vector extension, __attribute__((vector_size(vls_sve_width)). If defined, we could

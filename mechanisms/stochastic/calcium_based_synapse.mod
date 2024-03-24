@@ -58,19 +58,9 @@ PARAMETER {
     tau_Ca = 20 (ms)
 }
 
-ASSIGNED {
-    one_over_tau
-    one_over_tau_Ca
-    sigma_over_sqrt_tau
-}
-
 INITIAL {
     c = 0
     rho = rho_0
-
-    one_over_tau = 1/tau
-    one_over_tau_Ca = 1/tau_Ca
-    sigma_over_sqrt_tau = sigma/(tau^0.5)
 }
 
 BREAKPOINT {
@@ -82,12 +72,16 @@ WHITE_NOISE {
 }
 
 DERIVATIVE state {
-    LOCAL hsp
-    LOCAL hsd
+    LOCAL hsp, hsd, d_rho, d_w
+
     hsp = step_right(c - theta_p)
     hsd = step_right(c - theta_d)
-    rho' = (-rho*(1-rho)*(rho_star-rho) + gamma_p*(1-rho)*hsp - gamma_d*rho*hsd)*one_over_tau + (hsp + hsd)^0.5*sigma_over_sqrt_tau*W
-    c' = -c*one_over_tau_Ca
+
+    d_rho = (rho*(rho - 1)*(rho_star - rho) + gamma_p*(1 - rho)*hsp - gamma_d*rho*hsd)/tau
+    d_w = sigma*((hsp + hsd)/tau)^0.5
+
+    rho' = d_rho + d_w*W
+    c' = -c/tau_Ca
 }
 
 NET_RECEIVE(weight) {

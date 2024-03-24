@@ -27,7 +27,7 @@ We construct the following :term:`morphology` and label the soma and dendrite:
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 20-46
+   :lines: 12-42
 
 In step **(2)** we create a :term:`label` for both the root and the site of the synapse.
 These locations will form the endpoints of the connections between the cells.
@@ -40,7 +40,7 @@ These locations will form the endpoints of the connections between the cells.
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 48-58
+   :lines: 44-54
 
 After we've created a basic :py:class:`arbor.decor`, step **(3)** places a synapse with an exponential decay (``'expsyn'``) on the ``'synapse_site'``.
 The synapse is given the label ``'syn'``, which is later used to form :py:class:`arbor.connection` objects terminating *at* the cell.
@@ -63,67 +63,94 @@ Step **(4)** places a threshold detector at the ``'root'``. The detector is give
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 60-71
+   :lines: 56-65
 
 The recipe
 **********
 
-To create a model with multiple connected cells, we need to use a :py:class:`recipe <arbor.recipe>`.
-The recipe is where the different cells and the :ref:`connections <interconnectivity>` between them are defined.
+.. literalinclude:: ../../python/example/network_ring.py
+   :language: python
+   :lines: 70-112
 
-Step **(5)** shows a class definition for a recipe with multiple cells. Instantiating the class requires the desired
-number of cells as input. Compared to the :ref:`simple cell recipe <tutorialsinglecellrecipe>`, the main differences
-are connecting the cells **(8)**, returning a configurable number of cells **(6)** and returning a new cell per ``gid`` **(7)**.
+To create a model with multiple connected cells, we need to use a
+:py:class:`recipe <arbor.recipe>`. The recipe is where the different cells and
+the :ref:`connections <interconnectivity>` between them are defined.
 
-Step **(8)** creates an :py:class:`arbor.connection` between consecutive cells. If a cell has gid ``gid``, the
-previous cell has a gid ``(gid-1)%self.ncells``. The connection has a weight of 0.01 (inducing a conductance of 0.01 μS
-in the target mechanism ``expsyn``) and a delay of 5 ms.
-The first two arguments to :py:class:`arbor.connection` are the **source** and **target** of the connection.
+Step **(5)** shows a class definition for a recipe with multiple cells.
+Instantiating the class requires the desired number of cells as input. Compared
+to the :ref:`simple cell recipe <tutorialsinglecellrecipe>`, the main
+differences are connecting the cells **(8)**, returning a configurable number of
+cells **(6)** and returning a new cell per ``gid`` **(7)**.
 
-The **source** is a :py:class:`arbor.cell_global_label` object containing a cell index ``gid``, the source label
-corresponding to a valid detector label on the cell and an optional selection policy (for choosing a single detector
-out of potentially many detectors grouped under the same label - remember, in this case the number of detectors labeled
-'detector' is 1).
-The :py:class:`arbor.cell_global_label` can be initialized with a ``(gid, label)`` tuple, in which case the selection
-policy is the default :py:attr:`arbor.selection_policy.univalent`; or a ``(gid, (label, policy))`` tuple.
+Step **(8)** creates an :py:class:`arbor.connection` between consecutive cells.
+If a cell has gid ``gid``, the previous cell has a gid ``(gid-1)%self.ncells``.
+The connection has a weight of 0.01 (inducing a conductance of 0.01 μS in the
+target mechanism ``expsyn``) and a delay of 5 ms. The first two arguments to
+:py:class:`arbor.connection` are the **source** and **target** of the
+connection.
 
-The **target** is a :py:class:`arbor.cell_local_label` object containing a cell index ``gid``, the target label
-corresponding to a valid synapse label on the cell and an optional selection policy (for choosing a single synapse
-out of potentially many synapses grouped under the same label - remember, in this case the number of synapses labeled
-'syn' is 1).
-The :py:class:`arbor.cell_local_label` can be initialized with a ``label`` string, in which case the selection
-policy is the default :py:attr:`arbor.selection_policy.univalent`; or a ``(label, policy)`` tuple. The ``gid``
-of the target cell doesn't need to be explicitly added to the connection, it is the argument to the
-:py:func:`arbor.recipe.connections_on` method.
+The **source** is a :py:class:`arbor.cell_global_label` object containing a cell
+index ``gid``, the source label corresponding to a valid detector label on the
+cell and an optional selection policy (for choosing a single detector out of
+potentially many detectors grouped under the same label - remember, in this case
+the number of detectors labeled 'detector' is 1). The
+:py:class:`arbor.cell_global_label` can be initialized with a ``(gid, label)``
+tuple, in which case the selection policy is the default
+:py:attr:`arbor.selection_policy.univalent`; or a ``(gid, (label, policy))``
+tuple.
 
-Step **(9)** attaches an :py:class:`arbor.event_generator` on the 0th target (synapse) on the 0th cell; this means it
-is connected to the ``"synapse_site"`` on cell 0. This initiates the signal cascade through the network. The
-:class:`arbor.explicit_schedule` in instantiated with a list of times in milliseconds, so here a single event at the 1
-ms mark is emitted. Note that this synapse is connected twice, once to the event generator, and once to another cell.
+The **target** is a :py:class:`arbor.cell_local_label` object containing a cell
+index ``gid``, the target label corresponding to a valid synapse label on the
+cell and an optional selection policy (for choosing a single synapse out of
+potentially many synapses grouped under the same label - remember, in this case
+the number of synapses labeled 'syn' is 1). The
+:py:class:`arbor.cell_local_label` can be initialized with a ``label`` string,
+in which case the selection policy is the default
+:py:attr:`arbor.selection_policy.univalent`; or a ``(label, policy)`` tuple. The
+``gid`` of the target cell doesn't need to be explicitly added to the
+connection, it is the argument to the :py:func:`arbor.recipe.connections_on`
+method.
+
+Step **(9)** attaches an :py:class:`arbor.event_generator` on the 0th target
+(synapse) on the 0th cell; this means it is connected to the ``"synapse_site"``
+on cell 0. This initiates the signal cascade through the network. The
+:class:`arbor.explicit_schedule` in instantiated with a list of times in
+milliseconds, so here a single event at the 1 ms mark is emitted. Note that this
+synapse is connected twice, once to the event generator, and once to another
+cell.
 
 Step **(10)** places a :term:`probe` at the ``"root"`` of each cell.
 
-Step **(11)** instantiates the recipe with 4 cells.
-
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 74-122
+   :lines: 115-117
+
+Step **(11)** instantiates the recipe with 4 cells.
 
 The execution
 *************
 
-To create a simulation, we need at minimum to supply the recipe, and in addition can supply a :class:`arbor.context`
-and :py:class:`arbor.domain_decomposition`. The first lets Arbor know what hardware it should use, the second how to
-destribute the work over that hardware. By default, contexts are configured to use 1 thread and domain decompositons to
-divide work equally over all threads.
+To create a simulation, we need at minimum to supply the recipe, and in addition
+can supply a :class:`arbor.context` and :py:class:`arbor.domain_decomposition`.
+The first lets Arbor know what hardware it should use, the second how to
+destribute the work over that hardware. By default, contexts are configured to
+use 1 thread and domain decompositons to divide work equally over all threads.
 
-Step **(12)** creates a simulation object from the recipe. Optionally, the :py:class:`~arbor.simulation` constructor takes two more
-parameters: a :class:`arbor.context` and a :class:`arbor.domain_decomposition`. In :ref:`a followup of this tutorial <tutorialgpu>` that will be demonstrated.
-For now, it is enough to know that for simulations that don't require customized execution those arguments can be left out. Without
-further arguments Arbor will use all locally available threads.
+.. literalinclude:: ../../python/example/network_ring.py
+   :language: python
+   :lines: 119-137
 
-Step **(13)** sets all spike generators to record using the :py:class:`arbor.spike_recording.all` policy.
-This means the timestamps of the generated events will be kept in memory. Be default, these are discarded.
+Step **(12)** creates a simulation object from the recipe. Optionally, the
+:py:class:`~arbor.simulation` constructor takes two more parameters: a
+:class:`arbor.context` and a :class:`arbor.domain_decomposition`. In :ref:`a
+followup of this tutorial <tutorialgpu>` that will be demonstrated. For now, it
+is enough to know that for simulations that don't require customized execution
+those arguments can be left out. Without further arguments Arbor will use all
+locally available threads.
+
+Step **(13)** sets all spike generators to record using the
+:py:class:`arbor.spike_recording.all` policy. This means the timestamps of the
+generated events will be kept in memory. Be default, these are discarded.
 
 In addition to having the timestamps of spikes, we want to extract the voltage as a function of time.
 
@@ -138,10 +165,6 @@ these handles for later use.
 
 Step **(15)** executes the simulation for a duration of 100 ms.
 
-.. literalinclude:: ../../python/example/network_ring.py
-   :language: python
-   :lines: 124-140
-
 The results
 ***********
 
@@ -149,7 +172,7 @@ Step **(16)** prints the timestamps of the spikes:
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 142-145
+   :lines: 139-142
 
 Step **(17)** generates a plot of the sampling data.
 :py:func:`arbor.simulation.samples` takes a ``handle`` of the probe we wish to examine. It returns a list
@@ -161,7 +184,7 @@ It could have described a :term:`locset`.)
 
 .. literalinclude:: ../../python/example/network_ring.py
    :language: python
-   :lines: 147-
+   :lines: 144-
 
 Since we have created ``ncells`` cells, we have ``ncells`` traces. We should be seeing phase shifted traces, as the action potential propagated through the network.
 

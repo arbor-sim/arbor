@@ -2,7 +2,6 @@
 #include <sstream>
 #include <unordered_map>
 #include <variant>
-#include <vector>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/label_dict.hpp>
@@ -10,9 +9,6 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/util/pp_util.hpp>
 
-#include "util/piecewise.hpp"
-#include "util/rangeutil.hpp"
-#include "util/span.hpp"
 #include "util/strprintf.hpp"
 
 namespace arb {
@@ -37,7 +33,7 @@ std::string show(const paintable& item) {
             else if constexpr (std::is_same_v<axial_resistivity, T>) {
                 os << "axial-resistivity";
             }
-            else if constexpr (std::is_same_v<temperature_K, T>) {
+            else if constexpr (std::is_same_v<temperature, T>) {
                 os << "temperature-kelvin";
             }
             else if constexpr (std::is_same_v<membrane_capacitance, T>) {

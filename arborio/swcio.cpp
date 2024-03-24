@@ -6,11 +6,13 @@
 #include <set>
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 #include <arbor/morph/segment_tree.hpp>
+#include <arbor/morph/label_dict.hpp>
 
 #include "arbor/morph/primitives.hpp"
 
@@ -160,7 +162,7 @@ ARB_ARBORIO_API swc_data parse_swc(const std::string& text) {
     return parse_swc(is);
 }
 
-ARB_ARBORIO_API arb::segment_tree load_swc_arbor_raw(const swc_data& data) {
+arb::segment_tree load_swc_arbor_raw(const swc_data& data) {
     const auto& records = data.records();
 
     if (records.empty())  return {};
@@ -205,7 +207,7 @@ ARB_ARBORIO_API arb::segment_tree load_swc_arbor_raw(const swc_data& data) {
     return tree;
 }
 
-ARB_ARBORIO_API arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
+arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
     constexpr int soma_tag = 1;
 
     const auto n_samples = data.records().size();
@@ -324,8 +326,29 @@ ARB_ARBORIO_API arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
     return tree;
 }
 
-ARB_ARBORIO_API arb::morphology load_swc_neuron(const swc_data& data) { return {load_swc_neuron_raw(data)}; }
-ARB_ARBORIO_API arb::morphology load_swc_arbor(const swc_data& data) { return {load_swc_arbor_raw(data)}; }
+ARB_ARBORIO_API loaded_morphology load_swc_neuron(const swc_data& data) {
+    auto raw = load_swc_neuron_raw(data);
+    arb::label_dict ld; ld.add_swc_tags();
+    return {raw, {raw}, ld, swc_metadata{}};
+}
+
+ARB_ARBORIO_API loaded_morphology load_swc_arbor(const swc_data& data) {
+    auto raw = load_swc_arbor_raw(data);
+    arb::label_dict ld; ld.add_swc_tags();
+    return {raw, {raw}, ld, swc_metadata{}};
+}
+
+ARB_ARBORIO_API loaded_morphology load_swc_arbor(const std::filesystem::path& path) {
+    std::ifstream fd(path);
+    if (!fd) throw arb::file_not_found_error("unable to open SWC file: "+path.string());
+    return load_swc_arbor(parse_swc(fd));
+}
+
+ARB_ARBORIO_API loaded_morphology load_swc_neuron(const std::filesystem::path& path) {
+    std::ifstream fd(path);
+    if (!fd) throw arb::file_not_found_error("unable to open SWC file: "+path.string());
+    return load_swc_neuron(parse_swc(fd));
+}
 
 } // namespace arborio
 

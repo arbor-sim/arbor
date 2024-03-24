@@ -114,7 +114,8 @@ template <
 >
 C round_up(T v, U b) {
     C m = v%b;
-    return v-m+signum(m)*impl::abs_if_signed(b, Signed{});
+    C sign = signum(m);
+    return v - m + sign*impl::abs_if_signed(b, Signed{});
 }
 
 // Returns 1/x if x != 0; 0 otherwise

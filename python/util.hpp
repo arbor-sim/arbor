@@ -3,10 +3,11 @@
 #include <fstream>
 #include <string>
 
+#include <arbor/arbexcept.hpp>
+
 #include <pybind11/pybind11.h>
 
 #include "strprintf.hpp"
-#include "error.hpp"
 
 namespace pyarb {
 namespace util {

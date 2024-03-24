@@ -139,17 +139,6 @@ inline float gpu_atomic_sub(float* address, float val) {
 
 /// Warp-Level Primitives
 
-__device__ __inline__ double shfl(unsigned mask, double x, int lane)
-{
-    auto tmp = static_cast<uint64_t>(x);
-    auto lo = static_cast<unsigned>(tmp);
-    auto hi = static_cast<unsigned>(tmp >> 32);
-    hi = __shfl_sync(mask, static_cast<int>(hi), lane, warpSize);
-    lo = __shfl_sync(mask, static_cast<int>(lo), lane, warpSize);
-    return static_cast<double>(static_cast<uint64_t>(hi) << 32 |
-                               static_cast<uint64_t>(lo));
-}
-
 __device__ __inline__ unsigned ballot(unsigned mask, unsigned is_root) {
     return __ballot_sync(mask, is_root);
 }
@@ -158,24 +147,15 @@ __device__ __inline__ unsigned any(unsigned mask, unsigned width) {
     return __any_sync(mask, width);
 }
 
-#ifdef __NVCC__
-__device__ __inline__ double shfl_up(unsigned mask, int idx, unsigned lane_id, unsigned shift) {
-    return __shfl_up_sync(mask, idx, shift);
+template<typename T>
+__device__ __inline__ T shfl_up(unsigned mask, T var, unsigned lane_id, unsigned shift) {
+    return __shfl_up_sync(mask, var, shift);
 }
 
-__device__ __inline__ double shfl_down(unsigned mask, int idx, unsigned lane_id, unsigned shift) {
-    return __shfl_down_sync(mask, idx, shift);
+template<typename T>
+__device__ __inline__ T shfl_down(unsigned mask, T var, unsigned lane_id, unsigned shift) {
+    return __shfl_down_sync(mask, var, shift);
 }
-
-#else
-__device__ __inline__ double shfl_up(unsigned mask, int idx, unsigned lane_id, unsigned shift) {
-    return shfl(mask, idx, lane_id - shift);
-}
-
-__device__ __inline__ double shfl_down(unsigned mask, int idx, unsigned lane_id, unsigned shift) {
-    return shfl(mask, idx, lane_id + shift);
-}
-#endif
 #endif
 
 } // namespace gpu

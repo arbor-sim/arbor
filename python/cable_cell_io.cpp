@@ -3,8 +3,6 @@
 #include <pybind11/iostream.h>
 
 #include <fstream>
-#include <iostream>
-#include <iomanip>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/util/any_visitor.hpp>
@@ -13,8 +11,7 @@
 
 #include "error.hpp"
 #include "util.hpp"
-#include "strprintf.hpp"
-#include "proxy.hpp"
+#include "label_dict.hpp"
 
 namespace pyarb {
 
@@ -53,6 +50,9 @@ void write_component(const arborio::cable_cell_component& component, py::object 
 }
 
 void register_cable_loader(pybind11::module& m) {
+    pybind11::class_<arborio::meta_data> component_meta_data(m, "component_meta_data");
+    pybind11::class_<arborio::cable_cell_component> cable_component(m, "cable_component");
+
     m.def("load_component",
           &load_component,
           pybind11::arg("filename_or_descriptor"),
@@ -75,9 +75,7 @@ void register_cable_loader(pybind11::module& m) {
           "Write decor to file.");
 
     m.def("write_component",
-          [](const arb::label_dict& d, py::object fn) {
-            return write_component<arb::label_dict>(d, fn);
-          },
+          [](const label_dict_proxy& d, py::object fn) { return write_component<arb::label_dict>(d.dict, fn); },
           pybind11::arg("object"),
           pybind11::arg("filename_or_descriptor"),
           "Write label_dict to file.");
@@ -99,12 +97,10 @@ void register_cable_loader(pybind11::module& m) {
           "Write cable_cell to file.");
 
     // arborio::meta_data
-    pybind11::class_<arborio::meta_data> component_meta_data(m, "component_meta_data");
     component_meta_data
         .def_readwrite("version", &arborio::meta_data::version, "cable-cell component version.");
 
     // arborio::cable_cell_component
-    pybind11::class_<arborio::cable_cell_component> cable_component(m, "cable_component");
     cable_component
         .def_readwrite("meta_data", &arborio::cable_cell_component::meta, "cable-cell component meta-data.")
         .def_property_readonly(

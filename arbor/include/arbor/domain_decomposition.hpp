@@ -2,8 +2,8 @@
 
 #include <algorithm>
 #include <functional>
-#include <utility>
 #include <vector>
+#include <utility>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -46,9 +46,9 @@ public:
     domain_decomposition& operator=(const domain_decomposition&) = default;
 
     int gid_domain(cell_gid_type gid) const;
-    cell_size_type index_on_domain(cell_gid_type gid) const;
     int num_domains() const;
     int domain_id() const;
+    cell_size_type index_on_domain(cell_gid_type gid) const;
     cell_size_type num_local_cells() const;
     cell_size_type num_global_cells() const;
     cell_size_type num_groups() const;

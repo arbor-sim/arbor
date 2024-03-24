@@ -3,7 +3,6 @@
 #include <any>
 #include <string>
 #include <sstream>
-#include <iostream>
 #include <typeinfo>
 
 #include <arbor/assert.hpp>
@@ -12,6 +11,8 @@
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/region.hpp>
 #include <arbor/iexpr.hpp>
+#include <arbor/s_expr.hpp>
+
 
 namespace arborio {
 using namespace arb;

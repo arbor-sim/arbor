@@ -79,7 +79,7 @@ Recipe
         ``connection.dest`` on the post-synaptic target ``gid``, and a valid
         source label ``connection.source.lid`` on the pre-synaptic source
         ``connection.source.gid``. See :class:`connection`. Note that in
-        contrast to :class:`cell_connection`, this uses two numeric identifiers
+        contrast to :class:`connection`, this uses two numeric identifiers
         for the source instead.
 
         By default returns an empty list.

@@ -1,5 +1,3 @@
-#include <random>
-#include <unordered_map>
 #include <vector>
 
 #include <benchmark/benchmark.h>
@@ -10,20 +8,18 @@
 #include <arbor/event_generator.hpp>
 #include <arbor/schedule.hpp>
 
-constexpr auto T = 1000.0; // ms
-
-using rndgen = std::mt19937_64;
+constexpr auto T = 1000.0*arb::units::ms; // ms
 
 struct payload {
     payload(std::size_t ncells, std::size_t ev_per_cell) {
         auto dt = T/ev_per_cell;
         for(auto cell = 0ull; cell < ncells; ++cell) {
-            auto gen = arb::poisson_schedule(1/dt, rndgen{cell});
-            auto times = gen.events(0, T);
+            auto gen = arb::poisson_schedule(1/dt, cell);
+            auto times = gen.events(0, T.value_as(arb::units::ms));
             evts.emplace_back();
             auto& evt = evts.back();
             for (auto t: arb::util::make_range(times)) {
-                evt.emplace_back(arb::spike_event{42, t, 0.23});
+                evt.emplace_back(42, t, 0.23);
                 ++size;
             }
             span.emplace_back(arb::util::make_range(evt.data(), evt.data() + evt.size()));

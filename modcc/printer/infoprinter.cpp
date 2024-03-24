@@ -1,5 +1,4 @@
 #include <ostream>
-#include <set>
 #include <string>
 #include <regex>
 
@@ -14,8 +13,6 @@
 
 #include "io/ostream_wrappers.hpp"
 #include "io/prefixbuf.hpp"
-
-using io::quote;
 
 ARB_LIBMODCC_API std::string build_info_header(const Module& m, const printer_options& opt, bool cpu, bool gpu) {
     using io::indent;
