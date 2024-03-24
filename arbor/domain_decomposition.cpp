@@ -20,13 +20,17 @@ domain_decomposition::domain_decomposition(const recipe& rec,
         partition_gid_domain(const gathered_vector<cell_gid_type>& divs, unsigned domains) {
             auto rank_part = util::partition_view(divs.partition());
             for (auto rank: count_along(rank_part)) {
+                cell_size_type index_on_domain = 0;
                 for (auto gid: util::subrange_view(divs.values(), rank_part[rank])) {
-                    gid_map[gid] = rank;
+                    gid_map[gid] = {rank, index_on_domain};
+                    ++index_on_domain;
                 }
             }
         }
-        int operator()(cell_gid_type gid) const { return gid_map.at(gid); }
-        std::unordered_map<cell_gid_type, int> gid_map;
+        std::pair<int,cell_size_type> operator()(cell_gid_type gid) const {
+             return gid_map.at(gid); 
+        }
+        std::unordered_map<cell_gid_type, std::pair<int, cell_size_type>> gid_map;
     };
 
     const auto* dist = ctx->distributed.get();
@@ -69,7 +73,7 @@ domain_decomposition::domain_decomposition(const recipe& rec,
 }
 
 int domain_decomposition::gid_domain(cell_gid_type gid) const {
-    return gid_domain_(gid);
+    return gid_domain_(gid).first;
 }
 
 int domain_decomposition::num_domains() const {
@@ -78,6 +82,10 @@ int domain_decomposition::num_domains() const {
 
 int domain_decomposition::domain_id() const {
     return domain_id_;
+}
+
+cell_size_type domain_decomposition::index_on_domain(cell_gid_type gid) const {
+    return gid_domain_(gid).second;
 }
 
 cell_size_type domain_decomposition::num_local_cells() const {
@@ -102,4 +110,3 @@ const group_description& domain_decomposition::group(unsigned idx) const {
 }
 
 } // namespace arb
-

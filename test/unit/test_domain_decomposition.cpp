@@ -164,6 +164,16 @@ struct dummy_context {
     cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const { throw unimplemented{__FUNCTION__}; }
     template <typename T> std::vector<T> gather(T value, int) const { throw unimplemented{__FUNCTION__}; }
 
+    distributed_request send_recv_nonblocking(std::size_t recv_count,
+            void* recv_data,
+            int source_id,
+            std::size_t send_count,
+            const void* send_data,
+            int dest_id,
+            int tag) const {
+        throw unimplemented{__FUNCTION__};
+    }
+
     int id() const { return id_; }
     int size() const { return size_; }
 

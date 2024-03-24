@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <cstring>
 
 #include <arbor/export.hpp>
 #include <arbor/context.hpp>
@@ -33,6 +34,34 @@ namespace arb {
     std::vector<T> gather(T value, int root) const override { return wrapped.gather(value, root); }
 
 #define ARB_COLLECTIVE_TYPES_ float, double, int, unsigned, long, unsigned long, long long, unsigned long long
+
+
+// A helper struct, representing a request for data exchange.
+// After calling finalize() or destruction, the data exchange is guaranteed to be finished.
+struct distributed_request {
+    struct distributed_request_interface {
+        virtual void finalize() {};
+
+        virtual ~distributed_request_interface() = default;
+    };
+
+    inline void finalize() {
+        if (impl) {
+            impl->finalize();
+            impl.reset();
+        }
+    }
+
+    ~distributed_request() {
+        try {
+            finalize();
+        }
+        catch (...) {
+        }
+    }
+
+    std::unique_ptr<distributed_request_interface> impl;
+};
 
 // Defines the concept/interface for a distributed communication context.
 //
@@ -84,6 +113,27 @@ public:
         return impl_->gather(value, root);
     }
 
+    template <typename T>
+    distributed_request send_recv_nonblocking(std::size_t recv_count,
+        T* recv_data,
+        int source_id,
+        std::size_t send_count,
+        const T* send_data,
+        int dest_id,
+        int tag) const {
+        static_assert(std::is_trivially_copyable<T>::value,
+            "send_recv_nonblocking: Type T must be trivially copyable for memcpy or MPI send / "
+            "recv using MPI_BYTE.");
+
+        return impl_->send_recv_nonblocking(recv_count * sizeof(T),
+            recv_data,
+            source_id,
+            send_count * sizeof(T),
+            send_data,
+            dest_id,
+            tag);
+    }
+
     int id() const {
         return impl_->id();
     }
@@ -119,6 +169,13 @@ private:
         gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const = 0;
         virtual std::vector<std::string>
         gather(std::string value, int root) const = 0;
+        virtual distributed_request send_recv_nonblocking(std::size_t recv_count,
+            void* recv_data,
+            int source_id,
+            std::size_t send_count,
+            const void* send_data,
+            int dest_id,
+            int tag) const = 0;
         virtual int id() const = 0;
         virtual int size() const = 0;
         virtual void barrier() const = 0;
@@ -159,6 +216,16 @@ private:
         std::vector<std::string>
         gather(std::string value, int root) const override {
             return wrapped.gather(value, root);
+        }
+        distributed_request send_recv_nonblocking(std::size_t recv_count,
+            void* recv_data,
+            int source_id,
+            std::size_t send_count,
+            const void* send_data,
+            int dest_id,
+            int tag) const override {
+            return wrapped.send_recv_nonblocking(
+                recv_count, recv_data, source_id, send_count, send_data, dest_id, tag);
         }
         int id() const override {
             return wrapped.id();
@@ -218,6 +285,25 @@ struct local_context {
     template <typename T>
     std::vector<T> gather(T value, int) const {
         return {std::move(value)};
+    }
+
+    distributed_request send_recv_nonblocking(std::size_t dest_count,
+        void* dest_data,
+        int dest,
+        std::size_t source_count,
+        const void* source_data,
+        int source,
+        int tag) const {
+        if (source != 0 || dest != 0)
+            throw arbor_internal_error(
+                "send_recv_nonblocking: source and destination id must be 0 for local context.");
+        if (dest_count != source_count)
+            throw arbor_internal_error(
+                "send_recv_nonblocking: dest_count not equal to source_count.");
+        std::memcpy(dest_data, source_data, source_count);
+
+        return distributed_request{
+            std::make_unique<distributed_request::distributed_request_interface>()};
     }
 
     int id() const { return 0; }

@@ -8,10 +8,12 @@
 #include <arbor/cv_policy.hpp>
 #include <arbor/s_expr.hpp>
 #include <arbor/util/any_visitor.hpp>
+#include <arbor/network.hpp>
 
-#include <arborio/cv_policy_parse.hpp>
 #include <arborio/cableio.hpp>
+#include <arborio/cv_policy_parse.hpp>
 #include <arborio/label_parse.hpp>
+#include <arborio/networkio.hpp>
 
 #include "parse_s_expr.hpp"
 #include "util/strprintf.hpp"
@@ -172,7 +174,7 @@ TEST(s_expr, iterate) {
 template <typename L>
 std::string round_trip_label(const char* in) {
     if (auto x = parse_label_expression(in)) {
-        return util::pprintf("{}", std::any_cast<L>(*x));
+        return util::to_string(std::any_cast<L>(*x));
     }
     else {
         return x.error().what();
@@ -181,7 +183,7 @@ std::string round_trip_label(const char* in) {
 
 std::string round_trip_cv(const char* in) {
     if (auto x = parse_cv_policy_expression(in)) {
-        return util::pprintf("{}", std::any_cast<cv_policy>(*x));
+        return util::to_string(std::any_cast<cv_policy>(*x));
     }
     else {
         return x.error().what();
@@ -190,7 +192,7 @@ std::string round_trip_cv(const char* in) {
 
 std::string round_trip_region(const char* in) {
     if (auto x = parse_region_expression(in)) {
-        return util::pprintf("{}", std::any_cast<arb::region>(*x));
+        return util::to_string(std::any_cast<arb::region>(*x));
     }
     else {
         return x.error().what();
@@ -199,7 +201,7 @@ std::string round_trip_region(const char* in) {
 
 std::string round_trip_locset(const char* in) {
     if (auto x = parse_locset_expression(in)) {
-        return util::pprintf("{}", std::any_cast<arb::locset>(*x));
+        return util::to_string(std::any_cast<arb::locset>(*x));
     }
     else {
         return x.error().what();
@@ -208,7 +210,25 @@ std::string round_trip_locset(const char* in) {
 
 std::string round_trip_iexpr(const char* in) {
     if (auto x = parse_iexpr_expression(in)) {
-        return util::pprintf("{}", std::any_cast<arb::iexpr>(*x));
+        return util::to_string(std::any_cast<arb::iexpr>(*x));
+    }
+    else {
+        return x.error().what();
+    }
+}
+
+std::string round_trip_network_selection(const char* in) {
+    if (auto x = parse_network_selection_expression(in)) {
+        return util::to_string(std::any_cast<arb::network_selection>(*x));
+    }
+    else {
+        return x.error().what();
+    }
+}
+
+std::string round_trip_network_value(const char* in) {
+    if (auto x = parse_network_value_expression(in)) {
+        return util::to_string(std::any_cast<arb::network_value>(*x));
     }
     else {
         return x.error().what();
@@ -336,9 +356,122 @@ TEST(iexpr, round_tripping) {
         round_trip_label<arb::iexpr>("(pi)"));
 }
 
+TEST(network_selection, round_tripping) {
+    auto network_literals = {
+        "(all)",
+        "(none)",
+        "(inter-cell)",
+        "(network-selection \"abc\")",
+        "(intersect (all) (none))",
+        "(join (all) (none))",
+        "(symmetric-difference (all) (none))",
+        "(difference (all) (none))",
+        "(complement (all))",
+        "(source-cell-kind (cable-cell))",
+        "(source-cell-kind (lif-cell))",
+        "(source-cell-kind (benchmark-cell))",
+        "(source-cell-kind (spike-source-cell))",
+        "(target-cell-kind (cable-cell))",
+        "(target-cell-kind (lif-cell))",
+        "(target-cell-kind (benchmark-cell))",
+        "(target-cell-kind (spike-source-cell))",
+        "(source-label \"abc\")",
+        "(source-label \"abc\" \"def\")",
+        "(source-label \"abc\" \"def\" \"ghi\")",
+        "(target-label \"abc\")",
+        "(target-label \"abc\" \"def\")",
+        "(target-label \"abc\" \"def\" \"ghi\")",
+        "(source-cell 0 1 3 15)",
+        "(source-cell (gid-range 4 8 2))",
+        "(target-cell 0 1 3 15)",
+        "(target-cell (gid-range 4 8 2))",
+        "(chain 3 1 0 5 7 6)", // order should be preserved
+        "(chain (gid-range 2 14 3))",
+        "(chain-reverse (gid-range 2 14 3))",
+        "(random 42 (scalar 0.1))",
+        "(random 42 (normal-distribution 43 0.5 0.1))",
+        "(distance-lt 0.5)",
+        "(distance-gt 0.5)",
+    };
+    for (auto l: network_literals) {
+        EXPECT_EQ(l, round_trip_network_selection(l));
+    }
+
+    // test order for more than two arguments
+    EXPECT_EQ("(join (join (join (all) (none)) (inter-cell)) (source-cell 0))",
+        round_trip_network_selection("(join (all) (none) (inter-cell) (source-cell 0))"));
+    EXPECT_EQ("(intersect (intersect (intersect (all) (none)) (inter-cell)) (source-cell 0))",
+        round_trip_network_selection("(intersect (all) (none) (inter-cell) (source-cell 0))"));
+}
+
+
+TEST(network_value, round_tripping) {
+    auto network_literals = {
+        "(scalar 1.3)",
+        "(distance 1.3)",
+        "(network-value \"abc\")",
+        "(uniform-distribution 42 0 0.8)",
+        "(normal-distribution 42 0.5 0.1)",
+        "(truncated-normal-distribution 42 0.5 0.1 0.3 0.7)",
+        "(log (scalar 1.3))",
+        "(exp (scalar 1.3))",
+        "(if-else (inter-cell) (scalar 5.1) (log (scalar 1.3)))",
+    };
+
+    for (auto l: network_literals) {
+        EXPECT_EQ(l, round_trip_network_value(l));
+    }
+
+    EXPECT_EQ("(log (scalar 1.3))", round_trip_network_value("(log 1.3)"));
+    EXPECT_EQ("(exp (scalar 1.3))", round_trip_network_value("(exp 1.3)"));
+
+    EXPECT_EQ(
+        "(add (scalar -2.1) (scalar 3.1))", round_trip_network_value("(add -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(add (add (add (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(add -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+
+    EXPECT_EQ(
+        "(sub (scalar -2.1) (scalar 3.1))", round_trip_network_value("(sub -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(sub (sub (sub (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(sub -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+
+    EXPECT_EQ(
+        "(mul (scalar -2.1) (scalar 3.1))", round_trip_network_value("(mul -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(mul (mul (mul (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(mul -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+
+    EXPECT_EQ(
+        "(div (scalar -2.1) (scalar 3.1))", round_trip_network_value("(div -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(div (div (div (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(div -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+
+    EXPECT_EQ(
+        "(min (scalar -2.1) (scalar 3.1))", round_trip_network_value("(min -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(min (min (min (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(min -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+
+    EXPECT_EQ(
+        "(max (scalar -2.1) (scalar 3.1))", round_trip_network_value("(max -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(max (max (max (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(max -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+}
+
 TEST(regloc, round_tripping) {
     EXPECT_EQ("(cable 3 0 1)", round_trip_label<arb::region>("(branch 3)"));
-    EXPECT_EQ("(intersect (tag 1) (intersect (tag 2) (tag 3)))", round_trip_label<arb::region>("(intersect (tag 1) (tag 2) (tag 3))"));
+    EXPECT_EQ("(intersect (tag 1) (intersect (tag 2) (tag 3)))",
+        round_trip_label<arb::region>("(intersect (tag 1) (tag 2) (tag 3))"));
     auto region_literals = {
         "(cable 2 0.1 0.4)",
         "(region \"foo\")",

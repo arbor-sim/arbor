@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <functional>
 #include <vector>
+#include <utility>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -47,6 +48,7 @@ public:
     int gid_domain(cell_gid_type gid) const;
     int num_domains() const;
     int domain_id() const;
+    cell_size_type index_on_domain(cell_gid_type gid) const;
     cell_size_type num_local_cells() const;
     cell_size_type num_global_cells() const;
     cell_size_type num_groups() const;
@@ -54,10 +56,10 @@ public:
     const group_description& group(unsigned) const;
 
 private:
-    /// Return the domain id of cell with gid.
+    /// Return the domain id and index on domain of cell with gid.
     /// Supplied by the load balancing algorithm that generates the domain
     /// decomposition.
-    std::function<int(cell_gid_type)> gid_domain_;
+    std::function<std::pair<int,cell_size_type>(cell_gid_type)> gid_domain_;
 
     /// Number of distributed domains
     int num_domains_;

@@ -30,6 +30,7 @@ void register_recipe(pybind11::module& m);
 void register_schedules(pybind11::module& m);
 void register_simulation(pybind11::module& m, pyarb_global_ptr);
 void register_arborenv(pybind11::module& m);
+void register_network(pybind11::module& m);
 void register_single_cell(pybind11::module& m);
 void register_units(pybind11::module& m);
 void register_label_dict(pybind11::module& m);
@@ -64,6 +65,7 @@ PYBIND11_MODULE(_arbor, m) {
     pyarb::register_cable_loader(m);
     pyarb::register_config(m);
     pyarb::register_contexts(m);
+    pyarb::register_network(m);
     pyarb::register_recipe(m);
     pyarb::register_domain_decomposition(m);
     pyarb::register_profiler(m);

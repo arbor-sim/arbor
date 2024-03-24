@@ -1,13 +1,16 @@
 #pragma once
 
 #include <vector>
+#include <optional>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
-#include <arbor/event_generator.hpp>
 #include <arbor/cable_cell_param.hpp>
+#include <arbor/event_generator.hpp>
+#include <arbor/morph/isometry.hpp>
+#include <arbor/network.hpp>
 #include <arbor/recipe.hpp>
 
 #include "error.hpp"
@@ -50,6 +53,12 @@ public:
     virtual pybind11::object global_properties(arb::cell_kind kind) const {
         return pybind11::none();
     };
+    virtual std::optional<arb::network_description> network_description() const {
+        return std::nullopt;
+    };
+    virtual arb::isometry cell_isometry(arb::cell_gid_type gid) const {
+        return arb::isometry();
+    };
 };
 
 class recipe_trampoline: public recipe {
@@ -86,6 +95,14 @@ public:
     std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type gid) const override {
         PYBIND11_OVERRIDE(std::vector<arb::gap_junction_connection>, recipe, gap_junctions_on, gid);
     }
+
+    std::optional<arb::network_description> network_description() const override {
+        PYBIND11_OVERRIDE(std::optional<arb::network_description>, recipe, network_description);
+    }
+
+    arb::isometry cell_isometry(arb::cell_gid_type gid) const override {
+        PYBIND11_OVERRIDE(arb::isometry, recipe, cell_isometry, gid);
+    };
 
     std::vector<arb::probe_info> probes(arb::cell_gid_type gid) const override {
         PYBIND11_OVERRIDE(std::vector<arb::probe_info>, recipe, probes, gid);
@@ -140,6 +157,14 @@ public:
     }
 
     std::any get_global_properties(arb::cell_kind kind) const override;
+
+    std::optional<arb::network_description> network_description() const override {
+        return try_catch_pyexception([&]() { return impl_->network_description(); }, msg);
+    };
+
+    arb::isometry get_cell_isometry(arb::cell_gid_type gid) const override {
+        return try_catch_pyexception([&]() { return impl_->cell_isometry(gid); }, msg);
+    };
 };
 
 } // namespace pyarb

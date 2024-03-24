@@ -1,11 +1,11 @@
 #pragma once
 
 #include <vector>
-#include <unordered_set>
 
-#include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
+#include <arbor/export.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike.hpp>
 
@@ -40,7 +40,7 @@ public:
 
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
-                          execution_context& ctx);
+                          context ctx);
 
     /// The range of event queues that belong to cells in group i.
     std::pair<cell_size_type, cell_size_type> group_queue_range(cell_size_type i);
@@ -78,7 +78,7 @@ public:
     void remote_ctrl_send_continue(const epoch&);
     void remote_ctrl_send_done();
 
-    void update_connections(const connectivity& rec,
+    void update_connections(const recipe& rec,
                             const domain_decomposition& dom_dec,
                             const label_resolution_map& source_resolution_map,
                             const label_resolution_map& target_resolution_map);
@@ -98,7 +98,7 @@ public:
             for (const auto& con: cons) {
                 idx_on_domain.push_back(con.index_on_domain);
                 srcs.push_back(con.source);
-                dests.push_back(con.destination);
+                dests.push_back(con.target);
                 weights.push_back(con.weight);
                 delays.push_back(con.delay);
             }
@@ -136,10 +136,9 @@ private:
     // Currently we have no partitions/indices/acceleration structures
     connection_list ext_connections_;
 
-    distributed_context_handle distributed_;
-    task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;
     std::uint64_t num_local_events_ = 0u;
+    context ctx_;
 };
 
 } // namespace arb
