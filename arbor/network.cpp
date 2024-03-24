@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <optional>
 #include <type_traits>
@@ -33,7 +34,9 @@ enum class network_seed : unsigned {
 
 std::uint64_t location_hash(const mlocation& loc) {
     const double l = static_cast<double>(loc.branch) + loc.pos;
-    return *reinterpret_cast<const std::uint64_t*>(&l);
+    std::uint64_t hash;
+    std::memcpy(&hash, &l, sizeof(decltype(hash)));
+    return hash;
 }
 
 double uniform_rand(std::array<unsigned, 4> seed,
