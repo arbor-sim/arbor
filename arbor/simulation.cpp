@@ -355,7 +355,7 @@ void simulation_state::reset() {
 time_type simulation_state::run(time_type tfinal, time_type dt) {
     // Progress simulation to time tfinal, through a series of integration epochs
     // of length at most t_interval_. t_interval_ is chosen to be no more than
-    // than half the network minimum delay.
+    // than half the network minimum delay and minimally the timestep `dt`.
     //
     // There are three simulation tasks that can be run partially in parallel:
     //
@@ -398,6 +398,8 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     if (!std::isfinite(dt) || tfinal < 0) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
 
     if (tfinal<=epoch_.t1) return epoch_.t1;
+
+    auto epoch_length = std::max(t_interval_, dt);
 
     // Compute following epoch, with max time tfinal.
     auto next_epoch = [tfinal](epoch e, time_type interval) -> epoch {
@@ -485,8 +487,8 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     };
 
     epoch prev = epoch_;
-    epoch current = next_epoch(prev, t_interval_);
-    epoch next = next_epoch(current, t_interval_);
+    epoch current = next_epoch(prev, epoch_length);
+    epoch next = next_epoch(current, epoch_length);
 
     if (epoch_callback_) epoch_callback_(current.t0, tfinal);
 
@@ -507,7 +509,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         for (;;) {
             prev = current;
             current = next;
-            next = next_epoch(next, t_interval_);
+            next = next_epoch(next, epoch_length);
             if (next.empty()) break;
 
             g.run([&]() { exchange(prev); enqueue(next); });
