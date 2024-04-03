@@ -19,6 +19,7 @@
 #include "threading/threading.hpp"
 #include "util/maputil.hpp"
 #include "util/span.hpp"
+#include "util/strprintf.hpp"
 #include "profile/profiler_macro.hpp"
 
 namespace arb {
@@ -394,12 +395,12 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     // Requires state at end of run(), with epoch_.id==k:
     //     * U(k) and D(k) have completed.
 
-    if (!std::isfinite(tfinal) || tfinal < 0) throw std::domain_error("simulation: tfinal must be finite, positive, and in [ms]");
-    if (!std::isfinite(dt) || tfinal < 0) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
-
-    if (tfinal<=epoch_.t1) return epoch_.t1;
-
-    auto epoch_length = std::max(t_interval_, dt);
+    // Compare up to picoseconds
+    time_type eps = 1e-9;
+    if (!std::isfinite(tfinal) || tfinal < eps) throw std::domain_error("simulation: tfinal must be finite, positive, and in [ms]");
+    if (epoch_.t1 - tfinal > eps) throw std::domain_error(util::pprintf("simulation: tfinal={}ms is in the past, current time of simulation is {}ms", tfinal, epoch_.t1));
+    if (!std::isfinite(dt) || dt < eps) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
+    if (dt - t_interval_ > eps) throw std::domain_error(util::pprintf("simulation: dt={}ms is larger than epoch length by {}, chose at most half the minimal connection delay {}ms.", dt, dt - t_interval_, t_interval_));
 
     // Compute following epoch, with max time tfinal.
     auto next_epoch = [tfinal](epoch e, time_type interval) -> epoch {
@@ -487,8 +488,8 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     };
 
     epoch prev = epoch_;
-    epoch current = next_epoch(prev, epoch_length);
-    epoch next = next_epoch(current, epoch_length);
+    epoch current = next_epoch(prev, t_interval_);
+    epoch next = next_epoch(current, t_interval_);
 
     if (epoch_callback_) epoch_callback_(current.t0, tfinal);
 
@@ -509,7 +510,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         for (;;) {
             prev = current;
             current = next;
-            next = next_epoch(next, epoch_length);
+            next = next_epoch(next, t_interval_);
             if (next.empty()) break;
 
             g.run([&]() { exchange(prev); enqueue(next); });
