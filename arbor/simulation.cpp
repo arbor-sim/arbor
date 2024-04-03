@@ -111,7 +111,11 @@ public:
 
     void inject_events(const cse_vector& events);
 
-    time_type min_delay() { return communicator_.min_delay(); }
+    time_type min_delay() {
+        auto tau =  communicator_.min_delay();
+        if (tau <= 0.0 || !std::isfinite(tau)) throw std::domain_error("Minimum connection delay must be strictly positive and finite.");
+        return tau;
+    }
 
     spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
@@ -398,9 +402,9 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     // Compare up to picoseconds
     time_type eps = 1e-9;
     if (!std::isfinite(dt) || dt < eps) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
-    if (dt - t_interval_ > eps) throw std::domain_error(util::pprintf("simulation: dt={}ms is larger than epoch length by {}, chose at most half the minimal connection delay {}ms.", dt, dt - t_interval_, t_interval_));
-    if (!std::isfinite(tfinal) || tfinal < eps) throw std::domain_error("simulation: tfinal must be finite, positive, and in [ms]");
-    if (tfinal - epoch_.t1 < dt) throw std::domain_error(util::pprintf("simulation: tfinal={}ms doesn't make progress of least one dt; current time of simulation is {}ms and dt {}ms", tfinal, epoch_.t1, dt));
+    if (!std::isfinite(tfinal) || tfinal - epoch_.t1 < eps) {
+        throw std::domain_error("simulation: tfinal must be finite, positive, larger than the current time, and in [ms]");
+    }
 
     // Compute following epoch, with max time tfinal.
     auto next_epoch = [tfinal](epoch e, time_type interval) -> epoch {
