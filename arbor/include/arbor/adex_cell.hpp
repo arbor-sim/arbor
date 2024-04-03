@@ -13,7 +13,6 @@ namespace arb {
 //
 // A. Destehxe 2009
 //
-//
 struct ARB_SYMBOL_VISIBLE adex_cell {
     cell_tag_type source; // Label of source
     cell_tag_type target; // Label of target
@@ -26,7 +25,7 @@ struct ARB_SYMBOL_VISIBLE adex_cell {
     double E_R   = E_L;     // Reset potential [mV]
     double V_m   = E_L;     // Initial value of the Membrane potential [mV]
     double t_ref =   2.5;   // Refractory period [ms]
-    double g     =   0.03;     // Leak conductivity [uS]
+    double g     =   0.03;  // Leak conductivity [uS]
     // Adaption parameters
     double tau   = 144;     // Adaption decaying constant [ms]
     double w     =   0;     // Initial value for adaption parameter [nA]

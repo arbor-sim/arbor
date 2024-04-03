@@ -118,7 +118,7 @@ Cable cell morphology
 
         Radius of the cable (μm)
 
-.. class:: segment
+.. class:: msegment
 
     .. attribute:: prox
         :type: mpoint
@@ -295,7 +295,7 @@ Cable cell morphology
         A list of parent indexes of the segments.
 
     .. attribute:: segments
-        :type: list
+        :type: list[msegment]
 
         A list of the segments.
 
@@ -350,7 +350,7 @@ Cable cell morphology
             A list of the segments in a branch, ordered from proximal to distal.
 
             :param int i: branch index
-            :rtype: list
+            :rtype: list[msegment]
 
 .. py:class:: place_pwlin
 
@@ -374,13 +374,13 @@ Cable cell morphology
        Return all points corresponding to the given :class:`location` ``loc``
        the placement.
 
-    .. py:method:: segments(cables: list[cable]) -> list[segment]
+    .. py:method:: segments(cables: list[cable]) -> list[msegment]
 
        Return any minimal collection of segments and partial segments whose
        union is coterminous with the sub-region of the morphology covered by
        the given cables in the placement.
 
-    .. py:method:: all_segments(cables: list[cable]) -> list[segment]
+    .. py:method:: all_segments(cables: list[cable]) -> list[msegment]
 
        Return the maximal set of segments and partial segments whose
        union is coterminous with the sub-region of the morphology covered by
@@ -602,7 +602,7 @@ SWC
 
     The samples in the SWC files are treated as the end points of segments, where a
     sample and its parent form a segment.
-    The :py:attr:`tag <segment.tag>` of each segment is the
+    The :py:attr:`tag <msegment.tag>` of each segment is the
     `structure identifier <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_
     of the distal sample.
     The structure identifier of the first (root) sample is ignored, as it can only be the
@@ -641,10 +641,9 @@ SWC
 NeuroML
 -------
 
-.. py:class:: neuroml_morph_data
+.. py:class:: nml_metadata
 
-    A :class:`neuroml_morphology_data` object contains a representation of a morphology defined in
-    NeuroML.
+    A :class:`nml_metadata` object contains extra information specific to NeuroML.
 
     .. py:attribute:: cell_id
        :type: optional<str>
@@ -660,11 +659,6 @@ NeuroML
        :type: dict[str, list[long]]
 
        A map from each segment group id to its corresponding collection of segments.
-
-    .. py:attribute:: morphology
-       :type: morphology
-
-       The morphology associated with the :class:`neuroml_morph_data` object.
 
     .. py:method:: segments
 
@@ -722,7 +716,7 @@ NeuroML
 
       :param str morph_id: ID of the top-level morphology.
       :param bool allow_spherical_root: Treat zero length root segments especially.
-      :rtype: optional(neuroml_morph_data)
+      :rtype: optional(loaded_morphology)
 
    .. py:method:: cell_morphology(cell_id, allow_spherical_root=false)
 
@@ -731,29 +725,65 @@ NeuroML
 
       :param str morph_id: ID of the cell.
       :param bool allow_spherical_root: Treat zero length root segments especially.
-      :rtype: optional(neuroml_morph_data)
+      :rtype: optional(loaded_morphology)
 
 .. _pyasc:
 
 Neurolucida
 -----------
 
-.. py:class:: asc_morphology
+.. py:enum:: asc_marker
+
+   One of dot, circle, cross, or none.
+
+.. py:class:: asc_color
+
+   RGB triple.
+
+.. py:class:: asc_spine
+
+   Marked spine, comprising:
+
+   .. py:attribute:: location
+
+       ``mpoint`` of the spine.
+
+   .. py:attribute:: name
+
+       Associated name.
+
+.. py:class:: asc_marker_set
+
+   Locations of interest, given as
+
+   .. py:attribute:: locations
+
+       List of ``mpoint``.
+
+   .. py:attribute:: marker
+
+       Associated ``asc_marker``.
+
+   .. py:attribute:: color
+
+       Associated ``asc_color``.
+
+   .. py:attribute:: name
+
+       Associated name.
+
+.. py:class:: asc_metadata
 
    The morphology and label dictionary meta-data loaded from a Neurolucida ASCII ``.asc`` file.
 
-   .. py:attribute:: morphology
+   .. py:attribute:: markers
 
-       The cable cell morphology.
+       List of marker sets in the input.
 
-   .. py:attribute:: segment_tree
+   .. py:attribute:: spines
 
-       The raw segment tree.
+       List of spines in the input.
 
-   .. py:attribute:: labels
-
-       The labeled regions and locations extracted from the meta data. The four canonical regions are labeled
-       ``'soma'``, ``'axon'``, ``'dend'`` and ``'apic'``.
 
 .. py:function:: load_asc(filename)
 

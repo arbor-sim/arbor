@@ -15,6 +15,8 @@
 using namespace arb;
 using namespace arborio::literals;
 
+namespace U = arb::units;
+
 namespace {
     cable_cell_description make_cell() {
         soma_cell_builder builder(12.6157/2.0);
@@ -22,8 +24,8 @@ namespace {
         auto d = builder.make_cell();
         d.decorations.paint("soma"_lab, density("hh"));
         d.decorations.paint("dend"_lab, density("pas"));
-        d.decorations.place(builder.location({1,1}), i_clamp::box(5, 80, 0.3), "clamp0");
-        d.decorations.place(builder.location({0, 0}), threshold_detector{0}, "detector0");
+        d.decorations.place(builder.location({1,1}), i_clamp::box(5*U::ms, 80*U::ms, 0.3*U::nA), "clamp0");
+        d.decorations.place(builder.location({0, 0}), threshold_detector{0*U::mV}, "detector0");
         return d;
     }
 }

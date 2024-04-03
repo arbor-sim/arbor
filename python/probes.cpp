@@ -172,11 +172,8 @@ void register_probe_meta_maps(pyarb_global_ptr g) {
         });
 }
 
-
-
 // Wrapper functions around cable_cell probe types that return arb::probe_info values:
 // (Probe tag value is implicitly left at zero.)
-
 arb::probe_info cable_probe_membrane_voltage(const char* where, const std::string& tag) {
     return {arb::cable_probe_membrane_voltage{arborio::parse_locset_expression(where).unwrap()}, tag};
 }
@@ -261,7 +258,6 @@ arb::probe_info lif_probe_voltage(const std::string& tag) {
     return {arb::lif_probe_voltage{}, tag};
 }
 
-
 // ADEX cell probes
 arb::probe_info adex_probe_voltage(const std::string& tag) {
     return {arb::adex_probe_voltage{}, tag};
@@ -279,14 +275,18 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
 
     // Probe metadata wrappers:
 
-    py::class_<arb::lif_probe_metadata> lif_probe_metadata(m, "lif_probe_metadata",
-        "Probe metadata associated with a LIF cell probe.");
+    py::class_<arb::lif_probe_metadata> lif_probe_metadata(m,
+                                                           "lif_probe_metadata",
+                                                           "Probe metadata associated with a LIF cell probe.");
 
-    py::class_<arb::adex_probe_metadata> adex_probe_metadata(m, "adex_probe_metadata",
-        "Probe metadata associated with a AdEx cell probe.");
 
-    py::class_<arb::cable_probe_point_info> cable_probe_point_info(m, "cable_probe_point_info",
-        "Probe metadata associated with a cable cell probe for point process state.");
+    py::class_<arb::adex_probe_metadata> adex_probe_metadata(m,
+                                                             "adex_probe_metadata",
+                                                             "Probe metadata associated with a AdEx cell probe.");
+
+    py::class_<arb::cable_probe_point_info> cable_probe_point_info(m,
+                                                                   "cable_probe_point_info",
+                                                                   "Probe metadata associated with a cable cell probe for point process state.");
 
     cable_probe_point_info
         .def_readwrite("target", &arb::cable_probe_point_info::target,
@@ -318,11 +318,11 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
           "Probe specification for cable cell membrane voltage associated with each cable in each CV.",
           "tag"_a);
     m.def("cable_probe_axial_current", &cable_probe_axial_current,
-        "Probe specification for cable cell axial current at points in a location set.",
-        "where"_a, "tag"_a);
+          "Probe specification for cable cell axial current at points in a location set.",
+          "where"_a, "tag"_a);
     m.def("cable_probe_total_ion_current_density", &cable_probe_total_ion_current_density,
-        "Probe specification for cable cell total transmembrane current density excluding capacitive currents at points in a location set.",
-        "where"_a, "tag"_a);
+          "Probe specification for cable cell total transmembrane current density excluding capacitive currents at points in a location set.",
+          "where"_a, "tag"_a);
     m.def("cable_probe_total_ion_current_cell",
           &cable_probe_total_ion_current_cell,
           "Probe specification for cable cell total transmembrane current excluding capacitive currents for each cable in each CV.",

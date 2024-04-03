@@ -6,8 +6,8 @@
 #include <filesystem>
 
 #include <arbor/arbexcept.hpp>
-#include <arbor/morph/label_dict.hpp>
-#include <arbor/morph/morphology.hpp>
+
+#include <arborio/loaded_morphology.hpp>
 #include <arborio/export.hpp>
 
 namespace arborio {
@@ -33,23 +33,10 @@ struct ARB_SYMBOL_VISIBLE asc_unsupported: asc_exception {
     std::string message;
 };
 
-struct asc_morphology {
-    // Raw segment tree from ASC, identical to morphology.
-    arb::segment_tree segment_tree;
-
-    // Morphology constructed from asc description.
-    arb::morphology morphology;
-
-    // Regions and locsets defined in the asc description.
-    arb::label_dict labels;
-};
-
 // Perform the parsing of the input as a string.
-ARB_ARBORIO_API asc_morphology parse_asc_string(const char* input);
-ARB_ARBORIO_API arb::segment_tree parse_asc_string_raw(const char* input);
+ARB_ARBORIO_API loaded_morphology parse_asc_string(const char* input);
 
 // Load asc morphology from file with name filename.
-ARB_ARBORIO_API asc_morphology load_asc(const std::filesystem::path& filename);
-ARB_ARBORIO_API arb::segment_tree load_asc_raw(const std::filesystem::path&filename);
+ARB_ARBORIO_API loaded_morphology load_asc(const std::filesystem::path& filename);
 
 } // namespace arborio

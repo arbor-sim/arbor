@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
-#include <map>
 #include <vector>
 
 #include <arbor/cable_cell.hpp>
@@ -40,6 +39,7 @@
 
 using namespace arb;
 using util::any_cast;
+namespace U = arb::units;
 
 using multicore_fvm_cell = fvm_lowered_cell_impl<multicore::backend>;
 using multicore_shared_state = multicore::backend::shared_state;
@@ -110,7 +110,7 @@ void run_v_i_probe_test(context ctx) {
 
     bs.decorations.set_default(cv_policy_fixed_per_branch(1));
 
-    auto stim = i_clamp::box(0, 100, 0.3);
+    auto stim = i_clamp::box(0.*U::ms, 100*U::ms, 0.3*U::nA);
     bs.decorations.place(mlocation{1, 1}, stim, "clamp");
 
     cable1d_recipe rec((cable_cell(bs)));
@@ -778,15 +778,15 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
     cv_policy policy = cv_policy_fixed_per_branch(n_cv);
     d.set_default(policy);
 
-    d.place(mlocation{0, 0}, i_clamp(0.3), "clamp");
+    d.place(mlocation{0, 0}, i_clamp(0.3*U::nA), "clamp");
 
     // The time constant will be membrane capacitance / membrane conductance.
     // For τ = 0.1 ms, set conductance to 0.01 S/cm² and membrance capacitance
     // to 0.01 F/m².
 
     d.paint(reg::all(), density("ca_linear", {{"g", 0.01}})); // [S/cm²]
-    d.set_default(membrane_capacitance{0.01}); // [F/m²]
-    const double tau = 0.1; // [ms]
+    d.set_default(membrane_capacitance{0.01*U::F/U::m2}); // [F/m²]
+    auto tau = 0.1*U::ms;
 
     cable1d_recipe rec(cable_cell(m, d));
     rec.catalogue() = cat;
@@ -826,7 +826,7 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
     std::vector<double> i_axial(n_axial_probe);
     std::vector<double> i_memb(n_cv), i_stim(n_cv);
 
-    sim.add_sampler(all_probes, explicit_schedule({20*tau}),
+    sim.add_sampler(all_probes, explicit_schedule(std::vector{20*tau}),
         [&](probe_metadata pm,
             std::size_t n_sample,
             const sample_record* samples) {
@@ -842,7 +842,7 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
                 ASSERT_NE(nullptr, s);
                 auto [s_beg, s_end] = *s;
                 ASSERT_EQ(s_end - s_beg, n_cv);
-                for (int ix = 0; ix < n_cv; ++ix) i_memb[ix] = *s_beg++;
+                for (unsigned ix = 0; ix < n_cv; ++ix) i_memb[ix] = *s_beg++;
             }
             else if (pm.id.tag == "I-stimulus") {
                 auto m = any_cast<const mcable_list*>(pm.meta);
@@ -853,7 +853,7 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
                 ASSERT_NE(nullptr, s);
                 auto [s_beg, s_end] = *s;
                 ASSERT_EQ(s_end - s_beg, n_cv);
-                for (int ix = 0; ix < n_cv; ++ix) i_stim[ix] = *s_beg++;
+                for (unsigned ix = 0; ix < n_cv; ++ix) i_stim[ix] = *s_beg++;
             }
             else {
                 // Probe id tells us which axial current this is.
@@ -869,13 +869,13 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
             }
         });
 
-    const double dt = 0.025; // [ms]
-    sim.run(20*tau+dt, dt);
+    auto dt = 0.025*U::ms; // [ms]
+    sim.run(20*tau + dt, dt);
 
     ASSERT_EQ(n_cv, i_memb.size());
     ASSERT_EQ(n_cv, i_stim.size());
 
-    for (unsigned i = 0; i<n_cv; ++i) {
+    for (unsigned i = 0; i < n_cv; ++i) {
         // Axial currents are in the distal (increasing CV index) direction,
         // while membrane currents are from intra- to extra-cellular medium.
         //
@@ -897,11 +897,11 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
 
 template <typename SampleData, typename SampleMeta = void>
 auto run_simple_samplers(const arb::context& ctx,
-                         double t_end,
+                         U::quantity t_end,
                          const std::vector<cable_cell>& cells,
                          const cell_address_type& probe,
                          const std::vector<std::any>& probe_addrs,
-                         const std::vector<double>& when) {
+                         const std::vector<U::quantity>& when) {
     cable1d_recipe rec(cells, false);
     rec.catalogue() = make_unit_test_catalogue(global_default_catalogue());
     unsigned n_probe = probe_addrs.size();
@@ -917,17 +917,17 @@ auto run_simple_samplers(const arb::context& ctx,
                         make_simple_sampler(traces[i]));
     }
 
-    sim.run(t_end, 0.025);
+    sim.run(t_end, 0.025*U::ms);
     return traces;
 }
 
 template <typename SampleData, typename SampleMeta = void>
 auto run_simple_sampler(const arb::context& ctx,
-                        double t_end,
+                        U::quantity t_end,
                         const std::vector<cable_cell>& cells,
                         const cell_address_type& probe,
                         const std::any& probe_addr,
-                        const std::vector<double>& when) {
+                        const std::vector<U::quantity>& when) {
     return run_simple_samplers<SampleData, SampleMeta>(ctx, t_end, cells, probe, {probe_addr}, when).at(0);
 }
 
@@ -945,10 +945,11 @@ void run_multi_probe_test(context ctx) {
     d.paint(reg::branch(2), density("param_as_state", {{"p", 20.}}));
     d.paint(reg::branch(5), density("param_as_state", {{"p", 50.}}));
 
-    auto tracev = run_simple_sampler<double, mlocation>(ctx, 0.1,
+    auto tracev = run_simple_sampler<double, mlocation>(ctx, 0.1*U::ms,
                                                         {cable_cell{m, d}},
                                                         {0, "probe"},
-                                                        cable_probe_density_state{ls::terminal(), "param_as_state", "s"}, {0.});
+                                                        cable_probe_density_state{ls::terminal(), "param_as_state", "s"},
+                                                        {0.0*U::ms});
 
     // Expect to have received a sample on each of the terminals of branches 1, 2, and 5.
     ASSERT_EQ(3u, tracev.size());
@@ -984,14 +985,14 @@ void run_v_sampled_probe_test(context ctx) {
     // samples at the same point on each cell will give the same value at
     // 0.3 ms, but different at 0.6 ms.
 
-    d0.place(mlocation{1, 1}, i_clamp::box(0, 0.5, 1.), "clamp0");
-    d1.place(mlocation{1, 1}, i_clamp::box(0, 1.0, 1.), "clamp1");
+    d0.place(mlocation{1, 1}, i_clamp::box(0*U::ms, 0.5*U::ms, 1.*U::nA), "clamp0");
+    d1.place(mlocation{1, 1}, i_clamp::box(0*U::ms, 1.0*U::ms, 1.*U::nA), "clamp1");
     mlocation probe_loc{1, 0.2};
 
     std::vector<cable_cell> cells = {{bs.morph, d0, bs.labels}, {bs.morph, d1, bs.labels}};
 
-    const double t_end = 1.; // [ms]
-    std::vector<double> when = {0.3, 0.6}; // Sample at 0.3 and 0.6 ms.
+    const auto t_end = 1.*U::ms; // [ms]
+    std::vector when = {0.3*U::ms, 0.6*U::ms}; // Sample at 0.3 and 0.6 ms.
 
     auto trace0 = run_simple_sampler<double, mlocation>(ctx, t_end, cells, {0, "Um-loc"},
                                                         cable_probe_membrane_voltage{probe_loc},
@@ -1038,14 +1039,14 @@ void run_total_current_probe_test(context ctx) {
     // For τ = 0.1 ms, set conductance to 0.01 S/cm² and membrance capacitance
     // to 0.01 F/m².
 
-    const double tau = 0.1;     // [ms]
-    d0.place(mlocation{0, 0}, i_clamp(0.3), "clamp0");
+    auto tau = 0.1*U::ms;     // [ms]
+    d0.place(mlocation{0, 0}, i_clamp(0.3*U::nA), "clamp0");
 
     d0.paint(reg::all(), density("ca_linear", {{"g", 0.01}})); // [S/cm²]
-    d0.set_default(membrane_capacitance{0.01}); // [F/m²]
+    d0.set_default(membrane_capacitance{0.01*U::F/U::m2}); // [F/m²]
     // Tweak membrane capacitance on cells[1] so as to change dynamics a bit.
     auto d1 = d0;
-    d1.set_default(membrane_capacitance{0.009}); // [F/m²]
+    d1.set_default(membrane_capacitance{0.009*U::F/U::m2}); // [F/m²]
 
     // We'll run each set of tests twice: once with a trivial (zero-volume) CV
     // at the fork points, and once with a non-trivial CV centred on the fork
@@ -1069,19 +1070,22 @@ void run_total_current_probe_test(context ctx) {
         for (unsigned i = 0; i<2; ++i) {
             SCOPED_TRACE(i);
 
-            const double t_end = 21*tau; // [ms]
+            auto t_end = 21*tau; // [ms]
 
             traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, t_end, cells,
                                                                              {i, "Itotal"},
-                                                                             cable_probe_total_current_cell{}, {tau, 20*tau}).at(0);
+                                                                             cable_probe_total_current_cell{},
+                                                                             {tau, 20*tau}).at(0);
 
             ion_traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, t_end, cells,
                                                                                  {i, "Iion"},
-                                                                                 cable_probe_total_ion_current_cell{}, {tau, 20*tau}).at(0);
+                                                                                 cable_probe_total_ion_current_cell{},
+                                                                                 {tau, 20*tau}).at(0);
 
             stim_traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, t_end, cells,
                                                                                   {i, "Istim"},
-                                                                                  cable_probe_stimulus_current_cell{}, {tau, 20*tau}).at(0);
+                                                                                  cable_probe_stimulus_current_cell{},
+                                                                                  {tau, 20*tau}).at(0);
 
             ASSERT_EQ(2u, traces[i].size());
             ASSERT_EQ(2u, ion_traces[i].size());
@@ -1157,19 +1161,21 @@ void run_stimulus_probe_test(context ctx) {
     // Model two simple stick cable cells, 3 CVs each, and stimuli on cell 0, cv 1
     // and cell 1, cv 2. Run both cells in the same cell group.
 
-    const double stim_until = 1.; // [ms]
+    auto stim_from = 0.*U::ms;
+    auto stim_until = 1.*U::ms;
+
     auto m = make_stick_morphology();
     cv_policy policy = cv_policy_fixed_per_branch(3);
 
     decor d0, d1;
     d0.set_default(policy);
-    d0.place(mlocation{0, 0.5}, i_clamp::box(0., stim_until, 10.), "clamp0");
-    d0.place(mlocation{0, 0.5}, i_clamp::box(0., stim_until, 20.), "clamp1");
+    d0.place(mlocation{0, 0.5}, i_clamp::box(stim_from, stim_until, 10.*U::nA), "clamp0");
+    d0.place(mlocation{0, 0.5}, i_clamp::box(stim_from, stim_until, 20.*U::nA), "clamp1");
     double expected_stim0 = 30;
 
     d1.set_default(policy);
-    d1.place(mlocation{0, 1}, i_clamp::box(0., stim_until, 30.), "clamp0");
-    d1.place(mlocation{0, 1}, i_clamp::box(0., stim_until, -10.), "clamp1");
+    d1.place(mlocation{0, 1}, i_clamp::box(stim_from, stim_until,  30.*U::nA), "clamp0");
+    d1.place(mlocation{0, 1}, i_clamp::box(stim_from, stim_until, -10.*U::nA), "clamp1");
     double expected_stim1 = 20;
 
     std::vector<cable_cell> cells = {{m, d0}, {m, d1}};
@@ -1181,7 +1187,7 @@ void run_stimulus_probe_test(context ctx) {
     for (unsigned i: {0u, 1u}) {
         traces[i] = run_simple_sampler<std::vector<double>, mcable_list>(ctx, 2.5*stim_until, cells, {i, "Istim"},
                                                                          cable_probe_stimulus_current_cell{},
-                                                                         {stim_until/2, 2*stim_until}).at(0);
+                                                                         {0.5*stim_until, 2*stim_until}).at(0);
 
         ASSERT_EQ(3u, traces[i].meta.size());
         for ([[maybe_unused]] unsigned cv: {0u, 1u, 2u}) {

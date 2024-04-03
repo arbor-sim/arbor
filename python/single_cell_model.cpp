@@ -18,7 +18,7 @@
 #include "event_generator.hpp"
 #include "error.hpp"
 #include "strprintf.hpp"
-#include "proxy.hpp"
+#include "label_dict.hpp"
 
 using arb::util::any_cast;
 
@@ -34,7 +34,7 @@ namespace pyarb {
 // Stores the location and sampling frequency for a probe in a single cell model.
 struct probe_site {
     arb::locset locset;     // Location of sample on morphology.
-    double frequency;       // Sampling frequency [kHz].
+    arb::units::quantity frequency;       // Sampling frequency [kHz].
     arb::cell_tag_type tag; // Tag = unique name
 };
 
@@ -161,12 +161,15 @@ public:
     //      m.probe('voltage', '(location 2 0.5)')
     //      m.probe('voltage', 'term')
 
-    void probe(const std::string& what, const arb::locset& where, const arb::cell_tag_type& tag, double frequency) {
+    void probe(const std::string& what,
+               const arb::locset& where,
+               const arb::cell_tag_type& tag,
+               const arb::units::quantity& frequency) {
         if (what != "voltage") {
             throw pyarb_error(
                 util::pprintf("{} does not name a valid variable to trace (currently only 'voltage' is supported)", what));
         }
-        if (frequency<=0) {
+        if (frequency.value() <= 0) {
             throw pyarb_error(
                 util::pprintf("sampling frequency is not greater than zero", what));
         }
@@ -177,7 +180,7 @@ public:
         event_generators_.push_back(event_generator);
     }
 
-    void run(double tfinal, double dt) {
+    void run(const arb::units::quantity& tfinal, const arb::units::quantity& dt) {
         single_cell_recipe rec(cell_, probes_, gprop, event_generators_);
 
         auto domdec = arb::partition_load_balance(rec, ctx_);
@@ -238,24 +241,24 @@ void register_single_cell(pybind11::module& m) {
                                const label_dict_proxy& l) -> single_cell_model {
             return single_cell_model(arb::cable_cell({m}, d, l.dict));
         }),
-             "tree"_a, "decor"_a, "labels"_a=arb::decor{},
+             "tree"_a, "decor"_a, "labels"_a=label_dict_proxy{},
              "Build single cell model from cable cell components")
         .def(pybind11::init([](const arb::morphology& m,
                                const arb::decor& d,
                                const label_dict_proxy& l) -> single_cell_model {
             return single_cell_model(arb::cable_cell(m, d, l.dict));
         }),
-             "morph"_a, "decor"_a, "labels"_a=arb::decor{},
+             "morph"_a, "decor"_a, "labels"_a=label_dict_proxy{},
              "Build single cell model from cable cell components")
         .def(pybind11::init<arb::cable_cell>(),
             "cell"_a, "Initialise a single cell model for a cable cell.")
         .def("run",
              &single_cell_model::run,
              "tfinal"_a,
-             "dt"_a = 0.025,
+             pybind11::arg_v("dt", 0.025*arb::units::ms, "0.025*arbor.units.ms"),
              "Run model from t=0 to t=tfinal ms.")
         .def("probe",
-             [](single_cell_model& m, const char* what, const char* where, const char* tag, double frequency) {
+             [](single_cell_model& m, const char* what, const char* where, const char* tag, const arb::units::quantity& frequency) {
                  m.probe(what, arborio::parse_locset_expression(where).unwrap(), tag, frequency);},
              "what"_a, "where"_a, "tag"_a, "frequency"_a,
              "Sample a variable on the cell.\n"
@@ -264,7 +267,7 @@ void register_single_cell(pybind11::module& m) {
              " tag:       Unique name for this probe.\n"
              " frequency: The target frequency at which to sample [kHz].")
         .def("probe",
-             [](single_cell_model& m, const char* what, const arb::mlocation& where, const char* tag, double frequency) {
+             [](single_cell_model& m, const char* what, const arb::mlocation& where, const char* tag, const arb::units::quantity& frequency) {
                  m.probe(what, where, tag, frequency);},
              "what"_a, "where"_a, "tag"_a, "frequency"_a,
              "Sample a variable on the cell.\n"

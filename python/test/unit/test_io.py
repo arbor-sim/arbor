@@ -5,12 +5,11 @@ import arbor as A
 from pathlib import Path
 from tempfile import TemporaryDirectory as TD
 from io import StringIO
-from functools import partial
 
 
 acc = """(arbor-component
   (meta-data
-    (version "0.1-dev"))
+    (version "0.9-dev"))
   (cable-cell
     (morphology
       (branch 0 -1
@@ -25,25 +24,25 @@ acc = """(arbor-component
         (location 0 0.5)))
     (decor
       (default
-        (membrane-potential -40.000000))
+        (membrane-potential -40.000000 (scalar 1)))
       (default
-        (ion-internal-concentration "ca" 0.000050))
+        (ion-internal-concentration "ca" 0.000050 (scalar 1)))
       (default
-        (ion-external-concentration "ca" 2.000000))
+        (ion-external-concentration "ca" 2.000000 (scalar 1)))
       (default
-        (ion-reversal-potential "ca" 132.457934))
+        (ion-reversal-potential "ca" 132.457934 (scalar 1)))
       (default
-        (ion-internal-concentration "k" 54.400000))
+        (ion-internal-concentration "k" 54.400000 (scalar 1)))
       (default
-        (ion-external-concentration "k" 2.500000))
+        (ion-external-concentration "k" 2.500000 (scalar 1)))
       (default
-        (ion-reversal-potential "k" -77.000000))
+        (ion-reversal-potential "k" -77.000000 (scalar 1)))
       (default
-        (ion-internal-concentration "na" 10.000000))
+        (ion-internal-concentration "na" 10.000000 (scalar 1)))
       (default
-        (ion-external-concentration "na" 140.000000))
+        (ion-external-concentration "na" 140.000000 (scalar 1)))
       (default
-        (ion-reversal-potential "na" 50.000000))
+        (ion-reversal-potential "na" 50.000000 (scalar 1)))
       (paint
         (tag 1)
         (density
@@ -153,7 +152,10 @@ class TestAccIo(unittest.TestCase):
 class TestSwcArborIo(unittest.TestCase):
     @staticmethod
     def loaders():
-        return (A.load_swc_arbor, partial(A.load_swc_arbor, raw=True))
+        return (
+            lambda f: A.load_swc_arbor(f).morphology,
+            lambda f: A.load_swc_arbor(f).segment_tree,
+        )
 
     def test_stringio(self):
         load_string(self.loaders(), swc_arbor)
@@ -171,7 +173,10 @@ class TestSwcArborIo(unittest.TestCase):
 class TestSwcNeuronIo(unittest.TestCase):
     @staticmethod
     def loaders():
-        return (A.load_swc_neuron, partial(A.load_swc_neuron, raw=True))
+        return (
+            lambda f: A.load_swc_neuron(f).morphology,
+            lambda f: A.load_swc_neuron(f).segment_tree,
+        )
 
     def test_stringio(self):
         load_string(self.loaders(), swc_neuron)
@@ -189,7 +194,10 @@ class TestSwcNeuronIo(unittest.TestCase):
 class TestAscIo(unittest.TestCase):
     @staticmethod
     def loaders():
-        return (A.load_asc, partial(A.load_asc, raw=True))
+        return (
+            lambda f: A.load_asc(f).morphology,
+            lambda f: A.load_asc(f).segment_tree,
+        )
 
     def test_stringio(self):
         load_string(self.loaders(), asc)

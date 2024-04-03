@@ -9,11 +9,12 @@ LIF cells
 
     A leaky integrate-and-fire cell
 
-    .. function:: lif_cell(source, target)
+    .. function:: lif_cell(source, target, **, tau_m, V_th, C_m, E_L, E_R, V_m, t_ref)
 
         Constructor: assigns the label ``source`` to the single built-in source
         on the cell; and assigns the label ``target`` to the single built-in
-        target on the cell.
+        target on the cell. Optional parameters may be given and set the
+        correspoding physical parameters of the cell
 
     .. attribute:: source
 
