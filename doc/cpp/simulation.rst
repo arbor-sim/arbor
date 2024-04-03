@@ -100,14 +100,6 @@ Class documentation
         Returns a builder object to which the constructor arguments can be passed selectively (see
         also example above).
 
-    **Experimental inputs:**
-
-    .. cpp:function:: void inject_events(const pse_vector& events)
-
-        Add events directly to targets.
-        Must be called before calling :cpp:func:`run`, and must contain events that
-        are to be delivered at or after the current simulation time.
-
     **Updating Model State:**
 
     .. cpp:function:: void reset()
