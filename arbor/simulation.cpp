@@ -108,8 +108,6 @@ public:
 
     void set_remote_spike_filter(const spike_predicate& p) { return communicator_.set_remote_spike_filter(p); }
 
-    void inject_events(const cse_vector& events);
-
     time_type min_delay() { return communicator_.min_delay(); }
 
     spike_export_function global_export_callback_;
@@ -560,22 +558,6 @@ std::vector<probe_metadata> simulation_state::get_probe_metadata(const cell_addr
     }
 }
 
-void simulation_state::inject_events(const cse_vector& events) {
-    // Push all events that are to be delivered to local cells into the
-    // pending event list for the event's target cell.
-    for (auto& [gid, pse_vector]: events) {
-        for (auto& e: pse_vector) {
-            if (e.time < epoch_.t1) {
-                throw bad_event_time(e.time, epoch_.t1);
-            }
-            // gid_to_local_ maps gid to index in local cells and of corresponding cell group.
-            if (auto lidx = util::value_by_key(gid_to_local_, gid)) {
-                pending_events_[lidx->cell_index].push_back(e);
-            }
-        }
-    }
-}
-
 // Simulation class implementations forward to implementation class.
 
 simulation_builder simulation::create(recipe const & rec) { return {rec}; };
@@ -637,10 +619,6 @@ void simulation::set_local_spike_callback(spike_export_function export_callback)
 
 void simulation::set_epoch_callback(epoch_function epoch_callback) {
     impl_->epoch_callback_ = std::move(epoch_callback);
-}
-
-void simulation::inject_events(const cse_vector& events) {
-    impl_->inject_events(events);
 }
 
 simulation::simulation(simulation&&) = default;
