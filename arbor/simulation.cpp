@@ -19,6 +19,7 @@
 #include "threading/threading.hpp"
 #include "util/maputil.hpp"
 #include "util/span.hpp"
+#include "util/strprintf.hpp"
 #include "profile/profiler_macro.hpp"
 
 namespace arb {
@@ -110,7 +111,11 @@ public:
 
     void inject_events(const cse_vector& events);
 
-    time_type min_delay() { return communicator_.min_delay(); }
+    time_type min_delay() {
+        auto tau =  communicator_.min_delay();
+        if (tau <= 0.0 || !std::isfinite(tau)) throw std::domain_error("Minimum connection delay must be strictly positive and finite.");
+        return tau;
+    }
 
     spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
@@ -355,7 +360,7 @@ void simulation_state::reset() {
 time_type simulation_state::run(time_type tfinal, time_type dt) {
     // Progress simulation to time tfinal, through a series of integration epochs
     // of length at most t_interval_. t_interval_ is chosen to be no more than
-    // than half the network minimum delay.
+    // than half the network minimum delay and minimally the timestep `dt`.
     //
     // There are three simulation tasks that can be run partially in parallel:
     //
@@ -394,10 +399,12 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     // Requires state at end of run(), with epoch_.id==k:
     //     * U(k) and D(k) have completed.
 
-    if (!std::isfinite(tfinal) || tfinal < 0) throw std::domain_error("simulation: tfinal must be finite, positive, and in [ms]");
-    if (!std::isfinite(dt) || tfinal < 0) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
-
-    if (tfinal<=epoch_.t1) return epoch_.t1;
+    // Compare up to picoseconds
+    time_type eps = 1e-9;
+    if (!std::isfinite(dt) || dt < eps) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
+    if (!std::isfinite(tfinal) || tfinal - epoch_.t1 < eps) {
+        throw std::domain_error("simulation: tfinal must be finite, positive, larger than the current time, and in [ms]");
+    }
 
     // Compute following epoch, with max time tfinal.
     auto next_epoch = [tfinal](epoch e, time_type interval) -> epoch {

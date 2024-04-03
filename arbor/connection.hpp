@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
 #include <arbor/common_types.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/spike_event.hpp>
