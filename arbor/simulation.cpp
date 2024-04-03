@@ -397,10 +397,10 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
     // Compare up to picoseconds
     time_type eps = 1e-9;
-    if (!std::isfinite(tfinal) || tfinal < eps) throw std::domain_error("simulation: tfinal must be finite, positive, and in [ms]");
-    if (epoch_.t1 - tfinal > eps) throw std::domain_error(util::pprintf("simulation: tfinal={}ms is in the past, current time of simulation is {}ms", tfinal, epoch_.t1));
     if (!std::isfinite(dt) || dt < eps) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
     if (dt - t_interval_ > eps) throw std::domain_error(util::pprintf("simulation: dt={}ms is larger than epoch length by {}, chose at most half the minimal connection delay {}ms.", dt, dt - t_interval_, t_interval_));
+    if (!std::isfinite(tfinal) || tfinal < eps) throw std::domain_error("simulation: tfinal must be finite, positive, and in [ms]");
+    if (tfinal - epoch_.t1 < dt) throw std::domain_error(util::pprintf("simulation: tfinal={}ms doesn't make progress of least one dt; current time of simulation is {}ms and dt {}ms", tfinal, epoch_.t1, dt));
 
     // Compute following epoch, with max time tfinal.
     auto next_epoch = [tfinal](epoch e, time_type interval) -> epoch {
