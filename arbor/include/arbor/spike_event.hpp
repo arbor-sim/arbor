@@ -34,8 +34,6 @@ struct cell_spike_events {
     pse_vector events;
 };
 
-using cse_vector = std::vector<cell_spike_events>;
-
 ARB_ARBOR_API std::ostream& operator<<(std::ostream&, const spike_event&);
 
 } // namespace arb
