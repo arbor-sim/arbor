@@ -18,7 +18,7 @@ See for example
 wOutside the refractory period the dynamics are
 
 .. math::
-   C_m\partial_t V_m = -g(V_m - E_L) + g \Delta \exp\left(\frac{V_m - V_\mathrm{th}{\Delta}\right) - w + I\\
+   C_m\partial_t V_m = -g(V_m - E_L) + g \Delta \exp\left(\frac{V_m - V_\mathrm{th}}{\Delta}\right) - w + I\\
    \partial_t w   = a(V_m - E_L) - w + f
 
 with the following terms and their default/starting values
@@ -44,7 +44,7 @@ Incoming spikes give rise to a instantaneous jump in the membrane potential
 functional.
 
 Every time :math:`t_s` the cell emits a spike, :math:`w` is incremented by :math:`b`; thus
-:math:`f(t) = b\delta(t-t_s)` and the refractory begins, for a duration of
+:math:`f(t) = b\delta(t-t_s)` and the refractory period begins, for a duration of
 :math:`t_\mathrm{ref}`. During that time
 
 .. math::
