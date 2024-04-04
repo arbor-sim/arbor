@@ -30,14 +30,14 @@ with the following terms and their default/starting values
 * Membrane capacitance :math:`C_\mathrm{m} = 0.28\,nF`
 * Firing threshold :math:`V_\mathrm{th} = -20\,mV`
 * Refractory period :math:`t_\mathrm{ref} = 2.5\,ms`
-* Leak conductivity :math:`g = 0.03\,mu S`
+* Leak conductivity :math:`g = 0.03\,\mu S`
 
 and
 
 * adaptivity parameter :math:`w = 0\,nA`
 * decay time :math:`\tau = 144\,ms`
-* :math:`a = 0.004\,\mu S`
-* :math:`b = 0.08\,nA`
+* dynamics :math:`a = 0.004\,\mu S`
+* spike response :math:`b = 0.08\,nA`
 
 Incoming spikes give rise to a instantaneous jump in the membrane potential
 :math:`V_m \rightarrow V_m + \frac{\omega}{C_m}`, i.e. :math:`I` is a delta
