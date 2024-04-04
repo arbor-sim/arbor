@@ -14,11 +14,7 @@ __all__ = [
     "MechCatKeyIterator",
     "MechCatValueIterator",
     "allen_catalogue",
-    "asc_color",
-    "asc_marker",
-    "asc_marker_set",
-    "asc_metadata",
-    "asc_spine",
+    "asc_morphology",
     "axial_resistivity",
     "backend",
     "bbp_catalogue",
@@ -94,7 +90,6 @@ __all__ = [
     "load_component",
     "load_swc_arbor",
     "load_swc_neuron",
-    "loaded_morphology",
     "location",
     "mechanism",
     "mechanism_field",
@@ -109,8 +104,8 @@ __all__ = [
     "mpoint",
     "msegment",
     "neuroml",
+    "neuroml_morph_data",
     "neuron_cable_properties",
-    "nml_metadata",
     "partition_by_group",
     "partition_hint",
     "partition_load_balance",
@@ -133,7 +128,6 @@ __all__ = [
     "spike_recording",
     "spike_source_cell",
     "stochastic_catalogue",
-    "swc_metadata",
     "synapse",
     "temperature",
     "threshold_detector",
@@ -161,88 +155,28 @@ class MechCatValueIterator:
     def __iter__(self) -> MechCatValueIterator: ...
     def __next__(self) -> mechanism_info: ...
 
-class asc_color:
+class asc_morphology:
     """
-    Neurolucida color tag.
-    """
-
-    @property
-    def blue(self) -> int: ...
-    @property
-    def green(self) -> int: ...
-    @property
-    def red(self) -> int: ...
-
-class asc_marker:
-    """
-    Neurolucida marker type.
-
-    Members:
-
-      dot
-
-      cross
-
-      circle
-
-      none
-    """
-
-    __members__: typing.ClassVar[
-        dict[str, asc_marker]
-    ]  # value = {'dot': <asc_marker.dot: 0>, 'cross': <asc_marker.cross: 2>, 'circle': <asc_marker.circle: 1>, 'none': <asc_marker.none: 3>}
-    circle: typing.ClassVar[asc_marker]  # value = <asc_marker.circle: 1>
-    cross: typing.ClassVar[asc_marker]  # value = <asc_marker.cross: 2>
-    dot: typing.ClassVar[asc_marker]  # value = <asc_marker.dot: 0>
-    none: typing.ClassVar[asc_marker]  # value = <asc_marker.none: 3>
-    def __eq__(self, other: typing.Any) -> bool: ...
-    def __getstate__(self) -> int: ...
-    def __hash__(self) -> int: ...
-    def __index__(self) -> int: ...
-    def __init__(self, value: int) -> None: ...
-    def __int__(self) -> int: ...
-    def __ne__(self, other: typing.Any) -> bool: ...
-    def __repr__(self) -> str: ...
-    def __setstate__(self, state: int) -> None: ...
-    def __str__(self) -> str: ...
-    @property
-    def name(self) -> str: ...
-    @property
-    def value(self) -> int: ...
-
-class asc_marker_set:
-    """
-    Neurolucida marker set type.
+    The morphology and label dictionary meta-data loaded from a Neurolucida ASCII (.asc) file.
     """
 
     @property
-    def color(self) -> asc_color: ...
-    @property
-    def locations(self) -> list[mpoint]: ...
-    @property
-    def marker(self) -> asc_marker: ...
-    @property
-    def name(self) -> str: ...
-
-class asc_metadata:
-    """
-    Neurolucida metadata type: Spines and marker sets.
-    """
+    def labels(self) -> label_dict:
+        """
+        The four canonical regions are labeled 'soma', 'axon', 'dend' and 'apic'.
+        """
 
     @property
-    def markers(self) -> list[asc_marker_set]: ...
-    @property
-    def spines(self) -> list[asc_spine]: ...
-
-class asc_spine:
-    """
-    Neurolucida spine marker.
-    """
+    def morphology(self) -> morphology:
+        """
+        The cable cell morphology.
+        """
 
     @property
-    def location(self) -> mpoint: ...
-    @property
-    def name(self) -> str: ...
+    def segment_tree(self) -> segment_tree:
+        """
+        The raw segment tree.
+        """
 
 class axial_resistivity:
     """
@@ -265,9 +199,9 @@ class backend:
 
     __members__: typing.ClassVar[
         dict[str, backend]
-    ]  # value = {'gpu': <backend.gpu: 0>, 'multicore': <backend.multicore: 1>}
-    gpu: typing.ClassVar[backend]  # value = <backend.gpu: 0>
-    multicore: typing.ClassVar[backend]  # value = <backend.multicore: 1>
+    ]  # value = {'gpu': <backend.gpu: 1>, 'multicore': <backend.multicore: 0>}
+    gpu: typing.ClassVar[backend]  # value = <backend.gpu: 1>
+    multicore: typing.ClassVar[backend]  # value = <backend.multicore: 0>
     def __eq__(self, other: typing.Any) -> bool: ...
     def __getstate__(self) -> int: ...
     def __hash__(self) -> int: ...
@@ -653,19 +587,11 @@ class cell_global_label:
         """
 
     @typing.overload
-    def __init__(self, arg0: tuple[int, cell_local_label]) -> None:
+    def __init__(self, arg0: tuple) -> None:
         """
         Construct a cell_global_label identifier with tuple argument (gid, label):
           gid:   The global identifier of the cell.
           label: The cell_local_label representing the label and selection policy of an item on the cell.
-        """
-
-    @typing.overload
-    def __init__(self, arg0: tuple[int, str]) -> None:
-        """
-        Construct a cell_global_label identifier with tuple argument (gid, label):
-          gid:   The global identifier of the cell.
-          label: The tag of an item on the cell.
         """
 
     def __repr__(self) -> str: ...
@@ -749,15 +675,7 @@ class cell_local_label:
         """
 
     @typing.overload
-    def __init__(self, arg0: tuple[str, selection_policy]) -> None:
-        """
-        Construct a cell_local_label identifier with tuple argument (label, policy):
-          label:  The identifier of a group of one or more items on a cell.
-          policy: The policy for selecting one of possibly multiple items associated with the label.
-        """
-
-    @typing.overload
-    def __init__(self, arg0: tuple[str, selection_policy]) -> None:
+    def __init__(self, arg0: tuple) -> None:
         """
         Construct a cell_local_label identifier with tuple argument (label, policy):
           label:  The identifier of a group of one or more items on a cell.
@@ -1637,7 +1555,7 @@ class label_dict:
     """
 
     @staticmethod
-    def append(*args, **kwargs) -> label_dict:
+    def append(*args, **kwargs) -> None:
         """
         Import the entries of a another label dictionary with an optional prefix.
         """
@@ -1684,7 +1602,7 @@ class label_dict:
 
     def items(self) -> typing.Iterator: ...
     def keys(self) -> typing.Iterator: ...
-    def update(self, other: label_dict) -> label_dict:
+    def update(self, other: label_dict) -> None:
         """
         The label_dict to be importedImport the entries of a another label dictionary.
         """
@@ -1808,35 +1726,6 @@ class lif_probe_metadata:
     """
     Probe metadata associated with a LIF cell probe.
     """
-
-class loaded_morphology:
-    """
-    The morphology and label dictionary meta-data loaded from file.
-    """
-
-    @property
-    def labels(self) -> label_dict:
-        """
-        Any labels defined by the loaded file.
-        """
-
-    @property
-    def metadata(self) -> swc_metadata | asc_metadata | nml_metadata:
-        """
-        File type specific metadata.
-        """
-
-    @property
-    def morphology(self) -> morphology:
-        """
-        The cable cell morphology.
-        """
-
-    @property
-    def segment_tree(self) -> segment_tree:
-        """
-        The raw segment tree.
-        """
 
 class location:
     """
@@ -2046,6 +1935,40 @@ class morphology:
     A cell morphology.
     """
 
+    def __init__(self, arg0: segment_tree) -> None: ...
+    def __str__(self) -> str: ...
+    def branch_children(self, i: int) -> list[int]:
+        """
+        The child branches of branch i.
+        """
+
+    def branch_parent(self, i: int) -> int:
+        """
+        The parent branch of branch i.
+        """
+
+    def branch_segments(self, i: int) -> list[msegment]:
+        """
+        A list of the segments in branch i, ordered from proximal to distal ends of the branch.
+        """
+
+    def to_segment_tree(self) -> segment_tree:
+        """
+        Convert this morphology to a segment_tree.
+        """
+
+    @property
+    def empty(self) -> bool:
+        """
+        Whether the morphology is empty.
+        """
+
+    @property
+    def num_branches(self) -> int:
+        """
+        The number of branches in the morphology.
+        """
+
 class morphology_provider:
     def __init__(self, morphology: morphology) -> None:
         """
@@ -2072,7 +1995,7 @@ class mpoint:
         """
 
     @typing.overload
-    def __init__(self, arg0: tuple[float, float, float, float]) -> None:
+    def __init__(self, arg0: tuple) -> None:
         """
         Create an mpoint object from a tuple (x, y, z, radius), specified in µm.
         """
@@ -2135,14 +2058,14 @@ class neuroml:
 
     def cell_morphology(
         self, cell_id: str, allow_spherical_root: bool = False
-    ) -> loaded_morphology | None:
+    ) -> neuroml_morph_data | None:
         """
         Retrieve nml_morph_data associated with cell_id.
         """
 
     def morphology(
         self, morph_id: str, allow_spherical_root: bool = False
-    ) -> loaded_morphology | None:
+    ) -> neuroml_morph_data | None:
         """
         Retrieve top-level nml_morph_data associated with morph_id.
         """
@@ -2152,7 +2075,7 @@ class neuroml:
         Query top-level standalone morphologies.
         """
 
-class nml_metadata:
+class neuroml_morph_data:
     def groups(self) -> label_dict:
         """
         Label dictionary containing one region expression for each segmentGroup id.
@@ -2184,6 +2107,12 @@ class nml_metadata:
     def id(self) -> str:
         """
         Morphology id.
+        """
+
+    @property
+    def morphology(self) -> morphology:
+        """
+        Morphology constructed from a signle NeuroML <morphology> element.
         """
 
 class partition_hint:
@@ -2961,11 +2890,6 @@ class spike_source_cell:
     def __repr__(self) -> str: ...
     def __str__(self) -> str: ...
 
-class swc_metadata:
-    """
-    SWC metadata type: empty.
-    """
-
 class synapse:
     """
     For placing a synaptic mechanism on a locset.
@@ -3220,9 +3144,11 @@ def lif_probe_voltage(tag: str) -> probe:
     Probe specification for LIF cell membrane voltage.
     """
 
-def load_asc(filename_or_stream: typing.Any) -> loaded_morphology:
+def load_asc(
+    filename_or_stream: typing.Any, raw: bool = False
+) -> segment_tree | asc_morphology:
     """
-    Load a morphology or segment_tree and meta data from a Neurolucida ASCII .asc file.
+    Load a morphology or segment_tree (raw=True) and meta data from a Neurolucida ASCII .asc file.
     """
 
 def load_catalogue(arg0: typing.Any) -> catalogue: ...
@@ -3231,9 +3157,11 @@ def load_component(filename_or_descriptor: typing.Any) -> cable_component:
     Load arbor-component (decor, morphology, label_dict, cable_cell) from file.
     """
 
-def load_swc_arbor(filename_or_stream: typing.Any) -> loaded_morphology:
+def load_swc_arbor(
+    filename_or_stream: typing.Any, raw: bool = False
+) -> segment_tree | morphology:
     """
-    Generate a morphology/segment_tree from an SWC file following the rules prescribed by Arbor.
+    Generate a morphology/segment_tree (raw=False/True) from an SWC file following the rules prescribed by Arbor.
     Specifically:
      * Single-segment somas are disallowed.
      * There are no special rules related to somata. They can be one or multiple branches
@@ -3242,9 +3170,11 @@ def load_swc_arbor(filename_or_stream: typing.Any) -> loaded_morphology:
        are no gaps in the resulting morphology.
     """
 
-def load_swc_neuron(filename_or_stream: typing.Any) -> loaded_morphology:
+def load_swc_neuron(
+    filename_or_stream: typing.Any, raw: bool = False
+) -> segment_tree | morphology:
     """
-    Generate a morphology from an SWC file following the rules prescribed by NEURON.
+    Generate a morphology/segment_tree (raw=False/True) from an SWC file following the rules prescribed by NEURON.
     See the documentation https://docs.arbor-sim.org/en/latest/fileformat/swc.html
     for a detailed description of the interpretation.
     """
