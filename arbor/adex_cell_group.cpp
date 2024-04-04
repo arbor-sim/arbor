@@ -20,7 +20,7 @@ adex_cell_group::adex_cell_group(const std::vector<cell_gid_type>& gids,
     for (auto gid: gids_) {
         const auto& cell = util::any_cast<adex_cell>(rec.get_cell_description(gid));
         // set up cell state
-        cells_.emplace_back(cell);
+        cells_.push_back(cell);
         // tell our caller about this cell's connections
         cg_sources.add_cell();
         cg_targets.add_cell();
@@ -45,6 +45,7 @@ adex_cell_group::adex_cell_group(const std::vector<cell_gid_type>& gids,
         }
         // set up the internal state
         next_update_.push_back(0);
+        current_time_.push_back(0);
     }
 }
 
@@ -61,9 +62,13 @@ void adex_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange&
     PL();
 }
 
-const std::vector<spike>& adex_cell_group::spikes() const { return spikes_; }
+const std::vector<spike>& adex_cell_group::spikes() const {
+    return spikes_;
+}
 
-void adex_cell_group::clear_spikes() { spikes_.clear(); }
+void adex_cell_group::clear_spikes() {
+    spikes_.clear();
+}
 
 void adex_cell_group::add_sampler(sampler_association_handle h,
                                   cell_member_predicate probeset_ids,
@@ -91,13 +96,14 @@ void adex_cell_group::remove_all_samplers() {
 }
 
 void adex_cell_group::reset() {
-    clear_spikes();
+    spikes_.clear();
 }
 
 void adex_cell_group::advance_cell(time_type tfinal,
                                    time_type dt,
                                    cell_gid_type lid,
                                    const event_lane_subrange& event_lanes) {
+    auto time = current_time_[lid];
     auto gid = gids_[lid];
     auto& cell = cells_[lid];
     auto n_events = static_cast<int>(!event_lanes.empty() ? event_lanes[lid].size() : 0);
@@ -117,20 +123,19 @@ void adex_cell_group::advance_cell(time_type tfinal,
     std::vector<double> sample_data;
 
     if (!samplers_.empty()) {
-        auto tlast = time_;
+        auto tlast = time;
         std::vector<size_t> sample_sizes;
         std::size_t total_size = 0;
         {
             std::lock_guard<std::mutex> guard(sampler_mex_);
             for (auto& [hdl, assoc]: samplers_) {
-                auto n_probeset_ids = assoc.probeset_ids.size();
                 // No need to generate events
-                if (0 == n_probeset_ids) continue;
+                if (assoc.probeset_ids.empty()) continue;
                 // Construct sampling times, might give us the last time we sampled, so skip that.
                 auto times = util::make_range(assoc.sched.events(tlast, tfinal));
-                while (!times.empty() && times.front() <= tlast) times.left++;
+                // while (!times.empty() && times.front() == tlast) times.left++;
                 if (times.empty()) continue;
-                for (unsigned idx = 0; idx < n_probeset_ids; ++idx) {
+                for (unsigned idx = 0; idx < assoc.probeset_ids.size(); ++idx) {
                     const auto& pid = assoc.probeset_ids[idx];
                     if (pid.gid != gid) continue;
                     const auto& probe = probes_.at(pid);
@@ -159,7 +164,6 @@ void adex_cell_group::advance_cell(time_type tfinal,
                 ++rx;
             }
         }
-        arb_assert(rx == total_size);
     }
     util::sort_by(sample_events, [](const auto& s) { return s.time; });
     auto n_samples = sample_events.size();
@@ -168,7 +172,7 @@ void adex_cell_group::advance_cell(time_type tfinal,
     // prepare event processing
     auto e_idx = 0;
     auto s_idx = 0;
-    for (; time_ < tfinal; time_ += dt) {
+    for (; time < tfinal; time += dt) {
         auto dE = cell.V_m - cell.E_L;
         auto il = cell.g*dE;
         auto is = cell.g*cell.delta*exp((cell.V_m - cell.V_th)/cell.delta);
@@ -182,23 +186,23 @@ void adex_cell_group::advance_cell(time_type tfinal,
 
         // Process events in [time, time + dt)
         for (;;) {
-            auto e_t = e_idx < n_events  ? event_lanes[lid][e_idx].time : tfinal;
-            if (e_t < time_) { ++e_idx; continue; }
-            auto s_t = s_idx < n_samples ? sample_events[s_idx].time    : tfinal;
-            if (s_t < time_) { ++s_idx; continue; }
+            auto e_t = e_idx < n_events ? event_lanes[lid][e_idx].time : tfinal;
+            if (e_t < time) {
+                ++e_idx;
+                continue;
+            }
+            auto s_t = s_idx < n_samples ? sample_events[s_idx].time : tfinal;
             auto t = std::min(e_t, s_t);
-            arb_assert(t >= time_);
-            if (t >= time_ + dt || t >= tfinal) break;
+            if (t >= time + dt || t >= tfinal) break;
             if (t == e_t) {
                 weight += event_lanes[lid][e_idx].weight;
                 ++e_idx;
             }
-            else {
+            if (t == s_t) {
                 auto& [time, kind, ptr] = sample_events[s_idx];
-                arb_assert(nullptr != ptr);
-                auto t = (time - time_)/dt;
+                auto t = (time - time)/dt;
                 if (kind == adex_probe_kind::voltage) {
-                    if (next_update_[lid] > time_) {
+                    if (next_update_[lid] > time) {
                         *ptr = cell.E_R;
                     } else {
                         *ptr = math::lerp(cell.V_m, V_m + weight/cell.C_m, t);
@@ -214,23 +218,28 @@ void adex_cell_group::advance_cell(time_type tfinal,
                 ++s_idx;
             }
         }
-        cell.w = w;
         // if we are still in refractory period, bail now, before we alter membrane voltage
-        if (next_update_[lid] > time_) continue;
-        V_m += weight/cell.C_m;
-        // enter refractory period and emit spike
-        if (V_m >= cell.V_th) {
-            // interpolate the spike time and emit event.
-            // NOTE: _Do_ the interpolation
-            auto t_spike = time_;
-            spikes_.emplace_back(cell_member_type{gid, 0}, t_spike);
-            // reset membrane potential
-            V_m = cell.E_R;
-            // schedule next update
-            next_update_[lid] = time_ + cell.t_ref;
-            w += cell.b;
+        if (next_update_[lid] <= time) {
+            V_m += weight/cell.C_m;
+            // enter refractory period and emit spike
+            if (V_m >= cell.V_th) {
+                // interpolate the spike time and emit event.
+                // NOTE: _Do_ the interpolation
+                auto t_spike = time;
+                spikes_.emplace_back(cell_member_type{gid, 0}, t_spike);
+                // reset membrane potential
+                V_m = cell.E_R;
+                // schedule next update
+                next_update_[lid] = time + cell.t_ref;
+                w += cell.b;
+            }
+            else {
+                next_update_[lid] = time + dt;
+            }
         }
+        cell.w = w;
         cell.V_m = V_m;
+        current_time_[lid] = time;
     }
 
     auto n_samplers = sample_callbacks.size();

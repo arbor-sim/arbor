@@ -25,21 +25,21 @@ struct ARB_SYMBOL_VISIBLE adex_lowered_cell {
     cell_tag_type target; // Label of target
 
     // Neuronal parameters.
-    double delta =   2.5;   // Steepness parameter [mV]
-    double V_th  = -20;     // Firing threshold [mV]
-    double C_m   =   0.28;  // Membrane capacitance [pF]
-    double E_L   = -70;     // Resting potential [mV]
-    double E_R   = E_L;     // Reset potential [mV]
-    double V_m   = E_L;     // Initial value of the Membrane potential [mV]
-    double t_ref =   2.5;   // Refractory period [ms]
-    double g     =   0.03;  // Leak conductivity [uS]
+    double delta; // Steepness parameter [mV]
+    double V_th;  // Firing threshold [mV]
+    double C_m;   // Membrane capacitance [pF]
+    double E_L;   // Resting potential [mV]
+    double E_R;   // Reset potential [mV]
+    double V_m;   // Initial value of the Membrane potential [mV]
+    double t_ref; // Refractory period [ms]
+    double g;     // Leak conductivity [uS]
     // Adaption parameters
-    double tau   = 144;     // Adaption decaying constant [ms]
-    double w     =   0;     // Initial value for adaption parameter [nA]
-    double a     =   0.004; // Adaption dynamics [uS].
-    double b     =   0.08;  // When spikes trigger, increase w by this [nA]
+    double tau;   // Adaption decaying constant [ms]
+    double w;     // Initial value for adaption parameter [nA]
+    double a;     // Adaption dynamics [uS].
+    double b;     // When spikes trigger, increase w by this [nA]
 
-    adex_lowered_cell() = default;
+    adex_lowered_cell() { *this = adex_cell{}; };
     adex_lowered_cell(const adex_cell& adex) {
         source = adex.source;
         target = adex.target;
@@ -88,7 +88,7 @@ struct ARB_ARBOR_API adex_cell_group: public cell_group {
 
     std::vector<probe_metadata> get_probe_metadata(const cell_address_type&) const override;
 
-    ARB_SERDES_ENABLE(adex_cell_group, time_, gids_, cells_, spikes_);
+    ARB_SERDES_ENABLE(adex_cell_group, current_time_, gids_, cells_, spikes_);
 
     virtual void t_serialize(serializer& ser, const std::string& k) const override;
     virtual void t_deserialize(serializer& ser, const std::string& k) override;
@@ -107,8 +107,7 @@ private:
     // Parameter dt is ignored, since we make jumps between two consecutive spikes.
     void advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, const event_lane_subrange& event_lane);
 
-    // current time
-    time_type time_ = 0.0;
+
 
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
@@ -129,6 +128,7 @@ private:
 
     // Time of next possible update to model refractory periods.
     std::vector<time_type> next_update_;
+    std::vector<time_type> current_time_;
 };
 
 } // namespace arb

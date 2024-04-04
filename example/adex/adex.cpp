@@ -77,8 +77,8 @@ struct recipe: public arb::recipe {
 
     arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
         auto cell = arb::adex_cell{"src", "tgt"};
-        cell.V_m = -1*80_mV;
-        cell.E_R = -1*90_mV;
+        cell.V_m = -1*80.0_mV;
+        cell.E_R = -1*90.0_mV;
         return cell;
     }
 

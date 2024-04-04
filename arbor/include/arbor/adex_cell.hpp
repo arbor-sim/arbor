@@ -15,7 +15,8 @@ namespace arb {
 // A. Destehxe 2009
 
 namespace U = arb::units;
-using namespace U::literals;
+using namespace arb::units::literals;
+
 
 struct ARB_SYMBOL_VISIBLE adex_cell {
     cell_tag_type source; // Label of source

@@ -97,21 +97,28 @@ struct adex_probe_recipe: public arb::recipe {
     }
     arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override {
         auto cell = arb::adex_cell("src", "tgt");
+        cell.V_th = 10_mV;
         if (0 == gid) {
-            cell.E_R = -23.0*U::mV;
-            cell.V_m = -18.0*U::mV;
-            cell.E_L = -13.0*U::mV;
-            cell.t_ref = 0.8*U::ms;
+            cell.E_R = -1*23.0_mV;
+            cell.V_m = -1*18.0_mV;
+            cell.E_L = -1*13.0_mV;
+            cell.t_ref = 0.8_ms;
             cell.tau = 5*U::ms;
         }
         return cell;
     }
-    std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override { return {{arb::adex_probe_voltage{}, "a"}}; }
-    std::vector<arb::event_generator> event_generators(arb::cell_gid_type) const override { return {arb::regular_generator({"tgt"},
-                                                                                                                           200.0,
-                                                                                                                           2.0_ms,
-                                                                                                                           1.0_ms,
-                                                                                                                           6.0_ms)}; }
+    std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override {
+        return {{arb::adex_probe_voltage{}, "a"}};
+    }
+    std::vector<arb::event_generator> event_generators(arb::cell_gid_type) const override {
+        return {
+            arb::regular_generator({"tgt"},
+                                   200.0,
+                                   2.0_ms,
+                                   1.0_ms,
+                                   6.0_ms)
+        };
+    }
 
     std::size_t n_conn_ = 0;
 };
@@ -234,7 +241,9 @@ TEST(adex_cell_group, probe) {
 
     std::vector<double> spikes;
 
-    sim.set_global_spike_callback([&spikes](const std::vector<arb::spike>& spk) { for (const auto& s: spk) spikes.push_back(s.time); });
+    sim.set_global_spike_callback([&spikes](const std::vector<arb::spike>& spk) {
+        for (const auto& s: spk) spikes.push_back(s.time);
+    });
 
     sim.run(10.0_ms, 0.005_ms);
     std::vector<Um_type> exp = {{ 0, -18 },
@@ -639,7 +648,6 @@ TEST(adex_cell_group, probe) {
                                 { 9.975, -17.3387448 },};
 
     ASSERT_TRUE(testing::seq_eq(ums[{0, "a"}], exp));
-    ASSERT_TRUE(testing::seq_eq(ums[{0, "b"}], exp));
     // gid == 1 is different, but of same size
     EXPECT_EQ((ums[{1, "a"}].size()), exp.size());
     ASSERT_FALSE(testing::seq_eq(ums[{1, "a"}], exp));
@@ -1074,8 +1082,8 @@ TEST(adex_cell_group, probe_with_connections) {
                                 { 9.95, -17.3604929 },
                                 { 9.975, -17.3387448 },};
 
+    EXPECT_EQ((ums[{0, "a"}].size()), exp.size());
     ASSERT_TRUE(testing::seq_eq(ums[{0, "a"}], exp));
-    ASSERT_TRUE(testing::seq_eq(ums[{0, "b"}], exp));
     // gid == 1 is different, but of same size
     EXPECT_EQ((ums[{1, "a"}].size()), exp.size());
     ASSERT_FALSE(testing::seq_eq(ums[{1, "a"}], exp));

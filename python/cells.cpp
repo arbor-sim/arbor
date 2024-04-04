@@ -324,9 +324,9 @@ void register_cells(py::module& m) {
             "Adaption decay time [ms].")
         .def_readwrite("w", &arb::adex_cell::tau,
             "Adaption variable [nA].")
-        .def_readwrite("w", &arb::adex_cell::b,
+        .def_readwrite("b", &arb::adex_cell::b,
             "Adaption variable increase on spike [nA].")
-        .def_readwrite("w", &arb::adex_cell::b,
+        .def_readwrite("a", &arb::adex_cell::a,
             "Adaption variable dynamics [uS].")
         .def_readwrite("V_th", &arb::adex_cell::V_th,
             "Firing threshold [mV].")

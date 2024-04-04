@@ -6,8 +6,6 @@ namespace arb::units {
 
 using quantity = ::units::precise_measurement;
 
-// Allow unary minus on quantities. Seemingly doesn't catch literals such as -10_mV
-inline quantity operator-(const quantity& q) { return (-1*q); }
 
 using unit = ::units::precise_unit;
 using ::units::to_string;
@@ -187,3 +185,6 @@ constexpr inline quantity operator ""_mM(unsigned long long v) { return v*mM; }
 constexpr inline quantity operator ""_C(unsigned long long v) { return v*C; }
 } // literals
 } // units
+
+// Allow unary minus on quantities. Seemingly doesn't catch literals such as -10_mV
+inline arb::units::quantity operator-(const arb::units::quantity& q) { return (-1*q); }
