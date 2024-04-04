@@ -9,6 +9,8 @@
 #include <arbor/util/any_cast.hpp>
 #include <arbor/util/any_ptr.hpp>
 
+namespace U = arb::units;
+using namespace U::literals;
 
 #include <tinyopt/tinyopt.h>
 
@@ -75,13 +77,13 @@ struct recipe: public arb::recipe {
 
     arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
         auto cell = arb::adex_cell{"src", "tgt"};
-        cell.V_m = -80;
-        cell.E_R = -90;
+        cell.V_m = -1*80_mV;
+        cell.E_R = -1*90_mV;
         return cell;
     }
 
     std::vector<arb::event_generator> event_generators(arb::cell_size_type) const override {
-        return {arb::regular_generator({"tgt"}, 10, 20, 8, 80)};
+        return {arb::regular_generator({"tgt"}, 10, 20_ms, 8_ms, 80_ms)};
     }
 };
 
@@ -92,7 +94,7 @@ int main(int argc, char** argv) {
     arb::simulation sim(R);
 
     sim.add_sampler(arb::all_probes,
-                    arb::regular_schedule(opt.dt),
+                    arb::regular_schedule(opt.dt * U::ms),
                     sampler);
     sim.set_global_spike_callback([](const auto& spks) {
         for (const auto& spk: spks) {
@@ -100,7 +102,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    sim.run(opt.t_end, opt.dt);
+    sim.run(opt.t_end * U::ms, opt.dt * U::ms);
     print();
 }
 

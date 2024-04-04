@@ -8,8 +8,6 @@
 #include "label_resolution.hpp"
 #include "profile/profiler_macro.hpp"
 
-#include <iostream>
-
 using namespace arb;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
@@ -22,12 +20,12 @@ adex_cell_group::adex_cell_group(const std::vector<cell_gid_type>& gids,
     for (auto gid: gids_) {
         const auto& cell = util::any_cast<adex_cell>(rec.get_cell_description(gid));
         // set up cell state
-        cells_.push_back(cell);
+        cells_.emplace_back(cell);
         // tell our caller about this cell's connections
         cg_sources.add_cell();
         cg_targets.add_cell();
-        cg_sources.add_label(cell.source, {0, 1});
-        cg_targets.add_label(cell.target, {0, 1});
+        cg_sources.add_label(hash_value(cell.source), {0, 1});
+        cg_targets.add_label(hash_value(cell.target), {0, 1});
         // insert probes where needed
         auto probes = rec.get_probes(gid);
         for (const auto& probe: probes) {
@@ -63,13 +61,9 @@ void adex_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange&
     PL();
 }
 
-const std::vector<spike>& adex_cell_group::spikes() const {
-    return spikes_;
-}
+const std::vector<spike>& adex_cell_group::spikes() const { return spikes_; }
 
-void adex_cell_group::clear_spikes() {
-    spikes_.clear();
-}
+void adex_cell_group::clear_spikes() { spikes_.clear(); }
 
 void adex_cell_group::add_sampler(sampler_association_handle h,
                                   cell_member_predicate probeset_ids,
@@ -97,7 +91,7 @@ void adex_cell_group::remove_all_samplers() {
 }
 
 void adex_cell_group::reset() {
-    spikes_.clear();
+    clear_spikes();
 }
 
 void adex_cell_group::advance_cell(time_type tfinal,
@@ -129,13 +123,14 @@ void adex_cell_group::advance_cell(time_type tfinal,
         {
             std::lock_guard<std::mutex> guard(sampler_mex_);
             for (auto& [hdl, assoc]: samplers_) {
+                auto n_probeset_ids = assoc.probeset_ids.size();
                 // No need to generate events
-                if (assoc.probeset_ids.empty()) continue;
+                if (0 == n_probeset_ids) continue;
                 // Construct sampling times, might give us the last time we sampled, so skip that.
                 auto times = util::make_range(assoc.sched.events(tlast, tfinal));
-                while (!times.empty() && times.front() == tlast) times.left++;
+                while (!times.empty() && times.front() <= tlast) times.left++;
                 if (times.empty()) continue;
-                for (unsigned idx = 0; idx < assoc.probeset_ids.size(); ++idx) {
+                for (unsigned idx = 0; idx < n_probeset_ids; ++idx) {
                     const auto& pid = assoc.probeset_ids[idx];
                     if (pid.gid != gid) continue;
                     const auto& probe = probes_.at(pid);
@@ -164,6 +159,7 @@ void adex_cell_group::advance_cell(time_type tfinal,
                 ++rx;
             }
         }
+        arb_assert(rx == total_size);
     }
     util::sort_by(sample_events, [](const auto& s) { return s.time; });
     auto n_samples = sample_events.size();
@@ -187,16 +183,11 @@ void adex_cell_group::advance_cell(time_type tfinal,
         // Process events in [time, time + dt)
         for (;;) {
             auto e_t = e_idx < n_events  ? event_lanes[lid][e_idx].time : tfinal;
-            if (e_t < time_) {
-                ++e_idx;
-                continue;
-            }
+            if (e_t < time_) { ++e_idx; continue; }
             auto s_t = s_idx < n_samples ? sample_events[s_idx].time    : tfinal;
-            if (s_t < time_) {
-                ++s_idx;
-                continue;
-            }
+            if (s_t < time_) { ++s_idx; continue; }
             auto t = std::min(e_t, s_t);
+            arb_assert(t >= time_);
             if (t >= time_ + dt || t >= tfinal) break;
             if (t == e_t) {
                 weight += event_lanes[lid][e_idx].weight;
@@ -204,6 +195,7 @@ void adex_cell_group::advance_cell(time_type tfinal,
             }
             else {
                 auto& [time, kind, ptr] = sample_events[s_idx];
+                arb_assert(nullptr != ptr);
                 auto t = (time - time_)/dt;
                 if (kind == adex_probe_kind::voltage) {
                     if (next_update_[lid] > time_) {
@@ -248,7 +240,7 @@ void adex_cell_group::advance_cell(time_type tfinal,
             const auto& sd = sample_records[s_idx];
             auto hdl = sample_callbacks[s_idx];
             const auto& fun = samplers_[hdl].sampler;
-            if (!fun) throw std::runtime_error{"NO sampler"};
+            arb_assert(fun);
             fun(sample_metadata[s_idx], sd.size(), sd.data());
         }
     }

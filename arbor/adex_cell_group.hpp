@@ -16,6 +16,57 @@
 
 namespace arb {
 
+#define UNIT_OF(x, u) \
+    x = adex.x.value_as(arb::units::u); \
+    if (!std::isfinite(x)) throw std::domain_error(#x " must be finite and in [" #u "]"); \
+
+struct ARB_SYMBOL_VISIBLE adex_lowered_cell {
+    cell_tag_type source; // Label of source
+    cell_tag_type target; // Label of target
+
+    // Neuronal parameters.
+    double delta =   2.5;   // Steepness parameter [mV]
+    double V_th  = -20;     // Firing threshold [mV]
+    double C_m   =   0.28;  // Membrane capacitance [pF]
+    double E_L   = -70;     // Resting potential [mV]
+    double E_R   = E_L;     // Reset potential [mV]
+    double V_m   = E_L;     // Initial value of the Membrane potential [mV]
+    double t_ref =   2.5;   // Refractory period [ms]
+    double g     =   0.03;  // Leak conductivity [uS]
+    // Adaption parameters
+    double tau   = 144;     // Adaption decaying constant [ms]
+    double w     =   0;     // Initial value for adaption parameter [nA]
+    double a     =   0.004; // Adaption dynamics [uS].
+    double b     =   0.08;  // When spikes trigger, increase w by this [nA]
+
+    adex_lowered_cell() = default;
+    adex_lowered_cell(const adex_cell& adex) {
+        source = adex.source;
+        target = adex.target;
+
+        UNIT_OF(delta, mV);
+        UNIT_OF(V_th, mV);
+        UNIT_OF(C_m, pF);
+        UNIT_OF(E_L, mV);
+        UNIT_OF(E_R, mV);
+        UNIT_OF(V_m, mV);
+        UNIT_OF(t_ref, ms);
+        UNIT_OF(g, uS);
+        UNIT_OF(tau, ms);
+        UNIT_OF(w, nA);
+        UNIT_OF(a, uS);
+        UNIT_OF(b, nA);
+
+        if (t_ref < 0) throw std::domain_error("t_ref must be positive.");
+        if (t_ref < 0) throw std::domain_error("tau must be positive.");
+        if (C_m < 0) throw std::domain_error("C_m must be positive.");
+    }
+
+    ARB_SERDES_ENABLE(adex_lowered_cell, delta, V_th, V_m, C_m, E_L, E_R, t_ref, g, tau, w, a, b);
+};
+
+#undef UNIT_OF
+
 struct ARB_ARBOR_API adex_cell_group: public cell_group {
     adex_cell_group() = default;
 
@@ -63,7 +114,7 @@ private:
     std::vector<cell_gid_type> gids_;
 
     // Cells that belong to this group.
-    std::vector<adex_cell> cells_;
+    std::vector<adex_lowered_cell> cells_;
 
     // Spikes that are generated (not necessarily sorted).
     std::vector<spike> spikes_;

@@ -16,6 +16,11 @@
 
 namespace arb {
 
+#define UNIT_OF(x, u) \
+    x = lif.x.value_as(arb::units::u); \
+    if (!std::isfinite(x)) throw std::domain_error(#x " must be finite and in [" #u "]"); \
+
+
 // Model parameters of leaky integrate and fire neuron model.
 struct ARB_SYMBOL_VISIBLE lif_lowered_cell {
     cell_tag_type source; // Label of source.
@@ -35,26 +40,23 @@ struct ARB_SYMBOL_VISIBLE lif_lowered_cell {
         source = lif.source;
         target = lif.target;
 
-        tau_m = lif.tau_m.value_as(U::ms);
-        V_th = lif.V_th.value_as(U::mV);
-        C_m = lif.C_m.value_as(U::pF);
-        E_L = lif.E_L.value_as(U::mV);
-        E_R = lif.E_R.value_as(U::mV);
-        V_m = lif.V_m.value_as(U::mV);
-        t_ref = lif.t_ref.value_as(U::ms);
+        UNIT_OF(tau_m, ms);
+        UNIT_OF(V_th,  mV);
+        UNIT_OF(C_m,   pF);
+        UNIT_OF(E_L,   mV);
+        UNIT_OF(E_R,   mV);
+        UNIT_OF(V_m,   mV);
+        UNIT_OF(t_ref, ms);
 
-        if (std::isnan(V_th)) throw std::out_of_range("V_th must be finite and in [mV]");
-        if (std::isnan(tau_m) || tau_m < 0) throw std::out_of_range("tau_m must be positive, finite, and in [ms]");
-        if (std::isnan(C_m) || C_m < 0) throw std::out_of_range("C_m must be positive, finite, and in [pF]");
-        if (std::isnan(E_L)) throw std::out_of_range("E_L must be finite and in [mV]");
-        if (std::isnan(E_R)) throw std::out_of_range("E_R must be finite and in [mV]");
-        if (std::isnan(V_m)) throw std::out_of_range("V_m must be finite and in [mV]");
-        if (std::isnan(t_ref) || t_ref < 0) throw std::out_of_range("t_ref must be positive, finite, and in [ms]");
+        if (tau_m < 0) throw std::domain_error("tau_m must be positive.");
+        if (C_m < 0) throw std::domain_error("C_m must be positive.");
+        if (t_ref < 0) throw std::domain_error("t_ref must be positive.");
     }
 
     ARB_SERDES_ENABLE(lif_lowered_cell, source, target, tau_m, V_th, C_m, E_L, E_R, V_m, t_ref);
 };
 
+#undef UNIT_OF
 
 struct ARB_ARBOR_API lif_cell_group: public cell_group {
     lif_cell_group() = default;
