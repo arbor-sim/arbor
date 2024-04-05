@@ -36,12 +36,14 @@ set(pyarb_source
     mpi.cpp
     profiler.cpp
     pyarb.cpp
+    label_dict.cpp
     recipe.cpp
     schedule.cpp
     simulation.cpp
     single_cell_model.cpp
     env.cpp
     remote.cpp
+    units.cpp
 )
 
 set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_BINARY="${CMAKE_INSTALL_BINDIR}"         APPEND)
@@ -98,8 +100,12 @@ file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "${CMAKE_INSTALL_PREFIX}")
 execute_process(
     COMMAND ${PYTHON_EXECUTABLE} "${PROJECT_SOURCE_DIR}/scripts/where.py"
     INPUT_FILE "${CMAKE_BINARY_DIR}/install-prefix"
-    OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT
+    OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT_REL
     OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+# convert to absolute path if needed (could be a relative path if ccmake was used)
+get_filename_component(ARB_PYTHON_LIB_PATH_DEFAULT "${ARB_PYTHON_LIB_PATH_DEFAULT_REL}"
+    REALPATH  BASE_DIR "${CMAKE_BINARY_DIR}")
 
 # Default to installing in that path, override with user specified ARB_PYTHON_LIB_PATH
 set(ARB_PYTHON_LIB_PATH ${ARB_PYTHON_LIB_PATH_DEFAULT} CACHE PATH "path for installing Python module for Arbor.")
@@ -114,4 +120,5 @@ endif()
 
 install(TARGETS pyarb DESTINATION ${_python_module_install_path})
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py DESTINATION ${_python_module_install_path})
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/stubs/arbor/ DESTINATION ${_python_module_install_path})
 install(FILES ${PROJECT_SOURCE_DIR}/VERSION ${PROJECT_SOURCE_DIR}/README.md ${PROJECT_SOURCE_DIR}/LICENSE DESTINATION ${_python_module_install_path})

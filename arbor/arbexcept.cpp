@@ -31,6 +31,13 @@ bad_cell_probe::bad_cell_probe(cell_kind kind, cell_gid_type gid):
     kind(kind)
 {}
 
+dup_cell_probe::dup_cell_probe(cell_kind kind, cell_gid_type gid, cell_tag_type tag):
+    arbor_exception(pprintf("Probe tag {} duplicated for cell gid {} of kind {}.", tag, gid, kind)),
+    gid(gid),
+    kind(kind),
+    tag(std::move(tag))
+{}
+
 bad_cell_description::bad_cell_description(cell_kind kind, cell_gid_type gid):
     arbor_exception(pprintf("recipe::get_cell_kind(gid={}) -> {} does not match the cell type provided by recipe::get_cell_description(gid={})", gid, kind, gid)),
     gid(gid),
@@ -108,6 +115,26 @@ fingerprint_mismatch::fingerprint_mismatch(const std::string& mech_name):
 
 no_such_parameter::no_such_parameter(const std::string& mech_name, const std::string& param_name):
     arbor_exception(pprintf("mechanism {} has no parameter {}", mech_name, param_name)),
+    mech_name(mech_name),
+    param_name(param_name)
+{}
+
+did_you_mean_global_parameter::did_you_mean_global_parameter(const std::string& mech_name, const std::string& param_name):
+    arbor_exception(pprintf("mechanism '{}' has no parameter '{}', "
+                            "but a global parameter with the same name exists. "
+                            "Use '{}/{}=...' to set it.",
+                            mech_name, param_name,
+                            mech_name, param_name)),
+    mech_name(mech_name),
+    param_name(param_name)
+{}
+
+did_you_mean_normal_parameter::did_you_mean_normal_parameter(const std::string& mech_name, const std::string& param_name):
+    arbor_exception(pprintf("mechanism '{}' has no global parameter '{}', "
+                            "but a normal parameter with the same name exists. "
+                            "Set it via the parameter map, eg 'density(\"{}\", {{\"{}\", ...}, ...})'",
+                            mech_name, param_name,
+                            mech_name, param_name)),
     mech_name(mech_name),
     param_name(param_name)
 {}

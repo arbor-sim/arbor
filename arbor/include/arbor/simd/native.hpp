@@ -68,8 +68,9 @@ ARB_DEF_NATIVE_SIMD_(double, 8, avx512)
 #if defined(__ARM_FEATURE_SVE)
 
 #include "sve.hpp"
-ARB_DEF_NATIVE_SIMD_(int, 0, sve)
-ARB_DEF_NATIVE_SIMD_(double, 0, sve)
+#include "vls_sve.hpp"
+ARB_DEF_NATIVE_SIMD_(int, detail::vls_sve_width, vls_sve)
+ARB_DEF_NATIVE_SIMD_(double, detail::vls_sve_width, vls_sve)
 
 #elif defined(__ARM_NEON)
 

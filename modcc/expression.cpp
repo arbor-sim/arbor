@@ -129,7 +129,6 @@ void IdentifierExpression::semantic(scope_ptr scp) {
             return;
         }
     }
-
     // save the symbol
     symbol_ = s;
 }
@@ -156,18 +155,26 @@ expression_ptr DerivativeExpression::clone() const {
 }
 
 void DerivativeExpression::semantic(scope_ptr scp) {
+    // Check for semantic errors first
     error_ = false;
-
     IdentifierExpression::semantic(scp);
-    if (has_error()) {
-        return;
+    if (has_error()) return;
+
+    // STATE is ok to take derivatives of.
+    if (auto var = symbol_->is_variable(); var && var->is_state()) return;
+
+    // Diffusive concentrations may also be differentiated
+    if (auto local = symbol_->is_local_variable()) {
+        if (auto ext = local->external_variable();
+            ext && ext->data_source() == sourceKind::ion_diffusive) {
+            return;
+        }
     }
-    auto v = symbol_->is_variable();
-    if (!v || !v->is_state()) {
-        error( pprintf("the variable '%' must be a state variable to be differentiated",
-                        yellow(spelling_), location_));
-        return;
-    }
+
+    // Anything else raises an error
+    error(pprintf("The variable '%' must be a state variable or diffusive concentration to be differentiated.",
+                  yellow(spelling_), location_));
+
 }
 
 /*******************************************************************************
@@ -555,6 +562,8 @@ void ProcedureExpression::semantic(scope_ptr scp) {
     error_ = false;
     scope_ = scp;
 
+    auto is_kinetic = [](const auto& it) { return (it->is_reaction() || it->is_conserve()); };
+
     // assert that the symbol is already visible in the global_symbols
     if(scope_->find_global(name()) == nullptr) {
         throw compiler_exception(
@@ -571,8 +580,34 @@ void ProcedureExpression::semantic(scope_ptr scp) {
 
     // this loop could be used to then check the types of statements in the body
     for(auto& e : *(body_->is_block())) {
-        if(e->is_initial_block())
+        if (e->is_initial_block()) {
             error("INITIAL block not allowed inside "+::to_string(kind_)+" definition");
+        }
+        if (kind_ != procedureKind::kinetic && is_kinetic(e)) {
+            error("reaction statement not allowed inside " + ::to_string(kind_)+" definition");
+        }
+        if (kind_ != procedureKind::linear && e->is_linear()) {
+            error("linear statement not allowed inside "+::to_string(kind_)+" definition");
+        }
+        if (kind_ != procedureKind::linear && e->is_derivative()) {
+            error("derivative statement not allowed inside "+::to_string(kind_)+" definition");
+        }
+    }
+
+    // We start a new loop here for preserving our sanity
+    if (kind_ == procedureKind::kinetic) {
+        auto it = body_->is_block()->begin();
+        auto end = body_->is_block()->end();
+        // skip all 'normal' statements
+        for (; it != end && !is_kinetic(*it); ++it) {}
+        // skip all 'reaction' statements
+        for (; it != end && is_kinetic(*it); ++it) {}
+        // We have trailing 'normal' statements
+        if (it != end) {
+            error("Found alternating reaction (A <-> B ...) and normal statements. "
+                  "This is allowed by NMODL, but likely not what you want; see: "
+                  "https://docs.arbor-sim.org/en/latest/fileformat/nmodl.html#unsupported-features");
+        }
     }
 
     // perform semantic analysis for each expression in the body

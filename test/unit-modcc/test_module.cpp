@@ -216,3 +216,53 @@ TEST(Module, net_receive) {
 
     EXPECT_FALSE(m.semantic());
 }
+
+TEST(Module, kinetic_footgun_alternating_reac) {
+    Module m(io::read_all(DATADIR "/mod_files/test_alternating_reaction.mod"), "test_alternating_reaction.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    EXPECT_FALSE(m.semantic());
+}
+
+TEST(Module, kinetic_footgun_alternating_diff) {
+    Module m(io::read_all(DATADIR "/mod_files/test_alternating_differential.mod"), "test_alternating_differential.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    EXPECT_FALSE(m.semantic());
+}
+
+TEST(Module, derivative_alternating) {
+    Module m(io::read_all(DATADIR "/mod_files/test_alternating_derivative.mod"), "test_alternating_derivative.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    EXPECT_TRUE(m.semantic());
+}
+
+TEST(Module, misplaced_reaction) {
+    Module m(io::read_all(DATADIR "/mod_files/test_misplaced_reaction.mod"), "test_misplaced_reaction.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    EXPECT_FALSE(m.semantic());
+}
+
+TEST(Module, reaction_under_conditional) {
+    Module m(io::read_all(DATADIR "/mod_files/test_kinetic_under_conditional.mod"), "test_kinetic_under_conditional.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_FALSE(p.parse());
+
+    EXPECT_FALSE(m.semantic());
+}

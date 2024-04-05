@@ -1,9 +1,9 @@
-
 #include <gtest/gtest.h>
 
 #include <atomic>
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 #include <arborio/label_parse.hpp>
 
@@ -14,6 +14,8 @@
 #include <arbor/schedule.hpp>
 #include <arbor/mechanism.hpp>
 #include <arbor/util/any_ptr.hpp>
+#include <arbor/units.hpp>
+
 #ifdef ARB_GPU_ENABLED
 #include "memory/gpu_wrappers.hpp"
 #endif
@@ -22,6 +24,8 @@
 
 #include "unit_test_catalogue.hpp"
 #include "../simple_recipes.hpp"
+
+namespace U = arb::units;
 
 // ============================
 // helper classes and functions
@@ -270,7 +274,7 @@ public:
 
     std::any get_global_properties(cell_kind) const override { return cell_gprop_; }
 
-    simple_sde_recipe& add_probe_all_gids(probe_tag tag, std::any address) {
+    simple_sde_recipe& add_probe_all_gids(const cell_tag_type& tag, std::any address) {
         for (unsigned i=0; i<cells_.size(); ++i) {
             simple_recipe_base::add_probe(i, tag, address);
         }
@@ -351,7 +355,7 @@ public:
 
     std::any get_global_properties(cell_kind) const override { return cell_gprop_; }
     
-    sde_recipe& add_probe_all_gids(probe_tag tag, std::any address) {
+    sde_recipe& add_probe_all_gids(const cell_tag_type& tag, std::any address) {
         for (unsigned i=0; i<cells_.size(); ++i) {
             simple_recipe_base::add_probe(i, tag, address);
         }
@@ -373,8 +377,8 @@ public:
 // generic advance method used for all pertinent mechanisms
 // first argument indicates the number of random variables
 void advance_common(unsigned int n_rv, arb_mechanism_ppack* pp) {
-    const auto width = pp->width;
-    arb_value_type* ptr = archive_ptr->claim(width * n_rv);
+    auto width = pp->width;
+    arb_value_type* ptr = archive_ptr->claim(width*n_rv);
     for (arb_size_type j=0; j<n_rv; ++j) {
         for (arb_size_type i=0; i<width; ++i) {
             ptr[j*width+i] = pp->random_numbers[j][i];
@@ -409,7 +413,7 @@ TEST(sde, reproducibility) {
     // simulation parameters
     unsigned ncells = 4;
     unsigned ncvs = 2;
-    double const dt = 0.5;
+    auto const dt = 0.5*U::ms;
     unsigned nsteps = 6;
 
     // Decorations with a bunch of stochastic processes
@@ -490,7 +494,7 @@ TEST(sde, normality) {
     unsigned ncells = 4;
     unsigned nsynapses = 100;
     unsigned ncvs = 100;
-    double const dt = 0.5;
+    auto dt = 0.5*U::ms;;
     unsigned nsteps = 50;
 
     // make labels (and locations for synapses)
@@ -647,7 +651,7 @@ TEST(sde, solver) {
     unsigned ncells = 4;
     unsigned nsynapses = 2000;
     unsigned ncvs = 1;
-    double const dt = 1.0/512; // need relatively small time steps due to low accuracy
+    auto dt = 1.0/512*U::ms; // need relatively small time steps due to low accuracy
     unsigned nsteps = 100;
     unsigned nsims = 4;
 
@@ -714,10 +718,10 @@ TEST(sde, solver) {
     sde_recipe rec(ncells, ncvs, labels, dec, false);
 
     // add probes
-    rec.add_probe_all_gids(1, cable_probe_point_state_cell{m1, "S"});
-    rec.add_probe_all_gids(2, cable_probe_point_state_cell{m2, "S"});
-    rec.add_probe_all_gids(3, cable_probe_point_state_cell{m3, "S"});
-    rec.add_probe_all_gids(4, cable_probe_point_state_cell{m4, "S"});
+    rec.add_probe_all_gids("s-m1-cell", cable_probe_point_state_cell{m1, "S"});
+    rec.add_probe_all_gids("s-m2-cell", cable_probe_point_state_cell{m2, "S"});
+    rec.add_probe_all_gids("s-m3-cell", cable_probe_point_state_cell{m3, "S"});
+    rec.add_probe_all_gids("s-m4-cell", cable_probe_point_state_cell{m4, "S"});
 
     // results are accumulated for each time step
     std::vector<accumulator> stats_m1(nsteps);
@@ -735,15 +739,11 @@ TEST(sde, solver) {
             .set_context(context)
             .set_seed(s);
 
-        // add sampler
-        sim.add_sampler([](cell_member_type pid) { return (pid.index==0); }, regular_schedule(dt),
-            sampler_m1);
-        sim.add_sampler([](cell_member_type pid) { return (pid.index==1); }, regular_schedule(dt),
-            sampler_m2);
-        sim.add_sampler([](cell_member_type pid) { return (pid.index==2); }, regular_schedule(dt),
-            sampler_m3);
-        sim.add_sampler([](cell_member_type pid) { return (pid.index==3); }, regular_schedule(dt),
-            sampler_m4);
+        // add samplers
+        sim.add_sampler(arb::one_tag("s-m1-cell"), regular_schedule(dt), sampler_m1);
+        sim.add_sampler(arb::one_tag("s-m2-cell"), regular_schedule(dt), sampler_m2);
+        sim.add_sampler(arb::one_tag("s-m3-cell"), regular_schedule(dt), sampler_m3);
+        sim.add_sampler(arb::one_tag("s-m4-cell"), regular_schedule(dt), sampler_m4);
         
         // run the simulation
         sim.run(nsteps*dt, dt);
@@ -777,7 +777,7 @@ TEST(sde, solver) {
 
     auto test = [&] (auto func, const auto& stats) {
         for (unsigned int i=1; i<nsteps; ++i) {
-            auto [mu, sigma_squared] = func(i*dt);
+            auto [mu, sigma_squared] = func(i*dt.value());
             double const mean = stats[i].mean();
             double const var = stats[i].variance();
 
@@ -806,7 +806,7 @@ TEST(sde, coupled) {
     unsigned ncells = 4;
     unsigned nsynapses = 2000;
     unsigned ncvs = 1;
-    double const dt = 1.0/512; // need relatively small time steps due to low accuracy
+    auto dt = 1.0/512*U::ms; // need relatively small time steps due to low accuracy
     unsigned nsteps = 100;
     unsigned nsims = 4;
 
@@ -857,8 +857,8 @@ TEST(sde, coupled) {
     sde_recipe rec(ncells, ncvs, labels, dec, false);
 
     // add probes
-    rec.add_probe_all_gids(1, cable_probe_point_state_cell{m1, "P"});
-    rec.add_probe_all_gids(2, cable_probe_point_state_cell{m1, "sigma"});
+    rec.add_probe_all_gids("P-m1",     cable_probe_point_state_cell{m1, "P"});
+    rec.add_probe_all_gids("sigma-m1", cable_probe_point_state_cell{m1, "sigma"});
 
     // results are accumulated for each time step
     std::vector<accumulator> stats_P(nsteps);
@@ -875,11 +875,9 @@ TEST(sde, coupled) {
             .set_context(context)
             .set_seed(s);
 
-        // add sampler
-        sim.add_sampler([](cell_member_type pid) { return (pid.index==0); }, regular_schedule(dt),
-            sampler_P);
-        sim.add_sampler([](cell_member_type pid) { return (pid.index==1); }, regular_schedule(dt),
-            sampler_sigma);
+        // add samplers
+        sim.add_sampler(arb::one_tag("P-m1"), regular_schedule(dt), sampler_P);
+        sim.add_sampler(arb::one_tag("sigma-m1"), regular_schedule(dt), sampler_sigma);
 
         // run the simulation
         sim.run(nsteps*dt, dt);
@@ -914,7 +912,7 @@ TEST(sde, coupled) {
     };
 
     for (unsigned int i=1; i<nsteps; ++i) {
-        auto ex = expected(i*dt, 0.1, 0.1, 0.1, 0.1, 1, 0.2);
+        auto ex = expected(i*dt.value(), 0.1, 0.1, 0.1, 0.1, 1, 0.2);
 
         const double E_P = ex[0];
         const double E_sigma = ex[1];
@@ -1036,7 +1034,7 @@ TEST(sde, gpu) {
     unsigned ncells = 4;
     unsigned nsynapses = 100;
     unsigned ncvs = 100;
-    double const dt = 0.5;
+    auto dt = 0.5*U::ms;
     unsigned nsteps = 50;
 
     // make labels (and locations for synapses)

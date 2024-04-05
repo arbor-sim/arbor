@@ -54,6 +54,9 @@ The Arbor software can be cited by version via Zenodo or via Arbors introductory
 Latest version
     |zlatest|
 
+Version 0.9.0
+    |z090|
+
 Version 0.8.1
     |z081|
 
@@ -92,6 +95,9 @@ Cite (Bibtex format)
 .. |zlatest| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1459678.svg
     :target: https://doi.org/10.5281/zenodo.1459678
 
+.. |z090| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.8233847.svg
+    :target: https://doi.org/10.5281/zenodo.8233847
+    
 .. |z081| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7473671.svg
     :target: https://doi.org/10.5281/zenodo.7473671
     
@@ -144,15 +150,21 @@ A full list of our software attributions can be found `here <https://github.com/
    concepts/index
    concepts/recipe
    concepts/cell
+   concepts/units
    concepts/interconnectivity
    concepts/hardware
    concepts/domdec
    concepts/simulation
+   concepts/probe_sample
+
+.. toctree::
+   :caption: Cell Types:
+   :maxdepth: 1
+
    concepts/cable_cell
    concepts/lif_cell
    concepts/spike_source_cell
    concepts/benchmark_cell
-   concepts/probe_sample
 
 .. toctree::
    :caption: File formats:
@@ -163,6 +175,7 @@ A full list of our software attributions can be found `here <https://github.com/
    fileformat/asc
    fileformat/nmodl
    fileformat/cable_cell
+   fileformat/serdes
 
 .. toctree::
    :caption: API reference:

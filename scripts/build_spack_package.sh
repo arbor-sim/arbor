@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # checks out Spack and Arbor and builds it with the package.py from Arbor's repo
 # Spack can be the latest release or the develop branch
+# Also runs unit tests.
 
 set -Eeuo pipefail
 
@@ -61,5 +62,4 @@ spack reindex
 
 cp $ARBOR_DIR/spack/package.py $SPACK_CUSTOM_REPO/packages/arbor
 cd $ARBOR_DIR
-ARBOR_VERSION=$(cat "$ARBOR_DIR/VERSION")
-spack dev-build arbor@${ARBOR_VERSION} +python
+spack dev-build --test root arbor@develop +python

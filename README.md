@@ -5,6 +5,7 @@
 [![gitpod](https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/arbor-sim/arbor)
 [![docs](https://readthedocs.org/projects/arbor/badge/?version=latest)](https://docs.arbor-sim.org/en/latest/)
 [![gitter](https://badges.gitter.im/arbor-sim/community.svg)](https://gitter.im/arbor-sim/community)
+[![CodeQL](https://github.com/arbor-sim/arbor/actions/workflows/codeql.yml/badge.svg?branch=master)](https://github.com/arbor-sim/arbor/actions/workflows/codeql.yml)
 
 # Arbor Library
 

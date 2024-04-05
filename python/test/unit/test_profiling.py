@@ -4,7 +4,8 @@
 
 import unittest
 
-import arbor as arb
+import arbor as A
+from arbor import units as U
 import functools
 
 """
@@ -30,17 +31,17 @@ def lazy_skipIf(condition, reason):
     return inner_decorator
 
 
-class a_recipe(arb.recipe):
+class a_recipe(A.recipe):
     def __init__(self):
-        arb.recipe.__init__(self)
-        self.props = arb.neuron_cable_properties()
+        A.recipe.__init__(self)
+        self.props = A.neuron_cable_properties()
         self.trains = [[0.8, 2, 2.1, 3], [0.4, 2, 2.2, 3.1, 4.5], [0.2, 2, 2.8, 3]]
 
     def num_cells(self):
         return 3
 
     def cell_kind(self, gid):
-        return arb.cell_kind.spike_source
+        return A.cell_kind.spike_source
 
     def connections_on(self, gid):
         return []
@@ -55,44 +56,45 @@ class a_recipe(arb.recipe):
         return []
 
     def cell_description(self, gid):
-        return arb.spike_source_cell("src", arb.explicit_schedule(self.trains[gid]))
+        sched = A.explicit_schedule([t * U.ms for t in self.trains[gid]])
+        return A.spike_source_cell("src", sched)
 
 
 def skipWithoutSupport():
-    return not bool(arb.config().get("profiling", False))
+    return not bool(A.config().get("profiling", False))
 
 
 class TestProfiling(unittest.TestCase):
     def test_support(self):
-        self.assertTrue("profiling" in arb.config(), "profiling key not in config")
-        profiling_support = arb.config()["profiling"]
+        self.assertTrue("profiling" in A.config(), "profiling key not in config")
+        profiling_support = A.config()["profiling"]
         self.assertEqual(bool, type(profiling_support), "profiling flag should be bool")
         if profiling_support:
             self.assertTrue(
-                hasattr(arb, "profiler_initialize"),
+                hasattr(A, "profiler_initialize"),
                 "missing profiling interface with profiling support",
             )
             self.assertTrue(
-                hasattr(arb, "profiler_summary"),
+                hasattr(A, "profiler_summary"),
                 "missing profiling interface with profiling support",
             )
         else:
             self.assertFalse(
-                hasattr(arb, "profiler_initialize"),
+                hasattr(A, "profiler_initialize"),
                 "profiling interface without profiling support",
             )
             self.assertFalse(
-                hasattr(arb, "profiler_summary"),
+                hasattr(A, "profiler_summary"),
                 "profiling interface without profiling support",
             )
 
     @lazy_skipIf(skipWithoutSupport, "run test only with profiling support")
     def test_summary(self):
-        context = arb.context()
-        arb.profiler_initialize(context)
+        context = A.context()
+        A.profiler_initialize(context)
         recipe = a_recipe()
-        dd = arb.partition_load_balance(recipe, context)
-        arb.simulation(recipe, context, dd).run(1)
-        summary = arb.profiler_summary()
+        dd = A.partition_load_balance(recipe, context)
+        A.simulation(recipe, context, dd).run(1 * U.ms)
+        summary = A.profiler_summary()
         self.assertEqual(str, type(summary), "profiler summary must be str")
         self.assertTrue(summary, "empty summary")

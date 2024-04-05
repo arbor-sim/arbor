@@ -100,14 +100,6 @@ Class documentation
         Returns a builder object to which the constructor arguments can be passed selectively (see
         also example above).
 
-    **Experimental inputs:**
-
-    .. cpp:function:: void inject_events(const pse_vector& events)
-
-        Add events directly to targets.
-        Must be called before calling :cpp:func:`run`, and must contain events that
-        are to be delivered at or after the current simulation time.
-
     **Updating Model State:**
 
     .. cpp:function:: void reset()
@@ -130,6 +122,13 @@ Class documentation
         which called :cpp:func:`run`.
 
         (see the :ref:`sampling_api` documentation.)
+
+    .. cpp:function:: std::vector<probe_metadata> get_probe_metadata(const cell_address_type& probeset_id) const
+
+       Return probe metadata, one entry per probe associated with supplied probe
+       id, or an empty vector if no local match for probe id. See the
+       :ref:`sampling_api` documentation.
+
 
     .. cpp:function:: void remove_sampler(sampler_association_handle)
 

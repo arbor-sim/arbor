@@ -1,10 +1,4 @@
-/*
- * A miniapp that demonstrates how to make a ring model
- *
- */
-
 #include <any>
-#include <cassert>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -55,7 +49,6 @@ ring_params read_options(int argc, char** argv);
 using arb::cell_gid_type;
 using arb::cell_lid_type;
 using arb::cell_size_type;
-using arb::cell_member_type;
 using arb::cell_kind;
 using arb::time_type;
 
@@ -91,7 +84,7 @@ public:
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
         std::vector<arb::cell_connection> cons;
         cell_gid_type src = gid? gid-1: num_cells_-1;
-        cons.push_back(arb::cell_connection({src, "detector"}, {"primary_syn"}, event_weight_, min_delay_));
+        cons.push_back(arb::cell_connection({src, "detector"}, {"primary_syn"}, event_weight_, min_delay_*U::ms));
         return cons;
     }
 
@@ -100,7 +93,7 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (!gid) {
-            gens.push_back(arb::explicit_generator({"primary_syn"}, event_weight_, std::vector<float>{1.0f}));
+            gens.push_back(arb::explicit_generator_from_milliseconds({"primary_syn"}, event_weight_, std::vector{1.0}));
         }
         return gens;
     }
@@ -108,7 +101,7 @@ public:
     std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
         // Measure membrane voltage at end of soma.
         arb::mlocation loc{0, 0.0};
-        return {arb::cable_probe_membrane_voltage{loc}};
+        return {{arb::cable_probe_membrane_voltage{loc}, "Um"}};
     }
 
     std::any get_global_properties(arb::cell_kind) const override {
@@ -168,9 +161,9 @@ int main(int argc, char** argv) {
         // Set up the probe that will measure voltage in the cell.
 
         // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
-        auto probeset_id = cell_member_type{0, 0};
-        // The schedule for sampling is 10 samples every 1 ms.
-        auto sched = arb::regular_schedule(1);
+        auto probeset_id = arb::cell_address_type{0, "Um"};
+        // The schedule for sampling every 1 ms.
+        auto sched = arb::regular_schedule(1*arb::units::ms);
         // This is where the voltage samples will be stored as (time, value) pairs
         arb::trace_vector<double> voltage;
         // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
@@ -192,7 +185,7 @@ int main(int argc, char** argv) {
         }
         std::cout << "running simulation\n" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
-        sim.run(params.duration, 0.025);
+        sim.run(params.duration*arb::units::ms, 0.025*arb::units::ms);
 
         meters.checkpoint("model-run", context);
 

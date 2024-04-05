@@ -19,12 +19,12 @@
 
 using std::any;
 using arb::util::any_cast;
-using arb::util::any_ptr;
 using arb::util::unique_any;
 using arb::cell_gid_type;
-using arb::cell_member_type;
 
 using namespace arborio::literals;
+
+namespace U = arb::units;
 
 // Recipe represents one cable cell with one synapse, together with probes for total trans-membrane current, membrane voltage,
 // ionic current density, and synaptic conductance. A sequence of spikes are presented to the one synapse on the cell.
@@ -43,11 +43,10 @@ struct lfp_demo_recipe: public arb::recipe {
         //   1. Voltage at synapse location.
         //   2. Total ionic current density at synapse location.
         //   3. Expsyn synapse conductance value.
-        return {
-            arb::cable_probe_total_current_cell{},
-            arb::cable_probe_membrane_voltage{synapse_location_},
-            arb::cable_probe_total_ion_current_density{synapse_location_},
-            arb::cable_probe_point_state{0, "expsyn", "g"}};
+        return {{arb::cable_probe_total_current_cell{}, "Itotal"},
+                {arb::cable_probe_membrane_voltage{synapse_location_}, "Um"},
+                {arb::cable_probe_total_ion_current_density{synapse_location_}, "Iion"},
+                {arb::cable_probe_point_state{0, "expsyn", "g"}, "expsyn-g"}};
     }
 
     arb::cell_kind get_cell_kind(cell_gid_type) const override {
@@ -85,8 +84,8 @@ private:
         synapse_location_ = "(on-components 0.5 (tag 1))"_ls;
         auto dec = decor()
             // Use NEURON defaults for reversal potentials, ion concentrations etc., but override ra, cm.
-            .set_default(axial_resistivity{100})     // [Ω·cm]
-            .set_default(membrane_capacitance{0.01}) // [F/m²]
+            .set_default(axial_resistivity{100*U::Ohm*U::cm})     // [Ω·cm]
+            .set_default(membrane_capacitance{0.01*U::F/U::m2}) // [F/m²]
             // Twenty CVs per branch on the dendrites (tag 4).
             .set_default(cv_policy_fixed_per_branch(20, arb::reg::tagged(4)))
             // Add pas and hh mechanisms:
@@ -187,7 +186,7 @@ int main(int argc, char** argv) {
     const double dt = 0.1;        // [ms]
 
     // Weight 0.005 μS, onset at t = 0 ms, mean frequency 0.1 kHz.
-    auto events = arb::poisson_generator({"syn"}, .005, 0., 0.1, std::minstd_rand{});
+    auto events = arb::poisson_generator({"syn"}, .005, 0.*U::ms, 100*U::Hz);
     lfp_demo_recipe recipe(events);
     arb::simulation sim(recipe);
 
@@ -199,25 +198,25 @@ int main(int argc, char** argv) {
     arb::morphology cell_morphology = any_cast<arb::cable_cell>(recipe.get_cell_description(0)).morphology();
     arb::place_pwlin placed_cell(cell_morphology);
 
-    auto probe0_metadata = sim.get_probe_metadata(cell_member_type{0, 0});
+    auto probe0_metadata = sim.get_probe_metadata({0, "Itotal"});
     assert(probe0_metadata.size()==1); // Should only be one probe associated with this id.
     arb::mcable_list current_cables = *any_cast<const arb::mcable_list*>(probe0_metadata.at(0).meta);
 
     lfp_sampler lfp(placed_cell, current_cables, electrodes, 3.0);
 
-    auto sample_schedule = arb::regular_schedule(sample_dt);
-    sim.add_sampler(arb::one_probe({0, 0}), sample_schedule, lfp.callback());
+    auto sample_schedule = arb::regular_schedule(sample_dt*U::ms);
+    sim.add_sampler(arb::one_probe({0, "Itotal"}), sample_schedule, lfp.callback());
 
     arb::trace_vector<double, arb::mlocation> membrane_voltage;
-    sim.add_sampler(arb::one_probe({0, 1}), sample_schedule, make_simple_sampler(membrane_voltage));
+    sim.add_sampler(arb::one_probe({0, "Um"}), sample_schedule, make_simple_sampler(membrane_voltage));
 
     arb::trace_vector<double> ionic_current_density;
-    sim.add_sampler(arb::one_probe({0, 2}), sample_schedule, make_simple_sampler(ionic_current_density));
+    sim.add_sampler(arb::one_probe({0, "Iion"}), sample_schedule, make_simple_sampler(ionic_current_density));
 
     arb::trace_vector<double> synapse_g;
-    sim.add_sampler(arb::one_probe({0, 3}), sample_schedule, make_simple_sampler(synapse_g));
+    sim.add_sampler(arb::one_probe({0, "expsyn-g"}), sample_schedule, make_simple_sampler(synapse_g));
 
-    sim.run(t_stop, dt);
+    sim.run(t_stop*U::ms, dt*U::ms);
 
     // Output results in JSON format suitable for plotting by plot-lfp.py script.
 

@@ -1,5 +1,3 @@
-#include <exception>
-
 #include <arbor/arbexcept.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike_source_cell.hpp>
@@ -33,7 +31,7 @@ spike_source_cell_group::spike_source_cell_group(
         try {
             auto cell = util::any_cast<spike_source_cell>(rec.get_cell_description(gid));
             time_sequences_.emplace_back(cell.seqs);
-            cg_sources.add_label(cell.source, {0, 1});
+            cg_sources.add_label(hash_value(cell.source), {0, 1});
         }
         catch (std::bad_any_cast& e) {
             throw bad_cell_description(cell_kind::spike_source, gid);
@@ -77,6 +75,15 @@ const std::vector<spike>& spike_source_cell_group::spikes() const {
 void spike_source_cell_group::clear_spikes() {
     spikes_.clear();
 }
+
+void spike_source_cell_group::t_serialize(serializer& ser, const std::string& k) const {
+    serialize(ser, k, *this);
+}
+
+void spike_source_cell_group::t_deserialize(serializer& ser, const std::string& k) {
+    deserialize(ser, k, *this);
+}
+
 
 void spike_source_cell_group::add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function) {}
 

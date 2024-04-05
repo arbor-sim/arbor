@@ -20,7 +20,7 @@ Target handles are used by the lowered cell implementation to identify a particu
 instance that can receive events — ultimately via `net_receive` — and corresponding simulated
 cell. The cell information is given as an index into the cell group collection of cells.
 
-Target handles are represented by the `target_handle` struct, opaque to `mc_cell_group`,
+Target handles are represented by the `target_handle` struct, opaque to `cable_cell_group`,
 but created in the `fvm_multicell` for each point mechanism (synapse) in the cell group.
 
 ### Deliverable events

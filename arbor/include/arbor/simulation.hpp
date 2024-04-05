@@ -1,8 +1,6 @@
 #pragma once
 
-#include <array>
 #include <memory>
-#include <unordered_map>
 #include <vector>
 #include <functional>
 
@@ -17,6 +15,7 @@
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/util/handle_set.hpp>
+#include <arbor/serdes.hpp>
 
 namespace arb {
 
@@ -49,7 +48,7 @@ public:
 
     void reset();
 
-    time_type run(time_type tfinal, time_type dt);
+    time_type run(const units::quantity& tfinal, const units::quantity& dt);
 
     // Minimum delay in network τ
     time_type min_delay();
@@ -61,7 +60,8 @@ public:
     // which called the `run` method.
 
     sampler_association_handle add_sampler(cell_member_predicate probeset_ids,
-        schedule sched, sampler_function f);
+                                           schedule sched,
+                                           sampler_function f);
 
     void remove_sampler(sampler_association_handle);
 
@@ -69,7 +69,7 @@ public:
 
     // Return probe metadata, one entry per probe associated with supplied probe id,
     // or an empty vector if no local match for probe id.
-    std::vector<probe_metadata> get_probe_metadata(cell_member_type probeset_id) const;
+    std::vector<probe_metadata> get_probe_metadata(const cell_address_type& probeset_id) const;
 
     std::size_t num_spikes() const;
 
@@ -85,16 +85,14 @@ public:
     // start of the simulation.
     void set_epoch_callback(epoch_function = epoch_function{});
 
-    // Add events directly to targets.
-    // Must be called before calling simulation::run, and must contain events that
-    // are to be delivered at or after the current simulation time.
-    void inject_events(const cse_vector& events);
-
     // If remote connections are present, export only the spikes for which this
     // predicate returns true.
     void set_remote_spike_filter(const spike_predicate&);
 
     ~simulation();
+
+    friend void serialize(serializer&, const std::string&, const simulation&);
+    friend void deserialize(serializer&, const std::string&, simulation&);
 
 private:
     std::unique_ptr<simulation_state> impl_;
@@ -165,5 +163,8 @@ private:
 
 // An epoch callback function that prints out a text progress bar.
 ARB_ARBOR_API epoch_function epoch_progress_bar();
+
+ARB_ARBOR_API void serialize(arb::serializer&, const std::string&, const arb::simulation&);
+ARB_ARBOR_API void deserialize(arb::serializer&, const std::string&, arb::simulation&);
 
 } // namespace arb

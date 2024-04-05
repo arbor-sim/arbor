@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <arbor/export.hpp>
+#include <arbor/serdes.hpp>
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
@@ -88,6 +89,24 @@ struct ARB_ARBOR_API ion_state {
     void reset();
 };
 
+struct mech_storage {
+    array data_;
+    iarray indices_;
+    std::size_t value_width_padded;
+    constraint_partition constraints_;
+    std::vector<arb_value_type>  globals_;
+    std::vector<arb_value_type*> parameters_;
+    std::vector<arb_value_type*> state_vars_;
+    std::vector<arb_ion_state>   ion_states_;
+
+    std::array<std::vector<arb_value_type*>, cbprng::cache_size()> random_numbers_;
+    std::vector<arb_size_type> gid_;
+    std::vector<arb_size_type> idx_;
+    cbprng::counter_type random_number_update_counter_ = 0u;
+
+    deliverable_event_stream deliverable_events_;
+};
+
 struct ARB_ARBOR_API istim_state {
     unsigned alignment = 1; // Alignment and padding multiple.
 
@@ -120,51 +139,34 @@ struct ARB_ARBOR_API istim_state {
     istim_state() = default;
 };
 
-struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_state> {
-    struct mech_storage {
-        array data_;
-        iarray indices_;
-        std::size_t value_width_padded;
-        constraint_partition constraints_;
-        std::vector<arb_value_type>  globals_;
-        std::vector<arb_value_type*> parameters_;
-        std::vector<arb_value_type*> state_vars_;
-        std::vector<arb_ion_state>   ion_states_;
-
-        std::array<std::vector<arb_value_type*>, cbprng::cache_size()> random_numbers_;
-        std::vector<arb_size_type> gid_;
-        std::vector<arb_size_type> idx_;
-        cbprng::counter_type random_number_update_counter_ = 0u;
-
-        deliverable_event_stream deliverable_events_;
-    };
+struct ARB_ARBOR_API shared_state:
+        public shared_state_base<shared_state, array, ion_state> {
 
     cable_solver solver;
 
-    unsigned alignment = 1;   // Alignment and padding multiple.
-    util::padded_allocator<> alloc;  // Allocator with corresponging alignment/padding.
+    unsigned alignment = 1;         // Alignment and padding multiple.
+    util::padded_allocator<> alloc; // Allocator with corresponging alignment/padding.
 
-    arb_size_type n_intdom = 0; // Number of integration domains.
-    arb_size_type n_detector = 0; // Max number of detectors on all cells.
-    arb_size_type n_cv = 0;   // Total number of CVs.
+    arb_size_type n_intdom = 0;     // Number of integration domains.
+    arb_size_type n_detector = 0;   // Max number of detectors on all cells.
+    arb_size_type n_cv = 0;         // Total number of CVs.
 
-    iarray cv_to_cell;        // Maps CV index to the first spike
-    arb_value_type time;      // integration start time [ms].
-    arb_value_type time_to;   // integration end time [ms]
-    arb_value_type dt;        // dt [ms].
-    array voltage;            // Maps CV index to membrane voltage [mV].
-    array current_density;    // Maps CV index to membrane current density contributions [A/m²].
-    array conductivity;       // Maps CV index to membrane conductivity [kS/m²].
+    iarray cv_to_cell;              // Maps CV index to GID
+    arb_value_type time;            // integration start time [ms].
+    arb_value_type time_to;         // integration end time [ms]
+    arb_value_type dt;              // dt [ms].
+    array voltage;                  // Maps CV index to membrane voltage [mV].
+    array current_density;          // Maps CV index to membrane current density contributions [A/m²].
+    array conductivity;             // Maps CV index to membrane conductivity [kS/m²].
+    array init_voltage;             // Maps CV index to initial membrane voltage [mV].
+    array temperature_degC;         // Maps CV to local temperature (read only) [°C].
+    array diam_um;                  // Maps CV to local diameter (read only) [µm].
+    array area_um2;                 // Maps CV to local lateral surface area (read only) [µm²].
 
-    array init_voltage;       // Maps CV index to initial membrane voltage [mV].
-    array temperature_degC;   // Maps CV to local temperature (read only) [°C].
-    array diam_um;            // Maps CV to local diameter (read only) [µm].
-    array area_um2;           // Maps CV to local lateral surface area (read only) [µm²].
+    array time_since_spike;         // Stores time since last spike on any detector, organized by cell.
+    iarray src_to_spike;            // Maps spike source index to spike index
 
-    array time_since_spike;   // Stores time since last spike on any detector, organized by cell.
-    iarray src_to_spike;      // Maps spike source index to spike index
-
-    arb_seed_type cbprng_seed; // random number generator seed
+    arb_seed_type cbprng_seed;      // random number generator seed
 
     sample_event_stream sample_events;
     array sample_time;
@@ -190,9 +192,9 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
                  const std::vector<arb_value_type>& diam,
                  const std::vector<arb_value_type>& area,
                  const std::vector<arb_index_type>& src_to_spike,
-                 const fvm_detector_info& detector,
+                 const fvm_detector_info& detector_info,
                  unsigned align,
-                 arb_seed_type cbprng_seed_ = 0u);
+                 arb_seed_type cbprng_seed_=0u);
 
     shared_state(task_system_handle tp,
                  arb_size_type n_cell,
@@ -251,7 +253,22 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
 
 // For debugging only:
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const shared_state& s);
-
-
 } // namespace multicore
+
+// Xd and gX are the only things that persist
+ARB_SERDES_ENABLE_EXT(multicore::ion_state, Xd_, gX_);
+ARB_SERDES_ENABLE_EXT(multicore::mech_storage,
+                      data_,
+                      // NOTE(serdes) ion_states_, this is just a bunch of pointers
+                      random_numbers_,
+                      random_number_update_counter_);
+ARB_SERDES_ENABLE_EXT(multicore::shared_state,
+                      cbprng_seed,
+                      ion_data,
+                      storage,
+                      voltage,
+                      conductivity,
+                      time_since_spike,
+                      time, time_to,
+                      dt);
 } // namespace arb

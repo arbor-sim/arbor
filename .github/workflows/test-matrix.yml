@@ -20,7 +20,7 @@ jobs:
             os:    "ubuntu-20.04",
             cc:    "gcc-9",
             cxx:   "g++-9",
-            py:    "3.7",
+            py:    "3.8",
             cmake: "3.19.x",
             mpi:   "ON",
             simd:  "OFF"
@@ -30,7 +30,7 @@ jobs:
             os:    "ubuntu-20.04",
             cc:    "clang-9",
             cxx:   "clang++-9",
-            py:    "3.7",
+            py:    "3.8",
             cmake: "3.19.x",
             mpi:   "ON",
             simd:  "OFF"
@@ -40,7 +40,7 @@ jobs:
             os:    "macos-11",
             cc:    "clang",
             cxx:   "clang++",
-            py:    "3.7",
+            py:    "3.8",
             cmake: "3.19.x",
             mpi:   "ON",
             simd:  "OFF"
@@ -105,11 +105,11 @@ jobs:
         run: |
           brew install openmpi ninja ccache
       - name: Set up cmake
-        uses: jwlawson/actions-setup-cmake@v1.13
+        uses: jwlawson/actions-setup-cmake@v2.0.0
         with:
           cmake-version: ${{ matrix.config.cmake }}
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.config.py }}
       - name: Update pip
@@ -117,7 +117,7 @@ jobs:
       - name: Install Python packages
         run:  pip install numpy sphinx svgwrite sphinx-rtd-theme mpi4py pandas seaborn
       - name: Clone w/ submodules
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
       # figure out vector extensions for ccache key

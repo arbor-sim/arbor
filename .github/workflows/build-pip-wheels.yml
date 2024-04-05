@@ -12,21 +12,21 @@ on:
 
 jobs:
   get_timestamp:
-    name: Prep VERSION
+    name: Prep pyproject.toml
     runs-on: ubuntu-latest
 
     steps:
       - name: Get Arbor
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Create unique VERSION
+      - name: Create unique version in pyproject.toml
         if: startsWith(github.ref, 'refs/tags/v') == false
-        run: python3 -c 'import time;f=open("VERSION","r+");content = f.readlines();f.seek(0);f.write(content[0].strip()+time.strftime("%Y%m%d%H%I%S"))'
+        run: python3 -c 'import time;f=open("pyproject.toml","r+");c = f.readlines();d=[i.split("#")[0].strip()[:-1]+time.strftime("%Y%m%d%H%I%S")+"\"\n" if i.startswith("version") else i for i in c];f.seek(0);f.writelines(d);f.truncate()'
       - uses: actions/upload-artifact@v3
         with:
             name: arbver
-            path: ${{ github.workspace }}/VERSION
+            path: ${{ github.workspace }}/pyproject.toml
 
   build_binary_wheels:
     name: Build wheels on ${{ matrix.os }}
@@ -38,17 +38,17 @@ jobs:
 
     steps:
       - name: Get Arbor
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Delete VERSION
-        run: rm -f VERSION
-      - name: Get VERSION
+      - name: Delete pyproject.toml
+        run: rm -f pyproject.toml
+      - name: Get pyproject.toml
         uses: actions/download-artifact@v3
         with:
           name: arbver
-      - name: Check VERSION
-        run: cat VERSION
+      - name: Check pyproject.toml
+        run: cat pyproject.toml
       - name: Install cibuildwheel
         run: python3 -m pip install cibuildwheel
       - name: Build wheels
@@ -69,17 +69,17 @@ jobs:
       - name: Get packages
         run: python3 -m pip install build
       - name: Get Arbor
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Delete VERSION
-        run: rm -f VERSION
-      - name: Get VERSION
+      - name: Delete pyproject.toml
+        run: rm -f pyproject.toml
+      - name: Get pyproject.toml
         uses: actions/download-artifact@v3
         with:
           name: arbver
-      - name: Check VERSION
-        run: cat VERSION
+      - name: Check pyproject.toml
+        run: cat pyproject.toml
       - name: Make sdist
         run: python3 -m build -s
       - name: Install sdist
@@ -118,7 +118,7 @@ jobs:
     needs: [build_binary_wheels, build_sdist]
     steps:
       - name: "Clone w/ submodules"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: "recursive"

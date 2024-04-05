@@ -29,7 +29,7 @@ target_include_directories(arborio-public-headers INTERFACE
 target_include_directories(arborio-private-headers INTERFACE
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
 
-target_link_libraries(arborio PUBLIC arbor arborio-public-headers)
+target_link_libraries(arborio PUBLIC arbor arborio-public-headers nlohmann_json::nlohmann_json)
 list(APPEND arbor_supported_components "neuroml")
 set(arbor_supported_components "${arbor_supported_components}" PARENT_SCOPE)
 

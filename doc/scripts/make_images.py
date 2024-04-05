@@ -424,6 +424,20 @@ def generate(path=""):
     label_image(
         inputs.label_morph, [inputs.ls_branchmid], path + "/on_branches_label.svg"
     )
+    label_image(inputs.label_morph, [], path + "/boundary_label.svg")
+    label_image(
+        inputs.label_morph,
+        [
+            inputs.ls_boundary,
+            inputs.ls_cboundary,
+            inputs.ls_sboundary,
+        ],
+        path + "/boundaries_label.svg",
+    )
+
+    label_image(
+        inputs.label_morph, [inputs.ls_componentsmid], path + "/on_components_label.svg"
+    )
     label_image(
         inputs.label_morph,
         [inputs.ls_term, inputs.reg_tag3, inputs.ls_restrict],
@@ -442,6 +456,15 @@ def generate(path=""):
             inputs.ls_distal_translate_multi,
         ],
         path + "/distal_translate_label.svg",
+    )
+
+    label_image(
+        inputs.label_morph,
+        [
+            inputs.ls_comp_23,
+            inputs.ls_comp_c34,
+        ],
+        path + "/connected_components.svg",
     )
 
     ####################### regions
@@ -503,6 +526,21 @@ def generate(path=""):
         inputs.label_morph,
         [inputs.reg_lhs, inputs.reg_rhs, inputs.reg_and],
         path + "/intersect_label.svg",
+    )
+    label_image(
+        inputs.label_morph,
+        [inputs.reg_lhs, inputs.reg_rhs, inputs.reg_diff],
+        path + "/difference_label.svg",
+    )
+    label_image(
+        inputs.label_morph,
+        [inputs.reg_rhs, inputs.reg_complement],
+        path + "/complement_label.svg",
+    )
+    label_image(
+        inputs.label_morph,
+        [inputs.reg_rhs, inputs.reg_completion],
+        path + "/completion_label.svg",
     )
     label_image(inputs.label_morph, [inputs.reg_radlt5], path + "/radiuslt_label.svg")
     label_image(inputs.label_morph, [inputs.reg_radle5], path + "/radiusle_label.svg")

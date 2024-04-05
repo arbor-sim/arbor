@@ -39,11 +39,16 @@ cells and members of cell-local collections.
 
 .. cpp:type::  cell_tag_type
 
-    For labels of cell-local data.
-    Local labels are used for groups of items within a particular cell-local collection.
-    Each label is associated with a range of :cpp:type:`cell_lid_type` indexing the individual
-    items on the cell. The range is generated when the model is built and is not directly
+    For labels of cell-local data. Local labels are used for groups of items
+    within a particular cell-local collection. Each label is associated with a
+    range of :cpp:type:`cell_lid_type` indexing the individual items on the
+    cell. The range is generated when the model is built and is not directly
     available to the user.
+
+.. cpp:type:: cell_address_type
+
+    For addressing an item on a cell by ``gid`` and a name; resolves to a range
+    of ``lid`` as above.
 
 .. cpp:enum::  lid_selection_policy
 

@@ -4,6 +4,7 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/serdes.hpp>
 
 namespace arb {
 
@@ -47,6 +48,7 @@ struct epoch {
         *this = epoch();
     }
 
+    ARB_SERDES_ENABLE(epoch, id, t0, t1);
 };
 
 } // namespace arb

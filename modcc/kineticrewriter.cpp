@@ -26,6 +26,7 @@ protected:
     virtual void finalize() override;
 
 private:
+
     // Acccumulated terms for derivative expressions, keyed by id name.
     std::map<std::string, expression_ptr> dterms;
 };

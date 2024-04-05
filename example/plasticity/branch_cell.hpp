@@ -118,7 +118,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     decor.set_default(arb::axial_resistivity{100}); // [Ω·cm]
 
     // Add spike threshold detector at the soma.
-    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10}, "detector");
+    decor.place(arb::mlocation{0,0}, arb::threshold_detector{10*arb::units::mV}, "detector");
 
     // Add a synapse to the mid point of the first dendrite.
     decor.place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "primary_syn");
@@ -132,7 +132,5 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     // Make a CV between every sample in the sample tree.
     decor.set_default(arb::cv_policy_every_segment());
 
-    arb::cable_cell cell(arb::morphology(tree), labels, decor);
-
-    return cell;
+    return {arb::morphology(tree), labels, decor};
 }
