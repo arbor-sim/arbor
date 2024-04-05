@@ -9,6 +9,7 @@
 #include <limits>
 #include <optional>
 #include <type_traits>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -89,20 +90,28 @@ public:
 
     spatial_tree(const spatial_tree &) = default;
 
-    spatial_tree(spatial_tree &&t) { *this = std::move(t); }
+    spatial_tree(spatial_tree &&t) noexcept(std::is_nothrow_move_assignable_v<spatial_tree>) {
+        *this = std::move(t);
+    }
 
     spatial_tree &operator=(const spatial_tree &) = default;
 
-    spatial_tree &operator=(spatial_tree &&t) {
-        data_ = std::move(t.data_);
+    spatial_tree &operator=(spatial_tree &&t) noexcept(
+        noexcept(std::swap(data_, t.data_)) &&
+        std::is_nothrow_default_constructible_v<point_type> &&
+        std::is_nothrow_move_assignable_v<point_type>) {
+
+        std::swap(data_, t.data_);
         size_ = t.size_;
-        min_ = t.min_;
-        max_ = t.max_;
+        min_ = std::move(t.min_);
+        max_ = std::move(t.max_);
+        location_ = t.location_;
 
         t.data_ = leaf_data();
         t.size_ = 0;
         t.min_ = point_type();
         t.max_ = point_type();
+        t.location_ = nullptr;
 
         return *this;
     }
@@ -167,9 +176,9 @@ public:
 
     }
 
-    inline std::size_t size() const { return size_; }
+    inline std::size_t size() const noexcept { return size_; }
 
-    inline bool empty() const { return !size_; }
+    inline bool empty() const noexcept { return !size_; }
 
 private:
     std::size_t size_;
