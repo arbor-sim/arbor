@@ -49,7 +49,7 @@ Every time :math:`t_s` the cell emits a spike, :math:`w` is incremented by :math
 
 .. math::
    V_m = E_R\\
-   \partial_t w   = a(V_m - E_L) - w
+   \partial_t w = 0
 
 and all incoming spikes are discarded without effect.
 

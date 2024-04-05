@@ -8,6 +8,8 @@
 #include "label_resolution.hpp"
 #include "profile/profiler_macro.hpp"
 
+#include <iostream>
+
 using namespace arb;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
@@ -99,15 +101,50 @@ void adex_cell_group::reset() {
     spikes_.clear();
 }
 
-void adex_cell_group::advance_cell(time_type tfinal,
+// integrate a single cell's state from current time `cur` to final time `end`.
+// Extra parameters
+// * the cell cannot be updated until time `nxt`, which might be in the past or future.
+//
+// We can be in three states:
+// 1. nxt <= cur: we can simply update the cell without further consideration
+// 2. cur < nxt <= end: we perform two steps:
+//    a. cur - nxt: refractory period, just manipulate w
+//    b. nxt - end: normal dynamics, add spike
+// 3. nxt > end. Skip everything
+void integrate_until(adex_lowered_cell& cell, const time_type end, const time_type& nxt, time_type& cur) {
+    // perform pre-step to skip refractory period. This _might_ put cell state beyond the epoch end.
+    if (nxt > cur) cur = std::min(nxt, end);
+    // if we still have time left, perform the integration.
+    if (nxt > end) return;
+    auto delta = end - cur;
+    auto dE = cell.V_m - cell.E_L;
+    auto il = cell.g*dE;
+    auto is = cell.g*cell.delta*exp((cell.V_m - cell.V_th)/cell.delta);
+    auto dV = (is - il - cell.w)/cell.C_m;
+    cell.V_m += delta*dV;
+
+    auto dW = (cell.a*dE - cell.w)/cell.tau;
+    cell.w += delta*dW;
+    cur = end;
+}
+
+void check_spike(adex_lowered_cell& cell, const time_type time, time_type& nxt, const cell_gid_type gid, std::vector<spike>& spikes) {
+    if (time > nxt && cell.V_m >= cell.V_th) {
+        spikes.emplace_back(cell_member_type{gid, 0}, time);
+        // reset membrane potential
+        cell.V_m = cell.E_R;
+        // schedule next update
+        nxt = time + cell.t_ref;
+        cell.w += cell.b;
+    }
+}
+
+void adex_cell_group::advance_cell(time_type t_fin,
                                    time_type dt,
                                    cell_gid_type lid,
                                    const event_lane_subrange& event_lanes) {
     auto time = current_time_[lid];
     auto gid = gids_[lid];
-    auto& cell = cells_[lid];
-    auto n_events = static_cast<int>(!event_lanes.empty() ? event_lanes[lid].size() : 0);
-
     // Flattened sampler map
     std::vector<probe_metadata> sample_metadata;
     std::vector<sampler_association_handle> sample_callbacks;
@@ -132,7 +169,7 @@ void adex_cell_group::advance_cell(time_type tfinal,
                 // No need to generate events
                 if (assoc.probeset_ids.empty()) continue;
                 // Construct sampling times, might give us the last time we sampled, so skip that.
-                auto times = util::make_range(assoc.sched.events(tlast, tfinal));
+                auto times = util::make_range(assoc.sched.events(tlast, t_fin));
                 // while (!times.empty() && times.front() == tlast) times.left++;
                 if (times.empty()) continue;
                 for (unsigned idx = 0; idx < assoc.probeset_ids.size(); ++idx) {
@@ -156,7 +193,7 @@ void adex_cell_group::advance_cell(time_type tfinal,
         // NOTE: Need to allocate in one go, else reallocation will mess up the pointers!
         sample_data.resize(total_size);
         auto rx = 0;
-        for (int ix = 0; ix < sample_sizes.size(); ++ix) {
+        for (unsigned ix = 0; ix < sample_sizes.size(); ++ix) {
             auto size = sample_sizes[ix];
             for (int kx = 0; kx < size; ++kx) {
                 sample_records[ix][kx].data = const_cast<const double*>(sample_data.data() + rx);
@@ -168,79 +205,50 @@ void adex_cell_group::advance_cell(time_type tfinal,
     util::sort_by(sample_events, [](const auto& s) { return s.time; });
     auto n_samples = sample_events.size();
 
-    // integrate until tfinal using the exact solution of membrane voltage differential equation.
-    // prepare event processing
-    auto e_idx = 0;
-    auto s_idx = 0;
-    for (; time < tfinal; time += dt) {
-        auto dE = cell.V_m - cell.E_L;
-        auto il = cell.g*dE;
-        auto is = cell.g*cell.delta*exp((cell.V_m - cell.V_th)/cell.delta);
-        auto dV = (is - il - cell.w)/cell.C_m;
-        auto V_m = cell.V_m + dt*dV;
-
-        auto dW = (cell.a*dE - cell.w)/cell.tau;
-        auto w = cell.w + dt*dW;
-
-        auto weight = 0.0;
-
+    auto& cell = cells_[lid];
+    auto n_events = static_cast<int>(!event_lanes.empty() ? event_lanes[lid].size() : 0);
+    auto evt_idx = 0;
+    auto spl_idx = 0;
+    while (time < t_fin) {
+        auto t_end = std::min(t_fin, time + dt);
+        // forward progress?
+        arb_assert(t_end > time);
+        auto V_0 = cell.V_m;
+        auto W_0 = cell.w;
         // Process events in [time, time + dt)
-        for (;;) {
-            auto e_t = e_idx < n_events ? event_lanes[lid][e_idx].time : tfinal;
-            if (e_t < time) {
-                ++e_idx;
-                continue;
-            }
-            auto s_t = s_idx < n_samples ? sample_events[s_idx].time : tfinal;
-            auto t = std::min(e_t, s_t);
-            if (t >= time + dt || t >= tfinal) break;
-            if (t == e_t) {
-                weight += event_lanes[lid][e_idx].weight;
-                ++e_idx;
-            }
-            if (t == s_t) {
-                auto& [time, kind, ptr] = sample_events[s_idx];
-                auto t = (time - time)/dt;
-                if (kind == adex_probe_kind::voltage) {
-                    if (next_update_[lid] > time) {
-                        *ptr = cell.E_R;
-                    } else {
-                        *ptr = math::lerp(cell.V_m, V_m + weight/cell.C_m, t);
-                    }
-                }
-                else if (kind == adex_probe_kind::adaption) {
-                    *ptr = math::lerp(cell.w, w, t);
-                }
-                else {
-                    // impossible!
-                    throw arbor_internal_error{"Unknown ADEX probe."};
-                }
-                ++s_idx;
-            }
+        // delivering each at the exact time
+        for (;; ++evt_idx) {
+            if (evt_idx >= n_events) break;
+            if (event_lanes[lid][evt_idx].time >= t_end) break;
+
+            const auto& evt = event_lanes[lid][evt_idx];
+            integrate_until(cell, evt.time, next_update_[lid], current_time_[lid]);
+            // NOTE we _could check here instead or in addition.
+            // check_spike(cell, evt.time, next_update_[lid], gid, spikes_);
+            if (next_update_[lid] <= evt.time) cell.V_m += evt.weight/cell.C_m;
+            check_spike(cell, evt.time, next_update_[lid], gid, spikes_);
         }
-        // if we are still in refractory period, bail now, before we alter membrane voltage
-        if (next_update_[lid] <= time) {
-            V_m += weight/cell.C_m;
-            // enter refractory period and emit spike
-            if (V_m >= cell.V_th) {
-                // interpolate the spike time and emit event.
-                // NOTE: _Do_ the interpolation
-                auto t_spike = time;
-                spikes_.emplace_back(cell_member_type{gid, 0}, t_spike);
-                // reset membrane potential
-                V_m = cell.E_R;
-                // schedule next update
-                next_update_[lid] = time + cell.t_ref;
-                w += cell.b;
-            }
-            else {
-                next_update_[lid] = time + dt;
-            }
+        // if there's time left before t_end, integrate until that
+        integrate_until(cell, t_end, next_update_[lid], current_time_[lid]);
+        check_spike(cell, t_end, next_update_[lid], gid, spikes_);
+
+        // now process the sampling events
+        for (;; ++spl_idx) {
+            if (spl_idx >= n_samples) break;
+            const auto& evt = sample_events[spl_idx];
+            if (evt.time > t_end) break;
+            // interpolation paramter
+            auto t = (evt.time - time)/dt;
+            if (evt.kind == adex_probe_kind::voltage)  *evt.data = math::lerp(V_0, cell.V_m, t);
+            if (evt.kind == adex_probe_kind::adaption) *evt.data = math::lerp(W_0, cell.w, t);
         }
-        cell.w = w;
-        cell.V_m = V_m;
-        current_time_[lid] = time;
+
+        time = t_end;
     }
+
+    arb_assert(time == t_fin);
+    arb_assert(evt_idx == n_events);
+    arb_assert(spl_idx == n_samples);
 
     auto n_samplers = sample_callbacks.size();
     {
