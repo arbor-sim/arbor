@@ -76,6 +76,17 @@ struct path_recipe: public arb::recipe {
         return {{{gid-1, "src"}, {"tgt"}, weight_, delay_}};
     }
 
+    std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
+        if (gid != 0) return {};
+        return {arb::explicit_generator_from_milliseconds({"tgt"},
+                                                          1000.0,           // use a large weight to trigger spikes
+                                                          std::vector{ 1.0, // First event to trigger the spike
+                                                                       1.1, // inside refractory period; should be ignored
+                                                                       50.0 // long after previous event; should trigger new spike
+                                                  })};
+    }
+
+
 private:
     arb::cell_size_type ncells_;
     float weight_;
@@ -147,25 +158,8 @@ TEST(adex_cell_group, recipe)
 TEST(adex_cell_group, spikes) {
     // make two adex cells
     path_recipe recipe(2, 1000, 0.1_ms);
-
     arb::simulation sim(recipe);
-    arb::cse_vector events;
-
-    // First event to trigger the spike (first neuron).
-    events.push_back({0, {{0, 1, 1000}}});
-
-    // This event happens inside the refractory period of the previous
-    // event, thus, should be ignored (first neuron)
-    events.push_back({0, {{0, 1.1, 1000}}});
-
-    // This event happens long after the refractory period of the previous
-    // event, should thus trigger new spike (first neuron).
-    events.push_back({0, {{0, 50, 1000}}});
-
-    sim.inject_events(events);
-
     sim.run(100_ms, 0.01_ms);
-
     // we expect 4 spikes: 2 by both neurons
     EXPECT_EQ(4u, sim.num_spikes());
 }

@@ -181,14 +181,8 @@ TEST(lif_cell_group, recipe)
 TEST(lif_cell_group, spikes) {
     // make two lif cells
     path_recipe recipe(2, 1000, 0.1);
-
-    auto context = make_context();
-
-    auto decomp = partition_load_balance(recipe, context);
-    simulation sim(recipe, context, decomp);
-
+    simulation sim(recipe);
     sim.run(100*U::ms, 0.01*U::ms);
-
     // we expect 4 spikes: 2 by both neurons
     EXPECT_EQ(4u, sim.num_spikes());
 }
