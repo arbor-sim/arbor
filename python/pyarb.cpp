@@ -36,9 +36,8 @@ void register_label_dict(pybind11::module& m);
 
 #ifdef ARB_MPI_ENABLED
 void register_mpi(pybind11::module& m);
-#endif
-
 void register_remote(pybind11::module& m);
+#endif
 
 } // namespace pyarb
 
@@ -62,7 +61,6 @@ PYBIND11_MODULE(_arbor, m) {
     pyarb::register_cable_probes(m, global_ptr);
     pyarb::register_mechanisms(m);
     pyarb::register_cells(m);
-
     pyarb::register_cable_loader(m);
     pyarb::register_config(m);
     pyarb::register_contexts(m);
@@ -71,7 +69,6 @@ PYBIND11_MODULE(_arbor, m) {
     pyarb::register_profiler(m);
     pyarb::register_simulation(m, global_ptr);
     pyarb::register_arborenv(m);
-    pyarb::register_remote(m);
     pyarb::register_single_cell(m);
 
     // This is the fallback. All specific translators take precedence by being
@@ -104,5 +101,6 @@ PYBIND11_MODULE(_arbor, m) {
 
     #ifdef ARB_MPI_ENABLED
     pyarb::register_mpi(m);
+    pyarb::register_remote(m);
     #endif
 }

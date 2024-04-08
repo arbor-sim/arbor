@@ -2,7 +2,6 @@
 
 #include <cstring>
 #include <cstdint>
-#include <memory>
 #include <stdexcept>
 #include <variant>
 #include <vector>

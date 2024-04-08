@@ -1,3 +1,7 @@
+#ifdef ARB_MPI_ENABLED
+
+#include "mpi.hpp"
+
 #include <arbor/communication/remote.hpp>
 #include <arbor/version.hpp>
 
@@ -6,13 +10,12 @@
 
 #include "conversion.hpp"
 #include "context.hpp"
-#include "mpi.hpp"
 #include "error.hpp"
 #include "strprintf.hpp"
 
 namespace pyarb {
-    using namespace pybind11::literals;
-#ifdef ARB_MPI_ENABLED
+using namespace pybind11::literals;
+
 void register_remote(pybind11::module& m) {
     auto s = m.def_submodule("remote", "Wrappers for remote communication.");
 
@@ -94,7 +97,5 @@ void register_remote(pybind11::module& m) {
           "msg"_a, "mpi_comm"_a,
           "Send list of spikes to all peers and receive their collected answer.");
 }
-#else
-void register_remote(pybind11::module& m) {}
-#endif
 }
+#endif
