@@ -1,6 +1,3 @@
-#include <memory>
-#include <stdexcept>
-
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/version.hpp>
@@ -17,10 +14,10 @@ fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_conte
                                            arb_seed_type seed) {
     switch (p) {
     case backend_kind::multicore:
-        return fvm_lowered_cell_ptr(new fvm_lowered_cell_impl<multicore::backend>(ctx, seed));
+        return std::make_unique<fvm_lowered_cell_impl<multicore::backend>>(ctx, seed);
     case backend_kind::gpu:
 #ifdef ARB_GPU_ENABLED
-        return fvm_lowered_cell_ptr(new fvm_lowered_cell_impl<gpu::backend>(ctx, seed));
+        return std::make_unique<fvm_lowered_cell_impl<gpu::backend>>(ctx, seed);
 #endif
         ; // fall through
     default:

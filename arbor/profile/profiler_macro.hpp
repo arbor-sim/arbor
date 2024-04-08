@@ -4,20 +4,25 @@
 
 #ifdef ARB_HAVE_PROFILING
 
-    // enter a profiling region
-    #define PE(name) \
-        { \
-            static std::size_t region_id_ = arb::profile::profiler_region_id(#name); \
-            arb::profile::profiler_enter(region_id_); \
-        }
+    #define DECLARE_THREAD(id) tracy::SetThreadName("thread" #id)
 
-    // leave a profling region
-    #define PL arb::profile::profiler_leave
-
+#ifdef ARB_HAVE_STACK_PROFILING
+    #define PROFILE_ZONE(name) ZoneScopedNS(name, 16)
 #else
+    #define PROFILE_ZONE(name) ZoneScopedN(name)
+#endif
 
     #define PE(name)
     #define PL()
 
-#endif
+#else
 
+    #define DECLARE_THREAD(id)
+
+    #define PROFILE_ZONE(name)
+
+    #define PE(name)
+    #define PL()
+
+
+#endif

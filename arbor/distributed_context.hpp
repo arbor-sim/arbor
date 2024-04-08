@@ -54,7 +54,7 @@ public:
 
     template <typename Impl>
     distributed_context(Impl&& impl):
-        impl_(new wrap<Impl>(std::forward<Impl>(impl)))
+        impl_(std::make_unique<wrap<Impl>>(std::forward<Impl>(impl)))
     {}
 
     distributed_context(distributed_context&& other) = default;

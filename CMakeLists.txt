@@ -369,7 +369,12 @@ target_compile_options(arborio-private-deps INTERFACE ${ARB_CXX_FLAGS_TARGET_FUL
 
 if(ARB_WITH_PROFILING)
     target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_PROFILING)
+    option(TRACY_ENABLE "" ON)
+    option(TRACY_ON_DEMAND "" ON)
+    add_subdirectory (ext/tracy) # target: TracyClient or alias Tracy :: TracyClient
+    target_link_libraries (arbor-public-deps INTERFACE Tracy::TracyClient)
 endif()
+
 if(ARB_WITH_ASSERTIONS)
     target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_ASSERTIONS)
 endif()

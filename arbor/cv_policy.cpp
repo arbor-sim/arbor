@@ -8,7 +8,6 @@
 #include <arbor/morph/region.hpp>
 
 #include "util/rangeutil.hpp"
-#include "util/span.hpp"
 
 // Discretization policy implementations:
 
@@ -27,7 +26,7 @@ struct cv_policy_plus_: cv_policy_base {
         lhs_(lhs), rhs_(rhs) {}
 
     cv_policy_base_ptr clone() const override {
-        return cv_policy_base_ptr(new cv_policy_plus_(*this));
+        return std::make_unique<cv_policy_plus_>(*this);
     }
 
     locset cv_boundary_points(const cable_cell& c) const override {
@@ -53,7 +52,7 @@ struct cv_policy_bar_: cv_policy_base {
         lhs_(lhs), rhs_(rhs) {}
 
     cv_policy_base_ptr clone() const override {
-        return cv_policy_base_ptr(new cv_policy_bar_(*this));
+        return std::make_unique<cv_policy_bar_>(*this);
     }
 
     locset cv_boundary_points(const cable_cell& c) const override {
@@ -89,7 +88,7 @@ locset cv_policy_explicit::cv_boundary_points(const cable_cell& cell) const {
 }
 
 cv_policy_base_ptr cv_policy_explicit::clone() const {
-    return cv_policy_base_ptr(new cv_policy_explicit(*this));
+    return std::make_unique<cv_policy_explicit>(*this);
 }
 
 region cv_policy_explicit::domain() const { return domain_; }
@@ -100,7 +99,7 @@ locset cv_policy_single::cv_boundary_points(const cable_cell&) const {
 }
 
 cv_policy_base_ptr cv_policy_single::clone() const {
-    return cv_policy_base_ptr(new cv_policy_single(*this));
+    return std::make_unique<cv_policy_single>(*this);
 }
 
 region cv_policy_single::domain() const { return domain_; }
@@ -140,7 +139,7 @@ locset cv_policy_max_extent::cv_boundary_points(const cable_cell& cell) const {
 }
 
 cv_policy_base_ptr cv_policy_max_extent::clone() const {
-    return cv_policy_base_ptr(new cv_policy_max_extent(*this));
+    return std::make_unique<cv_policy_max_extent>(*this);
 }
 
 region cv_policy_max_extent::domain() const { return domain_; }
@@ -177,7 +176,7 @@ locset cv_policy_fixed_per_branch::cv_boundary_points(const cable_cell& cell) co
 }
 
 cv_policy_base_ptr cv_policy_fixed_per_branch::clone() const {
-    return cv_policy_base_ptr(new cv_policy_fixed_per_branch(*this));
+    return std::make_unique<cv_policy_fixed_per_branch>(*this);
 }
 
 region cv_policy_fixed_per_branch::domain() const { return domain_; }
@@ -188,12 +187,11 @@ locset cv_policy_every_segment::cv_boundary_points(const cable_cell& cell) const
     const unsigned nbranch = cell.morphology().num_branches();
     if (!nbranch) return ls::nil();
 
-    return unique_sum(
-                ls::cboundary(domain_),
-                ls::restrict_to(ls::segment_boundaries(), domain_));
+    return unique_sum(ls::cboundary(domain_),
+                      ls::restrict_to(ls::segment_boundaries(), domain_));
 }
 cv_policy_base_ptr cv_policy_every_segment::clone() const {
-    return cv_policy_base_ptr(new cv_policy_every_segment(*this));
+    return std::make_unique<cv_policy_every_segment>(*this);
 }
 
 region cv_policy_every_segment::domain() const { return domain_; }

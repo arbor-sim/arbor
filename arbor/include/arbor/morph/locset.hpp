@@ -1,12 +1,8 @@
 #pragma once
 
-#include <cstdlib>
 #include <memory>
-#include <set>
 #include <string>
-#include <unordered_map>
 #include <utility>
-#include <vector>
 
 #include <arbor/export.hpp>
 #include <arbor/morph/primitives.hpp>
@@ -24,12 +20,12 @@ public:
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<locset_tag, std::decay_t<Impl>>::value>>
     explicit locset(Impl&& impl):
-        impl_(new wrap<Impl>(std::forward<Impl>(impl))) {}
+        impl_(std::make_unique<wrap<Impl>>(std::forward<Impl>(impl))) {}
 
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<locset_tag, std::decay_t<Impl>>::value>>
     explicit locset(const Impl& impl):
-        impl_(new wrap<Impl>(impl)) {}
+        impl_(std::make_unique<wrap<Impl>>(impl)) {}
 
     locset(locset&& other) = default;
 
@@ -53,7 +49,7 @@ public:
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<locset_tag, std::decay_t<Impl>>::value>>
     locset& operator=(Impl&& other) {
-        impl_ = new wrap<Impl>(std::forward<Impl>(other));
+        impl_ = std::make_unique<wrap<Impl>>(std::forward<Impl>(other));
         return *this;
     }
 
@@ -97,7 +93,7 @@ private:
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
 
         virtual std::unique_ptr<interface> clone() override {
-            return std::unique_ptr<interface>(new wrap<Impl>(wrapped));
+            return std::make_unique<wrap<Impl>>(wrapped);
         }
 
         virtual mlocation_list thingify(const mprovider& m) override {

@@ -7,7 +7,6 @@
 #include "cell_group.hpp"
 #include "cell_group_factory.hpp"
 #include "execution_context.hpp"
-#include "fvm_lowered_cell.hpp"
 #include "lif_cell_group.hpp"
 #include "cable_cell_group.hpp"
 #include "spike_source_cell_group.hpp"
@@ -16,12 +15,14 @@ namespace arb {
 
 template <typename Impl, typename... Args>
 cell_group_ptr make_cell_group(Args&&... args) {
-    return cell_group_ptr(new Impl(std::forward<Args>(args)...));
+    return std::make_unique<Impl>(std::forward<Args>(args)...);
 }
 
-ARB_ARBOR_API cell_group_factory cell_kind_implementation(
-        cell_kind ck, backend_kind bk, const execution_context& ctx, arb_seed_type seed)
-{
+ARB_ARBOR_API cell_group_factory
+cell_kind_implementation(cell_kind ck,
+                         backend_kind bk,
+                         const execution_context& ctx,
+                         arb_seed_type seed) {
     using gid_vector = std::vector<cell_gid_type>;
 
     switch (ck) {

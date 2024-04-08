@@ -59,7 +59,7 @@ public:
         typename = std::enable_if_t<!std::is_same_v<remove_cvref_t<T>, std::any>>
     >
     unique_any(T&& other) {
-        state_.reset(new model<contained_type<T>>(std::forward<T>(other)));
+        state_ = std::make_unique<model<contained_type<T>>>(std::forward<T>(other));
     }
 
     unique_any& operator=(unique_any&& other) noexcept {
@@ -73,7 +73,7 @@ public:
         typename = std::enable_if_t<!std::is_same_v<remove_cvref_t<T>, std::any>>
     >
     unique_any& operator=(T&& other) {
-        state_.reset(new model<contained_type<T>>(std::forward<T>(other)));
+        state_ = std::make_unique<model<contained_type<T>>>(std::forward<T>(other));
         return *this;
     }
 

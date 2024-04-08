@@ -23,7 +23,7 @@ pimpl<T>::pimpl(T* ptr) noexcept : m{ptr} {}
 template<typename T>
 template<typename... Args>
 pimpl<T>::pimpl(Args&&... args)
-: m{new T{std::forward<Args>(args)...}} {}
+: m{std::make_unique<T>(std::forward<Args>(args)...)} {}
 
 template<typename T>
 pimpl<T>::pimpl(pimpl&&) noexcept = default;
@@ -45,7 +45,7 @@ const T& pimpl<T>::operator*() const noexcept { return *m.get(); }
 
 template<typename T, typename... Args>
 pimpl<T> make_pimpl(Args&&... args) {
-    return {new T{std::forward<Args>(args)...}};
+    return {std::make_unique<T>(std::forward<Args>(args)...)};
 }
 
 } // namespace util

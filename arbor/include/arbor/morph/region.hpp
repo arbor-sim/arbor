@@ -1,12 +1,8 @@
 #pragma once
 
-#include <cstdlib>
 #include <memory>
-#include <set>
 #include <string>
-#include <unordered_map>
 #include <utility>
-#include <vector>
 
 #include <arbor/export.hpp>
 #include <arbor/morph/primitives.hpp>
@@ -22,12 +18,12 @@ public:
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>
     explicit region(Impl&& impl):
-        impl_(new wrap<Impl>(std::forward<Impl>(impl))) {}
+        impl_(std::make_unique<wrap<Impl>>(std::forward<Impl>(impl))) {}
 
    template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>
     explicit region(const Impl& impl):
-        impl_(new wrap<Impl>(impl)) {}
+        impl_(std::make_unique<wrap<Impl>>()) {}
 
     region(region&& other) = default;
 
@@ -45,14 +41,14 @@ public:
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>
     region& operator=(Impl&& other) {
-        impl_ = new wrap<Impl>(std::forward<Impl>(other));
+        impl_ = std::make_unique<wrap<Impl>>(std::forward<Impl>(other));
         return *this;
     }
 
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>
     region& operator=(const Impl& other) {
-        impl_ = new wrap<Impl>(other);
+        impl_ = std::make_unique<wrap<Impl>>(other);
         return *this;
     }
 

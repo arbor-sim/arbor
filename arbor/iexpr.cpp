@@ -461,96 +461,82 @@ iexpr iexpr::named(std::string name) {
 
 iexpr_ptr thingify(const iexpr& expr, const mprovider& m) {
     switch (expr.type()) {
-    case iexpr_type::scalar:
-        return iexpr_ptr(new iexpr_impl::scalar(
-            std::get<0>(std::any_cast<const std::tuple<double>&>(expr.args()))));
+    case iexpr_type::scalar: {
+        const auto& [arg] = std::any_cast<const std::tuple<double>&>(expr.args());
+        return std::make_shared<iexpr_impl::scalar>(arg);
+    }
     case iexpr_type::distance: {
-        const auto& scale = std::get<0>(
-            std::any_cast<const std::tuple<double, std::variant<locset, region>>&>(expr.args()));
-        const auto& var = std::get<1>(
-            std::any_cast<const std::tuple<double, std::variant<locset, region>>&>(expr.args()));
-
+        const auto& [scale, var] = std::any_cast<const std::tuple<double, std::variant<locset, region>>&>(expr.args());
         return std::visit(
             [&](auto&& arg) {
-                return iexpr_ptr(new iexpr_impl::distance(scale, thingify(arg, m)));
+                return std::make_shared<iexpr_impl::distance>(scale, thingify(arg, m));
             },
             var);
     }
     case iexpr_type::proximal_distance: {
-        const auto& scale = std::get<0>(
-            std::any_cast<const std::tuple<double, std::variant<locset, region>>&>(expr.args()));
-        const auto& var = std::get<1>(
-            std::any_cast<const std::tuple<double, std::variant<locset, region>>&>(expr.args()));
-
+        const auto& [scale, var] = std::any_cast<const std::tuple<double, std::variant<locset, region>>&>(expr.args());
         return std::visit(
             [&](auto&& arg) {
-                return iexpr_ptr(new iexpr_impl::proximal_distance(scale, thingify(arg, m)));
+                return std::make_shared<iexpr_impl::proximal_distance>(scale, thingify(arg, m));
             },
             var);
     }
     case iexpr_type::distal_distance: {
-        const auto& scale = std::get<0>(
-            std::any_cast<const std::tuple<double, std::variant<locset, region>>&>(expr.args()));
-        const auto& var = std::get<1>(
-            std::any_cast<const std::tuple<double, std::variant<locset, region>>&>(expr.args()));
-
+        const auto& [scale, var] = std::any_cast<const std::tuple<double, std::variant<locset, region>>&>(expr.args());
         return std::visit(
-            [&](auto&& arg) {
-                return iexpr_ptr(new iexpr_impl::distal_distance(scale, thingify(arg, m)));
-            },
+            [&](auto&& arg) { return std::make_shared<iexpr_impl::distal_distance>(scale, thingify(arg, m)); },
             var);
     }
     case iexpr_type::interpolation: {
-        const auto& t = std::any_cast<const std::
-                tuple<double, std::variant<locset, region>, double, std::variant<locset, region>>&>(
-            expr.args());
+        const auto& [x, prox, y, dist] = std::any_cast<const std::tuple<double,
+                                                                        std::variant<locset, region>,
+                                                                        double,
+                                                                        std::variant<locset, region>>&>(expr.args());
         auto prox_list = std::visit(
             [&](auto&& arg) -> std::variant<mlocation_list, mextent> { return thingify(arg, m); },
-            std::get<1>(t));
+            prox);
 
         auto dist_list = std::visit(
             [&](auto&& arg) -> std::variant<mlocation_list, mextent> { return thingify(arg, m); },
-            std::get<3>(t));
-        return iexpr_ptr(new iexpr_impl::interpolation(
-            std::get<0>(t), std::move(prox_list), std::get<2>(t), std::move(dist_list)));
+            dist);
+        return std::make_shared<iexpr_impl::interpolation>(x, std::move(prox_list), y, std::move(dist_list));
     }
     case iexpr_type::radius:
-        return iexpr_ptr(new iexpr_impl::radius(
-            std::get<0>(std::any_cast<const std::tuple<double>&>(expr.args()))));
+        return std::make_shared<iexpr_impl::radius>(std::get<0>(std::any_cast<const std::tuple<double>&>(expr.args())));
     case iexpr_type::diameter:
-        return iexpr_ptr(new iexpr_impl::radius(
-            2.0 * std::get<0>(std::any_cast<const std::tuple<double>&>(expr.args()))));
-    case iexpr_type::add:
-        return iexpr_ptr(new iexpr_impl::add(
-            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m),
-            thingify(std::get<1>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m)));
-    case iexpr_type::sub:
-        return iexpr_ptr(new iexpr_impl::sub(
-            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m),
-            thingify(std::get<1>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m)));
-    case iexpr_type::mul:
-        return iexpr_ptr(new iexpr_impl::mul(
-            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m),
-            thingify(std::get<1>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m)));
-    case iexpr_type::div:
-        return iexpr_ptr(new iexpr_impl::div(
-            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m),
-            thingify(std::get<1>(std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args())), m)));
+        return std::make_shared<iexpr_impl::radius>(2.0 * std::get<0>(std::any_cast<const std::tuple<double>&>(expr.args())));
+    case iexpr_type::add: {
+        const auto& [lhs, rhs] = std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args());
+        return std::make_shared<iexpr_impl::add>(thingify(lhs, m), thingify(rhs, m));
+    }
+    case iexpr_type::sub: {
+        const auto& [lhs, rhs] = std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args());
+        return std::make_shared<iexpr_impl::sub>(thingify(lhs, m), thingify(rhs, m));
+    }
+    case iexpr_type::mul: {
+        const auto& [lhs, rhs] = std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args());
+        return std::make_shared<iexpr_impl::mul>(thingify(lhs, m), thingify(rhs, m));
+    }
+    case iexpr_type::div: {
+        const auto& [lhs, rhs] = std::any_cast<const std::tuple<iexpr, iexpr>&>(expr.args());
+        return std::make_shared<iexpr_impl::div>(thingify(lhs, m), thingify(rhs, m));
+    }
+
     case iexpr_type::exp:
-        return iexpr_ptr(new iexpr_impl::exp(
-            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr>&>(expr.args())), m)));
+        return std::make_shared<iexpr_impl::exp>(
+            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr>&>(expr.args())), m));
     case iexpr_type::step_right:
-        return iexpr_ptr(new iexpr_impl::step_right(
-            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr>&>(expr.args())), m)));
+        return std::make_shared<iexpr_impl::step_right>(
+            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr>&>(expr.args())), m));
     case iexpr_type::step_left:
-        return iexpr_ptr(new iexpr_impl::step_left(
-            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr>&>(expr.args())), m)));
+        return std::make_shared<iexpr_impl::step_left>(
+            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr>&>(expr.args())), m));
     case iexpr_type::step:
-        return iexpr_ptr(new iexpr_impl::step(
-            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr>&>(expr.args())), m)));
+        return std::make_shared<iexpr_impl::step>(
+            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr>&>(expr.args())), m));
     case iexpr_type::log:
-        return iexpr_ptr(new iexpr_impl::log(
-            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr>&>(expr.args())), m)));
+        return std::make_shared<iexpr_impl::log>(
+            thingify(std::get<0>(std::any_cast<const std::tuple<iexpr>&>(expr.args())), m));
     case iexpr_type::named:
         return m.iexpr(std::get<0>(std::any_cast<const std::tuple<std::string>&>(expr.args())));
     }

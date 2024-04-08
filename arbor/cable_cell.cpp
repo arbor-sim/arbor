@@ -210,8 +210,10 @@ struct cable_cell_impl {
 };
 
 using impl_ptr = std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)>;
-impl_ptr make_impl(cable_cell_impl* c) {
-    return impl_ptr(c, [](cable_cell_impl* p){delete p;});
+template<typename ...Args>
+impl_ptr make_impl(Args&&... args) {
+    return impl_ptr(new cable_cell_impl(std::forward<Args>(args)...),
+                    [](cable_cell_impl* p){delete p;});
 }
 
 void cable_cell_impl::init(const decor& d) {
@@ -228,13 +230,13 @@ void cable_cell_impl::init(const decor& d) {
 }
 
 cable_cell::cable_cell(const arb::morphology& m, const decor& decorations, const label_dict& dictionary):
-    impl_(make_impl(new cable_cell_impl(m, dictionary, decorations)))
+    impl_(make_impl(m, dictionary, decorations))
 {}
 
-cable_cell::cable_cell(): impl_(make_impl(new cable_cell_impl())) {}
+cable_cell::cable_cell(): impl_(make_impl()) {}
 
 cable_cell::cable_cell(const cable_cell& other):
-    impl_(make_impl(new cable_cell_impl(*other.impl_)))
+    impl_(make_impl(*other.impl_))
 {}
 
 const label_dict& cable_cell::labels() const {

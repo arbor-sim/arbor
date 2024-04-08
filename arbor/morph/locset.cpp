@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <numeric>
 #include <ostream>
 #include <stack>
 
@@ -15,9 +14,6 @@
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
-#include "util/span.hpp"
-#include "util/strprintf.hpp"
-#include "util/unique.hpp"
 
 namespace arb {
 namespace ls {
@@ -107,9 +103,9 @@ ARB_ARBOR_API locset terminal() {
 
 mlocation_list thingify_(const terminal_&, const mprovider& p) {
     mlocation_list locs;
-    util::assign(locs, util::transform_view(p.morphology().terminal_branches(),
-        [](msize_t bid) { return mlocation{bid, 1.}; }));
-
+    util::assign(locs,
+                 util::transform_view(p.morphology().terminal_branches(),
+                                      [](msize_t bid) { return mlocation{bid, 1.}; }));
     return locs;
 }
 

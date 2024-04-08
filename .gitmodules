@@ -29,3 +29,6 @@
 [submodule "ext/units"]
 	path = ext/units
 	url = https://github.com/LLNL/units.git
+[submodule "ext/tracy"]
+	path = ext/tracy
+	url = https://github.com/wolfpld/tracy.git

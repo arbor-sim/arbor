@@ -1,5 +1,4 @@
 #include <ostream>
-#include <vector>
 #include <unordered_map>
 #include <memory>
 #include <mutex>
@@ -28,7 +27,7 @@ static std::shared_ptr<std::mutex> register_sbuf(std::streambuf* b) {
         auto& wptr = g_mex_tbl()[b];
         auto mex = wptr.lock();
         if (!mex) {
-            mex = std::shared_ptr<std::mutex>(new std::mutex);
+            mex = std::make_shared<std::mutex>();
             wptr = mex;
         }
         return mex;

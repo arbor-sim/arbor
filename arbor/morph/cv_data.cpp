@@ -145,12 +145,14 @@ ARB_ARBOR_API std::optional<cell_cv_data> cv_data(const cable_cell& cell) {
 }
 
 using impl_ptr = std::unique_ptr<cell_cv_data_impl, void (*)(cell_cv_data_impl*)>;
-impl_ptr make_impl(cell_cv_data_impl* c) {
-    return impl_ptr(c, [](cell_cv_data_impl* p){delete p;});
+template<typename ...Args>
+impl_ptr make_impl(Args&&... args) {
+    return impl_ptr(new cell_cv_data_impl(std::forward<Args>(args)...),
+                    [](auto* p){delete p;});
 }
 
 cell_cv_data::cell_cv_data(const cable_cell& cell, const locset& lset):
-    impl_(make_impl(new cell_cv_data_impl(cell, lset))),
+    impl_(make_impl(cell, lset)),
     provider_(cell.provider())
 {}
 

@@ -1,9 +1,7 @@
 #include <cstdlib>
-#include <map>
 #include <memory>
 #include <string>
 #include <vector>
-#include <cassert>
 
 #include <arbor/version.hpp>
 #include <arbor/arbexcept.hpp>
@@ -15,7 +13,6 @@
 #include "util/dylib.hpp"
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
-#include "util/span.hpp"
 #include "util/strprintf.hpp"
 
 /* Notes on implementation:
@@ -284,7 +281,7 @@ struct catalogue_state {
 
         mechanism_info_ptr new_info;
         if (auto parent_info = info(parent)) {
-            new_info.reset(new mechanism_info(parent_info.value()));
+            new_info = std::make_unique<mechanism_info>(parent_info.value());
         }
         else {
             return unexpected(parent_info.error());
@@ -525,7 +522,7 @@ struct catalogue_state {
 // Mechanism catalogue method implementations.
 
 mechanism_catalogue::mechanism_catalogue():
-    state_(new catalogue_state) {}
+    state_(std::make_unique<catalogue_state>()) {}
 
 std::vector<std::string> mechanism_catalogue::mechanism_names() const {
     return state_->mechanism_names();
@@ -535,12 +532,12 @@ mechanism_catalogue::mechanism_catalogue(mechanism_catalogue&& other) = default;
 mechanism_catalogue& mechanism_catalogue::operator=(mechanism_catalogue&& other) = default;
 
 mechanism_catalogue::mechanism_catalogue(const mechanism_catalogue& other):
-    state_(new catalogue_state(*other.state_))
+    state_(std::make_unique<catalogue_state>(*other.state_))
 {}
 
 mechanism_catalogue& mechanism_catalogue::operator=(const mechanism_catalogue& other) {
     if (this != &other) {
-        state_.reset(new catalogue_state(*other.state_));
+        state_ = std::make_unique<catalogue_state>(*other.state_);
     }
     return *this;
 }

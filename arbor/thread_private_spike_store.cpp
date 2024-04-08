@@ -21,7 +21,7 @@ thread_private_spike_store::thread_private_spike_store(thread_private_spike_stor
 {}
 
 thread_private_spike_store::thread_private_spike_store(const task_system_handle& ts):
-    impl_(new local_spike_store_type(ts))
+    impl_(std::make_unique<local_spike_store_type>(ts))
 {}
 
 thread_private_spike_store::~thread_private_spike_store() = default;

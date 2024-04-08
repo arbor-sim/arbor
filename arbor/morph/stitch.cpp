@@ -9,7 +9,6 @@
 #include <arbor/morph/region.hpp>
 
 #include "util/ordered_forest.hpp"
-#include "util/maputil.hpp"
 #include "util/meta.hpp"
 #include "util/rangeutil.hpp"
 #include "util/transform.hpp"
@@ -113,7 +112,7 @@ struct stitch_builder_impl {
     }
 };
 
-stitch_builder::stitch_builder(): impl_(new stitch_builder_impl) {}
+stitch_builder::stitch_builder(): impl_(std::make_unique<stitch_builder_impl>()) {}
 
 stitch_builder::stitch_builder(stitch_builder&&) = default;
 stitch_builder& stitch_builder::operator=(stitch_builder&&) = default;
@@ -159,11 +158,11 @@ struct stitched_morphology_impl {
 };
 
 stitched_morphology::stitched_morphology(stitch_builder&& builder):
-    impl_(new stitched_morphology_impl(std::move(*builder.impl_)))
+    impl_(std::make_unique<stitched_morphology_impl>(std::move(*builder.impl_)))
 {}
 
 stitched_morphology::stitched_morphology(const stitch_builder& builder):
-    impl_(new stitched_morphology_impl(*builder.impl_))
+    impl_(std::make_unique<stitched_morphology_impl>(*builder.impl_))
 {}
 
 stitched_morphology::stitched_morphology(stitched_morphology&& other) = default;

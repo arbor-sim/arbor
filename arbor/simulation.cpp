@@ -568,7 +568,7 @@ simulation::simulation(
     const domain_decomposition& decomp,
     arb_seed_type seed)
 {
-    impl_.reset(new simulation_state(rec, decomp, ctx, seed));
+    impl_ = std::make_unique<simulation_state>(rec, decomp, ctx, seed);
 }
 
 void simulation::reset() {
