@@ -154,8 +154,8 @@ void register_network(py::module& m) {
             return generate_network_connections(rec_shim, ctx->context, decomp.value());
         },
         "recipe"_a,
-        pybind11::arg_v("context", pybind11::none(), "Execution context"),
-        pybind11::arg_v("decomp", pybind11::none(), "Domain decomposition"),
+        "context"_a = pybind11::none(),
+        "decomp"_a = pybind11::none(),
         "Generate network connections from the network description in the recipe. Will only "
         "generate connections with local gids in the domain composition as target.");
 }
