@@ -12,17 +12,7 @@
     #define PROFILE_ZONE(name) ZoneScopedN(name)
 #endif
 
-    #define PE(name)
-    #define PL()
-
 #else
-
     #define DECLARE_THREAD(id)
-
     #define PROFILE_ZONE(name)
-
-    #define PE(name)
-    #define PL()
-
-
 #endif
