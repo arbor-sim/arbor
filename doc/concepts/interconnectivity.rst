@@ -195,11 +195,11 @@ Network Selection Expressions
 
     A chain of connections between cells in reverse of the given order of the gid-range, such that entry "i+1" is the source and entry "i" the target.
 
-.. label:: (random p:real)
+.. label:: (random seed:integer p:real)
 
     A random selection of connections, where each connection is selected with the given probability.
 
-.. label:: (random p:network-value)
+.. label:: (random seed:integer p:network-value)
 
     A random selection of connections, where each connection is selected with the given probability expression.
 
