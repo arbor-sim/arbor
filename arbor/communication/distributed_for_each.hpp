@@ -110,7 +110,7 @@ void distributed_for_each(FUNC&& func,
             arg_tuple,
             ranges);
 
-        for (std::size_t step = 0; step < distributed.size(); ++step) { std::apply(func, ranges); }
+        for (int step = 0; step < distributed.size(); ++step) { std::apply(func, ranges); }
         return;
     }
 
