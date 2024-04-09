@@ -143,6 +143,7 @@ void communicator::update_connections(const recipe& rec,
     auto target_resolver = resolver(&target_resolution_map);
     for (const auto index: util::make_span(num_local_cells_)) {
         const auto tgt_gid = gids[index];
+        const auto iod = dom_dec.index_on_domain(tgt_gid);
         auto source_resolver = resolver(&source_resolution_map);
         for (const auto cidx: util::make_span(part_connections[index], part_connections[index+1])) {
             const auto& conn = gid_connections[cidx];
@@ -152,11 +153,7 @@ void communicator::update_connections(const recipe& rec,
             auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
             auto offset  = offsets[*src_domain]++;
             ++src_domain;
-            connections[offset] = {{src_gid, src_lid},
-                tgt_lid,
-                conn.weight,
-                conn.delay,
-                dom_dec.index_on_domain(tgt_gid)};
+            connections[offset] = {{src_gid, src_lid}, tgt_lid, conn.weight, conn.delay, iod};
         }
         for (const auto cidx: util::make_span(part_ext_connections[index], part_ext_connections[index+1])) {
             const auto& conn = gid_ext_connections[cidx];
@@ -164,8 +161,7 @@ void communicator::update_connections(const recipe& rec,
             auto src_gid = conn.source.rid;
             if(is_external(src_gid)) throw arb::source_gid_exceeds_limit(tgt_gid, src_gid);
             auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
-            ext_connections[ext] = {
-                src, tgt_lid, conn.weight, conn.delay, dom_dec.index_on_domain(tgt_gid)};
+            ext_connections[ext] = {src, tgt_lid, conn.weight, conn.delay, iod};
             ++ext;
         }
     }
