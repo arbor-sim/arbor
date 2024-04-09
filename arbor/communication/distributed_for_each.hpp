@@ -41,13 +41,17 @@ void for_each_in_tuple_pair(FUNC&& func, std::tuple<T1...>& t1, std::tuple<T2...
 }  // namespace impl
 
 
-
 /*
- * Iterate through multiple ranges from each distributed rank. Only usable with trvially copyable value types.
- * The provided function objects is expected to be callable with the following signature:
- * (const util::range<util::range<ARGS>::value_type*>&...) -> void
- * Given 'n' distributed ranks, the function will be called 'n' times with data from each rank.
- * There is no guaranteed order.
+ * Collective operation, calling func on args supplied by each rank exactly once. The order of calls
+ * is unspecified. Requires
+ *
+ *  - Item = util::range<ARGS>::value_type to be identical across all ranks
+ *  - Item is trivially_copyable
+ *  - Alignment of Item must not exceed std::max_align_t
+ *  - func to be a callable type with signature
+ *    void func(util::range<Item*>...)
+ *  - func must not modify contents of range
+ *  - All ranks in distributed must call this collectively.
  */
 template <typename FUNC, typename... ARGS>
 void distributed_for_each(FUNC&& func,
