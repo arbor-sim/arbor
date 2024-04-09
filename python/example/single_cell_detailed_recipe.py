@@ -15,10 +15,10 @@ if len(sys.argv) == 1:
 elif len(sys.argv) == 2:
     filename = Path(sys.argv[1])
 else:
-    print("Usage: single_cell_detailed.py [SWC file name]")
+    print("Usage: single_cell_detailed_recipe.py [SWC file name]")
     sys.exit(1)
 
-morph = A.load_swc_arbor(filename)
+lmrf = A.load_swc_arbor(filename)
 
 # (2) Create and populate the label dictionary.
 labels = A.label_dict(
@@ -39,7 +39,8 @@ labels = A.label_dict(
         # Add a label for the terminal locations in the "axon" region:
         "axon_terminal": '(restrict-to (locset "terminal") (region "axon"))',
     }
-).add_swc_tags()  # Add SWC pre-defined regions
+)
+labels.append(lmrf.labels)
 
 # (3) Create and populate the decor.
 decor = (
@@ -72,7 +73,7 @@ decor = (
 
 
 # (4) Create the cell.
-cell = A.cable_cell(morph, decor, labels)
+cell = A.cable_cell(lmrf.morphology, decor, labels)
 
 
 # (5) Create a class that inherits from A.recipe

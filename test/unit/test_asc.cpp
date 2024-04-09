@@ -16,7 +16,7 @@ TEST(asc, file_not_found) {
 
 // Declare the implementation of the parser that takes a string input
 namespace arborio {
-asc_morphology parse_asc_string(const char* input);
+loaded_morphology parse_asc_string(const char* input);
 }
 
 // Test different forms of empty files.
@@ -298,5 +298,70 @@ TEST(asc, soma_connection) {
         EXPECT_EQ(m.branch_segments(5)[0].prox, (arb::mpoint{0,-2, 0, 1}));
         EXPECT_EQ(m.branch_segments(6)[0].prox, (arb::mpoint{0,-5, 0, 1}));
         EXPECT_EQ(m.branch_segments(7)[0].prox, (arb::mpoint{0,-5, 0, 1}));
+    }
+}
+
+// Soma composed of 2 branches, and a dendrite with a bit more interesting branching.
+const char *asc_w_spines_and_markers ="((CellBody)\n"
+" (0 0 0 4)\n"
+" <(11 12 13 14 S1)>\n"
+" (Cross (Color Black) (Name \"M1\") (0 0 0 1) (0 0 1 1))\n"                                        
+")\n"
+"((Dendrite)\n"
+" (0 2 0 2)\n"
+" (0 5 0 2)\n"
+" (Dot (Color Black) (Name \"M2\") (0 0 0 1))\n"
+" <(1 2 3 4 S2)>\n"
+" (\n"
+"  (-5 5 0 2)\n"
+"  (\n"
+"   (-5 5 0 2)\n"
+"   |\n"
+"   (6 5 0 2)\n"
+"  )\n"
+"  |\n"
+"  (6 5 0 2)\n"
+" )\n"
+" )";
+
+TEST(asc, spine) {
+    {
+        auto result = arborio::parse_asc_string(asc_w_spines_and_markers);
+        const auto& m = result.morphology;
+        EXPECT_EQ(m.num_branches(), 7u);
+        // Test soma
+        EXPECT_EQ(m.branch_segments(0)[0].prox, (arb::mpoint{0, 0, 0, 2}));
+        EXPECT_EQ(m.branch_segments(0)[0].dist, (arb::mpoint{0,-2, 0, 2}));
+        EXPECT_EQ(m.branch_segments(1)[0].prox, (arb::mpoint{0, 0, 0, 2}));
+        EXPECT_EQ(m.branch_segments(1)[0].dist, (arb::mpoint{0, 2, 0, 2}));
+        // Test dendrite proximal ends
+        EXPECT_EQ(m.branch_segments(2)[0].prox, (arb::mpoint{ 0, 2, 0, 1}));
+        EXPECT_EQ(m.branch_segments(3)[0].prox, (arb::mpoint{ 0, 5, 0, 1}));
+        EXPECT_EQ(m.branch_segments(4)[0].prox, (arb::mpoint{-5, 5, 0, 1}));
+        EXPECT_EQ(m.branch_segments(5)[0].prox, (arb::mpoint{-5, 5, 0, 1}));
+        EXPECT_EQ(m.branch_segments(6)[0].prox, (arb::mpoint{ 0, 5, 0, 1}));
+        // Now check metadata
+        auto d = std::get<arborio::asc_metadata>(result.metadata);
+        EXPECT_EQ(d.spines.size(), 2);
+        EXPECT_EQ(d.spines[0].location.x, 11);
+        EXPECT_EQ(d.spines[0].location.y, 12);
+        EXPECT_EQ(d.spines[0].location.z, 13);
+        EXPECT_EQ(d.spines[0].location.radius, 7);
+        EXPECT_EQ(d.spines[0].name, "S1");
+        
+        EXPECT_EQ(d.spines[1].location.x, 1);
+        EXPECT_EQ(d.spines[1].location.y, 2);
+        EXPECT_EQ(d.spines[1].location.z, 3);
+        EXPECT_EQ(d.spines[1].location.radius, 2);
+        EXPECT_EQ(d.spines[1].name, "S2");
+
+        EXPECT_EQ(d.markers.size(), 2);
+        EXPECT_EQ(d.markers[0].locations.size(), 2);
+        EXPECT_EQ(d.markers[0].name, "M1");
+        EXPECT_EQ(d.markers[0].marker, arborio::asc_marker::cross);
+
+        EXPECT_EQ(d.markers[1].locations.size(), 1);
+        EXPECT_EQ(d.markers[1].name, "M2");
+        EXPECT_EQ(d.markers[1].marker, arborio::asc_marker::dot);
     }
 }

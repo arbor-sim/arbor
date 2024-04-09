@@ -61,8 +61,7 @@ else:
     print("Usage: single_cell_detailed.py [SWC file name]")
     sys.exit(1)
 
-# define morphology (needed for ``A.place_pwlin`` and ``A.cable_cell`` below)
-morphology = A.load_swc_arbor(filename)
+morphology = A.load_swc_arbor(filename).morphology
 
 # define a location on morphology for current clamp
 clamp_location = A.location(4, 1 / 6)

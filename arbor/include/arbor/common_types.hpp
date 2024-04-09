@@ -151,14 +151,16 @@ using time_type = double;
 constexpr time_type terminal_time = std::numeric_limits<time_type>::max();
 
 // For holding counts and indexes into generated sample data.
-
-using sample_size_type = std::int32_t;
+using sample_index_type = std::int32_t;
+using sample_size_type  = std::uint32_t;
 
 // Enumeration for execution back-end targets, as specified in domain decompositions.
-
+// NOTE(important): Given in order of priority, ie we will attempt schedule gpu before
+//                  MC groups, for reasons of effiency. Ugly, but as we do not have more
+//                  backends, this is OK for now.
 enum class backend_kind {
+    gpu,         //  Use gpu back-end when supported by cell_group implementation.
     multicore,   //  Use multicore back-end for all computation.
-    gpu          //  Use gpu back-end when supported by cell_group implementation.
 };
 
 // Enumeration used to indentify the cell type/kind, used by the model to

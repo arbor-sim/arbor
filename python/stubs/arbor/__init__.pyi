@@ -5,7 +5,11 @@ from arbor._arbor import MechCatItemIterator
 from arbor._arbor import MechCatKeyIterator
 from arbor._arbor import MechCatValueIterator
 from arbor._arbor import allen_catalogue
-from arbor._arbor import asc_morphology
+from arbor._arbor import asc_color
+from arbor._arbor import asc_marker
+from arbor._arbor import asc_marker_set
+from arbor._arbor import asc_metadata
+from arbor._arbor import asc_spine
 from arbor._arbor import axial_resistivity
 from arbor._arbor import backend
 from arbor._arbor import bbp_catalogue
@@ -81,6 +85,7 @@ from arbor._arbor import load_catalogue
 from arbor._arbor import load_component
 from arbor._arbor import load_swc_arbor
 from arbor._arbor import load_swc_neuron
+from arbor._arbor import loaded_morphology
 from arbor._arbor import location
 from arbor._arbor import mechanism
 from arbor._arbor import mechanism_field
@@ -94,8 +99,8 @@ from arbor._arbor import morphology_provider
 from arbor._arbor import mpoint
 from arbor._arbor import msegment
 from arbor._arbor import neuroml
-from arbor._arbor import neuroml_morph_data
 from arbor._arbor import neuron_cable_properties
+from arbor._arbor import nml_metadata
 from arbor._arbor import partition_by_group
 from arbor._arbor import partition_hint
 from arbor._arbor import partition_load_balance
@@ -118,6 +123,7 @@ from arbor._arbor import spike
 from arbor._arbor import spike_recording
 from arbor._arbor import spike_source_cell
 from arbor._arbor import stochastic_catalogue
+from arbor._arbor import swc_metadata
 from arbor._arbor import synapse
 from arbor._arbor import temperature
 from arbor._arbor import threshold_detector
@@ -134,7 +140,11 @@ __all__ = [
     "MechCatKeyIterator",
     "MechCatValueIterator",
     "allen_catalogue",
-    "asc_morphology",
+    "asc_color",
+    "asc_marker",
+    "asc_marker_set",
+    "asc_metadata",
+    "asc_spine",
     "axial_resistivity",
     "backend",
     "bbp_catalogue",
@@ -211,6 +221,7 @@ __all__ = [
     "load_component",
     "load_swc_arbor",
     "load_swc_neuron",
+    "loaded_morphology",
     "location",
     "mechanism",
     "mechanism_field",
@@ -226,8 +237,8 @@ __all__ = [
     "mpoint",
     "msegment",
     "neuroml",
-    "neuroml_morph_data",
     "neuron_cable_properties",
+    "nml_metadata",
     "partition_by_group",
     "partition_hint",
     "partition_load_balance",
@@ -250,6 +261,7 @@ __all__ = [
     "spike_recording",
     "spike_source_cell",
     "stochastic_catalogue",
+    "swc_metadata",
     "synapse",
     "temperature",
     "threshold_detector",
@@ -271,17 +283,17 @@ __config__: dict = {
     "neuroml": True,
     "bundled": True,
     "version": "0.9.1-dev",
-    "source": "2023-12-08T14:40:50+01:00 327c56d229571dac097e7400a9b5e04fc8d7a514 modified",
+    "source": "2024-03-01T14:59:23+01:00 dcdfe101f389cb4854ac3d0a067feeb280600c88 modified",
     "build_config": "DEBUG",
     "arch": "native",
     "prefix": "/usr/local",
-    "python_lib_path": "/opt/homebrew/lib/python3.11/site-packages",
+    "python_lib_path": "/usr/local/lib/python3.12/site-packages",
     "binary_path": "bin",
     "lib_path": "lib",
     "data_path": "share",
     "CXX": "/opt/homebrew/bin/clang++",
     "pybind-version": "2.11.1",
-    "timestamp": "Jan  2 2024 09:57:33",
+    "timestamp": "Mar  4 2024 20:56:20",
 }
 __version__: str = "0.9.1-dev"
 mnpos: int = 4294967295

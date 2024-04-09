@@ -25,6 +25,8 @@ using namespace arb;
 
 using n_cable_cell_recipe = homogeneous_recipe<cell_kind::cable, cable_cell>;
 
+constexpr time_type ev_delta_t = 0.2;
+
 struct test_recipe: public n_cable_cell_recipe {
     explicit test_recipe(int n): n_cable_cell_recipe(n, test_cell()) {}
 
@@ -42,6 +44,10 @@ struct test_recipe: public n_cable_cell_recipe {
         cable_cell c(st, decorations, labels);
 
         return c;
+    }
+
+    std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
+        return {arb::explicit_generator_from_milliseconds({"synapse"}, 1.0f, std::vector{gid*ev_delta_t})};
     }
 };
 
@@ -66,14 +72,6 @@ std::vector<cell_gid_type> run_test_sim(const recipe& R, const group_gids_type& 
                 spikes.insert(spikes.end(), ss.begin(), ss.end());
             });
 
-    constexpr time_type ev_delta_t = 0.2;
-
-    cse_vector cell_events;
-    for (unsigned i = 0; i<n; ++i) {
-        cell_events.push_back({i, {{0u, i*ev_delta_t, 1.f}}});
-    }
-
-    sim.inject_events(cell_events);
     sim.run((n+1)*ev_delta_t*arb::units::ms, 0.01*arb::units::ms);
 
     std::vector<cell_gid_type> spike_gids;

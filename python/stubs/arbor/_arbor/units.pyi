@@ -1,6 +1,7 @@
 """
 Units and quantities for driving the user interface.
 """
+
 from __future__ import annotations
 import typing
 
@@ -78,12 +79,14 @@ class quantity:
         """
         Convert quantity to string.
         """
+
     def __rmul__(self, arg0: float) -> quantity: ...
     def __rtruediv__(self, arg0: float) -> quantity: ...
     def __str__(self) -> str:
         """
         Convert quantity to string.
         """
+
     def __sub__(self, arg0: quantity) -> quantity: ...
     @typing.overload
     def __truediv__(self, arg0: quantity) -> quantity: ...
@@ -95,11 +98,13 @@ class quantity:
         """
         Convert quantity to given unit and return magnitude.
         """
+
     @property
     def units(self) -> unit:
         """
         Return units.
         """
+
     @property
     def value(self) -> float:
         """
@@ -123,12 +128,14 @@ class unit:
         """
         Convert unit to string.
         """
+
     def __rmul__(self, arg0: float) -> quantity: ...
     def __rtruediv__(self, arg0: float) -> quantity: ...
     def __str__(self) -> str:
         """
         Convert unit to string.
         """
+
     @typing.overload
     def __truediv__(self, arg0: unit) -> unit: ...
     @typing.overload
@@ -159,22 +166,22 @@ mM: unit  # value = umol/L
 mS: unit  # value = mS
 mV: unit  # value = mV
 mega: unit  # value = 1000000
-micro: unit  # value = 9.99999997475242708e-07
-milli: unit  # value = 0.00100000004749745131
+micro: unit  # value = 9.99999999999999955e-07
+milli: unit  # value = 0.00100000000000000002
 mm: unit  # value = mm
 mm2: unit  # value = mm^2
 mol: unit  # value = mol
 ms: unit  # value = ms
 nA: unit  # value = nA
 nF: unit  # value = nF
-nano: unit  # value = 9.99999971718068537e-10
+nano: unit  # value = 1e-09
 nil: unit  # value =
 nm: unit  # value = nm
 nm2: unit  # value = nm^2
 ns: unit  # value = ns
 pA: unit  # value = pA
 pF: unit  # value = pF
-pico: unit  # value = 9.999999960041972e-13
+pico: unit  # value = 10e-13
 rad: unit  # value = rad
 s: unit  # value = s
 uA: unit  # value = uA

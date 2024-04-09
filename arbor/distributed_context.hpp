@@ -101,10 +101,6 @@ public:
         return impl_->gather_gids(local_gids);
     }
 
-    gj_connection_vector gather_gj_connections(const gj_connection_vector& local_connections) const {
-        return impl_->gather_gj_connections(local_connections);
-    }
-
     cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
         return impl_->gather_cell_label_range(local_ranges);
     }
@@ -167,8 +163,6 @@ private:
         remote_gather_spikes(const spike_vector& local_spikes) const = 0;
         virtual gathered_vector<cell_gid_type>
         gather_gids(const gid_vector& local_gids) const = 0;
-        virtual gj_connection_vector
-        gather_gj_connections(const gj_connection_vector& local_connections) const = 0;
         virtual cell_label_range
         gather_cell_label_range(const cell_label_range& local_ranges) const = 0;
         virtual cell_labels_and_gids
@@ -210,10 +204,6 @@ private:
         gathered_vector<cell_gid_type>
         gather_gids(const gid_vector& local_gids) const override {
             return wrapped.gather_gids(local_gids);
-        }
-        std::vector<std::vector<cell_gid_type>>
-        gather_gj_connections(const gj_connection_vector& local_connections) const override {
-            return wrapped.gather_gj_connections(local_connections);
         }
         cell_label_range
         gather_cell_label_range(const cell_label_range& local_ranges) const override {
@@ -284,10 +274,6 @@ struct local_context {
     }
     void remote_ctrl_send_continue(const epoch&) const {}
     void remote_ctrl_send_done() const {}
-    std::vector<std::vector<cell_gid_type>>
-    gather_gj_connections(const std::vector<std::vector<cell_gid_type>>& local_connections) const {
-        return local_connections;
-    }
     cell_label_range
     gather_cell_label_range(const cell_label_range& local_ranges) const {
         return local_ranges;

@@ -4,7 +4,6 @@ import arbor as A
 from arbor import units as U
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
 
 # Construct chains of cells linked with gap junctions,
 # Chains are connected by synapses.
@@ -158,5 +157,6 @@ for gid in range(ncells):
     )
 
 df = pd.concat(df_list, ignore_index=True)
-sns.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", errorbar=None)
-plt.show()
+sns.relplot(
+    data=df, kind="line", x="t/ms", y="U/mV", hue="Cell", errorbar=None
+).savefig("gap_junctions.svg")

@@ -40,8 +40,9 @@ namespace detail {
 template <typename T>
 inline constexpr std::size_t internal_hash(T&& data) {
     using D = std::decay_t<T>;
-    constexpr std::size_t prime = 0x100000001b3;
-    constexpr std::size_t offset_basis = 0xcbf29ce484222325;
+    // Due to constexpr if we might never use these.
+    [[maybe_unused]] constexpr std::size_t prime = 0x100000001b3;
+    [[maybe_unused]] constexpr std::size_t offset_basis = 0xcbf29ce484222325;
     static_assert(!std::is_pointer_v<D> || std::is_same_v<D, void*> || std::is_convertible_v<T, std::string_view>,
                   "Pointer types except void* will not be hashed.");
     if constexpr (std::is_convertible_v<T, std::string_view>) {
