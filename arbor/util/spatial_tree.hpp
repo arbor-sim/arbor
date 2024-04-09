@@ -97,7 +97,7 @@ public:
     spatial_tree &operator=(const spatial_tree &) = default;
 
     spatial_tree &operator=(spatial_tree &&t) noexcept(
-        noexcept(std::swap(data_, t.data_)) &&
+        noexcept(std::swap(this->data_, t.data_)) &&
         std::is_nothrow_default_constructible_v<point_type> &&
         std::is_nothrow_move_assignable_v<point_type>) {
 
