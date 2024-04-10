@@ -43,7 +43,7 @@ public:
         if (leaf_d.empty()) return;
 
         min_.fill(std::numeric_limits<double>::max());
-        max_.fill(-std::numeric_limits<double>::max());
+        max_.fill(std::numeric_limits<double>::lowest());
 
         for (const auto &d: leaf_d) {
             const auto p = location(d);
