@@ -468,7 +468,7 @@ iexpr_ptr thingify(const iexpr& expr, const mprovider& m) {
     case iexpr_type::distance: {
         const auto& [scale, var] = std::any_cast<const std::tuple<double, std::variant<locset, region>>&>(expr.args());
         return std::visit(
-            [&](auto&& arg) {
+            [&, scale=scale, var=var](auto&& arg) {
                 return std::make_shared<iexpr_impl::distance>(scale, thingify(arg, m));
             },
             var);
@@ -476,7 +476,7 @@ iexpr_ptr thingify(const iexpr& expr, const mprovider& m) {
     case iexpr_type::proximal_distance: {
         const auto& [scale, var] = std::any_cast<const std::tuple<double, std::variant<locset, region>>&>(expr.args());
         return std::visit(
-            [&](auto&& arg) {
+            [&, scale=scale, var=var](auto&& arg) {
                 return std::make_shared<iexpr_impl::proximal_distance>(scale, thingify(arg, m));
             },
             var);
@@ -484,7 +484,7 @@ iexpr_ptr thingify(const iexpr& expr, const mprovider& m) {
     case iexpr_type::distal_distance: {
         const auto& [scale, var] = std::any_cast<const std::tuple<double, std::variant<locset, region>>&>(expr.args());
         return std::visit(
-            [&](auto&& arg) { return std::make_shared<iexpr_impl::distal_distance>(scale, thingify(arg, m)); },
+            [&, scale=scale, var=var](auto&& arg) { return std::make_shared<iexpr_impl::distal_distance>(scale, thingify(arg, m)); },
             var);
     }
     case iexpr_type::interpolation: {

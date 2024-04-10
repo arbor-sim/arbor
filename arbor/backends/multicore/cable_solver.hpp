@@ -68,6 +68,7 @@ struct cable_solver {
     // * will likewise overwrite the first argument with the solction
     template<typename T>
     void solve(T& rhs, const value_type dt, const_view current, const_view conductivity) {
+        PROFILE_ZONE();
         value_type * const ARB_NO_ALIAS d_ = d.data();
         value_type * const ARB_NO_ALIAS r_ = rhs.data();
 

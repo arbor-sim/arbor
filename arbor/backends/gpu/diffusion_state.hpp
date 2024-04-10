@@ -15,6 +15,7 @@
 #include "diffusion.hpp"
 #include "forest.hpp"
 #include "fine.hpp"
+#include "profile/profiler_macro.hpp"
 
 namespace arb {
 namespace gpu {
@@ -402,6 +403,7 @@ public:
     //   current density [A/m²]
     //   conductivity [kS/m²]
     void assemble(const value_type dt, const_view concentration, const_view voltage, const_view current, const_view conductivity, arb_value_type q) {
+        PROFILE_ZONE();
         assemble_diffusion(d.data(),
                            rhs.data(),
                            invariant_d.data(),
@@ -417,6 +419,7 @@ public:
     }
 
     void solve(array& to) {
+        PROFILE_ZONE();
         solve_diffusion(rhs.data(),
                         d.data(),
                         u.data(),
@@ -438,6 +441,7 @@ public:
                const_view current,
                const_view conductivity,
                arb_value_type q) {
+        PROFILE_ZONE();
         assemble(dt, concentration, voltage, current, conductivity, q);
         solve(concentration);
     }

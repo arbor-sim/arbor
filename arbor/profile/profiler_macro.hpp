@@ -13,10 +13,12 @@
     #define PROFILE_NAMED_ZONE(name) ZoneScopedN(name)
 #endif
    #define ANNOTATE_ZONE(tag, len) ZoneText(tag, len)
+   #define PROFILE_END_EPOCH() FrameMark
 #else // No profiling
     #define PROFILE_ZONE()
     #define PROFILE_NAMED_ZONE(name)
-   #define ANNOTATE_ZONE(tag, len)
+    #define ANNOTATE_ZONE(tag, len)
+    #define PROFILE_END_EPOCH()
 #endif
 
 inline

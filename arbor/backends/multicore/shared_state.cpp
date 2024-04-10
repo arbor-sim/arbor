@@ -24,6 +24,7 @@
 #include "util/maputil.hpp"
 #include "util/range.hpp"
 #include "util/strprintf.hpp"
+#include "profile/profiler_macro.hpp"
 
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
@@ -152,6 +153,7 @@ void istim_state::reset() {
 }
 
 void istim_state::add_current(const arb_value_type time, array& current_density) {
+    PROFILE_ZONE();
     constexpr double two_pi = 2*math::pi<double>;
 
     // Consider vectorizing...
@@ -233,6 +235,7 @@ shared_state::shared_state(task_system_handle,    // ignored in mc backend
 }
 
 void shared_state::reset() {
+    PROFILE_ZONE();
     std::copy(init_voltage.begin(), init_voltage.end(), voltage.begin());
     util::zero(current_density);
     util::zero(conductivity);
@@ -247,6 +250,7 @@ void shared_state::reset() {
 }
 
 void shared_state::zero_currents() {
+    PROFILE_ZONE();
     util::zero(current_density);
     util::zero(conductivity);
     for (auto& [i_, d]: ion_data) d.zero_current();
@@ -258,6 +262,7 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
 }
 
 void shared_state::take_samples() {
+    PROFILE_ZONE();
     sample_events.mark();
     if (!sample_events.empty()) {
         const auto [begin, end] = sample_events.marked_events();
@@ -330,6 +335,7 @@ std::size_t extend_width(const arb::mechanism& mech, std::size_t width) {
 } // anonymous namespace
 
 void shared_state::update_prng_state(mechanism& m) {
+    PROFILE_ZONE();
     if (!m.mech_.n_random_variables) return;
     const auto mech_id = m.mechanism_id();
     auto& store = storage[mech_id];
@@ -375,6 +381,8 @@ void shared_state::instantiate(arb::mechanism& m,
                                const mechanism_overrides& overrides,
                                const mechanism_layout& pos_data,
                                const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
+    PROFILE_ZONE();
+    ANNOTATE_ZONE(m.mech_.name, strlen(m.mech_.name));
     // Mechanism indices and data require:
     // * an alignment that is a multiple of the mechansim data_alignment();
     // * a size which is a multiple of partition_width() for SIMD access.

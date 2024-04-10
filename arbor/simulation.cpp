@@ -404,7 +404,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
     // Update task: advance cell groups to end of current epoch and store spikes in local_spikes_.
     auto update = [this, dt](epoch current) {
-        PROFILE_NAMED_ZONE("epoch");
+        PROFILE_NAMED_ZONE("update");
         local_spikes(current.id).clear();
         foreach_group_index(
             [&](cell_group_ptr& group, int i) {
@@ -482,10 +482,12 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     if (epoch_callback_) epoch_callback_(current.t0, tfinal);
 
     if (next.empty()) {
+        PROFILE_NAMED_ZONE("final epoch");
         enqueue(current);
         update(current);
         exchange(current);
         if (epoch_callback_) epoch_callback_(current.t1, tfinal);
+        PROFILE_END_EPOCH();
     }
     else {
         enqueue(current);
@@ -496,6 +498,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         if (epoch_callback_) epoch_callback_(current.t1, tfinal);
 
         for (;;) {
+            PROFILE_NAMED_ZONE("epoch");
             prev = current;
             current = next;
             next = next_epoch(next, t_interval_);
@@ -505,6 +508,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
             g.run([&]() { update(current); });
             g.wait();
             if (epoch_callback_) epoch_callback_(current.t1, tfinal);
+            FrameMark;
         }
 
         g.run([&]() { exchange(prev); });
@@ -513,6 +517,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
         exchange(current);
         if (epoch_callback_) epoch_callback_(current.t1, tfinal);
+        PROFILE_END_EPOCH();
     }
 
     // Record current epoch for next run() invocation.

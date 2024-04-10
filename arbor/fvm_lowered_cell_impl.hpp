@@ -177,7 +177,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     state_->begin_epoch(staged_events_per_mech_id, staged_samples, dts);
 
     // loop over timesteps
-    for (const auto& ts : dts) {
+    for (const auto& ts: dts) {
+        PROFILE_NAMED_ZONE("dt");
         state_->update_time_to(ts);
         arb_assert(state_->time == ts.t_begin());
 

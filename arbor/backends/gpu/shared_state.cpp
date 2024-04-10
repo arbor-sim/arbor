@@ -21,6 +21,7 @@
 #include "util/meta.hpp"
 #include "util/range.hpp"
 #include "util/strprintf.hpp"
+#include "profile/profiler_macro.hpp"
 
 #include <iostream>
 
@@ -161,6 +162,7 @@ void istim_state::reset() {
 }
 
 void istim_state::add_current(const arb_value_type time, array& current_density) {
+    PROFILE_ZONE();
     ppack_.time = time;
     ppack_.current_density = current_density.data();
     istim_add_current_impl((int)size(), ppack_);
@@ -202,6 +204,7 @@ shared_state::shared_state(task_system_handle tp,
 }
 
 void shared_state::update_prng_state(mechanism& m) {
+    PROFILE_ZONE();
     if (!m.mech_.n_random_variables) return;
     auto const mech_id = m.mechanism_id();
     auto& store = storage[mech_id];
@@ -213,6 +216,8 @@ void shared_state::instantiate(mechanism& m,
                                const mechanism_overrides& overrides,
                                const mechanism_layout& pos_data,
                                const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
+    PROFILE_ZONE();
+    ANNOTATE_ZONE(m.mech_.name, strlen(m.mech_.name));
     assert(m.iface_.backend == arb_backend_kind_gpu);
     using util::make_range;
     using util::make_span;
@@ -355,6 +360,7 @@ void shared_state::instantiate(mechanism& m,
 }
 
 void shared_state::reset() {
+    PROFILE_ZONE();
     memory::copy(init_voltage, voltage);
     memory::fill(current_density, 0);
     memory::fill(conductivity, 0);
@@ -369,6 +375,7 @@ void shared_state::reset() {
 }
 
 void shared_state::zero_currents() {
+    PROFILE_ZONE();
     memory::fill(current_density, 0);
     memory::fill(conductivity, 0);
     for (auto& i: ion_data) {
@@ -382,6 +389,7 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
 }
 
 void shared_state::take_samples() {
+    PROFILE_ZONE();
     sample_events.mark();
     if (!sample_events.empty()) {
         const auto state = sample_events.marked_events();

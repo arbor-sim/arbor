@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstring>
-
 #include <vector>
 #include <type_traits>
 
@@ -15,6 +14,7 @@
 #include "fine.hpp"
 #include "matrix_fine.hpp"
 #include "forest.hpp"
+#include "profile/profiler_macro.hpp"
 
 namespace arb {
 namespace gpu {
@@ -409,6 +409,7 @@ public:
     //   current density [A/m²]
     //   conductivity [kS/m²]
     void assemble(const T dt, const_view voltage, const_view current, const_view conductivity) {
+        PROFILE_ZONE();
         assemble_matrix_fine(
             d.data(),
             rhs.data(),
@@ -424,6 +425,7 @@ public:
     }
 
     void solve(array& to) {
+        PROFILE_ZONE();
         solve_matrix_fine(rhs.data(),
                           d.data(),
                           u.data(),
@@ -450,6 +452,7 @@ public:
 
 private:
     void flat_to_packed(const array& from, array& to ) {
+        PROFILE_ZONE();
         arb_assert(from.size()==matrix_size);
         arb_assert(to.size()==data_size);
 
@@ -457,6 +460,7 @@ private:
     }
 
     void packed_to_flat(const array& from, array& to ) {
+        PROFILE_ZONE();
         arb_assert(from.size()==data_size);
         arb_assert(to.size()==matrix_size);
 

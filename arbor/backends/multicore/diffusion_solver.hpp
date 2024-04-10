@@ -6,6 +6,7 @@
 #include <memory/memory.hpp>
 
 #include "multicore_common.hpp"
+#include "profile/profiler_macro.hpp"
 
 namespace arb {
 namespace multicore {
@@ -77,6 +78,7 @@ struct diffusion_solver {
                const_view current,
                const_view conductivity,
                arb_value_type q) {
+        PROFILE_ZONE();
         auto cell_cv_part = util::partition_view(cell_cv_divs);
         index_type ncells = cell_cv_part.size();
         // loop over submatrices
@@ -101,6 +103,7 @@ struct diffusion_solver {
     // Separate solver; analoguos with cable solver
     template<typename T>
     void solve(T& rhs) {
+        PROFILE_ZONE();
         // loop over submatrices
         for (const auto& [first, last]: util::partition_view(cell_cv_divs)) {
             if (first >= last) continue; // skip cell with no CVs
