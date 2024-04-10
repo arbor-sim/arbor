@@ -19,7 +19,7 @@
    #define ANNOTATE_ZONE(tag, len)
 #endif
 
-inline constexpr
+inline
 void DECLARE_THREAD(const std::string& tag) {
 #ifdef ARB_HAVE_PROFILING
     tracy::SetThreadName(tag.c_str());
