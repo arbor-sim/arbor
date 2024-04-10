@@ -508,7 +508,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
             g.run([&]() { update(current); });
             g.wait();
             if (epoch_callback_) epoch_callback_(current.t1, tfinal);
-            FrameMark;
+            PROFILE_END_EPOCH();
         }
 
         g.run([&]() { exchange(prev); });
