@@ -7,7 +7,6 @@
 
 #include <cstddef>
 #include <limits>
-#include <optional>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -97,14 +96,15 @@ public:
     spatial_tree &operator=(const spatial_tree &) = default;
 
     spatial_tree &operator=(spatial_tree &&t) noexcept(
-        noexcept(std::swap(this->data_, t.data_)) &&
         std::is_nothrow_default_constructible_v<point_type> &&
-        std::is_nothrow_move_assignable_v<point_type>) {
+        std::is_nothrow_move_assignable_v<point_type> &&
+        std::is_nothrow_default_constructible_v<leaf_data> &&
+        std::is_nothrow_move_assignable_v<decltype(this->data_)>) {
 
-        std::swap(data_, t.data_);
+        data_ = std::move(t.data_);
         size_ = t.size_;
-        min_ = std::move(t.min_);
-        max_ = std::move(t.max_);
+        min_ = t.min_;
+        max_ = t.max_;
         location_ = t.location_;
 
         t.data_ = leaf_data();
