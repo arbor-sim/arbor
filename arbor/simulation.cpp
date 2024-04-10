@@ -42,6 +42,7 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
                                      std::vector<event_generator>& generators,
                                      pse_vector& new_events) {
 
+    new_events.clear();
     old_events = split_sorted_range(old_events, t_from, event_time_less()).second;
 
     if (!generators.empty()) {
