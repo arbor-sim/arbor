@@ -50,10 +50,9 @@ public:
         const std::vector<cell_gid_type>& gids,
         const recipe& rec) override;
 
-    fvm_integration_result integrate(
-        const timestep_range& dts,
-        const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
-        const std::vector<std::vector<sample_event>>& staged_samples) override;
+    fvm_integration_result integrate(const timestep_range& dts,
+                                     const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
+                                     const std::vector<std::vector<sample_event>>& staged_samples) override;
 
     value_type time() const override { return state_->time; }
 
@@ -169,14 +168,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
     const std::vector<std::vector<sample_event>>& staged_samples)
 {
+    PROFILE_ZONE();
     arb_assert(state_->time == dts.t_begin());
     set_gpu();
 
     // Integration setup
-    PE(advance:integrate:setup);
     // Push samples and events down to the state and reset the spike thresholds.
     state_->begin_epoch(staged_events_per_mech_id, staged_samples, dts);
-    PL();
 
     // loop over timesteps
     for (const auto& ts : dts) {
@@ -199,9 +197,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             m->update_current();
         }
 
-        PE(advance:integrate:current:zero);
         state_->zero_currents();
-        PL();
 
         // Deliver events and accumulate mechanism current contributions.
 
@@ -216,19 +212,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Add stimulus current contributions.
         // NOTE: performed after dt, time_to calculation, in case we want to
         // use mean current contributions as opposed to point sample.
-        PE(advance:integrate:stimuli)
         state_->add_stimulus_current();
-        PL();
 
         // Take samples at cell time if sample time in this step interval.
-        PE(advance:integrate:samples);
         state_->take_samples();
-        PL();
 
         // Integrate voltage and diffusion
-        PE(advance:integrate:cable);
         state_->integrate_cable_state();
-        PL();
 
         // Integrate mechanism state for density
         for (auto& m: mechanisms_) {
@@ -237,9 +227,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
 
         // Update ion concentrations.
-        PE(advance:integrate:ionupdate);
         update_ion_state();
-        PL();
 
         // voltage mechs run now; after the cable_solver, but before the
         // threshold test
@@ -252,26 +240,20 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         }
 
         // Update time and test for spike threshold crossings.
-        PE(advance:integrate:threshold);
         state_->test_thresholds();
-        PL();
 
-        PE(advance:integrate:post)
         if (post_events_) {
             for (auto& m: mechanisms_) {
                 m->post_event();
             }
         }
-        PL();
 
         // Advance epoch
         state_->next_time_step();
 
         // Check for non-physical solutions:
         if (check_voltage_mV_) {
-            PE(advance:integrate:physicalcheck);
             assert_voltage_bounded(check_voltage_mV_.value());
-            PL();
         }
     }
 

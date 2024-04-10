@@ -9,12 +9,10 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/mechanism_abi.h>
 #include <arbor/mechinfo.hpp>
-#include <arbor/profile/profiler.hpp>
-#include <arbor/version.hpp>
 
 namespace arb {
 
-class mechanism;
+struct mechanism;
 using mechanism_ptr = std::unique_ptr<mechanism>;
 
 struct ion_state_view {
@@ -25,18 +23,15 @@ struct ion_state_view {
     arb_value_type* ionic_charge;
 };
 
-class mechanism {
-public:
+struct mechanism {
     using value_type = arb_value_type;
     using index_type = arb_index_type;
     using size_type  = arb_size_type;
 
     mechanism(const arb_mechanism_type& m,
-              const arb_mechanism_interface& i): mech_{m}, iface_{i}, ppack_{} {
+              const arb_mechanism_interface& i):
+        mech_{m}, iface_{i}, ppack_{} {
         if (mech_.abi_version != ARB_MECH_ABI_VERSION) throw unsupported_abi_error{mech_.abi_version};
-        state_prof_id   = profile::profiler_region_id("advance:integrate:state:"+internal_name());
-        current_prof_id = profile::profiler_region_id("advance:integrate:current:"+internal_name());
-        deliver_prof_id = profile::profiler_region_id("advance:integrate:event:"+internal_name());
     }
     mechanism() = default;
     mechanism(const mechanism&) = delete;
@@ -61,36 +56,12 @@ public:
     void set_dt(arb_value_type dt) { ppack_.dt = dt; }
 
     // Forward to interface methods
-
-    void initialize() {
-        iface_.init_mechanism(&ppack_);
-    }
-
-    void update_current() {
-        prof_enter(current_prof_id);
-        iface_.compute_currents(&ppack_);
-        prof_exit();
-    }
-
-    void update_state() {
-        prof_enter(state_prof_id);
-        iface_.advance_state(&ppack_);
-        prof_exit();
-    }
-
-    void update_ions() {
-        iface_.write_ions(&ppack_);
-    }
-
-    void post_event() {
-        iface_.post_event(&ppack_);
-    }
-
-    void deliver_events(arb_deliverable_event_stream& stream) {
-        prof_enter(deliver_prof_id);
-        iface_.apply_events(&ppack_, &stream);
-        prof_exit();
-    }
+    void initialize();
+    void update_current();
+    void update_state();
+    void update_ions();
+    void post_event();
+    void deliver_events(arb_deliverable_event_stream& stream);
 
     // Per-cell group identifier for an instantiated mechanism.
     unsigned mechanism_id() const { return ppack_.mechanism_id; }
@@ -98,22 +69,6 @@ public:
     arb_mechanism_type  mech_;
     arb_mechanism_interface iface_;
     arb_mechanism_ppack ppack_;
-
-private:
-#ifdef ARB_PROFILE_ENABLED
-    void prof_enter(profile::region_id_type id) {
-        profile::profiler_enter(id);
-    }
-    void prof_exit() {
-        profile::profiler_leave();
-    }
-#else
-    void prof_enter(profile::region_id_type) {}
-    void prof_exit() {}
-#endif
-    profile::region_id_type state_prof_id;
-    profile::region_id_type current_prof_id;
-    profile::region_id_type deliver_prof_id;
 };
 
 struct mechanism_layout {

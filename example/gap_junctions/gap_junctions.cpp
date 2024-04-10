@@ -19,7 +19,6 @@
 #include <arbor/load_balance.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
-#include <arbor/profile/profiler.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/recipe.hpp>
@@ -148,10 +147,6 @@ int main(int argc, char** argv) {
         }
 #else
         auto context = arb::make_context(arbenv::default_allocation());
-#endif
-
-#ifdef ARB_PROFILE_ENABLED
-        arb::profile::profiler_initialize(context);
 #endif
 
         std::cout << sup::mask_stream(root);

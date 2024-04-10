@@ -11,6 +11,7 @@
 #include "communication/gathered_vector.hpp"
 #include "epoch.hpp"
 #include "label_resolution.hpp"
+#include "profile/profiler_macro.hpp"
 
 namespace arb {
 
@@ -61,26 +62,32 @@ public:
     distributed_context& operator=(distributed_context&& other) = default;
 
     spike_vector remote_gather_spikes(const spike_vector& local_spikes) const {
+        PROFILE_ZONE();
         return impl_->remote_gather_spikes(local_spikes);
     }
 
     gathered_vector<spike> gather_spikes(const spike_vector& local_spikes) const {
+        PROFILE_ZONE();
         return impl_->gather_spikes(local_spikes);
     }
 
     gathered_vector<cell_gid_type> gather_gids(const gid_vector& local_gids) const {
+        PROFILE_ZONE();
         return impl_->gather_gids(local_gids);
     }
 
     cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
+        PROFILE_ZONE();
         return impl_->gather_cell_label_range(local_ranges);
     }
 
     cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const {
+        PROFILE_ZONE();
         return impl_->gather_cell_labels_and_gids(local_labels_and_gids);
     }
 
     std::vector<std::string> gather(std::string value, int root) const {
+        PROFILE_ZONE();
         return impl_->gather(value, root);
     }
 

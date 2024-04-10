@@ -4,6 +4,7 @@
 #include <arbor/assert.hpp>
 #include <arbor/util/scope_exit.hpp>
 
+#include "profile/profiler_macro.hpp"
 #include "threading/threading.hpp"
 #include "affinity.hpp"
 
@@ -152,8 +153,12 @@ task_system::task_system(int nthreads, bool bind):
     // Bind the master thread
     if (bind_) set_affinity(0, count_, affinity_kind::thread);
 
+    DECLARE_THREAD("main thread");
     for (unsigned i = 1; i < count_; i++) {
-        threads_.emplace_back([this, i]{run_tasks_loop(i);});
+        threads_.emplace_back([this, i]{
+            DECLARE_THREAD("thread" + std::to_string(i));
+            run_tasks_loop(i);
+        });
         tid = threads_.back().get_id();
         thread_ids_[tid] = i;
     }

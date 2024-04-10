@@ -8,6 +8,7 @@
 #include "fvm_layout.hpp"
 
 #include "util/rangeutil.hpp"
+#include "profile/profiler_macro.hpp"
 
 namespace arb {
 
@@ -29,6 +30,7 @@ struct shared_state_base {
     void begin_epoch(const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
                      const std::vector<std::vector<sample_event>>& samples,
                      const timestep_range& dts) {
+        PROFILE_ZONE();
         auto d = static_cast<D*>(this);
         // events
         auto& storage = d->storage;
@@ -50,6 +52,7 @@ struct shared_state_base {
     }
 
     void configure_solver(const fvm_cv_discretization& disc) {
+        PROFILE_ZONE();
         auto d = static_cast<D*>(this);
         d->solver = {disc.geometry.cv_parent, disc.geometry.cell_cv_divs, disc.cv_capacitance, disc.face_conductance, disc.cv_area};
     }
@@ -90,6 +93,7 @@ struct shared_state_base {
     }
 
     void mark_events() {
+        PROFILE_ZONE();
         auto d = static_cast<D*>(this);
         auto& storage = d->storage;
         for (auto& s : storage) {
@@ -98,6 +102,7 @@ struct shared_state_base {
     }
 
     void deliver_events(mechanism& m) {
+        PROFILE_ZONE();
         auto d = static_cast<D*>(this);
         auto& storage = d->storage;
         if (auto it = storage.find(m.mechanism_id()); it != storage.end()) {
@@ -139,6 +144,7 @@ struct shared_state_base {
     }
 
     void integrate_cable_state() {
+        PROFILE_ZONE();
         auto d = static_cast<D*>(this);
         d->solver.solve(d->voltage, d->dt, d->current_density, d->conductivity);
         for (auto& [ion, data]: d->ion_data) {
@@ -154,6 +160,7 @@ struct shared_state_base {
     }
 
     fvm_integration_result get_integration_result() {
+        PROFILE_ZONE();
         auto d = static_cast<D*>(this);
         const auto& crossings = d->watcher.crossings();
         d->update_sample_views();

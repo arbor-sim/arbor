@@ -27,6 +27,7 @@ set(arbor_sources
     label_resolution.cpp
     lif_cell_group.cpp
     cable_cell_group.cpp
+    mechanism.cpp
     mechcat.cpp
     mechinfo.cpp
     memory/gpu_wrappers.cpp
@@ -50,7 +51,6 @@ set(arbor_sources
     profile/memory_meter.cpp
     profile/meter_manager.cpp
     profile/power_meter.cpp
-    profile/profiler.cpp
     schedule.cpp
     spike_event_io.cpp
     spike_source_cell_group.cpp

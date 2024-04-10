@@ -2,7 +2,6 @@
 #include <pybind11/stl.h>
 
 #include <arbor/profile/meter_manager.hpp>
-#include <arbor/profile/profiler.hpp>
 #include <arbor/version.hpp>
 
 #include "context.hpp"
@@ -52,20 +51,6 @@ void register_profiler(pybind11::module& m) {
             "manager"_a, "context"_a)
         .def("__str__",  [](arb::profile::meter_report& r){return util::pprintf("{}", r);})
         .def("__repr__", [](arb::profile::meter_report& r){return "<arbor.meter_report>";});
-
-#ifdef ARB_PROFILE_ENABLED
-    m.def("profiler_initialize", [](context_shim& ctx) {
-        arb::profile::profiler_initialize(ctx.context);
-    });
-    m.def("profiler_summary",
-          [](double limit){
-              std::stringstream stream;
-              arb::profile::print_profiler_summary(stream, limit);
-              return stream.str();
-          },
-          "limit"_a=0.0,
-          "Show summary of the profile; printing contributions above `limit` percent. Defaults to showing all.");
-#endif
 }
 
 } // namespace pyarb

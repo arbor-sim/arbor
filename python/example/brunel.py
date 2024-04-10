@@ -220,7 +220,6 @@ if __name__ == "__main__":
         type=str,
         help="Save spikes to file",
     )
-    # parser.add_argument('-z', '--profile-rank-zero', dest='profile_only_zero', action='store_true', help='Only output profile information for rank 0')
     parser.add_argument(
         "-v",
         "--verbose",
@@ -236,8 +235,6 @@ if __name__ == "__main__":
             print(f"{k} = {v}")
 
     context = A.context()
-    if A.config()["profiling"]:
-        A.profiler_initialize(context)
     print(context)
 
     meters = A.meter_manager()
@@ -276,8 +273,6 @@ if __name__ == "__main__":
 
     # Print profiling information
     print(A.meter_report(meters, context))
-    if A.config()["profiling"]:
-        print(A.profiler_summary())
 
     # Print spike times
     print(f"{len(sim.spikes())} spikes generated.")

@@ -13,7 +13,6 @@
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
-#include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
@@ -143,9 +142,6 @@ int main(int argc, char** argv) {
 #else
         auto context = arb::make_context(arbenv::default_allocation());
 #endif
-#ifdef ARB_PROFILE_ENABLED
-        profile::profiler_initialize(context);
-#endif
 
         std::cout << sup::mask_stream(is_root);
 
@@ -182,10 +178,6 @@ int main(int argc, char** argv) {
             fid.open("meters.json");
             fid << std::setw(1) << sup::to_json(report) << "\n";
         }
-
-        // output profile and diagnostic feedback
-        auto summary = profile::profiler_summary();
-        std::cout << summary << "\n";
 
         std::cout << "there were " << sim.num_spikes() << " spikes\n";
     }

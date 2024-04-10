@@ -375,11 +375,11 @@ void run_samples(
 }
 
 void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
+    PROFILE_ZONE();
     time_type tstart = lowered_->time();
 
     // Bin and collate deliverable events from event lanes.
 
-    PE(advance:eventsetup:clear);
     // Split epoch into equally sized timesteps (last timestep is chosen to match end of epoch)
     timesteps_.reset(ep, dt);
     for (auto& vv : staged_events_per_mech_id_) {
@@ -392,11 +392,10 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     for (auto& v : sample_events_) {
         v.clear();
     }
-    PL();
 
     // Skip event handling if nothing to deliver.
-    PE(advance:eventsetup:push);
     if (util::sum_by(event_lanes, [] (const auto& l) {return l.size();})) {
+        PROFILE_NAMED_ZONE("push_events");
         auto lid = 0;
         for (auto& lane: event_lanes) {
             arb_size_type timestep_index = 0;
@@ -415,7 +414,6 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
             ++lid;
         }
     }
-    PL();
 
     // Create sample events and delivery information.
     //
@@ -430,13 +428,13 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     // value as defined below, grouping together all the samples of the
     // same probe for this callback in this association.
 
-    PE(advance:samplesetup);
     std::vector<sampler_call_info> call_info;
 
     sample_size_type n_samples = 0;
     sample_size_type max_samples_per_call = 0;
 
     if (!sampler_map_.empty()) { // NOTE: We avoid the lock here as often as possible
+        PROFILE_NAMED_ZONE("build_samples");
         // SAFETY: We need the lock here, as _schedule_ is not reentrant.
         std::lock_guard<std::mutex> guard(sampler_mex_);
         for (auto& [sk, sa]: sampler_map_) {
@@ -469,7 +467,6 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
             arb_assert(n_samples==call_info.back().end_offset);
         }
     }
-    PL();
 
     // Run integration and collect samples, spikes.
     auto result = lowered_->integrate(timesteps_, staged_events_per_mech_id_, sample_events_);
@@ -478,17 +475,18 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     // vector of sample entries from the lowered cell sample times and values
     // and then call the callback.
 
-    PE(advance:sampledeliver);
     std::vector<sample_record> sample_records;
     sample_records.reserve(max_samples_per_call);
 
     fvm_probe_scratch scratch;
     reserve_scratch(scratch, max_samples_per_call);
 
-    for (auto& sc: call_info) {
-        run_samples(sc, result.sample_time.data(), result.sample_value.data(), sample_records, scratch);
+    {
+        PROFILE_NAMED_ZONE("deliver_samples");
+        for (auto& sc: call_info) {
+            run_samples(sc, result.sample_time.data(), result.sample_value.data(), sample_records, scratch);
+        }
     }
-    PL();
 
     // Copy out spike voltage threshold crossings from the back end, then
     // generate spikes with global spike source ids. The threshold crossings

@@ -11,7 +11,6 @@
 #include <arbor/load_balance.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/profile/meter_manager.hpp>
-#include <arbor/profile/profiler.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/symmetric_recipe.hpp>
@@ -139,10 +138,6 @@ int main(int argc, char** argv) {
         ctx = arb::make_context(resources, arb::dry_run_info(params.num_ranks, params.num_cells));
         arb_assert(arb::num_ranks(ctx)==(unsigned int)params.num_ranks);
 
-#ifdef ARB_PROFILE_ENABLED
-        arb::profile::profiler_initialize(ctx);
-#endif
-
         arb::profile::meter_manager meters;
         meters.start(ctx);
 
@@ -164,9 +159,6 @@ int main(int argc, char** argv) {
         auto total_cells = params.num_ranks*params.num_cells;
         std::cout << "\n" << ns << " spikes generated at rate of "
                   << ns/total_cells << " spikes per cell\n\n";
-
-        auto profile = arb::profile::profiler_summary();
-        std::cout << profile << "\n";
 
         auto report = arb::profile::make_meter_report(meters, ctx);
         std::cout << report;

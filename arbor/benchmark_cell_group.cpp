@@ -71,8 +71,7 @@ void benchmark_cell_group::advance(epoch ep,
 {
     using std::chrono::high_resolution_clock;
     using duration_type = std::chrono::duration<double, std::micro>;
-
-    PE(advance:bench:cell);
+    PROFILE_ZONE();
     // Micro-seconds to advance in this epoch.
     auto us = 1e3*(ep.duration());
     for (auto i: util::make_span(0, gids_.size())) {
@@ -93,8 +92,6 @@ void benchmark_cell_group::advance(epoch ep,
         // has elapsed, to emulate a "real" cell.
         while (duration_type(high_resolution_clock::now()-start).count() < duration_us);
     }
-
-    PL();
 };
 
 const std::vector<spike>& benchmark_cell_group::spikes() const {

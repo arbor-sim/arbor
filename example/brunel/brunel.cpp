@@ -16,7 +16,6 @@
 #include <arbor/lif_cell.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/profile/meter_manager.hpp>
-#include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
@@ -187,10 +186,6 @@ int main(int argc, char** argv) {
         auto context = arb::make_context(arbenv::default_allocation());
 #endif
 
-#ifdef ARB_PROFILE_ENABLED
-        arb::profile::profiler_initialize(context);
-#endif
-
         std::cout << sup::mask_stream(root);
         banner(context);
 
@@ -270,9 +265,6 @@ int main(int argc, char** argv) {
                 spike_out << s.source.gid << ' ' << s.time << '\n';
             }
         }
-
-        // output profile and diagnostic feedback
-        std::cout << profile::profiler_summary() << "\n";
         std::cout << "\nThere were " << sim.num_spikes() << " spikes\n";
 
         auto report = profile::make_meter_report(meters, context);

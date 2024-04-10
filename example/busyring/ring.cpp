@@ -1,7 +1,6 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <algorithm>
 #include <array>
 
 #include <nlohmann/json.hpp>
@@ -12,7 +11,6 @@
 #include <arbor/load_balance.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
-#include <arbor/profile/profiler.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/recipe.hpp>
@@ -196,10 +194,6 @@ int main(int argc, char** argv) {
         auto context = arb::make_context(resources);
 #endif
 
-#ifdef ARB_PROFILE_ENABLED
-        arb::profile::profiler_initialize(context);
-#endif
-
         // Print a banner with information about hardware configuration
         if (root) {
             std::cout << "gpu:      " << (has_gpu(context)? "yes": "no") << "\n";
@@ -282,10 +276,6 @@ int main(int argc, char** argv) {
         }
 
         auto report = arb::profile::make_meter_report(meters, context);
-        if (root) {
-            std::cout << report << '\n'
-                      << arb::profile::profiler_summary() << "\n";
-        }
     }
     catch (std::exception& e) {
         std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";

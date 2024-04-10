@@ -14,7 +14,6 @@
 #include <arbor/load_balance.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/profile/meter_manager.hpp>
-#include <arbor/profile/profiler.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/symmetric_recipe.hpp>
@@ -146,9 +145,6 @@ int main(int argc, char** argv) {
         }
 #endif
 
-#ifdef ARB_PROFILE_ENABLED
-        arb::profile::profiler_initialize(ctx);
-#endif
         std::cout << sup::mask_stream(root);
 
         // Print a banner with information about hardware configuration
@@ -218,9 +214,6 @@ int main(int argc, char** argv) {
             // Write the samples to a json file.
             write_trace_json(voltage.at(0));
         }
-
-        auto profile = arb::profile::profiler_summary();
-        std::cout << profile << "\n";
 
         auto report = arb::profile::make_meter_report(meters, ctx);
         std::cout << report;
