@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 #include <arbor/arbexcept.hpp>
+#include <arbor/export.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/mechanism_abi.h>
 #include <arbor/mechinfo.hpp>
@@ -23,7 +24,7 @@ struct ion_state_view {
     arb_value_type* ionic_charge;
 };
 
-struct mechanism {
+struct ARB_ARBOR_API mechanism {
     using value_type = arb_value_type;
     using index_type = arb_index_type;
     using size_type  = arb_size_type;
