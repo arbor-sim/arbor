@@ -186,13 +186,16 @@ public:
 
     pointer allocate(size_type cnt) {
         if (cnt) {
-            return reinterpret_cast<T*>(allocate_policy(cnt*sizeof(T)));
+            auto ptr = reinterpret_cast<T*>(allocate_policy(cnt*sizeof(T)));
+            MARK_ALLOC(ptr, cnt);
+            return ptr;
         }
         return nullptr;
     }
 
     void deallocate(pointer p, size_type cnt) {
         if (p) {
+            MARK_FREE(p);
             free_policy(p);
         }
     }

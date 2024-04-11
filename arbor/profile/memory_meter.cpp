@@ -3,6 +3,7 @@
 
 #include <arbor/profile/meter.hpp>
 
+#include "profile/profiler_macro.hpp"
 #include "hardware/memory.hpp"
 #include "memory_meter.hpp"
 
@@ -68,3 +69,15 @@ meter_ptr make_gpu_memory_meter() {
 
 } // namespace profile
 } // namespace arb
+
+#ifdef ARB_HAVE_MEMORY_PROFILING
+    void* operator new(std::size_t count) {
+        auto ptr = malloc(count);
+        MARK_ALLOC(ptr , count);
+        return ptr;
+    }
+    void operator delete(void* ptr) noexcept {
+        MARK_FREE(ptr);
+        free(ptr);
+    }
+#endif

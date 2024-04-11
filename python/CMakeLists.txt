@@ -2,6 +2,8 @@ include(GNUInstallDirs)
 
 set(PYBIND11_CPP_STANDARD -std=c++17)
 
+set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
+set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
 if(ARB_USE_BUNDLED_PYBIND11)
   include(FindPythonModule) # required for find_python_module
 
@@ -20,6 +22,8 @@ if(ARB_USE_BUNDLED_PYBIND11)
 else()
   find_package(pybind11 2.10.0 REQUIRED)
 endif()
+set(CMAKE_MESSAGE_LOG_LEVEL ${_saved_CMAKE_MESSAGE_LOG_LEVEL})
+mark_as_advanced(FORCE PYBIND11_FINDPYTHON PYBIND11_INSTALL PYBIND11_INTERNALS_VERSION PYBIND11_NOPYTHON PYBIND11_SIMPLE_GIL_MANAGEMENT PYBIND11_TEST)
 
 set(pyarb_source
     cable_cell_io.cpp
@@ -108,7 +112,8 @@ get_filename_component(ARB_PYTHON_LIB_PATH_DEFAULT "${ARB_PYTHON_LIB_PATH_DEFAUL
 
 # Default to installing in that path, override with user specified ARB_PYTHON_LIB_PATH
 set(ARB_PYTHON_LIB_PATH ${ARB_PYTHON_LIB_PATH_DEFAULT} CACHE PATH "path for installing Python module for Arbor.")
-message(STATUS "Python module installation path: ${ARB_PYTHON_LIB_PATH}")
+message(VERBOSE "Python module installation path: ${ARB_PYTHON_LIB_PATH}")
+mark_as_advanced(FORCE ARB_PYTHON_LIB_PATH)
 
 if(DEFINED SKBUILD_PROJECT_NAME)
   # Building wheel through scikit-build-core

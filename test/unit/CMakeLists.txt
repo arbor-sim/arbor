@@ -186,7 +186,7 @@ make_catalogue_standalone(
     MOD dummy
     CXX
     CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
-    VERBOSE ON)
+    VERBOSE ${ARB_CAT_VERBOSE})
 
 target_link_libraries(dummy-catalogue PRIVATE arbor-private-deps)
 add_dependencies(unit dummy-catalogue)

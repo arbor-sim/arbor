@@ -4,7 +4,7 @@
 #include <system_error>
 #include <utility>
 
-#include <iostream>
+#include "profile/profiler_macro.hpp"
 
 // Allocator with run-time alignment and padding guarantees.
 //
@@ -65,10 +65,12 @@ struct padded_allocator {
         if (auto err = posix_memalign(&mem, pm_align, size)) {
             throw std::system_error(err, std::generic_category(), "posix_memalign");
         }
+        MARK_ALLOC(mem, n);
         return static_cast<pointer>(mem);
     }
 
     void deallocate(pointer p, std::size_t n) {
+        MARK_FREE(p);
         std::free(p);
     }
 

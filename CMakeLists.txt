@@ -21,7 +21,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 check_ipo_supported(RESULT HAVE_LTO OUTPUT ERR_LTO)
 if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
   if(HAVE_LTO)
-    message (STATUS "LTO support found, enabling")
+    message (VERBOSE "LTO support found, enabling")
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
   else()
     message(STATUS "No LTO: ${ERR_LTO}")
@@ -32,6 +32,7 @@ endif()
 # redirected from the terminal (e.g. when using ninja or a pager).
 
 option(ARBDEV_COLOR "Always produce ANSI-colored output (GNU/Clang only)." OFF)
+mark_as_advanced(FORCE ARBDEV_COLOR)
 
 #----------------------------------------------------------
 # Configure-time build options for Arbor:
@@ -53,10 +54,12 @@ mark_as_advanced(ARB_USE_HWLOC)
 # Use externally built modcc?
 
 set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
+mark_as_advanced(FORCE ARB_MODCC)
 
 # Use libunwind to generate stack traces on errors?
 
 option(ARB_BACKTRACE "Enable stacktraces on assertion and exceptions (requires Boost)." OFF)
+mark_as_advanced(FORCE ARB_BACKTRACE)
 
 # Specify GPU build type
 
@@ -77,8 +80,9 @@ option(ARB_USE_BUNDLED_LIBS "Use bundled 3rd party libraries" OFF)
 # CPU architecture. Recorded in installed target, for downstream dependencies
 # to use.
 # Useful, for example, when a user wants to compile with target-specific
-# optimization flags.
+# optimization flag.spr
 set(ARB_CXX_FLAGS_TARGET "" CACHE STRING "Optional additional flags for compilation")
+mark_as_advanced(FORCE ARB_CXX_FLAGS_TARGET)
 
 #----------------------------------------------------------
 # Debug support
@@ -94,7 +98,10 @@ mark_as_advanced(ARB_CAT_VERBOSE)
 
 option(ARB_WITH_MPI "build with MPI support" OFF)
 
-option(ARB_WITH_PROFILING "use built-in profiling" OFF)
+option(ARB_WITH_PROFILING "enable Tracy profiling" OFF)
+cmake_dependent_option(ARB_WITH_STACK_PROFILING "enable stack collection in profiling" OFF "ARB_WITH_PROFILING" OFF)
+cmake_dependent_option(ARB_WITH_MEMORY_PROFILING "enable memory in profiling" OFF "ARB_WITH_PROFILING" OFF)
+mark_as_advanced(FORCE ARB_WITH_STACK_PROFILING ARB_WITH_MEMORY_PROFILING)
 
 option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
 
@@ -266,7 +273,7 @@ set(ARB_USE_BUNDLED_UNITS ON CACHE STRING "Use bundled LLNL units.")
 cmake_dependent_option(ARB_USE_BUNDLED_JSON "Use bundled Niels Lohmann's json library." ON "ARB_USE_BUNDLED_LIBS" OFF)
 if(NOT ARB_USE_BUNDLED_JSON)
   find_package(nlohmann_json 3.11.2 CONFIG REQUIRED)
-  message(STATUS "Using external JSON = ${nlohmann_json_VERSION}")
+  message(VERBOSE "Using external JSON = ${nlohmann_json_VERSION}")
 endif()
 
 cmake_dependent_option(ARB_USE_BUNDLED_RANDOM123 "Use bundled Random123 lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
@@ -300,13 +307,26 @@ else()
     message(FATAL, "TODO: At the time of Arbor 0.10.0 there is no Spack package")
 endif()
 
-
+# Reduce CMAKE Log clutter
+set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
+set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
 add_subdirectory(ext)
+set(CMAKE_MESSAGE_LOG_LEVEL ${_saved_CMAKE_MESSAGE_LOG_LEVEL})
+
 install(TARGETS ext-hwloc EXPORT arbor-targets)
 install(TARGETS ext-random123 EXPORT arbor-targets)
 target_link_libraries(arbor-public-deps INTERFACE ext-units)
 install(TARGETS ext-units EXPORT arbor-targets)
 install(TARGETS units compile_flags_target EXPORT arbor-targets)
+
+# Hide dependency options
+mark_as_advanced(FORCE JSON_CI JSON_Diagnostics JSON_DisableEnumSerialization JSON_GlobalUDLs JSON_ImplicitConversions JSON_Install JSON_LegacyDiscardedValueComparison JSON_MultipleHeaders JSON_SystemInclude)
+mark_as_advanced(FORCE TRACY_ENABLE TRACY_ON_DEMAND TRACY_CALLSTACK TRACY_NO_CALLSTACK TRACY_NO_CALLSTACK_INLINES TRACY_ONLY_LOCALHOST TRACY_NO_BROADCAST TRACY_ONLY_IPV4 TRACY_NO_CODE_TRANSFER TRACY_NO_CONTEXT_SWITCH TRACY_NO_EXIT TRACY_NO_SAMPLING TRACY_NO_VERIFY TRACY_NO_VSYNC_CAPTURE TRACY_NO_FRAME_IMAGE TRACY_NO_SYSTEM_TRACING TRACY_PATCHABLE_NOPSLEDS TRACY_DELAYED_INIT TRACY_MANUAL_LIFETIME TRACY_FIBERS TRACY_NO_CRASH_HANDLER TRACY_TIMER_FALLBACK TRACY_CALLSTACK TRACY_DELAYED_INIT TRACY_ENABLE TRACY_FIBERS TRACY_MANUAL_LIFETIME TRACY_NO_BROADCAST TRACY_NO_CALLSTACK TRACY_NO_CALLSTACK_INLINES TRACY_NO_CODE_TRANSFER TRACY_NO_CONTEXT_SWITCH TRACY_NO_CRASH_HANDLER TRACY_NO_EXIT TRACY_NO_FRAME_IMAGE TRACY_NO_SAMPLING TRACY_NO_SYSTEM_TRACING TRACY_NO_VERIFY TRACY_NO_VSYNC_CAPTURE TRACY_ONLY_IPV4 TRACY_ONLY_LOCALHOST TRACY_ON_DEMAND TRACY_PATCHABLE_NOPSLEDS TRACY_STATIC TRACY_TIMER_FALLBACK)
+mark_as_advanced(FORCE ARB_USE_BUNDLED_FMT ARB_USE_BUNDLED_GTEST ARB_USE_BUNDLED_JSON ARB_USE_BUNDLED_PUGIXML ARB_USE_BUNDLED_PYBIND11 ARB_USE_BUNDLED_RANDOM123 ARB_USE_BUNDLED_UNITS)
+
+# hide OSX advance config
+mark_as_advanced(FORCE CMAKE_OSX_ARCHITECTURES CMAKE_OSX_DEPLOYMENT_TARGET CMAKE_OSX_SYSROOT)
+
 
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
@@ -339,10 +359,10 @@ mark_as_advanced(ARB_SVE_WIDTH)
 if (ARB_SVE_WIDTH STREQUAL "auto")
     get_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
     if (ARB_HAS_SVE)
-        message(STATUS "SVE detected with vector size = ${ARB_SVE_BITS} bits")
+        message(VERBOSE "SVE detected with vector size = ${ARB_SVE_BITS} bits")
         set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
     else()
-        message(STATUS "NO SVE detected")
+        message(VERBOSE "NO SVE detected")
         set(ARB_CXX_SVE_FLAGS "")
     endif()
 else()
@@ -371,8 +391,19 @@ if(ARB_WITH_PROFILING)
     target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_PROFILING)
     option(TRACY_ENABLE "" ON)
     option(TRACY_ON_DEMAND "" ON)
+
+    set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
+    set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
     add_subdirectory (ext/tracy) # target: TracyClient or alias Tracy :: TracyClient
+    set(CMAKE_MESSAGE_LOG_LEVEL ${_saved_CMAKE_MESSAGE_LOG_LEVEL})
+
     target_link_libraries (arbor-public-deps INTERFACE Tracy::TracyClient)
+    if(ARB_WITH_STACK_PROFILING)
+        target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_STACK_PROFILING)
+    endif()
+    if(ARB_WITH_MEMORY_PROFILING)
+        target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_MEMORY_PROFILING)
+    endif()
 endif()
 
 if(ARB_WITH_ASSERTIONS)
@@ -406,7 +437,7 @@ endif()
 
 if(${Python3_FOUND})
     set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
-    message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
+    message(VERBOSE "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
 endif()
 
 
