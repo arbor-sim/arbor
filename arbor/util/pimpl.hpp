@@ -17,7 +17,7 @@ class pimpl
     
     pimpl() noexcept;
 
-    pimpl(T* ptr) noexcept;
+    pimpl(std::unique_ptr<T> ptr) noexcept;
 
     template<typename... Args>
     pimpl(Args&&... args);

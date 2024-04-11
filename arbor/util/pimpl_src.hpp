@@ -18,7 +18,7 @@ template<typename T>
 pimpl<T>::pimpl() noexcept {}
 
 template<typename T>
-pimpl<T>::pimpl(T* ptr) noexcept : m{ptr} {}
+pimpl<T>::pimpl(std::unique_ptr<T> ptr) noexcept : m{std::move(ptr)} {}
 
 template<typename T>
 template<typename... Args>
