@@ -2,6 +2,7 @@
 
 #include <limits>
 
+#include "profile/profiler_macro.hpp"
 #include "gpu_wrappers.hpp"
 #include "definitions.hpp"
 #include "util.hpp"
