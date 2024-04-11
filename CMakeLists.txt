@@ -397,7 +397,7 @@ if(ARB_WITH_PROFILING)
     add_subdirectory (ext/tracy) # target: TracyClient or alias Tracy :: TracyClient
     set(CMAKE_MESSAGE_LOG_LEVEL ${_saved_CMAKE_MESSAGE_LOG_LEVEL})
 
-    target_link_libraries (arbor-public-deps INTERFACE Tracy::TracyClient)
+    target_link_libraries (arbor-private-deps INTERFACE Tracy::TracyClient)
     if(ARB_WITH_STACK_PROFILING)
         target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_STACK_PROFILING)
     endif()
