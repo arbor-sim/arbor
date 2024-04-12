@@ -8,6 +8,16 @@ set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON CACHE INTERNAL "" FORCE)
 # Make CUDA support throw errors if architectures remain unclear
 cmake_policy(SET CMP0104 NEW)
 
+# Set release as the default build type (CMake default is debug.)
+
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE release CACHE STRING "Choose the type of build." FORCE)
+    # Set the possible values of build type for cmake-gui
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
+endif()
+
+# message(STATUS ${})
+
 set(CPM_USE_LOCAL_PACKAGES ON)
 include(cmake/CPM.cmake)
 
@@ -127,14 +137,6 @@ option(ARB_WITH_PYTHON "enable Python front end" OFF)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(GitSubmodule) # required for check_git_submodule
 include(ErrorTarget)  # reguired for add_error_target
-
-# Set release as the default build type (CMake default is debug.)
-
-if (NOT CMAKE_BUILD_TYPE AND NOT BUILD_TESTING)
-    set(CMAKE_BUILD_TYPE release CACHE STRING "Choose the type of build." FORCE)
-    # Set the possible values of build type for cmake-gui
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
-endif()
 
 # Add CUDA as a language if GPU support requested. (This has to be set early so
 # as to enable CUDA tests in generator expressions.)
