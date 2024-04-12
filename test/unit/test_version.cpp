@@ -49,6 +49,7 @@ TEST(version, libmatch) {
 }
 
 TEST(version, sane_config) {
+    std::cerr << arb::build_config << "\n";
     EXPECT_TRUE(arb::build_config=="DEBUG"s
              || arb::build_config=="RELEASE"s
              || arb::build_config=="RELWITHDEBINFO"s
