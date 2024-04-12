@@ -49,11 +49,10 @@ TEST(version, libmatch) {
 }
 
 TEST(version, sane_config) {
-    std::cerr << "config=" << arb::build_config << "\n";
     EXPECT_TRUE(arb::build_config=="DEBUG"s
              || arb::build_config=="RELEASE"s
              || arb::build_config=="RELWITHDEBINFO"s
-             || arb::build_config=="MINSIZEREL"s);
+             || arb::build_config=="MINSIZEREL"s) << " unexpected config value '" << arb::build_config << "'";
 }
 
 TEST(version, version_components) {
