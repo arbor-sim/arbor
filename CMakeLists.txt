@@ -433,8 +433,6 @@ if(DEFINED PYTHON_EXECUTABLE)
 endif()
 
 if(ARB_WITH_PYTHON)
-    cmake_dependent_option(ARB_USE_BUNDLED_PYBIND11 "Use bundled pybind11" ON "ARB_WITH_PYTHON;ARB_USE_BUNDLED_LIBS" OFF)
-
     if(DEFINED ENV{CIBUILDWHEEL} AND (UNIX AND NOT APPLE))
         find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development.Module REQUIRED)
     else()

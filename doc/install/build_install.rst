@@ -169,23 +169,6 @@ will need to install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
 .. _install-downloading:
 
 
-External dependencies
-~~~~~~~~~~~~~~~~~~~~~
-
-For the (optional) python bindings Arbor uses `pybind11 <https://github.com/pybind/pybind11>`_, and
-JSON parsing is faciliated through `nlohmann json <https://github.com/nlohmann/json>`_.
-
-There are two ways to obtain these libraries. The default way is to use them from the
-system, e.g., installed via ``apt install python3-pybind11`` and ``apt install nlohmann-json3-dev``
-for a Debian based distribution.
-
-The other possiblity is to use versions of these dependencies that are bundled with Arbor
-via the CMAKE option `ARB_USE_BUNDLED_LIBS`.
-If set, `pybind11 <https://github.com/pybind/pybind11>`_ is retrieved from a Git submodule (see below)
-and `nlohmann json <https://github.com/nlohmann/json>`_ from a copy in the checked out sources.
-
-It is also possible to select only one of the two libraries to be taken from the system or from Arbor.
-
 .. _building:
 
 Building and installing Arbor
@@ -211,7 +194,7 @@ For more detailed build configuration options, see the `quick start <quickstart_
     # 2) Use CMake to configure the build.
     # By default Arbor builds in release mode, i.e. with optimizations on.
     # Release mode should be used for installing and benchmarking Arbor.
-    cmake .. # add -DARB_USE_BUNDLED_LIBS=ON to use bundled/git-submoduled libs
+    cmake ..
 
     # 3.1) Build Arbor library.
     make -j 4
@@ -492,7 +475,6 @@ use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is t
     mkdir build
     cd build
     cmake ../arbor -DARB_WITH_PYTHON=on       \       # enable python support.
-                   -DARB_USE_BUNDLED_LIBS=on  \       # use bundled versions of deps.
                    -DARB_PYTHON_LIB_PATH="$pyprefix"  # set Python installation path.
 
     # Build and install
