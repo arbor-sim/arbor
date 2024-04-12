@@ -6,6 +6,8 @@ add_target_if(SPHINX_FOUND
     "Finding Sphinx"
     "Sphinx must be installed to build documentation")
 
+mark_as_advanced(FORCE SPHINX_EXECUTABLE)
+
 find_python_module(svgwrite)
 add_target_if(HAVE_SVGWRITE
     ext-svgwrite

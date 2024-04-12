@@ -26,7 +26,6 @@ RUN mkdir ${BUILD_DIR} && cd ${BUILD_DIR} && \
       -DARB_WITH_PYTHON=OFF \
       -DARB_WITH_MPI=ON \
       -DARB_GPU=cuda \
-      -DARB_USE_BUNDLED_LIBS=ON \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr && \
     make -j$(nproc) tests && \
