@@ -4,7 +4,6 @@ include(CheckIPOSupported)
 
 # Make CUDA support throw errors if architectures remain unclear
 cmake_policy(SET CMP0104 NEW)
-cmake_policy(SET CMP0148 NEW)
 
 set(CPM_USE_LOCAL_PACKAGES ON)
 include(cmake/CPM.cmake)
