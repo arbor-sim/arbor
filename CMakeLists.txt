@@ -316,7 +316,7 @@ endif()
 
 CPMAddPackage(NAME fmt
               GITHUB_REPOSITORY fmtlib/fmt
-              VERSION 10.0)
+              VERSION 10.0.0)
 
 if (BUILD_TESTING)
     CPMAddPackage(NAME benchmark
