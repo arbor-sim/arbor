@@ -5,6 +5,9 @@ include(CheckIPOSupported)
 # Make CUDA support throw errors if architectures remain unclear
 cmake_policy(SET CMP0104 NEW)
 
+set(CPM_USE_LOCAL_PACKAGES ON)
+include(cmake/CPM.cmake)
+
 file(READ VERSION FULL_VERSION_STRING)
 string(STRIP "${FULL_VERSION_STRING}" FULL_VERSION_STRING)
 string(REGEX MATCH "^[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?(\\.[0-9]+)?" numeric_version "${FULL_VERSION_STRING}")
@@ -50,6 +53,9 @@ option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 option(ARB_USE_HWLOC "request support for thread pinning via HWLOC" OFF)
 mark_as_advanced(ARB_USE_HWLOC)
 
+# Build tests and benchmarks
+option(BUILD_TESTING "build tests and benchmark" ON)
+
 # Use externally built modcc?
 
 set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
@@ -68,10 +74,6 @@ endif()
 cmake_dependent_option(ARB_USE_GPU_RNG
     "Use GPU generated random numbers (only cuda, not bitwise equal to CPU version)" OFF
     "ARB_USE_GPU_DEP" OFF)
-
-# Use bundled 3rd party libraries
-
-option(ARB_USE_BUNDLED_LIBS "Use bundled 3rd party libraries" OFF)
 
 # Optional additional CXX Flags used for all code that will run on the target
 # CPU architecture. Recorded in installed target, for downstream dependencies
@@ -253,29 +255,6 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 install(PROGRAMS scripts/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 
-# External libraries in `ext` sub-directory: json, tinyopt and random123.
-# Creates interface libraries `ext-tinyopt` and `ext-random123`
-
-cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
-cmake_dependent_option(ARB_USE_BUNDLED_PUGIXML "Use bundled XML lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
-cmake_dependent_option(ARB_USE_BUNDLED_GTEST "Use bundled GoogleTest." ON "ARB_USE_BUNDLED_LIBS" OFF)
-# TODO When we get a units spack package...
-#cmake_dependent_option(ARB_USE_BUNDLED_UNITS "Use bundled LLNL units." ON "ARB_USE_BUNDLED_LIBS" OFF)
-set(ARB_USE_BUNDLED_UNITS ON CACHE STRING "Use bundled LLNL units.")
-
-cmake_dependent_option(ARB_USE_BUNDLED_JSON "Use bundled Niels Lohmann's json library." ON "ARB_USE_BUNDLED_LIBS" OFF)
-if(NOT ARB_USE_BUNDLED_JSON)
-  find_package(nlohmann_json 3.11.2 CONFIG REQUIRED)
-  message(STATUS "Using external JSON = ${nlohmann_json_VERSION}")
-endif()
-
-cmake_dependent_option(ARB_USE_BUNDLED_RANDOM123 "Use bundled Random123 lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
-add_library(ext-random123 INTERFACE)
-if(NOT ARB_USE_BUNDLED_RANDOM123)
-    find_package(Random123 REQUIRED)
-    target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
-endif()
-
 # in the event we can find hwloc, just add it
 find_package(hwloc QUIET)
 add_library(ext-hwloc INTERFACE)
@@ -292,21 +271,89 @@ else()
         message(SEND_ERROR "Requested support for hwloc, but CMake couldn't find it.")
     endif()
 endif()
+install(TARGETS ext-hwloc EXPORT arbor-targets)
 
-add_library(ext-units INTERFACE)
-if(ARB_USE_BUNDLED_UNITS)
-    target_link_libraries(ext-units INTERFACE units::units)
+CPMAddPackage(NAME json
+              GITHUB_REPOSITORY nlohmann/json
+              VERSION 3.11.2)
+install(TARGETS nlohmann_json EXPORT arbor-targets)
+
+add_library(ext-random123 INTERFACE)
+CPMAddPackage(NAME random123
+              DOWNLOAD_ONLY YES
+              GITHUB_REPOSITORY DEShawResearch/random123
+              VERSION 1.14.0)
+if(random123_ADDED)
+    target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${random123_SOURCE_DIR}/include>)
 else()
-    message(FATAL, "TODO: At the time of Arbor 0.10.0 there is no Spack package")
+    find_package(Random123 REQUIRED)
+    target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
+endif()
+install(TARGETS ext-random123 EXPORT arbor-targets)
+
+if (ARB_WITH_PYTHON)
+    CPMAddPackage(NAME pybind11
+                  GITHUB_REPOSITORY pybind/pybind11
+                  VERSION 2.10.1
+                  OPTIONS "PYBIND11_CPP_STANDARD -std=c++17")
+    # required for find_python_module
+    include(FindPythonModule)
 endif()
 
+CPMAddPackage(NAME pugixml
+              GITHUB_REPOSITORY pugixml/pugixml
+              VERSION 1.13
+              DOWNLOAD_ONLY YES)
 
-add_subdirectory(ext)
-install(TARGETS ext-hwloc EXPORT arbor-targets)
-install(TARGETS ext-random123 EXPORT arbor-targets)
-target_link_libraries(arbor-public-deps INTERFACE ext-units)
-install(TARGETS ext-units EXPORT arbor-targets)
-install(TARGETS units compile_flags_target EXPORT arbor-targets)
+add_library(ext-pugixml INTERFACE)
+if(pugixml_ADDED)
+  target_compile_definitions(ext-pugixml INTERFACE PUGIXML_HEADER_ONLY)
+  target_include_directories(ext-pugixml INTERFACE $<BUILD_INTERFACE:${pugixml_SOURCE_DIR}/src>)
+else()
+    find_package(pugixml REQUIRED)
+    target_link_libraries(ext-pugixml INTERFACE pugixml::pugixml)
+endif()
+
+CPMAddPackage(NAME fmt
+              GITHUB_REPOSITORY fmtlib/fmt
+              VERSION 10.0)
+
+if (BUILD_TESTING)
+    CPMAddPackage(NAME benchmark
+                  GITHUB_REPOSITORY google/benchmark
+                  VERSION 1.8.3
+                  OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "CMAKE_BUILD_TYPE release" "BUILD_SHARED_LIBS OFF")
+
+
+    CPMAddPackage(NAME googletest
+                  GITHUB_REPOSITORY google/googletest
+                  GIT_TAG release-1.12.1
+                  VERSION 1.12.1
+                  OPTIONS "INSTALL_GTEST OFF" "gtest_force_shared_crt")
+endif()
+
+CPMAddPackage(NAME units
+              GITHUB_REPOSITORY llnl/units
+              VERSION 0.9.1
+              OPTIONS "UNITS_ENABLE_TESTS OFF" "UNITS_BUILD_STATIC_LIBRARY ON" "UNITS_BUILD_SHARED_LIBRARY OFF" "UNITS_BUILD_CONVERTER_APP OFF" "UNITS_BUILD_WEBSERVER OFF" "UNITS_INSTALL ON")
+
+target_link_libraries(arbor-public-deps INTERFACE units::units)
+install(TARGETS units EXPORT arbor-targets)
+
+CPMAddPackage(NAME tinyopt
+              GITHUB_REPOSITORY halfflat/tinyopt
+              GIT_TAG 7e6d707d49c6cb4be27ebd253856be65293288df
+              DOWNLOAD_ONLY YES)
+
+add_library(ext-tinyopt INTERFACE)
+if(tinyopt_ADDED)
+  target_include_directories(ext-tinyopt INTERFACE $<BUILD_INTERFACE:${tinyopt_SOURCE_DIR}/include>)
+else()
+    message(FATAL_ERROR "Could not obtain tinyopt.")
+endif()
+
+install(TARGETS compile_flags_target EXPORT arbor-targets)
+
 
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
@@ -570,7 +617,9 @@ add_subdirectory(arborenv)
 add_subdirectory(arborio)
 
 # unit, unit-mpi, unit-local, unit-modcc
-add_subdirectory(test)
+if (BUILD_TESTING)
+    add_subdirectory(test)
+endif()
 
 # self contained examples:
 add_subdirectory(example)
