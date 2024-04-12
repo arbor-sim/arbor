@@ -36,7 +36,7 @@ target_include_directories(libmodcc
                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 
-target_link_libraries(libmodcc PRIVATE fmt::fmt-headeronly)
+target_link_libraries(libmodcc PRIVATE fmt::fmt-header-only)
 
 set_target_properties(libmodcc PROPERTIES OUTPUT_NAME modcc)
 
@@ -44,7 +44,7 @@ export_visibility(libmodcc)
 
 add_executable(modcc ${modcc_sources})
 
-target_link_libraries(modcc PRIVATE fmt::fmt-headeronly)
+target_link_libraries(modcc PRIVATE fmt::fmt-header-only)
 target_link_libraries(modcc PRIVATE libmodcc ext-tinyopt)
 set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC})
 install(TARGETS modcc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
