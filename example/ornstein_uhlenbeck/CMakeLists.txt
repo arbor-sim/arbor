@@ -8,5 +8,5 @@ make_catalogue_lib(
 add_executable(ou EXCLUDE_FROM_ALL ou.cpp)
 target_link_libraries(ou PRIVATE catalogue-ornstein_uhlenbeck)
 target_link_libraries(ou PRIVATE arbor arborio arbor-private-deps)
-target_link_libraries(ou PRIVATE fmt::fmt)
+target_link_libraries(ou PRIVATE fmt::fmt-headeronly)
 add_dependencies(examples ou)
