@@ -4,6 +4,7 @@ include(CheckIPOSupported)
 
 # Make CUDA support throw errors if architectures remain unclear
 cmake_policy(SET CMP0104 NEW)
+cmake_policy(SET CMP0148 NEW)
 
 set(CPM_USE_LOCAL_PACKAGES ON)
 include(cmake/CPM.cmake)
@@ -313,6 +314,7 @@ else()
     find_package(pugixml REQUIRED)
     target_link_libraries(ext-pugixml INTERFACE pugixml::pugixml)
 endif()
+install(TARGETS ext-pugixml EXPORT arbor-targets)
 
 CPMAddPackage(NAME fmt
               GITHUB_REPOSITORY fmtlib/fmt

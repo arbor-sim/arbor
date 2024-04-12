@@ -10,7 +10,7 @@ set(arborio-sources
 
 add_library(arborio ${arborio-sources})
 
-target_link_libraries(arborio PUBLIC pugixml::pugixml)
+target_link_libraries(arborio PUBLIC ext-pugixml)
 add_library(arborio-public-headers INTERFACE)
 add_library(arborio-private-headers INTERFACE)
 
