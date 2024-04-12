@@ -301,7 +301,7 @@ if (ARB_WITH_PYTHON)
 endif()
 
 CPMAddPackage(NAME pugixml
-              GITHUB_REPOSITORY pugixml/pugixml
+              GITHUB_REPOSITORY zeux/pugixml
               VERSION 1.13
               DOWNLOAD_ONLY YES)
 
