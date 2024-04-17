@@ -626,8 +626,57 @@ bool Module::semantic() {
     return !has_error();
 }
 
+struct builtin_info {
+    std::string name;
+    sourceKind source;
+    accessKind access;
+    std::string channel;
+    Location location;
+};
+
+auto make_builtin_variables(moduleKind mod_kind) {
+    std::vector<builtin_info> result = {
+        {"v",       sourceKind::voltage,      mod_kind == moduleKind::voltage ? accessKind::write : accessKind::read, "", {}},
+        {"v_peer",  sourceKind::peer_voltage, accessKind::read,                                                       "", {}},
+        {"celsius", sourceKind::temperature,  accessKind::read,                                                       "", {}},
+        {"diam",    sourceKind::diameter,     accessKind::read,                                                       "", {}},
+        {"area",    sourceKind::area,         accessKind::read,                                                       "", {}},
+    };
+    return result;
+}
+
+auto make_ion_variables(moduleKind mod_kind, const std::vector<IonDep>& ions) {
+    std::vector<builtin_info> result;
+    for(auto const& ion: ions) {
+        auto channel = ion.name;
+        for(auto const& var: ion.write) {
+            auto name = var.spelling;
+            result.push_back({name, ion_source(channel, name, mod_kind), accessKind::write, channel, var.location});
+        }
+        for(auto const& var: ion.read) {
+            auto name = var.spelling;
+            result.push_back({name, ion_source(channel, name, mod_kind), accessKind::read, channel, var.location});
+        }
+    }
+    return result;
+}
+
 /// populate the symbol table with class scope variables
 void Module::add_variables_to_symbols() {
+    auto builtins = make_builtin_variables(kind_);
+    auto ion_vars = make_ion_variables(kind_, neuron_block_.ions);
+
+    auto is_builtin = [&](auto& nm) -> bool {
+        return std::count_if(builtins.begin(), builtins.end(),
+                            [&](auto& v) { return v.name == nm; });
+    };
+
+    auto is_ion_var = [&](auto& nm) -> bool {
+        return std::count_if(ion_vars.begin(), ion_vars.end(),
+                            [&](auto& v) { return v.name == nm; });
+    };
+
+
     auto create_variable =
         [this](const Token& token, accessKind a, visibilityKind v, linkageKind l,
                rangeKind r, bool is_state = false) -> symbol_ptr& {
@@ -662,14 +711,19 @@ void Module::add_variables_to_symbols() {
 
     auto current_kind     = kind_ == moduleKind::density ? sourceKind::current_density : sourceKind::current;
     auto conductance_kind = kind_ == moduleKind::density ? sourceKind::conductivity    : sourceKind::conductance;
-    auto v_access         = kind_ == moduleKind::voltage ? accessKind::write : accessKind::read;
 
-    create_indexed_variable("current_", current_kind, accessKind::write, "", Location());
+    create_indexed_variable("current_",      current_kind,     accessKind::write, "", Location());
     create_indexed_variable("conductivity_", conductance_kind, accessKind::write, "", Location());
-    create_indexed_variable("v",      sourceKind::voltage, v_access,  "", Location());
-    create_indexed_variable("v_peer", sourceKind::peer_voltage, accessKind::read,  "", Location());
-    create_variable(Token{tok::identifier, "dt", Location()},
-        accessKind::read, visibilityKind::global, linkageKind::local, rangeKind::scalar);
+    create_variable(Token{tok::identifier, "dt", Location()}, accessKind::read, visibilityKind::global, linkageKind::local, rangeKind::scalar);
+
+    for (const auto& [name, source, access, channel, location]: builtins) {
+        create_indexed_variable(name, source, access, channel, location);
+    }
+    parameter_block_.parameters.erase(
+        std::remove_if(parameter_block_.begin(), parameter_block_.end(),
+                       [&](const Id& id) { return is_builtin(id.name()); }),
+        parameter_block_.end()
+    );
 
     // If we put back support for accessing cell time again from NMODL code,
     // add indexed_variable also for "time" with appropriate cell-index based
@@ -677,57 +731,36 @@ void Module::add_variables_to_symbols() {
 
     // Add state variables.
     for (const Id& id: state_block_) {
-        create_variable(id.token,
-            accessKind::readwrite, visibilityKind::local, linkageKind::local, rangeKind::range, true);
+        create_variable(id.token, accessKind::readwrite, visibilityKind::local, linkageKind::local, rangeKind::range, true);
     }
 
     // Add parameters, ignoring built-in voltage variables "v" and "v_peer".
     for (const Id& id: parameter_block_) {
-        if (id.name() == "v" || id.name() == "v_peer") {
+        if (is_builtin(id.name())) {
+            std::cerr << "Skipping builtin " << id.name() << '\n';
             continue;
         }
 
-        // Special cases: 'celsius', 'diam', and 'area' are external indexed-variables with special
-        // data sources. Retrieval of their values is handled especially by printers.
+        // Parameters are scalar by default, but may later be changed to range.
+        auto& sym = create_variable(id.token, accessKind::read, visibilityKind::global, linkageKind::local, rangeKind::scalar);
 
-        if (id.name() == "celsius") {
-            create_indexed_variable("celsius", sourceKind::temperature, accessKind::read, "", Location());
-        }
-        else if (id.name() == "diam") {
-            create_indexed_variable("diam", sourceKind::diameter, accessKind::read, "", Location());
-        }
-        else if (id.name() == "area") {
-            create_indexed_variable("area", sourceKind::area, accessKind::read, "", Location());
-        }
-        else {
-            // Parameters are scalar by default, but may later be changed to range.
-            auto& sym = create_variable(id.token,
-                accessKind::read, visibilityKind::global, linkageKind::local, rangeKind::scalar);
-
-            // Set default value if one was specified.
-            if (id.has_value()) {
-                sym->is_variable()->value(std::stod(id.value));
-            }
-        }
+        // Set default value if one was specified.
+        if (id.has_value()) sym->is_variable()->value(std::stod(id.value));
     }
 
-    // Remove `celsius`, `diam` and `area` from the parameter block, as they are not true parameters anymore.
-    parameter_block_.parameters.erase(
-        std::remove_if(parameter_block_.begin(), parameter_block_.end(),
-            [](const Id& id) { return (id.name() == "celsius")
-                                   || (id.name() == "area")
-                                   || (id.name() == "diam"); }),
-        parameter_block_.end()
-    );
 
     // Add 'assigned' variables, ignoring built-in voltage variables "v" and "v_peer".
     for (const Id& id: assigned_block_) {
-        if (id.name() == "v" || id.name() == "v_peer") {
-            continue;
+        auto builtin = std::find_if(builtins.begin(), builtins.end(),
+                                    [&] (auto& v) { return v.name == id.name(); });
+        if (builtin != builtins.end()) {
+                error(pprintf("the symbol '%' is defined as a builtin and cannot be used as an ASSIGNED here %.",
+                              yellow(id.name()), id.token.location),
+                      id.token.location);
+                return;
         }
 
-        create_variable(id.token,
-            accessKind::readwrite, visibilityKind::local, linkageKind::local, rangeKind::range);
+        create_variable(id.token, accessKind::readwrite, visibilityKind::local, linkageKind::local, rangeKind::range);
     }
 
     ////////////////////////////////////////////////////
