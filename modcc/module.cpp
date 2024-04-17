@@ -871,20 +871,31 @@ bool Module::add_variables_to_symbols() {
 
     // then RANGE variables
     for(auto const& var : neuron_block_.ranges) {
-        if(!symbols_.count(var.spelling)) {
-            error( yellow(var.spelling) +
+        const auto& name = var.spelling;
+        if(!symbols_.count(name)) {
+            error( yellow(name) +
                    " is declared as RANGE, but has not been declared in the" +
                    " ASSIGNED or PARAMETER block",
                    var.location);
             return false;
         }
-        auto& sym = symbols_[var.spelling];
+        if (is_ion_var(name)) {
+            warning( yellow(name) + " is declared as RANGE, but is an ion variable", var.location);
+
+        }
+        if (is_builtin(name)) {
+            warning( yellow(name) + " is declared as RANGE, but is a builtin variable", var.location);
+        }
+        auto& sym = symbols_[name];
         if(auto id = sym->is_variable()) {
+            if (id->is_state()) {
+                warning( yellow(name) + " is declared as RANGE, but is a STATE variable", var.location);
+            }
             id->range(rangeKind::range);
         }
         else if (!sym->is_indexed_variable()){
             throw compiler_exception(
-                "unable to find symbol " + yellow(var.spelling) + " in symbols",
+                "unable to find symbol " + yellow(name) + " in symbols",
                 var.location);
         }
     }
