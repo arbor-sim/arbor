@@ -156,7 +156,7 @@ bool Module::semantic() {
     // first add variables defined in the NEURON, ASSIGNED, WHITE_NOISE and PARAMETER
     // blocks these symbols have "global" scope, i.e. they are visible to all
     // functions and procedures in the mechanism
-    add_variables_to_symbols();
+    if (!add_variables_to_symbols()) return false;
 
     // Helper which iterates over a vector of Symbols, moving them into the
     // symbol table.
@@ -662,7 +662,7 @@ auto make_ion_variables(moduleKind mod_kind, const std::vector<IonDep>& ions) {
 }
 
 /// populate the symbol table with class scope variables
-void Module::add_variables_to_symbols() {
+bool Module::add_variables_to_symbols() {
     auto builtins = make_builtin_variables(kind_);
     auto ion_vars = make_ion_variables(kind_, neuron_block_.ions);
 
@@ -736,10 +736,8 @@ void Module::add_variables_to_symbols() {
 
     // Add parameters, ignoring built-in voltage variables "v" and "v_peer".
     for (const Id& id: parameter_block_) {
-        if (is_builtin(id.name())) {
-            std::cerr << "Skipping builtin " << id.name() << '\n';
-            continue;
-        }
+        if (is_builtin(id.name())) continue;
+        if (is_ion_var(id.name())) continue;
 
         // Parameters are scalar by default, but may later be changed to range.
         auto& sym = create_variable(id.token, accessKind::read, visibilityKind::global, linkageKind::local, rangeKind::scalar);
@@ -757,7 +755,16 @@ void Module::add_variables_to_symbols() {
                 error(pprintf("the symbol '%' is defined as a builtin and cannot be used as an ASSIGNED here %.",
                               yellow(id.name()), id.token.location),
                       id.token.location);
-                return;
+                return false;
+        }
+
+        auto ion_var = std::find_if(ion_vars.begin(), ion_vars.end(),
+                                    [&] (auto& v) { return v.name == id.name(); });
+        if (ion_var != ion_vars.end()) {
+                error(pprintf("the symbol '%' is defined as a ion variable and cannot be used as an ASSIGNED here %.",
+                              yellow(id.name()), id.token.location),
+                      id.token.location);
+                return false;
         }
 
         create_variable(id.token, accessKind::readwrite, visibilityKind::local, linkageKind::local, rangeKind::range);
@@ -770,8 +777,7 @@ void Module::add_variables_to_symbols() {
     // first the ION channels
     // add ion channel variables
     auto update_ion_symbols = [this, create_indexed_variable]
-            (Token const& tkn, accessKind acc, const std::string& channel)
-    {
+            (Token const& tkn, accessKind acc, const std::string& channel) {
         std::string name = tkn.spelling;
         sourceKind data_source = ion_source(channel, name, kind_);
 
@@ -786,12 +792,12 @@ void Module::add_variables_to_symbols() {
             state = symbols_[name].get()->is_variable();
             if (!state) {
                 error(pprintf("the symbol defined % can't be redeclared", yellow(name)), tkn.location);
-                return;
+                return false;
             }
             if (!state->is_state()) {
                 error(pprintf("the symbol defined % at % can't be redeclared",
                     state->location(), yellow(name)), tkn.location);
-                return;
+                return false;
             }
             name += "_shadowed_";
         }
@@ -801,6 +807,8 @@ void Module::add_variables_to_symbols() {
         if (state) {
             state->shadows(sym.get());
         }
+
+        return true;
     };
 
     // Nonspecific current variables are represented by an indexed variable
@@ -831,7 +839,7 @@ void Module::add_variables_to_symbols() {
                               [&var](const auto& it) { return var.spelling == it.spelling; })) {
                 continue;
             }
-            update_ion_symbols(var, accessKind::read, ion.name);
+            if (!update_ion_symbols(var, accessKind::read, ion.name)) return false;
         }
 
         if(ion.uses_valence()) {
@@ -848,7 +856,7 @@ void Module::add_variables_to_symbols() {
                    " is declared as GLOBAL, but has not been declared in the" +
                    " ASSIGNED block",
                    var.location);
-            return;
+            return false;
         }
         auto& sym = symbols_[var.spelling];
         if(auto id = sym->is_variable()) {
@@ -868,7 +876,7 @@ void Module::add_variables_to_symbols() {
                    " is declared as RANGE, but has not been declared in the" +
                    " ASSIGNED or PARAMETER block",
                    var.location);
-            return;
+            return false;
         }
         auto& sym = symbols_[var.spelling];
         if(auto id = sym->is_variable()) {
@@ -884,6 +892,7 @@ void Module::add_variables_to_symbols() {
     for (const Id& id: white_noise_block_) {
         create_white_noise(id.token);
     }
+    return true;
 }
 
 int Module::semantic_func_proc() {

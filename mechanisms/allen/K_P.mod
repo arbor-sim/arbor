@@ -1,69 +1,58 @@
 : Comment: The persistent component of the K current
-: Reference:		Voltage-gated K+ channels in layer 5 neocortical pyramidal neurones from young rats:subtypes and gradients,Korngreen and Sakmann, J. Physiology, 2000
+: Reference:        Voltage-gated K+ channels in layer 5 neocortical pyramidal neurones from young rats:subtypes and gradients,Korngreen and Sakmann, J. Physiology, 2000
 
 
-NEURON	{
-	SUFFIX K_P
-	USEION k READ ek WRITE ik
-	RANGE gbar, g, ik
+NEURON {
+    SUFFIX K_P
+    USEION k READ ek WRITE ik
+    RANGE gbar, vshift, tauF, qt
 }
 
-UNITS	{
-	(S) = (siemens)
-	(mV) = (millivolt)
-	(mA) = (milliamp)
+UNITS {
+    (S) = (siemens)
+    (mV) = (millivolt)
+    (mA) = (milliamp)
 }
 
-PARAMETER	{
-	gbar = 0.00001 (S/cm2)
-	vshift = 0 (mV)
-	tauF = 1
+PARAMETER {
+    v    (mV)
+    celsius (degC)
+    gbar = 0.00001 (S/cm2)
+    vshift = 0 (mV)
+    tauF = 1
 }
 
-ASSIGNED	{
-	v	(mV)
-	g	(S/cm2)
-	celsius (degC)
-	mInf
-	mTau
-	hInf
-	hTau
+STATE { m h }
+
+ASSIGNED { qt }
+
+BREAKPOINT {
+    SOLVE states METHOD cnexp
+    LOCAL g
+    g = gbar*m*m*h
+    ik = g*(v-ek)
 }
 
-STATE	{
-	m
-	h
-}
+DERIVATIVE states {
+    LOCAL m_rho, h_rho
 
-BREAKPOINT	{
-	SOLVE states METHOD cnexp
-	g = gbar*m*m*h
-	ik = g*(v-ek)
-}
+    if (v < -50 + vshift){
+        m_rho = qt/(tauF * (1.25 + 175.03*exp(-(v - vshift) * -0.026)))
+       } else {
+        m_rho = qt/(tauF * (1.25 +  13.00*exp(-(v - vshift) * 0.026)))
+    }
 
-DERIVATIVE states	{
-	rates(v)
-	m' = (mInf-m)/mTau
-	h' = (hInf-h)/hTau
+    h_rho =  qt/(360 + (1010 + 24*(v + 55 - vshift))*exp(-((v + 75 - vshift)/48)^2))
+
+    m' = qt*(m_inf(v) - m)*m_rho
+    h' = qt*(h_inf(v) - h)*h_rho
 }
 
 INITIAL{
-	rates(v)
-	m = mInf
-	h = hInf
+    qt = 2.3^(0.1*(celsius - 21))
+    m = m_inf(v)
+    h = h_inf(v)
 }
 
-PROCEDURE rates(v) {
-       LOCAL qt
-       qt = 2.3^((celsius-21)/10)
-       UNITSOFF
-       mInf =  1 / (1 + exp(-(v - (-14.3 + vshift)) / 14.6))
-       if (v < -50 + vshift){
-           mTau = tauF * (1.25+175.03*exp(-(v - vshift) * -0.026))/qt
-       } else {
-           mTau = tauF * (1.25+13*exp(-(v - vshift) * 0.026))/qt
-       }
-       hInf =  1/(1 + exp(-(v - (-54 + vshift))/-11))
-       hTau =  (360+(1010+24*(v - (-55 + vshift)))*exp(-((v - (-75 + vshift))/48)^2))/qt
-       UNITSON
-}
+FUNCTION m_inf(v) { m_inf = 1/(1 + exp(-(v + 14.3 - vshift)/14.6)) }
+FUNCTION h_inf(v) { h_inf = 1/(1 + exp( (v + 54.0 - vshift)/11)) }
