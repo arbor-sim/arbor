@@ -960,3 +960,7 @@ need to be `updated <install-downloading_>`_.
         git submodule update
     Or download submodules recursively when checking out:
         git clone --recurse-submodules https://github.com/arbor-sim/arbor.git
+
+
+Build in conda environment using miniconda
+#############################
