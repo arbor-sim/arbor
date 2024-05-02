@@ -16,7 +16,7 @@ Introducing NMODL
 -----------------
 
 NMODL is a domain specific language (DSL) for design electro-chemical dynamics
-deriving from the earlier MODL language. It is used by both Arbor, Neuron, and
+deriving from the earlier MODL language. It is used by Arbor, Neuron, and
 and CoreNeuron. Although each software has its own dialect, the core ideas are
 identical. Unfortunately, documentation for both NMODL and MODL is scarce and
 outdated. This tutorial aims to get you proficient in writing and adapting ion
@@ -265,7 +265,12 @@ these parameters have an optional default value and a likewise optional unit.
 Both are helpful to have, though. The units chosen internally by Arbor come
 together such that the conductivity _must_ have units ``S/cm2``. Note that there
 is neither a check nor a conversion of units, the annotation serves purely as a
-reminder to us.
+reminder to us. Now, running the example ``step-03.py`` gives us the expected
+result of the membrane potential returning to the resting value:
+
+.. figure:: ../images/hh-02.svg
+    :width: 600
+    :align: center
 
 We have now recreated the leak current from the HH neuron model, which is one of
 three currents needed. Before we turn to the other two, though, we'll apply some
@@ -311,3 +316,259 @@ Performance-wise, ``GLOBAL`` is more efficient as ``RANGE`` parameter consume
 one memory location per CV _and_ require one memory access each. ``GLOBAL``
 requires one location and access _regardless_ of CV count. So, if speed is an
 issue, consider ``GLOBAL`` unless required otherwise.
+
+Differential Equations in NMODL
+-------------------------------
+
+After observing the ceremony of making copies of both Python and NMODL once
+more, we turn to the final task. There are currents left to handle in the HH
+model for potassium and sodium ions. Their formulations are quite similar,
+so we will discuss the potassium current here and leave the sodium current
+as an excercise
+
+.. math::
+
+    i_{na} = \bar g_{na} m^3 h (v - E_{na})
+    i_{k} = \bar g_{k} n^4(v - E_{k})
+
+In these equations, three new variables appear: :math:`m, h, n`, which are
+defined via differential equations
+
+.. math::
+
+    n' = \alpha_{n}(v) (1 - n) - \beta_{n}(v)n
+    m' = \alpha_{m}(v) (1 - m) - \beta_{m}(v)m
+    h' = \alpha_{h}(v) (1 - h) - \beta_{h}(v)h
+
+The coefficients :math:`\alpha_{m,h,n}` and :math:`\alpha_{m,h,n}` are in turn
+
+.. math::
+
+    \alpha_{x}(v) = \frac{x_{\infty}(v)}{\tau_{x}}
+    \beta_{x}(v) = \frac{1 - x_{\infty}(v)}{\tau_{x}}
+
+where the steady state activations :math:`m,h,n_\infty` can be determined by
+fitting. We will simply use them in NMODL without further justification. Add
+this to ``hh04.mod``:
+
+.. code-block::
+
+    FUNCTION m_alpha(v) { m_alpha = exprelr(-0.1*v - 4.0) }
+    FUNCTION h_alpha(v) { h_alpha = 0.07*exp(-0.05*v - 3.25) }
+    FUNCTION n_alpha(v) { n_alpha = 0.1*exprelr(-0.1*v - 5.5) }
+
+    FUNCTION m_beta(v)  { m_beta  = 4.0*exp(-(v + 65.0)/18.0) }
+    FUNCTION h_beta(v)  { h_beta  = 1.0/(exp(-0.1*v - 3.5) + 1.0) }
+    FUNCTION n_beta(v)  { n_beta  = 0.125*exp(-0.0125*v - 0.8125) }
+
+The ``FUNCTION`` constructs introduces a function which can only access its
+parameters and can have no side-effects like writing to global variables. Its
+return value is set by formally assigning a value to the function's name.
+Arbor provides some builtin functions like ``exprelr``, which is used here,
+and returns
+
+.. math::
+
+   \mathrm{exprelr}(x) = \frac{x}{\exp(x) - 1}
+
+and its smooth continuation over :math:`x=0`. ``exprelr`` is useful in many
+models similar to HH.
+
+Now we turn to formulating the differential equations (ODE). Naively, we could
+be tempted to add something like this to the ``BREAKPOINT`` block (notice the
+``LOCAL`` keyword to declare block-local variables)
+
+.. code-block::
+
+    BREAKPOINT {
+        LOCAL alpha, beta
+
+        alpha = n_alpha(v)
+        beta  = n_beta(v)
+        n     = n + dt*(alpha - n*(alpha + beta))
+
+        ik = gkbar*n*n*n*n*(v - ek)
+        il = gl*(v - el)
+    }
+
+and attempt to solving the ODE manually via Euler's method. Alas, this is
+inconvenient and cumbersome as we needed to adapted the ion channel's ``paint``
+call everytime we change the time step ``dt`` (assuming we pass it as a
+parameter). It's also less accurate than desireable. There is, though, a better
+way by using a new variable kind, the ``STATE`` variable. Add this in your NMODL
+
+.. code-block::
+
+   : Comments in NMODL start with a colon : or a question mark ?
+   : STATE variables are separated by whitespace only, not comma ,
+   STATE { n }
+
+   DERIVATIVE dState {
+        n' = alpha - n*(alpha + beta)
+   }
+
+Now we have told NMODL how to compute the derivative of ``n``. For an initial
+value problem, we also need to add its initial value and to actually *solve*
+the ODE. This is achieved by
+
+.. code-block::
+
+    INITIAL {
+        LOCAL alpha, beta
+
+        : potassium activation system
+        alpha = n_alpha(v)
+        beta  = n_beta(v)
+        n     = alpha/(alpha + beta)
+    }
+
+    BREAKPOINT {
+        SOLVE dState METHOD cnexp
+
+        ik = gkbar*n*n*n*n*(v - ek)
+        il = gl*(v - el)
+    }
+
+For closing the loop, we need to adjust the ``NEURON`` block once more:
+
+.. code-block::
+
+    NEURON {
+        SUFFIX hh04
+        : a variable can be READ *or* WRITE, the latter granting read and write access
+        USEION k READ ek WRITE ik
+        NONSPECIFIC_CURRENT il
+        : Note, no RANGE for STATE (these are implictly unique to each CV)
+        : gkbar is a new PARAMETER
+        RANGE gl, el, gkbar
+    }
+
+This is how we add ionic currents in NMODL. There's a list of predefined ions
+(sodium ``na``, potassium ``k``, and calcium ``ca``) and new ones can be added
+via ``set_ion``. The variable names in use here follow a strict naming scheme:
+For a hypothetical ion ``X``, the following variables are defined:
+
+- ``iX`` the current
+- ``eX`` the reversal potential
+- ``Xi`` the internal concentration
+- ``Xo`` the external concentration
+
+Their default values can be set in the simulation using ``set_ion``.
+We can run the simulation again to obtain:
+
+.. figure:: ../images/hh-04.svg
+    :width: 600
+    :align: center
+
+
+Final Polish: Temperature
+-------------------------
+
+A common problem is that measurements are often taken at temperatures different
+from the natural environment of a neuron. This is fixed by adjusting for the
+difference. For us, it presents an opportunity to introduce the ``ASSIGNED``
+construct. Like ``STATE`` variables, ``ASSIGNED`` variables persist across
+blocks. Unlike ``STATE`` variables, we cannot take their derivative. We
+reproduce ``hh05.mod`` here as a reference.
+
+.. code-block::
+
+    NEURON {
+        SUFFIX hh05
+        USEION k READ ek WRITE ik
+        NONSPECIFIC_CURRENT il
+        : qt is ASSIGNED, but needs to be RANGE
+        RANGE gl, el, gkbar, q10
+    }
+
+    ASSIGNED { q10 }
+
+    STATE { n }
+
+    PARAMETER {
+        gkbar  =   0.036  (S/cm2)
+        gl     =   0.0003 (S/cm2)
+        el     = -54.3    (mV)
+        celsius           (degC)
+        v                 (mV)
+    }
+
+
+    INITIAL {
+        LOCAL alpha, beta
+
+        q10 = 3^(0.1*celsius - 0.63)
+
+        : potassium activation system
+        alpha = n_alpha(v)
+        beta  = n_beta(v)
+        n     = alpha/(alpha + beta)
+    }
+
+    DERIVATIVE states {
+        LOCAL alpha, beta
+
+        : potassium activation system
+        alpha = n_alpha(v)
+        beta  = n_beta(v)
+        n'    = (alpha - n*(alpha + beta))*q10
+    }
+
+    BREAKPOINT {
+        SOLVE states METHOD cnexp
+        LOCAL gk, gna, n2
+
+        gk = gkbar*n*n*n*n
+
+        ik  = gk*(v - ek)
+        il  = gl*(v - el)
+    }
+
+    FUNCTION m_alpha(v) { m_alpha = exprelr(-0.1*v - 4.0) }
+    FUNCTION h_alpha(v) { h_alpha = 0.07*exp(-0.05*v - 3.25) }
+    FUNCTION n_alpha(v) { n_alpha = 0.1*exprelr(-0.1*v - 5.5) }
+
+    FUNCTION m_beta(v)  { m_beta  = 4.0*exp(-(v + 65.0)/18.0) }
+    FUNCTION h_beta(v)  { h_beta  = 1.0/(exp(-0.1*v - 3.5) + 1.0) }
+    FUNCTION n_beta(v)  { n_beta  = 0.125*exp(-0.0125*v - 0.8125) }
+
+Things to take note of here is ``celsius``, which contains the temperature in
+degrees Celsius. While it is listed as ``PARAMETER`` here, it is not a real
+parameter, but rather a builtin variable. Adding it to ``PARAMETER`` makes it
+available in the NMODL file. Adding the potential here, too, is not needed,
+considered good form. This result in:
+
+.. figure:: ../images/hh-05.svg
+    :width: 600
+    :align: center
+
+Your own Journey
+----------------
+
+Now, you are free to either explore implementing ``ina`` on your own or to
+look up how we did it in ``hh06.mod`` and ``step-06.py``.
+
+If you want to try it, but need a hint, here's a rough outline:
+
+1. Add a declaration of the sodium ion and its variables  to the ``NEURON`` block
+2. Add a parameter for the conductivity
+3. Compute the sodium current in ``BREAKPOINT``
+4. Add *two* new ``STATE`` variables ``h`` and ``m``
+5. Formulate their ODEs in ``INITIAL`` and ``DERIVATIVE``, one block can compute
+   all derivatives simultaneously.
+
+Conclusion
+==========
+
+You have probably picked up some of the quirks in syntax and sematics of NMODL.
+Let us be blunt: NMODL isn't anyone's idea of a favourite language. So, why
+should you be investing time in learning it? The answer is simply that it serves
+as the basis for all complex networks as simulated by Arbor or Neuron. Even
+modern attempts at addressing the same problems, like NeuroML2, are translated
+into NMODL. Almost all existing models are rooted in NMODL.
+
+We did introduce most relevant constructs here, with some notable exceptions
+like ``KINETIC`` and ``NET_RECEIVE``. We will possibly return to them in the
+future. Note that NMODL is significantly more complex than we have shown here,
+but these constructs can be avoided almost entirely and/or do not apply to
+Arbor.
