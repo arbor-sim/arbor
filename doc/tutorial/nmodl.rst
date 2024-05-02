@@ -64,7 +64,8 @@ We begin by setting up a simple model using the default ``hh`` model
     ax.set_ylabel('U/mV')
     plt.savefig('hh-01.pdf')
 
-This should --- once run --- produce a plot like this:
+Store it in ``step-01.py`` and --- once run --- is should produce a plot like
+this:
 
 .. figure:: ../images/hh-01.svg
     :width: 600
@@ -159,4 +160,154 @@ You can find all steps in the ``python/example/hh`` directory in Arbor's source
 code. Let's return to what just happened, it's quite a bit. First, we added our
 ion channel and used ``arbor-build-catalogue`` to translate it into a form Arbor
 can utilize. These collections of ion channels are --- unsurprisingly --- called
-catalogues, see :ref:`mechanisms`.
+catalogues, see :ref:`mechanisms`. We pulled this into our model by loading and
+assigning to the model.
+
+Next, let's look at the output graph. We observe a sudden jump in potential
+during the period the current clamp is active. As Arbor's model for a single CV
+cable cell is :math:`\partial_t U_m = i_e - i_m` (for multi-CV cells we have
+additional terms that can be neglected here, see :ref:`cable_cell`), this
+behaviour is expected. The current clamp provides a positive :math:`i_e` and our
+ion channel model is supplying the transmembrane current :math:`i_m = 0`. To
+understand the latter part, consider the channel model file we just added
+
+.. code-block::
+
+    NEURON {
+        SUFFIX hh02
+        NONSPECIFIC_CURRENT il
+    }
+
+This is the ``NEURON`` block declaring the channel's name, here ``hh02``, which
+is used when adding channels from a catalogue. Files that put ``SUFFIX`` in
+front of the name are converted to density channels, as opposed to synapses
+(``POINT_PROCESS``) and gap junctions (``JUNCTION_PROCESS``). In addition to
+naming the channel, we also need to set up all variables used to interface with
+Arbor, namely ion currrents, ion concentrations, ion reversal potentials, and
+non-ion currents. While the ion variables follow a rigid naming scheme, which we
+will discuss later, non-ion currents can be freely named after
+``NONSPECIFIC_CURRENT``. We chose ``il`` here, alluding to 'leak current'.
+Semantically, these currents are considered to be unassociated to any specific
+ion and thus can represent all ion currents we do not model explicitly as a lump
+sum. When computing ``i_m`` for the cable equation above, Arbor takes the sum
+over all non-specific and ion currents across all ion channels on the
+current CV. We will revisit the ``NEURON`` multiple times later on, but for now
+we turn to
+
+.. code-block::
+
+    BREAKPOINT {
+        il = 0
+    }
+
+During the integration of the cable equation, Arbor will evaluate this block to
+update its internal picture of the currrents, i.e. to calculate ``i_m``. This
+occurs at an unspecified moment of the execution and might even be done multiple
+times, so we need to take care not to depend on execution order. We are
+_expected_, yet not forced by the tooling to update all such outputs, so, again,
+some care is needed.
+
+Stepping Stone: Leak
+--------------------
+
+As you might have anticipated, our next step is to produce a finite current to
+counteract any disturbance in the membrane potential. So, we start by adding a
+new mechanism to ``mod``, called ``hh03``, which is just a copy of ``hh02.mod``.
+Next, adjust ``SUFFIX hh02`` to ``SUFFIX hh03``. Similarly copy ``step-02.py``
+to and change
+
+.. code-block:: python
+
+    decor = (
+        A.decor()
+        .paint('(all)', A.density('hh03'))
+        .place('(location 0 0.5)', A.iclamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA), "iclamp")
+    )
+
+as well as ``plt.savefig(hh-03.pdf)``. From on out, we'll assume the following
+steps are completed at the beginning of each new section:
+
+1. Copy ``step-n.py`` to ``step-(n+1).py``
+
+   - update all references to ``hhn`` to ``hh(n+1)``
+   - update the output image to ``hh-(n+1).pdf``
+2. Copy ``mod/hhn.mod`` to ``mod/hh(n+1).mod``
+
+   - change the name to ``SUFFIX hh(n+1)``
+3. Start editing the new NMODL and Python files.
+
+   - After each change to the NMODL file, you'll need to call ``arbor-build-catalogue cat mod``
+
+Keep this in mind, while we start altering the NMODL file to produce a more
+sensible current. Let's start with the current itself
+
+.. code-block::
+
+    BREAKPOINT {
+        il = gl*(v - el)
+    }
+
+this will pull the membrane potential ``v`` towards a resting potential ``el``
+since our reduced cable equation is now :math:`\partial_t U_m = i_e - g_l*(U_m -
+E_l)`. The membrane potential is available in NMODL as a read-only built-in
+symbol ``v`` and can be used in any ion channel. However, we need a way to set
+the resting potential ``el`` and the conductivity ``gl``. This is accomplished
+by adding a new block to the NMODL file:
+
+.. code-block::
+
+    PARAMETER {
+        gl =   0.0003 (S/cm2)
+        el = -54.3    (mV)
+    }
+
+these parameters have an optional default value and a likewise optional unit.
+Both are helpful to have, though. The units chosen internally by Arbor come
+together such that the conductivity _must_ have units ``S/cm2``. Note that there
+is neither a check nor a conversion of units, the annotation serves purely as a
+reminder to us.
+
+We have now recreated the leak current from the HH neuron model, which is one of
+three currents needed. Before we turn to the other two, though, we'll apply some
+polish. Variables declared in ``PARAMETER`` blocks can be set in the call to
+``paint``, like so:
+
+.. code-block:: python
+
+    decor = (
+        A.decor()
+        .paint('(all)', A.density('hh03', g=0.0005, el=-70))
+        .place('(location 0 0.5)', A.iclamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA), "iclamp")
+    )
+
+To enable this, we need to tell NMODL, that each CV will have its own value of
+``gl`` and ``el``, via
+
+.. code-block::
+
+    NEURON {
+        SUFFIX hh02
+        NONSPECIFIC_CURRENT il
+        RANGE gl, el
+    }
+
+Without this addition, there would be one, global copy for each, which could be
+set by writing
+
+.. code-block:: python
+
+    decor = (
+        A.decor()
+        .paint('(all)', A.density('hh03/el=-70,gl=0.0005'))
+        .place('(location 0 0.5)', A.iclamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA), "iclamp")
+    )
+
+instead. Parameters are either ``GLOBAL`` or ``RANGE``, never both. The
+difference is subtle and non-existant for our single CV. The rule of thumb is
+that if you expect that a parameter varies smoothly across the neuron, make it
+``RANGE`` and if you expect discrete, clearly delineated regions with
+dicontinuous values, go for ``GLOBAL``. If in doubt, choose ``RANGE``.
+Performance-wise, ``GLOBAL`` is more efficient as ``RANGE`` parameter consume
+one memory location per CV _and_ require one memory access each. ``GLOBAL``
+requires one location and access _regardless_ of CV count. So, if speed is an
+issue, consider ``GLOBAL`` unless required otherwise.
