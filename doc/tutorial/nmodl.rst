@@ -1,4 +1,4 @@
-.. _tutorial_nmodl:
+.. _tutorial_nmodl_density:
 
 How to use NMODL to extend Arbor's repetoire of Ion Channels
 ============================================================
@@ -575,3 +575,100 @@ like ``KINETIC`` and ``NET_RECEIVE``. We will possibly return to them in the
 future. Note that NMODL is significantly more complex than we have shown here,
 but these constructs can be avoided almost entirely and/or do not apply to
 Arbor.
+
+Addendum: Synapses
+==================
+
+If you have followed the tutorial above, there isn't much more to know before
+you can write your own synapse models. Thus, we will just show and discuss
+the exponential synapse coming with Arbor.
+
+.. code-block::
+
+    NEURON {
+        POINT_PROCESS expsyn
+        RANGE tau, e
+        NONSPECIFIC_CURRENT i
+    }
+
+    PARAMETER {
+        tau = 2.0 (ms) : the default for Neuron is 0.1
+        e = 0   (mV)
+    }
+
+    STATE { g (uS) }
+
+    INITIAL { g = 0 }
+
+    BREAKPOINT {
+        SOLVE state METHOD cnexp
+        i = g*(v - e)
+    }
+
+    DERIVATIVE state { g' = -g/tau }
+
+    NET_RECEIVE(weight) { g = g + weight }
+
+The differences to density mechanisms like ``hh`` are fairly minimal on the
+surface, instead of ``SUFFIX`` we write ``POINT_PROCESS`` in front of the name.
+The rest can be summarised as follows: We have a non-specific current ``i``
+driving the model towards the resting potential ``e``, which is proportional to
+the conductivity ``g``. The conductivity ``g`` itself decays exponentially
+towards zero with time constant ``tau``. One subtle difference is the unit for
+currents; where density mechanisms output a *current density* of ``mA/cm2``
+(thus ``g`` in ``hh`` above has unit ``S/cm2``) point mechanisms directly
+produce a current in units of ``nA``, resulting in units ``uS`` for ``g``.
+
+One new block ``NET_RECEIVE``, which is exclusive to ``POINT_PROCESS``, makes
+its appearance. It is evaluated every time an event is dispatched to the
+synapse, which might be never, once, or even multiple times during a time step,
+depending on the surrounding network state. This evaluation is done in
+unspecified order w.r.t. to ``BREAKPOINT``, i.e. before, after, or both.
+However, as this is specifically to handle events, Arbor will evaluate this
+block *exactly* once per event, so the advice about ``BREAKPOINT`` and multiple
+evaluation does not apply to ``NET_RECEIVE``.
+
+The formal parameter ``weight`` contains the connection weight according to the
+connection along which the action potential being processed was transmitted. To
+put this into the larger context, we sketch the infrastructure used to tie
+synapses and connections into a model:
+
+.. code-block:: python
+
+   class recipe(A.recipe):
+       def __init__(self, ncells):
+           A.recipe.__init__(self)
+
+       def num_cells(self):
+           return 2
+
+       def cell_description(self, gid):
+           tree = A.segment_tree()
+           tree.append(A.mnpos, (-3, 0, 0, 3), (3, 0, 0, 3), tag=1)
+           # syn and det form the targets and sources for connections.
+           decor = (
+               A.decor()
+               .paint('(all)', A.density("hh"))
+               .place('(location 0 0.5)', A.synapse("expsyn"), "syn")
+               .place('(location 0 0.5)', A.threshold_detector(-10 * U.mV), "det")
+           )
+           return A.cable_cell(tree, decor)
+
+       def cell_kind(self, _):
+           return A.cell_kind.cable
+
+       def connections_on(self, gid):
+           # gid 0 is purely a source
+           if gid == 0:
+               return []
+           # gid 1 has an incoming connnection from gid 0
+           # any spike dispatched to syn will trigger NET_RECEIVE on expsyn with weight=0.01
+           return [A.connection((0, "det"), "syn", 0.01, 5 * U.ms)]
+
+       def global_properties(self, _):
+           return A.neuron_cable_properties()
+
+This concludes our look at synapses or ``POINT_PROCESS`` es. NMODL has more to
+offer, like the ability to formulate ``KINETIC`` reaction systems, and Arbor
+adds some extensions, e.g. voltage processes, longitudinal diffusion, support
+for STDP, and mechanisms for gap junctions.

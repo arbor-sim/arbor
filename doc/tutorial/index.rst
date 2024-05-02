@@ -74,7 +74,7 @@ Advanced
 -------
 .. toctree::
    :maxdepth: 1
-   nmodl
+   tutorial_nmodl_density
 
 Demonstrations
 --------------
