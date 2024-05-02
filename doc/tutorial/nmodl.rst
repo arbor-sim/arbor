@@ -263,7 +263,7 @@ by adding a new block to the NMODL file:
 
 these parameters have an optional default value and a likewise optional unit.
 Both are helpful to have, though. The units chosen internally by Arbor come
-together such that the conductivity _must_ have units ``S/cm2``. Note that there
+together such that the conductivity *must* have units ``S/cm2``. Note that there
 is neither a check nor a conversion of units, the annotation serves purely as a
 reminder to us. Now, running the example ``step-03.py`` gives us the expected
 result of the membrane potential returning to the resting value:
@@ -313,8 +313,8 @@ that if you expect that a parameter varies smoothly across the neuron, make it
 ``RANGE`` and if you expect discrete, clearly delineated regions with
 dicontinuous values, go for ``GLOBAL``. If in doubt, choose ``RANGE``.
 Performance-wise, ``GLOBAL`` is more efficient as ``RANGE`` parameter consume
-one memory location per CV _and_ require one memory access each. ``GLOBAL``
-requires one location and access _regardless_ of CV count. So, if speed is an
+one memory location per CV *and* require one memory access each. ``GLOBAL``
+requires one location and access *regardless* of CV count. So, if speed is an
 issue, consider ``GLOBAL`` unless required otherwise.
 
 Differential Equations in NMODL
@@ -328,7 +328,7 @@ as an excercise
 
 .. math::
 
-    i_{na} = \bar g_{na} m^3 h (v - E_{na})
+    i_{na} = \bar g_{na} m^3 h (v - E_{na})\\
     i_{k} = \bar g_{k} n^4(v - E_{k})
 
 In these equations, three new variables appear: :math:`m, h, n`, which are
@@ -336,15 +336,15 @@ defined via differential equations
 
 .. math::
 
-    n' = \alpha_{n}(v) (1 - n) - \beta_{n}(v)n
-    m' = \alpha_{m}(v) (1 - m) - \beta_{m}(v)m
+    n' = \alpha_{n}(v) (1 - n) - \beta_{n}(v)n\\
+    m' = \alpha_{m}(v) (1 - m) - \beta_{m}(v)m\\
     h' = \alpha_{h}(v) (1 - h) - \beta_{h}(v)h
 
 The coefficients :math:`\alpha_{m,h,n}` and :math:`\alpha_{m,h,n}` are in turn
 
 .. math::
 
-    \alpha_{x}(v) = \frac{x_{\infty}(v)}{\tau_{x}}
+    \alpha_{x}(v) = \frac{x_{\infty}(v)}{\tau_{x}}\\
     \beta_{x}(v) = \frac{1 - x_{\infty}(v)}{\tau_{x}}
 
 where the steady state activations :math:`m,h,n_\infty` can be determined by
@@ -536,7 +536,10 @@ Things to take note of here is ``celsius``, which contains the temperature in
 degrees Celsius. While it is listed as ``PARAMETER`` here, it is not a real
 parameter, but rather a builtin variable. Adding it to ``PARAMETER`` makes it
 available in the NMODL file. Adding the potential here, too, is not needed,
-considered good form. This result in:
+considered good form. Using ``ASSIGNED`` over ``LOCAL`` here is again a
+performance consideration. While costing memory capacity and operations, the
+exponentiation is expensive enough to warrant the expense. This simulation
+results in:
 
 .. figure:: ../images/hh-05.svg
     :width: 600
