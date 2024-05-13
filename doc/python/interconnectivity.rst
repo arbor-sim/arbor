@@ -171,3 +171,11 @@ Interconnectivity
     .. attribute:: dict
 
         Dictionary for named selecations and values.
+
+
+.. function:: generate_network_connections(recipe, context = None, decomp = None)
+
+        Generate network connections from the network description in the recipe. A distributed context and
+        domain decomposition can optionally be provided. Only generates connections with local gids in the
+        domain composition as target. Will return all connections on every process, if no context and domain
+        decomposition are provided. Does not include connections from the "connections_on" recipe function.

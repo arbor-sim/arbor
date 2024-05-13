@@ -96,9 +96,9 @@ public:
 
     std::optional<arb::network_description> network_description() const override {
         // create a chain
-        auto ring = arb::network_selection::chain(arb::gid_range(0, num_cells_));
+        auto chain = arb::network_selection::chain(arb::gid_range(0, num_cells_));
         // connect front and back of chain to form ring
-        ring = arb::join(ring,
+        auto ring = arb::join(chain,
             arb::intersect(arb::network_selection::source_cell({num_cells_ - 1}),
                 arb::network_selection::target_cell({0})));
 

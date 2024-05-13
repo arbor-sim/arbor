@@ -360,3 +360,15 @@ Interconnectivity
     .. cpp:member:: network_label_dict dict
 
         Label dictionary for named selecations and values.
+
+
+.. function:: generate_network_connections(recipe, context, decomp)
+
+        Generate network connections from the network description in the recipe. Only generates connections 
+        with local gids in the domain composition as target.  Does not include connections from
+        the "connections_on" recipe function.
+
+.. function:: generate_network_connections(recipe)
+
+        Generate network connections from the network description in the recipe. Returns all generated connections on every process.
+        Does not include connections from the "connections_on" recipe function.
