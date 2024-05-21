@@ -1016,7 +1016,7 @@ Replace <site-packages> with the path you get in the previous operation before â
 
 #redirect the libc files such that the miniconda environment can access it
 
-ln -sf /lib/x86_64-linux-gnu/libstdc++.so.6 /home/han/miniconda3/envs/arbor_test/bin/../lib/libstdc++.so.6
+ln -sf /lib/x86_64-linux-gnu/libstdc++.so.6 ~/miniconda3/envs/arbor_test/bin/../lib/libstdc++.so.6
 
 
 #go to any working directory to try if you successfully installed arbor, by starting python and importing arbor
