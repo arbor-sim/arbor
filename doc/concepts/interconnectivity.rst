@@ -348,7 +348,12 @@ Terms and Definitions
 
 API
 ---
-* :ref:`Python <pyinterconnectivity>`
-* :ref:`C++ <cppinterconnectivity>`
-* :ref:`Python <pyremote>`
-* :ref:`C++ <cppremote>`
+* Interconnectivity
+
+    * :ref:`Python <pyinterconnectivity>`
+    * :ref:`C++ <cppinterconnectivity>`
+
+* Remote
+
+    * :ref:`Python <pyremote>`
+    * :ref:`C++ <cppremote>`
