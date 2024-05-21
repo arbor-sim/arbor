@@ -62,13 +62,13 @@ Spike Exchange
         spike. If the external simulation doesn't distinguish betwenn different
         sources on the same cell, always set this to zero.
 
-     .. attribute:: time
+    .. attribute:: time
 
         Time at which the occured.
 
- .. function:: gather_spikes(spikes, comm)
+.. function:: gather_spikes(spikes, comm)
 
-        Sends a buffer of spikes over ``comm`` receiving back the concatenated
-        result of all calling MPI tasks in Arbor. This is a collective
-        operation; each MPI task on the remote side must call it simultaneously
-        with its _local_ part of the spikes to send.
+    Sends a buffer of spikes over ``comm`` receiving back the concatenated
+    result of all calling MPI tasks in Arbor. This is a collective
+    operation; each MPI task on the remote side must call it simultaneously
+    with its _local_ part of the spikes to send.
