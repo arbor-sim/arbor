@@ -179,7 +179,7 @@ exchange process. Due to the way MPI defines intercommunicators, the exchange is
 the same as with intracommunicators.
 
 Control Plane and Epochs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Before initiating the actual simulation, Arbor sets the ``epoch`` length to half
 the minimal delay in the global network. The minimal delay can be queried using
@@ -348,6 +348,7 @@ Terms and Definitions
 
 API
 ---
-
 * :ref:`Python <pyinterconnectivity>`
 * :ref:`C++ <cppinterconnectivity>`
+* :ref:`Python <pyremote>`
+* :ref:`C++ <cppremote>`
