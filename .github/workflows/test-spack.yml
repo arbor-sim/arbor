@@ -97,7 +97,7 @@ jobs:
           spack uninstall -yafR arbor
 
       - name: failure, upload logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ failure() }}
         with:
           name: spack-log-${{ matrix.spack-version }}
