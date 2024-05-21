@@ -70,6 +70,11 @@ PYBIND11_MODULE(_arbor, m) {
     pyarb::register_simulation(m, global_ptr);
     pyarb::register_arborenv(m);
     pyarb::register_single_cell(m);
+    #ifdef ARB_MPI_ENABLED
+    pyarb::register_mpi(m);
+    pyarb::register_remote(m);
+    #endif
+
 
     // This is the fallback. All specific translators take precedence by being
     // registered *later*.
@@ -98,9 +103,4 @@ PYBIND11_MODULE(_arbor, m) {
     pybind11::register_exception<arb::zero_thread_requested_error>(m, "ArbValueError", PyExc_ValueError);
 
     pybind11::implicitly_convertible<const std::tuple<double, double, double, double>&, arb::mpoint>();
-
-    #ifdef ARB_MPI_ENABLED
-    pyarb::register_mpi(m);
-    pyarb::register_remote(m);
-    #endif
 }

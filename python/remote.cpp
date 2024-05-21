@@ -1,3 +1,5 @@
+#include <arbor/version.hpp>
+
 #ifdef ARB_MPI_ENABLED
 
 #include "mpi.hpp"
@@ -30,7 +32,7 @@ void register_remote(pybind11::module& m) {
         .def(pybind11::init<>([](const std::string& s) {
             auto res = arb::remote::msg_abort{};
             std::memset(res.reason, 0x0, sizeof(res.reason));
-            std::strncpy(res.reason, s.c_str(), 512);
+            std::strncpy(res.reason, s.c_str(), 511);
             return res;
         }),
         "reason"_a,
