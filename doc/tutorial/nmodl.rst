@@ -1,6 +1,6 @@
 .. _tutorial_nmodl_density:
 
-How to use NMODL to extend Arbor's repetoire of Ion Channels
+How to use NMODL to extend Arbor's repertoire of Ion Channels
 ============================================================
 
 NMODL is Arbor's way of expressing ion channel dynamics which in turn can be
@@ -168,7 +168,7 @@ during the period the current clamp is active. As Arbor's model for a single CV
 cable cell is :math:`\partial_t U_m = i_e - i_m` (for multi-CV cells we have
 additional terms that can be neglected here, see :ref:`cable_cell`), this
 behaviour is expected. The current clamp provides a positive :math:`i_e` and our
-ion channel model is supplying the transmembrane current :math:`i_m = 0`. To
+ion channel model is supplying the trans-membrane current :math:`i_m = 0`. To
 understand the latter part, consider the channel model file we just added
 
 .. code-block::
@@ -183,7 +183,7 @@ is used when adding channels from a catalogue. Files that put ``SUFFIX`` in
 front of the name are converted to density channels, as opposed to synapses
 (``POINT_PROCESS``) and gap junctions (``JUNCTION_PROCESS``). In addition to
 naming the channel, we also need to set up all variables used to interface with
-Arbor, namely ion currrents, ion concentrations, ion reversal potentials, and
+Arbor, namely ion currents, ion concentrations, ion reversal potentials, and
 non-ion currents. While the ion variables follow a rigid naming scheme, which we
 will discuss later, non-ion currents can be freely named after
 ``NONSPECIFIC_CURRENT``. We chose ``il`` here, alluding to 'leak current'.
@@ -201,7 +201,7 @@ we turn to
     }
 
 During the integration of the cable equation, Arbor will evaluate this block to
-update its internal picture of the currrents, i.e. to calculate ``i_m``. This
+update its internal picture of the currents, i.e. to calculate ``i_m``. This
 occurs at an unspecified moment of the execution and might even be done multiple
 times, so we need to take care not to depend on execution order. We are
 _expected_, yet not forced by the tooling to update all such outputs, so, again,
@@ -308,10 +308,10 @@ set by writing
     )
 
 instead. Parameters are either ``GLOBAL`` or ``RANGE``, never both. The
-difference is subtle and non-existant for our single CV. The rule of thumb is
+difference is subtle and non-existent for our single CV. The rule of thumb is
 that if you expect that a parameter varies smoothly across the neuron, make it
 ``RANGE`` and if you expect discrete, clearly delineated regions with
-dicontinuous values, go for ``GLOBAL``. If in doubt, choose ``RANGE``.
+discontinuous values, go for ``GLOBAL``. If in doubt, choose ``RANGE``.
 Performance-wise, ``GLOBAL`` is more efficient as ``RANGE`` parameter consume
 one memory location per CV *and* require one memory access each. ``GLOBAL``
 requires one location and access *regardless* of CV count. So, if speed is an
@@ -324,7 +324,7 @@ After observing the ceremony of making copies of both Python and NMODL once
 more, we turn to the final task. There are currents left to handle in the HH
 model for potassium and sodium ions. Their formulations are quite similar,
 so we will discuss the potassium current here and leave the sodium current
-as an excercise
+as an exercise
 
 .. math::
 
@@ -393,8 +393,8 @@ be tempted to add something like this to the ``BREAKPOINT`` block (notice the
 
 and attempt to solving the ODE manually via Euler's method. Alas, this is
 inconvenient and cumbersome as we needed to adapted the ion channel's ``paint``
-call everytime we change the time step ``dt`` (assuming we pass it as a
-parameter). It's also less accurate than desireable. There is, though, a better
+call every time we change the time step ``dt`` (assuming we pass it as a
+parameter). It's also less accurate than desirable. There is, though, a better
 way by using a new variable kind, the ``STATE`` variable. Add this in your NMODL
 
 .. code-block::
@@ -438,7 +438,7 @@ For closing the loop, we need to adjust the ``NEURON`` block once more:
         : a variable can be READ *or* WRITE, the latter granting read and write access
         USEION k READ ek WRITE ik
         NONSPECIFIC_CURRENT il
-        : Note, no RANGE for STATE (these are implictly unique to each CV)
+        : Note, no RANGE for STATE (these are implicitly unique to each CV)
         : gkbar is a new PARAMETER
         RANGE gl, el, gkbar
     }
@@ -563,7 +563,7 @@ If you want to try it, but need a hint, here's a rough outline:
 Conclusion
 ==========
 
-You have probably picked up some of the quirks in syntax and sematics of NMODL.
+You have probably picked up some of the quirks in syntax and semantics of NMODL.
 Let us be blunt: NMODL isn't anyone's idea of a favourite language. So, why
 should you be investing time in learning it? The answer is simply that it serves
 as the basis for all complex networks as simulated by Arbor or Neuron. Even
@@ -661,7 +661,7 @@ synapses and connections into a model:
            # gid 0 is purely a source
            if gid == 0:
                return []
-           # gid 1 has an incoming connnection from gid 0
+           # gid 1 has an incoming connection from gid 0
            # any spike dispatched to syn will trigger NET_RECEIVE on expsyn with weight=0.01
            return [A.connection((0, "det"), "syn", 0.01, 5 * U.ms)]
 
