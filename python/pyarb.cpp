@@ -30,6 +30,7 @@ void register_recipe(pybind11::module& m);
 void register_schedules(pybind11::module& m);
 void register_simulation(pybind11::module& m, pyarb_global_ptr);
 void register_arborenv(pybind11::module& m);
+void register_network(pybind11::module& m);
 void register_single_cell(pybind11::module& m);
 void register_units(pybind11::module& m);
 void register_label_dict(pybind11::module& m);
@@ -70,6 +71,7 @@ PYBIND11_MODULE(_arbor, m) {
     pyarb::register_simulation(m, global_ptr);
     pyarb::register_arborenv(m);
     pyarb::register_single_cell(m);
+    pyarb::register_network(m);
 
     // This is the fallback. All specific translators take precedence by being
     // registered *later*.

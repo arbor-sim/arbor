@@ -205,6 +205,10 @@ void register_recipe(pybind11::module& m) {
         .def("gap_junctions_on", &recipe::gap_junctions_on,
             "gid"_a,
             "A list of the gap junctions connected to gid, [] by default.")
+        .def("network_description", &recipe::network_description,
+            "Network description of cell connections.")
+        .def("cell_isometry", &recipe::cell_isometry,
+            "Isometry describing translation and rotation of cell.")
         .def("probes", &recipe::probes,
             "gid"_a,
             "The probes to allow monitoring.")
