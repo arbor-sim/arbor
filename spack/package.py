@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+from typing import Optional
 from spack.package import *
 
 
@@ -133,7 +134,9 @@ class Arbor(CMakePackage, CudaPackage):
         opt_flags = self.spec.target.optimization_flags(
             self.spec.compiler.name, self.spec.compiler.version
         )
-        args.append("-DARB_CXX_FLAGS_TARGET=" + opt_flags)
+        # Might return nothing
+        if opt_flags:
+            args.append("-DARB_CXX_FLAGS_TARGET=" + opt_flags)
         # Needed, spack has no units package
         args.append("-DARB_USE_BUNDLED_UNITS=ON")
 
