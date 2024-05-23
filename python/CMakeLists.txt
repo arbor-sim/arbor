@@ -43,6 +43,7 @@ set(pyarb_source
     simulation.cpp
     single_cell_model.cpp
     env.cpp
+    remote.cpp
     units.cpp
 )
 

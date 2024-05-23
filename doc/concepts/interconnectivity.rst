@@ -441,7 +441,7 @@ exchange process. Due to the way MPI defines intercommunicators, the exchange is
 the same as with intracommunicators.
 
 Control Plane and Epochs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Before initiating the actual simulation, Arbor sets the ``epoch`` length to half
 the minimal delay in the global network. The minimal delay can be queried using
@@ -500,9 +500,9 @@ scenarios where both sides are launched as a single job (eg via ``SLURM``), but
 might do so where unrelated jobs are used.
 
 Tying It All Together
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
-While there is no requirement on doing, we strongly recommend to make use of the
+While there is no requirement on doing so, we strongly recommend to make use of the
 facilities offered in ``arbor/communication/remote.hpp``, as does Arbor
 internally. It should also be possible to interact with this protocol via ``C``
 or other languages, if needed, as the infrastructure relies on byte-buffers and
@@ -610,6 +610,12 @@ Terms and Definitions
 
 API
 ---
+* Interconnectivity
 
-* :ref:`Python <pyinterconnectivity>`
-* :ref:`C++ <cppinterconnectivity>`
+    * :ref:`Python <pyinterconnectivity>`
+    * :ref:`C++ <cppinterconnectivity>`
+
+* Remote
+
+    * :ref:`Python <pyremote>`
+    * :ref:`C++ <cppremote>`
