@@ -1,6 +1,7 @@
 NEURON {
     SUFFIX hh03
     NONSPECIFIC_CURRENT il
+    RANGE el, gl
 }
 
 PARAMETER {

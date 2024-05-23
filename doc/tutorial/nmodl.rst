@@ -1,7 +1,7 @@
 .. _tutorial_nmodl_density:
 
 How to use NMODL to extend Arbor's repertoire of Ion Channels
-============================================================
+=============================================================
 
 NMODL is Arbor's way of expressing ion channel dynamics which in turn can be
 added to cable cells via the :ref:`decor` interface. This tutorial will guide
@@ -35,34 +35,8 @@ catalogue, but for this tutorial, we pretend that it is an entirely new model.
 
 We begin by setting up a simple model using the default ``hh`` model
 
-.. code-block:: python
-
-    import arbor as A
-    from arbor import units as U
-    import matplotlib.pyplot as plt
-
-    # Create a single segment morphology
-    tree = A.segment_tree()
-    tree.append(A.mnpos, (-3, 0, 0, 3), (3, 0, 0, 3), tag=1)
-
-    # Create (almost empty) decor
-    decor = (
-        A.decor()
-        .paint('(all)', A.density('hh'))
-        .place('(location 0 0.5)', A.iclamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA), "iclamp")
-    )
-
-    # Run the model, extracting the membrane voltage
-    model = A.single_cell_model(A.cable_cell(tree, decor))
-    model.probe("voltage", '(location 0 0.5)', tag="Um", frequency=10 * U.kHz)
-    model.run(tfinal=30 * U.ms)
-
-    # Create a basic plot
-    fg, ax = plt.subplots()
-    ax.plot(m.traces[0].time, m.traces[0].value)
-    ax.set_xlabel('t/ms')
-    ax.set_ylabel('U/mV')
-    plt.savefig('hh-01.pdf')
+.. literalinclude:: ../../python/example/hh/step-01.py
+  :language: python
 
 Store it in ``step-01.py`` and --- once run --- is should produce a plot like
 this:
@@ -86,16 +60,7 @@ We start by creating a new directory ``mod`` (the name is not important, but
 will be used throughout this example) and adding a file named ``hh02.mod`` to
 it. Its contents should be this:
 
-.. code-block::
-
-    NEURON {
-        SUFFIX hh02
-        NONSPECIFIC_CURRENT il
-    }
-
-    BREAKPOINT {
-        il = 0
-    }
+.. literalinclude:: ../../python/example/hh/mod/hh02.mod
 
 We will discuss this in detail below, but for now, we will just translate and
 use it in our model. Change to a shell, next to the ``mod`` directory and type:
@@ -117,38 +82,8 @@ will use from here on).
 and the file ``cat-catalogue.so`` should appear in your current directory. Next, modify the Python file
 like this:
 
-.. code-block:: python
-
-    import arbor as A
-    from arbor import units as U
-    import matplotlib.pyplot as plt
-
-    # Create a single segment morphology
-    tree = A.segment_tree()
-    tree.append(A.mnpos, (-3, 0, 0, 3), (3, 0, 0, 3), tag=1)
-
-    # Create (almost empty) decor
-    decor = (
-        A.decor()
-        .paint('(all)', A.density('hh02'))
-        .place('(location 0 0.5)', A.iclamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA), "iclamp")
-    )
-
-    # Run the model, extracting the membrane voltage
-    model = A.single_cell_model(A.cable_cell(tree, decor))
-
-    # add our catalogue
-    model.properties.catalogue = A.load_catalogue('cat-catalogue.so')
-
-    model.probe("voltage", '(location 0 0.5)', tag="Um", frequency=10 * U.kHz)
-    model.run(tfinal=30 * U.ms)
-
-    # Create a basic plot
-    fg, ax = plt.subplots()
-    ax.plot(m.traces[0].time, m.traces[0].value)
-    ax.set_xlabel('t/ms')
-    ax.set_ylabel('U/mV')
-    plt.savefig('hh-02.pdf')
+.. literalinclude:: ../../python/example/hh/step-02.py
+  :language: python
 
 This should --- once run --- produce a plot like this:
 
@@ -171,12 +106,8 @@ behaviour is expected. The current clamp provides a positive :math:`i_e` and our
 ion channel model is supplying the trans-membrane current :math:`i_m = 0`. To
 understand the latter part, consider the channel model file we just added
 
-.. code-block::
-
-    NEURON {
-        SUFFIX hh02
-        NONSPECIFIC_CURRENT il
-    }
+.. literalinclude:: ../../python/example/hh/mod/hh02.mod
+  :lines: 1-4
 
 This is the ``NEURON`` block declaring the channel's name, here ``hh02``, which
 is used when adding channels from a catalogue. Files that put ``SUFFIX`` in
@@ -194,11 +125,8 @@ over all non-specific and ion currents across all ion channels on the
 current CV. We will revisit the ``NEURON`` multiple times later on, but for now
 we turn to
 
-.. code-block::
-
-    BREAKPOINT {
-        il = 0
-    }
+.. literalinclude:: ../../python/example/hh/mod/hh02.mod
+  :lines: 6-8
 
 During the integration of the cable equation, Arbor will evaluate this block to
 update its internal picture of the currents, i.e. to calculate ``i_m``. This
@@ -214,17 +142,13 @@ As you might have anticipated, our next step is to produce a finite current to
 counteract any disturbance in the membrane potential. So, we start by adding a
 new mechanism to ``mod``, called ``hh03``, which is just a copy of ``hh02.mod``.
 Next, adjust ``SUFFIX hh02`` to ``SUFFIX hh03``. Similarly copy ``step-02.py``
-to and change
+to ``step-03.py`` and change
 
-.. code-block:: python
+.. literalinclude:: ../../python/example/hh/step-03.py
+  :language: python
+  :lines: 11-16
 
-    decor = (
-        A.decor()
-        .paint('(all)', A.density('hh03'))
-        .place('(location 0 0.5)', A.iclamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA), "iclamp")
-    )
-
-as well as ``plt.savefig(hh-03.pdf)``. From on out, we'll assume the following
+as well as ``plt.savefig('hh-03.pdf')``. From on out, we'll assume the following
 steps are completed at the beginning of each new section:
 
 1. Copy ``step-n.py`` to ``step-(n+1).py``
@@ -241,25 +165,18 @@ steps are completed at the beginning of each new section:
 Keep this in mind, while we start altering the NMODL file to produce a more
 sensible current. Let's start with the current itself
 
-.. code-block::
-
-    BREAKPOINT {
-        il = gl*(v - el)
-    }
+.. literalinclude:: ../../python/example/hh/mod/hh03.mod
+  :lines: 11-13
 
 this will pull the membrane potential ``v`` towards a resting potential ``el``
-since our reduced cable equation is now :math:`\partial_t U_m = i_e - g_l*(U_m -
+since our reduced cable equation is now :math:`\partial_t U_m = i_e - g_l\cdot(U_m -
 E_l)`. The membrane potential is available in NMODL as a read-only built-in
 symbol ``v`` and can be used in any ion channel. However, we need a way to set
 the resting potential ``el`` and the conductivity ``gl``. This is accomplished
 by adding a new block to the NMODL file:
 
-.. code-block::
-
-    PARAMETER {
-        gl =   0.0003 (S/cm2)
-        el = -54.3    (mV)
-    }
+.. literalinclude:: ../../python/example/hh/mod/hh03.mod
+  :lines: 6-10
 
 these parameters have an optional default value and a likewise optional unit.
 Both are helpful to have, though. The units chosen internally by Arbor come
@@ -268,7 +185,7 @@ is neither a check nor a conversion of units, the annotation serves purely as a
 reminder to us. Now, running the example ``step-03.py`` gives us the expected
 result of the membrane potential returning to the resting value:
 
-.. figure:: ../images/hh-02.svg
+.. figure:: ../images/hh-03.svg
     :width: 600
     :align: center
 
@@ -285,16 +202,11 @@ polish. Variables declared in ``PARAMETER`` blocks can be set in the call to
         .place('(location 0 0.5)', A.iclamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA), "iclamp")
     )
 
-To enable this, we need to tell NMODL, that each CV will have its own value of
+To enable this, we need to tell NMODL that each CV will have its own value of
 ``gl`` and ``el``, via
 
-.. code-block::
-
-    NEURON {
-        SUFFIX hh02
-        NONSPECIFIC_CURRENT il
-        RANGE gl, el
-    }
+.. literalinclude:: ../../python/example/hh/mod/hh03.mod
+  :lines: 1-5
 
 Without this addition, there would be one, global copy for each, which could be
 set by writing
@@ -349,17 +261,10 @@ The coefficients :math:`\alpha_{m,h,n}` and :math:`\alpha_{m,h,n}` are in turn
 
 where the steady state activations :math:`m,h,n_\infty` can be determined by
 fitting. We will simply use them in NMODL without further justification. Add
-this to ``hh04.mod``:
+this to (the end of) ``hh04.mod``:
 
-.. code-block::
-
-    FUNCTION m_alpha(v) { m_alpha = exprelr(-0.1*v - 4.0) }
-    FUNCTION h_alpha(v) { h_alpha = 0.07*exp(-0.05*v - 3.25) }
-    FUNCTION n_alpha(v) { n_alpha = 0.1*exprelr(-0.1*v - 5.5) }
-
-    FUNCTION m_beta(v)  { m_beta  = 4.0*exp(-(v + 65.0)/18.0) }
-    FUNCTION h_beta(v)  { h_beta  = 1.0/(exp(-0.1*v - 3.5) + 1.0) }
-    FUNCTION n_beta(v)  { n_beta  = 0.125*exp(-0.0125*v - 0.8125) }
+.. literalinclude:: ../../python/example/hh/mod/hh04.mod
+  :lines: 49-55
 
 The ``FUNCTION`` constructs introduces a function which can only access its
 parameters and can have no side-effects like writing to global variables. Its
@@ -394,54 +299,27 @@ be tempted to add something like this to the ``BREAKPOINT`` block (notice the
 and attempt to solving the ODE manually via Euler's method. Alas, this is
 inconvenient and cumbersome as we needed to adapted the ion channel's ``paint``
 call every time we change the time step ``dt`` (assuming we pass it as a
-parameter). It's also less accurate than desirable. There is, though, a better
-way by using a new variable kind, the ``STATE`` variable. Add this in your NMODL
+parameter). It's also less accurate than desirable. What's more, as we don't
+know the order and count of evaluation of these blocks, it's also likely to be
+incorrect.
 
-.. code-block::
+There is, though, a better way by using a new variable kind, the ``STATE``
+variable. Add this in your NMODL file
 
-   : Comments in NMODL start with a colon : or a question mark ?
-   : STATE variables are separated by whitespace only, not comma ,
-   STATE { n }
-
-   DERIVATIVE dState {
-        n' = alpha - n*(alpha + beta)
-   }
+.. literalinclude:: ../../python/example/hh/mod/hh04.mod
+  :lines: 11-12,30-37
 
 Now we have told NMODL how to compute the derivative of ``n``. For an initial
 value problem, we also need to add its initial value and to actually *solve*
 the ODE. This is achieved by
 
-.. code-block::
-
-    INITIAL {
-        LOCAL alpha, beta
-
-        : potassium activation system
-        alpha = n_alpha(v)
-        beta  = n_beta(v)
-        n     = alpha/(alpha + beta)
-    }
-
-    BREAKPOINT {
-        SOLVE dState METHOD cnexp
-
-        ik = gkbar*n*n*n*n*(v - ek)
-        il = gl*(v - el)
-    }
+.. literalinclude:: ../../python/example/hh/mod/hh04.mod
+  :lines: 21-29,39-47
 
 For closing the loop, we need to adjust the ``NEURON`` block once more:
 
-.. code-block::
-
-    NEURON {
-        SUFFIX hh04
-        : a variable can be READ *or* WRITE, the latter granting read and write access
-        USEION k READ ek WRITE ik
-        NONSPECIFIC_CURRENT il
-        : Note, no RANGE for STATE (these are implicitly unique to each CV)
-        : gkbar is a new PARAMETER
-        RANGE gl, el, gkbar
-    }
+.. literalinclude:: ../../python/example/hh/mod/hh04.mod
+  :lines: 1-9
 
 This is how we add ionic currents in NMODL. There's a list of predefined ions
 (sodium ``na``, potassium ``k``, and calcium ``ca``) and new ones can be added
@@ -471,66 +349,7 @@ construct. Like ``STATE`` variables, ``ASSIGNED`` variables persist across
 blocks. Unlike ``STATE`` variables, we cannot take their derivative. We
 reproduce ``hh05.mod`` here as a reference.
 
-.. code-block::
-
-    NEURON {
-        SUFFIX hh05
-        USEION k READ ek WRITE ik
-        NONSPECIFIC_CURRENT il
-        : qt is ASSIGNED, but needs to be RANGE
-        RANGE gl, el, gkbar, q10
-    }
-
-    ASSIGNED { q10 }
-
-    STATE { n }
-
-    PARAMETER {
-        gkbar  =   0.036  (S/cm2)
-        gl     =   0.0003 (S/cm2)
-        el     = -54.3    (mV)
-        celsius           (degC)
-        v                 (mV)
-    }
-
-
-    INITIAL {
-        LOCAL alpha, beta
-
-        q10 = 3^(0.1*celsius - 0.63)
-
-        : potassium activation system
-        alpha = n_alpha(v)
-        beta  = n_beta(v)
-        n     = alpha/(alpha + beta)
-    }
-
-    DERIVATIVE states {
-        LOCAL alpha, beta
-
-        : potassium activation system
-        alpha = n_alpha(v)
-        beta  = n_beta(v)
-        n'    = (alpha - n*(alpha + beta))*q10
-    }
-
-    BREAKPOINT {
-        SOLVE states METHOD cnexp
-        LOCAL gk, gna, n2
-
-        gk = gkbar*n*n*n*n
-
-        ik  = gk*(v - ek)
-        il  = gl*(v - el)
-    }
-
-    FUNCTION m_alpha(v) { m_alpha = exprelr(-0.1*v - 4.0) }
-    FUNCTION h_alpha(v) { h_alpha = 0.07*exp(-0.05*v - 3.25) }
-    FUNCTION n_alpha(v) { n_alpha = 0.1*exprelr(-0.1*v - 5.5) }
-
-    FUNCTION m_beta(v)  { m_beta  = 4.0*exp(-(v + 65.0)/18.0) }
-    FUNCTION h_beta(v)  { h_beta  = 1.0/(exp(-0.1*v - 3.5) + 1.0) }
-    FUNCTION n_beta(v)  { n_beta  = 0.125*exp(-0.0125*v - 0.8125) }
+.. literalinclude:: ../../python/example/hh/mod/hh05.mod
 
 Things to take note of here is ``celsius``, which contains the temperature in
 degrees Celsius. While it is listed as ``PARAMETER`` here, it is not a real
@@ -561,7 +380,7 @@ If you want to try it, but need a hint, here's a rough outline:
    all derivatives simultaneously.
 
 Conclusion
-==========
+----------
 
 You have probably picked up some of the quirks in syntax and semantics of NMODL.
 Let us be blunt: NMODL isn't anyone's idea of a favourite language. So, why
@@ -576,38 +395,14 @@ future. Note that NMODL is significantly more complex than we have shown here,
 but these constructs can be avoided almost entirely and/or do not apply to
 Arbor.
 
-Addendum: Synapses
-==================
+Synapses in NMODL
+=================
 
 If you have followed the tutorial above, there isn't much more to know before
 you can write your own synapse models. Thus, we will just show and discuss
 the exponential synapse coming with Arbor.
 
-.. code-block::
-
-    NEURON {
-        POINT_PROCESS expsyn
-        RANGE tau, e
-        NONSPECIFIC_CURRENT i
-    }
-
-    PARAMETER {
-        tau = 2.0 (ms) : the default for Neuron is 0.1
-        e = 0   (mV)
-    }
-
-    STATE { g (uS) }
-
-    INITIAL { g = 0 }
-
-    BREAKPOINT {
-        SOLVE state METHOD cnexp
-        i = g*(v - e)
-    }
-
-    DERIVATIVE state { g' = -g/tau }
-
-    NET_RECEIVE(weight) { g = g + weight }
+.. literalinclude:: ../../mechanisms/default/expsyn.mod
 
 The differences to density mechanisms like ``hh`` are fairly minimal on the
 surface, instead of ``SUFFIX`` we write ``POINT_PROCESS`` in front of the name.

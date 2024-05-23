@@ -72,10 +72,11 @@ Hardware
 
 Advanced
 -------
+
 .. toctree::
    :maxdepth: 1
 
-   tutorial_nmodl_density
+   nmodl
 
 Demonstrations
 --------------

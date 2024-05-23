@@ -1,7 +1,10 @@
 NEURON {
     SUFFIX hh04
+    : a variable can be READ *or* WRITE, the latter granting read and write access
     USEION k READ ek WRITE ik
     NONSPECIFIC_CURRENT il
+    : Note, no RANGE for STATE (these are implicitly unique to each CV)
+    : gkbar is a new PARAMETER
     RANGE gl, el, gkbar
 }
 
@@ -35,7 +38,7 @@ DERIVATIVE states {
 
 BREAKPOINT {
     SOLVE states METHOD cnexp
-    LOCAL gk, gna, n2
+    LOCAL gk, n2
 
     gk = gkbar*n*n*n*n
 
