@@ -1019,7 +1019,14 @@ Replace <site-packages> with the path you get in the previous operation before â
 ln -sf /lib/x86_64-linux-gnu/libstdc++.so.6 ~/miniconda3/envs/arbor_test/bin/../lib/libstdc++.so.6
 
 
-#go to any working directory to try if you successfully installed arbor, by starting python and importing arbor
+#go to any working directory to try if you successfully installed arbor, by starting python and importing arbor.
+
+One thing to add here could be testing for the version, i.e.
+
+python -c 'import arbor; print(arbor.__version__)'
+
+should work without errors and print something like 0.91-dev.
+
 
 python
 import arbor
