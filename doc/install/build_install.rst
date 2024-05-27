@@ -960,3 +960,80 @@ need to be `updated <install-downloading_>`_.
         git submodule update
     Or download submodules recursively when checking out:
         git clone --recurse-submodules https://github.com/arbor-sim/arbor.git
+
+
+Build in conda virtual environment using miniconda
+==================================================
+
+If you hope to install Arbor from source in a virtual environment in order not to interfere with other Arbor versions or software you have installed, or if you want to use features that are not included in the official release, you can use miniconda for this purpose. Otherwise, type pip install arbor in your terminal to install arbor. But you will have to fix two issues, one is feeding the correct Python path, and the other is 'GLIBCXX 3.4.30 not found in conda environment'. (Please note: This is assuming Linux and MacOS is not yet covered.)
+
+.. code-block:: bash
+
+#create a virtual environment
+
+conda create --name arbor_test
+conda activate arbor_test
+
+
+#go to the folder and clone the Arbor source package from GitHub
+
+cd ~/miniconda3/envs/arbor_test/
+mkdir src
+cd src
+git clone https://github.com/arbor-sim/arbor.git --recurse-submodules
+
+
+#install python and numpy in this environment
+
+conda install python=3.12.2
+conda install numpy
+
+
+#start the build
+
+cd arbor
+mkdir build
+cd build
+
+cmake .. -GNinja -DCMAKE_CXX_COMPILER=$(which g++) -DCMAKE_C_COMPILER=$(which gcc) -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=ON -DPython3_EXECUTABLE=$(which python3) -DARB_USE_BUNDLED_LIBS=ON
+
+
+#activate ninja to install
+
+ninja
+sudo ninja install
+
+
+#correct the path to the site packages and the libc files
+#first request the right Python site package path
+
+python -c 'import numpy; print(numpy.__path__)'
+
+#load the right path to the one used for installing
+
+cp -r ~/miniconda3/envs/arbor_test/src/arbor/build/python/arbor <site-packages>
+Replace <site-packages> with the path you get in the previous operation before ‘/numpy’
+
+#redirect the libc files such that the miniconda environment can access it
+
+ln -sf /lib/x86_64-linux-gnu/libstdc++.so.6 ~/miniconda3/envs/arbor_test/bin/../lib/libstdc++.so.6
+
+
+#go to any working directory to try if you successfully installed arbor, by starting python and importing arbor.
+
+One thing to add here could be testing for the version, i.e.
+
+python -c 'import arbor; print(arbor.__version__)'
+
+should work without errors and print something like 0.91-dev.
+
+
+python
+import arbor
+
+#then deactivate the environment if no more actions are planned. In the future, always first activate the virtual environment with and then use arbor in this environment with:
+
+conda activate arbor_test
+python
+>>>import arbor
+
