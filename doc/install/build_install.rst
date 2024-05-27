@@ -965,7 +965,7 @@ need to be `updated <install-downloading_>`_.
 Build in conda virtual environment using miniconda
 ==================================================
 
-If you hope to install Arbor from source in a virtual environment in order not to interfere with other Arbor versions or software you have installed, or if you want to use features that are not included in the official release, you can use miniconda for this purpose. Otherwise, type pip install arbor in your terminal to install arbor. But you will have to fix two issues, one is feeding the correct Python path, and the other is 'GLIBCXX 3.4.30 not found in conda environment'.
+If you hope to install Arbor from source in a virtual environment in order not to interfere with other Arbor versions or software you have installed, or if you want to use features that are not included in the official release, you can use miniconda for this purpose. Otherwise, type pip install arbor in your terminal to install arbor. But you will have to fix two issues, one is feeding the correct Python path, and the other is 'GLIBCXX 3.4.30 not found in conda environment'. (Please note: This is assuming Linux and MacOS is not yet covered.)
 
 .. code-block:: bash
 
