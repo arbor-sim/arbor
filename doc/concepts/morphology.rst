@@ -681,7 +681,13 @@ surrogate subtree (with the same parent as the one split off).
 Supported file formats
 ----------------------
 
-See the supported :ref:`file formats <format-overview>`.
+Supported file formats for morphologies are:
+
+- :ref:`Neurolucida ASC <formatasc>`
+- :ref:`NeuroML2 <formatneuroml>`
+- :ref:`SWC <formatswc>`
+- :ref:`Arbor Cable Cell <formatcablecell>`
+
 
 .. _morph-cv-policies:
 

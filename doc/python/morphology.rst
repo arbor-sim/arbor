@@ -732,9 +732,9 @@ NeuroML
 Neurolucida
 -----------
 
-.. py:enum:: asc_marker
+.. py:class:: asc_marker
 
-   One of dot, circle, cross, or none.
+   One of ``dot``, ``circle``, ``cross``, or ``none``.
 
 .. py:class:: asc_color
 
