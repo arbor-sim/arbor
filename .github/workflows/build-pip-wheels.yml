@@ -78,7 +78,7 @@ jobs:
       - name: Delete pyproject.toml
         run: rm -f pyproject.toml
       - name: Get pyproject.toml
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: arbver
       - name: Check pyproject.toml
@@ -103,7 +103,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build_binary_wheels, build_sdist]
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: dist
       - name: Publish distribution 📦 to Test PyPI
