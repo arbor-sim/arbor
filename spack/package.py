@@ -133,7 +133,7 @@ class Arbor(CMakePackage, CudaPackage):
         args.append("-DARB_ARCH=none")
         print(f'{type(self.spec.compiler.name)} {type(self.spec.compiler.version)}')
         opt_flags = self.spec.target.optimization_flags(
-            self.spec.compiler.name, self.spec.compiler.version
+            self.spec.compiler.name, str(self.spec.compiler.version)
         )
         # Might return nothing
         if opt_flags:
