@@ -41,7 +41,7 @@ public:
     virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const {
         return {};
     }
-    virtual std::vector<arb::cell_connection> external_connections_on(arb::cell_gid_type gid) const {
+    virtual std::vector<arb::ext_cell_connection> external_connections_on(arb::cell_gid_type gid) const {
         return {};
     }
     virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const {
@@ -88,8 +88,8 @@ public:
         PYBIND11_OVERRIDE(std::vector<arb::cell_connection>, recipe, connections_on, gid);
     }
 
-    std::vector<arb::cell_connection> external_connections_on(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERRIDE(std::vector<arb::cell_connection>, recipe, connections_on, gid);
+    std::vector<arb::ext_cell_connection> external_connections_on(arb::cell_gid_type gid) const override {
+        PYBIND11_OVERRIDE(std::vector<arb::ext_cell_connection>, recipe, external_connections_on, gid);
     }
 
     std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type gid) const override {
@@ -146,6 +146,10 @@ public:
 
     std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
         return try_catch_pyexception([&](){ return impl_->connections_on(gid); }, msg);
+    }
+
+    std::vector<arb::ext_cell_connection> external_connections_on(arb::cell_gid_type gid) const override {
+        return try_catch_pyexception([&](){ return impl_->external_connections_on(gid); }, msg);
     }
 
     std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type gid) const override {

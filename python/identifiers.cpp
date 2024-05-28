@@ -115,9 +115,45 @@ void register_identifiers(py::module& m) {
         .def("__str__", [](arb::cell_global_label_type m) {return pprintf("<arbor.cell_global_label: gid {}, label ({}, {})>", m.gid, m.label.tag, m.label.policy);})
         .def("__repr__",[](arb::cell_global_label_type m) {return pprintf("<arbor.cell_global_label: gid {}, label ({}, {})>", m.gid, m.label.tag, m.label.policy);});
 
+
     py::implicitly_convertible<std::tuple<arb::cell_gid_type, arb::cell_local_label_type>, arb::cell_global_label_type>();
     py::implicitly_convertible<std::tuple<arb::cell_gid_type, arb::cell_tag_type>, arb::cell_global_label_type>();
     py::implicitly_convertible<py::tuple, arb::cell_global_label_type>();
+
+    py::class_<arb::cell_remote_label_type> cell_remote_label_type(m, "cell_remote_label",
+        "For remote identification of an item.\n\n"
+        "cell_remote_label members:\n"
+        "(1) a unique cell identified by its gid.\n"
+        "(2) a cell_local_label, referring to a labeled group of items on the cell and a policy for selecting a single item out of the group.\n");
+
+    cell_remote_label_type
+        .def(py::init(
+            [](arb::cell_gid_type gid, arb::cell_lid_type index) {
+              return arb::cell_remote_label_type{gid, index};
+            }),
+             "gid"_a, "index"_a,
+             "Construct a cell_remote_label identifier from a gid and an index identifying an item on the cell.\n"
+             "The default round_robin policy is used for selecting one of possibly multiple items on the cell associated with the label.")
+        .def(py::init(
+            [](arb::cell_gid_type gid, arb::cell_lid_type index) {
+              return arb::cell_remote_label_type{gid, index};
+            }),
+             "gid"_a, "label"_a,
+             "Construct a cell_remote_label identifier with arguments:\n"
+             "  gid:   The remote identifier of the cell.\n"
+             "  index: An index uniquely addressing an item on the remote cell.\n")
+        .def(py::init([](const std::tuple<arb::cell_gid_type, arb::cell_lid_type>& t) { return arb::cell_remote_label_type{std::get<0>(t), std::get<1>(t)}; }),
+             "Construct a cell_remote_label identifier with tuple argument (gid, index):\n"
+             "  gid:   The remote identifier of the cell.\n"
+             "  index: An index uniquely addressing an item on the remote cell.\n")
+        .def_readwrite("gid",  &arb::cell_remote_label_type::rid, "The remote identifier of the cell.")
+        .def_readwrite("index", &arb::cell_remote_label_type::index, "  An index uniquely addressing an item on the remote cell.")
+        .def("__str__", [](arb::cell_remote_label_type m) {return pprintf("<arbor.cell_remote_label: gid {}, index {}>", m.rid, m.index);})
+        .def("__repr__",[](arb::cell_remote_label_type m) {return pprintf("<arbor.cell_remote_label: gid {}, index {}>", m.rid, m.index);});
+
+
+    py::implicitly_convertible<std::tuple<arb::cell_gid_type, arb::cell_lid_type>, arb::cell_remote_label_type>();
+    py::implicitly_convertible<py::tuple, arb::cell_remote_label_type>();
 
     py::class_<arb::cell_member_type> cell_member(m, "cell_member",
         "For global identification of a cell-local item.\n\n"
