@@ -51,7 +51,7 @@ jobs:
       - name: Check pyproject.toml
         run: cat pyproject.toml
       - name: Install cibuildwheel
-        run: python3 -m pip install --user cibuildwheel
+        run: python3 -m pip install --break-system-packages cibuildwheel
       - name: Build wheels
         run: python3 -m cibuildwheel --output-dir dist
       - uses: actions/upload-artifact@v3
@@ -66,9 +66,9 @@ jobs:
 
     steps:
       - name: Update pip and setup venv
-        run: python -m pip install --upgrade pip && python -m venv ~/env && . ~/env/bin/activate && echo PATH=$PATH >> $GITHUB_ENV
+        run: python -m pip install --break-system-packages--upgrade pip && python -m venv ~/env && . ~/env/bin/activate && echo PATH=$PATH >> $GITHUB_ENV
       - name: Get packages
-        run: python3 -m pip install --user build
+        run: python3 -m pip install --break-system-packages build
       - name: Get Arbor
         uses: actions/checkout@v4
         with:
@@ -84,7 +84,7 @@ jobs:
       - name: Make sdist
         run: python3 -m build -s
       - name: Install sdist
-        run:  python3 -m pip install dist/arbor*.tar.gz
+        run:  python3 -m pip --break-system-packages install dist/arbor*.tar.gz
       - name: Run Python tests
         run: python3 -m unittest discover -v -s python
       - name: Run Python examples
@@ -106,7 +106,7 @@ jobs:
           name: dist
       - name: Publish distribution 📦 to Test PyPI
         run: |
-          pip install twine
+          pip install --break-system-packages twine
           twine upload -r testpypi ./*
         env:
           TWINE_USERNAME: __token__
