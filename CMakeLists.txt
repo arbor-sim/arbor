@@ -13,6 +13,7 @@ project(arbor VERSION ${numeric_version})
 enable_language(CXX)
 
 include(GNUInstallDirs)
+include(CheckCXXCompilerFlag)
 
 # Effectively adds '-fpic' flag to CXX_FLAGS. Needed for dynamic catalogues.
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -38,8 +39,13 @@ option(ARBDEV_COLOR "Always produce ANSI-colored output (GNU/Clang only)." OFF)
 #----------------------------------------------------------
 
 # Specify target architecture.
-
-set(ARB_ARCH "native" CACHE STRING "Target architecture for arbor libraries")
+check_cxx_compiler_flag("-march=native" CXX_HAS_NATIVE)
+if(CXX_HAS_NATIVE)
+    set(ARB_DEFAULT_ARCH "native")
+else()
+    set(ARB_DEFAULT_ARCH "none")
+endif()
+set(ARB_ARCH ${ARB_DEFAULT_ARCH} CACHE STRING "Target architecture for arbor libraries")
 
 # Perform explicit vectorization?
 
