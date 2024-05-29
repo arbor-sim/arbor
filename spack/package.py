@@ -131,7 +131,6 @@ class Arbor(CMakePackage, CudaPackage):
 
         # query spack for the architecture-specific compiler flags set by its wrapper
         args.append("-DARB_ARCH=none")
-        print(f'{type(self.spec.compiler.name)} {type(self.spec.compiler.version)}')
         opt_flags = self.spec.target.optimization_flags(
             self.spec.compiler.name, str(self.spec.compiler.version)
         )
