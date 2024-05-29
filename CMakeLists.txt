@@ -147,13 +147,8 @@ if(ARB_GPU STREQUAL "cuda")
             # Pascal, Volta, Ampere, Hopper
             set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
         endif()
-    elseif(${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 11)
-        if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-            # Pascal, Volta, Ampere
-            set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
-        endif()
     else()
-        message(FATAL_ERROR "Need at least CUDA 11, got ${CUDAToolkit_VERSION_MAJOR}")
+        message(FATAL_ERROR "Need at least CUDA 12, got ${CUDAToolkit_VERSION_MAJOR}")
     endif()
 
     # We _still_ need this otherwise CUDA symbols will not be exported
@@ -164,7 +159,7 @@ if(ARB_GPU STREQUAL "cuda")
 elseif(ARB_GPU STREQUAL "cuda-clang")
     include(FindCUDAToolkit)
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+        set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
     endif()
     set(ARB_WITH_CUDA_CLANG TRUE)
     enable_language(CUDA)
