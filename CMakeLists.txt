@@ -410,7 +410,7 @@ endif()
 # Shared / Dynamic?
 # If set from outside, use that.
 # If we are in wheel mode, force shared for Python reasons.
-if(ENV{CIBUILDWHEEL})
+if(DEFINED ENV{CIBUILDWHEEL})
     set(BUILD_SHARED_LIBS ON CACHE STRING "Build shared libraries?")
 endif()
 
