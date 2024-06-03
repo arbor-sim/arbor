@@ -355,7 +355,7 @@ void register_cells(py::module& m) {
 
     // arb::cell_cv_data
     cell_cv_data
-        s    .def_property_readonly("num_cv", [](const arb::cell_cv_data& data){return data.size();},
+    .def_property_readonly("num_cv", [](const arb::cell_cv_data& data){return data.size();},
                  "Return the number of CVs in the cell.")
             .def("cables",
                  [](const arb::cell_cv_data& d, unsigned index) {
