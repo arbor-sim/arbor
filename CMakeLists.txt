@@ -411,7 +411,11 @@ endif()
 # If set from outside, use that.
 # If we are in wheel mode, default to shared for Python reasons.
 if(NOT DEFINED BUILD_SHARED_LIBS)
-    set(BUILD_SHARED_LIBS ${DEFINED ENV{CIBUILDWHEEL}} CACHE STRING "Build shared libraries?")
+    if(ENV{CIBUILDWHEEL})
+        set(BUILD_SHARED_LIBS ON  CACHE STRING "Build shared libraries?")
+    else()
+        set(BUILD_SHARED_LIBS OFF CACHE STRING "Build shared libraries?")
+    endif()
 endif()
 
 # Threading model
