@@ -58,7 +58,7 @@ jobs:
         run: python3 -m cibuildwheel --output-dir dist
       - uses: actions/upload-artifact@v4
         with:
-          name: dist
+          name: dist-test
           path: dist/*.whl
 
   build_sdist:
