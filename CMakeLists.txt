@@ -407,6 +407,12 @@ if(${Python3_FOUND})
     message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
 endif()
 
+# Shared / Dynamic?
+# If set from outside, use that.
+# If we are in wheel mode, default to shared for Python reasons.
+if(NOT DEFINED BUILD_SHARED_LIBS)
+    set(BUILD_SHARED_LIBS ${DEFINED ENV{CIBUILDWHEEL}} CACHE STRING "Build shared libraries?")
+endif()
 
 # Threading model
 #-----------------
