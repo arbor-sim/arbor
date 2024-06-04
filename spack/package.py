@@ -14,7 +14,7 @@ class Arbor(CMakePackage, CudaPackage):
     homepage = "https://arbor-sim.org"
     git = "https://github.com/arbor-sim/arbor.git"
     url = "https://github.com/arbor-sim/arbor/releases/download/v0.8.1/arbor-v0.9.0-full.tar.gz"
-    maintainers = ("thorstenhater", "brenthuisman", "haampie")
+    maintainers = ("thorstenhater", "haampie")
     submodules = True
 
     version("master", branch="master", submodules=True)
@@ -83,15 +83,16 @@ class Arbor(CMakePackage, CudaPackage):
     # misc dependencies
     depends_on("fmt@7.1:", when="@0.5.3:")  # required by the modcc compiler
     depends_on("fmt@9.1:", when="@0.7.1:")
-    depends_on("fmt@10.0:", when="@0.9.1:")
+    depends_on("fmt@10.2:", when="@0.9.1:")
     depends_on("googletest@1.12.1:", when="@0.7.1:")
     depends_on("pugixml@1.11:", when="@0.7.1:")
     depends_on("pugixml@1.13:", when="@0.9.1:")
-    depends_on("nlohmann-json@3.11.2:")
+    depends_on("nlohmann-json@3.11.3:")
     depends_on("random123@1.14.0:")
     with when("+cuda"):
         depends_on("cuda@10:")
         depends_on("cuda@11:", when="@0.7.1:")
+        depends_on("cuda@12:", when="@0.9.1:")
 
     # mpi
     depends_on("mpi", when="+mpi")
@@ -101,15 +102,16 @@ class Arbor(CMakePackage, CudaPackage):
     with when("+python"):
         extends("python")
         depends_on("python@3.7:", type=("build", "run"))
-        depends_on("python@3.8:", when="@0.9.1:", type=("build", "run"))
+        depends_on("python@3.9:", when="@0.9.1:", type=("build", "run"))
         depends_on("py-numpy", type=("build", "run"))
         depends_on("py-pybind11@2.6:", type="build")
         depends_on("py-pybind11@2.8.1:", when="@0.5.3:", type="build")
         depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
+        depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
 
     # sphinx based documentation
     with when("+doc"):
-        depends_on("python@3.8:", type="build")
+        depends_on("python@3.10:", type="build")
         depends_on("py-sphinx", type="build")
         depends_on("py-svgwrite", type="build")
 
