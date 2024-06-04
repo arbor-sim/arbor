@@ -62,7 +62,7 @@ build-frontend = "build"
 build = ["*linux*","*macosx*"]
 skip = ["cp36*", "cp37*", "cp38*", "*musllinux*"]
 test-command = "python -m unittest discover -v -s {project}/python"
-repair-wheel-command = "cp {wheel} {dest_dir}"
+#repair-wheel-command = "cp {wheel} {dest_dir}"
 dependency-versions = "latest"
 
 [tool.cibuildwheel.macos]
