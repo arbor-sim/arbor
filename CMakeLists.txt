@@ -15,13 +15,6 @@ enable_language(CXX)
 include(GNUInstallDirs)
 include(CheckCXXCompilerFlag)
 
-# Shared / Dynamic?
-# If set from outside, use that.
-# If we are in wheel mode, force shared for Python reasons.
-# if(DEFINED ENV{CIBUILDWHEEL})
-    # set(BUILD_SHARED_LIBS ON CACHE STRING "Build shared libraries?")
-# endif()
-
 # Effectively adds '-fpic' flag to CXX_FLAGS. Needed for dynamic catalogues.
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
