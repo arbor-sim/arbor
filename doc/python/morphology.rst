@@ -178,7 +178,7 @@ Cable cell morphology
 
         import arbor
         from arbor import mpoint
-        from arbor import mpos
+        from arbor import mnpos
 
         tree = arbor.segment_tree()
         # Start with a cylinder segment for the soma (with tag 1)
