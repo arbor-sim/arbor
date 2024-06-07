@@ -119,6 +119,7 @@ Cable cell morphology
         Radius of the cable (μm)
 
 .. class:: msegment
+Consider adding a sentence here explaining what this class does? (I don't know how to put comments in .rst file)
 
     .. attribute:: prox
         :type: mpoint
