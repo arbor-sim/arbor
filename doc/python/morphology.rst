@@ -140,8 +140,8 @@ Cable cell morphology
 
 .. class:: segment_tree
 
-    A segment tree is a description of a the segments and their connections
-    Segment trees comprise a sequence of segments starting from at lease one *root* segment,
+    A segment tree is a description of the segments and their connections.
+    Segment trees comprise a sequence of segments starting from at least one *root* segment,
     together with a parent-child adjacency relationship where a child segment is
     distal to its parent.
     Branches in the tree occur where a segment has more than one child.
