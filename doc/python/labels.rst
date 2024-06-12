@@ -71,7 +71,7 @@ same type (region or locset):
     import arbor
 
     # A label dictionary that defines the label "dend" that defines a region.
-    d = arbor.label_dict({'dend': '(tag 3)')
+    d = arbor.label_dict({'dend': '(tag 3)'})
 
     # The definition of a label can be overwritten with a definition of the
     # same type, in this case a region.
