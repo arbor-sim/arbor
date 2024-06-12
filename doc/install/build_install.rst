@@ -139,11 +139,11 @@ More information on building with MPI is in the `HPC cluster section <cluster_>`
 Python
 ~~~~~~
 
-Arbor has a Python frontend, for which a minimum of Python 3.7 is required.
-In addition, `numpy` is a runtime requirement for the Python package.
-In order to use MPI in combination with the python frontend the
-`mpi4py <https://mpi4py.readthedocs.io/en/stable/install.html#>`_
-Python package is recommended. See :ref:`install-python` for more information.
+Arbor has a Python frontend, for which a minimum of Python 3.9 is required. In
+addition, `numpy` is a runtime requirement for the Python package. In order to
+use MPI in combination with the python frontend the `mpi4py
+<https://mpi4py.readthedocs.io/en/stable/install.html#>`_ Python package is
+recommended. See :ref:`install-python` for more information.
 
 NeuroML
 ~~~~~~~
