@@ -36,6 +36,7 @@ Cable cell decoration
         .. code-block:: Python
 
             # Set cell-wide values for properties for resistivity and capacitance
+            decor = arbor.decor()
             decor.set_property(rL=100, cm=0.1)
 
     .. method:: set_ion(ion, int_con=None, ext_con=None, rev_pot=None, method=None)
@@ -60,7 +61,8 @@ Cable cell decoration
         .. code-block:: Python
 
             # Set nernst reversal potential method for calcium.
-            decor.set_ion('ca', method=mech('nernst/x=ca'))
+            ca_mech = arbor.mechanism('nernst/x=ca')
+            decor.set_ion('ca', method=ca_mech)
 
             # Set reversal potential and concentration for sodium.
             # The reversal potential is fixed, so we set the method to None.
