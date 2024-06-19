@@ -140,8 +140,8 @@ Cable cell morphology
 
 .. class:: segment_tree
 
-    A segment tree is a description of a the segments and their connections
-    Segment trees comprise a sequence of segments starting from at lease one *root* segment,
+    A segment tree is a description of the segments and their connections.
+    Segment trees comprise a sequence of segments starting from at least one *root* segment,
     together with a parent-child adjacency relationship where a child segment is
     distal to its parent.
     Branches in the tree occur where a segment has more than one child.
@@ -178,7 +178,7 @@ Cable cell morphology
 
         import arbor
         from arbor import mpoint
-        from arbor import mpos
+        from arbor import mnpos
 
         tree = arbor.segment_tree()
         # Start with a cylinder segment for the soma (with tag 1)
@@ -732,9 +732,9 @@ NeuroML
 Neurolucida
 -----------
 
-.. py:enum:: asc_marker
+.. py:class:: asc_marker
 
-   One of dot, circle, cross, or none.
+   One of ``dot``, ``circle``, ``cross``, or ``none``.
 
 .. py:class:: asc_color
 

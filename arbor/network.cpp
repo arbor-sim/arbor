@@ -11,8 +11,6 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
-#include <type_traits>
-#include <variant>
 #include <vector>
 
 #include "backends/rand_impl.hpp"
@@ -32,8 +30,10 @@ enum class network_seed : unsigned {
 };
 
 std::uint64_t location_hash(const mlocation& loc) {
-    const double l = static_cast<double>(loc.branch) + loc.pos;
-    return *reinterpret_cast<const std::uint64_t*>(&l);
+    double l = static_cast<double>(loc.branch) + loc.pos;
+    std::uint64_t res;
+    std::memcpy(&res, &l, sizeof(l));
+    return res;
 }
 
 double uniform_rand(std::array<unsigned, 4> seed,

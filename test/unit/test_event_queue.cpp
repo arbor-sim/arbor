@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <vector>
+#include <algorithm>
 
 #include <arbor/spike_event.hpp>
 

@@ -3,7 +3,7 @@
 Features
 ========
 
-Arbor is fully featured, ready for real world modelling, and the user community is busy collaborating with us to build complex models. Best practices, tips, tricks and howtos will be documented here as the community gains experience.
+Arbor is fully featured, ready for real-world modelling, and the user community is busy collaborating with us to build complex models. Best practices, tips, tricks and howtos will be documented here as the community gains experience.
 
 Features include:
 
@@ -18,7 +18,7 @@ Features include:
 * :ref:`Wide range of cable cell probes<pycablecell-probesample-api>`, :ref:`plus LIF cell probes <pycablecell-probesample-lif>`.
 * :ref:`Inhomogeneous parameters <cablecell-scaled-mechs>`: enables :ref:`painting of scaled density mechanisms <labels-iexpr>`, e.g. scale with the distance from the root. (nmodl: ``iexpr``.)
 * :ref:`LFPyKit integration <tutorial_lfpykit>`: extract extracellular signals from an Arbor cable cell.
-* :ref:`Axial Diffusion <cablecell-ions-diffusion>`: ions can now propagate along the dendrite by diffusion and be received by other synapses, modifying their weight upon reception.Xd can be read from and written to by NMODL density and point mechanisms. See `this LaTeX file <https://github.com/arbor-sim/arbor/blob/master/doc/dev/axial-diff.tex>`_ for a mathematical description of Arbor's implementation.
+* :ref:`Axial Diffusion <cablecell-ions-diffusion>`: ions can now propagate along the dendrite by diffusion and be received by other synapses, modifying their weight upon reception. Xd can be read from and written to by NMODL density and point mechanisms. See `this LaTeX file <https://github.com/arbor-sim/arbor/blob/master/doc/dev/axial-diff.tex>`_ for a mathematical description of Arbor's implementation.
 * :ref:`Gap Junction Mechanisms <mechanisms-junction>`.
 * :ref:`Mechanism ABI <extending-catalogues>`, allowing for users to package their mechanism catalogues.
 * :ref:`Built-in profiler <pyprofiler>`, which enables users to quickly understand where their experiment is spending most of its time.

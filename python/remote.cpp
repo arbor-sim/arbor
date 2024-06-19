@@ -10,8 +10,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "conversion.hpp"
-#include "context.hpp"
 #include "error.hpp"
 #include "strprintf.hpp"
 
@@ -35,14 +33,14 @@ void register_remote(pybind11::module& m) {
             std::strncpy(res.reason, s.c_str(), 511);
             return res;
         }),
-        "reason"_a,
-        "Signal abort with a reason.")
+            "reason"_a,
+            "Signal abort with a reason.")
         .def(pybind11::init<>([]() {
             auto res = arb::remote::msg_abort{};
             std::memset(res.reason, 0x0, sizeof(res.reason));
             return res;
         }),
-        "Signal abort without a reason.")
+            "Signal abort without a reason.")
         .def("__repr__", [](const arb::remote::msg_abort& s){return util::pprintf("(arb::remote::msg_abort reason={})", s.reason);})
         .def("__str__", [](const arb::remote::msg_abort& s){return util::pprintf("(abort reason={})", s.reason);});
 
@@ -57,8 +55,8 @@ void register_remote(pybind11::module& m) {
     pybind11::class_<arb::remote::msg_done> msg_done(s, "msg_done", "Concluded simulation period with final time.");
     msg_done
         .def(pybind11::init<>([](float t) { return arb::remote::msg_done{t}; }),
-        "final"_a,
-        "Signal conclusion of simulation at time `final``.")
+             "final"_a,
+             "Signal conclusion of simulation at time `final`.")
         .def("__repr__", [](const arb::remote::msg_done& s){return util::pprintf("(arb::remote::msg_done to={})", s.time);})
         .def("__str__", [](const arb::remote::msg_done& s){return util::pprintf("(done to={})", s.time);});
 

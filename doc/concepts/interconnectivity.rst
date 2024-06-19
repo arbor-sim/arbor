@@ -295,8 +295,8 @@ connection table outside calls to `run`, for example
 .. code-block:: python
 
     rec = recipe()
-    dec = arb.domain_decomposition(rec, ctx)
-    sim = arb.simulation(rec, ctx, dec)
+    dec = A.domain_decomposition(rec, ctx)
+    sim = A.simulation(rec, ctx, dec)
 
     # run simulation for 0.25ms with the basic connectivity
     sim.run(0.25, 0.025)
@@ -373,10 +373,10 @@ similarly
 
 .. code-block:: python
 
-    class recipe(arb.recipe):
+    class recipe(A.recipe):
         # Rest as ever before
         def external_connections_on(self, gid):
-            return [arb.connection((42,      # external GID
+            return [A.connection((42,      # external GID
                                     32),     # tag
                                     "tgt",
                                     weight,
@@ -399,7 +399,7 @@ or similarly in Python
 
 .. code-block:: python
 
-    ctx = arb.make_context(mpi=local, inter=inter)
+    ctx = A.make_context(mpi=local, inter=inter)
 
 where ``local`` is an MPI intracommunicator and ``inter`` an MPI
 intercommunicator. ``inter`` is required to bridge the Arbor (``local``) and
