@@ -12,6 +12,7 @@
 
 #include "error.hpp"
 #include "strprintf.hpp"
+#include "conversion.hpp"
 
 namespace pyarb {
 using namespace pybind11::literals;
