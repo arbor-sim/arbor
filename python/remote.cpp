@@ -10,10 +10,9 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "conversion.hpp"
-#include "context.hpp"
 #include "error.hpp"
 #include "strprintf.hpp"
+#include "conversion.hpp"
 
 namespace pyarb {
 using namespace pybind11::literals;
@@ -35,14 +34,14 @@ void register_remote(pybind11::module& m) {
             std::strncpy(res.reason, s.c_str(), 511);
             return res;
         }),
-        "reason"_a,
-        "Signal abort with a reason.")
+            "reason"_a,
+            "Signal abort with a reason.")
         .def(pybind11::init<>([]() {
             auto res = arb::remote::msg_abort{};
             std::memset(res.reason, 0x0, sizeof(res.reason));
             return res;
         }),
-        "Signal abort without a reason.")
+            "Signal abort without a reason.")
         .def("__repr__", [](const arb::remote::msg_abort& s){return util::pprintf("(arb::remote::msg_abort reason={})", s.reason);})
         .def("__str__", [](const arb::remote::msg_abort& s){return util::pprintf("(abort reason={})", s.reason);});
 
@@ -57,8 +56,8 @@ void register_remote(pybind11::module& m) {
     pybind11::class_<arb::remote::msg_done> msg_done(s, "msg_done", "Concluded simulation period with final time.");
     msg_done
         .def(pybind11::init<>([](float t) { return arb::remote::msg_done{t}; }),
-        "final"_a,
-        "Signal conclusion of simulation at time `final``.")
+             "final"_a,
+             "Signal conclusion of simulation at time `final`.")
         .def("__repr__", [](const arb::remote::msg_done& s){return util::pprintf("(arb::remote::msg_done to={})", s.time);})
         .def("__str__", [](const arb::remote::msg_done& s){return util::pprintf("(done to={})", s.time);});
 
@@ -77,10 +76,22 @@ void register_remote(pybind11::module& m) {
           "msg"_a, "mpi_comm"_a,
           "Send given control message to all peers and receive their (unanimous) answer.");
 
-    pybind11::class_<arb::remote::arb_spike> arb_spike(s, "arb_spike", "Empty message.");
+    pybind11::class_<arb::remote::arb_spike> arb_spike(s, "arb_spike", "Arbor spike.");
     arb_spike.def(pybind11::init<>([](std::uint32_t gid, std::uint32_t lid, double t) { return arb::remote::arb_spike{{gid, lid}, t};}),
                   "gid"_a, "lid"_a, "time"_a,
                   "Spike caused by cell `gid` on location `lid` at time `time`.")
+        .def_property("gid",
+                      [](const arb::remote::arb_spike& s) { return s.source.gid; },
+                      [](arb::remote::arb_spike& s, std::uint32_t t) { s.source.gid = t; },
+                      "Source gid of spike event.")
+        .def_property("gid",
+                      [](const arb::remote::arb_spike& s) { return s.source.lid; },
+                      [](arb::remote::arb_spike& s, std::uint32_t t) { s.source.lid = t; },
+                      "Source index of spike event.")
+        .def_property("time",
+                      [](const arb::remote::arb_spike& s) { return s.time; },
+                      [](arb::remote::arb_spike& s, double t) { s.time = t; },
+                      "Time of spike event.")
         .def("__repr__", [](const arb::remote::arb_spike& s){return util::pprintf("(arb::remote::arb_spike gid={} lid={} time={})", s.source.gid, s.source.lid, s.time);})
         .def("__str__", [](const arb::remote::arb_spike& s){return util::pprintf("(spike gid={} lid={} time={})", s.source.gid, s.source.lid, s.time);});
 
