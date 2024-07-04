@@ -81,6 +81,11 @@ function("make_catalogue_standalone")
     endif()
   endforeach()
 
+  message(STATUS "raw_cxx=${MK_CAT_CXX}")
+  foreach(mech ${MK_CAT_CXX})
+    set(mk_cat_modcc_flags -r ${mech} ${mk_cat_modcc_flags})
+  endforeach()
+
   add_custom_command(OUTPUT            ${catalogue_${MK_CAT_NAME}_source}
                      DEPENDS           ${catalogue_${MK_CAT_NAME}_mods}
                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
