@@ -39,7 +39,7 @@ Implementing the ``cell_description`` member function constructs the morphology 
    :language: python
    :lines: 77-113
 
-We parse the command line arguments, instantiate the recipe, run the simulation, extract results and plot:
+We parse the command line arguments, instantiate the recipe, run the simulation, extract results, and plot:
 
 .. literalinclude:: ../../python/example/single_cell_cable.py
    :language: python
