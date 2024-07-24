@@ -176,6 +176,9 @@ single spike should be generated at around the same time the stimulus we
 provided in step (3) gets activated (10ms).
 
 And, finally, we plot the membrane potential
+.. literalinclude:: ../../python/example/single_cell_model.py
+   :language: python
+   :lines: 6-7
 
 .. literalinclude:: ../../python/example/single_cell_model.py
    :language: python
