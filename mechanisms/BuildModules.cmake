@@ -81,7 +81,6 @@ function("make_catalogue_standalone")
     endif()
   endforeach()
 
-  message(STATUS "raw_cxx=${MK_CAT_CXX}")
   foreach(mech ${MK_CAT_CXX})
     set(mk_cat_modcc_flags -r ${mech} ${mk_cat_modcc_flags})
   endforeach()
