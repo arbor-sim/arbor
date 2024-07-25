@@ -243,7 +243,7 @@ Arbor-specific features
   step_left(x)        left-continuous heaviside step            :math:`\begin{align*} 1 & ~~ \text{if} ~x \gt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
   step(x)             heaviside step with half value            :math:`\begin{align*} 1 & ~~ \text{if} ~x \gt 0, \\ 0 & ~~ \text{if} ~x \lt 0, \\ 0.5 & ~~ \text{otherwise}. \end{align*}`
   signum(x)           sign of argument                          :math:`\begin{align*} +1 & ~~ \text{if} ~x \gt 0, \\ -1 & ~~ \text{if} ~x \lt 0, \\ 0 & ~~ \text{otherwise}. \end{align*}`
-  exprelr(x)          smooth continuation over :math:`x=0` of   :math:`x/(1 - e^{-x})`
+  exprelr(x)          smooth continuation over :math:`x=0` of   :math:`x/(e^x - 1)`
   sigmoid(x)          sigmoidal function                        :math:`\frac{1}{1+e^{-x}}`
   relu(x)             rectified linear function                 :math:`max(0, x)`
   tanh(x)             hyperbolic tangent                        :math:`tanh(x)`
@@ -563,7 +563,7 @@ A common pattern is the use of a guarded exponential of the form
 .. code::
 
    if (x != 0) {
-     r = a*x/(exp(-x) - 1)
+     r = a*x/(exp(x) - 1)
    } else {
      r = a
    }

@@ -34,6 +34,7 @@ set(pyarb_source
     mechanism.cpp
     morphology.cpp
     mpi.cpp
+    network.cpp
     profiler.cpp
     pyarb.cpp
     label_dict.cpp
@@ -42,6 +43,7 @@ set(pyarb_source
     simulation.cpp
     single_cell_model.cpp
     env.cpp
+    remote.cpp
     units.cpp
 )
 

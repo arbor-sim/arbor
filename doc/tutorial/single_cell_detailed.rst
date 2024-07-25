@@ -479,7 +479,7 @@ library:
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
-   :lines: 114-138
+   :lines: 114-
 
 The following plot is generated. The orange line is slightly delayed from the
 blue line, which is what we'd expect because branch 4 is longer than branch 3 of

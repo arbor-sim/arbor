@@ -107,16 +107,20 @@ specialised on specific regions.
     .. code-block:: Python
 
         import arbor
+        from arbor import units as U
 
         # Create an empty decor.
         decor = arbor.decor()
 
         # Set cell-wide properties that will be applied by default to the entire cell.
-        decor.set_properties(Vm=-70, cm=0.02, rL=30, tempK=30+273.5)
+        decor.set_properties(Vm=-70 * U.mV,
+                             cm=0.02 * U.F / U.m2,
+                             rL=30 * U.Ohm * U.cm,
+                             tempK=30 * U.celsius) # or 303.15 K
 
         # Override specific values on regions named "soma" and "axon".
-        decor.paint('"soma"', Vm=-50, cm=0.01, rL=35)
-        decor.paint('"axon"', Vm=-60, rL=40)
+        decor.paint('"soma"', Vm=-50 * U.mV, cm=0.01 * U.F / U.m2, rL=35 * U.Ohm * U.cm)
+        decor.paint('"axon"', Vm=-60 * U.mV, rL=40 * U.Ohm * U.cm)
 
 .. _cablecell-density-mechs:
 
@@ -205,7 +209,7 @@ resistivity, and membrane capacitance, as well as all ion parameters
 
     # initial value for the membrane potential as inhomogeneous expression.
     # we give a pair of a base value and a scaling iexpr
-    decor.paint('(all)', Vm=(23, '(mul 42 (diameter))'))
+    decor.paint('(all)', Vm=(23*U.mV, '(mul 42 (diameter))'))
 
 .. _cablecell-ions:
 
@@ -295,10 +299,10 @@ using the *paint* interface:
 
     # It is possible to define all of the initial condition values
     # for a ion species.
-    decor.paint('(tag 1)', arbor.ion('ca', int_con=2e-4, ext_con=2.5, rev_pot=114))
+    decor.paint('(tag 1)', ion='ca', int_con=2e-4  * U.mM, ext_con=2.5 * U.mM, rev_pot=114 * U.mV)
 
     # Alternatively, one can selectively overwrite the global defaults.
-    decor.paint('(tag 2)', arbor.ion('ca', rev_pot=126)
+    decor.paint('(tag 2)', ion='ca', rev_pot=126 * U.mV)
 
 .. _cablecell-ions-diffusion:
 
@@ -311,8 +315,8 @@ concentration and ``ß`` the diffusivity constant.
 .. code-block:: Python
 
     decor = arbor.decor()
-    decor.set_ion('ca', diff=23.0)
-    decor.paint('"region"', 'ca', diff=42.0)
+    decor.set_ion('ca', diff=23.0 * U.mV)
+    decor.paint('"region"', 'ca', diff=42.0 * U.m2/U.s)
 
 Be aware of the consequences of setting ``ß > 0`` only in some places, namely
 pile-up effects similar to reflective bounds.

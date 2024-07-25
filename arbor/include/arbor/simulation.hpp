@@ -44,7 +44,7 @@ public:
 
     static simulation_builder create(recipe const &);
 
-    void update(const connectivity& rec);
+    void update(const recipe& rec);
 
     void reset();
 

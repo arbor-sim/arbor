@@ -70,6 +70,14 @@ Hardware
    network_ring_mpi
    network_ring_gpu
 
+Advanced
+-------
+
+.. toctree::
+   :maxdepth: 1
+
+   nmodl
+
 Demonstrations
 --------------
 
