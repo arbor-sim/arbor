@@ -25,7 +25,7 @@ use.
 Get Arbor GUI
 -------------
 
-Precompiled and self-contained versions for macOS and Linux are available
+Precompiled and self-contained versions for MacOS and Linux are available
 at the same locations at our `GitHub Releases page <https://github.com/arbor-sim/gui/releases/>`_.
 These versions are self-contained and ready for launch.
 
