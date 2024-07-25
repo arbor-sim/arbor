@@ -7,7 +7,7 @@ In this example, we will set up two cells connected via a gap junction. Each of
 the cells has a passive leak current as its only dynamics. This plus the gap
 junction will produce an equilibrium potential different from both the resting
 potentials. We will investigate how the equilibrium potentials of the two cells
-change due of the gap junction connection.
+change due to the gap junction connection.
 
 .. figure:: network_two_cells_gap_junctions_circuit.svg
     :width: 400
@@ -53,7 +53,7 @@ The two remaining methods are:
 ``cell_description``
 --------------------
 
-We construct a basic, single segment morphology from the ``length`` and
+We construct a basic, single-segment morphology from the ``length`` and
 ``radius`` parameters. The decor sets the basic parameters and adds the passive
 leak current ``pas`` with the given resting value ``Vms[gid]`` and conductivity
 ``g``.
@@ -91,12 +91,12 @@ which are used to set parameters in the recipe
    :lines: 76-98
 
 
-We then set up the simulation and configure sampling width equal to the timestep
+We then set up the simulation and configure a sampling width equal to the timestep
 :math:`dt`. Now, we can run the network.
 
 .. literalinclude:: ../../python/example/network_two_cells_gap_junctions.py
    :language: python
-   :lines: 100-110
+   :lines: 100-113
 
 All that is left to do is to put this into a plot. The output plot below shows
 how the potential of the two cells approaches their equilibrium potentials, which
