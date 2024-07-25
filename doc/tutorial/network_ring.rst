@@ -3,15 +3,15 @@
 A ring network
 ==============
 
-In this example, a small *network* of cells, arranged in a ring, will be created and the simulation distributed over multiple threads or GPUs if available.
+In this example, a small network of cells arranged in a ring will be created, and the simulation will be distributed over multiple threads or GPUs, if available.
 
 .. Note::
 
    **Concepts covered in this example:**
 
    1. Building a basic :py:class:`arbor.cell` with a synapse site and spike generator.
-   2. Building a :py:class:`arbor.recipe` with a network of interconnected cells.
-   3. Running the simulation and extract the results.
+   2. Building an :py:class:`arbor.recipe` with a network of interconnected cells.
+   3. Running the simulation and extracting the results.
 
 The cell
 ********
@@ -89,7 +89,7 @@ target mechanism ``expsyn``) and a delay of 5 ms. The first two arguments to
 :py:class:`arbor.connection` are the **source** and **target** of the
 connection.
 
-The **source** is a :py:class:`arbor.cell_global_label` object containing a cell
+The **source** is an :py:class:`arbor.cell_global_label` object containing a cell
 index ``gid``, the source label corresponding to a valid detector label on the
 cell and an optional selection policy (for choosing a single detector out of
 potentially many detectors grouped under the same label - remember, in this case
