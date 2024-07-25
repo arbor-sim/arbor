@@ -34,5 +34,5 @@ take a look at :ref:`the tutorial <tutorialgui>`.
 
 The source code is available `at GitHub <https://github.com/arbor-sim/gui>`_.
 We welcome bug reports and feature requests, please use the issue
-tracker on GitHub to make them. Currently, building network simulation
+tracker on GitHub to make them. Currently, building network simulations
 is out of this project's scope.
