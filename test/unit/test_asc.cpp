@@ -342,7 +342,7 @@ TEST(asc, spine) {
         EXPECT_EQ(m.branch_segments(6)[0].prox, (arb::mpoint{ 0, 5, 0, 1}));
         // Now check metadata
         auto d = std::get<arborio::asc_metadata>(result.metadata);
-        EXPECT_EQ(d.spines.size(), 2);
+        EXPECT_EQ(d.spines.size(), 2ul);
         EXPECT_EQ(d.spines[0].location.x, 11);
         EXPECT_EQ(d.spines[0].location.y, 12);
         EXPECT_EQ(d.spines[0].location.z, 13);
@@ -355,12 +355,12 @@ TEST(asc, spine) {
         EXPECT_EQ(d.spines[1].location.radius, 2);
         EXPECT_EQ(d.spines[1].name, "S2");
 
-        EXPECT_EQ(d.markers.size(), 2);
-        EXPECT_EQ(d.markers[0].locations.size(), 2);
+        EXPECT_EQ(d.markers.size(), 2ul);
+        EXPECT_EQ(d.markers[0].locations.size(), 2ul);
         EXPECT_EQ(d.markers[0].name, "M1");
         EXPECT_EQ(d.markers[0].marker, arborio::asc_marker::cross);
 
-        EXPECT_EQ(d.markers[1].locations.size(), 1);
+        EXPECT_EQ(d.markers[1].locations.size(), 1ul);
         EXPECT_EQ(d.markers[1].name, "M2");
         EXPECT_EQ(d.markers[1].marker, arborio::asc_marker::dot);
     }

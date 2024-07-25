@@ -224,7 +224,7 @@ class serdes_recipe(A.recipe):
     def cell_kind(self, _):
         return A.cell_kind.cable
 
-    def cell_description(self, gid):
+    def cell_description(self, _):
         tree = A.segment_tree()
         s = tree.append(A.mnpos, A.mpoint(-3, 0, 0, 3), A.mpoint(3, 0, 0, 3), tag=1)
         _ = tree.append(s, A.mpoint(3, 0, 0, 1), A.mpoint(33, 0, 0, 1), tag=3)
@@ -235,7 +235,7 @@ class serdes_recipe(A.recipe):
 
         return A.cable_cell(tree, dec)
 
-    def global_properties(self, kind):
+    def global_properties(self, _):
         return self.the_props
 
 
