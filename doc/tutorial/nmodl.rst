@@ -266,7 +266,7 @@ this to (the end of) ``hh04.mod``:
 .. literalinclude:: ../../python/example/hh/mod/hh04.mod
   :lines: 49-55
 
-The ``FUNCTION`` constructs introduce a function which can only access its
+The ``FUNCTION`` construct introduces a function which can only access its
 parameters and can have no side-effects like writing to global variables. Its
 return value is set by formally assigning a value to the function's name.
 Arbor provides some builtin functions like ``exprelr``, which is used here,
