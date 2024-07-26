@@ -223,11 +223,10 @@ instead. Parameters are either ``GLOBAL`` or ``RANGE``, never both. The
 difference is subtle and non-existent for our single CV. The rule of thumb is
 that if you expect a parameter to vary smoothly across the neuron, make it
 ``RANGE`` and if you expect discrete, clearly delineated regions with
-discontinuous values, go for ``GLOBAL``. If in doubt, choose ``RANGE``.
-Performance-wise, ``GLOBAL`` is more efficient as ``RANGE`` parameter consumes
-one memory location per CV *and* requires one memory access each. ``GLOBAL``
-requires one location and access *regardless* of CV count. So, if speed is an
-issue, consider ``GLOBAL`` unless required otherwise.
+discontinuous values, go for ``GLOBAL``. Comparing the performance impact of parameters, ``GLOBAL`` is more efficient than ``RANGE``.
+While ``RANGE`` parameters consume one memory location (and access) per CV, those tagged ``GLOBAL``
+require only one location (and access) *regardless* of CV count. Thus, all things being equal, prefer ``GLOBAL``.
+
 
 Differential Equations in NMODL
 -------------------------------
