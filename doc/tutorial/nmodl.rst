@@ -3,7 +3,7 @@
 How to use NMODL to extend Arbor's repertoire of Ion Channels
 =============================================================
 
-NMODL is Arbor's way of expressing ion channel dynamics which in turn can be
+NMODL is Arbor's way of expressing ion channel dynamics, which in turn can be
 added to cable cells via the :ref:`decor` interface. This tutorial will guide
 you through to create such an ion channel from scratch. Note that there are
 already large selections of channels built into Arbor in addition to online
@@ -17,9 +17,9 @@ Introducing NMODL
 
 NMODL is a domain specific language (DSL) for design electro-chemical dynamics
 deriving from the earlier MODL language. It is used by Arbor, Neuron, and
-and CoreNeuron. Although each software has its own dialect, the core ideas are
+CoreNeuron. Although each software has its own dialect, the core ideas are
 identical. Unfortunately, documentation for both NMODL and MODL is scarce and
-outdated. This tutorial aims to get you proficient in writing and adapting ion
+outdated. This tutorial aims to help you become proficient in writing and adapting ion
 channels for Arbor. Note that while we focus on density mechanisms here, there
 is a host of behaviours customisable in Arbor through NMODL in addition to
 wholly new functionality, examples include gap junctions, synapses, and voltage
@@ -91,19 +91,19 @@ This should --- once run --- produce a plot like this:
     :width: 600
     :align: center
 
-You can find all steps in the ``python/example/hh`` directory in Arbor's source
+You can find all the steps in the ``python/example/hh`` directory in Arbor's source
 code. Let's return to what just happened, it's quite a bit. First, we added our
 ion channel and used ``arbor-build-catalogue`` to translate it into a form Arbor
 can utilize. These collections of ion channels are --- unsurprisingly --- called
 catalogues, see :ref:`mechanisms`. We pulled this into our model by loading and
-assigning to the model.
+assigning it to the model.
 
 Next, let's look at the output graph. We observe a sudden jump in potential
 during the period the current clamp is active. As Arbor's model for a single CV
-cable cell is :math:`\partial_t U_m = i_e - i_m` (for multi-CV cells we have
+cable cell is :math:`\partial_t U_m = i_e - i_m` (for multi-CV cells, we have
 additional terms that can be neglected here, see :ref:`cable_cell`), this
 behaviour is expected. The current clamp provides a positive :math:`i_e` and our
-ion channel model is supplying the trans-membrane current :math:`i_m = 0`. To
+ion channel model supplies the trans-membrane current :math:`i_m = 0`. To
 understand the latter part, consider the channel model file we just added
 
 .. literalinclude:: ../../python/example/hh/mod/hh02.mod
@@ -123,7 +123,7 @@ ion and thus can represent all ion currents we do not model explicitly as a lump
 sum. When computing ``i_m`` for the cable equation above, Arbor takes the sum
 over all non-specific and ion currents across all ion channels on the
 current CV. We will revisit the ``NEURON`` multiple times later on, but for now
-we turn to
+we turn to:
 
 .. literalinclude:: ../../python/example/hh/mod/hh02.mod
   :lines: 6-8
@@ -131,8 +131,8 @@ we turn to
 During the integration of the cable equation, Arbor will evaluate this block to
 update its internal picture of the currents, i.e. to calculate ``i_m``. This
 occurs at an unspecified moment of the execution and might even be done multiple
-times, so we need to take care not to depend on execution order. We are
-_expected_, yet not forced by the tooling to update all such outputs, so, again,
+times, so we need to take care not to depend on the execution order. We are
+_expected_, yet not forced by the tooling, to update all such outputs, so, again,
 some care is needed.
 
 Stepping Stone: Leak
@@ -162,13 +162,13 @@ steps are completed at the beginning of each new section:
 
    - After each change to the NMODL file, you'll need to call ``arbor-build-catalogue cat mod``
 
-Keep this in mind, while we start altering the NMODL file to produce a more
-sensible current. Let's start with the current itself
+Keep this in mind while we start altering the NMODL file to produce a more
+sensible current. Let's start with the current itself:
 
 .. literalinclude:: ../../python/example/hh/mod/hh03.mod
   :lines: 11-13
 
-this will pull the membrane potential ``v`` towards a resting potential ``el``
+This will pull the membrane potential ``v`` towards a resting potential ``el``
 since our reduced cable equation is now :math:`\partial_t U_m = i_e - g_l\cdot(U_m -
 E_l)`. The membrane potential is available in NMODL as a read-only built-in
 symbol ``v`` and can be used in any ion channel. However, we need a way to set
@@ -178,11 +178,11 @@ by adding a new block to the NMODL file:
 .. literalinclude:: ../../python/example/hh/mod/hh03.mod
   :lines: 6-10
 
-these parameters have an optional default value and a likewise optional unit.
+These parameters have an optional default value and a likewise optional unit.
 Both are helpful to have, though. The units chosen internally by Arbor come
 together such that the conductivity *must* have units ``S/cm2``. Note that there
-is neither a check nor a conversion of units, the annotation serves purely as a
-reminder to us. Now, running the example ``step-03.py`` gives us the expected
+is neither a check nor a conversion of units; the annotation serves purely as a
+reminder. Now, running the example ``step-03.py`` gives us the expected
 result of the membrane potential returning to the resting value:
 
 .. figure:: ../images/hh-03.svg
@@ -208,7 +208,7 @@ To enable this, we need to tell NMODL that each CV will have its own value of
 .. literalinclude:: ../../python/example/hh/mod/hh03.mod
   :lines: 1-5
 
-Without this addition, there would be one, global copy for each, which could be
+Without this addition, there would be one global copy for each, which could be
 set by writing
 
 .. code-block:: python
@@ -221,11 +221,11 @@ set by writing
 
 instead. Parameters are either ``GLOBAL`` or ``RANGE``, never both. The
 difference is subtle and non-existent for our single CV. The rule of thumb is
-that if you expect that a parameter varies smoothly across the neuron, make it
+that if you expect a parameter to vary smoothly across the neuron, make it
 ``RANGE`` and if you expect discrete, clearly delineated regions with
 discontinuous values, go for ``GLOBAL``. If in doubt, choose ``RANGE``.
-Performance-wise, ``GLOBAL`` is more efficient as ``RANGE`` parameter consume
-one memory location per CV *and* require one memory access each. ``GLOBAL``
+Performance-wise, ``GLOBAL`` is more efficient as ``RANGE`` parameter consumes
+one memory location per CV *and* requires one memory access each. ``GLOBAL``
 requires one location and access *regardless* of CV count. So, if speed is an
 issue, consider ``GLOBAL`` unless required otherwise.
 
@@ -266,7 +266,7 @@ this to (the end of) ``hh04.mod``:
 .. literalinclude:: ../../python/example/hh/mod/hh04.mod
   :lines: 49-55
 
-The ``FUNCTION`` constructs introduces a function which can only access its
+The ``FUNCTION`` constructs introduce a function which can only access its
 parameters and can have no side-effects like writing to global variables. Its
 return value is set by formally assigning a value to the function's name.
 Arbor provides some builtin functions like ``exprelr``, which is used here,
@@ -296,8 +296,8 @@ be tempted to add something like this to the ``BREAKPOINT`` block (notice the
         il = gl*(v - el)
     }
 
-and attempt to solving the ODE manually via Euler's method. Alas, this is
-inconvenient and cumbersome as we needed to adapted the ion channel's ``paint``
+and attempt to solve the ODE manually via Euler's method. Alas, this is
+inconvenient and cumbersome as we needed to adapt the ion channel's ``paint``
 call every time we change the time step ``dt`` (assuming we pass it as a
 parameter). It's also less accurate than desirable. What's more, as we don't
 know the order and count of evaluation of these blocks, it's also likely to be
@@ -310,7 +310,7 @@ variable. Add this in your NMODL file
   :lines: 11-12,30-37
 
 Now we have told NMODL how to compute the derivative of ``n``. For an initial
-value problem, we also need to add its initial value and to actually *solve*
+value problem, we also need to add its initial value and actually *solve*
 the ODE. This is achieved by
 
 .. literalinclude:: ../../python/example/hh/mod/hh04.mod
@@ -353,9 +353,9 @@ reproduce ``hh05.mod`` here as a reference.
 
 Things to take note of here is ``celsius``, which contains the temperature in
 degrees Celsius. While it is listed as ``PARAMETER`` here, it is not a real
-parameter, but rather a builtin variable. Adding it to ``PARAMETER`` makes it
+parameter but rather a built-in variable. Adding it to ``PARAMETER`` makes it
 available in the NMODL file. Adding the potential here, too, is not needed,
-considered good form. Using ``ASSIGNED`` over ``LOCAL`` here is again a
+considering good form. Using ``ASSIGNED`` over ``LOCAL`` here is again a
 performance consideration. While costing memory capacity and operations, the
 exponentiation is expensive enough to warrant the expense. This simulation
 results in:
@@ -370,7 +370,7 @@ Your own Journey
 Now, you are free to either explore implementing ``ina`` on your own or to
 look up how we did it in ``hh06.mod`` and ``step-06.py``.
 
-If you want to try it, but need a hint, here's a rough outline:
+If you want to try it but need a hint, here's a rough outline:
 
 1. Add a declaration of the sodium ion and its variables  to the ``NEURON`` block
 2. Add a parameter for the conductivity
@@ -389,7 +389,7 @@ as the basis for all complex networks as simulated by Arbor or Neuron. Even
 modern attempts at addressing the same problems, like NeuroML2, are translated
 into NMODL. Almost all existing models are rooted in NMODL.
 
-We did introduce most relevant constructs here, with some notable exceptions
+We did introduce the most relevant constructs here, with some notable exceptions
 like ``KINETIC`` and ``NET_RECEIVE``. We will possibly return to them in the
 future. Note that NMODL is significantly more complex than we have shown here,
 but these constructs can be avoided almost entirely and/or do not apply to
@@ -404,8 +404,8 @@ the exponential synapse coming with Arbor.
 
 .. literalinclude:: ../../mechanisms/default/expsyn.mod
 
-The differences to density mechanisms like ``hh`` are fairly minimal on the
-surface, instead of ``SUFFIX`` we write ``POINT_PROCESS`` in front of the name.
+The differences in density mechanisms like ``hh`` are fairly minimal on the
+surface; instead of ``SUFFIX``, we write ``POINT_PROCESS`` in front of the name.
 The rest can be summarised as follows: We have a non-specific current ``i``
 driving the model towards the resting potential ``e``, which is proportional to
 the conductivity ``g``. The conductivity ``g`` itself decays exponentially
