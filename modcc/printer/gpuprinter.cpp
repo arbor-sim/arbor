@@ -217,7 +217,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                        "}}\n\n"),
                            pp_var_pfx);
     }
-    emit_api_kernel(state_api);
+    emit_api_kernel(state_api, true);
     emit_api_kernel(current_api, true);
     emit_api_kernel(write_ions_api);
 
@@ -433,6 +433,16 @@ namespace {
                      << (wrap.v.scalar()? "0": index_i_name(index_var)) << ']';
         }
     };
+
+    struct deref_delta {
+        indexed_variable_info v;
+        deref_delta(indexed_variable_info v): v(v) {}
+
+        friend std::ostream& operator<<(std::ostream& o, const deref_delta& wrap) {
+            return o << pp_var_pfx + wrap.v.data_var + "_delta" << '['
+                     << (wrap.v.scalar()? "0": "tid_") << ']';
+        }
+    };
 }
 
 void emit_state_read_cu(std::ostream& out, LocalVariable* local, const ApiFlags& flags) {
@@ -475,12 +485,7 @@ void emit_state_update_cu(std::ostream& out,
 
     if (d.additive && flags.use_additive) {
         out << name << " -= " << var << ";\n";
-        if (flags.is_point) {
-            out << fmt::format("::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n", weight, name, data, index);
-        }
-        else {
-            out << var << " = fma(" << weight << ", " << name << ", " << var << ");\n";
-        }
+        out << deref_delta(d) << " = " << weight << "*" << name << ";\n";
     }
     else if (write_voltage) {
         /* SAFETY:
