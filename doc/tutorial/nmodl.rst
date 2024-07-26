@@ -110,7 +110,7 @@ understand the latter part, consider the channel model file we just added
   :lines: 1-4
 
 This is the ``NEURON`` block declaring the channel's name, here ``hh02``, which
-is used when adding channels from a catalogue. Files that put ``SUFFIX`` in
+is used when  channels from a catalogue. Files that put ``SUFFIX`` in
 front of the name are converted to density channels, as opposed to synapses
 (``POINT_PROCESS``) and gap junctions (``JUNCTION_PROCESS``). In addition to
 naming the channel, we also need to set up all variables used to interface with
@@ -353,8 +353,7 @@ reproduce ``hh05.mod`` here as a reference.
 Things to take note of here is ``celsius``, which contains the temperature in
 degrees Celsius. While it is listed as ``PARAMETER`` here, it is not a real
 parameter but rather a built-in variable. Adding it to ``PARAMETER`` makes it
-available in the NMODL file. Adding the potential here, too, is not needed,
-considering good form. Using ``ASSIGNED`` over ``LOCAL`` here is again a
+available in the NMODL file. Adding the potential here, too, is not required but is considered good form. Using ``ASSIGNED`` over ``LOCAL`` here is again a
 performance consideration. While costing memory capacity and operations, the
 exponentiation is expensive enough to warrant the expense. This simulation
 results in:
