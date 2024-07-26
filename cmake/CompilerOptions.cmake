@@ -110,7 +110,10 @@ function(set_arch_target optvar optvar_cuda_guarded arch)
         endforeach(line)
         string(REGEX REPLACE "-.*" "" target_model "${target}")
 
-        # Use -mcpu for all supported targets, -march else.
+        # Figure out which flags to pass to compiler to tune for concrete
+        # architecture.
+        # See clang / gcc manuals and:
+        # https://maskray.me/blog/2022-08-28-march-mcpu-mtune
         if (CMAKE_CXX_COMPILER_ID MATCHES "AppleClang" AND CMAKE_CXX_COMPILER_VERSION LESS 15)
             set(arch_opt "")
         elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
