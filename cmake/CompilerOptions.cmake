@@ -115,7 +115,7 @@ function(set_arch_target optvar optvar_cuda_guarded arch)
         if (CMAKE_CXX_COMPILER_ID MATCHES "AppleClang" AND CMAKE_CXX_COMPILER_VERSION LESS 15)
             set(arch_opt "")
         else()
-            set(arch_opt "-mcpu=${arch} -mtune=${arch}")
+            set(arch_opt "-mcpu=${arch}")
         endif()
     endif()
 
