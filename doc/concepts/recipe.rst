@@ -3,13 +3,12 @@
 Recipes
 =======
 
-An Arbor *recipe* is a description of a model. The recipe is queried during the model
-building phase to provide information about individual cells in the model, such as:
+An Arbor *recipe* is a description of a model. The recipe is queried during the model-building phase to provide information about individual cells in the model, such as:
 
 * The **number of cells** in the model.
 * The **kind** of each cell.
 * The **description** of each cell, e.g. with morphology, dynamics, synapses, detectors,
-  stimuli etc.
+  stimuli, etc.
 * Incoming **network connections** from other cells terminating on a cell.
 * **Gap junction connections** on each cell.
 * **Probes** on each cell.
@@ -27,10 +26,9 @@ three cells:
   labelled "detector_0" is attached to the middle of the soma. The detector will generate a
   spike event when the voltage goes above 10 mV. At the same spot on the soma, a current clamp
   is also attached, with the intention of triggering some spikes. All of the preceding info —
-  the morphology, dynamics, threshold detector and current clamp — constitute what is termed the
+  the morphology, dynamics, threshold detector, and current clamp — constitute what is termed the
   **description** of the cell.
-  ``Cell 0`` should be modelled as a :ref:`cable cell<modelcablecell>`,
-  (because cable cells allow complex dynamics such as ``hh``). This is referred to as
+  ``Cell 0`` should be modelled as a :ref:`cable cell<modelcablecell>`, because cable cells allow complex dynamics such as ``hh``. This is referred to as
   the **kind** of the cell.
 - ``Cell 1``: Is a soma and a single dendrite, with ``passive`` dynamics everywhere.
   It has a single synapse at the end of the dendrite labeled "synapse_1" and a gap
@@ -55,7 +53,7 @@ There are additional docs on :ref:`cell kinds <modelcellkind>`;
 :ref:`gap junction connections <modelgapjunctions>`; :ref:`probes <cablecell-probes>`.
 
 The recipe is used to distribute the model across machines and is used in the simulation.
-Technical details of the recipe class are presented in the  :ref:`Python <pyrecipe>` and
+Technical details of the recipe class are presented in the :ref:`Python <pyrecipe>` and
 :ref:`C++ <cpprecipe>` APIs.
 
 Are recipes always necessary?
@@ -63,7 +61,7 @@ Are recipes always necessary?
 
 Yes. They are a fundamental building block in Arbor simulations. Recipes are structured to provide
 a consistent interface for describing each cell in the network using their global identifier (`gid`).
-This allows the simulator to be able to quickly look-up properties related to the connections
+This allows the simulator to be able to quickly look up properties related to the connections
 going in and out of a cell (think of synapses, gap junctions, but also probes and spike inputs);
 which helps make Arbor fast and easily distributable over many nodes.
 
@@ -71,8 +69,8 @@ For single, stand-alone :ref:`cable cells<modelcablecell>` simulations, the Pyth
 a :class:`single_cell_model <py_single_cell_model>` that abstracts away the details of a recipe.
 This is possible because the number of cells is fixed and known,
 and it is guaranteed that there can be no connections or gap junctions in a model of a
-single cell. The single cell model is able to fill out the details of the recipe under
-the hood, and the user need only provide the cell description, and any probes they wish
+single cell. The single-cell model is able to fill out the details of the recipe under
+the hood, and the user only needs to provide the cell description and any probes they wish
 to place on the cell.
 
 Why recipes?
@@ -103,11 +101,11 @@ The steps of building a simulation from a recipe are:
     The ranks then coordinate to redistribute cells over MPI ranks so that
     each rank has a balanced workload. Finally, each rank groups its local
     cells into :cpp:type:`cell_group` s that balance the work over threads (and
-    GPU accelerators if available).
+    GPU accelerators, if available).
 
 .. topic:: 2. Model building
 
-    The model building phase takes the cells assigned to the local rank, and builds the
+    The model-building phase takes the cells assigned to the local rank, and builds the
     local cell groups and the part of the communication network by querying the recipe
     for more information about the cells assigned to it.
 
@@ -150,9 +148,9 @@ General best practices
 .. topic:: Be reproducible
 
     Arbor is designed to give reproducible results when the same model is run on a
-    different number of MPI ranks or threads, or on different hardware (e.g. GPUs).
+    a different number of MPI ranks or threads or on different hardware (e.g., GPUs).
     This only holds when a recipe provides a reproducible model description, which
-    can be a challenge when a description uses random numbers, e.g. to pick incoming
+    can be a challenge when a description uses random numbers, e.g., to pick incoming
     connections to a cell from a random subset of a cell population.
     To get a reproducible model, use the cell `gid` (or a hash based on the `gid`)
     to seed random number generators, including those for :cpp:type:`event_generator` s.
