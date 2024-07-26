@@ -5,7 +5,7 @@ Documentation
 
 The source for `the documentation <https://docs.arbor-sim.org>`__ is found in the ``/doc`` subdirectory.
 We use `Sphinx <https://www.sphinx-doc.org>`_ to build our docs.
-You can add your contribution to the documentation in the same way you would contribute code, please see the :ref:`contribpr` section.
+You can add your contribution to the documentation in the same way you would contribute code; please see the :ref:`contribpr` section.
 
 .. _contribdoc-tut:
 
@@ -21,11 +21,11 @@ Remember to update the line numbers whenever you update the examples in the tuto
 Update policy
 -------------
 
-How to we decide if documentation is good? By observing how effective it is used
+How to we decide if documentation is good? By observing how effectively it is used
 in practice. If a question on Arbor (regardless of medium) is satisfactorily
 resolved (on both sides!) with a pointer to the (relevant section in the) docs,
-the documentation was good. If, on the other hand, explanation was needed, the
-documentation was bad.
+the documentation is good. If, on the other hand, an explanation is needed, the
+documentation is bad.
 
 If you found the documentation to be insufficiently clear or elaborate, you must
 consider this a bug and find or file an `issue <https://github.com/arbor-sim/arbor/issues>`__ and if you are able, make a :ref:`pull request <contribpr>`.
@@ -42,7 +42,7 @@ which means we label where we can, which translates to a large number of labels.
 
 Wherever possible, observe:
 
-* file names: avoid underscores as much as possible. E.g. `cpp/cable_cell.rst` -> `cpp/cablecell.rst`.
+* file names: avoid underscores as much as possible. E.g., `cpp/cable_cell.rst` -> `cpp/cablecell.rst`.
 * page-level labels in each file: the path concatenated without spaces. E.g. `cpp/cablecell.rst` -> `cppcablecell`.
 * heading labels in a file: `pagelevel-sectionname`. Feel free to slugify long headings.
   E.g. the morphology section in the C++ cable cell docs could be `cppcablecell-morph`.
