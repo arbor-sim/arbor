@@ -1,17 +1,17 @@
 .. _tutorial_calcium_stpd_curve:
 
-Spike Timing-dependent Plasticity Curve
+Spike-Timing-dependent Plasticity Curve
 =======================================
 
 This tutorial uses a single cell and reproduces `this Brian2 example
 <https://brian2.readthedocs.io/en/latest/examples/frompapers.Graupner_Brunel_2012.html>`_.  We aim
-to reproduce a spike timing-dependent plastivity curve which arises from stochastic calcium-based
+to reproduce a spike-timing-dependent plasticity curve which arises from stochastic calcium-based
 synapse dynamics described in Graupner and Brunel [1]_.
 
 The synapse is modeled as synaptic efficacy variable, :math:`\rho`, which is a function of the
 calcium concentration, :math:`c(t)`. There are two stable states at :math:`\rho=0` (DOWN) and
 :math:`\rho=1` (UP), while :math:`\rho=\rho^\ast=0.5` represents a third unstable state between the
-two stable states.  The calcium concentration dynamics are represented by a simplified model which
+two stable states. The calcium concentration dynamics are represented by a simplified model which
 uses a linear sum of individual calcium transients elicited by trains of pre- and postsynaptic
 action potentials:
 
@@ -81,26 +81,26 @@ The Model
 ---------
 
 In this tutorial, the neuron model itself is simple with only passive (leaky)
-membrane dynamics, and it receives regular synaptic current input in one
+membrane dynamics and it receives regular synaptic current input in one
 arbitrary chosen control volume (CV) to trigger regular spikes.
 
-First we import some required modules:
+First, we import some required modules:
 
 .. literalinclude:: ../../python/example/calcium_stdp.py
    :language: python
-   :lines: 13-15
+   :lines: 13-17
 
-Next we set the simulation parameters in order to reproduce the plasticity curve:
+Next, we set the simulation parameters in order to reproduce the plasticity curve:
 
 .. literalinclude:: ../../python/example/calcium_stdp.py
    :language: python
-   :lines: 20-40
+   :lines: 19-41
 
-The time lag resolution, together with the maximum time lag, determine the
+The time lag resolution, together with the maximum time lag, determines the
 number of cases we want to simulate. For each such case, however, we need to run
 many simulations in order to get a statistically meaningful result. The number
 of simulations per case is given by the ensemble size and the initial
-conditions. In our case, we have two inital states, :math:`\rho(0)=0` and
+conditions. In our case, we have two initial states, :math:`\rho(0)=0` and
 :math:`\rho(0)=1`, and for each initial state we want to run :math:`100`
 simulations. We note, that the stochastic synapse mechanism does not alter the
 state of the cell, but couples one-way only by reacting to spikes. Therefore, we
@@ -115,18 +115,18 @@ Thus, we create a simple cell and mark the midpoint at which we place our mechan
    :lines: 43-67
 
 Since our stochastic mechanism `calcium_based_synapse` is not within Arbor's
-default set of mechanism, we need to extend the mechanism catalogue within the
+default set of mechanisms, we need to extend the mechanism catalogue within the
 cable cell properties:
 
 .. literalinclude:: ../../python/example/calcium_stdp.py
    :language: python
-   :lines: 69-71
+   :lines: 77
 
 Our cell and cell properties can then later be used to create a simple recipe:
 
 .. literalinclude:: ../../python/example/calcium_stdp.py
    :language: python
-   :lines: 74-98
+   :lines: 70-114
 
 Note, that the recipe takes a cell and a list of time offsets as constructor
 arguments, which are used to create the cells of the ensemble. Furthermore, the
@@ -134,11 +134,11 @@ recipe also returns a list of probes which contains only one item: A query for
 our mechanism's state variable :math:`\rho`. Since we placed a number of these
 mechanisms on our cell, we will receive a vector of values when probing.
 
-Next we set up the simulation logic:
+Next, we set up the simulation logic:
 
 .. literalinclude:: ../../python/example/calcium_stdp.py
    :language: python
-   :lines: 101-125
+   :lines: 96-114
 
 The pre- and postsynaptic events are generated as regular schedules, where the
 presynaptic event is shifted in time by :math:`D -\text{time lag}` with respect
@@ -148,34 +148,28 @@ synapse with weight `1.0`, while the presynaptic events are generated at the
 stochastic calcium synapses. The postsynaptic weight can be set arbitrarily as
 long as it is large enough to trigger the spikes.
 
-Thus, we have all ingredients to create the recipe
+Thus, we have all the ingredients to create the recipe:
 
 .. literalinclude:: ../../python/example/calcium_stdp.py
    :language: python
-   :lines: 127-128
+   :lines: 118-119
 
-Now, we need to initialize the simulation, register a probe and run the simulation:
+Now, we need to initialize the simulation, register a probe, and run the simulation:
 
 .. literalinclude:: ../../python/example/calcium_stdp.py
    :language: python
-   :lines: 133-140
+   :lines: 117-134
 
 Since we are interested in the long-term average value, we only query the probe
 at the end of the simulation.
 
 After the simulation is finished, we calculate the change in synaptic strength
-by evaluating the transition probabilies from initial DOWN state to final UP
-state and vice versa.
+by evaluating the transition probabilities from the initial DOWN state to the final UP
+state and vice versa. We process all configured timelags:
 
 .. literalinclude:: ../../python/example/calcium_stdp.py
    :language: python
-   :lines: 142-160
-
-We process all configured timelags
-
-.. literalinclude:: ../../python/example/calcium_stdp.py
-   :language: python
-   :lines: 163
+   :lines: 186-204
 
 The collected results can then be plotted:
 
