@@ -4,7 +4,7 @@ Distributed ring network (MPI)
 ==============================
 
 In this example, the ring network created in an :ref:`earlier tutorial <tutorialnetworkring>` will be used to run the model in
-a distributed context using MPI. Only the differences with that tutorial will be described.
+a distributed context using MPI. Only the differences between that tutorial and the other will be described.
 
 .. Note::
 
@@ -35,7 +35,7 @@ determine the id of the GPU to be used; or create our own MPI communicator.
 
 The configuration of the context will need to be added to reflect the change in hardware. We will use
 `MPI <https://en.wikipedia.org/wiki/Message_Passing_Interface#Overview>`_ to distribute the work over
-nodes, cores and threads.
+nodes, cores, and threads.
 
 Step **(12)** uses the Arbor-built-in :py:class:`MPI communicator <arbor.mpi_comm>`, which is identical to the
 ``MPI_COMM_WORLD`` communicator you'll know if you are familiar with MPI. The :py:class:`arbor.context` takes a
@@ -55,7 +55,7 @@ Step **(13)** creates the simulation using the recipe and the context created in
 The execution
 *************
 
-Step **(16)** runs the simulation. Since we have more cells this time, which are connected in series, it will take some time for the action potential to propagate. In the :ref:`ring network <tutorialnetworkring>` we could see it takes about 5 ms for the signal to propagate through one cell, so let's set the runtime to ``5*ncells``.
+Step **(16)** runs the simulation. Since we have more cells this time, which are connected in series, it will take some time for the action potential to propagate. In the :ref:`ring network <tutorialnetworkring>`, we could see it takes about 5 ms for the signal to propagate through one cell, so let's set the runtime to ``5*ncells``.
 
 .. literalinclude:: ../../python/example/network_ring_mpi.py
    :language: python
@@ -66,7 +66,7 @@ it as an argument to the ``python`` command, you need to use ``srun`` or ``mpiru
 distribution) to execute a number of jobs in parallel. You can still execute the script using ``python``, but then
 MPI will not execute on more than one node.
 
-From the commandline, we can run the script using ``mpirun`` (``srun`` on clusters operated with SLURM) and specify the number of ranks (``NRANKS``)
+From the command line, we can run the script using ``mpirun`` (``srun`` on clusters operated with SLURM) and specify the number of ranks (``NRANKS``)
 or nodes. Arbor will spread the cells evenly over the ranks, so with ``NRANKS`` set to 5, we'd be spreading the 500
 cells over 5 nodes, simulating 100 cells each.
 
@@ -82,9 +82,9 @@ After executing ``mpirun``, all nodes will run the same script. In the domain de
 the provided MPI communicator to divide the work. Once :py:func:`arbor.simulation.run` starts, each node will work on
 their allocated cell ``gid`` s.
 
-This is relevant for the collection of results: these are not gathered for you. Remember that in step **(15)** we
-store the handles to the probes; these referred to particular ``gid`` s. The ``gid`` s are now distributed, so on one
-node, the script will not find the cell referred to by the handle and therefore return an empty list (no results were found).
+This is relevant for the collection of results: these are not gathered for you. Remember that in step **(15)**, we
+store the handles to the probes; these refer to particular ``gid`` s. The ``gid`` s are now distributed, so on one
+node, the script will not find the cell referred to by the handle and, therefore, return an empty list (no results were found).
 
 In step **(17)** we check, for each ``gid``, if the list returned by :py:func:`arbor.simulation.samples` has a nonzero
 length. The effect is that we collect the results generated on this particular node. Since we now have ``NRANKS``
