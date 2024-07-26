@@ -110,12 +110,13 @@ function(set_arch_target optvar optvar_cuda_guarded arch)
         endforeach(line)
         string(REGEX REPLACE "-.*" "" target_model "${target}")
 
-        # Use -mcpu for all supported targets _except_ for x86 and Apple arm64, where it should be -march.
-
+        # Use -mcpu for all supported targets, -march else.
         if (CMAKE_CXX_COMPILER_ID MATCHES "AppleClang" AND CMAKE_CXX_COMPILER_VERSION LESS 15)
             set(arch_opt "")
-        else()
+        elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
             set(arch_opt "-mcpu=${arch}")
+        else ()
+            set(arch_opt "-march=${arch}")
         endif()
     endif()
 
