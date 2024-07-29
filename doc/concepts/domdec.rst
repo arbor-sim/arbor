@@ -35,11 +35,11 @@ We define some terms as used in the context of connectivity
 .. glossary::
 
    cell_group
-      List of same-kinded cells that share some information. Must not be split
+      List of same-kind cells that share some information. Must not be split
       across domains.
 
    domain
-      Produced by a `load_balancer`, a list of all `cell_groups`
+      Produced by a `load_balancer`; a list of all `cell_groups`
       located on the same hardware. A `communicator` deals with the full set of
       cells of one `domain`.
 
