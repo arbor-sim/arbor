@@ -669,7 +669,7 @@ Two common editing operations are provided
 
 Note that ``join_at`` and ``split_at`` are inverse to each other.
 
-A particular use case for these operations is pruning a specific tag region in the
+A particular use case for these operations is pruning a specific region by its tag in the
 segment tree and replacing it with a surrogate model. This is e.g., commonly performed
 for the axon, known as axon-replacement. For this purpose, the function ``tag_roots``
 allows to obtain the IDs of root segments of a a tag region. These IDs can
