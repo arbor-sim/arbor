@@ -447,7 +447,7 @@ For example, if you use ``std::vector<int>`` in a file, make sure to
 have ``#include <vector>`` at the top of the source file.
 
 Relying on headers being included elsewhere can lead to portability
-problems, for example, on OS X you have to ``#include <cmath>`` for some
+problems, for example, on MacOS you have to ``#include <cmath>`` for some
 math functions that are imported via other header files with gcc on
 Linux.
 
