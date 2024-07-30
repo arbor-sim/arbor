@@ -55,7 +55,7 @@ Definitions
         A record of data corresponding to the value at a specific *probe* at a specific time.
 
     handle
-        A handle for reaching sampling data is associated with a sampler, which is associated with a probeset.
+        A handle for accessing sampling data is associated with a sampler, which in turn is associated with a probeset.
         Setting a sampler (through :py:func:`simulation.sample`) returns handles. Sampled data can be retrieved
         by passing the handle associated with a sampler (associated with a probeset) to :py:func:`simulation.samples`.
 
