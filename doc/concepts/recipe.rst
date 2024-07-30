@@ -148,7 +148,7 @@ General best practices
 .. topic:: Be reproducible
 
     Arbor is designed to give reproducible results when the same model is run on a
-    a different number of MPI ranks or threads or on different hardware (e.g., GPUs).
+    a different number of MPI ranks or threads or on different hardware, e.g., GPUs.
     This only holds when a recipe provides a reproducible model description, which
     can be a challenge when a description uses random numbers, e.g., to pick incoming
     connections to a cell from a random subset of a cell population.
