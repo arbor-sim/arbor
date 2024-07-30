@@ -25,7 +25,7 @@ run the following commands to apply it:
 
    # Install the formatter if not present
    pip install black
-   # Automatically apply style to a certain file. If unsure what this does read on.
+   # Automatically apply style to all Python files. If unsure what this does read on.
    black .
 
 The formatter can also be run with ``--check`` to list offending files and
