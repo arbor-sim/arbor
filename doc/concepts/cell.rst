@@ -14,7 +14,7 @@ Cells interact with each other via spike exchange and gap junctions.
     =============================  ===========================================  ===========================================================
     .. generic:: gid               integral                                     The unique global identifier of a cell.
     .. generic:: tag               string                                       The label of a group of items in a cell-local collection.
-                                                                                For example, the synapse "syns_0" on a cell.
+                                                                                For example, the synapses labelled ``"syns_0"`` on a cell.
     .. generic:: selection_policy  enum                                         The policy for selecting a single item out of a group
                                                                                 identified by its label.
     .. generic:: local_label       tuple (:gen:`tag`, :gen:`selection_policy`)  The local identification of a cell-local item from a
