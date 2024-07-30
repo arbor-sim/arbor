@@ -19,7 +19,7 @@ TEST(distributed_for_each, all_zero) {
     int call_count = 0;
 
     auto sample = [&](const util::range<int*>& range) {
-        EXPECT_EQ(0, range.size());
+        EXPECT_EQ(0ul, range.size());
         ++call_count;
     };
 
