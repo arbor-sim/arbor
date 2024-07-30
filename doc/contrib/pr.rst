@@ -149,7 +149,7 @@ Merging a PR
 
 -  Use the PR comment as a commit message and verify it covers the changes in
    the PR.
--  ONLY squash-and-merge (Github should not allow anything else
+-  ONLY squash-and-merge (GitHub should not allow anything else
    anymore).
 -  The creator of a pull request should not review or merge their own
    pull request.
