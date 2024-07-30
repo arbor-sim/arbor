@@ -18,7 +18,7 @@ sound. That means
 
 The core motivation is to capture the essence of your feature and to protect it
 against accidental change. This is what enables us to freely add optimisations,
-and perform the refactoring.
+and refactor code as needed.
 
 Example
 ^^^^^^^
