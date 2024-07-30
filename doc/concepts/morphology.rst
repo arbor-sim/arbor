@@ -6,7 +6,7 @@ Cable cell morphology
 In simulations of morphologically detailed neurons,
 `the cell is modelled <https://en.wikipedia.org/wiki/Cable_theory>`_
 as a set of round electrical cables, which have, among others: temperature,
-capacitances and resistances. These can in turn be expressed as a system of
+capacitances, and resistances. These can in turn be expressed as a system of
 partial differential equations which can be solved to compute a current or
 voltage. The geometry of the biological cell is approximated as a tree of
 cable segments, which is a :term:`morphology` in Arbor nomenclature.
