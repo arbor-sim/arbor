@@ -29,7 +29,7 @@ If you want to contribute code that implements a solution or feature,
 the workflow is as follows:
 
 1. Fork the Arbor repository.
-2. Create a branch off of the master and implement your feature.
+2. Create a branch off of the ``master`` branch and implement your feature. Example ``git switch -c my-feature origin/master``
 3. Make a pull request (PR) and refer to the issue(s) that the PR
    addresses. Some tips on how to write a good PR description:
 
