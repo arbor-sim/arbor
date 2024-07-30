@@ -99,7 +99,7 @@ mechanism. For tests to be discovered, they must meet the following criteria:
 * The test case classes must begin with ``Test``.
 * The test functions inside the cases must begin with ``test_``.
 
-To run the tests locally, use `python -m unittest` from the `python` directory.
+To run the tests locally, use ``python -m unittest`` from the ``python`` directory.
 
 Fixtures
 ^^^^^^^^
