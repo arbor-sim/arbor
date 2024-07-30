@@ -5,21 +5,21 @@ Units in Arbor
 
 .. note::
 
-   This is a work in progress. The near goal term is to make this coverage
-   complete, but expect some exceptions. Notably, the interfaces of individual
-   mechanism are not yet integrated, since NMODL files -- despite explicitly
+   This is a work in progress. The near-term goal is to make this coverage
+   complete but expect some exceptions. Notably, the interfaces of individual
+   mechanisms are not yet integrated, since NMODL files -- despite explicitly
    specifying units -- do not make good use of the feature.
 
 A large part of the interface of Arbor -- both in C++ and Python -- is covered
 by units of measurement. This gives the API a way to communicate the intended
-units of parameters and return values and users can largely use their preferred
+units of parameters and return values, and users can largely use their preferred
 system of units, as automatic conversion is provided. For performance reasons,
 this extends to the outermost layer only, after which Arbor uses its own
 internal system of measurement.
 
 We leverage the `units library <https://github.com/llnl/units>`_ published by LLNL.
 
-Arbor is focussed on SI units, and we provide the following presets for both the
+Arbor is focused on SI units, and we provide the following presets for both the
 C++ and Python modules.
 
 .. table:: Provided dimensionalities and units
@@ -89,14 +89,14 @@ the catalogue of units via the underlying units library.
     centi           1e-2
    =============   =======   =============   =======
 
-Parameters are passed into Arbor via a ``quantity``, which comprise a value and
+Parameters are passed into Arbor via a ``quantity``, which comprises a value and
 a unit. We construct a quantity by multiplication of a scalar value by a unit.
 Multiplication of two quantities will result in the pointwise product of the
-values and units; like one would expect.
+values and units, as one would expect.
 
 .. code-block:: python
 
-    # two kilometers, dimension is length
+    # two kilometers, dimension is the length
     l = 2 * km
 
     # three kilometers, but with the scaling factored out
@@ -112,9 +112,9 @@ Python, but we provide some details below.
 C++
 ---
 
-Units are defined in the ``units`` namespace, and exist at runtime, since we
+Units are defined in the ``units`` namespace and exist at runtime, since we
 need to cater to dynamical language bindings. In the ``units::literals``
-namespace, we find user defined literals for all units above, e.g. ``10_mV``.
+namespace, we find user-defined literals for all units above, e.g. ``10_mV``.
 Integral powers of units are constructed using the ``.pow(int)`` member, e.g.
 ``m2 = m.pow(2)``. Units and quantities can be converted to and from strings
 using the ``std::string to_string(const T&)`` and ``T from_string_cast(const std::string&)``
@@ -126,7 +126,7 @@ functions. Conversion between different units is done like this
 
     // membrane capacitance in SI
     auto c_m = 42*U::F/U::m.pow(2) // same as 42*U::F*U::m.pow(-2)
-    // convert to different unit and extract value
+    // convert to a different unit and extract value
     auto c_m_ = c_m.value_as(U::uF*U::cm.pow(-2))
     // invalid conversions result in NaN values, so check
     if (std::isnan(c_m_)) throw std::domain_error("Invalid value");
@@ -141,7 +141,7 @@ however, Arbor does this whenever values pass its interface.
 
     .. method:: pow(int)
 
-        Raise unit to integral power.
+        Raise the unit to integral power.
 
 .. cpp:class:: quantity
 
@@ -149,7 +149,7 @@ however, Arbor does this whenever values pass its interface.
 
     .. method:: value_as(unit)
 
-        Convert to another unit and return converted value, possibly NaN, if
+        Convert to another unit and return the converted value, possibly NaN, if
         malformed.
 
 
@@ -168,7 +168,7 @@ Conversion between different units is done like this
 
     # membrane capacitance in SI
     c_m = 42*U.F/U.m**2
-    # convert to different unit and extract value
+    # convert to a different unit and extract value
     c_m_ = c_m.value_as(U.uF*U.cm**-2)
     # invalid conversions result in NaN values, so check
     if isnan(c_m_):
@@ -188,5 +188,5 @@ however, Arbor does this whenever values pass its interface.
 
     .. method:: value_as
 
-        Convert to another unit and return converted value, possibly NaN, if
+        Convert to another unit and return the converted value, possibly NaN, if
         malformed.
