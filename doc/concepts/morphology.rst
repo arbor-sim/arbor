@@ -180,7 +180,7 @@ tag 2 coloured grey for axon; tag 3 coloured light blue for basal dendrites.
   Python code to generate this cable cell is in the :class:`segment_tree<arbor.segment_tree>`
   documentation :ref:`here <morph-label-seg-code>`.
 
-* The tree is composed of 11 segments (1 soma, 2 axons, 8 dendrites).
+* We have 11 segments, thereof one labeled as the soma, 2 in the axon, and 8 in the dendrite.
 * The proximal ends of segments 0 and 9 (the soma and axon hillock, respectively) are attached to the root of the tree.
 * Segment 2 is a fork, with segments 3 and 5 as children.
 * Segment 5 is a fork, with segments 6 and 7 as children.
