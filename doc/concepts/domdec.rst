@@ -41,7 +41,7 @@ We define some terms as used in the context of connectivity
    domain
       Produced by a `load_balancer`; a list of all `cell_groups`
       located on the same hardware. A ``communicator`` deals with the full set of
-      cells of one `domain`.
+      cells of one ``domain``.
 
    domain_decomposition
       List of domains; distributed across MPI processes.
