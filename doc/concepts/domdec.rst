@@ -35,7 +35,7 @@ We define some terms as used in the context of connectivity
 .. glossary::
 
    cell_group
-      List of same-kind cells that share some information. Must not be split
+      Collection of cells with the same kind. Will be simulated as a unit. Must not be split
       across domains.
 
    domain
