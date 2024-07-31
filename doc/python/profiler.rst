@@ -21,16 +21,16 @@ the simulation has concluded:
 Meter manager
 =============
 
-Arbor's python module :py:mod:`arbor` has a :class:`meter_manager` for measuring time (and if applicable memory) consumptions of regions of interest in the python code.
+Arbor's Python module :py:mod:`arbor` has a :class:`meter_manager` for measuring time (and, if applicable, memory) consumption of regions of interest in the Python code.
 
 Users manually instrument the regions to measure.
-This allows the user to only measure the parts of the python code that are of interest.
-Once a region of code is marked for the :class:`meter_manager`, the application will track the total time (and memory) spent in this region.
+This allows the user to only measure the parts of the Python code that are of interest.
+Once a region of code is marked for the :class:`meter_manager`, the application will track the total time (and memory) spent in it.
 
 Marking metering regions
 ------------------------
 
-First the :class:`meter_manager` needs to be initiated, then the metering started and checkpoints set,
+First, the :class:`meter_manager` needs to be initiated, then the metering started and checkpoints set,
 wherever the :class:`meter_manager` should report the meters.
 The measurement starts from the :func:`meter_manager.start` to the first :func:`meter_manager.checkpoint` and then in between checkpoints.
 Checkpoints are defined by a string describing the process to be measured.
@@ -49,7 +49,7 @@ Checkpoints are defined by a string describing the process to be measured.
     .. function:: checkpoint(name, context)
 
         Create a new checkpoint ``name`` using the chosen execution :class:`arbor.context`.
-        Records the time since the last checkpoint (or the call to start if no previous checkpoints exist),
+        Records the time since the last checkpoint (or the call to start if no previous checkpoints exist)
         and restarts the timer for the next checkpoint.
 
     .. function:: checkpoint_names
@@ -60,7 +60,7 @@ Checkpoints are defined by a string describing the process to be measured.
 
         Returns a list of all metering times.
 
-For instance, the following python code will record and summarize the total time (and memory) spent:
+For instance, the following Python code will record and summarize the total time (and memory) spent:
 
 .. container:: example-code
 
