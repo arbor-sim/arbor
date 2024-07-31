@@ -19,24 +19,24 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     .. code-block:: python
 
-        import arbor
+        import arbor as A
 
         # Get a communication context (with 4 threads, no GPU)
-        context = arbor.context(threads=4, gpu_id=None)
+        context = A.context(threads=4, gpu_id=None)
 
         # Initialise a recipe of user-defined type my_recipe with 100 cells.
         n_cells = 100
         recipe = my_recipe(n_cells)
 
         # Get a description of the partition of the model over the cores.
-        decomp = arbor.partition_load_balance(recipe, context)
+        decomp = A.partition_load_balance(recipe, context)
 
         # Instantiate the simulation.
-        sim = arbor.simulation(recipe, decomp, context)
+        sim = A.simulation(recipe, decomp, context)
 
         # Run the simulation for 2000 ms with a time step of 0.025 ms
-        tSim = 2000
-        dt = 0.025
+        tSim = 2000 * U.ms
+        dt = 0.025 * U.ms
         sim.run(tSim, dt)
 
 .. currentmodule:: arbor
@@ -224,19 +224,19 @@ Spikes recorded during a simulation are returned as a NumPy structured datatype 
 
     .. code-block:: python
 
-        import arbor
+        import arbor as A
 
         # Instantiate the simulation.
-        sim = arbor.simulation(recipe, decomp, context)
+        sim = A.simulation(recipe, decomp, context)
 
         # Direct the simulation to record all spikes, which will record all spikes
         # across multiple MPI ranks in distributed simulation.
-        # To only record spikes from the local MPI rank, use arbor.spike_recording.local
-        sim.record(arbor.spike_recording.all)
+        # To only record spikes from the local MPI rank, use A.spike_recording.local
+        sim.record(A.spike_recording.all)
 
         # Run the simulation for 2000 ms with a time step of 0.025 ms
-        tSim = 2000
-        dt = 0.025
+        tSim = 2000 * U.ms
+        dt = 0.025 * U.ms
         sim.run(tSim, dt)
 
         # Print the spikes: time and source 
@@ -299,16 +299,16 @@ Example
 
 .. code-block:: python
 
-    import arbor
+    import arbor as A
 
     # [... define recipe, decomposition, context ... ]
     # Initialize simulation:
 
-    sim = arbor.simulation(recipe, decomp, context)
+    sim = A.simulation(recipe, decomp, context)
 
     # Sample probeset id (0, 0) (first probeset id on cell 0) every 0.1 ms
 
-    handle = sim.sample((0, 0), arbor.regular_schedule(0.1))
+    handle = sim.sample((0, 0), A.regular_schedule(0.1))
 
     # Run simulation and retrieve sample data from the first probe associated with the handle.
 
