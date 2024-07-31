@@ -107,7 +107,7 @@ Example
 
    recipe = single_recipe()
    sim = A.simulation(recipe)
-   handles = [sim.sample((0, n), A.regular_schedule(0.1))
+   handles = [sim.sample((0, n), A.regular_schedule(0.1*U.ms))
             for n in range(3) ]
    sim.run(tfinal=1)
 
