@@ -312,7 +312,7 @@ helpers in cell_parameters and make_cable_cell for building cells are used.
             # Attach a generator to the first cell in the ring.
             def event_generators(self, gid):
                 if gid==0:
-                    sched = A.explicit_schedule([1])
+                    sched = A.explicit_schedule([1*U.ms])
                     return [A.event_generator("syn", 0.1, sched)]
                 return []
 
