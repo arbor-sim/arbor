@@ -13,29 +13,29 @@ Cable cell morphology
 
     .. code-block:: python
 
-        import arbor
+        import arbor as A
 
-        tree = arbor.segment_tree()
+        tree = A.segment_tree()
 
         # mnpos can be used to explicitly specify that a segment
         # is at the root of the tree. More than one segment can
         # be at the root, and they will all be joined electrically
         # at their proximal ends.
-        tree.append(parent=arbor.mnpos, # attach segment to root.
-                    prox=arbor.mpoint(0, 0,-5, 5),
-                    dist=arbor.mpoint(0, 0, 5, 5),
+        tree.append(parent=A.mnpos, # attach segment to root.
+                    prox=A.mpoint(0, 0,-5, 5),
+                    dist=A.mpoint(0, 0, 5, 5),
                     tag=1)
         tree.append(parent=0,
-                    prox=arbor.mpoint(0, 0, 5, 0.5),
-                    dist=arbor.mpoint(0, 0,50, 0.2),
+                    prox=A.mpoint(0, 0, 5, 0.5),
+                    dist=A.mpoint(0, 0,50, 0.2),
                     tag=3)
 
         # mnpos can also be used when querying a segment_tree or morphology,
-        # for example the following snippet that finds all branches in the
+        # for example, the following snippet that finds all branches in the
         # morphology that are attached to the root of the morphology.
-        m = arbor.morphology(tree)
+        m = A.morphology(tree)
         base_branches = [i for i in range(m.num_branches)
-                            if m.branch_parent(i) == arbor.mnpos]
+                            if m.branch_parent(i) == A.mnpos]
 
         print(base_branches)
 
@@ -48,7 +48,7 @@ Cable cell morphology
     between the proximal and distal ends of the branch. The position is in terms
     of branch path length, so for example, on a branch of path length 100 μm ``pos=0.2``
     corresponds to 20 μm and 80 μm from the proximal and distal ends of the
-    branch respectively.
+    branch, respectively.
 
     .. function:: location(branch, pos)
 
@@ -66,12 +66,12 @@ Cable cell morphology
 
 .. class:: cable
 
-    An unbranched cable that is a subset of a branch.
+    An unbranched cable is a subset of a branch.
     The values of ``0 ≤ prox ≤ dist ≤ 1`` are the relative position
     of the cable's end points on the branch, in terms
     of branch path length. For example, on a branch of path length 100 μm, the values
     :attr:`prox` =0.2, :attr:`dist` =0.8 describe a cable that starts and
-    ends 20 μm and 80 μm along the branch respectively.
+    ends 20 μm and 80 μm along the branch, respectively.
 
     .. function:: cable(branch, prox, dist)
 
@@ -116,7 +116,7 @@ Cable cell morphology
     .. attribute:: radius
         :type: real
 
-        Radius of the cable (μm)
+        The radius of the cable (μm)
 
 .. class:: msegment
 
@@ -134,7 +134,7 @@ Cable cell morphology
         :type: int
 
         Integer tag meta-data associated with the segment.
-        Typically the tag would correspond to the SWC structure identifier:
+        Typically, the tag would correspond to the SWC structure identifier:
         soma=1, axon=2, dendrite=3, apical dendrite=4, however arbitrary
         tags, including zero and negative values, can be used.
 
@@ -176,11 +176,11 @@ Cable cell morphology
 
     .. code-block:: Python
 
-        import arbor
+        import arbor as A
         from arbor import mpoint
         from arbor import mnpos
 
-        tree = arbor.segment_tree()
+        tree = A.segment_tree()
         # Start with a cylinder segment for the soma (with tag 1)
         tree.append(mnpos, mpoint(0,   0.0, 0, 2.0), mpoint( 4,  0.0, 0, 2.0), tag=1)
         # Construct the first section of the dendritic tree,
@@ -207,7 +207,7 @@ Cable cell morphology
         :param int parent: index of segment
         :param mpoint prox: proximal end of the segment
         :param mpoint dist: distal end of the segment
-        :param int tag: tag meta data of segment
+        :param int tag: tag metadata of the segment
 
     .. method:: append(parent, dist, tag)
         :noindex:
@@ -222,7 +222,7 @@ Cable cell morphology
         :return: index of the new segment
         :param int parent: index of segment
         :param mpoint dist: distal end of the segment
-        :param int tag: tag meta data of segment
+        :param int tag: tag metadata of the segment
 
     .. method:: append(parent, x, y, z, radius, tag)
         :noindex:
@@ -240,7 +240,7 @@ Cable cell morphology
         :param float y: distal y coordinate (μm)
         :param float z: distal z coordinate (μm)
         :param float radius: distal radius (μm)
-        :param int tag: tag meta data of segment
+        :param int tag: tag metadata of the segment
 
     .. method:: split_at(id)
 
@@ -262,8 +262,8 @@ Cable cell morphology
 
     .. method:: apply_isometry(iso)
 
-        Apply an :py:class:`isometry` to the segment tree, returns the transformed tree as a copy.
-        Isometries are rotations around an arbritary axis and/or translations; they can
+        Apply an :py:class:`isometry` to the segment tree and return the transformed tree as a copy.
+        Isometries are rotations around an arbitrary axis and/or translations; they can
         be instantiated using ``translate`` and ``rotate`` and combined
         using the ``*`` operator.
 
@@ -282,7 +282,7 @@ Cable cell morphology
     .. attribute:: empty
         :type: bool
 
-        If the tree is empty (i.e. whether it has size 0)
+        If the tree is empty (i.e., whether it has size 0)
 
     .. attribute:: size
         :type: int
@@ -305,12 +305,12 @@ Cable cell morphology
     with variable radius and their associated tree structure.
 
     .. note::
-        A morphology takes a segment tree and construct the cable branches.
-        Meta data about branches and their properties that may be expensive to calculate
-        is stored for fast look up during later stages of model building, and
+        A morphology takes a segment tree and constructs the cable branches.
+        Metadata about branches and their properties that may be expensive to calculate
+        is stored for fast look-up during the later stages of model building and
         querying by users.
 
-        For this reason, morphologies are read only. To change a morphology, a new
+        For this reason, morphologies are read-only. To change a morphology, a new
         morphology should be created using a new segment tree.
 
     There is one *constructor* for a morphology:
@@ -431,7 +431,7 @@ Cable cell morphology
 
     .. py:method:: __call__(point: mpoint) -> mpoint
 
-       Apply the isometry to given point.
+       Apply the isometry to a given point.
 
     .. py:method:: __call__(point: Tuple[float, float, float, ...]) -> Tuple[float, float, float, ...]
        :noindex:
@@ -457,7 +457,7 @@ The set of boundary points used by the simulator is determined by a
 
    .. attribute:: domain
 
-       A read only string expression describing the subset of a cell morphology
+       A read-only string expression describing the subset of a cell morphology
        (region) on which this policy has been declared.
 
    CV policies can be :ref:`composed <morph-cv-composition>` with
@@ -473,9 +473,9 @@ The set of boundary points used by the simulator is determined by a
        policy = arbor.cv_policy_max_extent(10) | cv_policy_single('"soma"')
 
 Specific CV policy objects are created by functions described below.
-These all take a ``region`` parameter that restrict the
+These all take a ``region`` parameter that restricts the
 domain of applicability of that policy; this facility is useful for specifying
-differing discretisations on different parts of a cell morphology. When a CV
+differing discretisations on different parts of a cell's morphology. When a CV
 policy is constrained in this manner, the boundary of the domain will always
 constitute part of the CV boundary point set.
 
@@ -486,7 +486,7 @@ constitute part of the CV boundary point set.
 
     .. code-block:: Python
 
-        # Use one CV for the entire cell (a single compartment model)
+        # Use one CV for the entire cell (a single-compartment model)
         single_comp = arbor.cv_policy_single()
 
         # Use a single CV for the soma.
@@ -500,7 +500,7 @@ constitute part of the CV boundary point set.
 
     .. code-block:: Python
 
-        # Place CV boundaries midway every branch.
+        # Place CV boundaries at the midway of every branch.
         midbranch_cvp = arbor.cv_policy_explicit('(on-branches 0.5)')
 
         # Place CV boundaries at 10 random positions on the soma.
@@ -528,7 +528,7 @@ constitute part of the CV boundary point set.
 
 .. py:function:: cv_policy_max_extent(max_extent, domain='(all)')
 
-    As for :py:func:`cv_policy_fixed_per_branch`, save that the number of CVs on any
+    As for :py:func:`cv_policy_fixed_per_branch`, save the number of CVs on any
     given branch will be chosen to be the smallest number that ensures no
     CV will have an extent on the branch longer than ``max_extent`` micrometres.
 
@@ -610,13 +610,13 @@ SWC
 
     .. note::
         This method does not interpret the first sample, typically associated with the soma,
-        as a sphere. SWC files with single point somas are common, for example
+        as a sphere. SWC files with single-point somas are common, for example
         `SONATA <https://github.com/AllenInstitute/sonata/blob/master/docs/SONATA_DEVELOPER_GUIDE.md#representing-biophysical-neuron-morphologies>`_
         model descriptions.
 
         Such representations are challenging to consistently interpret in different
         simulation tools because they require heuristics and, often undocumented, rules
-        for how to interpret the connectin of axons and dendrites to the soma.
+        for how to interpret the connection of axons and dendrites to the soma.
 
         The :func:`load_swc_neuron` function provides support for loading
         SWC files according to the interpretation used by NEURON.
@@ -630,7 +630,7 @@ SWC
 
     Loads the :class:`morphology` from an SWC file according to NEURON's ``Import3D``
     interpretation of the SWC specification.
-    See :ref:`the SWC file documention <formatswc-neuron>` for more details.
+    See :ref:`the SWC file documentation <formatswc-neuron>` for more details.
 
     :param str filename: the name of the SWC file.
     :param bool raw: return segment_tree instead of morphology?
@@ -681,10 +681,10 @@ NeuroML
 
 .. py:class:: neuroml
 
-    A :class:`neuroml` object represent NeuroML documents, and provides methods for the identification and
+    A :class:`neuroml` object represents NeuroML documents, and provides methods for the identification and
     translation of morphology data.
 
-    An implementation limitation restricts valid segment id values to those which can be represented by an
+    An implementation limitation restricts valid segment id values to those that can be represented by an
     unsigned long long value.
 
     The ``allow_spherical_root`` optional parameter below, if set to true, will instruct the parser to
@@ -715,7 +715,7 @@ NeuroML
       Parse errors or an inconsistent representation will raise an exception.
 
       :param str morph_id: ID of the top-level morphology.
-      :param bool allow_spherical_root: Treat zero length root segments especially.
+      :param bool allow_spherical_root: Treat zero-length root segments especially.
       :rtype: optional(loaded_morphology)
 
    .. py:method:: cell_morphology(cell_id, allow_spherical_root=false)
@@ -724,7 +724,7 @@ NeuroML
       could be found. Parse errors or an inconsistent representation will raise an exception.
 
       :param str morph_id: ID of the cell.
-      :param bool allow_spherical_root: Treat zero length root segments especially.
+      :param bool allow_spherical_root: Treat zero-length root segments especially.
       :rtype: optional(loaded_morphology)
 
 .. _pyasc:
@@ -793,7 +793,7 @@ Neurolucida
 
        import arbor
 
-       # Load morphology and labels from file.
+       # Load morphology and labels from the file.
        asc = arbor.load_asc('granule.asc')
 
        # Construct a cable cell.
