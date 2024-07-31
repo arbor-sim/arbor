@@ -207,7 +207,7 @@ Arbor-specific features
 
 * It is required to explicitly pass 'magic' variables like ``v`` into procedures.
   It makes things more explicit by eliding shared and implicit global state. However, 
-  this is only partially true, as having `PARAMETER v` brings it into scope, *but only* 
+  this is only partially true, as having ``PARAMETER v`` brings it into scope, *but only* 
   in `BREAKPOINT`.
 * Arbor's NMODL dialect supports the most widely used features of NEURON. It also
   has some features unavailable in NEURON, such as the ``POST_EVENT`` procedure block.
