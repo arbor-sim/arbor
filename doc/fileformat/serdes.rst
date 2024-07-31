@@ -135,7 +135,7 @@ Adding Snapshotting to new Objects (C++ only)
 ---------------------------------------------
 
 This is not available at the Python interface due to a mismatch in features at
-the level of languages and bindings [is this correct?] generation.
+the level of languages and bindings generation.
 
 All that is needed is to implement new overloads of the functions ``read`` and
 ``write``. For many C++ native types, these exist, but some might be missing.
