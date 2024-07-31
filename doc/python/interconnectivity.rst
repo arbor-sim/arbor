@@ -47,15 +47,16 @@ Interconnectivity
 
         .. code-block:: python
 
-            import arbor
+            import arbor as A
+            from arbor import units as U 
 
             # Create two locset labels, describing the endpoints of the connection.
-            labels = arbor.label_dict()
+            labels = A.label_dict()
             labels['synapse_site'] = '(location 1 0.5)'
             labels['root'] = '(root)'
 
             # Place 'expsyn' mechanism on "synapse_site", and a threshold detector at "root"
-            decor = arbor.decor()
+            decor = A.decor()
             decor.place('"synapse_site"', 'expsyn', 'syn')
             decor.place('"root"', arbor.threshold_detector(-10), 'detector')
 
@@ -66,7 +67,7 @@ Interconnectivity
                source  = (2, "detector") # gid and locset label of the source
                target = "syn" # gid of the target is determined by the argument to `connections_on`.
                weight = 0.01  # unit/scaling depends on the synapse used; commonly chosen as μS 
-               d    = 10 * arbor.units.ms # delay
+               d    = 10 * U.ms # delay
                return [arbor.connection(source, target, weight, delay)]
 
 .. class:: gap_junction_connection
