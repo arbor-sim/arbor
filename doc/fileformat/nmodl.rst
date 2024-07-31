@@ -345,7 +345,7 @@ mechanism that alters that reversal potential (such as ``nernst ``) is explicitl
 for the entire cell. (see :ref:`cppcablecell-revpot` for details).
 
 .. NOTE:
-  This means that a user cannot indicate to use ``Nernst`` to calculate the reversal
+  This means that a user cannot indicate to use ``nernst`` to calculate the reversal
   potential on some regions of the cell, while other regions of the cell have a constant
   reversal potential. It's either applied on the entire cell or not at all. This differs
   from NEURON's policy.
