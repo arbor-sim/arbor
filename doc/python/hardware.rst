@@ -101,7 +101,7 @@ The ``arbor.env`` module collects helper functions for interacting with the envi
 
 .. function:: env.default_allocation
 
-    Returns a :func:`~arbor.proc_allocation` with the number of threads intitalized with :func:`~arbor.env.default_concurrency` and GPU set to :func:`~arbor.env.default_gpu`. Use with caution in combination with MPI.
+    Returns a :func:`~arbor.proc_allocation` with the number of threads intitalized with :func:`~arbor.env.default_concurrency` and GPU number set via :func:`~arbor.env.default_gpu`. Use with caution in combination with MPI.
 
 
 Prescribed resources
