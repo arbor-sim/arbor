@@ -96,7 +96,7 @@ axons and apical dendrites are attached to it that are not described explicitly 
 
 **Every sample must have the same SWC identifier (tag) as its parent, except for
 samples whose parent is tagged as soma**:
-This enforces that axons, [basel? is missing] dendrites, and apical dendrites can only attach to the soma.
+This enforces that axonal and dendritic segments can only attach to the soma.
 Conversely, it isn't possible to attach an axon to a dendrite, for example.
 
 **The first sample is tagged as soma**:
