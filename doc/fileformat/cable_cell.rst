@@ -66,7 +66,7 @@ The components of the label dictionary are the following:
    This expression identifies the radius iexpr with a scaling factor of 0.5.
 
 
-For any number of locset or region, an iexpr definitions can be grouped in a label dictionary as follows:
+Any  definition of a locset, region, or iexpr can be stored in a label dictionary as follows.
 
 .. label:: (label-dict [...def:region-def/locset-def/iexpr-def])
 
