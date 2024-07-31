@@ -336,7 +336,7 @@ A popular equation for determining the reversal potential during the simulation 
 the `Nernst equation <https://en.wikipedia.org/wiki/Nernst_equation>`_.
 Both Arbor and NEURON make use of ``nernst``. Arbor implements it as a mechanism and
 NEURON implements it as a built-in method. However, the conditions for using the
-``nernst`` equation to change the reversal potential of an ion differs between the
+Nernst equation to change the reversal potential of an ion differs between the
 two simulators.
 
 1. In Arbor, the reversal potential of an ion remains equal to its initial value (which
