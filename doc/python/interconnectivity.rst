@@ -67,7 +67,7 @@ Interconnectivity
                target = "syn" # gid of the target is determined by the argument to `connections_on`.
                weight = 0.01  # unit/scaling depends on the synapse used; commonly chosen as μS 
                d    = 10 * arbor.units.ms # delay
-               return [arbor.connection(source, target, w, d)]
+               return [arbor.connection(source, target, weight, delay)]
 
 .. class:: gap_junction_connection
 
