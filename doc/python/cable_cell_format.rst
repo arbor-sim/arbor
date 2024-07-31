@@ -50,7 +50,7 @@ Reading and writing arbor-components
 .. py:function:: write_component(dec, filename)
    :noindex:
 
-   Write the :class:`decor` to file. Use the most recent version of the cable cell format to construct the meta-data.
+   Write the :class:`decor` to file. Use the most recent version of the cable cell format to construct the metadata.
 
    :param decor dec: the decor to be written to file.
    :param str filename: the name of the file.
@@ -58,7 +58,7 @@ Reading and writing arbor-components
 .. py:function:: write_component(dict, filename)
    :noindex:
 
-   Write the :class:`label_dict` to file. Use the most recent version of the cable cell format to construct the meta-data.
+   Write the :class:`label_dict` to file. Use the most recent version of the cable cell format to construct the metadata.
 
    :param label_dict dict: the label dictionary to be written to file.
    :param str filename: the name of the file.
@@ -66,7 +66,7 @@ Reading and writing arbor-components
 .. py:function:: write_component(morpho, filename)
    :noindex:
 
-   Write the :class:`morphology` to file. Use the most recent version of the cable cell format to construct the meta-data.
+   Write the :class:`morphology` to file. Use the most recent version of the cable cell format to construct the metadata.
 
    :param morphology morpho: the morphology to be written to file.
    :param str filename: the name of the file.
@@ -74,7 +74,7 @@ Reading and writing arbor-components
 .. py:function:: write_component(cell, filename)
    :noindex:
 
-   Write the :class:`cable_cell` to file. Use the most recent version of the cable cell format to construct the meta-data.
+   Write the :class:`cable_cell` to file. Use the most recent version of the cable cell format to construct the metadata.
 
    :param cable_cell cell: the cable_cell to be written to file.
    :param str filename: the name of the file.
