@@ -21,15 +21,15 @@ Recipe
     
     Recipes provide a cell-centric interface for describing a model.
     This means that model properties, such as connections, are queried using the global identifier ``gid`` of a cell.
-    In the description below, the term ``gid`` is used as shorthand for the cell with global identifier.
+    In the description below, the term ``gid`` is used as shorthand for the cell with a global identifier.
 
     **Required Constructor**
 
-    The constructor must be implemented and call the base class constructor, as at the moment there is no way
+    The constructor must be implemented and call the base class constructor, as at the moment, there is no way
     to instruct Python to do that automatically.
     
     .. note:: 
-        Arbor's Python binding is that: a thin wrappper around the Arbor library which is written in C++.
+        Arbor's Python binding is a thin wrapper around the Arbor library, which is written in C++.
         Calling the base class constructor ensures correct initialization of memory in the underlying C++ class.
     
     A minimal constructor therefore looks like this:
@@ -53,10 +53,10 @@ Recipe
 
     .. function:: cell_description(gid)
 
-        A high level description of the cell with global identifier ``gid``,
-        for example the morphology, synapses and ion channels required to build a multi-compartment neuron.
+        A high-level description of the cell with global identifier ``gid``,
+        for example, the morphology, synapses, and ion channels required to build a multi-compartment neuron.
         The type used to describe a cell depends on the kind of the cell.
-        The interface for querying the kind and description of a cell are separate
+        The interface for querying the kind and description of a cell is separate
         to allow the cell type to be provided without building a full cell description,
         which can be very expensive.
 
@@ -129,9 +129,9 @@ Recipe
 
     .. function:: cell_isometry(gid)
 
-        Returns a isometry consisting of translation and rotation, which is applied to the cell morphology for resolving global locations.
+        Returns an isometry consisting of translation and rotation, which is applied to cell morphology to resolve global locations.
 
-        By default returns a isometry without translation and rotation.
+        By default, it returns an isometry without translation and rotation.
 
 Cells
 ------
@@ -186,7 +186,7 @@ Event generator and schedules
 
     .. attribute:: tstop
 
-        No events delivered after this time [ms].
+        No events will be delivered after this time [ms].
         Must be non-negative or ``None``.
 
     .. function:: events(t0, t1)
@@ -240,7 +240,7 @@ Event generator and schedules
 
     .. attribute:: tstop
 
-        No events delivered after this time [ms].
+        No events will be delivered after this time [ms].
 
 An example of an event generator reads as follows:
 
@@ -248,20 +248,19 @@ An example of an event generator reads as follows:
 
     .. code-block:: python
 
-        import arbor
+        import arbor as A
 
-        # define a Poisson schedule with start time 1 ms, expected frequency of 5 Hz,
+        # define a Poisson schedule with a start time at 1 ms, expected frequency of 5 Hz,
         # and the target cell's gid as seed
-        def event_generators(gid):
-            target = arbor.cell_local_label("syn", arbor.selection_policy.round_robin) # label of the synapse on target cell gid
-            seed   = gid
-            tstart = 1
-            freq   = 0.005
-            sched  = arbor.poisson_schedule(tstart, freq, seed)
 
-            # construct an event generator with this schedule on target cell and weight 0.1
-            w = 0.1
-            return [arbor.event_generator(target, w, sched)]
+        def event_generators(gid):
+            # label of the synapse on target cell, if multiple distribute cyclically
+            target = A.cell_local_label("syn", A.selection_policy.round_robin)
+            # Poisson schedule with a start time, event rate, and the target cell's gid as seed.
+            sched  = A.poisson_schedule(tstart=1*U.ms, freq=5*U.Hz, seed=gid)
+            # Weight to apply to the events
+            weight = 0.1
+            return [A.event_generator(target, weight, sched)]
 
 Example
 -------
@@ -275,16 +274,16 @@ helpers in cell_parameters and make_cable_cell for building cells are used.
     .. code-block:: python
 
         import sys
-        import arbor
+        import arbor as A
 
-        class ring_recipe (arbor.recipe):
+        class ring_recipe (A.recipe):
 
             def __init__(self, n=4):
                 # The base C++ class constructor must be called first, to ensure that
                 # all memory in the C++ class is initialized correctly.
-                arbor.recipe.__init__(self)
+                A.recipe.__init__(self)
                 self.ncells = n
-                self.params = arbor.cell_parameters()
+                self.params = A.cell_parameters()
 
             # The num_cells method that returns the total number of cells in the model
             # must be implemented.
@@ -300,22 +299,22 @@ helpers in cell_parameters and make_cable_cell for building cells are used.
             # The kind method returns the type of cell with gid.
             # Note: this must agree with the type returned by cell_description.
             def cell_kind(self, gid):
-                return arbor.cell_kind.cable
+                return A.cell_kind.cable
 
             # Make a ring network
             def connections_on(self, gid):
                 src = (gid-1)%self.ncells
                 w = 0.01
-                d = 10
-                return [arbor.connection((src,"detector"), "syn", w, d)]
+                d = 10 * U.ms
+                return [A.connection((src,"detector"), "syn", w, d)]
 
             # Attach a generator to the first cell in the ring.
             def event_generators(self, gid):
                 if gid==0:
-                    sched = arbor.explicit_schedule([1])
-                    return [arbor.event_generator("syn", 0.1, sched)]
+                    sched = A.explicit_schedule([1*U.ms])
+                    return [A.event_generator("syn", 0.1, sched)]
                 return []
 
             def get_probes(self, id):
                 # Probe just the membrane voltage at a location on the soma.
-                return [arbor.cable_probe_membrane_voltage('(location 0 0)')]
+                return [A.cable_probe_membrane_voltage('(location 0 0)')]
