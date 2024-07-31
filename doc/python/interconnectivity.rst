@@ -65,7 +65,7 @@ Interconnectivity
                # to the "syn" target label on cell gid with weight 0.01 and delay of 10 ms.
                source  = (2, "detector") # gid and locset label of the source
                target = "syn" # gid of the target is determined by the argument to `connections_on`.
-               w    = 0.01  # weight of the connection. Correspondes [corresponding?] to 0.01 μS on expsyn mechanisms
+               weight = 0.01  # unit/scaling depends on the synapse used; commonly chosen as μS 
                d    = 10 * arbor.units.ms # delay
                return [arbor.connection(source, target, w, d)]
 
