@@ -252,16 +252,15 @@ An example of an event generator reads as follows:
 
         # define a Poisson schedule with a start time at 1 ms, expected frequency of 5 Hz,
         # and the target cell's gid as seed
-        def event_generators(gid):
-            target = A.cell_local_label("syn", A.selection_policy.round_robin) # label of the synapse on target cell gid
-            seed   = gid
-            tstart = 1
-            freq   = 0.005
-            sched  = A.poisson_schedule(tstart, freq, seed)
 
-            # construct an event generator with this schedule on target cell and weight 0.1
-            w = 0.1
-            return [A.event_generator(target, w, sched)]
+        def event_generators(gid):
+            # label of the synapse on target cell, if multiple distribute cyclically
+            target = A.cell_local_label("syn", A.selection_policy.round_robin)
+            # Poisson schedule with a start time, event rate, and the target cell's gid as seed.
+            sched  = A.poisson_schedule(tstart=1*U.ms, freq=5*U.Hz, seed=gid)
+            # Weight to apply to the events
+            weight = 0.1
+            return [A.event_generator(target, weight, sched)]
 
 Example
 -------
