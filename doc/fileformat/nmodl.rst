@@ -367,7 +367,7 @@ and can be summarized as follows:
   Otherwise, the reversal potential is set by the user and remains constant.
 
 One of the main consequences of this difference in behavior is that in Arbor, a mechanism
-modifying the reversal potential (for example ``Nernst``) can only be applied (for a given ion)
+modifying the reversal potential (for example ``nernst``) can only be applied (for a given ion)
 at a global level on a given cell. While in NEURON, different mechanisms can be used for
 calculating the reversal potential of an ion on different parts of the morphology.
 This is due to the different methods Arbor and NEURON use for discretising the morphology.
