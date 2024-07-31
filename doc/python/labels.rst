@@ -26,36 +26,36 @@ Cable cell labels
 
    .. attribute:: regions
 
-      The region definitons in the dictionary.
+      The region definitions in the dictionary.
 
    .. attribute:: locsets
 
-      The locset definitons in the dictionary.
+      The locset definitions in the dictionary.
 
 The ``arbor.label_dict`` type is used for creating and manipulating label dictionaries,
 which can be initialised with a dictionary that defines (label, :ref:`expression <labels-expressions>`)
 pairs. For example, a dictionary that uses tags that correspond to SWC
 `structure identifiers <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_
-to label soma, axon, dendrite and apical dendrites is:
+to label soma, axon, basal dendrites, and apical dendrites is:
 
 .. code-block:: python
 
-    import arbor
+    import arbor as A
 
     labels = {'soma': '(tag 1)',
               'axon': '(tag 2)',
               'dend': '(tag 3)',
               'apic': '(tag 4)'}
 
-    d = arbor.label_dict(labels)
+    d = A.label_dict(labels)
 
 The same ``label_dict`` can be created by starting with an empty label dictionary and adding the labels and their definitions one by one:
 
 .. code-block:: python
 
-    import arbor
+    import arbor as A
 
-    d = arbor.label_dict()
+    d = A.label_dict()
 
     d['soma'] = '(tag 1)'
     d['axon'] = '(tag 2)'
@@ -63,7 +63,7 @@ The same ``label_dict`` can be created by starting with an empty label dictionar
     d['apic'] = '(tag 4)'
 
 The square bracket operator is used above to add label definitions. It can
-be used to modify existing definitions, so long as the new new definition has the
+be used to modify existing definitions, so long as the new definition has the
 same type (region or locset):
 
 .. code-block:: python
@@ -74,7 +74,7 @@ same type (region or locset):
     d = arbor.label_dict({'dend': '(tag 3)'})
 
     # The definition of a label can be overwritten with a definition of the
-    # same type, in this case a region.
+    # same type, in this case, a region.
     d['dend'] = '(join (tag 3) (tag 4))'
 
     # However, a region can't be overwritten by a locset, or vice-versa.
@@ -103,26 +103,26 @@ of both the *'dend'* and *'apic'* regions.
             # equivalent to (join (tag 3) (tag 4))
             'tree': '(join (region "dend") (region "apic"))'})
 
-The order that labels are defined does not matter, so an :ref:`expression <labels-expressions>` can refer to a
+The order which labels are defined does not matter, so an :ref:`expression <labels-expressions>` can refer to a
 label that has not yet been defined:
 
 .. code-block:: python
 
-    import arbor
+    import arbor as A
 
-    d = arbor.label_dict()
+    d = A.label_dict()
     # 'reg' refers
     d['reg'] = '(distal_interval (locset "loc"))'
     d['loc'] = '(location 3 0.5)'
 
-    # If d was applied to a morphology, 'reg' would refer to the region:
+    # If d were applied to a morphology, 'reg' would refer to the region:
     #   '(distal_interval (location 3 0.5))'
     # Which is the sub-tree of the matrix starting at '(location 3 0.5)'
 
     # The locset 'loc' can be redefined
     d['loc'] = '(proximal (tag 3))'
 
-    # Now if d was applied to a morphology, 'reg' would refer to:
+    # Now if d were applied to a morphology, 'reg' would refer to:
     #   '(distal_interval (proximal (tag 3))'
     # Which is the subtrees that start at the proximal locations of
     # the region '(tag 3)'
@@ -142,9 +142,9 @@ two labels refer to one another:
     # definition of 'reg'.
 
 .. note::
-    In the example above there will be no error when the label dictionary is defined.
+    In the example above, there will be no error when the label dictionary is defined.
     Instead, there will be an error later when the label dictionary is applied to
-    a morphology, and the cyclic dependency is detected when thingifying the locations
+    a morphology, and the cyclic dependency is detected when thingifying (?) the locations
     in the locsets and the cable segments in the regions.
 
 
@@ -154,9 +154,9 @@ Lists of the labels for regions and locsets are available as attributes:
 
 .. code-block:: python
 
-    import arbor
+    import arbor as A
 
-    d = arbor.label_dict({
+    d = A.label_dict({
             'soma': '(tag 1)',
             'axon': '(tag 2)',
             'dend': '(tag 3)',
