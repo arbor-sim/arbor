@@ -16,8 +16,8 @@ cells and members of cell-local collections.
     :cpp:type:`cell_size_type`, :cpp:type:`cell_lid_type`, and
     :cpp:type:`cell_local_size_type`; and uses ``std::string`` for
     :cpp:type:`cell_tag_type` at the time of writing. However,
-    this could change, e.g. to handle models that cell gid that don't
-    fit into a 32 bit unsigned integer.
+    this could change, e.g., to handle models that cell gid that don't
+    fit into a 32-bit unsigned integer.
     It is thus recommended that these type aliases be used whenever identifying
     or counting cells and cell members.
 
@@ -65,7 +65,7 @@ cells and members of cell-local collections.
 
    .. cpp:enumerator:: assert_univalent
 
-      Assert that ony one item is available in the group. Throws an exception if the assertion
+      Assert that only one item is available in the group. Throws an exception if the assertion
       fails.
 
 .. cpp:class::  cell_local_label_type
