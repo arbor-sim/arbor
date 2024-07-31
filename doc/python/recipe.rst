@@ -306,7 +306,7 @@ helpers in cell_parameters and make_cable_cell for building cells are used.
             def connections_on(self, gid):
                 src = (gid-1)%self.ncells
                 w = 0.01
-                d = 10
+                d = 10 * U.ms
                 return [A.connection((src,"detector"), "syn", w, d)]
 
             # Attach a generator to the first cell in the ring.
