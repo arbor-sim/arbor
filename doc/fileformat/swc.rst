@@ -119,7 +119,7 @@ joined at the soma center. It differs in two ways:
 
 **The axon, dendrite, and apical sub-trees follow special rules for attachment to
 the soma**: By default, the sub-tree starts at the first sample with the
-dendrite, axon, or apical tag [what is apical tag?], and not at the parent location on the soma, and
+a tag indicating a non-soma segment, and not at the parent location on the soma, and
 the sub-tree is connected to its parent with a "zero resistance wire".
 **Except** when the sub-tree is defined by a single child sample. In which case
 the sub-tree is composed of a single segment from the parent location on the
