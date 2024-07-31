@@ -7,11 +7,11 @@ Interconnectivity
 
 .. class:: connection
 
-    Describes a connection between two cells, defined by source and target end points (that is pre-synaptic and
-    post-synaptic respectively), a connection weight and a delay time.
+    Describes a connection between two cells, defined by source and target end points (that is presynaptic and
+    postsynaptic respectively), a connection weight, and a delay time.
 
     The :attr:`target` does not include the gid of a cell, this is because a :class:`arbor.connection` is bound to the
-    target cell which means that the gid is implicitly known.
+    target cell, which means that the gid is implicitly known.
 
     .. function:: connection(source, target, weight, delay)
 
@@ -42,20 +42,21 @@ Interconnectivity
 
     .. note::
 
-        An minimal full example of a connection reads as follows:
+        A minimal full example of a connection reads as follows:
         (see :ref:`network tutorial <tutorialnetworkring>` for a more comprehensive example):
 
         .. code-block:: python
 
-            import arbor
+            import arbor as A
+            from arbor import units as U 
 
             # Create two locset labels, describing the endpoints of the connection.
-            labels = arbor.label_dict()
+            labels = A.label_dict()
             labels['synapse_site'] = '(location 1 0.5)'
             labels['root'] = '(root)'
 
             # Place 'expsyn' mechanism on "synapse_site", and a threshold detector at "root"
-            decor = arbor.decor()
+            decor = A.decor()
             decor.place('"synapse_site"', 'expsyn', 'syn')
             decor.place('"root"', arbor.threshold_detector(-10), 'detector')
 
@@ -65,9 +66,9 @@ Interconnectivity
                # to the "syn" target label on cell gid with weight 0.01 and delay of 10 ms.
                source  = (2, "detector") # gid and locset label of the source
                target = "syn" # gid of the target is determined by the argument to `connections_on`.
-               w    = 0.01  # weight of the connection. Correspondes to 0.01 μS on expsyn mechanisms
-               d    = 10 * arbor.units.ms # delay
-               return [arbor.connection(source, target, w, d)]
+               weight = 0.01  # unit/scaling depends on the synapse used; commonly chosen as μS 
+               d    = 10 * U.ms # delay
+               return [arbor.connection(source, target, weight, delay)]
 
 .. class:: gap_junction_connection
 
@@ -177,5 +178,5 @@ Interconnectivity
 
         Generate network connections from the network description in the recipe. A distributed context and
         domain decomposition can optionally be provided. Only generates connections with local gids in the
-        domain composition as target. Will return all connections on every process, if no context and domain
+        domain composition as the target. Will return all connections on every process, if no context and domain
         decomposition are provided. Does not include connections from the "connections_on" recipe function.
