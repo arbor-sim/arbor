@@ -239,7 +239,7 @@ Spikes recorded during a simulation are returned as a NumPy structured datatype 
         dt = 0.025
         sim.run(tSim, dt)
 
-        # Print the spikes and accordingly the spike time
+        # Print the spikes: time and source 
         for s in sim.spikes():
             print(s)
 
