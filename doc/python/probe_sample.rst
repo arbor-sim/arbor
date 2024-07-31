@@ -14,7 +14,7 @@ Cable cell probing and sampling
     A probeset is a probe placed on a locset (which may describe more than one point). 
     When setting a probe on a locset a :term:`sampler` is created.
     When this sampler is set to sampling (at a certain schedule), a handle is returned.
-    This figure demonstrates how sampling data can be accessed through the handle associated to the probeset.
+    This figure demonstrates how sampling data can be accessed through the handle associated with the probeset.
     See below for a possible result for ``data``.
 
 .. code-block:: python
@@ -32,7 +32,7 @@ columns holding the corresponding scalar- or vector-valued sample.
 
 Probesets are defined over a location expression and will describe zero,
 one, or more probes, one per site. They are evaluated in the context of
-the cell on which the probe is attached.
+the cell to which the probe is attached.
 
 :term:`Vector probes <vector probe>` are a kind of probes that samples over a region, rather than a :term:`locset`.
 This means that they may output more than a single data point per timestamp. The layout of the outputs as returned
@@ -67,47 +67,47 @@ Example
 
 .. code-block:: python
    
-   import arbor
+   import arbor as A
 
-   tree = arbor.segment_tree()
-   p = tree.append(arbor.mnpos, arbor.mpoint(-3, 0, 0, 3), arbor.mpoint(3, 0, 0, 3), tag=1)
-   tree.append(p, arbor.mpoint(3, 0, 0, 3), arbor.mpoint(-3, 0, 0, 3), tag=2)
-   tree.append(p, arbor.mpoint(3, 0, 0, 3), arbor.mpoint(-3, 0, 0, 3), tag=2)
+   tree = A.segment_tree()
+   p = tree.append(A.mnpos, A.mpoint(-3, 0, 0, 3), A.mpoint(3, 0, 0, 3), tag=1)
+   tree.append(p, A.mpoint(3, 0, 0, 3), A.mpoint(-3, 0, 0, 3), tag=2)
+   tree.append(p, A.mpoint(3, 0, 0, 3), A.mpoint(-3, 0, 0, 3), tag=2)
 
    decor = (
-      arbor.decor()
+      A.decor()
       .set_property(Vm=-40)
-      .paint('"soma"', arbor.density("hh"))
-      .place('"midpoint"', arbor.iclamp(10, 2, 0.8), "iclamp"))
+      .paint('"soma"', A.density("hh"))
+      .place('"midpoint"', A.iclamp(10, 2, 0.8), "iclamp"))
 
-   cell = arbor.cable_cell(tree, decor)
+   cell = A.cable_cell(tree, decor)
 
-   class single_recipe(arbor.recipe):
+   class single_recipe(A.recipe):
       def __init__(self):
-         arbor.recipe.__init__(self)
+         A.recipe.__init__(self)
 
       def num_cells(self):
          return 1
 
       def cell_kind(self, gid):
-         return arbor.cell_kind.cable
+         return A.cell_kind.cable
 
       def cell_description(self, gid):
          return cell
 
       def probes(self, gid):
-         return [arbor.cable_probe_membrane_voltage('(location 0 0.5)'),
-                  arbor.cable_probe_membrane_voltage_cell(),
-                  arbor.cable_probe_membrane_voltage('(join (location 0 0) (location 0 1))'),
+         return [A.cable_probe_membrane_voltage('(location 0 0.5)'),
+                 A.cable_probe_membrane_voltage_cell(),
+                 A.cable_probe_membrane_voltage('(join (location 0 0) (location 0 1))'),
                   ]
 
       # (4.6) Override the global_properties method
       def global_properties(self, kind):
-         return arbor.neuron_cable_properties()
+         return A.neuron_cable_properties()
 
    recipe = single_recipe()
-   sim = arbor.simulation(recipe)
-   handles = [sim.sample((0, n), arbor.regular_schedule(0.1))
+   sim = A.simulation(recipe)
+   handles = [sim.sample((0, n), A.regular_schedule(0.1))
             for n in range(3) ]
    sim.run(tfinal=1)
 
@@ -117,7 +117,7 @@ Example
          print(" * Meta:", m)
          print(" * Payload:", d.shape)
 
-This script, has a single (scalar) probe, a single vector probe, and a probeset involving two scalar probes.
+This script has a single (scalar) probe, a single vector probe, and a probeset involving two scalar probes.
 The script is complete and can be run with Arbor installed, and will output:
 
 .. code-block::
@@ -275,7 +275,7 @@ Ionic internal concentration
 
    .. py:function:: cable_probe_ion_int_concentration_cell(ion)
 
-   Ionic internal concentration (mmol/L) of the given ``ion`` in each able in each
+   Ionic internal concentration (mmol/L) of the given ``ion`` in each cable in each
    CV of the cell discretization.
 
    Metadata: the list of corresponding :class:`cable` objects.
