@@ -29,7 +29,7 @@ Recipe
     to instruct Python to do that automatically.
     
     .. note:: 
-        Arbor's Python binding is: a thin wrapper around the Arbor library, which is written in C++.
+        Arbor's Python binding is a thin wrapper around the Arbor library, which is written in C++.
         Calling the base class constructor ensures correct initialization of memory in the underlying C++ class.
     
     A minimal constructor therefore looks like this:
