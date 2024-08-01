@@ -21,7 +21,7 @@ However, we currently do not handle this case in our build scripts as it is not 
 `supported by cmake yet <https://gitlab.kitware.com/cmake/cmake/-/issues/16977>`_.
 
 .. Note::
-    When linking an application with **static** Arbor libraries, the linker may issue warnings (particularly on macros).  Thus, if you encounter problems, try building shared Arbor libraries (cmake option ``-DBUILD_SHARED_LIBS=ON``) instead.
+    When linking an application with **static** Arbor libraries, the linker may issue warnings (particularly on MacOS). Thus, if you encounter problems, try building shared Arbor libraries (cmake option ``-DBUILD_SHARED_LIBS=ON``) instead.
 
 Macro Description
 -----------------
