@@ -30,16 +30,16 @@ Euler time step as
      = \frac{\sigma_i C_i}{\Delta\,t}V_i^k + \sigma_i I_i
 
 where :math:`\delta(i, j)` indicates whether two CVs are adjacent. It is written
-in form of a sparse matrix, symmetric by construction.
+in the form of a sparse matrix, symmetric by construction.
 
 The currents :math:`I` originate from the ion channels on the CVs in question,
 see the discussion on mechanisms for further details. As :math:`I` potentially
 depends on :math:`V`, the cable equation is non-linear. We model these
-dependencies up to first order as :math:`I = gV + J` and collect all higher
-orders into :math:`J`. This is done to improve accuracy and stability of the
+dependencies up to the first order as :math:`I = gV + J` and collect all higher
+orders into :math:`J`. This is done to improve the accuracy and stability of the
 solver. Finding :math:`I` requires the computation of the symbolic derivative
 :math:`g = \partial_V I` during compilation of the mechanisms. At runtime
-:math:`g` is updated alongside with the currents :math:`I` using that symbolic
+:math:`g` is updated alongside the currents :math:`I` using that symbolic
 expression.
 
 Each *branch* in the morphology leads to a tri-diagonal block in the matrix
@@ -47,7 +47,7 @@ describing the system, since *branches* do not contain interior branching
 points. Thus, an interior CV couples to only its neighbours (and itself).
 However, at branch points, we need to factor in the branch's parents, which
 couple blocks via entries outside the tri-diagonal structure. To ensure
-un-problematic data dependencies for use of a substitution algorithm, ie each
+un-problematic data dependencies for the use of a substitution algorithm, i.e., each
 row depends only on those of larger indices, we enumerate CVs in breadth-first
 ordering. This particular form of matrix is called a *Hines matrix*.
 
@@ -76,7 +76,7 @@ equation are initialised by calling ``assemble``.
 Solving
 ^^^^^^^
 
-The CPU implementation is a straight-forward implemenation of a modified
+The CPU implementation is a straight-forward implementation of a modified
 Thomas-algorithm, using an extra input for the parent relationship. If each
 parent is simply the previous CV, we recover the Thomas algorithm.
 
@@ -121,7 +121,7 @@ GPU
 
 The GPU implementation of the matrix solver is more complex to improve
 performance and make reasonable use of the hardware's capabilities.
-In particular it trades a more complex assembly (and structure) for improved
+In particular, it trades a more complex assembly (and structure) for improved
 performance.
 
 Looking back at the structure of the Hines matrix, we find that we can solve
@@ -131,6 +131,6 @@ and synchronise execution at each such branching point. Each such step is called
 a *level*. Execution time is further optimised by packing blocks into threads by
 size and splitting overly large blocks to minimise divergence.
 
-A detailled description can be found `here
+A detailed description can be found `here
 <https://arxiv.org/ftp/arxiv/papers/1810/1810.12742.pdf>`_ and the references
 therein are worthwhile further reading.
