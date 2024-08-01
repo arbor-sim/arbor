@@ -366,7 +366,7 @@ Interconnectivity
 
         Generate network connections from the network description in the recipe. Only generates connections 
         with local gids in the domain composition as the target.  Does not include connections from
-        the "connections_on" recipe function.
+        the ``connections_on`` recipe function.
 
 .. function:: generate_network_connections(recipe)
 
