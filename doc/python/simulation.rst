@@ -309,7 +309,7 @@ Example
 
     # Sample probeset id (0, 0) (first probeset id on cell 0) every 0.1 ms
 
-    handle = sim.sample((0, 0), A.regular_schedule(0.1))
+    handle = sim.sample((0, 0), A.regular_schedule(0.1*U.ms))
 
     # Run simulation and retrieve sample data from the first probe associated with the handle.
 
