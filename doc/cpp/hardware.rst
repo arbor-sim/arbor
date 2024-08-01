@@ -329,7 +329,7 @@ whether it has a GPU, how many threads are in its thread pool, using helper func
 .. cpp:function:: unsigned num_ranks(const context&)
 
    Query the number of distributed ranks. If the context has an MPI
-   communicator, the return is equivalent to :cpp:any:`MPI_Comm_size`.
+   communicator, the return value is equivalent to :cpp:any:`MPI_Comm_size`.
    If the communicator has no MPI, returns 1.
 
 .. cpp:function:: unsigned rank(const context&)
