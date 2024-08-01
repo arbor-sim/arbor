@@ -300,6 +300,7 @@ Example
 .. code-block:: python
 
     import arbor as A
+    from arbor import units as U
 
     # [... define recipe, decomposition, context ... ]
     # Initialize simulation:
@@ -312,7 +313,7 @@ Example
 
     # Run simulation and retrieve sample data from the first probe associated with the handle.
 
-    sim.run(tfinal=3, dt=0.1)
+    sim.run(tfinal=3 * U.ms, dt=0.1 * U.ms)
     data, meta = sim.samples(handle)[0]
     print(data)
 
