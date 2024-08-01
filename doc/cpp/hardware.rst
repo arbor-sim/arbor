@@ -137,7 +137,7 @@ and handling exceptions on MPI exit.
     .. cpp:function:: with_mpi(int& argcp, char**& argvp, bool fatal_errors = true)
 
         The constructor takes the :cpp:any:`argc` and :cpp:any:`argv` arguments
-        passed to the main of the calling application, and an additional flag
+        passed to the ``main`` function of the calling application, and an additional flag
         :cpp:any:`fatal_errors` that toggles whether errors in MPI API calls
         should return error codes or terminate.
 
