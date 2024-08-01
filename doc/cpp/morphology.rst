@@ -11,14 +11,14 @@ Segment tree
 ------------
 
 A ``segment_tree`` is -- as the name implies -- a set of segments arranged in a
-tree structure, ie each segment has exactly one parent and no child is the
+tree structure, i.e., each segment has exactly one parent and no child is the
 parent of any of its ancestors. The tree starts at a *root* segment which has no
 parent. Each segment comprises two points in 3d space together with the radii at
 these points. The segment's endpoints are called proximal (at the parent's
 distal end) and distal (farther from the root).
 
 Segment trees are used to form morphologies which ignore the 3d information
-encoded in the segments and just utilise the radii, length, and tree-structure.
+encoded in the segments and just utilise the radii, length, and tree structure.
 Branches in the tree occur where a segment has more than one child. The tree is
 constructed by *appending* segments to the tree. Segments are numbered starting
 at ``0`` in the order that they are added, with the first segment getting id
@@ -52,7 +52,7 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
 
     .. cpp:function:: bool empty()
 
-        If the tree is empty (i.e. whether it has size 0)
+        If the tree is empty (i.e., whether it has size 0)
 
     .. cpp:function:: msize_t size()
 
@@ -79,7 +79,7 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
 
 .. cpp:function:: std::vector<msize_t> tag_roots(const segment_tree& t, int tag)
 
-    Get IDs of roots of a region with specific tag in the segment tree, i.e. segments whose
+    Get ids of roots of a region with specific tags in the segment tree, i.e., segments whose
     parent is either :data:`mnpos` or a segment with a different tag.
 
 .. cpp:function:: bool equivalent(const segment_tree& l, const segment_tree& r)
@@ -92,8 +92,8 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
 
 .. cpp:function:: segment_tree apply(const segment_tree& t, const isometry& i)
 
-    Apply an :cpp:type:`isometry` to the segment tree, returns the transformed tree as a copy.
-    Isometries are rotations around an arbritary axis and/or translations; they can
+    Apply an :cpp:type:`isometry` to the segment tree; it returns the transformed tree as a copy.
+    Isometries are rotations around an arbitrary axis and/or translations; they can
     be instantiated using ``isometry::translate`` and ``isometry::rotate`` and combined
     using the ``*`` operator.
 
@@ -144,7 +144,7 @@ The :cpp:type:`stitch_builder` class collects the stitches with the ``add`` meth
    stitch_builder::add(mstitch, double along = 1.)
 
 The first stitch will have no parent. If no parent id is specified for a subsequent
-stitch, the last stitch added will be used as parent. The ``along`` parameter
+stitch, the last stitch added will be used as the parent. The ``along`` parameter
 must lie between zero and one inclusive, and determines the point of attachment
 as a relative position between the parent's proximal and distal points.
 
@@ -224,14 +224,14 @@ From morphologies to points and segments
 
 The :cpp:type:`morphology` class has the ``branch_segments`` method for
 returning a vector of :cpp:type:`msegment` objects that describe the geometry
-of that branch. However, determining the position in space of an
+of that branch. However, determining the position in the space of an
 :cpp:type:`mlocation`, for example, requires some assumptions about how to
 position points which fall inside a morphological segment.
 
 The :cpp:type:`place_pwlin` class takes a :cpp:type:`morphology` (and
 optionally an :cpp:type:`isometry`) and interprets it as describing a
 piecewise-linear object in space. It can then be queried to find the 3-d
-positions in space of points on the morphology and the extents in space of
+positions in the space of points on the morphology and the extents in space of
 morphological sub-regions.
 
 Because the morphology need not be contiguous in space, a position query can
@@ -341,8 +341,8 @@ The set of boundary points used by the simulator is determined by a
    as a morphological ``region`` expression.
 
 Specific CV policy objects are created by functions described below (strictly
-speaking, these are class constructors for classes are implicit converted to
-``cv_policy`` objects). These all take a ``region`` parameter that restrict the
+speaking, these are class constructors for classes that are implicitly converted to
+``cv_policy`` objects). These all take a ``region`` parameter that restricts the
 domain of applicability of that policy; this facility is useful for specifying
 differing discretisations on different parts of a cell morphology. When a CV
 policy is constrained in this manner, the boundary of the domain will always
@@ -424,14 +424,14 @@ CV discretization as mcables
 
 It is often useful for the user to have a detailed view of the CVs generated for a given morphology
 and :ref:`cv-policy <cv-policies>`. For example, while debugging and fine-tuning model implementations,
-it can be helpful to know how many CVs a cable-cell is comprised of, or how many CVs lie on a certain
+it can be helpful to know how many CVs a cable cell is comprised of, or how many CVs lie on a certain
 region of the cell.
 
 The following classes and functions allow the user to inspect the CVs of a cell or region.
 
 .. cpp:class:: cell_cv_data
 
-   Stores the discretisation data of a cable-cell in terms of CVs and the :term:`mcables <mcable>` comprising each of
+   Stores the discretisation data of a cable cell in terms of CVs and the :term:`mcables <mcable>` comprising each of
    these CVs.
 
    .. cpp:function:: mcable_list cables(unsigned idx) const
@@ -683,8 +683,8 @@ namespace.
 
    .. cpp:enumerator:: allow_spherical_root
 
-   Replace a zero-length root segment of constant radius with a Y-axis aligned
-   cylindrical segment of the same radius and with length twice the radius. This
+   Replace a zero-length root segment of the constant radius with a Y-axis aligned
+   cylindrical segment of the same radius and with a length twice the radius. This
    cylinder will have the equivalent surface area to a sphere of the given radius.
 
    All child segments will connect to the centre of this cylinder, no matter the value of any ``fractionAlong`` attribute.
@@ -739,12 +739,12 @@ which is intended to identify the problematic construct within the document.
 .. cpp:class:: nml_parse_error: neuroml_exception
 
    Failure parsing an element or attribute in the NeuroML document. These
-   can be generated if the document does not confirm to the NeuroML2 schema,
+   can be generated if the document does not conform to the NeuroML2 schema,
    for example.
 
 .. cpp:class:: nml_bad_segment: neuroml_exception
 
-   A ``<segment>`` element has an improper ``id`` attribue, refers to a non-existent
+   A ``<segment>`` element has an improper ``id`` attribute, refers to a non-existent
    parent, is missing a required parent or proximal element, or otherwise is missing
    a mandatory child element or has a malformed child element.
 
