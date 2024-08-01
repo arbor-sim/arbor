@@ -365,7 +365,7 @@ below with some metadata about the backend.
       live in `current_density`
     - called during each integration time step, and
       - reversal potential mechanisms: at the beginning of the time step, *before* current reset
-      - after event deliver for anything else [a bit hard to read]
+      - after event delivery, if enabled, e.g. by defining ``NET_RECEIVE`` in NMODL
 
   .. c:member:: arb_mechanism_method apply_events
 
