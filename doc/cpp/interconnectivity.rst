@@ -50,8 +50,14 @@ Interconnectivity
 
     .. cpp:member:: cell_remote_label_type source
 
-        Source end point, represented by a :cpp:type:`cell_remote_label_type` which packages
-        a cell gid, integral tag of a group of sources on the cell, and source selection policy. [hard to read this line]
+        Source end point, comprising global id, uniquely identifying the source object inside the remote simulation, local id, uniquely identifying the location of the source on the source object
+    selection policy, how to map sources (gid, lid) to the targets in Arbor.
+
+    .. Note::
+    The tuple (gid, lid) must be unique for each source and follow Arbor's model of multiple
+    sources (threshold detectors) per cell. If the remote simulation does not provide multiple items per
+    source object, lid can be ignored and set to zero.
+
 
     .. cpp:member:: cell_local_label_type target
 
