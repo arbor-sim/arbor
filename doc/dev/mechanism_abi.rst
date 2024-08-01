@@ -467,7 +467,7 @@ a structure
 
 You can create mechanisms with both ``i_gpu`` and ``i_cpu`` returning ``null``,
 but at least one of the interfaces must be provided or Arbor will refuse to load
-the catalogue of this mechanism.
+the catalogue containing this mechanism.
 
 The naming scheme is shown in the example below
 
