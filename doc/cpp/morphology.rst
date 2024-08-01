@@ -224,14 +224,14 @@ From morphologies to points and segments
 
 The :cpp:type:`morphology` class has the ``branch_segments`` method for
 returning a vector of :cpp:type:`msegment` objects that describe the geometry
-of that branch. However, determining the position in the space of an
+of that branch. However, determining the position in space of an
 :cpp:type:`mlocation`, for example, requires some assumptions about how to
 position points which fall inside a morphological segment.
 
 The :cpp:type:`place_pwlin` class takes a :cpp:type:`morphology` (and
 optionally an :cpp:type:`isometry`) and interprets it as describing a
 piecewise-linear object in space. It can then be queried to find the 3-d
-positions in the space of points on the morphology and the extents in space of
+positions in space of points on the morphology and the extents in space of
 morphological sub-regions.
 
 Because the morphology need not be contiguous in space, a position query can
