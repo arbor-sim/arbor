@@ -154,7 +154,7 @@ and handling exceptions on MPI exit.
         block, the deadlock stops the exception from being handled.
         For this reason, the destructor of :cpp:class:`with_mpi` only calls
         :cpp:any:`MPI_Finalize` if there are no uncaught exceptions.
-        This isn't perfect because the other MPI ranks are still deadlock,
+        This isn't perfect because the other MPI ranks can still deadlock,
         however, it gives the exception handling code to report the error for debugging.
 
     An example workflow that uses the MPI scope guard. Note that this code will
