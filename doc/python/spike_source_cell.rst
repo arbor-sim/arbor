@@ -12,7 +12,7 @@ Spike source cells
 
     .. function:: spike_source_cell(source, schedule)
 
-        Construct a spike source cell that generates spikes and give it the label ``source``. The label
+        Constructs a spike source cell that generates spikes and gives it the label ``source``. The label
         can be used for forming connections from the cell in the :py:class:`arbor.recipe` by creating a
         :py:class:`arbor.connection`
 
