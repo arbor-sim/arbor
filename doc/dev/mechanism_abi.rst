@@ -364,7 +364,7 @@ below with some metadata about the backend.
     - compute ionic currents and set them through pointers in `ion_state`, currents
       live in `current_density`
     - called during each integration time step, and
-      - at the start for reversal potential mechanisms, *before* current reset
+      - reversal potential mechanisms: at the beginning of the time step, *before* current reset
       - after event deliver for anything else [a bit hard to read]
 
   .. c:member:: arb_mechanism_method apply_events
