@@ -33,8 +33,8 @@ to see information about the version and enabled features:
 
 .. code-block:: python
 
-    >>> import arbor
-    >>> arbor.print_config()
+    >>> import arbor as A
+    >>> A.print_config()
 
 You are now ready to use Arbor! You can continue reading these documentation pages, have a look at the
 :ref:`Python API reference<pyoverview>`, or visit the :ref:`tutorial`.
