@@ -45,7 +45,7 @@ Interconnectivity
     a cell or a spike source. The target is a synapse on the post-synaptic cell.
 
     The :cpp:member:`target` does not include the gid of a cell, this is because a
-    :cpp:class:`ext_cell_connection` is bound to the target cell, which means that the gid
+    :cpp:class:`ext_cell_connection` is bound to the target cell, which means that the ``gid``
     is implicitly known.
 
     .. cpp:member:: cell_remote_label_type source
