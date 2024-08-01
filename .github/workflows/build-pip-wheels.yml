@@ -7,13 +7,12 @@ on:
     tags:
       - v*
   schedule:
-    - cron: '0 2 * * 0' # run at 2 AM every sunday
+    - cron: '0 3 * * 0'
 
 jobs:
   get_timestamp:
     name: Prep pyproject.toml
     runs-on: ubuntu-latest
-
     steps:
       - name: Get Arbor
         uses: actions/checkout@v4
