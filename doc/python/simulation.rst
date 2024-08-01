@@ -235,7 +235,7 @@ Spikes recorded during a simulation are returned as a NumPy structured datatype 
         sim.record(A.spike_recording.all)
 
         # Run the simulation for 2000 ms with a time step of 0.025 ms
-        tSim = 2000 * U.ms
+        tSim = 2 * U.s
         dt = 0.025 * U.ms
         sim.run(tSim, dt)
 
