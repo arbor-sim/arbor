@@ -270,7 +270,7 @@ The core Arbor library *libarbor* provides an API for:
     .. cpp:member:: int gpu_id
 
         The identifier of the GPU to use.
-        The gpu id corresponds to the ``int device`` parameter used by CUDA API calls
+        The GPU id corresponds to the ``int device`` parameter used by CUDA API calls
         to identify GPU devices.
         Set to -1 to indicate that no GPU device is to be used.
         See ``cudaSetDevice`` and ``cudaDeviceGetAttribute`` provided by the
