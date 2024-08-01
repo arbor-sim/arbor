@@ -38,7 +38,7 @@ Cable cell decoration
             import arbor as A
             # Set cell-wide values for properties for resistivity and capacitance
             decor = A.decor()
-            decor.set_property(rL=100, cm=0.1)
+            decor.set_property(rL=100 * U.Ω·cm, cm=0.1 * U.F/m²)
 
     .. method:: set_ion(ion, int_con=None, ext_con=None, rev_pot=None, method=None)
 
@@ -68,7 +68,7 @@ Cable cell decoration
 
             # Set reversal potential and concentration for sodium.
             # The reversal potential is fixed, so we set the method to None.
-            decor.set_ion('na', int_con=5.0, rev_pot=70, method=None)
+            decor.set_ion('na', int_con=5.0 * U.mM, rev_pot=70 * U.mV, method=None)
 
     Various specialisations of the ``paint`` method are available for setting properties
     and density mechanisms that are applied to regions.
@@ -92,10 +92,10 @@ Cable cell decoration
         .. code-block:: Python
 
             # Specialize resistivity on soma
-            decor.paint('"soma"', rL=100)
+            decor.paint('"soma"', rL=100 * U.Ω·cm)
             # Specialize resistivity and capacitance on the axon, where
             # axon is defined using a region expression.
-            decor.paint('(tag 2)', cm=0.05, rL=80)
+            decor.paint('(tag 2)', cm=0.05 * U.F/m², rL=80 * U.Ω·cm)
             # Specialize resistivity on soma and set :math:`r_L(s) = 42.0 \cdot d(s)`
             # where `s` parametrises the cable segment(s) and :math:`d(s)` is the cable
             # diameter at `s`.
