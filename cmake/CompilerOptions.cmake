@@ -125,7 +125,8 @@ function(set_arch_target optvar optvar_cuda_guarded arch)
                 set(arch_opt "-march=${arch}")
             endif ()
         elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-            # ... clang likes mcpu!
+            # ... clang likes march (and possibly mtune)
+            # See https://discourse.llvm.org/t/when-to-use-mcpu-versus-march/47953/9
             set(arch_opt "-march=${arch} -mtune=${arch}")
         else ()
             message(STATUS "Falling back to -march=${arch} for compiler ${CMAKE_CXX_COMPILER_ID}")
