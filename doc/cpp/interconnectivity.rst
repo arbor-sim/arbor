@@ -12,7 +12,7 @@ Interconnectivity
     a cell or a spike source. The target is a synapse on the post-synaptic cell.
 
     The :cpp:member:`target` does not include the gid of a cell, this is because a
-    :cpp:class:`cell_connection` is bound to the target cell which means that the gid
+    :cpp:class:`cell_connection` is bound to the target cell, which means that the gid
     is implicitly known.
 
     .. cpp:member:: cell_global_label_type source
@@ -45,13 +45,22 @@ Interconnectivity
     a cell or a spike source. The target is a synapse on the post-synaptic cell.
 
     The :cpp:member:`target` does not include the gid of a cell, this is because a
-    :cpp:class:`ext_cell_connection` is bound to the target cell which means that the gid
+    :cpp:class:`ext_cell_connection` is bound to the target cell, which means that the ``gid``
     is implicitly known.
 
     .. cpp:member:: cell_remote_label_type source
 
-        Source end point, represented by a :cpp:type:`cell_remote_label_type` which packages
-        a cell gid, integral tag of a group of sources on the cell, and source selection policy.
+        Source end point, comprising
+
+        - global id, uniquely identifying the source object inside the remote simulation,
+        - local id, uniquely identifying the location of the source on the source object,
+        - selection policy, how to map sources `(gid, lid)` to the targets in Arbor.
+
+    .. Note::
+    The tuple ``(gid, lid)`` must be unique for each source. This addressing scheme follows Arbor's model of multiple
+    sources (threshold detectors) per cell. If the remote simulation does not provide multiple items per
+    source object, ``lid`` can be ignored and set to zero.
+
 
     .. cpp:member:: cell_local_label_type target
 
@@ -76,7 +85,7 @@ Interconnectivity
 
     Describes a gap junction connection between two gap junction sites. The :cpp:member:`local` site does
     not include the gid of a cell, this is because a :cpp:class:`gap_junction_connection` is bound to the local
-    cell which means that the gid is implicitly known.
+    cell, which means that the gid is implicitly known.
 
     .. note::
 
@@ -140,11 +149,11 @@ Interconnectivity
 
 .. cpp:class:: network_value
 
-    A network value, describing the its calculation for each connection.
+    A network value, describing the calculation for each connection.
 
    .. cpp:function:: network_value scalar(double value)
 
-   A fixed scalar valaue.
+   A fixed scalar value.
 
    .. cpp:function:: network_value named(std::string name)
 
@@ -160,11 +169,11 @@ Interconnectivity
 
    .. cpp:function:: network_value normal_distribution(unsigned seed, double mean, double std_deviation)
 
-   A normal random distribution with given mean and standard deviation.
+   A normal random distribution with a given mean and standard deviation.
 
    .. cpp:function:: network_value truncated_normal_distribution(unsigned seed, double mean, double std_deviation, const std::array<double, 2>& range)
 
-   A truncated normal random distribution with given mean and standard deviation. Sampled through accept-reject method to only returns values in [range_0, range_1)
+   A truncated normal random distribution with a given mean and standard deviation. Sampled through an accept-reject method to only return values in [range_0, range_1)
 
    .. cpp:function:: network_value custom(custom_func_type func)
 
@@ -196,11 +205,11 @@ Interconnectivity
 
    .. cpp:function:: network_value exp(network_value v)
 
-   Exponential of given value.
+   Exponential of a given value.
 
    .. cpp:function:: network_value log(network_value v)
 
-   Logarithm of given value.
+   Logarithm of a given value.
 
    .. cpp:function:: if_else(network_selection cond, network_value true_value, network_value false_value)
 
@@ -293,7 +302,7 @@ Interconnectivity
 
    .. cpp:function:: network_selection random(unsigned seed, network_value p);
 
-    Random selection using the bernoulli random distribution with probability "p" between 0.0 and 1.0
+    Random selection using the Bernoulli random distribution with probability "p" between 0.0 and 1.0
 
    .. cpp:function:: network_selection custom(custom_func_type func);
 
@@ -303,12 +312,12 @@ Interconnectivity
 
    .. cpp:function:: network_selection distance_lt(double d);
 
-    Only select within given distance. This may enable more efficient sampling through an
+    Only select within a given distance. This may enable more efficient sampling through an
     internal spatial data structure.
 
    .. cpp:function:: network_selection distance_gt(double d);
 
-    Only select if distance greater then given distance. This may enable more efficient sampling
+    Only select if the distance is greater than a given distance. This may enable more efficient sampling
     through an internal spatial data structure.
 
 
@@ -359,14 +368,14 @@ Interconnectivity
 
     .. cpp:member:: network_label_dict dict
 
-        Label dictionary for named selecations and values.
+        Label dictionary for named selections and values.
 
 
 .. function:: generate_network_connections(recipe, context, decomp)
 
         Generate network connections from the network description in the recipe. Only generates connections 
-        with local gids in the domain composition as target.  Does not include connections from
-        the "connections_on" recipe function.
+        with local gids in the domain composition as the target.  Does not include connections from
+        the ``connections_on`` recipe function.
 
 .. function:: generate_network_connections(recipe)
 
