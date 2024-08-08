@@ -36,6 +36,7 @@ cmake.args = [
         "-DARB_WITH_PYTHON=ON",
         "-DARB_USE_BUNDLED_LIBS=ON",
 ]
+sdist.include = ["ext/*/.git"]
 wheel.install-dir = "arbor"
 wheel.packages = []
 
