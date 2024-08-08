@@ -44,8 +44,8 @@ We begin by constructing the following morphology:
 This can be done by manually building a segment tree. The important bit here is
 that ``append`` will take an id to attach to and return the newly added id. This
 is exceptionally handy when building a tree structure, as we can elect to
-remember or overwrite the last id. Alternatively, you could use numeric ids --
-they are just sequentially numbered by insertion order -- but we find that this
+remember or overwrite the last id. Alternatively, you could use numeric ids ---
+they are just sequentially numbered by insertion order --- but we find that this
 becomes tedious quickly. The image above shows the numeric ids for the specific
 insertion order below, but different orders will produce the same morphology.
 
