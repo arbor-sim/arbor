@@ -3,8 +3,8 @@
 Distributed ring network (MPI)
 ==============================
 
-In this example, the ring network created in an :ref:`earlier tutorial <tutorialnetworkring>` will be used to run the model in
-a distributed context using MPI. Only the differences between that tutorial and the other will be described.
+In this example, we will build on an :ref:`earlier tutorial <tutorialnetworkring>`, to demonstrate usage of distributed contexts. The network will be unaltered, 
+but its execution is parallelized using MPI. As these concerns are largely orthogonal, we will discuss only the differences between the two simulations.
 
 .. Note::
 
