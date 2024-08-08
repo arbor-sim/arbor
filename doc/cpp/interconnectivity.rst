@@ -56,7 +56,7 @@ Interconnectivity
     .. Note::
     The tuple (gid, lid) must be unique for each source and follow Arbor's model of multiple
     sources (threshold detectors) per cell. If the remote simulation does not provide multiple items per
-    source object, lid can be ignored and set to zero.
+    source object, ``lid`` can be ignored and set to zero.
 
 
     .. cpp:member:: cell_local_label_type target
