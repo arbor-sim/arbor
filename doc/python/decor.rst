@@ -92,7 +92,7 @@ Cable cell decoration
         .. code-block:: Python
 
             # Specialize resistivity on soma
-            decor.paint('"soma"', rL=100 * * U.Ohm * U.cm)
+            decor.paint('"soma"', rL=100 * U.Ohm * U.cm)
             # Specialize resistivity and capacitance on the axon, where
             # axon is defined using a region expression.
             decor.paint('(tag 2)', cm=0.05 * U.F/U.m2, rL=80 * U.Ohm * U.cm)
