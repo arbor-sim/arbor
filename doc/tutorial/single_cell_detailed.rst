@@ -1,10 +1,10 @@
 .. _tutorialsinglecellswc:
 
-A detailed single cell model
+A detailed single-cell model
 ============================
 
 We can expand on the :ref:`single segment cell example <tutorialsinglecell>` to create a more
-complex single cell model, and go through the process in more detail.
+complex single-cell model, and go through the process in more detail.
 
 .. Note::
 
@@ -44,18 +44,18 @@ We begin by constructing the following morphology:
 This can be done by manually building a segment tree. The important bit here is
 that ``append`` will take an id to attach to and return the newly added id. This
 is exceptionally handy when building a tree structure, as we can elect to
-remember or overwrite the last id. Alternatively, you could use numeric ids --
-they are just sequentially numbered by insertion order --, but we find that this
+remember or overwrite the last id. Alternatively, you could use numeric ids ---
+they are just sequentially numbered by insertion order --- but we find that this
 becomes tedious quickly. The image above shows the numeric ids for the specific
 insertion order below, but different orders will produce the same morphology.
 
 .. code-block:: python
 
     # Construct an empty segment tree.
-    tree = arbor.segment_tree()
+    tree = A.segment_tree()
 
     # The root of the tree has no parent
-    root = arbor.mnpos
+    root = A.mnpos
 
     # The root segment: a cylindrical soma with tag 1
     # NOTE: append returns the added segment's id, which we can use to
@@ -67,13 +67,13 @@ insertion order below, but different orders will produce the same morphology.
     dend = tree.append(soma, (40.0, 0.0, 0.0, 0.8), ( 80.0,  0.0, 0.0, 0.8), tag=3)
     dend = tree.append(dend, (80.0, 0.0, 0.0, 0.8), (120.0, -5.0, 0.0, 0.8), tag=3)
 
-    # Construct upper part of the first fork
+    # Construct the upper part of the first fork
     # NOTE: We do not overwrite the parent here, as we need to attach the
-    #       lower fork later. Instead we use new names for this branch.
+    #       lower fork later. Instead, we use new names for this branch.
     dend_u = tree.append(dend, (120.0, -5.0, 0.0, 0.8), (200.0,  40.0, 0.0, 0.4), tag=3)
     dend_u = tree.append(dend_u, (200.0, 40.0, 0.0, 0.4), (260.0,  60.0, 0.0, 0.2), tag=3)
 
-    # Construct lower part of the first fork
+    # Construct the lower part of the first fork
     dend_l = tree.append(dend, (120.0, -5.0, 0.0, 0.5), (190.0, -30.0, 0.0, 0.5), tag=3)
 
     # Attach another fork to the last segment, ``p``.
@@ -88,7 +88,7 @@ insertion order below, but different orders will produce the same morphology.
     axon = tree.append(root, (0.0, 0.0, 0.0, 2.0), (-70.0, 0.0, 0.0, 0.4), tag=2)
     axon = tree.append(axon, (-70.0, 0.0, 0.0, 0.4), (-100.0, 0.0, 0.0, 0.4), tag=2)
 
-    # Turn segment tree into a morphology.
+    # Turn the segment tree into a morphology.
     morph = arbor.morphology(tree);
 
 The same morphology can be represented using an SWC file (interpreted according
@@ -134,12 +134,12 @@ the labels can be stored in a :class:`arbor.label_dict`.
    that can be applied to any morphology, and depending on its geometry, they
    will generate different regions and locations. However, we will show some
    figures illustrating the effect of applying these expressions to the above
-   morphology, in order to better visualize the final cell.
+   morphology in order to better visualize the final cell.
 
    More information on region and location expressions is available :ref:`here
    <labels>`.
 
-The SWC file format allows association of ``tags`` with parts of the morphology
+The SWC file format allows the association of ``tags`` with parts of the morphology
 and reserves tag values 1-4 for commonly used sections (see `here
 <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`__
 for the SWC file format). In Arbor, these tags can be added to a
@@ -235,7 +235,7 @@ previously defined morphology:
   Left: locset "root"; right: locset "terminal"
 
 To make things more interesting, let's select only the terminal points which belong to the
-previously defined "custom" region; and, separately, the terminal points which belong to the
+previously defined "custom" region and, separately, the terminal points which belong to the
 "axon" region:
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
@@ -271,7 +271,7 @@ The decorations
 ^^^^^^^^^^^^^^^
 
 With the key regions and location expressions identified and labelled, we can start to
-define certain features, properties and dynamics on the cell. This is done through a
+define certain features, properties, and dynamics of the cell. This is done through a
 :class:`arbor.decor` object, which stores a mapping of these "decorations" to certain
 region or location expressions.
 
@@ -285,24 +285,23 @@ region or location expressions.
 
 The decor object can have default values for properties, which can then be
 overridden on specific regions. It is in general better to explicitly set all
-the default properties of your cell, to avoid the confusion to having
-simulator-specific default values. This will therefore be our first step:
+the default properties of your cell, to avoid the confusion of having
+simulator-specific default values. This will, therefore, be our first step:
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
    :lines: 48-62
 
-We have set the default initial membrane voltage mV; the default initial
-temperature; the default axial resistivity to; and the default membrane
-capacitance to. Also, the initial properties of the *na* and *k* ions have been
+We have set the default initial membrane voltage mV, the default initial
+temperature, the default axial resistivity, and the default membrane
+capacitance. Also, the initial properties of the *na* and *k* ions have been
 changed. They will be utilized by the density mechanisms that we will be adding
 shortly. For both ions we set the default initial concentration and external
 concentration measures; and we set the default initial reversal potential. For
-the *na* ion, we additionally indicate the the progression on the reversal
+the *na* ion, we additionally indicate that the progression on the reversal
 potential during the simulation will be dictated by the `Nernst equation
 <https://en.wikipedia.org/wiki/Nernst_equation>`_. In the case that defaults are
-not set at the cell level, there is also a global default which we will define a
-bit later.
+not set at the cell level, there is also a global default, which we will define later.
 
 It happens, however, that we want the temperature of the "custom" region defined
 in the label dictionary earlier to be colder, and the initial voltage of the
@@ -316,7 +315,7 @@ new values on the relevant regions using :meth:`arbor.decor.paint`.
 With the default and initial values taken care of, we now add some density
 mechanisms. Let's *paint* a *pas* density mechanism everywhere on the cell using
 the previously defined "all" region; an *hh* density mechanism on the "custom"
-region; and an *Ih* density mechanism on the "dend" region. The *Ih* mechanism
+region, and an *Ih* density mechanism on the "end" region. The *Ih* mechanism
 has a custom 'gbar' parameter.
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
@@ -328,7 +327,7 @@ cell using :meth:`arbor.decor.place`. We place 3 current clamps of 2 nA on the
 "root" locset defined earlier, starting at time = 10, 30, 50 ms and lasting 1ms
 each. As well as threshold detectors on the "axon_terminal" locset for voltages
 above -10 mV. Every placement gets a label. The labels of detectors and synapses
-are used to form connection from and to them in the recipe.
+are used to form connections from and to them in the recipe.
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
@@ -338,7 +337,7 @@ are used to form connection from and to them in the recipe.
 
    The number of individual locations in the ``'axon_terminal'`` locset depends
    on the underlying morphology and the number of axon branches in the
-   morphology. The number of detectors that get added on the cell is equal to
+   morphology. The number of detectors that get added to the cell is equal to
    the number of locations in the locset, and the label ``'detector'`` refers to
    all of them collectively. If we want to refer to a single detector from the
    group (to form a network connection for example), we need a
@@ -377,7 +376,7 @@ Having created the cell, we construct an :class:`arbor.single_cell_model`.
 The global properties
 ^^^^^^^^^^^^^^^^^^^^^
 
-The global properties of a single cell model include:
+The global properties of a single-cell model include:
 
 1. The **mechanism catalogue**: A mechanism catalogue is a collection of density
    and point mechanisms. Arbor has 3 built-in mechanism catalogues: ``default``,
@@ -402,7 +401,7 @@ The global properties of a single cell model include:
 
    You may now be wondering why this is needed for the `single cell model` where
    there is only one cell by design. You can use this feature to ease moving
-   from simulating a set of single cell models to simulating a network of these
+   from simulating a set of single-cell models to simulating a network of these
    cells. For example, a user may choose to individually test several single
    cell models before simulating their interactions. By using the same global
    properties for each *model*, and customizing the *cell* global properties, it
@@ -426,7 +425,7 @@ to -55 mV.
 During the decoration step, we also made use of 3 mechanisms: *pas*, *hh* and
 *Ih*. As it happens, the *pas* and *hh* mechanisms are in the default Arbor
 catalogue, whereas the *Ih* mechanism is in the "allen" catalogue. We can extend
-the default catalogue as follow:
+the default catalogue as follows:
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
    :language: python
@@ -437,7 +436,7 @@ Now all three mechanisms in the *decor* object have been made available to the m
 The probes
 ^^^^^^^^^^
 
-The model itself is ready for simulation. Except that the only output we would
+The model itself is ready for simulation, except that the only output we would
 be able to measure at this point is the spikes from the threshold detectors
 placed in the decor.
 
@@ -474,7 +473,7 @@ occurred.
 A more interesting result of the simulation is perhaps the output of the voltage
 probe previously placed on the "custom_terminal" locset. The model saves the
 output of the probes as [time, value] pairs which can then be plotted. We use
-`pandas` and `seaborn` for the plotting, but the user can choose the any other
+`pandas` and `seaborn` for the plotting, but the user can choose any other
 library:
 
 .. literalinclude:: ../../python/example/single_cell_detailed.py
