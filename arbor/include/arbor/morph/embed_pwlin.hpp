@@ -45,14 +45,14 @@ struct ARB_ARBOR_API embed_pwlin {
 
     // Computed length of mcable.
     double integrate_length(const mcable& c) const;
-    double integrate_length(mlocation proxmal, mlocation distal) const;
+    double integrate_length(mlocation prox, mlocation dist) const;
 
     double integrate_length(const mcable& c, const pw_constant_fn&) const;
     double integrate_length(msize_t bid, const pw_constant_fn&) const;
 
     // Membrane surface area of given mcable.
     double integrate_area(const mcable& c) const;
-    double integrate_area(mlocation proxmal, mlocation distal) const;
+    double integrate_area(mlocation prox, mlocation dist) const;
 
     double integrate_area(const mcable& c, const pw_constant_fn&) const;
     double integrate_area(msize_t bid, const pw_constant_fn&) const;

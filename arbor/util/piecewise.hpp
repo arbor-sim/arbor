@@ -160,8 +160,8 @@ struct pw_element_proxy {
         extent(pw.extent(i)), value(pw.value(i)) {}
 
     operator pw_element<X>() const { return pw_element<X>{extent, value}; }
-    operator X() const { return value; }
-    pw_element_proxy& operator=(X x) {value = std::move(x); return *this; };
+    operator X&() const { return value; }
+    pw_element_proxy& operator=(X x) { value = std::move(x); return *this; };
 
     double lower_bound() const { return extent.first; }
     double upper_bound() const { return extent.second; }
@@ -169,6 +169,22 @@ struct pw_element_proxy {
     const std::pair<double, double> extent;
     X& value;
 };
+
+template <typename X>
+struct pw_element_proxy<const X> {
+    pw_element_proxy(const pw_elements<X>& pw, pw_size_type i):
+        extent(pw.extent(i)), value(pw.value(i)) {}
+
+    operator pw_element<X>() const { return pw_element<X>{extent, value}; }
+    operator const X&() const { return value; }
+
+    double lower_bound() const { return extent.first; }
+    double upper_bound() const { return extent.second; }
+
+    const std::pair<double, double> extent;
+    const X& value;
+};
+
 
 // Compute indices into vertex set corresponding to elements that cover a point x:
 
@@ -228,6 +244,9 @@ struct pw_elements {
         counter<pw_size_type>& inner() { return c_; }
         const counter<pw_size_type>& inner() const { return c_; }
 
+        double lower_bound() const { return pw_->extent(*c_).first; }
+        double upper_bound() const { return pw_->extent(*c_).second; }
+
     protected:
         pw_elements<X>* pw_;
         counter<pw_size_type> c_;
@@ -240,15 +259,20 @@ struct pw_elements {
 
         using value_type = pw_element<X>;
         using pointer = const pointer_proxy<pw_element<X>>;
-        using reference = pw_element<X>;
+        using reference = pw_element_proxy<const X>;
 
-        reference operator[](difference_type j) const { return (*pw_)[j+*c_]; }
-        reference operator*() const { return (*pw_)[*c_]; }
+        reference operator[](difference_type j) const { return reference{*pw_, j + *c_}; }
+        reference operator*() const { return reference{*pw_, *c_}; }
         pointer operator->() const { return pointer{(*pw_)[*c_]}; }
 
         // (required for iterator_adaptor)
         counter<pw_size_type>& inner() { return c_; }
         const counter<pw_size_type>& inner() const { return c_; }
+
+        double lower_bound() const { return pw_->extent(*c_).first; }
+        double upper_bound() const { return pw_->extent(*c_).second; }
+
+        const X& value() const { return pw_->cvalue(*c_); };
 
     protected:
         const pw_elements<X>* pw_;
@@ -306,6 +330,7 @@ struct pw_elements {
     X& value(size_type i) & { return value_[i]; }
     const X& value(size_type i) const & { return value_[i]; }
     X value(size_type i) const && { return value_[i]; }
+    const X& cvalue(size_type i) const { return value_[i]; }
 
     auto operator[](size_type i) & { return pw_element_proxy<X>{*this, i}; }
     auto operator[](size_type i) const & { return value_type{extent(i), value(i)}; }
@@ -474,6 +499,9 @@ struct pw_elements<void> {
         counter<pw_size_type>& inner() { return c_; }
         const counter<pw_size_type>& inner() const { return c_; }
 
+        double lower_bound() const { return pw_->extent(*c_).first; }
+        double upper_bound() const { return pw_->extent(*c_).second; }
+
     protected:
         const pw_elements<void>* pw_;
         counter<pw_size_type> c_;
@@ -486,12 +514,10 @@ struct pw_elements<void> {
     pw_elements() = default;
 
     template <typename VertexSeq>
-    pw_elements(const VertexSeq& vs) {
-        assign(vs);
-    }
-
-    pw_elements(std::initializer_list<double> vs) {
-        assign(vs);
+    pw_elements(const VertexSeq& vs) { assign(vs); }
+    pw_elements(std::initializer_list<double> vs) { assign(vs); }
+    pw_elements(double lo, double hi) {
+        push_back(lo, hi);
     }
 
     pw_elements(pw_elements&&) = default;
@@ -512,7 +538,7 @@ struct pw_elements<void> {
     auto lower_bound() const { return bounds().first; }
     auto upper_bound() const { return bounds().second; }
 
-    auto extent(size_type i) const { return extents()[i]; }
+    std::pair<double, double> extent(size_type i) const { return extents()[i]; }
     auto lower_bound(size_type i) const { return extents()[i].first; }
     auto upper_bound(size_type i) const { return extents()[i].second; }
 
@@ -820,6 +846,23 @@ struct pw_zip_iterator {
         double b_right = bi->upper_bound();
         double right = std::min(a_right, b_right);
         return value_type{{left, right}, {*ai, *bi}};
+    }
+
+    template <typename F>
+    auto apply_left(F&& f) {
+        double a_right = ai.upper_bound();
+        double b_right = bi.upper_bound();
+        double right = std::min(a_right, b_right);
+        return f(left, right, ai.value());
+    }
+
+
+    template <typename F>
+    auto apply(F&& f) {
+        double a_right = ai.upper_bound();
+        double b_right = bi.upper_bound();
+        double right = std::min(a_right, b_right);
+        return f(left, right, ai.value(), bi.value());
     }
 
     pointer operator->() const {
