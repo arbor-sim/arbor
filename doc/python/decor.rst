@@ -38,7 +38,7 @@ Cable cell decoration
             import arbor as A
             # Set cell-wide values for properties for resistivity and capacitance
             decor = A.decor()
-            decor.set_property(rL=100 * U.Ω·cm, cm=0.1 * U.F/m²)
+            decor.set_property(rL=100 * U.Ohm * U.cm, cm=0.1 * U.F/ U.m2)
 
     .. method:: set_ion(ion, int_con=None, ext_con=None, rev_pot=None, method=None)
 
