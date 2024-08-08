@@ -54,7 +54,7 @@ Interconnectivity
     - selection policy, how to map sources `(gid, lid)` to the targets in Arbor.
 
     .. Note::
-    The tuple (gid, lid) must be unique for each source and follow Arbor's model of multiple
+    The tuple ``(gid, lid)`` must be unique for each source. This addressing scheme follows Arbor's model of multiple
     sources (threshold detectors) per cell. If the remote simulation does not provide multiple items per
     source object, ``lid`` can be ignored and set to zero.
 
