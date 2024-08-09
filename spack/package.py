@@ -19,6 +19,13 @@ class Arbor(CMakePackage, CudaPackage):
     version("master", branch="master", submodules=True)
     version("develop", branch="master", submodules=True)
     version(
+        "0.10.0",
+        sha256="6b6cc900b85fbf833fae94817b9406a0d690dc28",
+        url="https://github.com/arbor-sim/arbor/releases/download/v0.10.1/arbor-v0.10.0-full.tar.gz",
+        submodules=True,
+    )
+
+    version(
         "0.9.0",
         sha256="5f9740955c821aca81e23298c17ad64f33f635756ad9b4a0c1444710f564306a",
         url="https://github.com/arbor-sim/arbor/releases/download/v0.9.0/arbor-v0.9.0-full.tar.gz",
@@ -83,15 +90,18 @@ class Arbor(CMakePackage, CudaPackage):
     depends_on("fmt@7.1:", when="@0.5.3:")  # required by the modcc compiler
     depends_on("fmt@9.1:", when="@0.7.1:")
     depends_on("fmt@10.2:", when="@0.9.1:")
+    depends_on("fmt@10.2:", when="@0.10.0:")
     depends_on("googletest@1.12.1:", when="@0.7.1:")
     depends_on("pugixml@1.11:", when="@0.7.1:")
     depends_on("pugixml@1.13:", when="@0.9.1:")
+    depends_on("pugixml@1.14:", when="@0.10.0:")
     depends_on("nlohmann-json@3.11.3:")
     depends_on("random123@1.14.0:")
     with when("+cuda"):
         depends_on("cuda@10:")
         depends_on("cuda@11:", when="@0.7.1:")
         depends_on("cuda@12:", when="@0.9.1:")
+        depends_on("cuda@12:", when="@0.10.0:")
 
     # mpi
     depends_on("mpi", when="+mpi")
@@ -107,6 +117,7 @@ class Arbor(CMakePackage, CudaPackage):
         depends_on("py-pybind11@2.8.1:", when="@0.5.3:", type="build")
         depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
         depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
+        depends_on("py-pybind11@2.10.1:", when="@2.11.1:", type="build")
 
     # sphinx based documentation
     with when("+doc"):
