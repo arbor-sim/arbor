@@ -49,7 +49,7 @@ Update tags/versions and test
 #. Bump the ``VERSION`` file:
 
    - For as long as ``scikit-build-core`` does not support loading fields from external files, also bump in ```pyproject.toml``
-   - See also :ref:``dev-version`
+   - See also :ref:``dev-version``
    - Append ``-rc``. (Make sure there's no ``-dev``)
 
 #. Create a **draft PR**. Tag and push with ``-rc``. E.g. ``v0.9.0-rc``
