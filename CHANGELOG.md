@@ -3,20 +3,21 @@
 ## Major Changes since v0.9.0
 * Automatic network generation from high-level specifications.
 * Units at the user interface including scaling and conversion.
-* Morphologies are now loaded through a unified interface, bundling morphology, meta data, and segment tree.
+* Morphologies are loaded through a unified interface; which produces a bundle of morphology, metadata, and segment tree.
 
 ## Internal Updates
 
 * Documentation overhaul
+* Python bindings offer type stubs; giving auto-completion and inline documentation in some editors/IDEs.
 * Performance improvements
-  - Label resolution uses hashes instead of strings
-  - Spike delivery is now up to 30% faster leading 
-  - Load balancing
+  - Label resolution uses hashes instead of strings, saving memory, network traffic, and time.
+  - Spike delivery is up to 30% faster leading to 10% end-to-end improvements in some cases (e.g. `example/brunel`) 
+  - Load balancing is faster and doesn't rely on MPI, leading to shorter setup times for large networks.
 * Fixes
   - Better support for source builds on MacOS (aarch64)
   - `modcc` no longer allows internal variables (`v`, `celsius`, ...) as `ASSIGNED`
   - Better support for raw (C++) mechanisms
-* MC cells are now cable cells 
+* MC cells renamed cable cells.
   
 ## Breaking changes
 * Return values of all morphology loaders have changed.
