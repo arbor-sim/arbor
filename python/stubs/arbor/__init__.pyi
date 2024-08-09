@@ -109,6 +109,8 @@ from arbor._arbor import poisson_schedule
 from arbor._arbor import print_config
 from arbor._arbor import probe
 from arbor._arbor import proc_allocation
+from arbor._arbor import profiler_initialize
+from arbor._arbor import profiler_summary
 from arbor._arbor import recipe
 from arbor._arbor import regular_schedule
 from arbor._arbor import reversal_potential
@@ -247,6 +249,8 @@ __all__ = [
     "print_config",
     "probe",
     "proc_allocation",
+    "profiler_initialize",
+    "profiler_summary",
     "recipe",
     "regular_schedule",
     "reversal_potential",
@@ -279,21 +283,21 @@ __config__: dict = {
     "mpi4py": False,
     "gpu": None,
     "vectorize": True,
-    "profiling": False,
+    "profiling": True,
     "neuroml": True,
     "bundled": True,
     "version": "0.9.1-dev",
-    "source": "2024-03-01T14:59:23+01:00 dcdfe101f389cb4854ac3d0a067feeb280600c88 modified",
-    "build_config": "DEBUG",
+    "source": "2024-04-11T13:13:43+02:00 8dac3a25b35f3e73f7ad50c27bd06d018e10bb6f modified",
+    "build_config": "RELEASE",
     "arch": "native",
     "prefix": "/usr/local",
-    "python_lib_path": "/usr/local/lib/python3.12/site-packages",
+    "python_lib_path": "/opt/homebrew/lib/python3.12/site-packages",
     "binary_path": "bin",
     "lib_path": "lib",
     "data_path": "share",
     "CXX": "/opt/homebrew/bin/clang++",
     "pybind-version": "2.11.1",
-    "timestamp": "Mar  4 2024 20:56:20",
+    "timestamp": "Apr 11 2024 20:38:51",
 }
 __version__: str = "0.9.1-dev"
 mnpos: int = 4294967295

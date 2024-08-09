@@ -119,6 +119,8 @@ __all__ = [
     "print_config",
     "probe",
     "proc_allocation",
+    "profiler_initialize",
+    "profiler_summary",
     "recipe",
     "regular_schedule",
     "reversal_potential",
@@ -2046,6 +2048,40 @@ class morphology:
     A cell morphology.
     """
 
+    def __init__(self, arg0: segment_tree) -> None: ...
+    def __str__(self) -> str: ...
+    def branch_children(self, i: int) -> list[int]:
+        """
+        The child branches of branch i.
+        """
+
+    def branch_parent(self, i: int) -> int:
+        """
+        The parent branch of branch i.
+        """
+
+    def branch_segments(self, i: int) -> list[msegment]:
+        """
+        A list of the segments in branch i, ordered from proximal to distal ends of the branch.
+        """
+
+    def to_segment_tree(self) -> segment_tree:
+        """
+        Convert this morphology to a segment_tree.
+        """
+
+    @property
+    def empty(self) -> bool:
+        """
+        Whether the morphology is empty.
+        """
+
+    @property
+    def num_branches(self) -> int:
+        """
+        The number of branches in the morphology.
+        """
+
 class morphology_provider:
     def __init__(self, morphology: morphology) -> None:
         """
@@ -3275,6 +3311,12 @@ def partition_load_balance(
 def print_config() -> None:
     """
     Print Arbor's configuration.
+    """
+
+def profiler_initialize(arg0: context) -> None: ...
+def profiler_summary(limit: float = 0.0) -> str:
+    """
+    Show summary of the profile; printing contributions above `limit` percent. Defaults to showing all.
     """
 
 def stochastic_catalogue() -> catalogue: ...
