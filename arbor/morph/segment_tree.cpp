@@ -1,7 +1,4 @@
-#include <numeric>
-#include <stdexcept>
 #include <map>
-#include <set>
 #include <vector>
 
 #include <arbor/morph/morphexcept.hpp>
@@ -10,7 +7,6 @@
 #include "io/sepval.hpp"
 #include "util/span.hpp"
 #include "util/transform.hpp"
-#include "util/strprintf.hpp"
 
 using arb::util::make_span;
 
