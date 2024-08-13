@@ -3,7 +3,6 @@
 #include <arbor/morph/primitives.hpp>
 
 #include <map>
-#include <algorithm>
 #include <numeric>
 
 namespace arborio {
@@ -13,20 +12,34 @@ std::vector<std::string> render(const T& tree,
                                 arb::msize_t root,
                                 const std::multimap<arb::msize_t, arb::msize_t>& children,
                                 P print) {
+    // ASCII art elements
+    // TODO these could be customizable, but need conformant lengths
+    const std::string vline = " | ";
+    const std::string hline = "---";
+    const std::string blank = "   ";
+    const std::string split = "-+-";
+    const std::string start = " +-";
+
+
     auto n_child = children.count(root);
     auto seg = print(root, tree);
     if (0 == n_child) return {seg};
+
     auto sep = std::string(seg.size(), ' ');
+    const auto& [beg, end] = children.equal_range(root);
+
     if (1 == n_child) {
-        const auto& [lo, hi] = children.equal_range(root);
-        auto child = render(tree, lo->second, children, print);
-        child.front() = seg + "---" + child.front();
-        for (auto rdx = 1; rdx < child.size(); ++rdx) child[rdx] = sep + "   " + child[rdx];
+        auto child = render(tree, beg->second, children, print);
+        auto pad = seg;
+        for (auto rdx = 0; rdx < child.size(); ++rdx) {
+            child[rdx] = pad + blank + child[rdx];
+            pad = sep;
+        }
         return child;
     }
+
     std::vector<std::string> res = {seg};
     auto cdx = 0;
-    auto [beg, end] = children.equal_range(root);
     for (auto it = beg; it != end; ++it) {
         const auto& [parent, child] = *it;
         auto rows = render(tree, child, children, print);
@@ -36,16 +49,16 @@ std::vector<std::string> render(const T& tree,
             if (rdx == 0) {
                 // The first child of a node may span a sub-tree
                 if (cdx == 0) {
-                    res.back() += std::string{"-+-"} + row;
+                    res.back() += split + row;
                 } else {
                     // Other children get connected to the vertical line
-                    res.push_back(sep + " +-" + row);
+                    res.push_back(sep + start + row);
                 }
                 cdx++;
             } else {
                 // If there are more children, extend the subtree by showing a
                 // vertical line
-                res.push_back(sep + (cdx < n_child ? " | " : "   ") + row);
+                res.push_back(sep + (cdx < n_child ? vline : blank) + row);
             }
             ++rdx;
         }

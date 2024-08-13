@@ -65,6 +65,10 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
 
         A list of the segments.
 
+.. cpp:function:: std::string show(const arb::segment_tree&)
+
+    Return a string representation of the tree.
+
 .. cpp:function:: std::pair<segment_tree, segment_tree> split_at(const segment_tree& t, msize_t id)
 
     Split a segment_tree into a pair of subtrees at the given id,
@@ -136,6 +140,10 @@ Morphology API
     .. cpp:function:: const std::vector<msegment>& branch_segments(msize_t b) const
 
         Range of segments in a branch.
+
+.. cpp:function:: std::string show(const arb::morphology&)
+
+    Return a string representation of the tree underlying the morphology.
 
 .. _cppcablecell-morphology-construction:
 
@@ -236,9 +244,27 @@ by two stitches:
 Debug Ouput
 -----------
 
-Tree representations of :cpp:type:`segment_tree` and :cpp:type:`morphology` can be obtained
-by including ``arborio/debug.hpp`` which contains a series of :cpp:func:`show` functions
-that return ASCII renderings of the given object.
+Tree representations of :cpp:type:`segment_tree` and :cpp:type:`morphology` can
+be obtained by including ``arborio/debug.hpp`` which contains a series of
+:cpp:func:`show` functions that return ASCII renderings of the given object.
+Example for an arbitrary morphology (truncated)
+
+.. code::
+
+   +-<-- id=217 len=1 -->-+-<-- id=301 len=1 -->-+-<-- id=310 len=2 -->-+-<-- id=2246 len=2 -->
+   |                      |                      |                      +-<-- id=2830 len=1 -->
+   |                      |                      |
+   |                      |                      +-<-- id=323 len=1 -->-+-<-- id=361 len=3 -->
+   |                      |                      |                      +-<-- id=1696 len=1 -->-+-<-- id=2166 len=1 -->
+   |                      |                      |                      |                       +-<-- id=2260 len=2 -->
+   |                      |                      |                      |
+   |                      |                      |                      +-<-- id=1735 len=1 -->-+-<-- id=1818 len=1 -->
+   |                      |                      |                      |                       +-<-- id=2118 len=1 -->
+   |                      |                      |                      |
+   |                      |                      |                      +-<-- id=1909 len=3 -->
+   |                      |                      |                      +-<-- id=2772 len=1 -->
+   |                      |                      |                      +-<-- id=3004 len=1 -->
+   |                      |                      |
 
 .. _locsets-and-regions:
 
