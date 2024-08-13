@@ -20,7 +20,6 @@ std::vector<std::string> render(const T& tree,
     const std::string split = "-+-";
     const std::string start = " +-";
 
-
     auto n_child = children.count(root);
     auto seg = print(root, tree);
     if (0 == n_child) return {seg};
@@ -28,18 +27,8 @@ std::vector<std::string> render(const T& tree,
     auto sep = std::string(seg.size(), ' ');
     const auto& [beg, end] = children.equal_range(root);
 
-    if (1 == n_child) {
-        auto child = render(tree, beg->second, children, print);
-        auto pad = seg;
-        for (auto rdx = 0; rdx < child.size(); ++rdx) {
-            child[rdx] = pad + blank + child[rdx];
-            pad = sep;
-        }
-        return child;
-    }
-
-    std::vector<std::string> res = {seg};
-    auto cdx = 0;
+    std::vector res = {seg};
+    arb::msize_t cdx = 0;
     for (auto it = beg; it != end; ++it) {
         const auto& [parent, child] = *it;
         auto rows = render(tree, child, children, print);
@@ -63,15 +52,17 @@ std::vector<std::string> render(const T& tree,
             ++rdx;
         }
     }
-    res.push_back(sep);
+    // res.push_back(sep);
     return res;
 }
 
 ARB_ARBORIO_API std::string default_segment_printer(const arb::msize_t id, const arb::segment_tree&) {
-    return "[-- id=" + std::to_string(id) + " --]" ;
+    auto lbl = (id == arb::mnpos) ? "(root)" : std::to_string(id);
+    return "[-- id=" + lbl + " --]" ;
 }
 
 std::string ARB_ARBORIO_API default_branch_printer(const arb::msize_t id, const arb::morphology& mrf) {
+    auto lbl = (id == arb::mnpos) ? std::string("(root)") : std::to_string(id);
     return "<-- id=" + std::to_string(id) + " len=" + std::to_string(mrf.branch_segments(id).size()) + " -->" ;
 }
 
@@ -80,12 +71,12 @@ ARB_ARBORIO_API std::string show(const arb::segment_tree& tree) {
 
     std::multimap<arb::msize_t, arb::msize_t> children;
     const auto& ps = tree.parents();
-    for (auto idx = 0; idx < tree.size(); ++idx) {
+    for (arb::msize_t idx = 0; idx < tree.size(); ++idx) {
         auto parent = ps[idx];
         children.emplace(parent, idx);
     }
 
-    auto res = render(tree, -1, children, default_segment_printer);
+    auto res = render(tree, 0, children, default_segment_printer);
     return std::accumulate(res.begin(), res.end(),
                            std::string{},
                            [](auto lhs, auto rhs) { return lhs + rhs + "\n"; });
@@ -95,7 +86,7 @@ ARB_ARBORIO_API std::string show(const arb::morphology& mrf) {
     if (mrf.empty()) return "";
 
     std::multimap<arb::msize_t, arb::msize_t> children;
-    for (auto idx = 0; idx < mrf.num_branches(); ++idx) {
+    for (arb::msize_t idx = 0; idx < mrf.num_branches(); ++idx) {
         auto parent = mrf.branch_parent(idx);
         children.emplace(parent, idx);
     }

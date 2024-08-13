@@ -247,24 +247,22 @@ Debug Ouput
 Tree representations of :cpp:type:`segment_tree` and :cpp:type:`morphology` can
 be obtained by including ``arborio/debug.hpp`` which contains a series of
 :cpp:func:`show` functions that return ASCII renderings of the given object.
-Example for an arbitrary morphology (truncated)
+
+Example for an arbitrary segment tree
 
 .. code::
 
-   +-<-- id=217 len=1 -->-+-<-- id=301 len=1 -->-+-<-- id=310 len=2 -->-+-<-- id=2246 len=2 -->
-   |                      |                      |                      +-<-- id=2830 len=1 -->
-   |                      |                      |
-   |                      |                      +-<-- id=323 len=1 -->-+-<-- id=361 len=3 -->
-   |                      |                      |                      +-<-- id=1696 len=1 -->-+-<-- id=2166 len=1 -->
-   |                      |                      |                      |                       +-<-- id=2260 len=2 -->
-   |                      |                      |                      |
-   |                      |                      |                      +-<-- id=1735 len=1 -->-+-<-- id=1818 len=1 -->
-   |                      |                      |                      |                       +-<-- id=2118 len=1 -->
-   |                      |                      |                      |
-   |                      |                      |                      +-<-- id=1909 len=3 -->
-   |                      |                      |                      +-<-- id=2772 len=1 -->
-   |                      |                      |                      +-<-- id=3004 len=1 -->
-   |                      |                      |
+    [-- id=0 --]-+-[-- id=1 --]
+                 +-[-- id=2 --]-+-[-- id=3 --]
+                                +-[-- id=4 --]
+
+and for the equivalent morphology
+
+.. code::
+
+    <-- id=0 len=1 -->-+-<-- id=1 len=1 -->
+                       +-<-- id=2 len=1 -->-+-<-- id=3 len=1 -->
+                                            +-<-- id=4 len=1 -->
 
 .. _locsets-and-regions:
 
