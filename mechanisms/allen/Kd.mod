@@ -3,7 +3,7 @@
 NEURON {
    SUFFIX Kd
    USEION k READ ek WRITE ik
-   RANGE gbar, ik
+   RANGE gbar
 }
 
 UNITS {

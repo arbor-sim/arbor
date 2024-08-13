@@ -7,7 +7,7 @@ Utility wrappers and containers
 
 .. cpp:class:: unique_any
 
-    A container for a single value of any type that is move constructable.
+    A container for a single value of any type that is move constructible.
     Used in the Arbor API where a type of a value passed to or from the API
     is decided at run time.
 
@@ -19,7 +19,7 @@ Utility wrappers and containers
 
       Retrieve the pointer as type T. If T is ``void *`` or the same
       as the type of the pointer stored in ``any_ptr``, return the held
-      value, cast accordingly. Otherwise return ``nullptr``.
+      value and cast accordingly. Otherwise, return ``nullptr``.
 
    ``any_ptr`` can be used with ``util::any_cast``, so that
    ``util::any_cast<T>(p)`` is equivalent to ``p.as<T>()`` for a value ``p``

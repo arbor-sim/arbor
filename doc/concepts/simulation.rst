@@ -3,13 +3,13 @@
 Simulations
 ===========
 A simulation is the executable form of a model and is used to interact with and monitor the model state.
-In the simulation the neuron model is initiated and the spike exchange and the integration for each cell
+In the simulation, the neuron model is initiated and the spike exchange and the integration for each cell
 group are scheduled.
 
 From recipe to simulation
 -------------------------
 
-To build a simulation the following is needed:
+To build a simulation, the following is needed:
 
 * A :ref:`recipe <modelrecipe>` that describes the cells and connections in the model.
 * A :ref:`domain decomposition <modeldomdec>` that describes the distribution of

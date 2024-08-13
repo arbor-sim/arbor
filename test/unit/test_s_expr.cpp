@@ -8,10 +8,12 @@
 #include <arbor/cv_policy.hpp>
 #include <arbor/s_expr.hpp>
 #include <arbor/util/any_visitor.hpp>
+#include <arbor/network.hpp>
 
-#include <arborio/cv_policy_parse.hpp>
 #include <arborio/cableio.hpp>
+#include <arborio/cv_policy_parse.hpp>
 #include <arborio/label_parse.hpp>
+#include <arborio/networkio.hpp>
 
 #include "parse_s_expr.hpp"
 #include "util/strprintf.hpp"
@@ -172,7 +174,7 @@ TEST(s_expr, iterate) {
 template <typename L>
 std::string round_trip_label(const char* in) {
     if (auto x = parse_label_expression(in)) {
-        return util::pprintf("{}", std::any_cast<L>(*x));
+        return util::to_string(std::any_cast<L>(*x));
     }
     else {
         return x.error().what();
@@ -181,7 +183,7 @@ std::string round_trip_label(const char* in) {
 
 std::string round_trip_cv(const char* in) {
     if (auto x = parse_cv_policy_expression(in)) {
-        return util::pprintf("{}", std::any_cast<cv_policy>(*x));
+        return util::to_string(std::any_cast<cv_policy>(*x));
     }
     else {
         return x.error().what();
@@ -190,7 +192,7 @@ std::string round_trip_cv(const char* in) {
 
 std::string round_trip_region(const char* in) {
     if (auto x = parse_region_expression(in)) {
-        return util::pprintf("{}", std::any_cast<arb::region>(*x));
+        return util::to_string(std::any_cast<arb::region>(*x));
     }
     else {
         return x.error().what();
@@ -199,7 +201,7 @@ std::string round_trip_region(const char* in) {
 
 std::string round_trip_locset(const char* in) {
     if (auto x = parse_locset_expression(in)) {
-        return util::pprintf("{}", std::any_cast<arb::locset>(*x));
+        return util::to_string(std::any_cast<arb::locset>(*x));
     }
     else {
         return x.error().what();
@@ -208,7 +210,25 @@ std::string round_trip_locset(const char* in) {
 
 std::string round_trip_iexpr(const char* in) {
     if (auto x = parse_iexpr_expression(in)) {
-        return util::pprintf("{}", std::any_cast<arb::iexpr>(*x));
+        return util::to_string(std::any_cast<arb::iexpr>(*x));
+    }
+    else {
+        return x.error().what();
+    }
+}
+
+std::string round_trip_network_selection(const char* in) {
+    if (auto x = parse_network_selection_expression(in)) {
+        return util::to_string(std::any_cast<arb::network_selection>(*x));
+    }
+    else {
+        return x.error().what();
+    }
+}
+
+std::string round_trip_network_value(const char* in) {
+    if (auto x = parse_network_value_expression(in)) {
+        return util::to_string(std::any_cast<arb::network_value>(*x));
     }
     else {
         return x.error().what();
@@ -336,9 +356,122 @@ TEST(iexpr, round_tripping) {
         round_trip_label<arb::iexpr>("(pi)"));
 }
 
+TEST(network_selection, round_tripping) {
+    auto network_literals = {
+        "(all)",
+        "(none)",
+        "(inter-cell)",
+        "(network-selection \"abc\")",
+        "(intersect (all) (none))",
+        "(join (all) (none))",
+        "(symmetric-difference (all) (none))",
+        "(difference (all) (none))",
+        "(complement (all))",
+        "(source-cell-kind (cable-cell))",
+        "(source-cell-kind (lif-cell))",
+        "(source-cell-kind (benchmark-cell))",
+        "(source-cell-kind (spike-source-cell))",
+        "(target-cell-kind (cable-cell))",
+        "(target-cell-kind (lif-cell))",
+        "(target-cell-kind (benchmark-cell))",
+        "(target-cell-kind (spike-source-cell))",
+        "(source-label \"abc\")",
+        "(source-label \"abc\" \"def\")",
+        "(source-label \"abc\" \"def\" \"ghi\")",
+        "(target-label \"abc\")",
+        "(target-label \"abc\" \"def\")",
+        "(target-label \"abc\" \"def\" \"ghi\")",
+        "(source-cell 0 1 3 15)",
+        "(source-cell (gid-range 4 8 2))",
+        "(target-cell 0 1 3 15)",
+        "(target-cell (gid-range 4 8 2))",
+        "(chain 3 1 0 5 7 6)", // order should be preserved
+        "(chain (gid-range 2 14 3))",
+        "(chain-reverse (gid-range 2 14 3))",
+        "(random 42 (scalar 0.1))",
+        "(random 42 (normal-distribution 43 0.5 0.1))",
+        "(distance-lt 0.5)",
+        "(distance-gt 0.5)",
+    };
+    for (auto l: network_literals) {
+        EXPECT_EQ(l, round_trip_network_selection(l));
+    }
+
+    // test order for more than two arguments
+    EXPECT_EQ("(join (join (join (all) (none)) (inter-cell)) (source-cell 0))",
+        round_trip_network_selection("(join (all) (none) (inter-cell) (source-cell 0))"));
+    EXPECT_EQ("(intersect (intersect (intersect (all) (none)) (inter-cell)) (source-cell 0))",
+        round_trip_network_selection("(intersect (all) (none) (inter-cell) (source-cell 0))"));
+}
+
+
+TEST(network_value, round_tripping) {
+    auto network_literals = {
+        "(scalar 1.3)",
+        "(distance 1.3)",
+        "(network-value \"abc\")",
+        "(uniform-distribution 42 0 0.8)",
+        "(normal-distribution 42 0.5 0.1)",
+        "(truncated-normal-distribution 42 0.5 0.1 0.3 0.7)",
+        "(log (scalar 1.3))",
+        "(exp (scalar 1.3))",
+        "(if-else (inter-cell) (scalar 5.1) (log (scalar 1.3)))",
+    };
+
+    for (auto l: network_literals) {
+        EXPECT_EQ(l, round_trip_network_value(l));
+    }
+
+    EXPECT_EQ("(log (scalar 1.3))", round_trip_network_value("(log 1.3)"));
+    EXPECT_EQ("(exp (scalar 1.3))", round_trip_network_value("(exp 1.3)"));
+
+    EXPECT_EQ(
+        "(add (scalar -2.1) (scalar 3.1))", round_trip_network_value("(add -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(add (add (add (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(add -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+
+    EXPECT_EQ(
+        "(sub (scalar -2.1) (scalar 3.1))", round_trip_network_value("(sub -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(sub (sub (sub (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(sub -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+
+    EXPECT_EQ(
+        "(mul (scalar -2.1) (scalar 3.1))", round_trip_network_value("(mul -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(mul (mul (mul (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(mul -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+
+    EXPECT_EQ(
+        "(div (scalar -2.1) (scalar 3.1))", round_trip_network_value("(div -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(div (div (div (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(div -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+
+    EXPECT_EQ(
+        "(min (scalar -2.1) (scalar 3.1))", round_trip_network_value("(min -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(min (min (min (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(min -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+
+    EXPECT_EQ(
+        "(max (scalar -2.1) (scalar 3.1))", round_trip_network_value("(max -2.1 (scalar 3.1))"));
+    EXPECT_EQ("(max (max (max (scalar -2.1) (scalar 3.1)) (uniform-distribution 42 0 0.8)) "
+              "(network-value \"abc\"))",
+        round_trip_network_value(
+            "(max -2.1 (scalar 3.1) (uniform-distribution 42 0 0.8) (network-value \"abc\"))"));
+}
+
 TEST(regloc, round_tripping) {
     EXPECT_EQ("(cable 3 0 1)", round_trip_label<arb::region>("(branch 3)"));
-    EXPECT_EQ("(intersect (tag 1) (intersect (tag 2) (tag 3)))", round_trip_label<arb::region>("(intersect (tag 1) (tag 2) (tag 3))"));
+    EXPECT_EQ("(intersect (tag 1) (intersect (tag 2) (tag 3)))",
+        round_trip_label<arb::region>("(intersect (tag 1) (tag 2) (tag 3))"));
     auto region_literals = {
         "(cable 2 0.1 0.4)",
         "(region \"foo\")",
@@ -558,28 +691,28 @@ std::ostream& operator<<(std::ostream& o, const threshold_detector& p) {
     return o << "(threshold-detector " << p.threshold << ')';
 }
 std::ostream& operator<<(std::ostream& o, const init_membrane_potential& p) {
-    return o << "(membrane-potential " << p.value << ')';
+    return o << "(membrane-potential " << p.value << " " << p.scale << ')';
 }
-std::ostream& operator<<(std::ostream& o, const temperature_K& p) {
-    return o << "(temperature-kelvin " << p.value << ')';
+std::ostream& operator<<(std::ostream& o, const temperature& p) {
+    return o << "(temperature-kelvin " << p.value << " " << p.scale << ')';
 }
 std::ostream& operator<<(std::ostream& o, const axial_resistivity& p) {
-    return o << "(axial-resistivity " << p.value << ')';
+    return o << "(axial-resistivity " << p.value << " " << p.scale << ')';
 }
 std::ostream& operator<<(std::ostream& o, const membrane_capacitance& p) {
-    return o << "(membrane-capacitance " << p.value << ')';
+    return o << "(membrane-capacitance " << p.value << " " << p.scale << ')';
 }
 std::ostream& operator<<(std::ostream& o, const init_int_concentration& p) {
-    return o << "(ion-internal-concentration \"" << p.ion << "\" " << p.value << ')';
+    return o << "(ion-internal-concentration \"" << p.ion << "\" " << p.value << " " << p.scale << ')';
 }
 std::ostream& operator<<(std::ostream& o, const ion_diffusivity& p) {
-    return o << "(ion-diffusivity \"" << p.ion << "\" " << p.value << ')';
+    return o << "(ion-diffusivity \"" << p.ion << "\" " << p.value << " " << p.scale << ')';
 }
 std::ostream& operator<<(std::ostream& o, const init_ext_concentration& p) {
-    return o << "(ion-external-concentration \"" << p.ion << "\" " << p.value << ')';
+    return o << "(ion-external-concentration \"" << p.ion << "\" " << p.value << " " << p.scale << ')';
 }
 std::ostream& operator<<(std::ostream& o, const init_reversal_potential& p) {
-    return o << "(ion-reversal-potential \"" << p.ion << "\" " << p.value << ')';
+    return o << "(ion-reversal-potential \"" << p.ion << "\" " << p.value << " " << p.scale << ')';
 }
 std::ostream& operator<<(std::ostream& o, const mechanism_desc& m) {
     o << "(mechanism \"" << m.name() << "\"";
@@ -710,35 +843,15 @@ std::string round_trip_component(std::istream& stream) {
     }
 }
 
-TEST(decor_literals, double_to_iexpr_promotion) {
-    using namespace cable_s_expr;
-    std::vector<std::pair<std::string, std::string>> literals = {
-        {"(membrane-potential -65.1)", "(membrane-potential (scalar -65.1))"},
-        {"(temperature-kelvin 301)", "(temperature-kelvin (scalar 301))"},
-        {"(axial-resistivity 102)", "(axial-resistivity (scalar 102))"},
-    };
-
-    for (const auto& [in, out]: literals) {
-        std::string res;
-        if (auto x = arborio::parse_expression(in)) {
-            std::visit([&](auto&& p){res = to_string(p);}, *(eval_cast_variant<defaultable>(*x)));
-        }
-        else {
-            res = x.error().what();
-        }
-        EXPECT_EQ(res, out);
-    }
-}
-
 TEST(decor_literals, round_tripping) {
     auto paint_default_literals = {
-        "(membrane-potential (scalar -65.1))",
-        "(temperature-kelvin (scalar 301))",
-        "(axial-resistivity (scalar 102))",
-        "(membrane-capacitance (scalar 0.01))",
-        "(ion-internal-concentration \"ca\" (scalar 75.1))",
-        "(ion-external-concentration \"h\" (scalar -50.1))",
-        "(ion-reversal-potential \"na\" (scalar 30))"};
+        "(membrane-potential 2 (scalar -65.1))",
+        "(temperature-kelvin 3 (scalar 301))",
+        "(axial-resistivity 4 (scalar 102))",
+        "(membrane-capacitance 5 (scalar 0.01))",
+        "(ion-internal-concentration \"ca\" 6 (scalar 75.1))",
+        "(ion-external-concentration \"h\" 7 (scalar -50.1))",
+        "(ion-reversal-potential \"na\" 8 (scalar 30))"};
     auto paint_literals = {
         "(voltage-process (mechanism \"hh\"))",
         "(density (mechanism \"hh\"))",
@@ -791,25 +904,25 @@ TEST(decor_literals, round_tripping) {
 TEST(decor_expressions, round_tripping) {
     using namespace cable_s_expr;
     auto decorate_paint_literals = {
-        "(paint (region \"all\") (membrane-potential (scalar -65.1)))",
-        "(paint (tag 1) (temperature-kelvin (scalar 301)))",
-        "(paint (distal-interval (location 3 0)) (axial-resistivity (scalar 102)))",
-        "(paint (join (region \"dend\") (all)) (membrane-capacitance (scalar 0.01)))",
-        "(paint (radius-gt (tag 3) 1) (ion-internal-concentration \"ca\" (scalar 75.1)))",
-        "(paint (intersect (cable 2 0 0.5) (region \"axon\")) (ion-external-concentration \"h\" (scalar -50.1)))",
-        "(paint (region \"my_region\") (ion-reversal-potential \"na\" (scalar 30)))",
+        "(paint (region \"all\") (membrane-potential 1 (scalar -65.1)))",
+        "(paint (tag 1) (temperature-kelvin 2 (scalar 301)))",
+        "(paint (distal-interval (location 3 0)) (axial-resistivity 2 (scalar 102)))",
+        "(paint (join (region \"dend\") (all)) (membrane-capacitance 3 (scalar 0.01)))",
+        "(paint (radius-gt (tag 3) 1) (ion-internal-concentration \"ca\" 4 (scalar 75.1)))",
+        "(paint (intersect (cable 2 0 0.5) (region \"axon\")) (ion-external-concentration \"h\" 5 (scalar -50.1)))",
+        "(paint (region \"my_region\") (ion-reversal-potential \"na\" 6 (scalar 30)))",
         "(paint (cable 2 0.1 0.4) (density (mechanism \"hh\")))",
         "(paint (cable 2 0.1 0.4) (scaled-mechanism (density (mechanism \"pas\" (\"g\" 0.02))) (\"g\" (exp (add (distance 2.1 (region \"my_region\")) (scalar 3.2))))))",
         "(paint (all) (density (mechanism \"pas\" (\"g\" 0.02))))"
     };
     auto decorate_default_literals = {
-        "(default (membrane-potential (scalar -65.1)))",
-        "(default (temperature-kelvin (scalar 301)))",
-        "(default (axial-resistivity (scalar 102)))",
-        "(default (membrane-capacitance (scalar 0.01)))",
-        "(default (ion-internal-concentration \"ca\" (scalar 75.1)))",
-        "(default (ion-external-concentration \"h\" (scalar -50.1)))",
-        "(default (ion-reversal-potential \"na\" (scalar 30)))",
+        "(default (membrane-potential 1 (scalar -65.1)))",
+        "(default (temperature-kelvin 2 (scalar 301)))",
+        "(default (axial-resistivity 3 (scalar 102)))",
+        "(default (membrane-capacitance 4 (scalar 0.01)))",
+        "(default (ion-internal-concentration \"ca\" 5 (scalar 75.1)))",
+        "(default (ion-external-concentration \"h\" 6 (scalar -50.1)))",
+        "(default (ion-reversal-potential \"na\" 7 (scalar 30)))",
         "(default (ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\")))",
         "(default (cv-policy (max-extent 2 (region \"soma\") 2)))"
     };
@@ -875,14 +988,19 @@ TEST(morphology_literals, round_tripping) {
     }
 }
 
+TEST(decor, quantity) {
+    std::string q = "(quantity 10.0 \"Ohm\")";
+    parse_expression(q).value();
+}
+
 TEST(decor, round_tripping) {
     std::string component_str = "(arbor-component \n"
                                 "  (meta-data \n"
                                 "    (version \"" + arborio::acc_version() +"\"))\n"
                                 "  (decor \n"
                                 "    (default \n"
-                                "      (axial-resistivity \n"
-                                "        (scalar 100)))\n"
+                                "      (axial-resistivity 100.000000 \n"
+                                "        (scalar 1)))\n"
                                 "    (default \n"
                                 "      (ion-reversal-potential-method \"na\" \n"
                                 "        (mechanism \"nernst\")))\n"
@@ -915,7 +1033,7 @@ TEST(decor, round_tripping) {
                                 "      (join \n"
                                 "        (tag 1)\n"
                                 "        (tag 2))\n"
-                                "      (ion-internal-concentration \"ca\" \n"
+                                "      (ion-internal-concentration \"ca\" 1.000000 \n"
                                 "        (scalar 0.5)))\n"
                                 "    (place \n"
                                 "      (location 0 0)\n"
@@ -1225,11 +1343,10 @@ TEST(doc_expressions, parse) {
                      "(mechanism \"hh\" (\"gl\" 0.5) (\"el\" 2))",
                      "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))",
                      "(current-clamp (envelope (0 10) (50 10) (50 0)) 40 0.25)",
-                     "(paint (tag 1) (membrane-capacitance 0.02))",
+                     "(paint (tag 1) (membrane-capacitance 0.02 (scalar 1)))",
                      "(place (locset \"mylocset\") (threshold-detector 10) \"mydetectors\")",
-                     "(default (membrane-potential -65))",
-                     "(segment 3 (point 0 0 0 5) (point 0 0 10 2) 1)"})
-    {
+                     "(default (membrane-potential -65.000000 (scalar 1)))",
+                     "(segment 3 (point 0 0 0 5) (point 0 0 10 2) 1)"}) {
         EXPECT_TRUE(arborio::parse_expression(expr));
     }
 
@@ -1241,9 +1358,9 @@ TEST(doc_expressions, parse) {
                      "  (region-def \"my_region\" (radius-ge (region \"my_soma\") 1.5))\n"
                      "  (locset-def \"terminal\" (terminal)))",
                      "(decor\n"
-                     "  (default (membrane-potential -55.000000))\n"
-                     "  (paint (region \"custom\") (temperature-kelvin 270))\n"
-                     "  (paint (region \"soma\") (membrane-potential -50.000000))\n"
+                     "  (default (membrane-potential -55.000000 (scalar 1)))\n"
+                     "  (paint (region \"custom\") (temperature-kelvin 270 (scalar 1)))\n"
+                     "  (paint (region \"soma\") (membrane-potential -50.000000 (scalar 1)))\n"
                      "  (paint (all) (density (mechanism \"pas\")))\n"
                      "  (paint (tag 4) (density (mechanism \"Ih\" (\"gbar\" 0.001))))\n"
                      "  (place (locset \"root\") (synapse (mechanism \"expsyn\")) \"root_synapse\")\n"
@@ -1274,9 +1391,9 @@ TEST(doc_expressions, parse) {
                      "    (region-def \"my_region\" (radius-ge (region \"my_soma\") 1.5))\n"
                      "    (locset-def \"terminal\" (terminal)))\n"
                      "  (decor\n"
-                     "    (default (membrane-potential -55.000000))\n"
-                     "    (paint (region \"my_soma\") (temperature-kelvin 270))\n"
-                     "    (paint (region \"my_region\") (membrane-potential -50.000000))\n"
+                     "    (default (membrane-potential -55.000000 (scalar 1)))\n"
+                     "    (paint (region \"my_soma\") (temperature-kelvin 270 (scalar 1)))\n"
+                     "    (paint (region \"my_region\") (membrane-potential -50.000000 (scalar 1)))\n"
                      "    (paint (tag 4) (density (mechanism \"Ih\" (\"gbar\" 0.001))))\n"
                      "    (place (locset \"root\") (synapse (mechanism \"expsyn\")) \"root_synapse\")\n"
                      "    (place (location 1 0.2) (junction (mechanism \"gj\")) \"terminal_gj\"))\n"
@@ -1315,9 +1432,9 @@ TEST(doc_expressions, parse) {
                             "(arbor-component\n"
                             "  (meta-data (version \"" + arborio::acc_version() +"\"))\n"
                             "  (decor\n"
-                            "    (default (membrane-potential -55.000000))\n"
+                            "    (default (membrane-potential -55.000000 (scalar 1)))\n"
                             "    (place (locset \"root\") (synapse (mechanism \"expsyn\")) \"root_synapse\")\n"
-                            "    (paint (region \"my_soma\") (temperature-kelvin 270))))",
+                            "    (paint (region \"my_soma\") (temperature-kelvin 270 (scalar 1)))))",
                             "(arbor-component\n"
                             "  (meta-data (version \"" + arborio::acc_version() +"\"))\n"
                             "  (morphology\n"
@@ -1332,9 +1449,9 @@ TEST(doc_expressions, parse) {
                             "      (region-def \"my_soma\" (tag 1))\n"
                             "      (locset-def \"root\" (root)))\n"
                             "    (decor\n"
-                            "      (default (membrane-potential -55.000000))\n"
+                            "      (default (membrane-potential -55.000000 (scalar 1)))\n"
                             "      (place (locset \"root\") (synapse (mechanism \"expsyn\")) \"root_synapse\")\n"
-                            "      (paint (region \"my_soma\") (temperature-kelvin 270)))\n"
+                            "      (paint (region \"my_soma\") (temperature-kelvin 270 (scalar 1))))\n"
                             "    (morphology\n"
                             "       (branch 0 -1\n"
                             "         (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)\n"

@@ -2,7 +2,6 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>
-#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -23,7 +22,6 @@
 
 using std::any;
 using arb::util::any_cast;
-using arb::util::any_ptr;
 
 const char* help_msg =
     "[OPTION]... PROBE\n"
@@ -100,7 +98,7 @@ struct cable_recipe: public arb::recipe {
     arb::cell_size_type num_cells() const override { return 1; }
 
     std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override {
-        return {probe_addr}; // (use default tag value 0)
+        return {{probe_addr, "probe"}};
     }
 
     arb::cell_kind get_cell_kind(arb::cell_gid_type) const override {
@@ -120,15 +118,15 @@ struct cable_recipe: public arb::recipe {
 
         auto decor = arb::decor{}
             .paint(arb::reg::all(), arb::density("hh"))                         // HH mechanism over whole cell.
-            .place(arb::mlocation{0, 0.}, arb::i_clamp{1.}, "iclamp")           // Inject a 1 nA current indefinitely.
+            .place(arb::mlocation{0, 0.}, arb::i_clamp{1.*arb::units::nA}, "iclamp")           // Inject a 1 nA current indefinitely.
             .place(arb::mlocation{0, 0.}, arb::synapse("expsyn"), "synapse1")   // a synapse
             .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "synapse2"); // another synapse
         return arb::cable_cell(tree, decor);
     }
 
     virtual std::vector<arb::event_generator> event_generators(arb::cell_gid_type) const override {
-        return {arb::poisson_generator({"synapse1"}, .005, 0., 0.1, std::minstd_rand{}),
-                arb::poisson_generator({"synapse2"}, .1, 0., 0.1, std::minstd_rand{})};
+        return {arb::poisson_generator({"synapse1"}, .005, 0.*arb::units::ms, 0.1*arb::units::kHz),
+                arb::poisson_generator({"synapse2"}, .1,   0.*arb::units::ms, 0.1*arb::units::kHz)};
     }
 
 };
@@ -145,13 +143,13 @@ int main(int argc, char** argv) {
         arb::simulation sim(R);
 
         sim.add_sampler(arb::all_probes,
-                arb::regular_schedule(opt.sample_dt),
+                arb::regular_schedule(opt.sample_dt*arb::units::ms),
                 opt.scalar_probe? scalar_sampler: vector_sampler);
 
         // CSV header for sample output:
         std::cout << "t, " << (opt.scalar_probe? "x, ": "x0, x1, ") << opt.value_name << '\n';
 
-        sim.run(opt.sim_end, opt.sim_dt);
+        sim.run(opt.sim_end*arb::units::ms, opt.sim_dt*arb::units::ms);
     }
     catch (to::option_error& e) {
         to::usage_error(argv[0], "[OPTIONS]... PROBE\nTry '--help' for more information.", e.what());

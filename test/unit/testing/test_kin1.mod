@@ -11,15 +11,12 @@ UNITS {
 
 PARAMETER {
     tau = 10 (ms)
+    v (mV)
 }
 
 STATE {
     a (mA/cm2)
     b (mA/cm2)
-}
-
-ASSIGNED {
-    v (mV)
 }
 
 BREAKPOINT {

@@ -80,6 +80,8 @@ set(unit_sources
     test_forest.cpp
     test_fvm_layout.cpp
     test_fvm_lowered.cpp
+    test_hash.cpp
+    test_gathered_vector.cpp
     test_diffusion.cpp
     test_iexpr.cpp
     test_index.cpp
@@ -107,6 +109,7 @@ set(unit_sources
     test_morph_place.cpp
     test_morph_primitives.cpp
     test_morph_stitch.cpp
+    test_network.cpp
     test_ordered_forest.cpp
     test_padded.cpp
     test_partition.cpp
@@ -126,6 +129,7 @@ set(unit_sources
     test_simd.cpp
     test_simulation.cpp
     test_span.cpp
+    test_spatial_tree.cpp
     test_spike_source.cpp
     test_spikes.cpp
     test_spike_store.cpp

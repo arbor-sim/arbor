@@ -11,17 +11,12 @@ NEURON {
 INITIAL {}
 
 PARAMETER {
-     g = .001 (S/cm2)
-     e = -65  (mV) : we use -65 for the ball and stick model, instead of Neuron default of -70
-}
-
-STATE {
-    s
-}
-
-ASSIGNED {
+    g = .001 (S/cm2)
+    e = -65  (mV) : we use -65 for the ball and stick model, instead of Neuron default of -70
     v (mV)
 }
+
+STATE { s }
 
 BREAKPOINT {
     foo(i)

@@ -1,27 +1,24 @@
 #include <memory>
-#include <set>
 #include <vector>
 
-#include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
+#include <arbor/export.hpp>
 #include <arbor/generic_event.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/schedule.hpp>
+#include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 
 #include "epoch.hpp"
 #include "cell_group.hpp"
 #include "cell_group_factory.hpp"
 #include "communication/communicator.hpp"
-#include "execution_context.hpp"
 #include "merge_events.hpp"
 #include "thread_private_spike_store.hpp"
 #include "threading/threading.hpp"
-#include "util/filter.hpp"
 #include "util/maputil.hpp"
-#include "util/partition.hpp"
 #include "util/span.hpp"
 #include "profile/profiler_macro.hpp"
 
@@ -38,14 +35,12 @@ auto split_sorted_range(Seq&& seq, const Value& v, Less cmp = Less{}) {
 
 // Create a new cell event_lane vector from sorted pending events, previous event_lane events,
 // and events from event generators for the given interval.
-ARB_ARBOR_API void merge_cell_events(
-    time_type t_from,
-    time_type t_to,
-    event_span old_events,
-    event_span pending,
-    std::vector<event_generator>& generators,
-    pse_vector& new_events)
-{
+ARB_ARBOR_API void merge_cell_events(time_type t_from,
+                                     time_type t_to,
+                                     event_span old_events,
+                                     event_span pending,
+                                     std::vector<event_generator>& generators,
+                                     pse_vector& new_events) {
     PE(communication:enqueue:setup);
     new_events.clear();
     old_events = split_sorted_range(old_events, t_from, event_time_less()).second;
@@ -92,28 +87,27 @@ class simulation_state {
 public:
     simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx, arb_seed_type seed);
 
-    void update(const connectivity& rec);
+    void update(const recipe& rec);
 
     void reset();
 
     time_type run(time_type tfinal, time_type dt);
 
     sampler_association_handle add_sampler(cell_member_predicate probeset_ids,
-        schedule sched, sampler_function f);
+                                           schedule sched,
+                                           sampler_function f);
 
     void remove_sampler(sampler_association_handle);
 
     void remove_all_samplers();
 
-    std::vector<probe_metadata> get_probe_metadata(cell_member_type) const;
+    std::vector<probe_metadata> get_probe_metadata(const cell_address_type&) const;
 
     std::size_t num_spikes() const {
         return communicator_.num_spikes();
     }
 
     void set_remote_spike_filter(const spike_predicate& p) { return communicator_.set_remote_spike_filter(p); }
-
-    void inject_events(const cse_vector& events);
 
     time_type min_delay() { return communicator_.min_delay(); }
 
@@ -285,13 +279,13 @@ simulation_state::simulation_state(
     PL();
 
     PE(init:simulation:comm);
-    communicator_ = communicator(rec, ddc_, *ctx_);
+    communicator_ = communicator(rec, ddc_, ctx_);
     PL();
     update(rec);
     epoch_.reset();
 }
 
-void simulation_state::update(const connectivity& rec) {
+void simulation_state::update(const recipe& rec) {
     communicator_.update_connections(rec, ddc_, source_resolution_map_, target_resolution_map_);
     // Use half minimum delay of the network for max integration interval.
     t_interval_ = min_delay()/2;
@@ -342,28 +336,18 @@ void simulation_state::reset() {
 
     // Clear all pending events in the event lanes.
     for (auto& lanes: event_lanes_) {
-        for (auto& lane: lanes) {
-            lane.clear();
-        }
+        for (auto& lane: lanes) lane.clear();
     }
 
     // Reset all event generators.
     for (auto& lane: event_generators_) {
-        for (auto& gen: lane) {
-            gen.reset();
-        }
+        for (auto& gen: lane) gen.reset();
     }
 
-    for (auto& lane: pending_events_) {
-        lane.clear();
-    }
+    for (auto& lane: pending_events_) lane.clear();
+    for (auto& spikes: local_spikes_) spikes.clear();
 
     communicator_.reset();
-
-    for (auto& spikes: local_spikes_) {
-        spikes.clear();
-    }
-
     epoch_.reset();
 }
 
@@ -409,6 +393,9 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     // Requires state at end of run(), with epoch_.id==k:
     //     * U(k) and D(k) have completed.
 
+    if (!std::isfinite(tfinal) || tfinal < 0) throw std::domain_error("simulation: tfinal must be finite, positive, and in [ms]");
+    if (!std::isfinite(dt) || tfinal < 0) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
+
     if (tfinal<=epoch_.t1) return epoch_.t1;
 
     // Compute following epoch, with max time tfinal.
@@ -442,21 +429,17 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         PL();
         communicator_.remote_ctrl_send_continue(prev);
         // Gather generated spikes across all ranks.
-        const auto& [global_spikes, remote_spikes] = communicator_.exchange(all_local_spikes);
+        auto spikes = communicator_.exchange(all_local_spikes);
 
         // Present spikes to user-supplied callbacks.
         PE(communication:spikeio);
-        if (local_export_callback_) {
-            local_export_callback_(all_local_spikes);
-        }
-        if (global_export_callback_) {
-            global_export_callback_(global_spikes.values());
-        }
+        if (local_export_callback_) local_export_callback_(all_local_spikes);
+        if (global_export_callback_) global_export_callback_(spikes.from_local.values());
         PL();
 
         // Append events formed from global spikes to per-cell pending event queues.
         PE(communication:walkspikes);
-        communicator_.make_event_queues(global_spikes, pending_events_, remote_spikes);
+        communicator_.make_event_queues(spikes, pending_events_);
         PL();
     };
 
@@ -465,6 +448,29 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     auto enqueue = [this](epoch next) {
         foreach_cell(
             [&](cell_size_type i) {
+                // NOTE Despite the superficial optics, we need to sort by the
+                // full key here and _not_ purely by time. With different
+                // parallel distributions, the ordering of events with the same
+                // time may change. Consider synapses like this
+                //
+                // NET_RECEIVE (weight) {
+                //   if (state < threshold) {
+                //      state = state + weight
+                //   }
+                // }
+                //
+                // DERIVATIVE dState {
+                //   state' = -tau
+                // }
+                //
+                // and we'd end with different behaviours when events with
+                // different weights occur at the same time. We also cannot
+                // collapse events as with LIF cells by summing weights as this
+                // disturbs dynamics in a different way, eg when
+                //
+                // NET_RECEIVE (weight) {
+                //   state = state + 42
+                // }
                 PE(communication:enqueue:sort);
                 util::sort(pending_events_[i]);
                 PL();
@@ -523,55 +529,33 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     return current.t1;
 }
 
-sampler_association_handle simulation_state::add_sampler(
-        cell_member_predicate probeset_ids,
-        schedule sched,
-        sampler_function f)
-{
+sampler_association_handle simulation_state::add_sampler(cell_member_predicate probeset_ids,
+                                                         schedule sched,
+                                                         sampler_function f) {
     sampler_association_handle h = sassoc_handles_.acquire();
-
     foreach_group(
         [&](cell_group_ptr& group) { group->add_sampler(h, probeset_ids, sched, f); });
-
     return h;
 }
 
 void simulation_state::remove_sampler(sampler_association_handle h) {
     foreach_group(
         [h](cell_group_ptr& group) { group->remove_sampler(h); });
-
     sassoc_handles_.release(h);
 }
 
 void simulation_state::remove_all_samplers() {
     foreach_group(
         [](cell_group_ptr& group) { group->remove_all_samplers(); });
-
     sassoc_handles_.clear();
 }
 
-std::vector<probe_metadata> simulation_state::get_probe_metadata(cell_member_type probeset_id) const {
+std::vector<probe_metadata> simulation_state::get_probe_metadata(const cell_address_type& probeset_id) const {
     if (auto linfo = util::value_by_key(gid_to_local_, probeset_id.gid)) {
         return cell_groups_.at(linfo->group_index)->get_probe_metadata(probeset_id);
     }
     else {
         return {};
-    }
-}
-
-void simulation_state::inject_events(const cse_vector& events) {
-    // Push all events that are to be delivered to local cells into the
-    // pending event list for the event's target cell.
-    for (auto& [gid, pse_vector]: events) {
-        for (auto& e: pse_vector) {
-            if (e.time < epoch_.t1) {
-                throw bad_event_time(e.time, epoch_.t1);
-            }
-            // gid_to_local_ maps gid to index in local cells and of corresponding cell group.
-            if (auto lidx = util::value_by_key(gid_to_local_, gid)) {
-                pending_events_[lidx->cell_index].push_back(e);
-            }
-        }
     }
 }
 
@@ -592,13 +576,14 @@ void simulation::reset() {
     impl_->reset();
 }
 
-void simulation::update(const connectivity& rec) { impl_->update(rec); }
+void simulation::update(const recipe& rec) { impl_->update(rec); }
 
-time_type simulation::run(time_type tfinal, time_type dt) {
-    if (dt <= 0.0) {
-        throw domain_error("Finite time-step must be supplied.");
-    }
-    return impl_->run(tfinal, dt);
+time_type simulation::run(const units::quantity& tfinal, const units::quantity& dt) {
+    auto dt_ms = dt.value_as(units::ms);
+    if (dt_ms <= 0.0 || std::isnan(dt_ms)) throw domain_error("Finite time-step must be supplied.");
+    auto tfinal_ms = tfinal.value_as(units::ms);
+    if (tfinal_ms <= 0.0 || std::isnan(tfinal_ms)) throw domain_error("Finite time-step must be supplied.");
+    return impl_->run(tfinal_ms, dt_ms);
 }
 
 sampler_association_handle simulation::add_sampler(
@@ -617,7 +602,7 @@ void simulation::remove_all_samplers() {
     impl_->remove_all_samplers();
 }
 
-std::vector<probe_metadata> simulation::get_probe_metadata(cell_member_type probeset_id) const {
+std::vector<probe_metadata> simulation::get_probe_metadata(const cell_address_type& probeset_id) const {
     return impl_->get_probe_metadata(probeset_id);
 }
 
@@ -635,10 +620,6 @@ void simulation::set_local_spike_callback(spike_export_function export_callback)
 
 void simulation::set_epoch_callback(epoch_function epoch_callback) {
     impl_->epoch_callback_ = std::move(epoch_callback);
-}
-
-void simulation::inject_events(const cse_vector& events) {
-    impl_->inject_events(events);
 }
 
 simulation::simulation(simulation&&) = default;

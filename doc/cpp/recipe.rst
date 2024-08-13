@@ -10,13 +10,13 @@ The :cpp:class:`arb::recipe` class documentation is below.
 C++ best practices
 ------------------
 
-Here we collect rules of thumb to keep in mind when making recipes in C++.
+Here, we collect rules of thumb to keep in mind when making recipes in C++.
 
 .. topic:: Stay thread safe
 
     The load balancing and model construction are multithreaded, that is
     multiple threads query the recipe simultaneously.
-    Hence calls to a recipe member should not have side effects, and should use
+    Hence, calls to a recipe member should not have side effects, and should use
     lazy evaluation when possible (see `Be lazy <_recipe_lazy>`_).
 
 
@@ -40,7 +40,7 @@ Recipe
 
     .. Warning::
         All member functions must be **thread safe**, because the recipe is used
-        by the multithreaded model building stage. In practice, this means that
+        by the multithreaded model-building stage. In practice, this means that
         multiple threads should be able to call member functions of a recipe
         simultaneously. Model building is multithreaded to reduce model building times,
         so recipe implementations should avoid using locks and mutexes to introduce
@@ -118,7 +118,7 @@ Recipe
 
     .. cpp:function:: virtual std::any get_global_properties(cell_kind) const
 
-        Global property type will be specific to given cell kind.
+        Global property type will be specific to a given cell kind.
 
         By default returns an empty container.
 
@@ -135,19 +135,16 @@ See :ref:`cppinterconnectivity`.
 Probes
 ------
 
-.. cpp:type:: probe_tag = int
-
-    Extra contextual information associated with a probe.
-
 .. cpp:class:: probe_info
 
     Probes are specified in the recipe objects that are used to initialize a
     model; the specification of the item or value that is subjected to a
     probe will be specific to a particular cell type.
 
-    .. cpp:member:: probe_tag tag
+    .. cpp:member:: cell_tag_type tag
 
-           Opaque key, returned in sample record.
+           User-defined tag; must be unique per cell or an exception of type
+           ``dup_cell_probe`` will be thrown.
 
     .. cpp:member:: util::any address
 

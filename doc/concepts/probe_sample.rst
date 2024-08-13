@@ -20,7 +20,7 @@ Definitions
         or at specific sites (see :ref:`pycablecell-probesample`).
 
     vector probe
-        Certain probes work over a :term:`region` rather than a :term:`locset`. This means that, depending
+        Certain probes work over a :term:`region` rather than a :term:`locset`. This means that, depending on
         settings such as :term:`cv policy`, data is sampled as a function of distance, yielding multiple data points.
         Such probes are distinguished from regular probes as "vector probes".
         
@@ -55,9 +55,9 @@ Definitions
         A record of data corresponding to the value at a specific *probe* at a specific time.
 
     handle
-        A handle for reaching sampling data associated to a sampler, which is associated to a probeset.
+        A handle for accessing sampling data is associated with a sampler, which in turn is associated with a probeset.
         Setting a sampler (through :py:func:`simulation.sample`) returns handles. Sampled data can be retrieved
-        by passing the handle associated to a sampler (associated to a probeset) to :py:func:`simulation.samples`.
+        by passing the handle associated with a sampler (associated with a probeset) to :py:func:`simulation.samples`.
 
     schedule
         An object representing a series of monotonically increasing points in time, used for determining
@@ -66,8 +66,8 @@ Definitions
 Spiking
 *******
 
-Threshold detectors have a dual use: they can be used to record spike times, but are also used in propagating signals
-between cells. See also :term:`threshold detector` and :ref:`cablecell-threshold-detectors`.
+Threshold detectors have a dual use: they can be used to record spike times but are also used in propagating signals
+between cells. Also see :term:`threshold detector` and :ref:`cablecell-threshold-detectors`.
 
 API
 ---

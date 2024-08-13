@@ -12,7 +12,7 @@ Compilation
 
 There are some non-trivial overheads associated with using the profiler, so it is not enabled by default.
 The profiler can be enabled at compile time, by setting the CMake flag ``ARB_WITH_PROFILING``.
-For example to compile a debug build with profiling turned on:
+For example, to compile a debug build with profiling turned on:
 
 .. code-block:: bash
 
@@ -22,7 +22,7 @@ Instrumenting code
 ------------------
 
 Developers manually instrument the regions to profile.
-This allows the developer to only profile the parts of the code that are of interest, and choose
+This allows the developer to only profile the parts of the code that are of interest and choose
 the appropriate granularity for profiling different regions.
 
 Once a region of code is marked for the profiler, each thread in the application will track the total time spent in the region, and how many times the region is executed on that thread.
@@ -79,7 +79,7 @@ For example, network simulations have two main regions of code to profile: those
 We would like to break these regions down further, e.g. break the `communication` time into time spent performing `spike exchange`.
 
 The subdivision of profiling regions is encoded in the region names.
-For example, ``PE(communication:exchange)`` indicates that we are profiling the ``exchange`` sub-region of the top level ``communication`` region.
+For example, ``PE(communication:exchange)`` indicates that we are profiling the ``exchange`` sub-region of the top-level ``communication`` region.
 
 Below is an example of using sub-regions:
 
@@ -160,7 +160,7 @@ Running the profiler
 The profiler does not need to be started or stopped by the user.
 It needs to be initialized before entering any profiling region.
 It is initialized using the information provided by the simulation's thread pool.
-At any point a summary of profiler region counts and times can be obtained,
+At any point, a summary of profiler region counts and times can be obtained,
 and the profiler regions can be reset.
 
 .. container:: example-code

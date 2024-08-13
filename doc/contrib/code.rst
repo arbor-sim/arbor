@@ -25,8 +25,8 @@ run the following commands to apply it:
 
    # Install the formatter if not present
    pip install black
-   # Automatically apply style to a certain file. If unsure what this does read on.
-   black . scripts/arbor/build-catalogue.in
+   # Automatically apply style to all Python files. If unsure what this does read on.
+   black .
 
 The formatter can also be run with ``--check`` to list offending files and
 ``--diff`` to preview changes. Most editors can `integrate with black
@@ -35,19 +35,19 @@ The formatter can also be run with ``--check`` to list offending files and
 C++
 ---
 
-The main development language of Arbor is C++. For Arbor we start with
+The main development language of Arbor is C++. For Arbor, we start with
 the community guidelines set out in the `C++ Core
 Guidelines <http://isocpp.github.io/CppCoreGuidelines/>`__. These
-guidelines are quite generic, and only give loose guidelines for some
+guidelines are quite generic and only give loose guidelines for some
 important topics like variable naming and indentation.
 
 This wiki will describe the specific extensions and differences to the
 C++ Core Guidelines - variable naming. - code formatting (indentation,
 placement of curly braces, ``int const&`` vs ``const int&`` etc.) -
-rules for topics not covered in the Core Guidelines (e.g. CUDA). -
+rules for topics not covered in the Core Guidelines (e.g., CUDA). -
 exceptions to the rules given in the Core Guidelines. - rules for the
 CMake build system and directory structure. - rules for external
-dependencies (e.g. Boost).
+dependencies (e.g., Boost).
 
 .. TODO::
     This page needs revision.
@@ -88,9 +88,9 @@ namespaces are declared and formatted in Arbor:
    } // namespace util
    } // namespace arb
 
-In the example above the namespaces are not indented. However,
+In the example above, the namespaces are not indented. However,
 namespaces should be indented if they are declared in the middle of
-code, to make their existance obvious to the person reading the code.
+code to make their existence obvious to the person reading the code.
 
 Use an ``impl`` namespace to hide implementation details that should not
 be exposed to user space.
@@ -103,9 +103,9 @@ Formatting statements
 ---------------------
 
 A lot of the rules here are purely a matter of personal taste, imposed
-by the guy who got to set the rules. That said, it follows accepted
+by the guy who got to set the rules. That said, it follows the accepted
 practice in the C++ community (if we accept that not everybody has the
-same accepted practice), and if followed consistently will make code
+same accepted practice), and if followed consistently, will make code
 easier to understand.
 
 .. code:: c++
@@ -146,8 +146,8 @@ easier to understand.
    }
 
 TODO: When declaring an operator, should we leave a space between the
-operator and the following opening parenthesis or should we follow the
-convention we use for functions, where we don’t leave a space?
+operator and the following opening parenthesis, or should we follow the
+convention we use for functions where we don’t leave a space?
 
 Indentation and whitespace cleanup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -194,7 +194,7 @@ would be nice if we could decide on the most common ones.
 -  …
 
 Ben says “depends… I would use ``count`` or ``index`` unless the scope
-of the variable is very small. Using ``it`` is standard C++ short hand,
+of the variable is very small. Using ``it`` is standard C++ shorthand,
 but again for fairly limited scope.”
 
 Member variables
@@ -254,7 +254,7 @@ Getters and Setters
 ~~~~~~~~~~~~~~~~~~~
 
 Before filling up a class with getters and setters, consider seriously
-if those members are meant actually to be public. If nonetheless getters
+if those members are meant actually to be public. If, nonetheless, getters
 and/or setters are needed, don’t use the ``get_`` and ``set_`` prefixes.
 
 .. code:: c++
@@ -310,7 +310,7 @@ written in capitals, with words separated by underscores.
 Always use ``{}``, even for single statement ``if``, ``for``, etc
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-It makes code clearer, and avoids nasty bugs that occur when
+It makes code clearer and avoids nasty bugs that occur when
 refactoring. It also avoids some errors when merging with git.
 
 ::
@@ -412,7 +412,7 @@ use ``unique_ptr``
 
 Actually, feel free to use naked pointers in your code, but make sure
 that you use smart pointers to handle allocation and freeing of memory.
-When a developer sees a naked pointer in Arbor they can think “good, I
+When a developer sees a naked pointer in Arbor, they can think, “good, I
 don’t have to worry about responsibility for freeing that memory”.
 Furthermore, if ``unique_ptr`` handles allocation and freeing of memory,
 the user doesn’t have to concern themselves with freeing memory ever.
@@ -425,8 +425,8 @@ while avoiding ``shared_ptr`` whenever possible
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you think long and hard, you will probably realise that you actually
-want a ``unique_ptr``. Shared pointers have performance overheads, and
-are quite easy to misuse. For example by creating circular references
+want a ``unique_ptr``. Shared pointers have performance overheads and
+are quite easy to misuse. For example, by creating circular references
 that ironically lead to memory never being freed.
 
 Header files
@@ -446,8 +446,8 @@ don’t rely on headers being included elsewhere
 For example, if you use ``std::vector<int>`` in a file, make sure to
 have ``#include <vector>`` at the top of the source file.
 
-Relying on headers being include elsewhere can lead to portability
-problems, for example on OS X you have to ``#include <cmath>`` for some
+Relying on headers being included elsewhere can lead to portability
+problems, for example, on MacOS you have to ``#include <cmath>`` for some
 math functions that are imported via other header files with gcc on
 Linux.
 
@@ -491,7 +491,7 @@ group headers together
 In the following order
 
 1. C++ standard libary
-2. system C headers (POSIX, kernel interfaces etc.)
+2. system C headers (POSIX, kernel interfaces, etc.)
 3. external libraries
 4. public arbor headers
 5. private arbor headers

@@ -39,8 +39,8 @@ then build the simulation.
         arb::simulation sim(recipe, decomp, context);
 
 All the simulation's constructor arguments are optional, except the recipe, and assume
-default values if not specified. In order to simplify construction of a simulation, the helper class
-:cpp:class:`arb::simulation_builder` can be used to better control constrution arguments:
+default values if not specified. In order to simplify the construction of a simulation, the helper class
+:cpp:class:`arb::simulation_builder` can be used to better control construction arguments:
 
 .. container:: example-code
 
@@ -60,7 +60,7 @@ Class documentation
 .. cpp:class:: simulation
 
     The executable form of a model. A simulation is constructed
-    from a recipe, and then used to update and monitor model state.
+    from a recipe, and then used to update and monitor the model state.
 
     Simulations take the following inputs:
 
@@ -70,16 +70,16 @@ Class documentation
             *   an :cpp:class:`arb::domain_decomposition` that describes how the
                 cells in the model are assigned to hardware resources;
             *   an :cpp:class:`arb::context` which is used to execute the simulation.
-            *   a :cpp:class:`uint64_t` in order to seed the pseudo pandom number generator (optional)
+            *   a :cpp:class:`uint64_t` in order to seed the pseudo random number generator (optional)
         * **Experimental inputs** that can change between model runs, such
           as external spike trains.
 
     Simulations provide an interface for executing and interacting with the model:
 
         * **Advance model state** from one time to another and reset model
-          state to its original state before simulation was started.
+          state to its original state before the simulation was started.
         * **I/O** interface for sampling simulation state during execution
-          (e.g. voltage and current) and spike output.
+          (e.g., voltage and current) and spike output.
 
     **Types:**
 
@@ -100,14 +100,6 @@ Class documentation
         Returns a builder object to which the constructor arguments can be passed selectively (see
         also example above).
 
-    **Experimental inputs:**
-
-    .. cpp:function:: void inject_events(const pse_vector& events)
-
-        Add events directly to targets.
-        Must be called before calling :cpp:func:`run`, and must contain events that
-        are to be delivered at or after the current simulation time.
-
     **Updating Model State:**
 
     .. cpp:function:: void reset()
@@ -116,7 +108,7 @@ Class documentation
 
     .. cpp:function:: time_type run(time_type tfinal, time_type dt)
 
-        Run the simulation from current simulation time to :cpp:any:`tfinal`,
+        Run the simulation from the current simulation time to :cpp:any:`tfinal`,
         with maximum time step size :cpp:any:`dt`.
 
     **I/O:**
@@ -127,9 +119,16 @@ Class documentation
                         sampler_function f)
 
         Note: sampler functions may be invoked from a different thread than that
-        which called :cpp:func:`run`.
+        which is called :cpp:func:`run`.
 
         (see the :ref:`sampling_api` documentation.)
+
+    .. cpp:function:: std::vector<probe_metadata> get_probe_metadata(const cell_address_type& probeset_id) const
+
+       Return probe metadata, one entry per probe associated with the supplied probe
+       id, or an empty vector if there is no local match for the probe id. See the
+       :ref:`sampling_api` documentation.
+
 
     .. cpp:function:: void remove_sampler(sampler_association_handle)
 

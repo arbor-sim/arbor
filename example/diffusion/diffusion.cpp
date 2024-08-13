@@ -21,18 +21,20 @@
 using namespace arborio::literals;
 using namespace arb;
 
+namespace U = arb::units;
+
 struct linear: public recipe {
      linear(double ext, double dx, double Xi, double beta): l{ext}, d{dx}, i{Xi}, b{beta} {
         gprop.default_parameters = neuron_parameter_defaults;
         gprop.default_parameters.discretization = cv_policy_max_extent{d};
-        gprop.add_ion("bla", 1, 23, 42, 0, b);
+        gprop.add_ion("bla", 1, 23*U::mM, 42*U::mM, 0*U::mV, b*U::m2/U::s);
     }
 
     cell_size_type num_cells()                                   const override { return 1; }
     cell_kind get_cell_kind(cell_gid_type)                       const override { return cell_kind::cable; }
     std::any get_global_properties(cell_kind)                    const override { return gprop; }
-    std::vector<probe_info> get_probes(cell_gid_type)            const override { return {cable_probe_ion_diff_concentration_cell{"na"}}; }
-    std::vector<event_generator> event_generators(cell_gid_type) const override { return {explicit_generator({"Zap"}, 0.005, std::vector<float>{0.f})}; }
+    std::vector<probe_info> get_probes(cell_gid_type)            const override { return {{cable_probe_ion_diff_concentration_cell{"na"}, "nad"}}; }
+    std::vector<event_generator> event_generators(cell_gid_type) const override { return {explicit_generator_from_milliseconds({"Zap"}, 0.005, std::vector{0.})}; }
     util::unique_any get_cell_description(cell_gid_type)         const override {
         // Stick morphology
         // -----|-----
@@ -41,9 +43,9 @@ struct linear: public recipe {
         tree.append(0, { -l, 0, 0, 3}, {l, 0, 0, 3}, 2);
         // Setup
         decor decor;
-        decor.set_default(init_int_concentration{"na", i});
-        decor.set_default(ion_diffusivity{"na", b});
-        decor.paint("(tag 1)"_reg, ion_diffusivity{"na", b});
+        decor.set_default(init_int_concentration{"na", i*U::mM});
+        decor.set_default(ion_diffusivity{"na", b*U::mM});
+        decor.paint("(tag 1)"_reg, ion_diffusivity{"na", b*U::mM});
         decor.place("(location 0 0.5)"_ls, synapse("inject/x=bla", {{"alpha", 200.0*l}}), "Zap");
         decor.paint("(all)"_reg, density("decay/x=bla"));
         return cable_cell({tree}, decor);
@@ -123,7 +125,7 @@ int main(int argc, char** argv) {
     auto C = make_context({1, O.gpu});
     auto R = linear{O.L, O.dx, O.Xi, O.dX};
     simulation S(R, C, partition_load_balance(R, C));
-    S.add_sampler(all_probes, regular_schedule(O.ds), sampler);
-    S.run(O.T, O.dt);
+    S.add_sampler(all_probes, regular_schedule(O.ds*U::ms), sampler);
+    S.run(O.T*U::ms, O.dt*U::ms);
     out.close();
 }

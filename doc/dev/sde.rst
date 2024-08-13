@@ -46,8 +46,8 @@ expectation :math:`\textbf{m}(t) = E\left[\textbf{X}(t)\right]` and the second m
     \textbf{P}(0) = &\textbf{x}_0 \textbf{x}^T_0 
     \end{align}
 
-Thus, we could in principle use our existing solvers for the above moment equations. Note, that the
-equations for the second order moment are not linear, in general. Once the moments are computed, we
+Thus, we could, in principle, use our existing solvers for the above moment equations. Note, that the
+equations for the second-order moment are not linear, in general. Once the moments are computed, we
 could then sample from the resulting mean and covariance matrix, using the fact that the solution is
 normally distributed, with :math:`\textbf{X}(t) \sim N\left(\textbf{m}(t), \textbf{P}(t) -
 \textbf{m}(t)\textbf{m}^T(t)\right)`. This approach has a few drawbacks, however:
@@ -60,17 +60,17 @@ for scalar SDEs, not all of them can be easily extended to systems of SDEs. One 
 approaches, the Euler-Maruyama method, offers a few advantages:
 
 * works for (non-linear) systems of SDEs
-* has simple implementation
+* has a simple implementation
 * exhibits good performance
 
-On the other hand, this solver only guarantees first order accuracy, which usually requires the time
+On the other hand, this solver only guarantees first-order accuracy, which usually requires the time
 steps to be small.
 
 
 Euler-Maruyama Solver
 ---------------------
 
-The Euler-Maruyama method is a first order stochastic Runge-Kutta method, where the forward Euler
+The Euler-Maruyama method is a first-order stochastic Runge-Kutta method, where the forward Euler
 method is its deterministic counterpart. The method can be derived by approximating the solution of
 the SDE with an It\^o-Taylor series and truncating at first order.  Higher-order stochastic
 Runge-Kutta methods are not as easy to use as their deterministic counterparts, especially for the
@@ -99,21 +99,21 @@ random number generator with a unique fingerprint of each such location, consist
 * per-mechanism variable identifier
 * per-mechanism simulation time (in the form of an integral counter)
 
-By using these seed value, we can guarantee that the same random numbers are generated regardless of
+By using these seed values, we can guarantee that the same random numbers are generated regardless of
 concurrency, domain decomposition, and computational backend. Note, that because of our assumption
 of independence, the correlation between the white noises is zero, :math:`\textbf{Q} = \textbf{1}`.
 
 Random Number Generation
 ------------------------
 
-Counter based random number generators (CBPRNGs) as implemented in Random123 offer a simple solution
+Counter-based random number generators (CBPRNGs) as implemented in Random123 offer a simple solution
 for both CPU and GPU kernels to generate independent random numbers based on the above seed values.
 We use the *Threefry-4x64-12* algorithm because
 
 * it offers 8 64-bit fields for placing the seed values
 * it is reasonably fast on both CPU and GPU
 
-Due to the structure of the *Threefry* and other CBPRNGs, we get multiple indpendent uniformly
+Due to the structure of the *Threefry* and other CBPRNGs, we get multiple independent uniformly
 distributed values per invocation. In particular, *Threefry-4x64-12* returns 4 such values. Throwing
 away 3 out of the 4 values would result in a quite significant performance penalty, so we use all 4
 values, instead. This is achieved by circling through a cache of 4 values per location, and updating
@@ -126,7 +126,7 @@ The generated random numbers :math:`Z_i` must then be transformed into standard 
 values :math:`X_i`.  There exist a number of different algorithms, however, we use the Box-Muller
 transform because it requires exactly 2 independent uniformly distributed values to generate 2
 independent normally distributed values. Other methods, such as the Ziggurat algorithm, use
-rejection sampling which may unevenly exhaust our cache and make parallelization more difficult.
+rejection sampling, which may unevenly exhaust our cache and make parallelization more difficult.
 
 For the Euler-Maruyama solver we need normal random numbers with variance :math:`\sigma^2 = \Delta t`.
 Thus, we scale the generated random number accordingly, :math:`\Delta W_{i} = \sqrt{\Delta t} X_i`.

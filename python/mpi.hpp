@@ -2,6 +2,7 @@
 
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
+#include <pybind11/pybind11.h>
 
 namespace pyarb {
 // A shim is required for MPI_Comm, because OpenMPI defines it as a pointer to

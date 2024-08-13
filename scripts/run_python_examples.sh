@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs all Python examples
 
-set -Eeuo pipefail
+set -Eeuox pipefail
 
 if [[ "$#" -gt 1 ]]; then
     echo "usage: run_python_examples.sh <prefix>"
@@ -35,6 +35,7 @@ runpyex network_ring.py
 # runpyex network_ring_mpi_plot.py # no need to test
 runpyex network_ring_gpu.py # by default, gpu_id=None
 runpyex network_two_cells_gap_junctions.py
+runpyex network_ring.py
 runpyex diffusion.py
 runpyex plasticity.py
 runpyex v-clamp.py

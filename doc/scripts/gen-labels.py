@@ -165,7 +165,8 @@ ysoma_morph3 = arbor.morphology(tree)
 fn = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__), "../fileformat/example.swc")
 )
-swc_morph = arbor.load_swc_arbor(fn)
+swc = arbor.load_swc_arbor(fn)
+swc_morph = swc.morphology
 
 regions = {
     "empty": "(region-nil)",
@@ -224,6 +225,8 @@ locsets = {
     "proximal_translate": "(proximal-translate (terminal) 10)",
     "distal_translate_single": "(distal-translate (location 0 0.5) 5)",
     "distal_translate_multi": "(distal-translate (location 0 0.5) 15)",
+    "comp_23": "(on-components 0.5 (join (branch 2) (branch 3)))",
+    "comp_c34": "(on-components 0.5 (join (branch 3) (branch 4)))",
 }
 
 labels = {**regions, **locsets}

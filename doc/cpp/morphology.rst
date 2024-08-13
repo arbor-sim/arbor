@@ -11,14 +11,14 @@ Segment tree
 ------------
 
 A ``segment_tree`` is -- as the name implies -- a set of segments arranged in a
-tree structure, ie each segment has exactly one parent and no child is the
+tree structure, i.e., each segment has exactly one parent and no child is the
 parent of any of its ancestors. The tree starts at a *root* segment which has no
 parent. Each segment comprises two points in 3d space together with the radii at
 these points. The segment's endpoints are called proximal (at the parent's
 distal end) and distal (farther from the root).
 
 Segment trees are used to form morphologies which ignore the 3d information
-encoded in the segments and just utilise the radii, length, and tree-structure.
+encoded in the segments and just utilise the radii, length, and tree structure.
 Branches in the tree occur where a segment has more than one child. The tree is
 constructed by *appending* segments to the tree. Segments are numbered starting
 at ``0`` in the order that they are added, with the first segment getting id
@@ -51,7 +51,7 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
 
     .. cpp:function:: bool empty()
 
-        If the tree is empty (i.e. whether it has size 0)
+        If the tree is empty (i.e., whether it has size 0)
 
     .. cpp:function:: msize_t size()
 
@@ -82,7 +82,7 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
 
 .. cpp:function:: std::vector<msize_t> tag_roots(const segment_tree& t, int tag)
 
-    Get IDs of roots of a region with specific tag in the segment tree, i.e. segments whose
+    Get ids of roots of a region with specific tags in the segment tree, i.e., segments whose
     parent is either :data:`mnpos` or a segment with a different tag.
 
 .. cpp:function:: bool equivalent(const segment_tree& l, const segment_tree& r)
@@ -95,8 +95,8 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
 
 .. cpp:function:: segment_tree apply(const segment_tree& t, const isometry& i)
 
-    Apply an :cpp:type:`isometry` to the segment tree, returns the transformed tree as a copy.
-    Isometries are rotations around an arbritary axis and/or translations; they can
+    Apply an :cpp:type:`isometry` to the segment tree; it returns the transformed tree as a copy.
+    Isometries are rotations around an arbitrary axis and/or translations; they can
     be instantiated using ``isometry::translate`` and ``isometry::rotate`` and combined
     using the ``*`` operator.
 
@@ -185,7 +185,7 @@ The :cpp:type:`stitch_builder` class collects the stitches with the ``add`` meth
    stitch_builder::add(mstitch, double along = 1.)
 
 The first stitch will have no parent. If no parent id is specified for a subsequent
-stitch, the last stitch added will be used as parent. The ``along`` parameter
+stitch, the last stitch added will be used as the parent. The ``along`` parameter
 must lie between zero and one inclusive, and determines the point of attachment
 as a relative position between the parent's proximal and distal points.
 
@@ -406,8 +406,8 @@ The set of boundary points used by the simulator is determined by a
    as a morphological ``region`` expression.
 
 Specific CV policy objects are created by functions described below (strictly
-speaking, these are class constructors for classes are implicit converted to
-``cv_policy`` objects). These all take a ``region`` parameter that restrict the
+speaking, these are class constructors for classes that are implicitly converted to
+``cv_policy`` objects). These all take a ``region`` parameter that restricts the
 domain of applicability of that policy; this facility is useful for specifying
 differing discretisations on different parts of a cell morphology. When a CV
 policy is constrained in this manner, the boundary of the domain will always
@@ -489,14 +489,14 @@ CV discretization as mcables
 
 It is often useful for the user to have a detailed view of the CVs generated for a given morphology
 and :ref:`cv-policy <cv-policies>`. For example, while debugging and fine-tuning model implementations,
-it can be helpful to know how many CVs a cable-cell is comprised of, or how many CVs lie on a certain
+it can be helpful to know how many CVs a cable cell is comprised of, or how many CVs lie on a certain
 region of the cell.
 
 The following classes and functions allow the user to inspect the CVs of a cell or region.
 
 .. cpp:class:: cell_cv_data
 
-   Stores the discretisation data of a cable-cell in terms of CVs and the :term:`mcables <mcable>` comprising each of
+   Stores the discretisation data of a cable cell in terms of CVs and the :term:`mcables <mcable>` comprising each of
    these CVs.
 
    .. cpp:function:: mcable_list cables(unsigned idx) const
@@ -540,7 +540,28 @@ The following classes and functions allow the user to inspect the CVs of a cell 
 Supported morphology formats
 ============================
 
-Arbor supports morphologies described using the SWC file format and the NeuroML file format.
+Arbor supports morphologies described using SWC, Neurolucida ASC, and the NeuroML file formats.
+The ingestion of these formats is described below, but each returns a structure
+
+
+.. cpp:class:: loaded_morphology
+
+   .. cpp:member:: arb::segment_tree segment_tree
+
+    Raw segment tree, identical to morphology.
+
+   .. cpp:member:: arb::morphology morphology
+
+    Morphology constructed from description.
+
+
+   .. cpp:member:: arb::label_dict labels
+
+    Regions and locsets defined in the description.
+
+   .. cpp:member:: std::variant<swc_metadata, asc_metadata, nml_metadata> metadata
+
+    Loader specific metadata, see below in the individual sections.
 
 .. _cppswc:
 
@@ -614,6 +635,17 @@ basic checks performed on them. The :cpp:type:`swc_data` object can then be used
    Returns a :cpp:type:`morphology` constructed according to NEURON's
    :ref:`SWC specifications <formatswc-neuron>`.
 
+.. cpp:function:: morphology load_swc_arbor(const std::filesystem::path& data)
+
+   Returns a :cpp:type:`morphology` constructed according to Arbor's
+   :ref:`SWC specifications <formatswc-arbor>`.
+
+.. cpp:function:: morphology load_swc_neuron(const std::filesystem::path& data)
+
+   Returns a :cpp:type:`morphology` constructed according to NEURON's
+   :ref:`SWC specifications <formatswc-neuron>`.
+
+
 .. _cppasc:
 
 Neurolucida ASCII
@@ -622,21 +654,40 @@ Neurolucida ASCII
 Arbor supports reading morphologies described using the
 :ref:`Neurolucida ASCII file format <formatasc>`.
 
-The :cpp:func:`parse_asc()` function is used to parse the SWC file and generate a :cpp:type:`asc_morphology` object:
-a simple struct with two members representing the morphology and a label dictionary with labeled
-regions and locations.
+The :cpp:func:`parse_asc()` function is used to parse the SWC file and generate a :cpp:type:`loaded_morphology` object:
 
-.. cpp:class:: asc_morphology
-
-   .. cpp:member:: arb::morphology morphology
-
-   .. cpp:member:: arb::label_dict labels
-
-.. cpp:function:: asc_morphology load_asc(const std::filesystem::path& filename)
+.. cpp:function:: loaded_morphology load_asc(const std::filesystem::path& filename)
 
    Parse a Neurolucida ASCII file.
    Throws an exception if there is an error parsing the file.
 
+.. cpp:class:: asc_metadata
+
+   .. cpp:member:: std::vector<asc_spine> spines
+
+   A list of spines annotated in the ``.asc`` file.
+
+   .. cpp:member:: std::vector<asc_marker_set> spines
+
+   A list of marker set annotated in the ``.asc`` file.
+
+.. cpp:class:: asc_spine
+
+    .. cpp:member:: std::string name
+
+    .. cpp:member:: arb::mpoint location
+
+.. cpp:class:: asc_marker_set
+    .. cpp:member:: asc_color color
+
+    .. cpp:member:: asc_marker marker = asc_marker::none
+
+    .. cpp:member:: std::string name
+
+    .. cpp:member:: std::vector<arb::mpoint> locations
+
+where ``asc_marker`` is an enum of ``dot``, ``circle``, ``cross``, or ``none``,
+and ``asc_color`` an RGB triple.
 
 .. _cppneuroml:
 
@@ -679,12 +730,12 @@ namespace.
 
    Return the id of each top-level ``<morphology>`` element defined in the NeuroML document.
 
-   .. cpp:function:: std::optional<nml_morphology_data> morphology(const std::string&, enum neuroml_options::value = neuroml_options::none) const
+   .. cpp:function:: std::optional<loaded_morphology> morphology(const std::string&, enum neuroml_options::value = neuroml_options::none) const
 
    Return a representation of the top-level morphology with the supplied identifier, or
    ``std::nullopt`` if no such morphology could be found.
 
-   .. cpp:function:: std::optional<nml_morphology_data> cell_morphology(const std::string&, enum neuroml_options::value = neuroml_options::none) const
+   .. cpp:function:: std::optional<loaded_morphology> cell_morphology(const std::string&, enum neuroml_options::value = neuroml_options::none) const
 
    Return a representation of the morphology associated with the cell with the supplied identifier,
    or ``std::nullopt`` if the cell or its morphology could not be found.
@@ -697,8 +748,8 @@ namespace.
 
    .. cpp:enumerator:: allow_spherical_root
 
-   Replace a zero-length root segment of constant radius with a Y-axis aligned
-   cylindrical segment of the same radius and with length twice the radius. This
+   Replace a zero-length root segment of the constant radius with a Y-axis aligned
+   cylindrical segment of the same radius and with a length twice the radius. This
    cylinder will have the equivalent surface area to a sphere of the given radius.
 
    All child segments will connect to the centre of this cylinder, no matter the value of any ``fractionAlong`` attribute.
@@ -708,7 +759,7 @@ label dictionaries for regions corresponding to its segments and segment groups 
 and id, and a map providing the explicit list of segments contained within each defined
 segment group.
 
-.. cpp:class:: nml_morphology_data
+.. cpp:class:: nml_metadata
 
    .. cpp:member:: std::optional<std::string> cell_id
 
@@ -717,10 +768,6 @@ segment group.
    .. cpp:member:: std::string id
 
    The id attribute of the morphology.
-
-   .. cpp:member:: arb::morphology morphology
-
-   The corresponding Arbor morphology.
 
    .. cpp:member:: arb::label_dict segments
 
@@ -757,12 +804,12 @@ which is intended to identify the problematic construct within the document.
 .. cpp:class:: nml_parse_error: neuroml_exception
 
    Failure parsing an element or attribute in the NeuroML document. These
-   can be generated if the document does not confirm to the NeuroML2 schema,
+   can be generated if the document does not conform to the NeuroML2 schema,
    for example.
 
 .. cpp:class:: nml_bad_segment: neuroml_exception
 
-   A ``<segment>`` element has an improper ``id`` attribue, refers to a non-existent
+   A ``<segment>`` element has an improper ``id`` attribute, refers to a non-existent
    parent, is missing a required parent or proximal element, or otherwise is missing
    a mandatory child element or has a malformed child element.
 

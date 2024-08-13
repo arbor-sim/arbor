@@ -95,7 +95,7 @@ set(CXXOPT_WALL
 # Architectures are given by the same names that GCC uses for its
 # -mcpu or -march options.
 
-function(set_arch_target optvar arch)
+function(set_arch_target optvar optvar_cuda_guarded arch)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         # Correct compiler option unfortunately depends upon the target architecture family.
         # Extract this information from running the configured compiler with --verbose.
@@ -110,21 +110,31 @@ function(set_arch_target optvar arch)
         endforeach(line)
         string(REGEX REPLACE "-.*" "" target_model "${target}")
 
-        # Use -mcpu for all supported targets _except_ for x86 and Apple arm64, where it should be -march.
-        
+        # Figure out which flags to pass to compiler to tune for concrete
+        # architecture.
+        # See clang / gcc manuals and:
+        # https://maskray.me/blog/2022-08-28-march-mcpu-mtune
         if (CMAKE_CXX_COMPILER_ID MATCHES "AppleClang" AND CMAKE_CXX_COMPILER_VERSION LESS 15)
             set(arch_opt "")
-        else()
-            if("${target}" MATCHES "aarch64-apple-darwin" OR "${target}" MATCHES "arm64-apple-darwin")
-                set(arch_opt "-march=${arch} -mtune=${arch}")
-            elseif(target_model MATCHES "x86|i[3456]86" OR target_model MATCHES "amd64" OR target_model MATCHES "aarch64")
-                set(arch_opt "-march=${arch} -mtune=${arch}")
+        elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+            if ("${target}" MATCHES "(arm64|aarch64)-.*")
+                # on AArch64, this is correct, ...
+                set(arch_opt "-mcpu=${arch} -mtune=${arch}")
             else()
-                set(arch_opt "-mcpu=${arch}")
-            endif()
+                # ... however on x86 mcpu _is_ mtune _and_ deprecated (since 2003!), but ...
+                set(arch_opt "-march=${arch}")
+            endif ()
+        elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            # ... clang likes march (and possibly mtune)
+            # See https://discourse.llvm.org/t/when-to-use-mcpu-versus-march/47953/9
+            set(arch_opt "-march=${arch} -mtune=${arch}")
+        else ()
+            message(STATUS "Falling back to -march=${arch} for compiler ${CMAKE_CXX_COMPILER_ID}")
+            set(arch_opt "-march=${arch}")
         endif()
     endif()
 
+    set("${optvar}" "${arch_opt}" PARENT_SCOPE)
     get_property(enabled_languages GLOBAL PROPERTY ENABLED_LANGUAGES)
     if ("CUDA" IN_LIST enabled_languages)
         # Prefix architecture options with `-Xcompiler=` when compiling CUDA sources, i.e.
@@ -134,16 +144,19 @@ function(set_arch_target optvar arch)
             list(APPEND arch_opt_cuda_guarded "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>${opt}")
         endforeach()
 
-        set("${optvar}" "${arch_opt_cuda_guarded}" PARENT_SCOPE)
+        set("${optvar_cuda_guarded}" "${arch_opt_cuda_guarded}" PARENT_SCOPE)
     else()
-        set("${optvar}" "${arch_opt}" PARENT_SCOPE)
+        set("${optvar_cuda_guarded}" "${arch_opt}" PARENT_SCOPE)
     endif()
 
 endfunction()
 
 # Set ${has_sve} and ${sve_length} in parent scope according to auto detection.
 function(get_sve_length has_sve sve_length)
-    try_run(run_var cc_var ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/cmake/sve_length.cpp RUN_OUTPUT_VARIABLE out_var)
+    try_run(run_var cc_var
+        ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/cmake/sve_length.cpp
+        COMPILE_DEFINITIONS ${ARB_CXX_FLAGS_TARGET_FULL_CPU}
+        RUN_OUTPUT_VARIABLE out_var)
 
     if(NOT cc_var)
         message(FATAL_ERROR "compilation of ${PROJECT_SOURCE_DIR}/cmake/sve_length.cpp failed")

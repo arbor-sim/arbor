@@ -136,6 +136,8 @@ ls_restrict  = {'type': 'locset', 'value': [(1, 1.0), (3, 1.0), (4, 1.0)]}
 ls_proximal_translate  = {'type': 'locset', 'value': [(1, 0.35497750169352515), (2, 0.5160959062272675), (2, 0.6817468794150789), (5, 0.0)]}
 ls_distal_translate_single  = {'type': 'locset', 'value': [(0, 0.915588599565521)]}
 ls_distal_translate_multi  = {'type': 'locset', 'value': [(1, 0.5795163072671657), (3, 0.24228815992614555), (4, 0.20321157163712014)]}
+ls_comp_23  = {'type': 'locset', 'value': [(2, 0.9307207471099461)]}
+ls_comp_c34  = {'type': 'locset', 'value': [(3, 0.5), (4, 0.5)]}
 
 ############# regions (label_morph)
 

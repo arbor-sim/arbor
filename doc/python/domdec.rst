@@ -11,7 +11,7 @@ Load balancers
 .. currentmodule:: arbor
 
 Load balancing generates a :class:`domain_decomposition` given an :class:`arbor.recipe`
-and a description of the hardware on which the model will run. Currently Arbor provides
+and a description of the hardware on which the model will run. Currently, Arbor provides
 one load balancer, :func:`partition_load_balance`; and a function for creating
 custom decompositions, :func:`partition_by_group`.
 More load balancers will be added over time.
@@ -60,7 +60,7 @@ describes the cell groups on the local MPI rank.
         # Get a communication context (with 4 threads, and 1 GPU with id 0)
         context = arbor.context(threads=4, gpu_id=0)
 
-        # Initialise a recipe of user defined type my_recipe with 10 cells.
+        # Initialise a recipe of user-defined type my_recipe with 10 cells.
         n_cells = 10
         recipe = my_recipe(n_cells)
 
@@ -76,7 +76,7 @@ describes the cell groups on the local MPI rank.
         # Get a communication context (with 4 threads, and no GPU)
         context = arbor.context(threads=4, gpu_id=-1)
 
-        # Initialise a recipe of user defined type my_recipe with 10 cells.
+        # Initialise a recipe of user-defined type my_recipe with 10 cells.
         n_cells = 10
         recipe = my_recipe(n_cells)
 
@@ -141,7 +141,7 @@ An example of a partition load balance with hints reads as follows:
         # Get a communication context (with 4 threads, no GPU)
         context = arbor.context(threads=4, gpu_id=None)
 
-        # Initialise a recipe of user defined type my_recipe with 100 cells.
+        # Initialise a recipe of user-defined type my_recipe with 100 cells.
         n_cells = 100
         recipe = my_recipe(n_cells)
 

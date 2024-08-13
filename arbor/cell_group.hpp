@@ -46,9 +46,7 @@ public:
     // Probe metadata queries might also be called while a simulation is running, and so should
     // also be thread-safe.
 
-    virtual std::vector<probe_metadata> get_probe_metadata(cell_member_type) const {
-        return {};
-    }
+    virtual std::vector<probe_metadata> get_probe_metadata(const cell_address_type&) const { return {}; }
     // trampolines for serialization
     virtual void t_serialize(serializer& s, const std::string&) const = 0;
     virtual void t_deserialize(serializer& s, const std::string&)  = 0;

@@ -19,7 +19,7 @@ namespace arborio {
 
 using namespace arb;
 
-ARB_ARBORIO_API std::string acc_version() {return "0.1-dev";}
+ARB_ARBORIO_API std::string acc_version() {return "0.9-dev";}
 
 cableio_parse_error::cableio_parse_error(const std::string& msg, const arb::src_location& loc):
     arb::arbor_exception(msg+" at :"+
@@ -44,28 +44,31 @@ s_expr mksexp(const iexpr& j) {
     return parse_s_expr(s.str());
 }
 s_expr mksexp(const init_membrane_potential& p) {
-    return slist("membrane-potential"_symbol, mksexp(p.value));
+    return slist("membrane-potential"_symbol, p.value, mksexp(p.scale));
+}
+s_expr mksexp(const arb::units::quantity& p) {
+    return slist("quantity"_symbol, p.value(), s_expr(arb::units::to_string(p.units())));
 }
 s_expr mksexp(const axial_resistivity& r) {
-    return slist("axial-resistivity"_symbol, mksexp(r.value));
+    return slist("axial-resistivity"_symbol, r.value, mksexp(r.scale));
 }
-s_expr mksexp(const temperature_K& t) {
-    return slist("temperature-kelvin"_symbol, mksexp(t.value));
+s_expr mksexp(const temperature& t) {
+    return slist("temperature-kelvin"_symbol, t.value, mksexp(t.scale));
 }
 s_expr mksexp(const membrane_capacitance& c) {
-    return slist("membrane-capacitance"_symbol, mksexp(c.value));
+    return slist("membrane-capacitance"_symbol, c.value, mksexp(c.scale));
 }
 s_expr mksexp(const init_int_concentration& c) {
-    return slist("ion-internal-concentration"_symbol, s_expr(c.ion), mksexp(c.value));
+    return slist("ion-internal-concentration"_symbol, s_expr(c.ion), c.value, mksexp(c.scale));
 }
 s_expr mksexp(const init_ext_concentration& c) {
-    return slist("ion-external-concentration"_symbol, s_expr(c.ion), mksexp(c.value));
+    return slist("ion-external-concentration"_symbol, s_expr(c.ion), c.value, mksexp(c.scale));
 }
 s_expr mksexp(const init_reversal_potential& c) {
-    return slist("ion-reversal-potential"_symbol, s_expr(c.ion), mksexp(c.value));
+    return slist("ion-reversal-potential"_symbol, s_expr(c.ion), c.value, mksexp(c.scale));
 }
 s_expr mksexp(const ion_diffusivity& c) {
-    return slist("ion-diffusivity"_symbol, s_expr(c.ion), mksexp(c.value));
+    return slist("ion-diffusivity"_symbol, s_expr(c.ion), c.value, mksexp(c.scale));
 }
 s_expr mksexp(const i_clamp& c) {
     std::vector<s_expr> evlps;
@@ -135,8 +138,10 @@ s_expr mksexp(const decor& d) {
             { return slist("paint"_symbol, round_trip(p.first), mksexp(x)); }, p.second));
     }
     for (const auto& p: d.placements()) {
-        decorations.push_back(std::visit([&](auto& x)
-            { return slist("place"_symbol, round_trip(std::get<0>(p)), mksexp(x), s_expr(std::get<2>(p))); }, std::get<1>(p)));
+        decorations.push_back(std::visit([&](auto& x) {
+            auto lbl = d.tag_of(std::get<2>(p));
+            return slist("place"_symbol, round_trip(std::get<0>(p)), mksexp(x), s_expr(lbl));
+        }, std::get<1>(p)));
     }
     return {"decor"_symbol, slist_range(decorations)};
 }
@@ -222,15 +227,13 @@ using branch_tuple   = std::tuple<int,int,std::vector<arb::msegment>>;
 using version_tuple  = std::tuple<std::string>;
 
 // Define makers for defaultables, paintables, placeables
-#define ARBIO_DEFINE_ONE_ARG(name) arb::name make_##name(double val) { return arb::name{val};}
+#define ARBIO_DEFINE_ONE_ARG(name) arb::name make_##name(double val) { return arb::name(val);}
 #define ARBIO_DEFINE_ION_ARG(name) arb::name make_##name(const std::string& ion, double val) { return arb::name{ion, val};}
-#define ARBIO_DEFINE_IEXPR_ION_ARG(name) arb::name make_##name(const std::string& ion, iexpr val) { return arb::name{ion, val};}
-#define ARBIO_DEFINE_IEXPR_ARG(name) arb::name make_##name(iexpr val) { return arb::name{val}; }
+#define ARBIO_DEFINE_IEXPR_ION_ARG(name) arb::name make_##name(const std::string& ion, double base, iexpr scale) { arb::name res; res.ion = ion; res.value = base; res.scale = scale; return res; }
+#define ARBIO_DEFINE_IEXPR_ARG(name) arb::name make_##name(double base, iexpr scale) { arb::name res; res.value = base; res.scale = scale; return res; }
 
-ARB_PP_FOREACH(ARBIO_DEFINE_ONE_ARG, threshold_detector)
-ARB_PP_FOREACH(ARBIO_DEFINE_IEXPR_ARG, init_membrane_potential, temperature_K, axial_resistivity, membrane_capacitance)
-ARB_PP_FOREACH(ARBIO_DEFINE_ION_ARG, ion_diffusivity)
-ARB_PP_FOREACH(ARBIO_DEFINE_IEXPR_ION_ARG, init_int_concentration, init_ext_concentration, init_reversal_potential)
+ARB_PP_FOREACH(ARBIO_DEFINE_IEXPR_ARG, init_membrane_potential, temperature, axial_resistivity, membrane_capacitance)
+ARB_PP_FOREACH(ARBIO_DEFINE_IEXPR_ION_ARG, ion_diffusivity, init_int_concentration, init_ext_concentration, init_reversal_potential)
 
 #undef ARBIO_DEFINE_ONE_ARG
 #undef ARBIO_DEFINE_ION_ARG
@@ -242,18 +245,22 @@ std::vector<arb::i_clamp::envelope_point> make_envelope(const std::vector<std::v
     std::transform(vec.begin(), vec.end(), std::back_inserter(envlp),
         [](const auto& x) {
             auto t = std::get<envelope_tuple>(x);
-            return arb::i_clamp::envelope_point{std::get<0>(t), std::get<1>(t)};
+            return arb::i_clamp::envelope_point{std::get<0>(t)*arb::units::ms, std::get<1>(t)*arb::units::nA};
         });
     return envlp;
 }
 arb::i_clamp make_i_clamp(const std::vector<arb::i_clamp::envelope_point>& envlp, double freq, double phase) {
-    return arb::i_clamp(envlp, freq, phase);
+    return arb::i_clamp(envlp, freq*arb::units::kHz, phase*arb::units::rad);
 }
 pulse_tuple make_envelope_pulse(double delay, double duration, double amplitude) {
     return pulse_tuple{delay, duration, amplitude};
 }
 arb::i_clamp make_i_clamp_pulse(const pulse_tuple& p, double freq, double phase) {
-    return arb::i_clamp::box(std::get<0>(p), std::get<1>(p), std::get<2>(p), freq, phase);
+    return arb::i_clamp::box(std::get<0>(p)*arb::units::ms,
+                             std::get<1>(p)*arb::units::ms,
+                             std::get<2>(p)*arb::units::nA,
+                             freq*arb::units::kHz,
+                             phase*arb::units::rad);
 }
 arb::cv_policy make_cv_policy(const cv_policy& p) {
     return p;
@@ -282,9 +289,9 @@ decor make_decor(const std::vector<std::variant<place_tuple, paint_pair, default
     decor d;
     for(const auto& a: args) {
         auto decor_visitor = arb::util::overload(
-            [&](const place_tuple & p) { d.place(std::get<0>(p), std::get<1>(p), std::get<2>(p)); },
-            [&](const paint_pair & p) { d.paint(p.first, p.second); },
-            [&](const defaultable & p){ d.set_default(p); });
+            [&](const place_tuple& p) { d.place(std::get<0>(p), std::get<1>(p), std::get<2>(p)); },
+            [&](const paint_pair& p) { d.paint(p.first, p.second); },
+            [&](const defaultable& p){ d.set_default(p); });
         std::visit(decor_visitor, a);
     }
     return d;
@@ -650,26 +657,21 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_
     return util::unexpected(cableio_parse_error("Expression is not integer, real expression of the form (op <args>) nor tuple of the form (e0 e1 ... en)", location(e)));
 }
 
-#define ARBIO_ADD_EVAL(name, fun, ty) { name, make_call<ty>(fun, "'" name "' with 1 argument (val:" #ty ")") }
-#define ARBIO_ADD_ION_EVAL(name, fun, ty) { name, make_call<std::string, ty>(fun, "'" name "' with 2 argument (ion:string, val:" #ty ")") }
+arb::units::quantity make_quantity(double v, std::string u) { return v*arb::units::unit_cast_from_string(u); }
+
+#define ARBIO_ADD_EVAL(name, fun) { name, make_call<double, iexpr>(fun, "'" name "' with 2 arguments: val:real and ex:iexpr") }
+#define ARBIO_ADD_ION_EVAL(name, fun) { name, make_call<std::string, double, iexpr>(fun, "'" name "' with 3 arguments: ion:string, val:real, and ex:iexpr") }
 
 eval_map named_evals{
-    ARBIO_ADD_EVAL("membrane-potential", make_init_membrane_potential, double),
-    ARBIO_ADD_EVAL("membrane-potential", make_init_membrane_potential, iexpr),
-    ARBIO_ADD_EVAL("temperature-kelvin", make_temperature_K, double),
-    ARBIO_ADD_EVAL("temperature-kelvin", make_temperature_K, iexpr),
-    ARBIO_ADD_EVAL("axial-resistivity", make_axial_resistivity, double),
-    ARBIO_ADD_EVAL("axial-resistivity", make_axial_resistivity, iexpr),
-    ARBIO_ADD_EVAL("membrane-capacitance", make_membrane_capacitance, double),
-    ARBIO_ADD_EVAL("membrane-capacitance", make_membrane_capacitance, iexpr),
-    ARBIO_ADD_ION_EVAL("ion-internal-concentration", make_init_int_concentration, double),
-    ARBIO_ADD_ION_EVAL("ion-internal-concentration", make_init_int_concentration, iexpr),
-    ARBIO_ADD_ION_EVAL("ion-external-concentration", make_init_ext_concentration, double),
-    ARBIO_ADD_ION_EVAL("ion-external-concentration", make_init_ext_concentration, iexpr),
-    ARBIO_ADD_ION_EVAL("ion-reversal-potential", make_init_reversal_potential, double),
-    ARBIO_ADD_ION_EVAL("ion-reversal-potential", make_init_reversal_potential, iexpr),
-    ARBIO_ADD_ION_EVAL("ion-diffusivity", make_ion_diffusivity, double),
-    // Intentionally left out! ARBIO_ADD_ION_EVAL("ion-diffusivity", make_ion_diffusivity, iexpr),
+    ARBIO_ADD_EVAL("membrane-potential", make_init_membrane_potential),
+    ARBIO_ADD_EVAL("temperature-kelvin", make_temperature),
+    ARBIO_ADD_EVAL("axial-resistivity", make_axial_resistivity),
+    ARBIO_ADD_EVAL("membrane-capacitance", make_membrane_capacitance),
+    ARBIO_ADD_ION_EVAL("ion-internal-concentration", make_init_int_concentration),
+    ARBIO_ADD_ION_EVAL("ion-external-concentration", make_init_ext_concentration),
+    ARBIO_ADD_ION_EVAL("ion-reversal-potential", make_init_reversal_potential),
+    ARBIO_ADD_ION_EVAL("ion-diffusivity", make_ion_diffusivity),
+    {"quantity", make_call<double, std::string>(make_quantity, "'quantity' with a value:real and a unit:string")},
     {"envelope", make_arg_vec_call<envelope_tuple>(make_envelope,
         "'envelope' with one or more pairs of start time and amplitude (start:real amplitude:real)")},
     {"envelope-pulse", make_call<double, double, double>(make_envelope_pulse,
@@ -678,7 +680,7 @@ eval_map named_evals{
         "'current-clamp' with 3 arguments (env:envelope freq:real phase:real)")},
     {"current-clamp", make_call<pulse_tuple, double, double>(make_i_clamp_pulse,
         "'current-clamp' with 3 arguments (env:envelope_pulse freq:real phase:real)")},
-    {"threshold-detector", make_call<double>(make_threshold_detector,
+    {"threshold-detector", make_call<double>(arb::threshold_detector::from_raw_millivolts,
         "'threshold-detector' with 1 argument (threshold:real)")},
     {"mechanism", make_mech_call("'mechanism' with a name argument, and 0 or more parameter settings"
         "(name:string (param:string val:real))")},
@@ -698,7 +700,7 @@ eval_map named_evals{
     {"place", make_call<locset, synapse, std::string>(make_place, "'place' with 3 arguments (ls:locset mech:synapse name:string)")},
 
     {"paint", make_call<region, init_membrane_potential>(make_paint, "'paint' with 2 arguments (reg:region v:membrane-potential)")},
-    {"paint", make_call<region, temperature_K>(make_paint, "'paint' with 2 arguments (reg:region v:temperature-kelvin)")},
+    {"paint", make_call<region, temperature>(make_paint, "'paint' with 2 arguments (reg:region v:temperature-kelvin)")},
     {"paint", make_call<region, membrane_capacitance>(make_paint, "'paint' with 2 arguments (reg:region v:membrane-capacitance)")},
     {"paint", make_call<region, axial_resistivity>(make_paint, "'paint' with 2 arguments (reg:region v:axial-resistivity)")},
     {"paint", make_call<region, init_int_concentration>(make_paint, "'paint' with 2 arguments (reg:region v:ion-internal-concentration)")},
@@ -709,7 +711,7 @@ eval_map named_evals{
     {"paint", make_call<region, scaled_mechanism<density>>(make_paint, "'paint' with 2 arguments (reg:region v:scaled-mechanism)")},
 
     {"default", make_call<init_membrane_potential>(make_default, "'default' with 1 argument (v:membrane-potential)")},
-    {"default", make_call<temperature_K>(make_default, "'default' with 1 argument (v:temperature-kelvin)")},
+    {"default", make_call<temperature>(make_default, "'default' with 1 argument (v:temperature-kelvin)")},
     {"default", make_call<membrane_capacitance>(make_default, "'default' with 1 argument (v:membrane-capacitance)")},
     {"default", make_call<axial_resistivity>(make_default, "'default' with 1 argument (v:axial-resistivity)")},
     {"default", make_call<init_int_concentration>(make_default, "'default' with 1 argument (v:ion-internal-concentration)")},

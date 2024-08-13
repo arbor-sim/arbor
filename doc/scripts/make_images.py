@@ -458,6 +458,15 @@ def generate(path=""):
         path + "/distal_translate_label.svg",
     )
 
+    label_image(
+        inputs.label_morph,
+        [
+            inputs.ls_comp_23,
+            inputs.ls_comp_c34,
+        ],
+        path + "/connected_components.svg",
+    )
+
     ####################### regions
 
     label_image(
