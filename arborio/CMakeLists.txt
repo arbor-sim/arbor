@@ -10,7 +10,6 @@ set(arborio-sources
     nml_parse_morphology.cpp
     debug.cpp)
 
-
 add_library(arborio ${arborio-sources})
 
 if (ARB_USE_BUNDLED_PUGIXML)
