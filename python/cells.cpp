@@ -138,9 +138,9 @@ std::optional<arb::mechanism_desc> maybe_method(py::object method) {
 
 std::string lif_str(const arb::lif_cell& c){
     return util::pprintf(
-        "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, V_m {}, t_ref {}>",
+        "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, E_R {}, V_m {}, t_ref {}>",
         U::to_string(c.tau_m), U::to_string(c.V_th), U::to_string(c.C_m),
-        U::to_string(c.E_L), U::to_string(c.V_m), U::to_string(c.t_ref));
+        U::to_string(c.E_L), U::to_string(c.E_R), U::to_string(c.V_m), U::to_string(c.t_ref));
 }
 
 
