@@ -263,6 +263,7 @@ void register_cells(py::module& m) {
                std::optional<U::quantity> V_th,
                std::optional<U::quantity> C_m,
                std::optional<U::quantity> E_L,
+               std::optional<U::quantity> E_R,
                std::optional<U::quantity> V_m,
                std::optional<U::quantity> t_ref) {
                 auto cell = arb::lif_cell{std::move(source_label), std::move(target_label)};
@@ -270,18 +271,20 @@ void register_cells(py::module& m) {
                 if (V_th) cell.V_th = *V_th;
                 if (C_m) cell.C_m = *C_m;
                 if (E_L) cell.E_L = *E_L;
+                if (E_R) cell.E_R = *E_R;
                 if (V_m) cell.V_m = *V_m;
                 if (t_ref) cell.t_ref = *t_ref;
                 return cell;
             }),
             "source_label"_a, "target_label"_a,
-             py::kw_only(), "tau_m"_a=py::none(), "V_th"_a=py::none(), "C_m"_a=py::none(), "E_L"_a=py::none(), "V_m"_a=py::none(), "t_ref"_a=py::none(),
+             py::kw_only(), "tau_m"_a=py::none(), "V_th"_a=py::none(), "C_m"_a=py::none(), "E_L"_a=py::none(), "E_R"_a=py::none(), "V_m"_a=py::none(), "t_ref"_a=py::none(),
              "Construct a lif cell with one source labeled 'source_label', and one target labeled 'target_label'."
              "Can optionally take physical parameters:\n"
              " * tau_m: Membrane potential decaying constant [ms].\n"
              " * V_th: Firing threshold [mV].\n"
              " * C_m: Membrane capacitance [pF].\n"
              " * E_L: Resting potential [mV].\n"
+             " * E_R: Reset potential [mV].\n"
              " * V_m: Initial value of the Membrane potential [mV].\n"
              " * t_ref: Refractory period [ms].")
         .def_readwrite("tau_m", &arb::lif_cell::tau_m,
