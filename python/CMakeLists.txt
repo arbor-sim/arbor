@@ -123,6 +123,7 @@ if(HAVE_PYBIND11_STUBGEN)
                      COMMAND
                        PYTHONPATH=${CMAKE_BINARY_DIR}/python:$ENV{PYTHONPATH} pybind11-stubgen -o ${CMAKE_BINARY_DIR}/stubs arbor
                      BYPRODUCTS ${CMAKE_BINARY_DIR}/stubs
+                     USES_TERMINAL
                      COMMENT "Generating type stubs")
 endif()
 
