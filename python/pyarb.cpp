@@ -65,13 +65,13 @@ PYBIND11_MODULE(_arbor, m) {
     pyarb::register_cable_loader(m);
     pyarb::register_config(m);
     pyarb::register_contexts(m);
+    pyarb::register_network(m);
     pyarb::register_recipe(m);
     pyarb::register_domain_decomposition(m);
     pyarb::register_profiler(m);
     pyarb::register_simulation(m, global_ptr);
     pyarb::register_arborenv(m);
     pyarb::register_single_cell(m);
-    pyarb::register_network(m);
     #ifdef ARB_MPI_ENABLED
     pyarb::register_mpi(m);
     pyarb::register_remote(m);
