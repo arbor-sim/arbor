@@ -1,6 +1,3 @@
-#include <iostream>
-#include <fstream>
-
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/morph/segment_tree.hpp>
