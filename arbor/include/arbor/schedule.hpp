@@ -109,6 +109,7 @@ schedule ARB_ARBOR_API regular_schedule(const units::quantity& dt);
 schedule ARB_ARBOR_API explicit_schedule(const std::vector<units::quantity>& seq);
 schedule ARB_ARBOR_API explicit_schedule_from_milliseconds(const std::vector<time_type>& seq);
 
+/// Poisson point process schedule.
 schedule ARB_ARBOR_API poisson_schedule(const units::quantity& tstart,
                                         const units::quantity& rate,
                                         seed_type seed=default_seed,

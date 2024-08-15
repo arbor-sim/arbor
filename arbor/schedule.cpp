@@ -32,19 +32,16 @@ struct poisson_schedule_impl {
     time_event_span events(time_type t0, time_type t1) {
         // if we start after the maximal allowed time, we have nothing to do
         if (t0 >= tstop_) return {};
-
         // restrict by maximal allowed time
         t1 = std::min(t1, tstop_);
-
-        times_.clear();
-
+        // advance to start time
         while (next_ < t0) { step(); }
-
+        // record events in [t0, t1)
+        times_.clear();
         while (next_ < t1) {
             times_.push_back(next_);
             step();
         }
-
         return as_time_event_span(times_);
     }
 

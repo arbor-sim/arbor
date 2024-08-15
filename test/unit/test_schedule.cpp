@@ -207,7 +207,7 @@ TEST(schedule, poisson_uniformity) {
 
     constexpr int N = 1001;
     //constexpr double alpha = 0.01;
-    constexpr double chi2_lb = 888.56352318146696;
+    constexpr double chi2_lb =  888.56352318146696;
     constexpr double chi2_ub = 1118.9480663231843;
 
     double dispersion = poisson_schedule_dispersion(N, .813);
