@@ -119,8 +119,8 @@ class TestPoissonSchedule(unittest.TestCase):
         # lifted and generalized from underlying C++ unit tests (see there).
         # Test that the number of events in a fixed bucket conforms to
         # a Poisson distribution.
-        chi2_lb =  888.56352318146696;
-        chi2_ub = 1118.9480663231843;
+        chi2_lb = 888.56352318146696
+        chi2_ub = 1118.9480663231843
         T = 1001.0
         for seed in range(10):
             pss = A.poisson_schedule(tstart=0.0 * U.ms, freq=8.13 * U.kHz, seed=seed)
@@ -128,7 +128,7 @@ class TestPoissonSchedule(unittest.TestCase):
             pdf = np.zeros(shape=int(T))
             for t in evs:
                 pdf[int(t)] += 1
-            dsp = T*np.mean(pdf)/np.var(pdf)
+            dsp = T * np.mean(pdf) / np.var(pdf)
             self.assertLess(dsp, chi2_ub)
             self.assertGreater(dsp, chi2_lb)
 
