@@ -10,7 +10,7 @@ Arbor Cable Cell
 
 We define an s-expression format for describing :ref:`cable cells <cablecell>`.
 Cable cells are constructed from three components: a :ref:`label dictionary <labels>`,
-a :ref:`decoration object <cablecell-decoration>` and a :ref:`morphology <morph>`.
+a :ref:`decoration object <cablecell-decoration>`, and a :ref:`morphology <morph>`.
 The cable cell *format* is constructed in the same way.
 
 .. Note::
@@ -63,14 +63,14 @@ The components of the label dictionary are the following:
 
       (iexpr-def "my_iexpr" (radius 0.5))
 
-   This expression identifies the radius iexpr with a scaling factor 0.5.
+   This expression identifies the radius iexpr with a scaling factor of 0.5.
 
 
-Any number of locset, region an iexpr definitions can be grouped in a label dictionary as follows:
+Any  definition of a locset, region, or iexpr can be stored in a label dictionary as follows.
 
 .. label:: (label-dict [...def:region-def/locset-def/iexpr-def])
 
-   This describes a label dictionary of zero or more region, locset and iexpr definitons.
+   This describes a label dictionary of zero or more region, locset, and iexpr definitons.
    For example:
 
    .. code:: lisp

@@ -194,9 +194,9 @@ void run_samples(
     fvm_probe_scratch& scratch)
 {
     const sample_size_type n_raw_per_sample = p.raw_handles.size();
-    sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
-    arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
-    arb_assert((unsigned)n_raw_per_sample==p.weight.size());
+    sample_size_type n_sample = (sc.end_offset - sc.begin_offset)/n_raw_per_sample;
+    arb_assert((sc.end_offset - sc.begin_offset)==n_sample*n_raw_per_sample);
+    arb_assert((unsigned)n_raw_per_sample == p.weight.size());
 
     auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
     sample_ranges.clear();
@@ -228,14 +228,12 @@ void run_samples(
     sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
 }
 
-void run_samples(
-    const fvm_probe_interpolated_multi& p,
-    const sampler_call_info& sc,
-    const arb_value_type* raw_times,
-    const arb_value_type* raw_samples,
-    std::vector<sample_record>& sample_records,
-    fvm_probe_scratch& scratch)
-{
+void run_samples(const fvm_probe_interpolated_multi& p,
+                 const sampler_call_info& sc,
+                 const arb_value_type* raw_times,
+                 const arb_value_type* raw_samples,
+                 std::vector<sample_record>& sample_records,
+                 fvm_probe_scratch& scratch) {
     const sample_size_type n_raw_per_sample = p.raw_handles.size();
     const sample_size_type n_interp_per_sample = n_raw_per_sample/2;
     sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;

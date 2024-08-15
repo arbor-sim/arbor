@@ -10,7 +10,7 @@ the simulation state to this point in time. The saved data is not a complete
 image of the state, but strives to be a minimal subset from which to restore
 (see :ref:`below <impl guide>`).
 
-Checkpoints are currently *not* portable; i.e. the following constraints apply:
+Checkpoints are currently *not* portable; i.e., the following constraints apply:
 
 1. The recipe class must be the same across ``serialize`` / ``deserialize``
    Unfortunately, we cannot enforce this at runtime, since we lack the
@@ -34,8 +34,8 @@ Usage
 -----
 
 In Python serialization is performed by calling the ``serialize`` method on a
-``simulation`` object. Currently only support for (de)serialization from/to JSON
-strings is offered. The general usage is show in the examples below; we assume
+``simulation`` object. Currently, only support for (de)serialization from/to JSON
+strings is offered. The general usage is shown in the examples below; we assume
 some familiarity with the recipe interface:
 
 .. code:: python
@@ -87,7 +87,7 @@ Writing your own Storage Engine (C++ only)
 ------------------------------------------
 
 A storage engine is used to construct the serializer and is responsible for
-writing out the data to whatever format and location required. Currently Arbor
+writing out the data in whatever format and location required. Currently, Arbor
 offers a JSON engine in ``arborio/json_serdes.hpp`` which produces a JSON value
 in memory. The serializer is polymorphic in the actual engine, which is only
 required to implement the following interface.
@@ -125,20 +125,20 @@ the relevant items. The ``begin_write_array`` and ``end_write_array`` methods
 bracket a write of an array value and announce that the following keys are to
 be interpreted as integer indices. Analogous for the ``map`` counterparts and
 the associated ``begin_read`` and ``end_read`` methods. Finally, ``next_key`` is
-used during reading of containers to retrieve an optional next key and advanced
+used during the reading of containers to retrieve an optional next key and advances
 the internal iterator. If empty, the container is exhausted, else the contained
-key can be used to retrieve the associated value. See examples below and the JSON
+key can be used to retrieve the associated value. See the examples below and the JSON
 interface in ``arborio``.
 
 
 Adding Snapshotting to new Objects (C++ only)
 ---------------------------------------------
 
-This is not available at the Python interface, due to a mismatch in features at
-the level of languages and binings generation.
+This is not available at the Python interface due to a mismatch in features at
+the level of languages and bindings generation.
 
 All that is needed is to implement new overloads of the functions ``read`` and
-``write``. For many C++ native types these exist, but some might be missing.
+``write``. For many C++ native types, these exist, but some might be missing.
 Likewise, your own class hierarchy might need serialization. For a given type
 ``T`` the signatures are
 
@@ -153,7 +153,7 @@ and the key type ``K`` must be converted to the internal key type
 ``arb::key_type``. A convenience function ``key_type to_key(const K&)`` is
 offered which works for integral and string types.
 
-Array-like values -- eg vectors and similar -- are stored like this
+Array-like values -- e.g., vectors and similar -- are stored like this
 
 .. code:: c++
 
@@ -237,7 +237,7 @@ constructed externally, don't store them.
 - anything that will be constructed from the recipe: connections, cells, ...
 - anything set by the user: samples, time step width, ...
 
-**Do** store mutable state, like
+**Do** store mutable states, like
 
 - voltages, ion concentrations, current time, ... (``backends/*/shared_state.hpp``)
 - mechanism state

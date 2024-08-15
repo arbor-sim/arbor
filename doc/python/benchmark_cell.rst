@@ -29,4 +29,4 @@ Benchmark cells
 
         :param schedule: User-defined sequence of time points (choose from :class:`arbor.regular_schedule`, :class:`arbor.explicit_schedule`, or :class:`arbor.poisson_schedule`).
 
-        :param realtime_ratio: Time taken to integrate a cell, for example if ``realtime_ratio`` = 2, a cell will take 2 seconds of CPU time to simulate 1 second.
+        :param realtime_ratio: Time taken to integrate a cell; for example, if ``realtime_ratio`` = 2, a cell will take 2 seconds of CPU time to simulate 1 second.

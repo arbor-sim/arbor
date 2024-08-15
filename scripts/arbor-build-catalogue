@@ -296,7 +296,7 @@ with TemporaryDirectory() as tmp:
     sfx = [".hpp"]
     if cpu:
         sfx += ["_cpu.cpp"]
-    if gpu:
+    if gpu and gpu != 'none':
         sfx += ["_gpu.cpp", "_gpu.cu"]
     for e in raw:
         for s in sfx:

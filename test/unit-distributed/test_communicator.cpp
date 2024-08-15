@@ -216,7 +216,7 @@ namespace {
 
         std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
             // a single connection from the preceding cell, i.e. a ring
-            // weight is the destination gid
+            // weight is the target gid
             // delay is 1
             cell_global_label_type src = {gid==0? size_-1: gid-1, "src"};
             cell_local_label_type dst = {"tgt"};
@@ -529,7 +529,7 @@ TEST(communicator, ring)
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids(local_sources);
 
     // construct the communicator
-    auto C = communicator(R, D, *g_context);
+    auto C = communicator(R, D, g_context);
     C.update_connections(R, D, label_resolution_map(global_sources), label_resolution_map(local_targets));
     // every cell fires
     EXPECT_TRUE(test_ring(D, C, [](cell_gid_type g){return true;}));
@@ -637,7 +637,7 @@ TEST(communicator, all2all)
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, mc_gids});
 
     // construct the communicator
-    auto C = communicator(R, D, *g_context);
+    auto C = communicator(R, D, g_context);
     C.update_connections(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, mc_gids}));
     auto connections = C.connections();
 
@@ -684,7 +684,7 @@ TEST(communicator, mini_network)
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, gids});
 
     // construct the communicator
-    auto C = communicator(R, D, *g_context);
+    auto C = communicator(R, D, g_context);
     C.update_connections(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}));
 
     // sort connections by source then target

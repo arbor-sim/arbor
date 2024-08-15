@@ -22,7 +22,7 @@ Documentation for the data structures used to describe domain decompositions.
     the local domain, and a helper member (:cpp:member:`gid_domain`) used to
     look up which domain a cell has been assigned to.
     The :cpp:class:`domain_decomposition` object also has meta-data about the
-    number of cells in the global model, and the number of domains over which
+    number of cells in the global model and the number of domains over which
     the model is distributed.
 
     .. Note::
@@ -53,7 +53,7 @@ Documentation for the data structures used to describe domain decompositions.
             to be executed on the local rank, categorized into groups.
 
         It's expected that a different :cpp:class:`arb::domain_decomposition` object will be constructed on
-        each rank in a distributed simulation containing that selected cell groups for that rank.
+        each rank in a distributed simulation containing the selected cell groups for that rank.
         For example, in a simulation of 10 cells on 2 MPI ranks where cells {0, 2, 4, 6, 8} of kind
         :class:`cable_cell` are meant to be in a single group executed on the GPU on rank 0;
         and cells {1, 3, 5, 7, 9} of kind :class:`lif_cell` are expected to be in a single group executed
@@ -141,7 +141,7 @@ Documentation for the data structures used to describe domain decompositions.
 
 .. cpp:class:: group_description
 
-    The indexes of a set of cells of the same kind that are group together in a
+    The indexes of a set of cells of the same kind that are grouped together in a
     cell group in a :cpp:class:`arb::simulation`.
 
     .. cpp:function:: group_description(cell_kind k, std::vector<cell_gid_type> g, backend_kind b)
@@ -182,7 +182,7 @@ Load balancers
 --------------
 
 Load balancing generates a :cpp:class:`domain_decomposition` given an :cpp:class:`arb::recipe`
-and a description of the hardware on which the model will run. Currently Arbor provides
+and a description of the hardware on which the model will run. Currently, Arbor provides
 one load balancer, :cpp:func:`partition_load_balance`, and more will be added over time.
 
 If the model is distributed with MPI, the partitioning algorithm for cells is
@@ -198,7 +198,7 @@ describes the cell groups on the local MPI rank.
     The algorithm counts the number of each cell type in the global model, then
     partitions the cells of each type equally over the available nodes.
     If a GPU is available, and if the cell type can be run on the GPU, the
-    cells on each node are put one large group to maximise the amount of fine
+    cells on each node are put in one large group to maximise the amount of fine
     grained parallelism in the cell group.
     Otherwise, cells are grouped into small groups that fit in cache, and can be
     distributed over the available cores.

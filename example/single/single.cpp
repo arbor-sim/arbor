@@ -29,11 +29,13 @@ struct options {
 };
 
 options parse_options(int argc, char** argv);
-arb::morphology default_morphology();
-arb::morphology read_swc(const std::string& path);
+arborio::loaded_morphology default_morphology();
 
 struct single_recipe: public arb::recipe {
-    explicit single_recipe(arb::morphology m, arb::cv_policy pol): morpho(std::move(m)) {
+    explicit single_recipe(arborio::loaded_morphology m, arb::cv_policy pol, float w):
+        morpho(std::move(m.morphology)),
+        syn_weight{w}
+    {
         gprop.default_parameters = arb::neuron_parameter_defaults;
         gprop.default_parameters.discretization = pol;
     }
@@ -74,14 +76,21 @@ struct single_recipe: public arb::recipe {
         return arb::cable_cell(morpho, decor, dict);
     }
 
+    std::vector<arb::event_generator> event_generators(arb::cell_gid_type) const override {
+        return {arb::explicit_generator_from_milliseconds({"synapse"}, syn_weight, std::vector{1.0})};
+    }
+
     arb::morphology morpho;
     arb::cable_cell_global_properties gprop;
+    float syn_weight;
 };
 
 int main(int argc, char** argv) {
     try {
         options opt = parse_options(argc, argv);
-        single_recipe R(opt.swc_file.empty()? default_morphology(): read_swc(opt.swc_file), opt.policy);
+        single_recipe R(opt.swc_file.empty() ? default_morphology() : arborio::load_swc_arbor(opt.swc_file),
+                        opt.policy,
+                        opt.syn_weight);
 
         arb::simulation sim(R);
 
@@ -90,12 +99,6 @@ int main(int argc, char** argv) {
         sim.add_sampler(arb::all_probes,
                         arb::regular_schedule(0.1*arb::units::ms),
                         arb::make_simple_sampler(traces));
-
-        // Trigger the single synapse (target is gid 0, index 0) at t = 1 ms
-        // with the given weight.
-        arb::spike_event spike = {0, 1., opt.syn_weight};
-        arb::cell_spike_events cell_spikes = {0, {spike}};
-        sim.inject_events({cell_spikes});
 
         sim.run(opt.t_end*arb::units::ms, opt.dt*arb::units::ms);
 
@@ -143,18 +146,14 @@ options parse_options(int argc, char** argv) {
 // of length 200 µm and radius decreasing linearly from 0.5 µm
 // to 0.2 µm.
 
-arb::morphology default_morphology() {
+arborio::loaded_morphology default_morphology() {
     arb::segment_tree tree;
 
     tree.append(arb::mnpos, { -6.3, 0.0, 0.0, 6.3}, {  6.3, 0.0, 0.0, 6.3}, 1);
     tree.append(         0, {  6.3, 0.0, 0.0, 0.5}, {206.3, 0.0, 0.0, 0.2}, 3);
 
-    return arb::morphology(tree);
-}
+    auto labels = arb::label_dict{};
+    labels.add_swc_tags();
 
-arb::morphology read_swc(const std::string& path) {
-    std::ifstream f(path);
-    if (!f) throw std::runtime_error("unable to open SWC file: "+path);
-
-    return arborio::load_swc_arbor(arborio::parse_swc(f));
+    return {tree, {tree}, labels};
 }

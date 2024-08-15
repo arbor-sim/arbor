@@ -4,7 +4,7 @@ Numerical methods
 ===================================
 
 Here we document which numerical methods are applied to solve
-the differential equations of the cable cells and mechansims.
+the differential equations of the cable cells and mechanisms.
 
 Passive cable
 -------------

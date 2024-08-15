@@ -6,7 +6,9 @@ set(arborio-sources
     cv_policy_parse.cpp
     label_parse.cpp
     neuroml.cpp
-    nml_parse_morphology.cpp)
+    networkio.cpp
+    nml_parse_morphology.cpp
+    debug.cpp)
 
 add_library(arborio ${arborio-sources})
 

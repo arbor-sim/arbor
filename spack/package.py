@@ -13,11 +13,18 @@ class Arbor(CMakePackage, CudaPackage):
     homepage = "https://arbor-sim.org"
     git = "https://github.com/arbor-sim/arbor.git"
     url = "https://github.com/arbor-sim/arbor/releases/download/v0.8.1/arbor-v0.9.0-full.tar.gz"
-    maintainers = ("thorstenhater", "brenthuisman", "haampie")
+    maintainers = ("thorstenhater", "haampie")
     submodules = True
 
     version("master", branch="master", submodules=True)
     version("develop", branch="master", submodules=True)
+    version(
+        "0.10.0",
+        sha256="6b6cc900b85fbf833fae94817b9406a0d690dc28",
+        url="https://github.com/arbor-sim/arbor/releases/download/v0.10.1/arbor-v0.10.0-full.tar.gz",
+        submodules=True,
+    )
+
     version(
         "0.9.0",
         sha256="5f9740955c821aca81e23298c17ad64f33f635756ad9b4a0c1444710f564306a",
@@ -82,15 +89,19 @@ class Arbor(CMakePackage, CudaPackage):
     # misc dependencies
     depends_on("fmt@7.1:", when="@0.5.3:")  # required by the modcc compiler
     depends_on("fmt@9.1:", when="@0.7.1:")
-    depends_on("fmt@10.0:", when="@0.9.1:")
+    depends_on("fmt@10.2:", when="@0.9.1:")
+    depends_on("fmt@10.2:", when="@0.10.0:")
     depends_on("googletest@1.12.1:", when="@0.7.1:")
     depends_on("pugixml@1.11:", when="@0.7.1:")
     depends_on("pugixml@1.13:", when="@0.9.1:")
-    depends_on("nlohmann-json@3.11.2:")
+    depends_on("pugixml@1.14:", when="@0.10.0:")
+    depends_on("nlohmann-json@3.11.3:")
     depends_on("random123@1.14.0:")
     with when("+cuda"):
         depends_on("cuda@10:")
         depends_on("cuda@11:", when="@0.7.1:")
+        depends_on("cuda@12:", when="@0.9.1:")
+        depends_on("cuda@12:", when="@0.10.0:")
 
     # mpi
     depends_on("mpi", when="+mpi")
@@ -100,15 +111,17 @@ class Arbor(CMakePackage, CudaPackage):
     with when("+python"):
         extends("python")
         depends_on("python@3.7:", type=("build", "run"))
-        depends_on("python@3.8:", when="@0.9.1:", type=("build", "run"))
+        depends_on("python@3.9:", when="@0.9.1:", type=("build", "run"))
         depends_on("py-numpy", type=("build", "run"))
         depends_on("py-pybind11@2.6:", type="build")
         depends_on("py-pybind11@2.8.1:", when="@0.5.3:", type="build")
         depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
+        depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
+        depends_on("py-pybind11@2.10.1:", when="@2.11.1:", type="build")
 
     # sphinx based documentation
     with when("+doc"):
-        depends_on("python@3.8:", type="build")
+        depends_on("python@3.10:", type="build")
         depends_on("py-sphinx", type="build")
         depends_on("py-svgwrite", type="build")
 
@@ -131,9 +144,11 @@ class Arbor(CMakePackage, CudaPackage):
         # query spack for the architecture-specific compiler flags set by its wrapper
         args.append("-DARB_ARCH=none")
         opt_flags = self.spec.target.optimization_flags(
-            self.spec.compiler.name, self.spec.compiler.version
+            self.spec.compiler.name, str(self.spec.compiler.version)
         )
-        args.append("-DARB_CXX_FLAGS_TARGET=" + opt_flags)
+        # Might return nothing
+        if opt_flags:
+            args.append("-DARB_CXX_FLAGS_TARGET=" + opt_flags)
         # Needed, spack has no units package
         args.append("-DARB_USE_BUNDLED_UNITS=ON")
 

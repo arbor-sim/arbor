@@ -138,9 +138,9 @@ std::optional<arb::mechanism_desc> maybe_method(py::object method) {
 
 std::string lif_str(const arb::lif_cell& c){
     return util::pprintf(
-        "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, V_m {}, t_ref {}>",
+        "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, E_R {}, V_m {}, t_ref {}>",
         U::to_string(c.tau_m), U::to_string(c.V_th), U::to_string(c.C_m),
-        U::to_string(c.E_L), U::to_string(c.V_m), U::to_string(c.t_ref));
+        U::to_string(c.E_L), U::to_string(c.E_R), U::to_string(c.V_m), U::to_string(c.t_ref));
 }
 
 
@@ -263,6 +263,7 @@ void register_cells(py::module& m) {
                std::optional<U::quantity> V_th,
                std::optional<U::quantity> C_m,
                std::optional<U::quantity> E_L,
+               std::optional<U::quantity> E_R,
                std::optional<U::quantity> V_m,
                std::optional<U::quantity> t_ref) {
                 auto cell = arb::lif_cell{std::move(source_label), std::move(target_label)};
@@ -270,18 +271,20 @@ void register_cells(py::module& m) {
                 if (V_th) cell.V_th = *V_th;
                 if (C_m) cell.C_m = *C_m;
                 if (E_L) cell.E_L = *E_L;
+                if (E_R) cell.E_R = *E_R;
                 if (V_m) cell.V_m = *V_m;
                 if (t_ref) cell.t_ref = *t_ref;
                 return cell;
             }),
             "source_label"_a, "target_label"_a,
-             py::kw_only(), "tau_m"_a=py::none(), "V_th"_a=py::none(), "C_m"_a=py::none(), "E_L"_a=py::none(), "V_m"_a=py::none(), "t_ref"_a=py::none(),
+             py::kw_only(), "tau_m"_a=py::none(), "V_th"_a=py::none(), "C_m"_a=py::none(), "E_L"_a=py::none(), "E_R"_a=py::none(), "V_m"_a=py::none(), "t_ref"_a=py::none(),
              "Construct a lif cell with one source labeled 'source_label', and one target labeled 'target_label'."
              "Can optionally take physical parameters:\n"
              " * tau_m: Membrane potential decaying constant [ms].\n"
              " * V_th: Firing threshold [mV].\n"
              " * C_m: Membrane capacitance [pF].\n"
              " * E_L: Resting potential [mV].\n"
+             " * E_R: Reset potential [mV].\n"
              " * V_m: Initial value of the Membrane potential [mV].\n"
              " * t_ref: Refractory period [ms].")
         .def_readwrite("tau_m", &arb::lif_cell::tau_m,
@@ -305,6 +308,7 @@ void register_cells(py::module& m) {
         .def("__repr__", &lif_str)
         .def("__str__",  &lif_str);
 
+    // arb::cv_policy wrappers
     cv_policy
         .def(py::init([](const std::string& expression) { return arborio::parse_cv_policy_expression(expression).unwrap(); }),
             "expression"_a, "A valid CV policy expression")
@@ -354,7 +358,7 @@ void register_cells(py::module& m) {
 
     // arb::cell_cv_data
     cell_cv_data
-            .def_property_readonly("num_cv", [](const arb::cell_cv_data& data){return data.size();},
+    .def_property_readonly("num_cv", [](const arb::cell_cv_data& data){return data.size();},
                  "Return the number of CVs in the cell.")
             .def("cables",
                  [](const arb::cell_cv_data& d, unsigned index) {

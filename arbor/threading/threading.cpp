@@ -1,8 +1,10 @@
 #include <atomic>
+#include <optional>
 #include <stdexcept>
 
 #include <arbor/assert.hpp>
 #include <arbor/util/scope_exit.hpp>
+#include <thread>
 
 #include "threading/threading.hpp"
 #include "affinity.hpp"
@@ -184,3 +186,9 @@ void task_system::async(priority_task ptsk) {
 std::unordered_map<std::thread::id, std::size_t> task_system::get_thread_ids() const {
     return thread_ids_;
 };
+
+std::optional<std::size_t> task_system::get_current_thread_id() const {
+    const auto it = thread_ids_.find(std::this_thread::get_id());
+    if(it != thread_ids_.end()) return it->second;
+    return std::nullopt;
+}

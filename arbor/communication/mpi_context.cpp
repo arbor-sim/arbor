@@ -5,6 +5,7 @@
 #error "build only if MPI is enabled"
 #endif
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -53,11 +54,6 @@ struct mpi_context_impl {
         return mpi::gather_all_with_partition(local_gids, comm_);
     }
 
-    std::vector<std::vector<cell_gid_type>>
-    gather_gj_connections(const std::vector<std::vector<cell_gid_type>>& local_connections) const {
-        return mpi::gather_all(local_connections, comm_);
-    }
-
     cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
         cell_label_range res;
         res.sizes  = mpi::gather_all(local_ranges.sizes, comm_);
@@ -76,6 +72,63 @@ struct mpi_context_impl {
     template <typename T>
     std::vector<T> gather(T value, int root) const {
         return mpi::gather(value, root, comm_);
+    }
+
+    std::vector<std::size_t> gather_all(std::size_t value) const {
+        return mpi::gather_all(value, comm_);
+    }
+
+    distributed_request send_recv_nonblocking(std::size_t recv_count,
+        void* recv_data,
+        int source_id,
+        std::size_t send_count,
+        const void* send_data,
+        int dest_id,
+        int tag) const {
+
+        // Return dummy request of nothing to do
+        if (!recv_count && !send_count)
+            return distributed_request{
+                std::make_unique<distributed_request::distributed_request_interface>()};
+        if(recv_count && !recv_data)
+            throw arbor_internal_error(
+                "send_recv_nonblocking: recv_data is null.");
+
+        if(send_count && !send_data)
+            throw arbor_internal_error(
+                "send_recv_nonblocking: send_data is null.");
+
+        if (recv_data == send_data)
+            throw arbor_internal_error(
+                "send_recv_nonblocking: recv_data and send_data must not be the same.");
+
+        auto recv_requests = mpi::irecv(recv_count, recv_data, source_id, tag, comm_);
+        auto send_requests = mpi::isend(send_count, send_data, dest_id, tag, comm_);
+
+        struct mpi_send_recv_request : public distributed_request::distributed_request_interface {
+            std::vector<MPI_Request> recv_requests, send_requests;
+
+            mpi_send_recv_request(std::vector<MPI_Request> recv_requests,
+                std::vector<MPI_Request> send_requests):
+                recv_requests(std::move(recv_requests)),
+                send_requests(std::move(send_requests)) {}
+
+            void finalize() override {
+                if (!recv_requests.empty()) {
+                    mpi::wait_all(std::move(recv_requests));
+                }
+
+                if (!send_requests.empty()) {
+                    mpi::wait_all(std::move(send_requests));
+                }
+            };
+
+            ~mpi_send_recv_request() override { this->finalize(); }
+        };
+
+        return distributed_request{
+            std::unique_ptr<distributed_request::distributed_request_interface>(
+                new mpi_send_recv_request{std::move(recv_requests), std::move(send_requests)})};
     }
 
     std::string name() const { return "MPI"; }
@@ -139,17 +192,22 @@ struct remote_context_impl {
     gathered_vector<cell_gid_type>
     gather_gids(const std::vector<cell_gid_type>& local_gids) const { return mpi_.gather_gids(local_gids); }
 
-    std::vector<std::vector<cell_gid_type>>
-    gather_gj_connections(const std::vector<std::vector<cell_gid_type>>& local_connections) const {
-        return mpi_.gather_gj_connections(local_connections);
-    }
-
     cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
         return mpi_.gather_cell_label_range(local_ranges);
     }
 
     cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const {
         return mpi_.gather_cell_labels_and_gids(local_labels_and_gids);
+    }
+
+    distributed_request send_recv_nonblocking(std::size_t recv_count,
+        void* recv_data,
+        int source_id,
+        std::size_t send_count,
+        const void* send_data,
+        int dest_id,
+        int tag) const {
+        return mpi_.send_recv_nonblocking(recv_count, recv_data, source_id, send_count, send_data, dest_id, tag);
     }
 
     template <typename T> std::vector<T> gather(T value, int root) const { return mpi_.gather(value, root); }

@@ -2,8 +2,7 @@
 
 #include <cstring>
 #include <cstdint>
-#include <memory>
-#include <exception>
+#include <stdexcept>
 #include <variant>
 #include <vector>
 #include <string>

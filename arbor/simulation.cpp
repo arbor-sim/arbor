@@ -1,13 +1,14 @@
 #include <memory>
 #include <vector>
 
-#include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
+#include <arbor/export.hpp>
 #include <arbor/generic_event.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/schedule.hpp>
+#include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 
 #include "epoch.hpp"
@@ -86,7 +87,7 @@ class simulation_state {
 public:
     simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx, arb_seed_type seed);
 
-    void update(const connectivity& rec);
+    void update(const recipe& rec);
 
     void reset();
 
@@ -107,8 +108,6 @@ public:
     }
 
     void set_remote_spike_filter(const spike_predicate& p) { return communicator_.set_remote_spike_filter(p); }
-
-    void inject_events(const cse_vector& events);
 
     time_type min_delay() { return communicator_.min_delay(); }
 
@@ -280,13 +279,13 @@ simulation_state::simulation_state(
     PL();
 
     PE(init:simulation:comm);
-    communicator_ = communicator(rec, ddc_, *ctx_);
+    communicator_ = communicator(rec, ddc_, ctx_);
     PL();
     update(rec);
     epoch_.reset();
 }
 
-void simulation_state::update(const connectivity& rec) {
+void simulation_state::update(const recipe& rec) {
     communicator_.update_connections(rec, ddc_, source_resolution_map_, target_resolution_map_);
     // Use half minimum delay of the network for max integration interval.
     t_interval_ = min_delay()/2;
@@ -560,22 +559,6 @@ std::vector<probe_metadata> simulation_state::get_probe_metadata(const cell_addr
     }
 }
 
-void simulation_state::inject_events(const cse_vector& events) {
-    // Push all events that are to be delivered to local cells into the
-    // pending event list for the event's target cell.
-    for (auto& [gid, pse_vector]: events) {
-        for (auto& e: pse_vector) {
-            if (e.time < epoch_.t1) {
-                throw bad_event_time(e.time, epoch_.t1);
-            }
-            // gid_to_local_ maps gid to index in local cells and of corresponding cell group.
-            if (auto lidx = util::value_by_key(gid_to_local_, gid)) {
-                pending_events_[lidx->cell_index].push_back(e);
-            }
-        }
-    }
-}
-
 // Simulation class implementations forward to implementation class.
 
 simulation_builder simulation::create(recipe const & rec) { return {rec}; };
@@ -593,7 +576,7 @@ void simulation::reset() {
     impl_->reset();
 }
 
-void simulation::update(const connectivity& rec) { impl_->update(rec); }
+void simulation::update(const recipe& rec) { impl_->update(rec); }
 
 time_type simulation::run(const units::quantity& tfinal, const units::quantity& dt) {
     auto dt_ms = dt.value_as(units::ms);
@@ -637,10 +620,6 @@ void simulation::set_local_spike_callback(spike_export_function export_callback)
 
 void simulation::set_epoch_callback(epoch_function epoch_callback) {
     impl_->epoch_callback_ = std::move(epoch_callback);
-}
-
-void simulation::inject_events(const cse_vector& events) {
-    impl_->inject_events(events);
 }
 
 simulation::simulation(simulation&&) = default;

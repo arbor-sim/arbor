@@ -48,11 +48,11 @@ struct label_dict_proxy {
         return locsets.size() + regions.size() + iexpressions.size();
     }
 
-    void import(const label_dict_proxy& other, std::string prefix = "") {
-        dict.import(other.dict, prefix);
-
+    auto& extend(const label_dict_proxy& other, std::string prefix = "") {
+        dict.extend(other.dict, prefix);
         clear_cache();
         update_cache();
+        return *this;
     }
 
     void set(const std::string& name, const std::string& desc) {

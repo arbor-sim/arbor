@@ -164,11 +164,6 @@ bool is_marker_symbol(const asc::token& t) {
 // Parse a color expression, which have been observed in the wild in two forms:
 //  (Color Red)                 ; labeled
 //  (Color RGB (152, 251, 152)) ; RGB literal
-struct asc_color {
-    uint8_t r = 0;
-    uint8_t g = 0;
-    uint8_t b = 0;
-};
 
 [[maybe_unused]]
 std::ostream& operator<<(std::ostream& o, const asc_color& c) {
@@ -307,16 +302,27 @@ parse_hopefully<arb::mpoint> parse_point(asc::lexer& L) {
 
 #define PARSE_POINT(L, X) if (auto rval__ = parse_point(L)) X=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());
 
-parse_hopefully<arb::mpoint> parse_spine(asc::lexer& L) {
+parse_hopefully<asc_spine> parse_spine(asc::lexer& L) {
+    // check and consume opening <(
     EXPECT_TOKEN(L, tok::lt);
-    auto& t = L.current();
-    while (t.kind!=tok::gt && t.kind!=tok::error && t.kind!=tok::eof) {
-        L.next();
-    }
-    //if (t.kind!=error && t.kind!=eof)
+    EXPECT_TOKEN(L, tok::lparen);
+
+    arb::mpoint p;
+    PARSE_DOUBLE(L, p.x);
+    PARSE_DOUBLE(L, p.y);
+    PARSE_DOUBLE(L, p.z);
+    double diameter;
+    PARSE_DOUBLE(L, diameter);
+    p.radius = diameter/2.0;
+    // Now eat the label
+    std::string l = L.current().spelling;
+    L.next();
+
+    // check and consume closing )>
+    EXPECT_TOKEN(L, tok::rparen);
     EXPECT_TOKEN(L, tok::gt);
 
-    return arb::mpoint{};
+    return asc_spine{l, p};
 }
 
 #define PARSE_SPINE(L, X) if (auto rval__ = parse_spine(L)) X=std::move(*rval__); else return FORWARD_PARSE_ERROR(rval__.error());
@@ -342,29 +348,32 @@ parse_hopefully<std::string> parse_name(asc::lexer& L) {
 
 #define PARSE_NAME(L, X) {if (auto rval__ = parse_name(L)) X=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());}
 
-struct marker_set {
-    asc_color color;
-    std::string name;
-    std::vector<arb::mpoint> locations;
-};
-
 [[maybe_unused]]
-std::ostream& operator<<(std::ostream& o, const marker_set& ms) {
+std::ostream& operator<<(std::ostream& o, const asc_marker_set& ms) {
     o << "(marker-set \"" << ms.name << "\" " << ms.color;
     for (auto& l: ms.locations) o << " " << l;
     return o << ")";
 
 }
 
-parse_hopefully<marker_set> parse_markers(asc::lexer& L) {
+parse_hopefully<asc_marker_set> parse_markers(asc::lexer& L) {
     EXPECT_TOKEN(L, tok::lparen);
 
-    marker_set markers;
+    asc_marker_set markers;
 
     // parse marker kind keyword
     auto t = L.current();
     if (!is_marker_symbol(t)) {
         return unexpected(PARSE_ERROR("expected a valid marker type", t.loc));
+    }
+    if (t.spelling == "Dot") {
+        markers.marker = asc_marker::dot;
+    } else if (t.spelling == "Cross") {
+        markers.marker = asc_marker::cross;
+    } else if (t.spelling == "Circle") {
+        markers.marker = asc_marker::circle;
+    } else {
+        // impossible
     }
     L.next();
     while (L.current().kind==tok::lparen) {
@@ -392,6 +401,8 @@ parse_hopefully<marker_set> parse_markers(asc::lexer& L) {
 struct branch {
     std::vector<arb::mpoint> samples;
     std::vector<branch> children;
+    std::vector<asc_marker_set> markers;
+    std::vector<asc_spine> spines;
 };
 
 std::size_t num_samples(const branch& b) {
@@ -444,16 +455,15 @@ parse_hopefully<branch> parse_branch(asc::lexer& L) {
         }
         // A marker statement is always of the form ( MARKER_TYPE ...)
         else if (t.kind==tok::lparen && is_marker_symbol(p)) {
-            marker_set markers;
+            asc_marker_set markers;
             PARSE_MARKER(L, markers);
-            // Parse the markers, but don't record information about them.
-            // These could be grouped into locset by name and added to the label dictionary.
+            B.markers.push_back(markers);
         }
         // Spines are marked by a "less than", i.e. "<", symbol.
         else if (t.kind==tok::lt) {
-            arb::mpoint spine;
+            asc_spine spine;
             PARSE_SPINE(L, spine);
-            // parse the spine, but don't record the location.
+            B.spines.push_back(spine);
         }
         // Test for a symbol that indicates a terminal.
         else if (is_branch_end_symbol(t)) {
@@ -610,10 +620,16 @@ parse_hopefully<sub_tree> parse_sub_tree(asc::lexer& L) {
 
 
 // Perform the parsing of the input as a string.
-ARB_ARBORIO_API arb::segment_tree parse_asc_string_raw(const char* input) {
+ARB_ARBORIO_API std::tuple<arb::segment_tree,
+                           std::vector<asc_marker_set>,
+                           std::vector<asc_spine>>
+parse_asc_string_raw(const char* input) {
     asc::lexer lexer(input);
 
     std::vector<sub_tree> sub_trees;
+    std::vector<asc_marker_set> markers;
+    std::vector<asc_spine> spines;
+
 
     // Iterate over high-level pseudo-s-expressions in the file.
     // This pass simply parses the contents of the file, to be interpretted
@@ -695,6 +711,7 @@ ARB_ARBORIO_API arb::segment_tree parse_asc_string_raw(const char* input) {
     arb::mpoint soma_0, soma_1, soma_2;
     if (soma_count==1u) {
         const auto& st = sub_trees[soma_contours.front()];
+        // NOTE No children allowed!?
         const auto& samples = st.root.samples;
         if (samples.size()==1u) {
             // The soma is described as a sphere with a single sample.
@@ -709,10 +726,13 @@ ARB_ARBORIO_API arb::segment_tree parse_asc_string_raw(const char* input) {
             soma_0.radius = std::accumulate(samples.begin(), samples.end(), 0.,
                     [&soma_0](double a, auto& c) {return a+arb::distance(c, soma_0);}) / ns;
         }
+
         soma_1 = {soma_0.x, soma_0.y-soma_0.radius, soma_0.z, soma_0.radius};
         soma_2 = {soma_0.x, soma_0.y+soma_0.radius, soma_0.z, soma_0.radius};
         stree.append(arb::mnpos, soma_0, soma_1, 1);
         stree.append(arb::mnpos, soma_0, soma_2, 1);
+        spines.insert(spines.end(), st.root.spines.begin(), st.root.spines.end());
+        markers.insert(markers.end(), st.root.markers.begin(), st.root.markers.end());
     }
 
     // Append the dend, axon and apical dendrites.
@@ -742,6 +762,9 @@ ARB_ARBORIO_API arb::segment_tree parse_asc_string_raw(const char* input) {
             auto prox_sample = head.sample;
 
             if (!branch.samples.empty()) { // Skip empty branches, which are permitted
+                spines.insert(spines.end(), branch.spines.begin(), branch.spines.end());
+                markers.insert(markers.end(), branch.markers.begin(), branch.markers.end());
+
                 auto it = branch.samples.begin();
                 // Don't connect the first sample to the distal end of the parent
                 // branch if the parent is the soma center.
@@ -768,13 +791,13 @@ ARB_ARBORIO_API arb::segment_tree parse_asc_string_raw(const char* input) {
         }
     }
 
-    return stree;
+    return {stree, markers, spines};
 }
 
 
-ARB_ARBORIO_API asc_morphology parse_asc_string(const char* input) {
+ARB_ARBORIO_API loaded_morphology parse_asc_string(const char* input) {
     // Parse segment tree
-    arb::segment_tree stree = parse_asc_string_raw(input);
+    const auto& [stree, markers, spines] = parse_asc_string_raw(input);
 
     // Construct the morphology.
     arb::morphology morphology(stree);
@@ -786,7 +809,7 @@ ARB_ARBORIO_API asc_morphology parse_asc_string(const char* input) {
     labels.set("dend", arb::reg::tagged(3));
     labels.set("apic", arb::reg::tagged(4));
 
-    return {stree, std::move(morphology), std::move(labels)};
+    return {stree, std::move(morphology), std::move(labels), asc_metadata{markers, spines}};
 }
 
 
@@ -809,17 +832,8 @@ inline std::string read_file(const std::filesystem::path& filename) {
 }
 
 
-ARB_ARBORIO_API asc_morphology load_asc(const std::filesystem::path& filename) {
+ARB_ARBORIO_API loaded_morphology load_asc(const std::filesystem::path& filename) {
     std::string fstr = read_file(filename);
     return parse_asc_string(fstr.c_str());
 }
-
-
-ARB_ARBORIO_API arb::segment_tree load_asc_raw(const std::filesystem::path& filename) {
-    std::string fstr = read_file(filename);
-    return parse_asc_string_raw(fstr.c_str());
-}
-
-
 } // namespace arborio
-

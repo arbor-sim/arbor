@@ -29,13 +29,6 @@ ARB_DEFINE_LEXICOGRAPHIC_ORDERING(spike_event,(a.time,a.target,a.weight),(b.time
 
 using pse_vector = std::vector<spike_event>;
 
-struct cell_spike_events {
-    cell_gid_type target;
-    pse_vector events;
-};
-
-using cse_vector = std::vector<cell_spike_events>;
-
 ARB_ARBOR_API std::ostream& operator<<(std::ostream&, const spike_event&);
 
 } // namespace arb

@@ -5,7 +5,6 @@ import arbor as A
 from pathlib import Path
 from tempfile import TemporaryDirectory as TD
 from io import StringIO
-from functools import partial
 
 
 acc = """(arbor-component
@@ -153,7 +152,10 @@ class TestAccIo(unittest.TestCase):
 class TestSwcArborIo(unittest.TestCase):
     @staticmethod
     def loaders():
-        return (A.load_swc_arbor, partial(A.load_swc_arbor, raw=True))
+        return (
+            lambda f: A.load_swc_arbor(f).morphology,
+            lambda f: A.load_swc_arbor(f).segment_tree,
+        )
 
     def test_stringio(self):
         load_string(self.loaders(), swc_arbor)
@@ -171,7 +173,10 @@ class TestSwcArborIo(unittest.TestCase):
 class TestSwcNeuronIo(unittest.TestCase):
     @staticmethod
     def loaders():
-        return (A.load_swc_neuron, partial(A.load_swc_neuron, raw=True))
+        return (
+            lambda f: A.load_swc_neuron(f).morphology,
+            lambda f: A.load_swc_neuron(f).segment_tree,
+        )
 
     def test_stringio(self):
         load_string(self.loaders(), swc_neuron)
@@ -189,7 +194,10 @@ class TestSwcNeuronIo(unittest.TestCase):
 class TestAscIo(unittest.TestCase):
     @staticmethod
     def loaders():
-        return (A.load_asc, partial(A.load_asc, raw=True))
+        return (
+            lambda f: A.load_asc(f).morphology,
+            lambda f: A.load_asc(f).segment_tree,
+        )
 
     def test_stringio(self):
         load_string(self.loaders(), asc)
@@ -216,7 +224,7 @@ class serdes_recipe(A.recipe):
     def cell_kind(self, _):
         return A.cell_kind.cable
 
-    def cell_description(self, gid):
+    def cell_description(self, _):
         tree = A.segment_tree()
         s = tree.append(A.mnpos, A.mpoint(-3, 0, 0, 3), A.mpoint(3, 0, 0, 3), tag=1)
         _ = tree.append(s, A.mpoint(3, 0, 0, 1), A.mpoint(33, 0, 0, 1), tag=3)
@@ -227,7 +235,7 @@ class serdes_recipe(A.recipe):
 
         return A.cable_cell(tree, dec)
 
-    def global_properties(self, kind):
+    def global_properties(self, _):
         return self.the_props
 
 

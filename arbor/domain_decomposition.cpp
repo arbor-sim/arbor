@@ -1,11 +1,13 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <utility>
 
-#include <arbor/domdecexcept.hpp>
-#include <arbor/domain_decomposition.hpp>
-#include <arbor/recipe.hpp>
+#include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/domdecexcept.hpp>
+#include <arbor/recipe.hpp>
 
 #include "execution_context.hpp"
 #include "util/partition.hpp"
@@ -13,24 +15,25 @@
 #include "util/span.hpp"
 
 namespace arb {
-domain_decomposition::domain_decomposition(
-    const recipe& rec,
-    context ctx,
-    const std::vector<group_description>& groups)
-{
+domain_decomposition::domain_decomposition(const recipe& rec,
+                                           context ctx,
+                                           const std::vector<group_description>& groups) {
     struct partition_gid_domain {
         partition_gid_domain(const gathered_vector<cell_gid_type>& divs, unsigned domains) {
             auto rank_part = util::partition_view(divs.partition());
             for (auto rank: count_along(rank_part)) {
+                cell_size_type index_on_domain = 0;
                 for (auto gid: util::subrange_view(divs.values(), rank_part[rank])) {
-                    gid_map[gid] = rank;
+                    gid_map[gid] = {rank, index_on_domain};
+                    ++index_on_domain;
                 }
             }
         }
-        int operator()(cell_gid_type gid) const {
+        std::pair<int,cell_size_type> operator()(cell_gid_type gid) const {
             return gid_map.at(gid);
         }
-        std::unordered_map<cell_gid_type, int> gid_map;
+        // Maps gid to domain index and cell index on domain
+        std::unordered_map<cell_gid_type, std::pair<int, cell_size_type>> gid_map;
     };
 
     const auto* dist = ctx->distributed.get();
@@ -41,22 +44,14 @@ domain_decomposition::domain_decomposition(
 
     std::vector<cell_gid_type> local_gids;
     for (const auto& g: groups) {
-        if (g.backend == backend_kind::gpu && !has_gpu) {
-            throw invalid_backend(domain_id);
-        }
-        if (g.backend == backend_kind::gpu && g.kind != cell_kind::cable) {
-            throw incompatible_backend(domain_id, g.kind);
-        }
+        if (g.backend == backend_kind::gpu && !has_gpu) throw invalid_backend(domain_id);
+        if (g.backend == backend_kind::gpu && g.kind != cell_kind::cable) throw incompatible_backend(domain_id, g.kind);
 
         std::unordered_set<cell_gid_type> gid_set(g.gids.begin(), g.gids.end());
         for (const auto& gid: g.gids) {
-            if (gid >= num_global_cells) {
-                throw out_of_bounds(gid, num_global_cells);
-            }
+            if (gid >= num_global_cells) throw out_of_bounds(gid, num_global_cells);
             for (const auto& gj: rec.gap_junctions_on(gid)) {
-                if (!gid_set.count(gj.peer.gid)) {
-                    throw invalid_gj_cell_group(gid, gj.peer.gid);
-                }
+                if (!gid_set.count(gj.peer.gid)) throw invalid_gj_cell_group(gid, gj.peer.gid);
             }
         }
         local_gids.insert(local_gids.end(), g.gids.begin(), g.gids.end());
@@ -64,16 +59,12 @@ domain_decomposition::domain_decomposition(
     cell_size_type num_local_cells = local_gids.size();
 
     auto global_gids = dist->gather_gids(local_gids);
-    if (global_gids.size() != num_global_cells) {
-        throw invalid_sum_local_cells(global_gids.size(), num_global_cells);
-    }
+    if (global_gids.size() != num_global_cells) throw invalid_sum_local_cells(global_gids.size(), num_global_cells);
 
     auto global_gid_vals = global_gids.values();
     util::sort(global_gid_vals);
     for (unsigned i = 1; i < global_gid_vals.size(); ++i) {
-        if (global_gid_vals[i] == global_gid_vals[i-1]) {
-            throw duplicate_gid(global_gid_vals[i]);
-        }
+        if (global_gid_vals[i] == global_gid_vals[i-1]) throw duplicate_gid(global_gid_vals[i]);
     }
 
     num_domains_ = num_domains;
@@ -85,7 +76,11 @@ domain_decomposition::domain_decomposition(
 }
 
 int domain_decomposition::gid_domain(cell_gid_type gid) const {
-    return gid_domain_(gid);
+    return gid_domain_(gid).first;
+}
+
+cell_size_type domain_decomposition::index_on_domain(cell_gid_type gid) const {
+    return gid_domain_(gid).second;
 }
 
 int domain_decomposition::num_domains() const {

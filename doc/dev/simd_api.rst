@@ -10,7 +10,7 @@ compiler intrinsics for the manipulation of architecture-specific vector
 The implementation is rather loosely based on the data-parallel vector types
 proposal `P0214R6 for the C++ Parallelism TS 2 <http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0214r6.pdf>`_.
 
-Unless otherwise specified, all classes, namespaces and top-level functions
+Unless otherwise specified, all classes, namespaces, and top-level functions
 described below are all within the top-level `arb::simd` namespace.
 
 .. rubric:: Example usage

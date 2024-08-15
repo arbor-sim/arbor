@@ -9,6 +9,7 @@
 #include <arbor/version.hpp>
 
 #include "pyarb.hpp"
+#include "arbor/morph/primitives.hpp"
 
 // Forward declarations of functions used to register API
 // types and functions to be exposed to Python.
@@ -29,12 +30,14 @@ void register_recipe(pybind11::module& m);
 void register_schedules(pybind11::module& m);
 void register_simulation(pybind11::module& m, pyarb_global_ptr);
 void register_arborenv(pybind11::module& m);
+void register_network(pybind11::module& m);
 void register_single_cell(pybind11::module& m);
 void register_units(pybind11::module& m);
 void register_label_dict(pybind11::module& m);
 
 #ifdef ARB_MPI_ENABLED
 void register_mpi(pybind11::module& m);
+void register_remote(pybind11::module& m);
 #endif
 
 } // namespace pyarb
@@ -59,16 +62,20 @@ PYBIND11_MODULE(_arbor, m) {
     pyarb::register_cable_probes(m, global_ptr);
     pyarb::register_mechanisms(m);
     pyarb::register_cells(m);
-
     pyarb::register_cable_loader(m);
     pyarb::register_config(m);
     pyarb::register_contexts(m);
+    pyarb::register_network(m);
     pyarb::register_recipe(m);
     pyarb::register_domain_decomposition(m);
     pyarb::register_profiler(m);
     pyarb::register_simulation(m, global_ptr);
     pyarb::register_arborenv(m);
     pyarb::register_single_cell(m);
+    #ifdef ARB_MPI_ENABLED
+    pyarb::register_mpi(m);
+    pyarb::register_remote(m);
+    #endif
 
     // This is the fallback. All specific translators take precedence by being
     // registered *later*.
@@ -96,8 +103,5 @@ PYBIND11_MODULE(_arbor, m) {
     pybind11::register_exception<arb::file_not_found_error>(m, "ArbFileNotFoundError", PyExc_FileNotFoundError);
     pybind11::register_exception<arb::zero_thread_requested_error>(m, "ArbValueError", PyExc_ValueError);
 
-
-    #ifdef ARB_MPI_ENABLED
-    pyarb::register_mpi(m);
-    #endif
+    pybind11::implicitly_convertible<const std::tuple<double, double, double, double>&, arb::mpoint>();
 }

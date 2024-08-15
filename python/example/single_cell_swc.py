@@ -15,15 +15,21 @@ from arbor import units as U
 import pandas as pd
 import seaborn as sns
 import sys
+from pathlib import Path
 
 # Load a cell morphology from an swc file.
 # Example present here: single_cell_detailed.swc
-if len(sys.argv) < 2:
-    print("No SWC file passed to the program")
-    sys.exit(0)
+# (1) Read the morphology from an SWC file.
+if len(sys.argv) == 1:
+    print("No SWC file passed to the program, using default.")
+    filename = Path(__file__).parent / "single_cell_detailed.swc"
+elif len(sys.argv) == 2:
+    filename = Path(sys.argv[1])
+else:
+    print("Usage: single_cell_swc.py [SWC file name]")
+    sys.exit(1)
 
-filename = sys.argv[1]
-morpho = A.load_swc_arbor(filename)
+morpho = A.load_swc_arbor(filename).morphology
 
 # Define the regions and locsets in the model.
 labels = A.label_dict(
