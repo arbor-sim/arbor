@@ -76,8 +76,10 @@ cmake_dependent_option(ARB_USE_GPU_RNG
     "ARB_USE_GPU_DEP" OFF)
 
 # Use bundled 3rd party libraries
-
 option(ARB_USE_BUNDLED_LIBS "Use bundled 3rd party libraries" OFF)
+
+# Use pybind11-stubgen to make type stubs.
+option(ARB_BUILD_PYTHON_STUBS "Use pybind11-stubgen to build type stubs." ON)
 
 # Optional additional CXX Flags used for all code that will run on the target
 # CPU architecture. Recorded in installed target, for downstream dependencies

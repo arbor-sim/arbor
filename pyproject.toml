@@ -55,6 +55,8 @@ changelog = "https://github.com/arbor-sim/arbor/releases"
 [build-system]
 requires = [
     "scikit-build-core",
+    "numpy",
+    "pybind11-stubgen",
 ]
 build-backend = "scikit_build_core.build"
 

@@ -241,6 +241,5 @@ void register_recipe(pybind11::module& m) {
         // TODO: recipe::global_properties
         .def("__str__",  [](const ::pyarb::recipe&){return "<arbor.recipe>";})
         .def("__repr__", [](const ::pyarb::recipe&){return "<arbor.recipe>";});
-
 }
 } // namespace pyarb
