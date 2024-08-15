@@ -6,6 +6,7 @@
 #include <optional>
 #include <set>
 #include <vector>
+#include <random>
 
 #include <tinyopt/tinyopt.h>
 

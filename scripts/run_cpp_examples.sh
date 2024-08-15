@@ -47,8 +47,8 @@ skip_local=(
 
 # Lookup table for expected spike count
 expected_outputs=(
-    972
-    6998
+    954
+    6999
     "30"
     ""
     ""

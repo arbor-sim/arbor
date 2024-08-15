@@ -17,6 +17,8 @@ using namespace testing;
 
 using time_range = util::range<const time_type*>;
 
+using engine_type = std::mt19937_64;
+
 // Pull events from n non-contiguous subintervals of [t0, t1) and check for
 // monotonicity and boundedness.
 void run_invariant_checks(schedule S, time_type t0, time_type t1, unsigned n, int seed=0) {
