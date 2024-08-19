@@ -1,0 +1,61 @@
+import numpy as np
+import pandas as pd 
+import matplotlib.pyplot as plt
+import seaborn as sns
+from parameters import *
+
+
+def plot_raster_and_PSTH(times,sources,bin=30):
+    plt.figure(figsize=(60,80))
+
+    plt.subplot(311)
+    plt.plot(times,sources,"|", color='k')
+    plt.ylim([100,200])
+    plt.xlim(0,tfinal)
+    plt.ylabel("neuron ID")
+
+
+    plt.subplot(312)
+    plt.plot(times,sources,"|", color='k')
+    plt.xlim(0,tfinal)
+    plt.ylabel("neuron ID")
+    
+
+    plt.subplot(313)
+    counts = np.histogram(times, range(0,tfinal))[0]
+    lefts = np.histogram(times, range(0,tfinal))[1][0:-1]
+    plt.bar(lefts,counts,color='k') 
+    plt.xlabel("time | ms")
+    plt.ylabel("spike counts")
+
+    plt.suptitle("raster plot and PSTH")
+
+
+
+def analysis_rate(sources,times,tfinal):
+    rates = []
+
+    for neuron in np.arange(0,NE+NI,1):
+        idx = np.where(sources==neuron+1)
+        time = times[idx]
+        rate = len(time)/(tfinal/1000.)
+        rates.append(rate)
+    print(np.mean(rates[0:NE]))
+    print(np.mean(rates[NE:NE+NI]))
+
+    return rates
+
+def plot_rate_histogram(sources,times,tfinal):
+    rates = analysis_rate(sources,times,tfinal)
+    plt.figure(2)
+    plt.hist(rates)
+    plt.xlabel("rate | Hz")
+    plt.ylabel("counts")
+
+
+times = np.load("times.npy")
+sources = np.load("sources.npy")
+plot_raster_and_PSTH(times,sources)
+plot_rate_histogram(sources,times,tfinal)
+plt.show()
+
