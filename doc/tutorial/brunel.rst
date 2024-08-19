@@ -48,7 +48,7 @@ The Brunel network is randomly sparsely connected with a fixed in-degree regulat
    :lines: 93-112
 
 
-To enable the network activity, we apply Poissonian input via event_generatorto to each neuron in the network. It aims to achieve a similar effect as the `Poisson_generator` in the NEST simulator.
+To enable the network activity, we apply Poissonian input via `event_generators` to to each neuron in the network. It aims to achieve a similar effect as the `Poisson_generator` in the NEST simulator.
 
 .. literalinclude:: ../../python/example/brunel/arbor_brunel.py
    :language: python
