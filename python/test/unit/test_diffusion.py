@@ -6,6 +6,8 @@ from arbor import units as U
 import numpy as np
 from .. import fixtures
 
+print(A.__path__)
+
 """
 Tests for the concentration and amount of diffusive particles across time and morphology.
 Three different morphological structures are considered: 1 segment ("soma only"), 2 segments
@@ -33,12 +35,12 @@ class recipe(A.recipe):
         self.the_cell = cell
         self.the_probes = probes
         self.the_props = A.neuron_cable_properties()
-        self.the_props.catalogue = (
-            cat  # use the provided catalogue of diffusion mechanisms
-        )
+        # use the provided catalogue of diffusion mechanisms
+        self.the_props.catalogue = cat
+        # use diffusive particles "s"
         self.the_props.set_ion(
-            "s", valence=1, int_con=0 * U.mM, ext_con=0 * U.mM, diff=0 * U.m2 / U.s
-        )  # use diffusive particles "s"
+            "s", valence=1, int_con=0 * U.mM, ext_con=0 * U.mM, rev_pot=0 * U.mV
+        )
         self.inject_remove = inject_remove
 
     def num_cells(self):

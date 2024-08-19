@@ -428,23 +428,26 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
             cv_length                    += embedding.integrate_length(cable);
         }
 
-        arb_assert(cv_length > 0);
-        D.diam_um[i] = D.cv_area[i]/(cv_length*math::pi<double>);
-        D.cv_volume[i] = 0.25*D.cv_area[i]*D.diam_um[i];
+        bool has_parent = p != -1;
+        double A = D.cv_area[i];
 
-        if (D.cv_area[i]>0) {
-            auto A = D.cv_area[i];
+        if (cv_length > 0) {
+            D.diam_um[i] = A/(cv_length*math::pi<double>);
+        }
+        D.cv_volume[i] = 0.25*A*D.diam_um[i];
+
+        if (A > 0) {
             D.init_membrane_potential[i] /= A;
             D.temperature_K[i] /= A;
             // If parent is trivial, and there is no grandparent, then we can use values from this CV
             // to get initial values for the parent. (The other case, when there is a grandparent, is
             // caught below.)
-            if (p!=-1 && D.geometry.cv_parent[p]==-1 && D.cv_area[p]==0) {
+            if (has_parent && D.geometry.cv_parent[p] == -1 && D.cv_area[p] == 0) {
                 D.init_membrane_potential[p] = D.init_membrane_potential[i];
                 D.temperature_K[p] = D.temperature_K[i];
             }
         }
-        else if (p!=-1) {
+        else if (has_parent) {
             // Use parent CV to get a sensible initial value for voltage and temp on zero-size CVs.
             D.init_membrane_potential[i] = D.init_membrane_potential[p];
             D.temperature_K[i] = D.temperature_K[p];
