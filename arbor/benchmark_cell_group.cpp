@@ -1,5 +1,4 @@
 #include <chrono>
-#include <exception>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/benchmark_cell.hpp>
@@ -40,8 +39,8 @@ benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gid
     for (const auto& c: cells_) {
         cg_sources.add_cell();
         cg_targets.add_cell();
-        cg_sources.add_label(c.source, {0, 1});
-        cg_targets.add_label(c.target, {0, 1});
+        cg_sources.add_label(hash_value(c.source), {0, 1});
+        cg_targets.add_label(hash_value(c.target), {0, 1});
     }
 
     benchmark_cell_group::reset();

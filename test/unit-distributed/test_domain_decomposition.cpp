@@ -1,10 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <cstdio>
-#include <fstream>
-#include <iostream>
-#include <stdexcept>
-#include <string>
 #include <vector>
 
 #include <arbor/context.hpp>
@@ -16,9 +11,7 @@
 #include <arborenv/default_env.hpp>
 
 #include "util/span.hpp"
-
 #include "../simple_recipes.hpp"
-#include "test.hpp"
 
 #ifdef TEST_MPI
 #include <mpi.h>

@@ -32,6 +32,7 @@ PARAMETER {
     qinf  = 4     (mV)  : inact inf slope
 
     celsius
+    v (mV)
 }
 
 
@@ -41,8 +42,6 @@ UNITS {
     (pS) = (picosiemens)
     (um) = (micron)
 }
-
-ASSIGNED { v (mV) }
 
 STATE { m h }
 

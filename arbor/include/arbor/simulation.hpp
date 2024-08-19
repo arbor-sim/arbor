@@ -1,8 +1,6 @@
 #pragma once
 
-#include <array>
 #include <memory>
-#include <unordered_map>
 #include <vector>
 #include <functional>
 
@@ -46,11 +44,11 @@ public:
 
     static simulation_builder create(recipe const &);
 
-    void update(const connectivity& rec);
+    void update(const recipe& rec);
 
     void reset();
 
-    time_type run(time_type tfinal, time_type dt);
+    time_type run(const units::quantity& tfinal, const units::quantity& dt);
 
     // Minimum delay in network τ
     time_type min_delay();
@@ -86,11 +84,6 @@ public:
     // Register a callback that will be called at the end of each epoch, and at the
     // start of the simulation.
     void set_epoch_callback(epoch_function = epoch_function{});
-
-    // Add events directly to targets.
-    // Must be called before calling simulation::run, and must contain events that
-    // are to be delivered at or after the current simulation time.
-    void inject_events(const cse_vector& events);
 
     // If remote connections are present, export only the spikes for which this
     // predicate returns true.

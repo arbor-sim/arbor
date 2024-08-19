@@ -19,6 +19,10 @@
 
 namespace arb {
 
+// Internal hashes use this 64bit id
+
+using hash_type = std::size_t;
+
 // For identifying cells globally.
 
 using cell_gid_type = std::uint32_t;
@@ -64,6 +68,19 @@ struct lid_range {
     lid_range() = default;
     lid_range(cell_lid_type b, cell_lid_type e):
         begin(b), end(e) {}
+};
+
+// Global range of indices with given step size.
+
+struct gid_range {
+    cell_gid_type begin = 0;
+    cell_gid_type end = 0;
+    cell_gid_type step = 1;
+    gid_range() = default;
+    gid_range(cell_gid_type b, cell_gid_type e):
+        begin(b), end(e), step(1) {}
+    gid_range(cell_gid_type b, cell_gid_type e, cell_gid_type s):
+        begin(b), end(e), step(s) {}
 };
 
 // Policy for selecting a cell_lid_type from a range of possible values.
@@ -134,14 +151,16 @@ using time_type = double;
 constexpr time_type terminal_time = std::numeric_limits<time_type>::max();
 
 // For holding counts and indexes into generated sample data.
-
-using sample_size_type = std::int32_t;
+using sample_index_type = std::int32_t;
+using sample_size_type  = std::uint32_t;
 
 // Enumeration for execution back-end targets, as specified in domain decompositions.
-
+// NOTE(important): Given in order of priority, ie we will attempt schedule gpu before
+//                  MC groups, for reasons of effiency. Ugly, but as we do not have more
+//                  backends, this is OK for now.
 enum class backend_kind {
+    gpu,         //  Use gpu back-end when supported by cell_group implementation.
     multicore,   //  Use multicore back-end for all computation.
-    gpu          //  Use gpu back-end when supported by cell_group implementation.
 };
 
 // Enumeration used to indentify the cell type/kind, used by the model to

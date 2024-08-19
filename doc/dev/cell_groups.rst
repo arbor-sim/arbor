@@ -5,7 +5,7 @@ Cell groups
 
 Cell groups represent a union of cells of a single *kind* simulated in lockstep.
 In a sense, their existence is an optimisation, since parts of the internal
-state and computations can be shared between cell in single group. The currently
+state and computations can be shared between cells in a single group. The currently
 most complicated cell group is the one for cable cells, called ``cable_cell_group``
 (``mc`` stands for multi-compartment, used in older parts of Arbor), so we will
 focus on this type here.
@@ -15,11 +15,11 @@ Cell groups are created by domain decomposition methods on consideration of soft
 be in the same group) constraints.
 
 Cable Cell group ``cable_cell_group``
-----------------------------------
+-------------------------------------
 
-Cable cell groups have backing store in ``shared_state`` (given the
+Cable cell groups have a backing store in ``shared_state`` (given the
 introduction, we now understand that the ``shared`` stands for 'shared' between
-cell in a group). In this data set, we also collect the private data of
+cells in a group). In this data set, we also collect the private data of
 mechanisms. One thing to watch out for here is that instances of the same
 mechanism on a cell group will be collated.
 
@@ -71,7 +71,7 @@ compute the current density ``i`` like this
      # Write outgoing current
      ppack.i[ix] = g*(u - E)
 
-In general, cell group wide quantities (like ``voltage`` here) need to be
+In general, cell group-wide quantities (like ``voltage`` here) need to be
 indexed via ``ppack.index``. Note, that the layout of parameters in ``ppack`` is
 this in reality:
 

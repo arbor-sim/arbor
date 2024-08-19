@@ -3,9 +3,11 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 #include <arbor/arbexcept.hpp>
-#include <arbor/morph/morphology.hpp>
+
+#include <arborio/loaded_morphology.hpp>
 #include <arborio/export.hpp>
 
 namespace arborio {
@@ -114,7 +116,6 @@ public:
 // conditions above are encountered.
 //
 // SWC records are returned in id order.
-
 ARB_ARBORIO_API swc_data parse_swc(std::istream&);
 ARB_ARBORIO_API swc_data parse_swc(const std::string&);
 
@@ -126,17 +127,15 @@ ARB_ARBORIO_API swc_data parse_swc(const std::string&);
 // one segment for each SWC record after the first: this record defines the tag
 // and distal point of the segment, while the proximal point is taken from the
 // parent record.
-
-ARB_ARBORIO_API arb::morphology load_swc_arbor(const swc_data& data);
-ARB_ARBORIO_API arb::segment_tree load_swc_arbor_raw(const swc_data& data);
+ARB_ARBORIO_API loaded_morphology load_swc_arbor(const swc_data& data);
+ARB_ARBORIO_API loaded_morphology load_swc_arbor(const std::filesystem::path& fn);
 
 // As above, will convert a valid, ordered sequence of SWC records into a morphology
 //
 // Note that 'one-point soma' SWC files are supported here
 //
 // Complies inferred SWC rules from NEURON, explicitly listed in the docs.
-
-ARB_ARBORIO_API arb::morphology load_swc_neuron(const swc_data& data);
-ARB_ARBORIO_API arb::segment_tree load_swc_neuron_raw(const swc_data& data);
+ARB_ARBORIO_API loaded_morphology load_swc_neuron(const swc_data& data);
+ARB_ARBORIO_API loaded_morphology load_swc_neuron(const std::filesystem::path& fn);
 
 } // namespace arborio

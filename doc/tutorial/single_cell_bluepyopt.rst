@@ -1,19 +1,19 @@
 .. _tutorialsinglecellbluepyopt:
 
-A single cell model from the BluePyOpt Cell Optimisation Library
+A single-cell model from the BluePyOpt Cell Optimisation Library
 ================================================================
 
-In this tutorial we'll see how we can export a model with optimised cell parameters from the `BluePyOpt package <https://github.com/BlueBrain/BluePyOpt>`_. In the process, we will learn to edit the morphology in order to replace the axon with a surrogate model and use the Arbor GUI to define stimuli and probe locations that are consistent with BluePyOpt protocols for the Neuron simulator.
+In this tutorial, we'll see how we can export a model with optimised cell parameters from the `BluePyOpt package <https://github.com/BlueBrain/BluePyOpt>`_. In the process, we will learn to edit the morphology in order to replace the axon with a surrogate model and use the Arbor GUI to define stimuli and probe locations that are consistent with BluePyOpt protocols for the Neuron simulator.
 
 .. Note::
 
    **Concepts covered in this example:**
 
-   1. Export a model with optimised parameters from BluePyOpt to a mixed JSON/ACC format.
-   2. Load the morphology, label dictionary and decor from the mixed JSON/ACC format in Arbor.
-   3. Perform axon replacement with a surrogate model using the segment tree editing functionality.
-   4. Determine voltage probe locations that match BluePyOpt protocols defined with the Neuron simulator using the Arbor graphical user interface (GUI).
-   5. Create an :class:`arbor.cable_cell` and an :class:`arbor.single_cell_model` or :class:`arbor.recipe` supporting mechanism catalogues that are consistent with BluePyOpt. 
+   1. Exporting a model with optimised parameters from BluePyOpt to a mixed JSON/ACC format.
+   2. Loading the morphology, labeling dictionary and decor from the mixed JSON/ACC format in Arbor.
+   3. Performing axon replacement with a surrogate model using the segment tree editing functionality.
+   4. Determining voltage probe locations that match BluePyOpt protocols defined with the Neuron simulator using the Arbor graphical user interface (GUI).
+   5. Creating an :class:`arbor.cable_cell` and an :class:`arbor.single_cell_model` or :class:`arbor.recipe` supporting mechanism catalogues that are consistent with BluePyOpt. 
    6. Running a simulation and visualising the results.
 
 The model
@@ -293,7 +293,7 @@ and visualise the voltage trace for the measurement on the apical dendrite of th
     :align: center
 
 
-For the simple-cell, we obtain the following voltage trace using the ``step2`` protocol from the `Jupyter notebook <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/simplecell/simplecell.ipynb>`_
+For the simple-cell, we obtain the following voltage trace using the ``step2`` protocol from the `Jupyter notebook <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/simplecell/simplecell.ipynb>`_.
 
 .. figure:: single_cell_bluepyopt_simplecell.svg
     :width: 600

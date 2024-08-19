@@ -10,13 +10,13 @@ The :cpp:class:`arb::recipe` class documentation is below.
 C++ best practices
 ------------------
 
-Here we collect rules of thumb to keep in mind when making recipes in C++.
+Here, we collect rules of thumb to keep in mind when making recipes in C++.
 
 .. topic:: Stay thread safe
 
     The load balancing and model construction are multithreaded, that is
     multiple threads query the recipe simultaneously.
-    Hence calls to a recipe member should not have side effects, and should use
+    Hence, calls to a recipe member should not have side effects, and should use
     lazy evaluation when possible (see `Be lazy <_recipe_lazy>`_).
 
 
@@ -40,7 +40,7 @@ Recipe
 
     .. Warning::
         All member functions must be **thread safe**, because the recipe is used
-        by the multithreaded model building stage. In practice, this means that
+        by the multithreaded model-building stage. In practice, this means that
         multiple threads should be able to call member functions of a recipe
         simultaneously. Model building is multithreaded to reduce model building times,
         so recipe implementations should avoid using locks and mutexes to introduce
@@ -118,7 +118,7 @@ Recipe
 
     .. cpp:function:: virtual std::any get_global_properties(cell_kind) const
 
-        Global property type will be specific to given cell kind.
+        Global property type will be specific to a given cell kind.
 
         By default returns an empty container.
 

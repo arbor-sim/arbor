@@ -59,7 +59,7 @@
 
 namespace arb {
 
-class cable_cell;
+struct cable_cell;
 
 struct cv_policy_base {
     virtual locset cv_boundary_points(const cable_cell& cell) const = 0;

@@ -146,7 +146,8 @@ place_pwlin::place_pwlin(const arb::morphology& m, const isometry& iso) {
         arb_assert(!segments.empty());
 
         seg_pos.reserve(segments.size()+1);
-        seg_pos = {0};
+        seg_pos.clear();
+        seg_pos.push_back(0);
         for (auto& seg: segments) {
             seg_pos.push_back(seg_pos.back()+distance(seg.prox, seg.dist));
         }

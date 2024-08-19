@@ -1,3 +1,35 @@
+# v0.10.0 (*08.08.2024*)
+
+## Major Changes since v0.9.0
+* Automatic network generation from high-level specifications.
+* Units at the user interface including scaling and conversion.
+* Morphologies are loaded through a unified interface; which produces a bundle of morphology, metadata, and segment tree.
+
+## Internal Updates
+
+* Documentation overhaul
+* Python bindings offer type stubs; giving auto-completion and inline documentation in some editors/IDEs.
+* Performance improvements
+  - Label resolution uses hashes instead of strings, saving memory, network traffic, and time.
+  - Spike delivery is up to 30% faster leading to 10% end-to-end improvements in some cases (e.g. `example/brunel`) 
+  - Load balancing is faster and doesn't rely on MPI, leading to shorter setup times for large networks.
+* Fixes
+  - Better support for source builds on MacOS (aarch64)
+  - `modcc` no longer allows internal variables (`v`, `celsius`, ...) as `ASSIGNED`
+  - Better support for raw (C++) mechanisms
+* MC cells renamed cable cells.
+  
+## Breaking changes
+* Return values of all morphology loaders have changed.
+* Raw (segment tree) loaders removed.
+* Support for Python 3.8 removed.
+* C++: Removed `simulation::inject_events`, use a generator instead. 
+  
+## New Contributors
+* @ErbB4 made their first contribution in https://github.com/arbor-sim/arbor/pull/2271
+
+**Full Changelog**: https://github.com/arbor-sim/arbor/compare/v0.9.0...v0.10.0
+
 # v0.9.0
 
 ** 2023 08 09 **

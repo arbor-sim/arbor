@@ -36,7 +36,7 @@ Decorations are described by a **decor** object in Arbor. It provides facilities
    All methods on decor objects (``paint``, ``place``, and ``set_default``)
    return a reference to the objects so you can chain them together. This saves
    some repetition. You can break long statements over multiple lines, but in
-   Python this requires use of continuation lines ``\`` or wrapping the whole
+   Python this requires the use of continuation lines ``\`` or wrapping the whole
    expression into parentheses.
 
 .. _cablecell-paint:
@@ -49,16 +49,16 @@ They can be specified at three different levels:
 
 * *globally*: a global default for all cells in a model.
 * *per-cell*: override the global defaults for a specific cell.
-* *per-region*: specialize on specific cell regions.
+* *per-region*: specialize in specific cell regions.
 
 This hierarchical approach for resolving parameters and properties allows
 us to, for example, define a global default value for calcium concentration,
-then provide a different values on specific cell regions.
+then provide different values on specific cell regions.
 
-Some dynamics, such as membrane capacitance and the initial concentration of ion species
+Some dynamics, such as membrane capacitance and the initial concentration of ion species,
 must be defined for all CVs. Others need only be applied where they are
-present, for example ion channels.
-The types of dynamics, and where they can be defined, are
+present, for example, ion channels.
+The types of dynamics and where they can be defined are
 :ref:`tabulated <cablecell-painted-resolution>` below.
 
 .. _cablecell-painted-resolution:
@@ -75,7 +75,7 @@ The types of dynamics, and where they can be defined, are
    ion valence,            --, --, ✓
 
 If a property is defined at multiple levels, the most local definition will be chosen:
-a cell-local definition will override a global definition, and a definition on a region
+a cell-local definition will override a global definition, and a definition of a region
 will override any cell-local or global definition on that region.
 
 .. warning::
@@ -107,16 +107,20 @@ specialised on specific regions.
     .. code-block:: Python
 
         import arbor
+        from arbor import units as U
 
         # Create an empty decor.
         decor = arbor.decor()
 
         # Set cell-wide properties that will be applied by default to the entire cell.
-        decor.set_properties(Vm=-70, cm=0.02, rL=30, tempK=30+273.5)
+        decor.set_properties(Vm=-70 * U.mV,
+                             cm=0.02 * U.F / U.m2,
+                             rL=30 * U.Ohm * U.cm,
+                             tempK=30 * U.celsius) # or 303.15 K
 
         # Override specific values on regions named "soma" and "axon".
-        decor.paint('"soma"', Vm=-50, cm=0.01, rL=35)
-        decor.paint('"axon"', Vm=-60, rL=40)
+        decor.paint('"soma"', Vm=-50 * U.mV, cm=0.01 * U.F / U.m2, rL=35 * U.Ohm * U.cm)
+        decor.paint('"axon"', Vm=-60 * U.mV, rL=40 * U.Ohm * U.cm)
 
 .. _cablecell-density-mechs:
 
@@ -204,7 +208,8 @@ resistivity, and membrane capacitance, as well as all ion parameters
 
 
     # initial value for the membrane potential as inhomogeneous expression.
-    decor.paint('(all)', Vm='(mul 42 (diameter))')
+    # we give a pair of a base value and a scaling iexpr
+    decor.paint('(all)', Vm=(23*U.mV, '(mul 42 (diameter))'))
 
 .. _cablecell-ions:
 
@@ -294,10 +299,10 @@ using the *paint* interface:
 
     # It is possible to define all of the initial condition values
     # for a ion species.
-    decor.paint('(tag 1)', arbor.ion('ca', int_con=2e-4, ext_con=2.5, rev_pot=114))
+    decor.paint('(tag 1)', ion='ca', int_con=2e-4  * U.mM, ext_con=2.5 * U.mM, rev_pot=114 * U.mV)
 
     # Alternatively, one can selectively overwrite the global defaults.
-    decor.paint('(tag 2)', arbor.ion('ca', rev_pot=126)
+    decor.paint('(tag 2)', ion='ca', rev_pot=126 * U.mV)
 
 .. _cablecell-ions-diffusion:
 
@@ -310,8 +315,8 @@ concentration and ``ß`` the diffusivity constant.
 .. code-block:: Python
 
     decor = arbor.decor()
-    decor.set_ion('ca', diff=23.0)
-    decor.paint('"region"', 'ca', diff=42.0)
+    decor.set_ion('ca', diff=23.0 * U.mV)
+    decor.paint('"region"', 'ca', diff=42.0 * U.m2/U.s)
 
 Be aware of the consequences of setting ``ß > 0`` only in some places, namely
 pile-up effects similar to reflective bounds.

@@ -10,7 +10,7 @@ Arbor Cable Cell
 
 We define an s-expression format for describing :ref:`cable cells <cablecell>`.
 Cable cells are constructed from three components: a :ref:`label dictionary <labels>`,
-a :ref:`decoration object <cablecell-decoration>` and a :ref:`morphology <morph>`.
+a :ref:`decoration object <cablecell-decoration>`, and a :ref:`morphology <morph>`.
 The cable cell *format* is constructed in the same way.
 
 .. Note::
@@ -63,14 +63,14 @@ The components of the label dictionary are the following:
 
       (iexpr-def "my_iexpr" (radius 0.5))
 
-   This expression identifies the radius iexpr with a scaling factor 0.5.
+   This expression identifies the radius iexpr with a scaling factor of 0.5.
 
 
-Any number of locset, region an iexpr definitions can be grouped in a label dictionary as follows:
+Any  definition of a locset, region, or iexpr can be stored in a label dictionary as follows.
 
 .. label:: (label-dict [...def:region-def/locset-def/iexpr-def])
 
-   This describes a label dictionary of zero or more region, locset and iexpr definitons.
+   This describes a label dictionary of zero or more region, locset, and iexpr definitons.
    For example:
 
    .. code:: lisp
@@ -396,7 +396,7 @@ Parsable arbor-components and meta-data
 The formats described above can be used to generate a :ref:`label dictionary <labels>`,
 :ref:`decoration <cablecell-decoration>`, :ref:`morphology <morph>`, or :ref:`cable cell <cablecell>`
 object. These are denoted as arbor-components. Arbor-components need to be accompanied by *meta-data*
-specifying the version of the format being used. The only version currently supported is ``0.1-dev``.
+specifying the version of the format being used. The only version currently supported is ``0.9-dev``.
 
 .. label:: (version val:string)
 
@@ -418,7 +418,7 @@ Label-dict
 .. code:: lisp
 
    (arbor-component
-     (meta-data (version "0.1-dev"))
+     (meta-data (version "0.9-dev"))
      (label-dict
        (region-def "my_soma" (tag 1))
        (locset-def "root" (root))))
@@ -429,7 +429,7 @@ Decoration
 .. code:: lisp
 
    (arbor-component
-     (meta-data (version "0.1-dev"))
+     (meta-data (version "0.9-dev"))
      (decor
        (default (membrane-potential -55.000000))
        (place (locset "root") (synapse (mechanism "expsyn")) "root_synapse")
@@ -441,7 +441,7 @@ Morphology
 .. code:: lisp
 
    (arbor-component
-     (meta-data (version "0.1-dev"))
+     (meta-data (version "0.9-dev"))
      (morphology
         (branch 0 -1
           (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)
@@ -454,7 +454,7 @@ Cable-cell
 .. code:: lisp
 
    (arbor-component
-     (meta-data (version "0.1-dev"))
+     (meta-data (version "0.9-dev"))
      (cable-cell
        (label-dict
          (region-def "my_soma" (tag 1))

@@ -71,14 +71,14 @@ Hardware
    network_ring_mpi
    network_ring_gpu
 
-Diverse
+Advanced
 --------
 
 .. toctree::
    :maxdepth: 1
 
+   nmodl
    full-feature-diffusion
-
 
 Demonstrations
 --------------
