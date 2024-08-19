@@ -374,7 +374,9 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
         }
 
         arb_index_type p = D.geometry.cv_parent[i];
-        if (p!=-1) {
+        bool has_parent = p != -1;
+
+        if (has_parent) {
             auto parent_cables = D.geometry.cables(p);
             msize_t bid = cv_cables.front().branch;
             double parent_refpt = 0;
@@ -410,7 +412,7 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
         D.diam_um[i] = 0;
         double cv_length = 0;
 
-        for (mcable cable: cv_cables) {
+        for (const mcable& cable: cv_cables) {
             auto scale_param = [&](const auto&, const auto& par) -> double {
                 auto ie = thingify(par.scale, provider);
                 auto sc = par.value*ie->eval(provider, cable);
@@ -428,29 +430,27 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
             cv_length                    += embedding.integrate_length(cable);
         }
 
-        bool has_parent = p != -1;
-        double A = D.cv_area[i];
-
+        double area = D.cv_area[i];
         if (cv_length > 0) {
-            D.diam_um[i] = A/(cv_length*math::pi<double>);
+            D.diam_um[i] = area/(cv_length*math::pi<double>);
         }
-        D.cv_volume[i] = 0.25*A*D.diam_um[i];
+        D.cv_volume[i] = 0.25*area*D.diam_um[i];
 
-        if (A > 0) {
-            D.init_membrane_potential[i] /= A;
-            D.temperature_K[i] /= A;
-            // If parent is trivial, and there is no grandparent, then we can use values from this CV
-            // to get initial values for the parent. (The other case, when there is a grandparent, is
-            // caught below.)
+        if (area > 0) {
+            D.init_membrane_potential[i] /= area;
+            D.temperature_K[i] /= area;
+            // If parent is trivial, and there is no grandparent, use values from this CV
+            // as initial values for the parent.
+            // The other case, when there is a grandparent, is caught below when i == p.
             if (has_parent && D.geometry.cv_parent[p] == -1 && D.cv_area[p] == 0) {
                 D.init_membrane_potential[p] = D.init_membrane_potential[i];
-                D.temperature_K[p] = D.temperature_K[i];
+                D.temperature_K[p]           = D.temperature_K[i];
             }
         }
         else if (has_parent) {
             // Use parent CV to get a sensible initial value for voltage and temp on zero-size CVs.
             D.init_membrane_potential[i] = D.init_membrane_potential[p];
-            D.temperature_K[i] = D.temperature_K[p];
+            D.temperature_K[i]           = D.temperature_K[p];
         }
     }
 
@@ -1194,8 +1194,6 @@ make_density_mechanism_config(const region_assignment<density>& assignments,
     for (const auto& [name, cables]: assignments) {
         const auto& info = data.catalogue[name];
         auto config = make_mechanism_config(info, arb_mechanism_kind_density);
-
-
         auto parameters = ordered_parameters(info);
         auto n_param = parameters.size();
 
