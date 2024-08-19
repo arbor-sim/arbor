@@ -323,7 +323,9 @@ class TestDiffusion(unittest.TestCase):
         # set probes
         prb = [
             A.cable_probe_ion_diff_concentration('"soma-start"', "s", "X"),
-            A.cable_probe_density_state('"soma-start"', "neuron_with_diffusion", "sV", "XV"),
+            A.cable_probe_density_state(
+                '"soma-start"', "neuron_with_diffusion", "sV", "XV"
+            ),
             A.cable_probe_density_state_cell("neuron_with_diffusion", "sV", "XVs"),
         ]
 
