@@ -652,9 +652,13 @@ void register_cells(py::module& m) {
              "Remove ion species from properties.")
         .def("set_ion",
              [](arb::cable_cell_global_properties& props, const char* ion,
-                optional<int> valence, optional<U::quantity> int_con,
-                optional<U::quantity> ext_con, optional<U::quantity> rev_pot,
-                py::object method, optional<U::quantity> diff) {
+                py::kw_only(),
+                optional<int> valence,
+                optional<U::quantity> int_con,
+                optional<U::quantity> ext_con,
+                optional<U::quantity> rev_pot,
+                py::object method,
+                optional<U::quantity> diff) {
                  if (!props.ion_species.count(ion) && !valence) {
                      throw std::runtime_error(util::pprintf("New ion species: '{}', missing valence", ion));
                  }

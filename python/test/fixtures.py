@@ -184,7 +184,7 @@ def diffusion_catalogue(repo_path):
     """
     path = repo_path / "test" / "unit" / "diffusion"
     cat_path = _build_cat("diffusion", path)
-    return arbor.load_catalogue(str(cat_path))
+    return A.load_catalogue(str(cat_path))
 
 
 @_fixture

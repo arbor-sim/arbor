@@ -2,6 +2,7 @@
 
 import unittest
 import arbor as A
+from arbor import units as U
 import numpy as np
 from .. import fixtures
 
@@ -35,49 +36,34 @@ class recipe(A.recipe):
         self.the_props.catalogue = (
             cat  # use the provided catalogue of diffusion mechanisms
         )
-        self.the_props.set_ion("s", 1, 0, 0, 0)  # use diffusive particles "s"
+        self.the_props.set_ion(
+            "s", valence=1, int_con=0 * U.mM, ext_con=0 * U.mM, diff=0 * U.m2 / U.s
+        )  # use diffusive particles "s"
         self.inject_remove = inject_remove
 
-    # num_cells
-    # Returns the total number of cells
     def num_cells(self):
         return 1
 
-    # cell_kind
-    # Returns the kind of the specified cell
-    # - gid: the identifier of the cell
-    def cell_kind(self, gid):
+    def cell_kind(self, _):
         return A.cell_kind.cable
 
-    # cell_description
-    # Returns the description object of the specified cell
-    # - gid: the identifier of the cell
-    def cell_description(self, gid):
+    def cell_description(self, _):
         return self.the_cell
 
-    # probes
-    # Returns the list of probes for the specified cell
-    # - gid: the identifier of the cell
-    def probes(self, gid):
+    def probes(self, _):
         return self.the_probes
 
-    # global_properties
-    # Returns the properties of the specified cell
-    # - kind: the kind of the specified cell
-    def global_properties(self, kind):
+    def global_properties(self, _):
         return self.the_props
 
-    # event_generators
-    # Returns the list of event generators for the specified cell
-    # - gid: the identifier of the cell
-    def event_generators(self, gid):
+    def event_generators(self, _):
         event_gens = []
         for event in self.inject_remove:
             event_gens.append(
                 A.event_generator(
                     event["synapse"],
                     event["change"],
-                    A.explicit_schedule([event["time"]]),
+                    A.explicit_schedule([event["time"] * U.ms]),
                 )
             )
         return event_gens
@@ -91,8 +77,8 @@ class TestDiffusion(unittest.TestCase):
     def __init__(self, args):
         super(TestDiffusion, self).__init__(args)
 
-        self.runtime = 5.00  # runtime of the whole simulation in ms
-        self.dt = 0.01  # duration of one timestep in ms
+        self.runtime = 5.00 * U.ms  # runtime of the whole simulation in ms
+        self.dt = 0.01 * U.ms  # duration of one timestep in ms
         self.dev = 0.01  # accepted relative deviation for `assertAlmostEqual`
 
     # get_morph_and_decor_1_seg
@@ -176,7 +162,7 @@ class TestDiffusion(unittest.TestCase):
         # decorate the morphology with mechanisms
         dec = A.decor()
         dec.discretization(
-            A.cv_policy(f"(fixed-per-branch {2*num_cvs_per_seg})")
+            A.cv_policy(f"(fixed-per-branch {2 * num_cvs_per_seg})")
         )  # use 'fixed-per-branch' policy to obtain exact number of CVs; there's one branch here
         dec.place(
             '"dendriteA-center"', A.synapse("synapse_with_diffusion"), "syn_exc_A"
@@ -331,14 +317,14 @@ class TestDiffusion(unittest.TestCase):
 
         # ---------------------------------------------------------------------------------------
         # add the diffusive particle species 's'
-        dec.set_ion("s", int_con=0.0, diff=diffusivity)
+        dec.set_ion("s", int_con=0.0 * U.mM, diff=diffusivity * U.m2 / U.s)
 
         # ---------------------------------------------------------------------------------------
         # set probes
         prb = [
-            A.cable_probe_ion_diff_concentration('"soma-start"', "s"),
-            A.cable_probe_density_state('"soma-start"', "neuron_with_diffusion", "sV"),
-            A.cable_probe_density_state_cell("neuron_with_diffusion", "sV"),
+            A.cable_probe_ion_diff_concentration('"soma-start"', "s", "X"),
+            A.cable_probe_density_state('"soma-start"', "neuron_with_diffusion", "sV", "XV"),
+            A.cable_probe_density_state_cell("neuron_with_diffusion", "sV", "XVs"),
         ]
 
         # ---------------------------------------------------------------------------------------
@@ -354,11 +340,10 @@ class TestDiffusion(unittest.TestCase):
 
         # ---------------------------------------------------------------------------------------
         # set handles
-        hdl_s = sim.sample((0, 0), A.regular_schedule(self.dt))  # s at "soma-start"
-        hdl_sV = sim.sample((0, 1), A.regular_schedule(self.dt))  # sV at "soma-start"
-        hdl_sV_all = sim.sample(
-            (0, 2), A.regular_schedule(self.dt)
-        )  # sV (cell-wide array)
+        sched = A.regular_schedule(self.dt)
+        hdl_s = sim.sample((0, "X"), sched)  # s at "soma-start"
+        hdl_sV = sim.sample((0, "XV"), sched)  # sV at "soma-start"
+        hdl_sV_all = sim.sample((0, "XVs"), sched)  # sV (cell-wide array)
 
         # ---------------------------------------------------------------------------------------
         # run the simulation

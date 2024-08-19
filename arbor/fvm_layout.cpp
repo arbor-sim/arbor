@@ -428,9 +428,8 @@ fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global
             cv_length                    += embedding.integrate_length(cable);
         }
 
-        if (cv_length>0) {
-            D.diam_um[i] = D.cv_area[i]/(cv_length*math::pi<double>);
-        }
+        arb_assert(cv_length > 0);
+        D.diam_um[i] = D.cv_area[i]/(cv_length*math::pi<double>);
         D.cv_volume[i] = 0.25*D.cv_area[i]*D.diam_um[i];
 
         if (D.cv_area[i]>0) {
