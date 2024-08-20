@@ -4,7 +4,7 @@ import nest
 
 
 # set up seed for random number
-seed = 0 * 6748 + 7928
+seed = seed
 # grng_seed   = seed
 rng_seed = seed
 
