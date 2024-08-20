@@ -162,9 +162,6 @@ if __name__ == "__main__":
     sim.record(A.spike_recording.all)
     sim.run(tfinal * U.ms, dt * U.ms)
 
-    print("This is simulating Brunel network in Arbor!")
-    print(A.config())
-
     # get data
     spikes = sim.spikes()
     sources = spikes["source"]["gid"]

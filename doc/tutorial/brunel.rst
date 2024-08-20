@@ -17,7 +17,8 @@ In this tutorial, we will build a classic Brunel network using LIF cells in Arbo
 Start a recipe and initiate the parameters
 ------------------------------------------
 
-Here, we will follow the protocol for building the recipe, which has been instructed before.
+Here, we will follow the protocol for building the recipe, which has been discussed before in :ref:`Ring Network
+<tutorialnetworkring>`.
 
 .. literalinclude:: ../../python/example/brunel/arbor_brunel.py
    :language: python
@@ -40,7 +41,7 @@ We define the network size with **num_cells** and cell type with **cell_kind**. 
    :lines: 62-81
 
 
-The Brunel network is randomly sparsely connected with a fixed in-degree regulated by a connection probability (:math:`\epsilon`). We, therefore, define a function to enable random connectivity.
+The Brunel network is randomly sparsely connected with a fixed in-degree regulated by a connection probability (:math:`\epsilon`). We, therefore, define a function to enable random connectivity. This funciton draws random connections from the pre-selected pool of source neruons defined by the `gid` defined within `start` and `end`. The total number of random connections are regulated by the fix-indegree value, which is `m` here in the function and `CE` and `CI` in the pamaters file.
 
 .. literalinclude:: ../../python/example/brunel/arbor_brunel.py
    :language: python
@@ -71,9 +72,40 @@ One can also use the code below to visualize the raster plot of the entire newor
    :lines: 1-60
 
 
+
+.. figure:: ../../doc/tutorial/images/brunel_arbor_dynamics.svg
+    :width: 600
+    :align: center
+
+    Raster plot and PSTH of the Brunel network simulated in Arbor.
+
+
+.. figure:: ../../doc/tutorial/images/brunel_arbor_rates.svg
+    :width: 600
+    :align: center
+
+    Firing rate distribution of all neurons in the Brunel network simulated in Arbor.
+    
+
 The full code
 -------------
 You can find the same network architecture simulated in the NEST simulator in the same repo ``python/examples/brunel/nest_brunel.py``. The average firing rate of neurons and network dynamics look similar in both cases.
+
+
+.. figure:: ../../doc/tutorial/images/brunel_nest_dynamics.svg
+    :width: 600
+    :align: center
+
+    Raster plot and PSTH of the Brunel network simulated in NEST.
+
+
+.. figure:: ../../doc/tutorial/images/brunel_nest_rates.svg
+    :width: 600
+    :align: center
+
+    Firing rate distribution of all neurons in the Brunel network simulated in NEST.
+    
+
 
 
 References
