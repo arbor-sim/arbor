@@ -159,14 +159,29 @@ struct pw_element_proxy {
         extent(pw.extent(i)), value(pw.value(i)) {}
 
     operator pw_element<X>() const { return pw_element<X>{extent, value}; }
-    operator X() const { return value; }
-    pw_element_proxy& operator=(X x) {value = std::move(x); return *this; };
+    operator X&() const { return value; }
+    pw_element_proxy& operator=(X x) { value = std::move(x); return *this; };
 
     double lower_bound() const { return extent.first; }
     double upper_bound() const { return extent.second; }
 
     const std::pair<double, double> extent;
     X& value;
+};
+
+template <typename X>
+struct pw_element_proxy<const X> {
+    pw_element_proxy(const pw_elements<X>& pw, pw_size_type i):
+        extent(pw.extent(i)), value(pw.value(i)) {}
+
+    operator pw_element<X>() const { return pw_element<X>{extent, value}; }
+    operator const X&() const { return value; }
+
+    double lower_bound() const { return extent.first; }
+    double upper_bound() const { return extent.second; }
+
+    const std::pair<double, double> extent;
+    const X& value;
 };
 
 // Compute indices into vertex set corresponding to elements that cover a point x:
@@ -238,12 +253,12 @@ struct pw_elements {
         const_iterator(): pw_(nullptr) {}
 
         using value_type = pw_element<X>;
-        using pointer = const pointer_proxy<pw_element<X>>;
-        using reference = pw_element<X>;
+        using pointer = const pointer_proxy<pw_element_proxy<const X>>;
+        using reference = pw_element_proxy<const X>;
 
-        reference operator[](difference_type j) const { return (*pw_)[j+*c_]; }
-        reference operator*() const { return (*pw_)[*c_]; }
-        pointer operator->() const { return pointer{(*pw_)[*c_]}; }
+        reference operator[](difference_type j) const { return {*pw_, j + *c_}; }
+        reference operator*() const { return {*pw_, *c_}; }
+        pointer operator->() const { return pointer{reference{*pw_, *c_}}; }
 
         // (required for iterator_adaptor)
         counter<pw_size_type>& inner() { return c_; }
