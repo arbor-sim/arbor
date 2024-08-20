@@ -103,7 +103,6 @@
 
 #include "util/iterutil.hpp"
 #include "util/transform.hpp"
-#include "util/meta.hpp"
 #include "util/partition.hpp"
 
 namespace arb {
