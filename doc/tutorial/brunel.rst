@@ -23,7 +23,7 @@ Here, we will follow the protocol for building the recipe, which has been discus
 .. literalinclude:: ../../python/example/brunel/arbor_brunel.py
    :language: python
    :dedent:
-   :lines: 4-59
+   :lines: 4-62
 
 We can find all the parameters listed in a separate parameter file:
 
@@ -38,7 +38,7 @@ We define the network size with ``num_cells`` and cell type with ``cell_kind``. 
 .. literalinclude:: ../../python/example/brunel/arbor_brunel.py
    :language: python
    :dedent:
-   :lines: 62-81
+   :lines: 64-81
 
 
 The Brunel network is randomly sparsely connected with a fixed in-degree regulated by a connection probability (:math:`\epsilon`). We, therefore, define a function to enable random connectivity. This funciton draws random connections from the pre-selected pool of source neruons defined by the `gid` defined within `start` and `end`. The total number of random connections are regulated by the fix-indegree value, which is `m` here in the function and `CE` and `CI` in the parameters file.
@@ -46,7 +46,7 @@ The Brunel network is randomly sparsely connected with a fixed in-degree regulat
 .. literalinclude:: ../../python/example/brunel/arbor_brunel.py
    :language: python
    :dedent:
-   :lines: 93-112
+   :lines: 83-112
 
 
 To enable the network activity, we apply Poissonian input via ``event_generators`` to to each neuron in the network. It aims to achieve a similar effect as the ``Poisson_generator`` in the NEST simulator.
@@ -54,7 +54,7 @@ To enable the network activity, we apply Poissonian input via ``event_generators
 .. literalinclude:: ../../python/example/brunel/arbor_brunel.py
    :language: python
    :dedent:
-   :lines: 115-123
+   :lines: 114-125
 
 
 In the end, we build the network, run the simulation, and record the spikes.
@@ -62,14 +62,14 @@ In the end, we build the network, run the simulation, and record the spikes.
 .. literalinclude:: ../../python/example/brunel/arbor_brunel.py
    :language: python
    :dedent:
-   :lines: 126-178
+   :lines: 128-172
 
 One can also use the code below to visualize the raster plot of the entire nework and a few selected cells, and the peristimulus time histogram (PSTH) of the entire network. The parameters used here are supposed to achieve asynchronous irregular dynamics.
 
 .. literalinclude:: ../../python/example/brunel/analysis.py
    :language: python
    :dedent:
-   :lines: 1-60
+   :lines: 1-56
 
 
 

@@ -23,3 +23,7 @@ extend-exclude =
                build,
                # nah, don't care
                spack/package.py
+per-file-ignores=
+    python/example/brunel/analysis.py=F405,F403
+    python/example/brunel/arbor_brunel.py=F405,F403
+    python/example/brunel/nest_brunel.py=F405,F403
