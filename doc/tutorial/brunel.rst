@@ -33,7 +33,7 @@ We can find all the parameters listed in a separate parameter file:
    :lines: 1-53
 
 
-We define the network size with **num_cells** and cell type with **cell_kind**. Then load all the neuron parameters to the LIF cells with **cell_description** function.
+We define the network size with ``num_cells`` and cell type with ``cell_kind``. Then load all the neuron parameters to the LIF cells with ``cell_description`` function.
 
 .. literalinclude:: ../../python/example/brunel/arbor_brunel.py
    :language: python
@@ -49,7 +49,7 @@ The Brunel network is randomly sparsely connected with a fixed in-degree regulat
    :lines: 93-112
 
 
-To enable the network activity, we apply Poissonian input via `event_generators` to to each neuron in the network. It aims to achieve a similar effect as the `Poisson_generator` in the NEST simulator.
+To enable the network activity, we apply Poissonian input via ``event_generators`` to to each neuron in the network. It aims to achieve a similar effect as the ``Poisson_generator`` in the NEST simulator.
 
 .. literalinclude:: ../../python/example/brunel/arbor_brunel.py
    :language: python
@@ -73,14 +73,14 @@ One can also use the code below to visualize the raster plot of the entire newor
 
 
 
-.. figure:: ../../doc/tutorial/images/brunel_arbor_dynamics.svg
+.. figure:: ../images/brunel_arbor_dynamics.svg
     :width: 600
     :align: center
 
     Raster plot and PSTH of the Brunel network simulated in Arbor.
 
 
-.. figure:: ../../doc/tutorial/images/brunel_arbor_rates.svg
+.. figure:: ../images/brunel_arbor_rates.svg
     :width: 600
     :align: center
 
@@ -92,14 +92,14 @@ The full code
 You can find the same network architecture simulated in the NEST simulator in the same repo ``python/examples/brunel/nest_brunel.py``. The average firing rate of neurons and network dynamics look similar in both cases.
 
 
-.. figure:: ../../doc/tutorial/images/brunel_nest_dynamics.svg
+.. figure:: ../images/brunel_nest_dynamics.svg
     :width: 600
     :align: center
 
     Raster plot and PSTH of the Brunel network simulated in NEST.
 
 
-.. figure:: ../../doc/tutorial/images/brunel_nest_rates.svg
+.. figure:: ../images/brunel_nest_rates.svg
     :width: 600
     :align: center
 
