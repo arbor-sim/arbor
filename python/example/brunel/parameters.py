@@ -1,4 +1,4 @@
-#### define network parameters ####
+# define network parameters
 order = 2500
 NE = order * 4
 NI = order
@@ -8,23 +8,23 @@ epsilon = 0.1
 
 J = 0.1
 weight = J
-delay = 1.5  # ms
+delay = 1.5
 theta = 20.0
 
 CE = round(epsilon * NE)
 CI = round(epsilon * NI)
 
-#### define neuron parameter ####
-tau_m = 20  # ms
-V_th = theta  # mV
-C_m = 250.0  # pF
-E_L = 0.0  # mV
-V_reset = 10.0  # mV
-V_m = 0.0  # mV
-t_ref = 2.0  # ms
+# define neuron parameter
+tau_m = 20
+V_th = theta
+C_m = 250.0
+E_L = 0.0
+V_reset = 10.0
+V_m = 0.0
+t_ref = 2.0
 
 
-##### for nest #####
+# for nest
 neuron_model = "iaf_psc_delta"
 
 neuron_params = {
@@ -38,12 +38,12 @@ neuron_params = {
 }
 
 
-#### define external input ####
+# define external input
 nu_th = theta / (J * CE * tau_m)
 nu_ex = eta * nu_th
-rate = 1000.0 * nu_ex * CE  # Hz
+rate = 1000.0 * nu_ex * CE
 
-#### simulation parameters ####
-tfinal = 1000  # ms
-dt = 1  # ms
+# simulation parameters ####
+tfinal = 1000
+dt = 1
 seed = 42
