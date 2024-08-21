@@ -5,7 +5,6 @@ import nest
 
 # set up seed for random number
 seed = seed
-# grng_seed   = seed
 rng_seed = seed
 
 

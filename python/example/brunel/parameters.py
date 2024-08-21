@@ -1,6 +1,3 @@
-import numpy as np
-
-
 #### define network parameters ####
 order = 2500
 NE = order * 4
