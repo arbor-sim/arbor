@@ -5,9 +5,9 @@ Brunel network
 
 In this tutorial, we will build a classic Brunel network using LIF cells in Arbor, and you can compare it with the simulation using LIF cells in the NEST simulator.
 
-.. Note::
+.. admonition:: Concepts covered in this example
+   :class: note
     
-    **Concepts covered in this example:**
  1. Build LIF cells by loading certain neuron parameters from the parameter file.
  2. Connect neurons in a fixed in-degree manner based on a connection probability.
  3. Add Possonian input to drive the network activity.
@@ -25,7 +25,7 @@ Here, we will follow the protocol for building the recipe, which has been discus
    :dedent:
    :lines: 4-59
 
-We can find all the parameters listed in a seperate parameter files:
+We can find all the parameters listed in a separate parameter file:
 
 .. literalinclude:: ../../python/example/brunel/parameters.py
    :language: python
@@ -41,7 +41,7 @@ We define the network size with **num_cells** and cell type with **cell_kind**. 
    :lines: 62-81
 
 
-The Brunel network is randomly sparsely connected with a fixed in-degree regulated by a connection probability (:math:`\epsilon`). We, therefore, define a function to enable random connectivity. This funciton draws random connections from the pre-selected pool of source neruons defined by the `gid` defined within `start` and `end`. The total number of random connections are regulated by the fix-indegree value, which is `m` here in the function and `CE` and `CI` in the pamaters file.
+The Brunel network is randomly sparsely connected with a fixed in-degree regulated by a connection probability (:math:`\epsilon`). We, therefore, define a function to enable random connectivity. This funciton draws random connections from the pre-selected pool of source neruons defined by the `gid` defined within `start` and `end`. The total number of random connections are regulated by the fix-indegree value, which is `m` here in the function and `CE` and `CI` in the parameters file.
 
 .. literalinclude:: ../../python/example/brunel/arbor_brunel.py
    :language: python
