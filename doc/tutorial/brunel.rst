@@ -10,7 +10,7 @@ In this tutorial, we will build a classic Brunel network using LIF cells in Arbo
     
  1. Build LIF cells by loading certain neuron parameters from the parameter file.
  2. Connect neurons in a fixed in-degree manner based on a connection probability.
- 3. Add Possonian input to drive the network activity.
+ 3. Add Poissonian input to drive the network activity.
  4. Record spikes and plot raster plot and peristimulus time histogram (PSTH).
 
 
