@@ -216,7 +216,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Add stimulus current contributions.
         // NOTE: performed after dt, time_to calculation, in case we want to
         // use mean current contributions as opposed to point sample.
-        PE(advance:integrate:stimuli)
+        PE(advance:integrate:stimuli);
         state_->add_stimulus_current();
         PL();
 
@@ -256,7 +256,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         state_->test_thresholds();
         PL();
 
-        PE(advance:integrate:post)
+        PE(advance:integrate:post);
         if (post_events_) {
             for (auto& m: mechanisms_) {
                 m->post_event();
