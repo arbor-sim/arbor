@@ -75,7 +75,7 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
         arb_assert(node_index_.size()==init_eX_.size());
     }
     if (ion_data.is_diffusive) {
-        Xd_(ion_data.cv.size(), NAN);
+        Xd_ = array(ion_data.cv.size(), NAN);
     }
 }
 
