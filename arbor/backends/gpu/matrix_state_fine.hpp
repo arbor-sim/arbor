@@ -85,8 +85,7 @@ public:
     matrix_state_fine(const std::vector<size_type>& p,
                       const std::vector<size_type>& cell_cv_divs,
                       const std::vector<value_type>& cap,
-                      const std::vector<value_type>& face_conductance,
-                      const_view area) {
+                      const std::vector<value_type>& face_conductance) {
         using util::make_span;
         constexpr unsigned npos = unsigned(-1);
 
@@ -355,7 +354,6 @@ public:
         // cv_capacitance   : flat
         // invariant_d      : flat
         // cv_to_cell       : flat
-        // area             : flat
 
         // the invariant part of d is stored in in flat form
         std::vector<value_type> invariant_d_tmp(matrix_size, 0);
@@ -381,9 +379,6 @@ public:
         // transform u_shuffled values into packed u vector.
         flat_to_packed(u_shuffled, u);
 
-        // the invariant part of d and cv_area are in flat form
-        cv_area = memory::make_const_view(area);
-
         // the cv_capacitance can be copied directly because it is
         // to be stored in flat format
         cv_capacitance = memory::make_const_view(cap);
@@ -403,19 +398,18 @@ public:
     //   voltage [mV]
     //   current density [A/m²]
     //   conductivity [kS/m²]
-    void assemble(const T dt, const_view voltage, const_view current, const_view conductivity) {
-        assemble_matrix_fine(
-            d.data(),
-            rhs.data(),
-            invariant_d.data(),
-            voltage.data(),
-            current.data(),
-            conductivity.data(),
-            cv_capacitance.data(),
-            cv_area.data(),
-            dt,
-            perm.data(),
-            size());
+    void assemble(const T dt, const_view voltage, const_view current, const_view conductivity, const_view area_um2) {
+        assemble_matrix_fine(d.data(),
+                             rhs.data(),
+                             invariant_d.data(),
+                             voltage.data(),
+                             current.data(),
+                             conductivity.data(),
+                             cv_capacitance.data(),
+                             area_um2.data(),
+                             dt,
+                             perm.data(),
+                             size());
     }
 
     void solve(array& to) {
@@ -436,8 +430,8 @@ public:
 
 
     void solve(array& voltage,
-               const T dt, const_view current, const_view conductivity) {
-        assemble(dt, voltage, current, conductivity);
+               const T dt, const_view current, const_view conductivity, const_view area_um2) {
+        assemble(dt, voltage, current, conductivity, area_um2);
         solve(voltage);
     }
 
