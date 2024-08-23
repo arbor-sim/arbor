@@ -543,12 +543,16 @@ void run_ion_density_probe_test(context ctx) {
     ca.write_Xo_ = true;
     ca.init_Xi_ = typename Backend::array(state.n_cv, 0);
     ca.init_Xo_ = typename Backend::array(state.n_cv, 0);
+    ca.reset_Xi_ = typename Backend::array(state.n_cv, 0);
+    ca.reset_Xo_ = typename Backend::array(state.n_cv, 0);
     ca.init_concentration();
     auto& na = state.ion_data["na"];
     na.write_Xi_ = true;
     na.write_Xo_ = true;
     na.init_Xi_ = typename Backend::array(state.n_cv, 0);
     na.init_Xo_ = typename Backend::array(state.n_cv, 0);
+    na.reset_Xi_ = typename Backend::array(state.n_cv, 0);
+    na.reset_Xo_ = typename Backend::array(state.n_cv, 0);
     na.init_concentration();
     // Now, re-init cell
     lcell.reset();
