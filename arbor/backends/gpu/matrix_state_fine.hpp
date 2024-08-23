@@ -36,8 +36,8 @@ public:
     array rhs;   // [nA]
 
     // Required for matrix assembly
-    array& cv_area;             // [μm^2]
-    array cv_capacitance;      // [pF]
+    const_view cv_area;              // [μm^2]
+    const array cv_capacitance;      // [pF]
 
     // Invariant part of the matrix diagonal
     array invariant_d;         // [μS]
@@ -83,11 +83,10 @@ public:
 
     // constructor for fine-grained matrix.
     matrix_state_fine(const std::vector<size_type>& p,
-                 const std::vector<size_type>& cell_cv_divs,
-                 const std::vector<value_type>& cap,
-                 const std::vector<value_type>& face_conductance,
-                 const std::vector<value_type>& area)
-    {
+                      const std::vector<size_type>& cell_cv_divs,
+                      const std::vector<value_type>& cap,
+                      const std::vector<value_type>& face_conductance,
+                      const_view area) {
         using util::make_span;
         constexpr unsigned npos = unsigned(-1);
 
