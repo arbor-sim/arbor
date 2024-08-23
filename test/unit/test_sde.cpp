@@ -732,8 +732,7 @@ TEST(sde, solver) {
     // context
     auto context = make_context({arbenv::default_concurrency(), -1});
 
-    for (unsigned s=0; s<nsims; ++s)
-    {
+    for (unsigned s=0; s<nsims; ++s) {
         // build a simulation object
         simulation sim = simulation::create(rec)
             .set_context(context)
@@ -770,10 +769,10 @@ TEST(sde, solver) {
             (sigma*sigma/(2*kappa))*(1.0 - std::exp(-2*kappa*t))
         };
     };
-    auto expected_m1 = [&](double t) { return expected(0.1, 0.1, t); };
-    auto expected_m2 = [&](double t) { return expected(0.01, 0.1, t); };
-    auto expected_m3 = [&](double t) { return expected(0.1, 0.05, t); };
-    auto expected_m4 = [&](double t) { return expected(0.01, 0.05, t); };
+    const auto& expected_m1 = [&](double t) { return expected(0.1, 0.1, t); };
+    const auto& expected_m2 = [&](double t) { return expected(0.01, 0.1, t); };
+    const auto& expected_m3 = [&](double t) { return expected(0.1, 0.05, t); };
+    const auto& expected_m4 = [&](double t) { return expected(0.01, 0.05, t); };
 
     auto test = [&] (auto func, const auto& stats) {
         for (unsigned int i=1; i<nsteps; ++i) {
@@ -912,7 +911,7 @@ TEST(sde, coupled) {
     };
 
     for (unsigned int i=1; i<nsteps; ++i) {
-        auto ex = expected(i*dt.value(), 0.1, 0.1, 0.1, 0.1, 1, 0.2);
+        const auto& ex = expected(i*dt.value(), 0.1, 0.1, 0.1, 0.1, 1, 0.2);
 
         const double E_P = ex[0];
         const double E_sigma = ex[1];

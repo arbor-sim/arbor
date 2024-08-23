@@ -164,11 +164,9 @@ void fvm_lowered_cell_impl<Backend>::reset() {
 }
 
 template <typename Backend>
-fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
-    const timestep_range& dts,
-    const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
-    const std::vector<std::vector<sample_event>>& staged_samples)
-{
+fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_range& dts,
+                                                                 const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
+                                                                 const std::vector<std::vector<sample_event>>& staged_samples) {
     arb_assert(state_->time == dts.t_begin());
     set_gpu();
 
@@ -288,14 +286,12 @@ void fvm_lowered_cell_impl<Backend>::update_ion_state() {
 
 template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::assert_voltage_bounded(arb_value_type bound) {
-    auto v_minmax = state_->voltage_bounds();
-    if (v_minmax.first>=-bound && v_minmax.second<=bound) {
-        return;
-    }
+    const auto& [vmin, vmax] = state_->voltage_bounds();
+    if (vmin >= -bound && vmax <= bound) return;
 
     throw range_check_failure(
         util::pprintf("voltage solution out of bounds for at t = {}", state_->time),
-        v_minmax.first<-bound? v_minmax.first: v_minmax.second);
+        vmin < -bound ? vmin : vmax);
 }
 
 inline
