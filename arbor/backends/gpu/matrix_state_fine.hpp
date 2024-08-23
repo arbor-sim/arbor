@@ -36,7 +36,7 @@ public:
     array rhs;   // [nA]
 
     // Required for matrix assembly
-    const array cv_capacitance;      // [pF]
+    array cv_capacitance;      // [pF]
 
     // Invariant part of the matrix diagonal
     array invariant_d;         // [μS]
