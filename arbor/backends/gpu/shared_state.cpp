@@ -51,6 +51,7 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
     write_eX_(ion_data.revpot_written),
     write_Xo_(ion_data.econc_written),
     write_Xi_(ion_data.iconc_written),
+    write_Xd_(ion_data.is_diffusive),
     node_index_(make_const_view(ion_data.cv)),
     iX_(ion_data.cv.size(), NAN),
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end()),
@@ -74,7 +75,7 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
         init_eX_ = make_const_view(ion_data.init_revpot);
         arb_assert(node_index_.size()==init_eX_.size());
     }
-    if (ion_data.is_diffusive) {
+    if (write_Xd_) {
         Xd_ = array(ion_data.cv.size(), NAN);
     }
 }
@@ -92,7 +93,7 @@ void ion_state::zero_current() {
 
 void ion_state::reset() {
     zero_current();
-    memory::copy(reset_Xi_, Xd_);
+    if (write_Xd_) memory::copy(reset_Xi_, Xd_);
     if (write_Xi_) memory::copy(reset_Xi_, Xi_);
     if (write_Xo_) memory::copy(reset_Xo_, Xo_);
     if (write_eX_) memory::copy(init_eX_, eX_);
