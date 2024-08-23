@@ -58,16 +58,23 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
     Xd_(ion_data.cv.size(), NAN),
     Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end()),
     gX_(ion_data.cv.size(), NAN),
-    init_Xi_(make_const_view(ion_data.init_iconc)),
-    init_Xo_(make_const_view(ion_data.init_econc)),
-    reset_Xi_(make_const_view(ion_data.reset_iconc)),
-    reset_Xo_(make_const_view(ion_data.reset_econc)),
-    init_eX_(make_const_view(ion_data.init_revpot)),
     charge(1u, static_cast<arb_value_type>(ion_data.charge)),
     solver(std::move(ptr)) {
-    arb_assert(node_index_.size()==init_Xi_.size());
-    arb_assert(node_index_.size()==init_Xo_.size());
-    arb_assert(node_index_.size()==init_eX_.size());
+    // We don't need to allocate these if we never use them...
+    if (write_Xi_) {
+        init_Xi_ = make_const_view(ion_data.init_iconc);
+        reset_Xi_ = make_const_view(ion_data.reset_iconc);
+        arb_assert(node_index_.size()==init_Xi_.size());
+    }
+    if (write_Xo_) {
+        init_Xo_ = make_const_view(ion_data.init_econc);
+        reset_Xo_ = make_const_view(ion_data.reset_econc);
+        arb_assert(node_index_.size()==init_Xo_.size());
+    }
+    if (write_eX_) {
+        init_eX_ = make_const_view(ion_data.init_revpot);
+        arb_assert(node_index_.size()==init_eX_.size());
+    }
 }
 
 void ion_state::init_concentration() {
