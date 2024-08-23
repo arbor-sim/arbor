@@ -77,10 +77,10 @@ public:
     //      `solver_format[perm[i]] = external_format[i]`
     iarray perm;
 
-
     matrix_state_fine() = default;
 
     matrix_state_fine(matrix_state_fine&&) = default;
+    matrix_state_fine(const matrix_state_fine&) = default;
 
     matrix_state_fine& operator=(const matrix_state_fine&) = default;
     matrix_state_fine& operator=(matrix_state_fine&&) = default;
