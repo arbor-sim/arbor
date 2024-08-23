@@ -55,7 +55,6 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
     iX_(ion_data.cv.size(), NAN),
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end()),
     Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end()),
-    Xd_(ion_data.cv.size(), NAN),
     Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end()),
     gX_(ion_data.cv.size(), NAN),
     charge(1u, static_cast<arb_value_type>(ion_data.charge)),
@@ -74,6 +73,9 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
     if (write_eX_) {
         init_eX_ = make_const_view(ion_data.init_revpot);
         arb_assert(node_index_.size()==init_eX_.size());
+    }
+    if (ion_data.is_diffusive) {
+        Xd_(ion_data.cv.size(), NAN);
     }
 }
 
