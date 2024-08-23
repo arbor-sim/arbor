@@ -23,7 +23,7 @@ struct cable_solver {
     array d;              // [μS]
     array u;              // [μS]
     array cv_capacitance; // [pF]
-    array cv_area;        // [μm^2]
+    const_view cv_area;   // [μm^2]
     array invariant_d;    // [μS] invariant part of matrix diagonal
 
     cable_solver() = default;
@@ -37,12 +37,12 @@ struct cable_solver {
                  const std::vector<index_type>& cell_cv_divs,
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& cond,
-                 const std::vector<value_type>& area):
+                 const_view area):
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
         d(size(), 0), u(size(), 0),
         cv_capacitance(cap.begin(), cap.end()),
-        cv_area(area.begin(), area.end()),
+        cv_area(area),
         invariant_d(size(), 0)
     {
         // Sanity check
