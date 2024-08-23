@@ -80,6 +80,8 @@ public:
 
     matrix_state_fine() = default;
 
+    matrix_state_fine(matrix_state_fine&&) = default;
+
     matrix_state_fine& operator=(const matrix_state_fine&) = default;
     matrix_state_fine& operator=(matrix_state_fine&&) = default;
 
