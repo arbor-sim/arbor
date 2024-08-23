@@ -36,7 +36,6 @@ public:
     array rhs;   // [nA]
 
     // Required for matrix assembly
-    const_view cv_area;              // [μm^2]
     const array cv_capacitance;      // [pF]
 
     // Invariant part of the matrix diagonal
