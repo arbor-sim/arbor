@@ -3,7 +3,6 @@
 #include <cstring>
 
 #include <vector>
-#include <type_traits>
 
 #include <arbor/common_types.hpp>
 
@@ -42,9 +41,6 @@ public:
 
     // Invariant part of the matrix diagonal
     array invariant_d;         // [μS]
-
-    // Solution in unpacked format
-    array solution_;
 
     // Maximum number of branches in each level per block
     unsigned max_branches_per_level;
