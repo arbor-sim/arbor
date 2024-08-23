@@ -79,12 +79,6 @@ public:
 
     matrix_state_fine() = default;
 
-    matrix_state_fine(matrix_state_fine&&) = default;
-    matrix_state_fine(const matrix_state_fine&) = default;
-
-    matrix_state_fine& operator=(const matrix_state_fine&) = default;
-    matrix_state_fine& operator=(matrix_state_fine&&) = default;
-
     // constructor for fine-grained matrix.
     matrix_state_fine(const std::vector<size_type>& p,
                       const std::vector<size_type>& cell_cv_divs,
