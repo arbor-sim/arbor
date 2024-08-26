@@ -15,8 +15,6 @@
 #include <arbor/mechanism.hpp>
 #include <arbor/simd/simd.hpp>
 
-#include "backends/event.hpp"
-#include "backends/rand_impl.hpp"
 #include "io/sepval.hpp"
 #include "util/index_into.hpp"
 #include "util/padded_alloc.hpp"
@@ -31,7 +29,6 @@
 namespace arb {
 namespace multicore {
 
-using util::make_range;
 using util::make_span;
 using util::ptr_by_key;
 using util::value_by_key;
@@ -103,10 +100,13 @@ void ion_state::zero_current() {
 
 void ion_state::reset() {
     zero_current();
-    if (write_Xd_) std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xd_.begin());
     if (write_Xi_) std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xi_.begin());
     if (write_Xo_) std::copy(reset_Xo_.begin(), reset_Xo_.end(), Xo_.begin());
     if (write_eX_) std::copy(init_eX_.begin(), init_eX_.end(), eX_.begin());
+    // This goes _last_ or at least after Xi since we might have removed reset_Xi
+    // when Xi is constant. Thus conditionally resetting Xi first and then copying
+    // Xi -> Xd is save in all cases.
+    if (write_Xd_) std::copy(Xi_.begin(), Xi_.end(), Xd_.begin());
 }
 
 // istim_state methods:

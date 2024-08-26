@@ -13,12 +13,10 @@
 #include "backends/event_stream_state.hpp"
 #include "backends/gpu/chunk_writer.hpp"
 #include "memory/copy.hpp"
-#include "memory/gpu_wrappers.hpp"
 #include "memory/wrappers.hpp"
 #include "util/index_into.hpp"
 #include "util/rangeutil.hpp"
 #include "util/maputil.hpp"
-#include "util/meta.hpp"
 #include "util/range.hpp"
 #include "util/strprintf.hpp"
 
@@ -93,10 +91,13 @@ void ion_state::zero_current() {
 
 void ion_state::reset() {
     zero_current();
-    if (write_Xd_) memory::copy(reset_Xi_, Xd_);
     if (write_Xi_) memory::copy(reset_Xi_, Xi_);
     if (write_Xo_) memory::copy(reset_Xo_, Xo_);
     if (write_eX_) memory::copy(init_eX_, eX_);
+    // This goes _last_ or at least after Xi since we might have removed reset_Xi
+    // when Xi is constant. Thus conditionally resetting Xi first and then copying
+    // Xi -> Xd is save in all cases.
+    if (write_Xd_) memory::copy(reset_Xi_, Xd_);
 }
 
 // istim_state methods:
