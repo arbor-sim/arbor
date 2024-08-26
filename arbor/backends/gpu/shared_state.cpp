@@ -50,15 +50,21 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
     write_Xo_(ion_data.econc_written),
     write_Xi_(ion_data.iconc_written),
     write_Xd_(ion_data.is_diffusive),
+    read_Xo_(ion_data.econc_written || ion_data.econc_read), // ensure that if we have W access, also R access is flagged
+    read_Xi_(ion_data.iconc_written || ion_data.iconc_read),
     node_index_(make_const_view(ion_data.cv)),
     iX_(ion_data.cv.size(), NAN),
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end()),
-    Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end()),
-    Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end()),
     gX_(ion_data.cv.size(), NAN),
     charge(1u, static_cast<arb_value_type>(ion_data.charge)),
     solver(std::move(ptr)) {
     // We don't need to allocate these if we never use them...
+    if (read_Xi_) {
+        Xi_ = make_const_view(ion_data.init_iconc);
+    }
+    if (read_Xo_) {
+        Xo_ = make_const_view(ion_data.init_econc);
+    }
     if (write_Xi_) {
         init_Xi_ = make_const_view(ion_data.init_iconc);
         reset_Xi_ = make_const_view(ion_data.reset_iconc);
