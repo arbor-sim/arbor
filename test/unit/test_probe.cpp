@@ -540,15 +540,16 @@ void run_ion_density_probe_test(context ctx) {
     auto fvm_info = lcell.initialize({0}, rec);
     // We skipped FVM layout here, so we need to set these manually
     auto& state = backend_access<Backend>::state(lcell);
+    auto align = state.alignment;
 
     auto& ca = state.ion_data["ca"];
     auto nca = ca.node_index_.size();
-    auto cai = array(nca, 0);
+    auto cai = array(nca, 0, util::padded_allocator<>(align));
     ca.write_Xi_ = true;
     ca.Xi_       = cai;
     ca.init_Xi_  = cai;
     ca.reset_Xi_ = cai;
-    auto cao = array(nca, 0);
+    auto cao = array(nca, 0, util::padded_allocator<>(align));
     ca.write_Xo_ = true;
     ca.Xo_       = cao;
     ca.init_Xo_  = cao;
@@ -556,12 +557,12 @@ void run_ion_density_probe_test(context ctx) {
 
     auto& na = state.ion_data["na"];
     auto nna = na.node_index_.size();
-    auto nai = array(nna, 0);
+    auto nai = array(nna, 0, util::padded_allocator<>(align));
     na.write_Xi_ = true;
     na.Xi_       = nai;
     na.init_Xi_  = nai;
     na.reset_Xi_ = nai;
-    auto nao = array(nna, 0);
+    auto nao = array(nna, 0, util::padded_allocator<>(align));
     na.write_Xo_ = true;
     na.Xo_       = nao;
     na.init_Xo_  = nao;
