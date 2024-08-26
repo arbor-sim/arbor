@@ -480,6 +480,18 @@ void run_expsyn_g_cell_probe_test(context ctx) {
     }
 }
 
+template<typename B>
+typename B::array mk_array(size_t n, size_t a) {
+    return typename B::array(n, 0, util::padded_allocator<>(a));
+}
+
+#ifdef ARB_GPU_ENABLED
+template<>
+typename arb::gpu::backend::array mk_array<arb::gpu::backend>(size_t n, size_t a) {
+    return arb::gpu::backend::array(n, 0);
+}
+#endif
+
 template <typename Backend>
 void run_ion_density_probe_test(context ctx) {
     using fvm_cell = typename backend_access<Backend>::fvm_cell;
@@ -544,12 +556,12 @@ void run_ion_density_probe_test(context ctx) {
 
     auto& ca = state.ion_data["ca"];
     auto nca = ca.node_index_.size();
-    auto cai = array(nca, 0, util::padded_allocator<>(align));
+    auto cai = mk_array<Backend>(nca, align);
     ca.write_Xi_ = true;
     ca.Xi_       = cai;
     ca.init_Xi_  = cai;
     ca.reset_Xi_ = cai;
-    auto cao = array(nca, 0, util::padded_allocator<>(align));
+    auto cao = mk_array<Backend>(nca, align);
     ca.write_Xo_ = true;
     ca.Xo_       = cao;
     ca.init_Xo_  = cao;
@@ -557,12 +569,12 @@ void run_ion_density_probe_test(context ctx) {
 
     auto& na = state.ion_data["na"];
     auto nna = na.node_index_.size();
-    auto nai = array(nna, 0, util::padded_allocator<>(align));
+    auto nai = mk_array<Backend>(nna, align);
     na.write_Xi_ = true;
     na.Xi_       = nai;
     na.init_Xi_  = nai;
     na.reset_Xi_ = nai;
-    auto nao = array(nna, 0, util::padded_allocator<>(align));
+    auto nao = mk_array<Backend>(nna, align);
     na.write_Xo_ = true;
     na.Xo_       = nao;
     na.init_Xo_  = nao;
