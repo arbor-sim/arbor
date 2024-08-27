@@ -300,7 +300,10 @@ add_library(ext-units INTERFACE)
 if(ARB_USE_BUNDLED_UNITS)
     target_link_libraries(ext-units INTERFACE units::units)
 else()
-    message(FATAL, "TODO: At the time of Arbor 0.10.0 there is no Spack package")
+    find_package(units REQUIRED)
+    target_link_directories(ext-units INTERFACE ${units_LIBRARY_DIRS})
+    target_link_libraries(ext-units INTERFACE ${units_LIBRARY})
+    target_include_directories(ext-units INTERFACE ${units_INCLUDE_DIR})
 endif()
 
 
