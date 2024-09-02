@@ -296,23 +296,22 @@ else()
     endif()
 endif()
 
+add_subdirectory(ext)
+install(TARGETS ext-hwloc EXPORT arbor-targets)
+install(TARGETS ext-random123 EXPORT arbor-targets)
+target_link_libraries(arbor-public-deps INTERFACE ext-units)
+install(TARGETS compile_flags_target EXPORT arbor-targets)
+
 add_library(ext-units INTERFACE)
 if(ARB_USE_BUNDLED_UNITS)
     target_link_libraries(ext-units INTERFACE units::units)
+    install(TARGETS ext-units units EXPORT arbor-targets)
 else()
     find_package(units REQUIRED)
     target_link_directories(ext-units INTERFACE ${units_LIBRARY_DIRS})
     target_link_libraries(ext-units INTERFACE ${units_LIBRARY})
     target_include_directories(ext-units INTERFACE ${units_INCLUDE_DIR})
 endif()
-
-
-add_subdirectory(ext)
-install(TARGETS ext-hwloc EXPORT arbor-targets)
-install(TARGETS ext-random123 EXPORT arbor-targets)
-target_link_libraries(arbor-public-deps INTERFACE ext-units)
-install(TARGETS ext-units EXPORT arbor-targets)
-install(TARGETS units compile_flags_target EXPORT arbor-targets)
 
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
