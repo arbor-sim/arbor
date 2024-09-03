@@ -1,4 +1,3 @@
-#include <stdexcept>
 #include <map>
 #include <vector>
 
@@ -245,7 +244,6 @@ ARB_ARBOR_API std::vector<msize_t> tag_roots(const segment_tree& t, int tag) {
 
     return tag_roots;
 }
-
 
 } // namespace arb
 

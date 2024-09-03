@@ -26,13 +26,13 @@ Field    NMODL   Ion Property
 =======  ======= ===============================
 
 This table shows the mapping between NMODL -- for the ``ca`` ion species -- and
-the ``ion_state`` members. The class is responsible for reseting currents and
+the ``ion_state`` members. The class is responsible for resetting currents and
 concentrations.
 
 Mechanisms
 ----------
 
-All mechanisms' privates data is stored in ``shared_state``, which is also
+All mechanisms' private data is stored in ``shared_state``, which is also
 responsible for managing the lifetime and initialisation of said data. This is
 done to allow mechanisms to be implemented as essentially stateless bits of
 C-code interacting with Arbor only through ``shared_state``. See the ABI

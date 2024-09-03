@@ -6,9 +6,9 @@ Hardware context
 Arbor provides two ways for working with hardware resources:
 
 * *Prescribe* the hardware resources and their contexts for use in Arbor simulations.
-* *Query* available hardware resources (e.g. the number of available GPUs), and initializing MPI.
+* *Query* available hardware resources (e.g., the number of available GPUs), and initializing MPI.
 
-Note that to utilize some hardware features Arbor must be built and installed with the feature enabled, for example MPI or a GPU.
+Note that to utilize some hardware features, Arbor must be built and installed with the feature enabled, for example, MPI or a GPU.
 Please refer to the :ref:`installation guide <in_build_install>` for information on how to enable hardware support.
 
 Available resources
@@ -88,7 +88,7 @@ The ``arbor.env`` module collects helper functions for interacting with the envi
 
 .. function:: env.get_env_num_threads
             
-    Retrieve user-specified number of threads to use from the environment variable ``ARBENV_NUM_THREADS``.
+    Retrieve the user-specified number of threads to use from the environment variable ``ARBENV_NUM_THREADS``.
 
 .. function:: env.default_concurrency
 
@@ -96,11 +96,11 @@ The ``arbor.env`` module collects helper functions for interacting with the envi
 
 .. function:: env.default_gpu
 
-    Determine GPU id to use from the ``ARBENV_GPU_ID`` environment variable, or from the first available GPU id of those detected.
+    Determine the GPU id to use from the ``ARBENV_GPU_ID`` environment variable, or from the first available GPU id of those detected.
 
 .. function:: env.default_allocation
 
-    Returns a :func:`~arbor.proc_allocation` with the number of threads intitalized with :func:`~arbor.env.default_concurrency` and gpu set to :func:`~arbor.env.default_gpu`. Use with caution in combination with MPI.
+    Returns a :func:`~arbor.proc_allocation` with the number of threads intitalized with :func:`~arbor.env.default_concurrency` and GPU number set via :func:`~arbor.env.default_gpu`. Use with caution in combination with MPI.
 
 
 Prescribed resources
@@ -133,7 +133,7 @@ The Python wrapper provides an API for:
         Must be ``None``, or a non-negative integer.
 
         The :attr:`gpu_id` corresponds to the ``int device`` parameter used by CUDA API calls
-        to identify gpu devices.
+        to identify GPU devices.
         Set to ``None`` to indicate that no GPU device is to be used.
         See ``cudaSetDevice`` and ``cudaDeviceGetAttribute`` provided by the
         `CUDA API <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html>`_.
@@ -144,7 +144,7 @@ The Python wrapper provides an API for:
         help with performance by suppressing unneeded task migrations from the
         OS. See also `affinity
         <https://en.wikipedia.org/wiki/Processor_affinity>`_. Do not enable if
-        process binding is handled externally, eg by SLURM or OpenMPI, or
+        process binding is handled externally, e.g., by SLURM or OpenMPI, or
         disable it there first.
 
     .. attribute:: bind_threads
@@ -235,7 +235,7 @@ The Python wrapper provides an API for:
 
 
     Contexts can be queried for information about which features a context has enabled,
-    whether it has a GPU, how many threads are in its thread pool.
+    whether it has a GPU and how many threads are in its thread pool.
 
     .. attribute:: has_gpu
 
@@ -258,7 +258,7 @@ The Python wrapper provides an API for:
     .. attribute:: rank
 
         The numeric id of the local domain.
-        If the context has an MPI communicator, return is equivalent to ``MPI_Comm_rank``.
+        If the context has an MPI communicator, the return is equivalent to ``MPI_Comm_rank``.
         If the communicator has no MPI, returns 0.
 
     Here are some simple examples of how to create a :class:`context`:
@@ -275,7 +275,7 @@ The Python wrapper provides an API for:
 
             # Construct a context that:
             #  * uses 8 threads in its thread pool;
-            #  * does not use a GPU, reguardless of whether one is available
+            #  * does not use a GPU, regardless of whether one is available
             #  * does not use MPI.
             alloc   = arbor.proc_allocation(8, None)
             context = arbor.context(alloc)

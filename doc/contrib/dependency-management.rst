@@ -14,7 +14,7 @@ Note that the actual dependencies of your build configuration may vary.
 
 In addition, ``spack/package.py`` contains a copy of the Spack package definition `upstream <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/arbor/package.py>`_. Here instructions for both in-repo and configure-time dependencies are defined.
 
-This document contains rules for when and how to update dependencies, and what to be mindful of when you do.
+This document contains rules for when and how to update dependencies and what to be mindful of when doing so.
 
 List of dependencies
 --------------------
@@ -59,7 +59,7 @@ Dependency update rules
 #. Dependencies shall be set to a (commit hash corresponding to a) specific version tag. (All current dependencies use semver.)
 #. The version shall be compatible with the user platforms (see above).
 #. The version shall be compatible with the requirements in ``doc/dependencies.csv``.
-#. The version shall be the lowest possible, to facilitate building of complex environments.
+#. The version shall be the lowest possible to facilitate the building of complex environments.
 #. The submodule shall be set to the highest version provided by the latest Spack release ("Spack stable"). Spack CI tests both Spack stable and develop.
 #. Moreover, dependencies shall not be updated past the most recent version of the dependency in Spack.
 
@@ -71,6 +71,6 @@ Dependency update rules
 
    * There appears to be no way to enforce that, unless we enforce it for all PRs.
    * Optionally we could have a PR template auto-assigning to some or all of us, which means we'll at least be notified.
-#. We will try to keep compatible to a wide range in dependency versions.
+#. We will try to keep it compatible with a wide range of dependency versions.
 
    * This includes making other components in `ext` git submodules, such that updates are more easily tracked.

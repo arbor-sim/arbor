@@ -29,6 +29,7 @@ project(arbor VERSION ${numeric_version})
 enable_language(CXX)
 
 include(GNUInstallDirs)
+include(CheckCXXCompilerFlag)
 
 # Effectively adds '-fpic' flag to CXX_FLAGS. Needed for dynamic catalogues.
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -55,8 +56,13 @@ mark_as_advanced(FORCE ARBDEV_COLOR)
 #----------------------------------------------------------
 
 # Specify target architecture.
-
-set(ARB_ARCH "native" CACHE STRING "Target architecture for arbor libraries")
+check_cxx_compiler_flag("-march=native" CXX_HAS_NATIVE)
+if(CXX_HAS_NATIVE)
+    set(ARB_DEFAULT_ARCH "native")
+else()
+    set(ARB_DEFAULT_ARCH "none")
+endif()
+set(ARB_ARCH ${ARB_DEFAULT_ARCH} CACHE STRING "Target architecture for arbor libraries")
 
 # Perform explicit vectorization?
 
@@ -157,13 +163,8 @@ if(ARB_GPU STREQUAL "cuda")
             # Pascal, Volta, Ampere, Hopper
             set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
         endif()
-    elseif(${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 11)
-        if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-            # Pascal, Volta, Ampere
-            set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
-        endif()
     else()
-        message(FATAL_ERROR "Need at least CUDA 11, got ${CUDAToolkit_VERSION_MAJOR}")
+        message(FATAL_ERROR "Need at least CUDA 12, got ${CUDAToolkit_VERSION_MAJOR}")
     endif()
 
     # We _still_ need this otherwise CUDA symbols will not be exported
@@ -174,7 +175,7 @@ if(ARB_GPU STREQUAL "cuda")
 elseif(ARB_GPU STREQUAL "cuda-clang")
     include(FindCUDAToolkit)
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+        set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
     endif()
     set(ARB_WITH_CUDA_CLANG TRUE)
     enable_language(CUDA)
@@ -421,21 +422,24 @@ endif()
 # Add SVE compiler flags if detected/desired
 set(ARB_SVE_WIDTH "auto" CACHE STRING "Default SVE vector length in bits. Default: auto (detection during configure time).")
 mark_as_advanced(ARB_SVE_WIDTH)
-if (ARB_SVE_WIDTH STREQUAL "auto")
-    get_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
-    if (ARB_HAS_SVE)
-        message(VERBOSE "SVE detected with vector size = ${ARB_SVE_BITS} bits")
-        set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
+
+if (ARB_VECTORIZE)
+    if (ARB_SVE_WIDTH STREQUAL "auto")
+        get_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
+        if (ARB_HAS_SVE)
+            message(STATUS "SVE detected with vector size = ${ARB_SVE_BITS} bits")
+            set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
+        else()
+            message(STATUS "NO SVE detected")
+            set(ARB_CXX_SVE_FLAGS "")
+        endif()
     else()
-        message(VERBOSE "NO SVE detected")
-        set(ARB_CXX_SVE_FLAGS "")
+        set(ARB_SVE_BITS ${ARB_SVE_WIDTH})
+        set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
     endif()
-else()
-    set(ARB_SVE_BITS ${ARB_SVE_WIDTH})
-    set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
+    list(APPEND ARB_CXX_FLAGS_TARGET_FULL
+        "$<$<BUILD_INTERFACE:$<COMPILE_LANGUAGE:CXX>>:${ARB_CXX_SVE_FLAGS}>")
 endif()
-list(APPEND ARB_CXX_FLAGS_TARGET_FULL
-    "$<$<BUILD_INTERFACE:$<COMPILE_LANGUAGE:CXX>>:${ARB_CXX_SVE_FLAGS}>")
 
 # Compile with `-fvisibility=hidden` to ensure that the symbols of the generated
 # arbor static libraries are hidden from the dynamic symbol tables of any shared
@@ -463,7 +467,7 @@ endif()
 #----------------------------------------------------------
 
 # The minimum version of Python supported by Arbor.
-set(arb_py_version 3.8.0)
+set(arb_py_version 3.9.0)
 
 if(DEFINED PYTHON_EXECUTABLE)
     set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})
@@ -485,7 +489,6 @@ if(${Python3_FOUND})
     set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
     message(VERBOSE "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
 endif()
-
 
 # Threading model
 #-----------------

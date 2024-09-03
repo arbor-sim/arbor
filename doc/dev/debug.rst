@@ -7,9 +7,9 @@ Backtraces
 ----------
 
 When building Arbor you can enable backtraces in the CMake configure step by
-setting ``ARB_BACKTRACE=ON``. Beware aware that this requires the ``Boost``
+setting ``ARB_BACKTRACE=ON``. Beware that this requires the ``Boost``
 libraries to be installed on your system. This will cause the following
-additions to Arbor's behaviour
+additions to Arbor's behaviour:
 
 1. Failed assertions via ``asb_assert`` will print the corresponding stacktrace.
 2. All exceptions deriving from ``arbor_exception`` and ``arbor_internal_error``
@@ -23,7 +23,7 @@ LLDB.
 .. note::
 
    Since Arbor often uses a buffer of instructions on how to construct a
-   particular object instead of perform the action right away, errors occur not
+   particular object instead of performing the action right away, errors occur not
    always at the location you might expect.
 
    Consider this (adapted from ``network_ring.py``)

@@ -13,6 +13,7 @@ set(pyarb_source
     mechanism.cpp
     morphology.cpp
     mpi.cpp
+    network.cpp
     profiler.cpp
     pyarb.cpp
     label_dict.cpp
@@ -21,6 +22,7 @@ set(pyarb_source
     simulation.cpp
     single_cell_model.cpp
     env.cpp
+    remote.cpp
     units.cpp
 )
 
@@ -90,6 +92,21 @@ set(ARB_PYTHON_LIB_PATH ${ARB_PYTHON_LIB_PATH_DEFAULT} CACHE PATH "path for inst
 message(VERBOSE "Python module installation path: ${ARB_PYTHON_LIB_PATH}")
 mark_as_advanced(FORCE ARB_PYTHON_LIB_PATH)
 
+# generate type stubs and copy them to the expected places
+if(ARB_BUILD_PYTHON_STUBS)
+  find_python_module(pybind11_stubgen REQUIRED)
+else()
+    find_python_module(pybind11_stubgen)
+endif()
+if(HAVE_PYBIND11_STUBGEN)
+  add_custom_command(TARGET pyarb POST_BUILD
+                     COMMAND
+                       PYTHONPATH=${CMAKE_BINARY_DIR}/python:$ENV{PYTHONPATH} pybind11-stubgen -o ${CMAKE_BINARY_DIR}/stubs arbor
+                     BYPRODUCTS ${CMAKE_BINARY_DIR}/stubs
+                     USES_TERMINAL
+                     COMMENT "Generating type stubs")
+endif()
+
 if(DEFINED SKBUILD_PROJECT_NAME)
   # Building wheel through scikit-build-core
   set(_python_module_install_path .)
@@ -98,6 +115,8 @@ else()
 endif()
 
 install(TARGETS pyarb DESTINATION ${_python_module_install_path})
+if(HAVE_PYBIND11_STUBGEN)
+  install(DIRECTORY ${CMAKE_BINARY_DIR}/stubs/arbor/ DESTINATION ${_python_module_install_path})
+endif()
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py DESTINATION ${_python_module_install_path})
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/stubs/arbor/ DESTINATION ${_python_module_install_path})
 install(FILES ${PROJECT_SOURCE_DIR}/VERSION ${PROJECT_SOURCE_DIR}/README.md ${PROJECT_SOURCE_DIR}/LICENSE DESTINATION ${_python_module_install_path})

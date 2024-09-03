@@ -20,5 +20,5 @@ TEST(hash, doesnt_compile) {
 
 // check that we do not fall into the trap of the STL...
 TEST(hash, integral_is_not_identity) {
-    ASSERT_NE(arb::hash_value(42), 42);
+    ASSERT_NE(arb::hash_value(42), 42ul);
 }

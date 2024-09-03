@@ -12,7 +12,7 @@ LIF cells
 
     .. cpp:function:: lif_cell(cell_tag_type source, cell_tag_type target)
 
-        Constructor: assigns the label ``source`` to the single built-in source on the cell; and assigns the
+        Constructor: assigns the label ``source`` to the single built-in source on the cell and assigns the
         label ``target`` to the single built-in target on the cell.
 
     .. cpp:member:: cell_tag_type source

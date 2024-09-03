@@ -3,16 +3,16 @@
 Cable cell morphology
 =====================
 
-In morphologically detailed simulations of neurons,
+In simulations of morphologically detailed neurons,
 `the cell is modelled <https://en.wikipedia.org/wiki/Cable_theory>`_
-as a set of round electrical cables, which have, among others properties,
-capacitances and resistances. These can in turn be expressed as a system of
+as a set of round electrical cables, which have, among others: temperature,
+capacitances, and resistances. These can in turn be expressed as a system of
 partial differential equations which can be solved to compute a current or
 voltage. The geometry of the biological cell is approximated as a tree of
 cable segments, which is a :term:`morphology` in Arbor nomenclature.
 
 Let's first define the building blocks out of which we can construct a
-proper definition for a morphology.
+proper definition for morphology.
 
 .. note::
   In certain cases, a second term appears in the
@@ -32,10 +32,10 @@ proper definition for a morphology.
    :align: center
 
    **Field**,   **Type**, **Description**
-   ``x``,       real, x coordinate of centre of cable (μm).
-   ``y``,       real, y coordinate of centre of cable (μm).
-   ``z``,       real, z coordinate of centre of cable (μm).
-   ``radius``,  real, cross sectional radius of cable (μm).
+   ``x``,       real, x coordinate of the centre of cable (μm).
+   ``y``,       real, y coordinate of the centre of cable (μm).
+   ``z``,       real, z coordinate of the centre of cable (μm).
+   ``radius``,  real, cross-sectional radius of cable (μm).
 
 .. glossary::
 
@@ -43,7 +43,7 @@ proper definition for a morphology.
   msegment
     A segment is a frustum (cylinder or truncated cone), with the centre and radius at each
     end defined by a pair of :term:`points <mpoint>`. In other words, in Arbor the radius between two points is interpolated
-    linearly, resulting in either a cylinder (equal radii) or truncated cone (differing radii),
+    linearly, resulting in either a cylinder (equal radii) or a truncated cone (differing radii),
     centred at the line through the pair of points.
 
 .. csv-table:: The properties of a :term:`segment`.
@@ -76,7 +76,7 @@ proper definition for a morphology.
 
   location
   mlocation
-    A location is not a point in 3D space, but a point in the cable cell morphology's
+    A location is not a point in 3D space but a point in the cable cell morphology's
     coordinate system. It is defined by a specific branch and a position along the length of the branch.
 
 .. csv-table:: The properties of :term:`mlocation`.
@@ -103,7 +103,7 @@ proper definition for a morphology.
 
   tag
     A tag is an integer label on every segment, which can be used to define disjoint regions on cells.
-    The meaning of tag values are not fixed in Arbor, however we typically use tag values that correspond
+    The meaning of tag values is not fixed in Arbor; however, we typically use tag values that correspond
     to SWC `structure identifiers <http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html>`_.
 
 With these definitions, we can create proper definitions for :term:`morphology` and :term:`segment tree`.
@@ -127,8 +127,8 @@ Segment trees
   segment tree
   segment_tree
     A segment tree describes a morphology as a set of :term:`segments <segment>` and their connections,
-    designed to support both the diverse descriptions of cell morphologies (e.g. SWC, NeuroLicida, NeuroML),
-    and tools that iteratively construct cell morphologies (e.g. L-system generators, interactive cell-builders).
+    designed to support both the diverse descriptions of cell morphologies (e.g., SWC, NeuroLicida, NeuroML),
+    and tools that iteratively construct cell morphologies (e.g., L-system generators, interactive cell-builders).
 
 Segment trees comprise a sequence of segments starting from
 at least one :term:`root` segment, together with a parent-child adjacency relationship
@@ -176,18 +176,18 @@ tag 2 coloured grey for axon; tag 3 coloured light blue for basal dendrites.
   :width: 600
   :align: center
 
-  A ten segment cable cell, with soma (pink), axon (grey) and dendrite (light blue).
+  A ten-segment cable cell, with soma (pink), axon (grey), and dendrite (light blue).
   Python code to generate this cable cell is in the :class:`segment_tree<arbor.segment_tree>`
   documentation :ref:`here <morph-label-seg-code>`.
 
-* The tree is composed of 11 segments (1 soma, 2 axon, 8 dendrite).
-* The proximal ends of segments 0 and 9 (the soma and axon hillock respectively) are attached to the root of the tree.
+* We have 11 segments, thereof one labeled as the soma, 2 in the axon, and 8 in the dendrite.
+* The proximal ends of segments 0 and 9 (the soma and axon hillock, respectively) are attached to the root of the tree.
 * Segment 2 is a fork, with segments 3 and 5 as children.
 * Segment 5 is a fork, with segments 6 and 7 as children.
 * There is also a fork at the root, with segments 0 and 9 as children.
-* Segments 4, 6, 8 and 10 are terminal segments.
+* Segments 4, 6, 8, and 10 are terminal segments.
 
-In the example above there are no gaps between segments, however
+In the example above, there are no gaps between segments. However,
 it is possible for segments to be detached, where the proximal end of a segment is not coincident
 with the distal end of its parent. The following morphology has gaps between the start of the
 axon and dendritic tree and the soma segment to which they attach.
@@ -200,14 +200,14 @@ axon and dendritic tree and the soma segment to which they attach.
 
 .. note::
     In Arbor, segments are always treated as though they are connected directly
-    to their parents, regardless of whether ends where they attached are collocated.
+    to their parents, regardless of whether the ends where they are attached are collocated.
 
     Gaps are frequently the result of simplifying the soma,
     whereby the complex geometry of a soma is represented using a cylinder or sphere
     (spheres are represented by a cylinder with length and diameter equal to that of
     the sphere in simulation tools like Arbor and NEURON).
 
-    A gap between a cylindrical soma and segments attached to it does not mean
+    A gap between a cylindrical soma and the segments attached to it does not mean
     that the segmentation is invalid.
     To illustrate why this can occur, consider a potato-shaped soma modelled with a
     cylinder of the same surface area.
@@ -216,8 +216,8 @@ axon and dendritic tree and the soma segment to which they attach.
     The cell model will correctly represent the location and dimension of the dendritic tree,
     while preserving the soma surface area with a simplified cylindrical model.
 
-Because Arbor supports tapered segments (where radius varies linearly along a segment) it is possible to
-represent more complex soma shapes using multiple segments, for example the segmentation below
+Because Arbor supports tapered segments (where the radius varies linearly along a segment) it is possible to
+represent more complex soma shapes using multiple segments, for example, the segmentation below
 uses 4 segments to model the soma.
 
 .. _morph-stacked-seg-fig:
@@ -256,17 +256,17 @@ Every segment tree can be used to generate a unique :term:`morphology`, which de
 :term:`branches <branch>` from the segments. The branches of a morphology are unbranched cables,
 composed of one or more segments, where:
 
-  * the first (proximal) segment of the branch is either a root or the child of fork segment;
+  * the first (proximal) segment of the branch is either a root or the child of the fork segment;
   * the last (distal) segment of the branch is either a fork or terminal segment;
   * branches are enumerated in order, following the order of the ids of their proximal segments in the segment tree.
 
 When constructed in this manner, the following statements are true for the branches and
 their enumeration:
 
-  * Because a branch must have root, fork or terminal ends, a branch can not be sub-divided
-    into two or more branches, and hence there is only one possible set of branches that
+  * Because a branch must have root, fork, or terminal ends, a branch can not be sub-divided
+    into two or more branches, and hence, there is only one possible set of branches that
     can be derived from a segment tree.
-  * Because branches are enumerated according to the id of their proximal segments,
+  * Because branches are enumerated according to the ids of their proximal segments,
     there is only one branch enumeration representation for a segment tree.
   * However, it is possible for two topologically equivalent morphologies to be
     derived from different segment trees (e.g. two trees with the same segments, however
@@ -275,9 +275,9 @@ their enumeration:
 
 .. Note::
 
-    Because two topologically-equivalent morphologies may have different segment and
+    Because two topologically-equivalent morphologies may have different segments and
     branch numbering, it is important that model descriptions should avoid referring to
-    branches or segments by id.
+    branches or segments by ids.
     This should only be relaxed when the configuration of branches in a particular morphology is known exactly and unambiguously.
 
 To illustrate branch generation, consider the first segment tree example on this page,
@@ -289,17 +289,17 @@ which is illustrated along with its branches below.
   :width: 800
   :align: center
 
-  Left, the same 10 segment cable cell seen before. On the right, the associated morphology and branches.
+  Left, the same 10-segment cable cell seen before. On the right, the associated morphology and branches.
   Note that the :term:`root` point of the soma is always the start (and possibly end) of a branch.
   The code used to generate this morphology is in the :class:`segment_tree<arbor.segment_tree>`
   :ref:`python documentation <morph-label-seg-code>`.
 
 The first branch contains the soma and the first two segments of the dendritic tree.
-There are four more branches in the dendritic tree, and one representing the two
+There are four more branches in the dendritic tree, and one represents the two
 segments of the axon.
 
 Note, that though it is possible to create an unbranched sequence of segments composed
-of the axon, soma and first two segments in the dendritic tree, this sequence is decomposed
+of the axon, soma, and first two segments in the dendritic tree, this sequence is decomposed
 as two branches because segments 0 (soma) and 9 (first segment in axon) are at the
 root of the tree.
 
@@ -343,7 +343,7 @@ The soma is part of branch 0, despite the gap:
    5,          ``mnpos``,  "[]",           "[9]"
 
 Tag information is not used when creating branches, so that a branch can
-contain segments with different tags, which in our examples gives branches
+contain segments with different tags, which in our examples give branches
 that contain both soma and dendrite segments. For example, when building the
 soma from multiple segments:
 
@@ -375,22 +375,22 @@ multiple soma and dendrite segments in branch 0.
     worry that the soma is not treated as a special branch
     in the examples above.
 
-    The soma in the examples above can be referred to in later model
+    The soma in the examples above can be referred to in a later model
     building phases, for example when describing the distribution of
-    ion channels, by using referring to all parts of the cell with
+    ion channels, by referring to all parts of the cell with
     :ref:`tag 1 <labels-expressions>`.
 
 .. Note::
    This representation of the cell morphology in terms of *branches* is what
    Arbor uses to create a :ref:`cable cell <cablecell>`, and it is how Arbor
-   view's the cell's geometry and refers to it internally.
+   views the cell's geometry and refers to it internally.
    :term:`Regions <region>` and :term:`locsets <locset>` formed
    on the cell, are eventually represented either as
    :ref:`subsets of branches <labels-cables>` of the morphology, or exact
    :ref:`locations on branches <labels-locations>` of the morphology.
 
    Once the morphology is formed from a segment tree, the specific segments
-   are no longer of much use for the user and it is better to think of the
+   are no longer of much use to the user and it is better to think of the
    cell structure as Arbor does: in terms of branches.
 
 Connectivity of Components
@@ -625,7 +625,7 @@ because it has two children: the dendrites attached to its distal end.
     :term:`branches <branch>` into :term:`control volumes <control volume>`,
     will ignore gaps between segments in the input. The cell below, in which the dendrites
     and axon have been translated to remove any gaps, is equivalent to the previous example
-    for the back end simulator.
+    for the back-end simulator.
 
     Note that the dendrites are children of the soma segment, so they are coincident with
     the distal end of the soma, and the axon is translated to the proximal end of the
@@ -669,8 +669,8 @@ Two common editing operations are provided
 
 Note that ``join_at`` and ``split_at`` are inverse to each other.
 
-A particular use-case for these operations is pruning a specific tag-region in the
-segment tree and replacing it with a surrogate model. This is e.g. commonly performed
+A particular use case for these operations is pruning a specific region by its tag in the
+segment tree and replacing it with a surrogate model. This is e.g., commonly performed
 for the axon, known as axon-replacement. For this purpose, the function ``tag_roots``
 allows to obtain the IDs of root segments of a a tag region. These IDs can
 then be used with ``split_at`` to split off subtrees and ``join_at`` to attach a
@@ -681,7 +681,13 @@ surrogate subtree (with the same parent as the one split off).
 Supported file formats
 ----------------------
 
-See the supported :ref:`file formats <format-overview>`.
+Supported file formats for morphologies are:
+
+- :ref:`Neurolucida ASC <formatasc>`
+- :ref:`NeuroML2 <formatneuroml>`
+- :ref:`SWC <formatswc>`
+- :ref:`Arbor Cable Cell <formatcablecell>`
+
 
 .. _morph-cv-policies:
 
@@ -700,7 +706,7 @@ Discretisation and CV policies
     point is owned by a CV if and only if all of its corresponding representative locations are
     in the CV.
 
-    'Compartment' is often used to refer to the substructure in cable cells; the 'compartment' in multi-compartment cells.
+    'Compartment' is often used to refer to the substructure in cable cells and the 'compartment' in multi-compartment cells.
     A compartment is equivalent to a control volume. We avoid using 'compartment' to avoid potential confusion
     with :term:`segments <segment>` or :term:`branches <branch>`.
 
@@ -725,7 +731,7 @@ always constitute part of the CV boundary point set.
 .. rubric:: ``cv_policy_single``
 
 Use one CV for each connected component of a region. When applied to the whole cell
-will generate single CV for the whole cell.
+will generate a single CV for the whole cell.
 
 .. rubric:: ``cv_policy_explicit``
 
@@ -751,7 +757,7 @@ in the morphology will be half-sized.
 
 .. rubric:: ``cv_policy_max_extent``
 
-As for ``cv_policy_fixed_per_branch``, save that the number of CVs on any
+As for ``cv_policy_fixed_per_branch``, save the number of CVs on any
 given branch will be chosen to be the smallest number that ensures no
 CV will have an extent on the branch longer than a user-provided CV length.
 

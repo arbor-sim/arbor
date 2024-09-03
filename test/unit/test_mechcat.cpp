@@ -5,6 +5,7 @@
 #include <arbor/mechanism.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/mechinfo.hpp>
+#include <algorithm>
 
 #include "common.hpp"
 

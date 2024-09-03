@@ -1,13 +1,14 @@
 #include <memory>
 #include <vector>
 
-#include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
+#include <arbor/export.hpp>
 #include <arbor/generic_event.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/schedule.hpp>
+#include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 
 #include "epoch.hpp"
@@ -86,7 +87,7 @@ class simulation_state {
 public:
     simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx, arb_seed_type seed);
 
-    void update(const connectivity& rec);
+    void update(const recipe& rec);
 
     void reset();
 
@@ -278,13 +279,13 @@ simulation_state::simulation_state(
     PL();
 
     PE(init:simulation:comm);
-    communicator_ = communicator(rec, ddc_, *ctx_);
+    communicator_ = communicator(rec, ddc_, ctx_);
     PL();
     update(rec);
     epoch_.reset();
 }
 
-void simulation_state::update(const connectivity& rec) {
+void simulation_state::update(const recipe& rec) {
     communicator_.update_connections(rec, ddc_, source_resolution_map_, target_resolution_map_);
     // Use half minimum delay of the network for max integration interval.
     t_interval_ = min_delay()/2;
@@ -575,7 +576,7 @@ void simulation::reset() {
     impl_->reset();
 }
 
-void simulation::update(const connectivity& rec) { impl_->update(rec); }
+void simulation::update(const recipe& rec) { impl_->update(rec); }
 
 time_type simulation::run(const units::quantity& tfinal, const units::quantity& dt) {
     auto dt_ms = dt.value_as(units::ms);

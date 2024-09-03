@@ -16,7 +16,7 @@ Example cell
 ------------
 
 The following morphology is used on this page to illustrate region and location
-descriptions. It has a soma, dendritic tree and an axon with a hillock:
+descriptions. It has a soma, a dendritic tree, and an axon with a hillock:
 
 .. _labels-morph-fig:
 
@@ -40,8 +40,8 @@ The other branches in the dendritic tree have the following properties:
 * *branch 4* tapers from 0.5 to 0.2 μm.
 
 *Branch 5* is the axon, composed of two cable segments: an axon hillock with a radius that
-tapers from 4 μm to 0.4 μm attached to the proximal end of the soma; and the start of the
-axon proper with constant radius 0.4 μm.
+tapers from 4 μm to 0.4 μm attached to the proximal end of the soma, and the start of the
+axon proper with a constant radius of 0.4 μm.
 
 Label types
 -----------
@@ -76,15 +76,15 @@ Some common regions:
 
 * The soma.
 * The dendritic tree.
-* An explicit reference to a specific unbranched cable, e.g. "branch 3" or "the distal half of branch 1".
+* An explicit reference to a specific unbranched cable, e.g., "branch 3" or "the distal half of branch 1".
 * The axon hillock.
-* The dendrites with radius less than 1 μm.
+* The dendrites with a radius less than 1 μm.
 
 It is possible for a region to be empty, for example, a region that defines
 the axon will be empty on a morphology that has no axon.
 
 Regions do not need to be complete sub-trees of a morphology, for example,
-the region of cables that have radius less than 0.5 μm
+the region of cables that have a radius less than 0.5 μm
 :ref:`below <labels-region-examples>` is composed of three disjoint sub-trees.
 
 .. _labels-region-examples:
@@ -94,13 +94,13 @@ the region of cables that have radius less than 0.5 μm
   :align: center
 
   Examples of regions on the example morphology. **Left**: The dendritic tree.
-  **Right**: All cables with radius less than 0.5 μm.
+  **Right**: All cables with a radius less than 0.5 μm.
 
 .. _labels-expressions:
 
 .. glossary::
   iexpr
-    An iexpr is an inhomogeneous expression, that can be evaluated at any point on a cell.
+    An iexpr is an inhomogeneous expression that can be evaluated at any point on a cell.
 
 Expressions
 -----------
@@ -121,7 +121,7 @@ Examples of expressions that define locsets include:
 * ``(location 3 0.5)``: the mid point of branch 3.
 * ``(locset "synapse-sites")``: the locset labelled "synapse-sites".
 
-Detailed descriptions for all of the region and locset expression types is
+Detailed descriptions for all of the region and locset expression types are
 given :ref:`below <labels-expr-docs>`.
 
 .. note::
@@ -129,7 +129,7 @@ given :ref:`below <labels-expr-docs>`.
     use the Lisp programming language. This is because both the DSL and Lisp use
     *s-expressions*, which are a simple way to represent a nested list of data.
 
-    However, the DSL is not a dialect of Lisp, and has very simple semantics
+    However, the DSL is not a dialect of Lisp and has very simple semantics
     that are only limited to describing morphology features.
 
 Expressions are *composable*, so that expressions can be constructed
@@ -139,21 +139,21 @@ from simple expressions. For example, the expression:
 
     (radius-lt (join (tag 3) (tag 4)) 0.5)
 
-describes the region of all parts of a cell with either tag 3 or tag 4 and radius less than 0.5 μm.
+describes the region of all parts of a cell with either tag 3 or tag 4 and a radius less than 0.5 μm.
 
 .. note:
 
     In NEURON *prescriptive* hoc templates are typically used to calculate
     explicit lists of sections or segments using loops and logical constructs.
     The logic in a hoc template often makes it difficult to understand
-    what the results describe, and is error prone.
+    what the results describe, and is error-prone.
 
     Arbor expressions are *descriptive*, in that they describe *what* a
     region or locset is, not *how* it is to be computed.
     As a result, label dictionaries are much more concise and easy to interpret for
     consumers of a model than hoc templates.
-    Furthermore they are less error prone because
-    Arbor handles generation of concrete cable sections and locations when
+    Furthermore, they are less error-prone because
+    Arbor handles the generation of concrete cable sections and locations when
     expressions are applied to a morphology.
 
 .. _labels-expr-docs:
@@ -184,7 +184,7 @@ The DSL uses `s-expressions <https://en.wikipedia.org/wiki/S-expression>`_, whic
     An expression that evaluates to a locset. e.g. ``(root)``, ``(location 3 0.2)``, ``(proximal (tag 2))``.
 
 Expressions can be written over multiple lines, and comments are marked with semi-colon.
-This can be used to make more complex expression easier to read, for example the
+This can be used to make more complex expressions easier to read, for example, the
 following region that finds all the sub-trees that start at the locations on the
 dendritic tree where the radius first is less than or equal to 0.2 μm.
 
@@ -281,7 +281,7 @@ Locset expressions
       :width: 300
       :align: center
 
-    This shows the component centers of the dendrite, i.e. ``(on-components 0.5 (region "dend"))``.
+    This shows the component centers of the dendrite, i.e., ``(on-components 0.5 (region "dend"))``.
 
 .. label:: (distal reg:region)
 
@@ -292,7 +292,7 @@ Locset expressions
       :width: 600
       :align: center
 
-      On the left is the region with radius between 0.3 μm and 0.5 μm.
+      On the left is the region with a radius between 0.3 μm and 0.5 μm.
       The right shows the distal set of this region.
 
 .. label:: (proximal reg:region)
@@ -304,7 +304,7 @@ Locset expressions
       :width: 600
       :align: center
 
-      On the left is the region with radius between 0.3 μm and 0.5 μm.
+      On the left is the region with a radius between 0.3 μm and 0.5 μm.
       The right shows the proximal set of this region.
 
 .. label:: (boundary reg:region), (cboundary reg:region), and (segment-boundaries)
@@ -319,7 +319,7 @@ Locset expressions
 .. label:: (proximal-translate ls:locset distance:real)
 
     The set of locations that correspond to moving each location in the ``ls`` in the proximal direction
-    ``distance`` μm. The locations in the output have a one to one correspondence with those in ``ls``.
+    ``distance`` μm. The locations in the output have a one-to-one correspondence with those in ``ls``.
 
     .. figure:: ../gen-images/proximal_translate_label.svg
       :width: 600
@@ -335,7 +335,7 @@ Locset expressions
 
     An input location will generate multiple output locations when it is translated
     past a fork point, with a new location for each child branch (see the example
-    below). For this reason there is not a one-to-one correspondence between locations
+    below). For this reason, there is not a one-to-one correspondence between locations
     in the input and output sets, so the results are sorted and duplicates are removed.
 
 
@@ -408,7 +408,7 @@ Locset expressions
 
 .. label:: (support ls:locset)
 
-    Support of the multiset ``ls``, i.e. set of all points in the locset such that each appears once.
+    Support of the multiset ``ls``, i.e., set of all points in the locset such that each appears once.
 
 .. _labels-region-expr:
 
@@ -657,7 +657,7 @@ Region expressions
 
 .. label:: (complete reg:region)
 
-    Complete a region, i.e. add all covers of all included forks.
+    Complete a region, i.e., add all covers of all included forks.
 
     .. figure:: ../gen-images/completion_label.svg
       :width: 900
@@ -679,7 +679,7 @@ Inhomogeneous Expressions
 
 .. label:: (scalar value:real)
 
-    A scalar of given value.
+    A scalar of a given value.
 
 .. label:: (pi)
 
@@ -688,7 +688,7 @@ Inhomogeneous Expressions
 .. label:: (distance scale:real loc:locset)
 
     The minimum distance to points within the locset ``loc``. The scaling parameter  ``scale`` has unit :math:`{\mu m}^{-1}` 
-    and is multiplied with the distance, such that the result is unitless.
+    and is multiplied by the distance, such that the result is unitless.
 
     .. figure:: ../images/iexpr_distance.svg
       :width: 600
@@ -704,7 +704,7 @@ Inhomogeneous Expressions
 .. label:: (distance scale:real reg:region)
 
     The minimum distance to the region ``reg``. Evaluates to zero within the region. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
-    and is multiplied with the distance, such that the result is unitless.
+    and is multiplied by the distance, such that the result is unitless.
 
 .. label:: (distance reg:region)
 
@@ -713,7 +713,7 @@ Inhomogeneous Expressions
 .. label:: (proximal-distance scale:real loc:locset)
 
     The minimum distance in proximal direction from the points within the locset ``loc``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
-    and is multiplied with the distance, such that the result is unitless.
+    and is multiplied by the distance, such that the result is unitless.
 
     .. figure:: ../gen-images/iexpr_prox_dis.svg
       :width: 600
@@ -728,7 +728,7 @@ Inhomogeneous Expressions
 .. label:: (proximal-distance scale:real reg:region)
 
     The minimum distance in proximal direction from the region ``reg``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
-    and is multiplied with the distance, such that the result is unitless.
+    and is multiplied by the distance, such that the result is unitless.
 
 .. label:: (proximal-distance reg:region)
 
@@ -736,8 +736,8 @@ Inhomogeneous Expressions
 
 .. label:: (distal-distance scale:real loc:locset)
 
-    The minimum distance in distal direction from the points within the locset ``loc``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
-    and is multiplied with the distance, such that the result is unitless.
+    The minimum distance in the distal direction from the points within the locset ``loc``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
+    and is multiplied by the distance, such that the result is unitless.
 
     .. figure:: ../gen-images/iexpr_dist_dis.svg
       :width: 600
@@ -752,7 +752,7 @@ Inhomogeneous Expressions
 .. label:: (distal-distance scale:real reg:region)
 
     The minimum distance in distal direction from the region ``reg``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
-    and is multiplied with the distance, such that the result is unitless.
+    and is multiplied by the distance, such that the result is unitless.
 
 .. label:: (distal-distance reg:region)
 
@@ -760,9 +760,9 @@ Inhomogeneous Expressions
 
 .. label:: (interpolation prox_value:real prox_loc:locset dist_value:real dist_loc:locset)
 
-    Interpolates between the closest point in proximal direction in locset ``prox_loc`` and the closest point in 
+    Interpolates between the closest point in the proximal direction in locset ``prox_loc`` and the closest point in 
     distal direction ``dist_loc`` with the assosiated unitless values ``prox_value`` and ``dist_value``.
-    Evaluates to zero, if no point is located in each required direction.
+    Evaluates to zero if no point is located in each required direction.
 
     **Note**: At any fork, an interpolation expression may be discontinuous, if the distance to the closest location within the distal locset differs along each attached branch.
 
@@ -774,12 +774,12 @@ Inhomogeneous Expressions
       **Green**: The distal locset, consisting of four locations. Given these locsets, an interpolation expression only evaluates to non-zero in the highlighted area.
       For locations 3 and 4 of the distal locset, there is no location within the proximal locset, that is between them and the root (in proximal direction),
       and therefore an interpolation expression cannot be evaluated and defaults to zero.
-      Contrary, for locations 1 and 2 of the distal locset, there is a location within the proximal locset in proximal direction.
+      Contrary, for locations 1 and 2 of the distal locset, there is a location within the proximal locset in the proximal direction.
 
 
 .. label:: (interpolation prox_value:real prox_reg:region dist_value:real dist_reg:region)
 
-    Interpolates between the region ``prox_reg`` in proximal diretion and the region ``dist_reg`` in distal direction
+    Interpolates between the region ``prox_reg`` in the proximal direction and the region ``dist_reg`` in the distal direction
     with the associated unitless values ``prox_value`` and ``dist_value``. If evaluated inside either region, returns the corresponding value.
     Evaluates to zero, if no region is located in each required direction.
 
@@ -806,7 +806,7 @@ Inhomogeneous Expressions
 .. label:: (sub (iexpr | real) (iexpr | real) [... (iexpr | real)])
 
     Subtraction of at least two inhomogeneous expressions or real numbers.
-    The expression is evaluated from the left to right, subtracting each element from the first one in turn.
+    The expression is evaluated from left to right, subtracting each element from the first one in turn.
 
 .. label:: (mul (iexpr | real) (iexpr | real) [... (iexpr | real)])
 
@@ -815,7 +815,7 @@ Inhomogeneous Expressions
 .. label:: (div (iexpr | real) (iexpr | real) [... (iexpr | real)])
 
     Division of at least two inhomogeneous expressions or real numbers.
-    The expression is evaluated from the left to right, dividing the first element by each divisor in turn.
+    The expression is evaluated from left to right, dividing the first element by each divisor in turn.
 
 .. label:: (exp value:(iexpr | real))
 
@@ -888,10 +888,10 @@ Examples of cables, :ref:`expressed using the DSL <labels-cable-def>`, include:
 
 * All of branch 2 ``(cable 2 0 1)``.
 * The middle third of branch 2 ``(cable 2 0.333 0.667)``.
-* A zero length cable in the middle of branch 2 ``(cable 2 0.5 0.5)``.
+* A zero-length cable in the middle of branch 2 ``(cable 2 0.5 0.5)``.
 
 .. note::
-    Zero length cables are permitted.
+    Zero-length cables are permitted.
     They are not useful for defining membrane properties, which are applied to
     the surface of a region.
     However, they can occur as the result of sub-expressions in larger
@@ -917,7 +917,7 @@ lead to confusion.
 
 Label dictionaries are used to create a cable-cell along with the :ref:`morphology <morph>`
 and a :ref:`decor <cablecell-decoration>`. The decorations can be painted or placed on
-the regions, locsets or iexpr defined in the label dictionary by referring to their labels.
+the regions, locsets, or iexpr defined in the label dictionary by referring to their labels.
 
 .. code-block:: python
    :caption: Example of a label dictionary in python:
