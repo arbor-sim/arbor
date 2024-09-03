@@ -6,9 +6,9 @@ foreach(dep @arbor_export_dependencies@)
     find_dependency(${dep})
 endforeach()
 
-find_dependency(pugixml REQUIRED)
-find_dependency(units REQUIRED)
-find_dependency(nlohmann_json REQUIRED)
+# find_dependency(pugixml REQUIRED)
+# find_dependency(units REQUIRED)
+# find_dependency(nlohmann_json REQUIRED)
 
 include("${CMAKE_CURRENT_LIST_DIR}/arbor-targets.cmake")
 
