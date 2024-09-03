@@ -16,8 +16,6 @@ if (NOT CMAKE_BUILD_TYPE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
 endif()
 
-# message(STATUS ${})
-
 set(CPM_USE_LOCAL_PACKAGES ON)
 include(cmake/CPM.cmake)
 
@@ -330,8 +328,8 @@ CPMAddPackage(NAME pugixml
               DOWNLOAD_ONLY YES)
 add_library(ext-pugixml INTERFACE)
 if(pugixml_ADDED)
-  target_compile_definitions(ext-pugixml INTERFACE PUGIXML_HEADER_ONLY)
-  target_include_directories(ext-pugixml INTERFACE $<BUILD_INTERFACE:${pugixml_SOURCE_DIR}/src>)
+    target_compile_definitions(ext-pugixml INTERFACE PUGIXML_HEADER_ONLY)
+    target_include_directories(ext-pugixml INTERFACE $<BUILD_INTERFACE:${pugixml_SOURCE_DIR}/src>)
 else()
     find_package(pugixml REQUIRED)
     target_link_libraries(ext-pugixml INTERFACE pugixml::pugixml)
@@ -358,10 +356,13 @@ endif()
 CPMAddPackage(NAME units
               GITHUB_REPOSITORY llnl/units
               VERSION 0.9.1
-              OPTIONS "UNITS_ENABLE_TESTS OFF" "UNITS_BUILD_STATIC_LIBRARY ON" "UNITS_BUILD_SHARED_LIBRARY OFF" "UNITS_BUILD_CONVERTER_APP OFF" "UNITS_BUILD_WEBSERVER OFF" "UNITS_INSTALL ON")
-
+              OPTIONS "CMAKE_PROJECT_NAME UNITS"
+                      "UNITS_BUILD_STATIC_LIBRARY ON"
+                      "UNITS_ENABLE_TESTS OFF"
+                      "UNITS_BUILD_CONVERTER_APP OFF"
+                      "UNITS_BUILD_WEBSERVER OFF")
 target_link_libraries(arbor-public-deps INTERFACE units::units)
-install(TARGETS units EXPORT arbor-targets)
+
 CPMAddPackage(NAME tinyopt
               GITHUB_REPOSITORY halfflat/tinyopt
               GIT_TAG 7e6d707d49c6cb4be27ebd253856be65293288df
@@ -382,7 +383,7 @@ mark_as_advanced(FORCE RANDOM123_INCLUDE_DIR)
 mark_as_advanced(FORCE pybind11_DIR PYBIND11_PYTHONLIBS_OVERWRITE PYBIND11_PYTHON_VERSION PYBIND11_FINDPYTHON PYBIND11_INSTALL PYBIND11_INTERNALS_VERSION PYBIND11_NOPYTHON PYBIND11_SIMPLE_GIL_MANAGEMENT PYBIND11_TEST)
 mark_as_advanced(FORCE pugixml_DIR)
 mark_as_advanced(FORCE fmt_DIR)
-mark_as_advanced(FORCE units_DIR UNITS_BUILD_OBJECT_LIBRARY UNITS_HEADER_ONLY UNITS_NAMESPACE)
+mark_as_advanced(FORCE units_DIR UNITS_BUILD_OBJECT_LIBRARY UNITS_BUILD_SHARED_LIBRARY UNITS_HEADER_ONLY UNITS_NAMESPACE)
 mark_as_advanced(FORCE tinyopt_DIR)
 mark_as_advanced(FORCE CXXFEATURECHECK_DEBUG)
 mark_as_advanced(FORCE CPM_DONT_CREATE_PACKAGE_LOCK CPM_DONT_UPDATE_MODULE_PATH CPM_DOWNLOAD_ALL CPM_INCLUDE_ALL_IN_PACKAGE_LOCK CPM_LOCAL_PACKAGES_ONLY CPM_SOURCE_CACHE CPM_USE_NAMED_CACHE_DIRECTORIES)
@@ -391,8 +392,6 @@ mark_as_advanced(FORCE FETCHCONTENT_BASE_DIR FETCHCONTENT_FULLY_DISCONNECTED FET
 
 # Restore chattyness
 set(CMAKE_MESSAGE_LOG_LEVEL ${_saved_CMAKE_MESSAGE_LOG_LEVEL})
-
-install(TARGETS compile_flags_target EXPORT arbor-targets)
 
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
@@ -505,12 +504,8 @@ if(ARB_WITH_MPI)
     find_package(MPI REQUIRED CXX)
     target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_MPI)
 
-    # target_compile_definitions(MPI::MPI_CXX INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
-    # target_link_libraries(arbor-public-deps INTERFACE MPI::MPI_CXX)
-
-    # CMake 3.9 does not allow us to add definitions to an import target.
-    # so wrap MPI::MPI_CXX in an interface library 'mpi-wrap' instead.
-
+    # CMake 3.9 does not allow us to add definitions to an import target. so
+    # wrap MPI::MPI_CXX in an interface library 'mpi-wrap' instead.
     add_library(mpi-wrap INTERFACE)
     target_link_libraries(mpi-wrap INTERFACE MPI::MPI_CXX)
     target_compile_definitions(mpi-wrap INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
