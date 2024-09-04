@@ -6,10 +6,6 @@ foreach(dep @arbor_export_dependencies@)
     find_dependency(${dep})
 endforeach()
 
-find_dependency(pugixml)
-find_dependency(units)
-find_dependency(nlohmann_json)
-
 include("${CMAKE_CURRENT_LIST_DIR}/arbor-targets.cmake")
 
 set(_supported_components @arbor_supported_components@)
