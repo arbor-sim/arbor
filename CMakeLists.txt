@@ -357,6 +357,7 @@ CPMAddPackage(NAME units
               GITHUB_REPOSITORY llnl/units
               VERSION 0.9.1
               OPTIONS "CMAKE_PROJECT_NAME UNITS"
+                      "UNITS_INSTALL ON"
                       "UNITS_BUILD_STATIC_LIBRARY ON"
                       "UNITS_ENABLE_TESTS OFF"
                       "UNITS_BUILD_CONVERTER_APP OFF"
