@@ -328,15 +328,12 @@ CPMAddPackage(NAME pugixml
               DOWNLOAD_ONLY YES)
 add_library(ext-pugixml INTERFACE)
 if(pugixml_ADDED)
-    message(WARNING "Pugi Vendored")
     target_compile_definitions(ext-pugixml INTERFACE PUGIXML_HEADER_ONLY)
     target_include_directories(ext-pugixml INTERFACE $<BUILD_INTERFACE:${pugixml_SOURCE_DIR}/src>)
 else()
-    message(WARNING "Pugi Package")
     find_package(pugixml REQUIRED)
     target_link_libraries(ext-pugixml INTERFACE pugixml::pugixml)
 endif()
-target_link_libraries(arbor-public-deps INTERFACE ext-units)
 install(TARGETS ext-pugixml EXPORT arbor-targets)
 
 CPMAddPackage(NAME fmt
@@ -366,11 +363,12 @@ CPMAddPackage(NAME units
                       "UNITS_BUILD_WEBSERVER OFF")
 add_library(ext-units INTERFACE)
 if(units_ADDED)
-    target_link_libraries(ext-units INTERFACE units)
+    target_link_libraries(ext-units INTERFACE units::units)
 else()
     find_package(units REQUIRED)
     target_link_libraries(ext-units INTERFACE units::units)
 endif()
+target_link_libraries(arbor-public-deps INTERFACE ext-units)
 install(TARGETS ext-units EXPORT arbor-targets)
 
 CPMAddPackage(NAME tinyopt
