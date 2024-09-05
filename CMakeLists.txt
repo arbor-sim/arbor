@@ -363,7 +363,16 @@ CPMAddPackage(NAME units
                       "UNITS_ENABLE_TESTS OFF"
                       "UNITS_BUILD_CONVERTER_APP OFF"
                       "UNITS_BUILD_WEBSERVER OFF")
-target_link_libraries(arbor-public-deps INTERFACE units::units)
+add_library(ext-units INTERFACE)
+if(units_ADDED)
+    message(WARNING "Units Vendored")
+    target_link_libraries(ext-units INTERFACE units::units)
+else()
+    message(WARNING "Units Package")
+    find_package(units REQUIRED)
+    target_link_libraries(ext-units INTERFACE units::units)
+endif()
+install(TARGETS ext-units EXPORT arbor-targets)
 
 CPMAddPackage(NAME tinyopt
               GITHUB_REPOSITORY halfflat/tinyopt
