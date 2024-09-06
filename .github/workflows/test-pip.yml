@@ -90,6 +90,7 @@ jobs:
       - name: Check that build flags match
         run: |
           source ~/env/bin/activate
+          python -c "import arbor; print(arbor.config())"
           python -c "import arbor; print(arbor.config())" | grep -q "'mpi4py': True"
       - name: Run Python tests
         run: |
