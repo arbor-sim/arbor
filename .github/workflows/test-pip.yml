@@ -40,9 +40,6 @@ jobs:
         run: |
           source ~/env/bin/activate
           CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=native" pip -vvv install .
-      - name: Show installation
-        run: |
-          ls -l ~/env/lib/python3.12/site-packages/arbor/lib/cmake/
       - name: Check that build flags match
         run: |
           source ~/env/bin/activate
