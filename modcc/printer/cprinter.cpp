@@ -1,4 +1,3 @@
-#include <cmath>
 #include <iostream>
 #include <regex>
 #include <string>
@@ -19,7 +18,6 @@
 
 using io::indent;
 using io::popindent;
-using io::quote;
 
 constexpr bool with_profiling() {
 #ifdef ARB_HAVE_PROFILING
