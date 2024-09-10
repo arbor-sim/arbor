@@ -445,7 +445,6 @@ TEST(range, sort) {
 
     // simple sort
     util::sort(util::make_range(std::begin(cstr), null_terminated));
-    // std::sort(view.begin(), view.end());
     EXPECT_EQ("dhowy"s, cstr);
 
     // reverse sort by transform c to -c
