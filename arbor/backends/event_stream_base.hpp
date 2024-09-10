@@ -8,6 +8,9 @@
 
 #include "backends/event.hpp"
 #include "backends/event_stream_state.hpp"
+#include "event_lane.hpp"
+#include "timestep_range.hpp"
+#include "util/partition.hpp"
 
 ARB_SERDES_ENABLE_EXT(arb_deliverable_event_data, mech_index, weight);
 
@@ -57,6 +60,47 @@ public:
         ev_spans_.push_back(0);
         base_ptr_ = nullptr;
         index_ = 0;
+    }
+
+    // Construct a mapping of mech_id to a stream s.t. streams are partitioned into
+    // time step buckets by `ev_span`
+    template<typename EventStream>
+    static std::enable_if_t<std::is_base_of_v<event_stream_base, EventStream>>
+    multi_event_stream(const event_lane_subrange& lanes,
+                       const std::vector<target_handle>& handles,
+                       const std::vector<std::size_t>& divs,
+                       const timestep_range& steps,
+                       std::unordered_map<unsigned, EventStream>& streams) {
+        auto n_steps = steps.size();
+
+        std::unordered_map<unsigned, std::vector<std::size_t>> dt_sizes;
+        for (auto& [k, v]: streams) {
+            v.clear();
+            dt_sizes[k].resize(n_steps, 0);
+        }
+
+        auto cell = 0;
+        for (auto& lane: lanes) {
+            auto div = divs[cell];
+            arb_size_type step = 0;
+            for (auto evt: lane) {
+                auto time = evt.time;
+                auto weight = evt.weight;
+                auto target = evt.target;
+                while(step < n_steps && time >= steps[step].t_end()) ++step;
+                // Events coinciding with epoch's upper boundary belong to next epoch
+                if (step >= n_steps) break;
+                auto& handle = handles[div + target];
+                streams[handle.mech_id].ev_data_.push_back({handle.mech_index, weight});
+                dt_sizes[handle.mech_id][step]++;
+            }
+            ++cell;
+        }
+
+        for (auto& [id, stream]: streams) {
+            util::make_partition(stream.ev_spans_, dt_sizes[id]);
+            stream.init();
+        }
     }
 };
 
