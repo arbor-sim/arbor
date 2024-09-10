@@ -156,12 +156,9 @@ range<T, T> range_n(T t, size_t n) {
 
 template <typename Seq>
 auto canonical_view(Seq&& s) {
-    using std::begin;
-    using std::end;
-
-    return make_range(
-        make_sentinel_iterator(begin(s), end(s)),
-        make_sentinel_end(begin(s), end(s)));
+    auto b = std::begin(s);
+    auto e = std::end(s);
+    return make_range(make_sentinel_iterator(b, e), make_sentinel_end(b, e));
 }
 
 // Strictly evaluate end point in sentinel-terminated range and present as a range over
@@ -169,11 +166,8 @@ auto canonical_view(Seq&& s) {
 
 template <typename Seq>
 auto strict_view(Seq&& s) {
-    using std::begin;
-    using std::end;
-
-    auto b = begin(s);
-    auto e = end(s);
+    auto b = std::begin(s);
+    auto e = std::end(s);
     return make_range(b, b==e? b: std::next(util::upto(b, e)));
 }
 

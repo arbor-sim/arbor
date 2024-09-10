@@ -359,13 +359,13 @@ TYPED_TEST_P(simd_value, comparison) {
     for (unsigned i = 0; i<nrounds; ++i) {
         int cmp[N];
         bool test[N];
-        simd a, b;
+        simd a = 0, b = 0;
 
         fill_random(b, rng);
 
         for (unsigned j = 0; j<N; ++j) {
             cmp[j] = sgn(rng);
-            a[j] = b[j]+17*cmp[j];
+            a[j] = b[j] + 17*cmp[j];
         }
 
         mask gt = a>b;
