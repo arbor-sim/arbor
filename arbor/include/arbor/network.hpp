@@ -4,7 +4,6 @@
 #include <arbor/common_types.hpp>
 #include <arbor/export.hpp>
 #include <arbor/morph/primitives.hpp>
-#include <arbor/util/lexcmp_def.hpp>
 
 #include <array>
 #include <cstdint>

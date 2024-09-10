@@ -31,8 +31,6 @@
 
 #include <arbor/export.hpp>
 #include <arbor/util/any_cast.hpp>
-#include <arbor/util/lexcmp_def.hpp>
-
 namespace arb {
 namespace util {
 
@@ -88,8 +86,8 @@ struct ARB_SYMBOL_VISIBLE any_ptr {
         return *this;
     }
 
-    constexpr auto operator<=>(const any_ptr& o) { return this->as<void*>() <=> o.as<void*>(); }
-    constexpr auto operator==(const any_ptr& o) { return this->as<void*>() == o.as<void*>(); }
+    constexpr auto operator<=>(const any_ptr& o) const { return this->as<void*>() <=> o.as<void*>(); }
+    constexpr auto operator==(const any_ptr& o) const { return this->as<void*>() == o.as<void*>(); }
 
 private:
     void* ptr_ = nullptr;

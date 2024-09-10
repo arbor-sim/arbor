@@ -8,7 +8,6 @@
 #include <arbor/export.hpp>
 #include <arbor/serdes.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/util/lexcmp_def.hpp>
 
 namespace arb {
 
