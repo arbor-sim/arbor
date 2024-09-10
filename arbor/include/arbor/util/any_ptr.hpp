@@ -62,7 +62,7 @@ struct ARB_SYMBOL_VISIBLE any_ptr {
     }
 
     template <typename T, typename = std::enable_if_t<std::is_pointer<T>::value>>
-    T as() const noexcept {
+    constexpr T as() const noexcept {
         if (std::is_same<T, void*>::value) {
             return (T)ptr_;
         }
@@ -88,13 +88,13 @@ struct ARB_SYMBOL_VISIBLE any_ptr {
         return *this;
     }
 
+    constexpr auto operator<=>(const any_ptr& o) { return this->as<void*>() <=> o.as<void*>(); }
+    constexpr auto operator==(const any_ptr& o) { return this->as<void*>() == o.as<void*>(); }
+
 private:
     void* ptr_ = nullptr;
     const std::type_info* type_ptr_ = &typeid(void);
 };
-
-// Order, compare by pointer value:
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING_BY_VALUE(any_ptr, (a.as<void*>()), (b.as<void*>()))
 
 // Overload `util::any_cast` for these pointers.
 template <typename T>

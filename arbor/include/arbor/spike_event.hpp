@@ -22,10 +22,11 @@ struct spike_event {
     spike_event() = default;
     constexpr spike_event(cell_lid_type tgt, time_type t, arb_weight_type w) noexcept: target(tgt), weight(w), time(t) {}
 
+    bool operator==(const spike_event&) const = default;
+    constexpr auto operator<=>(const spike_event& o) const { return std::tie(time, target, weight) <=> std::tie(o.time, o.target, o.weight); }
+
     ARB_SERDES_ENABLE(spike_event, target, time, weight);
 };
-
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(spike_event,(a.time,a.target,a.weight),(b.time,b.target,b.weight))
 
 using pse_vector = std::vector<spike_event>;
 
