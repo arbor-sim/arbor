@@ -349,7 +349,7 @@ bool equal(const Seq1& seq1, const Seq2& seq2, Eq p = Eq{}) {
 template <
     typename Seq,
     typename Proj,
-    typename Compare = std::less<std::result_of_t<Proj (typename sequence_traits<const Seq&>::value_type)>>
+    typename Compare = std::less<std::invoke_result<Proj (typename sequence_traits<const Seq&>::value_type)>>
 >
 bool is_sorted_by(const Seq& seq, const Proj& proj, Compare cmp = Compare{}) {
     using std::begin;
