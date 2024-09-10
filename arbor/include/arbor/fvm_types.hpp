@@ -12,7 +12,7 @@ struct fvm_gap_junction {
     arb_value_type weight;   // unit-less local weight of the connection.
 
     constexpr bool operator==(const fvm_gap_junction&) const = default;
-    constexpr auto operator<=>(const fvm_gap_junction& o) {
+    constexpr auto operator<=>(const fvm_gap_junction& o) const {
         return std::tie(local_cv, peer_cv, local_idx, weight) <=> std::tie(o.local_cv, o.peer_cv, o.local_idx, o.weight);
     }
 };
