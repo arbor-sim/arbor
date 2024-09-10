@@ -9,6 +9,7 @@
 #include <ostream>
 #include <stdexcept>
 #include <vector>
+#include <compare>
 
 #include <arbor/util/scope_exit.hpp>
 #include "gpu_uuid.hpp"
@@ -41,21 +42,13 @@ using arb::util::on_scope_exit;
 
 namespace arbenv {
 
-// Test GPU uids for equality
-bool operator==(const uuid& lhs, const uuid& rhs) {
-    for (auto i=0u; i<lhs.bytes.size(); ++i) {
-        if (lhs.bytes[i]!=rhs.bytes[i]) return false;
-    }
-    return true;
-}
-
 // Strict lexographical ordering of GPU uids
-bool operator<(const uuid& lhs, const uuid& rhs) {
+std::strong_ordering operator<=>(const uuid& lhs, const uuid& rhs) {
     for (auto i=0u; i<lhs.bytes.size(); ++i) {
-        if (lhs.bytes[i]<rhs.bytes[i]) return true;
-        if (lhs.bytes[i]>lhs.bytes[i]) return false;
+        if (lhs.bytes[i]<rhs.bytes[i]) return std::strong_ordering::less;
+        if (lhs.bytes[i]>lhs.bytes[i]) return std::strong_ordering::greater;
     }
-    return false;
+    return return std::strong_ordering::equivalent;
 }
 
 std::ostream& operator<<(std::ostream& o, const uuid& id) {

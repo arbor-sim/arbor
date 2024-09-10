@@ -18,6 +18,7 @@
  */
 
 #include <tuple>
+#include <compare>
 
 #define ARB_DEFINE_LEXICOGRAPHIC_ORDERING_IMPL_(proxy,op,type,a_fields,b_fields) \
 inline bool operator op(const type& a,const type& b) { return proxy a_fields op proxy b_fields; }
