@@ -2,21 +2,16 @@
 
 // Indexed collection of pop-only event queues --- CUDA back-end implementation.
 
-#include "arbor/spike_event.hpp"
+#include <arbor/mechanism_abi.h>
+
 #include "backends/event_stream_base.hpp"
-#include "util/rangeutil.hpp"
 #include "util/transform.hpp"
-#include "util/partition.hpp"
 #include "threading/threading.hpp"
 #include "timestep_range.hpp"
 #include "memory/memory.hpp"
 
-#include <arbor/mechanism_abi.h>
-
 namespace arb {
 namespace gpu {
-
-using event_lane_subrange = util::subrange_view_type<std::vector<pse_vector>>;
 
 template <typename Event>
 struct event_stream: public event_stream_base<Event> {
@@ -90,63 +85,29 @@ public:
         arb_assert(num_events == ev_data_.size());
     }
 
-    static void multi_event_stream(const event_lane_subrange& lanes,
-                                   const std::vector<target_handle>& handles,
-                                   const std::vector<std::size_t>& divs,
-                                   const timestep_range& steps,
-                                   std::unordered_map<unsigned, event_stream>& streams) {
+    // Initialize event stream assuming ev_data_ and ev_span_ has
+    // been set previously (e.g. by `base::multi_event_stream`)
+    void init() {
+        resize(device_ev_data_, ev_data_.size());
+        base_ptr_ = device_ev_data_.data();
 
-        auto n_steps = steps.size();
+        threading::parallel_for::apply(0, ev_spans_.size() - 1, thread_pool_.get(),
+           [this](size_type i) {
+               const auto beg = ev_spans_[i];
+               const auto end = ev_spans_[i + 1];
+               arb_assert(end >= beg);
 
-        std::unordered_map<unsigned, std::vector<std::size_t>> dt_sizes;
-        for (auto& [k, v]: streams) {
-            v.clear();
-            dt_sizes[k].resize(n_steps, 0);
-        }
+               auto host_span = memory::make_view(ev_data_)(beg, end);
+               auto device_span = memory::make_view(device_ev_data_)(beg, end);
 
-        auto cell = 0;
-        for (auto& lane: lanes) {
-            auto div = divs[cell];
-            arb_size_type step = 0;
-            for (auto evt: lane) {
-                auto time = evt.time;
-                auto weight = evt.weight;
-                auto target = evt.target;
-                while(step < n_steps && time >= steps[step].t_end()) ++step;
-                // Events coinciding with epoch's upper boundary belong to next epoch
-                if (step >= n_steps) break;
-                auto& handle = handles[div + target];
-                streams[handle.mech_id].ev_data_.push_back({handle.mech_index, weight});
-                dt_sizes[handle.mech_id][step]++;
-            }
-            ++cell;
-        }
-
-        for (auto& [id, stream]: streams) {
-            util::make_partition(stream.ev_spans_, dt_sizes[id]);
-            resize(stream.device_ev_data_, stream.ev_data_.size());
-            stream.base_ptr_ = stream.device_ev_data_.data();
-
-            threading::parallel_for::apply(0, stream.ev_spans_.size() - 1,
-                                           stream.thread_pool_.get(),
-                                           [&stream=stream](size_type i) {
-                                               const auto beg = stream.ev_spans_[i];
-                                               const auto end = stream.ev_spans_[i + 1];
-                                               arb_assert(end >= beg);
-
-                                               auto host_span = memory::make_view(stream.ev_data_)(beg, end);
-                                               auto device_span = memory::make_view(stream.device_ev_data_)(beg, end);
-
-                                               // sort if necessary
-                                               if constexpr (has_event_index<Event>::value) {
-                                                   util::stable_sort_by(host_span,
-                                                                        [](const event_data_type& ed) { return event_index(ed); });
-                                               }
-                                               // copy to device
-                                               memory::copy_async(host_span, device_span);
-                                           });
-        }
-
+               // sort if necessary
+               if constexpr (has_event_index<Event>::value) {
+                   util::stable_sort_by(host_span,
+                                        [](const event_data_type& ed) { return event_index(ed); });
+               }
+               // copy to device
+               memory::copy_async(host_span, device_span);
+           });
     }
 
     template<typename D>

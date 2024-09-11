@@ -7,12 +7,10 @@
 #include "backends/common_types.hpp"
 #include "fvm_layout.hpp"
 
-#include "util/rangeutil.hpp"
+#include "event_lane.hpp"
 #include "timestep_range.hpp"
 
 namespace arb {
-
-using event_lane_subrange = util::subrange_view_type<std::vector<pse_vector>>;
 
 // Common functionality for CPU/GPU shared state.
 template <typename D, typename array, typename ion_state>

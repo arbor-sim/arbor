@@ -21,13 +21,11 @@
 #include "backends/event.hpp"
 #include "backends/common_types.hpp"
 #include "execution_context.hpp"
+#include "event_lane.hpp"
 #include "timestep_range.hpp"
 #include "util/range.hpp"
-#include "util/rangeutil.hpp"
 
 namespace arb {
-
-using event_lane_subrange = util::subrange_view_type<std::vector<pse_vector>>;
 
 // A sample for a probe may be derived from multiple 'raw' sampled
 // values from the backend.
