@@ -96,11 +96,6 @@ line-ending = "auto"
 docstring-code-format = false
 docstring-code-line-length = "dynamic"
 
-[tool.black]
-line-length = 88
-target-version = ['py39', 'py310', 'py311', 'py312']
-extend-exclude='^/(ext|doc/scripts/.*_theme|doc/scripts/inputs.py)'
-
 [project.urls]
 homepage = "https://arbor-sim.org"
 documentation = "https://docs.arbor-sim.org"

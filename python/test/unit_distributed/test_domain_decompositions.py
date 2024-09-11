@@ -282,7 +282,7 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
         # Each cell group contains 1 cell of kind cable
         # Each group should also be tagged for cpu execution
         grps = list(range(n_local_groups))
-        kind_lists = dict()
+        kind_lists = {}
         for i in grps:
             grp = decomp.groups[i]
             self.assertEqual(len(grp.gids), 1)
@@ -339,7 +339,7 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
         hint1 = arb.partition_hint()
         hint1.prefer_gpu = False
         hint1.cpu_group_size = recipe.num_cells()
-        hints1 = dict([(arb.cell_kind.cable, hint1)])
+        hints1 = {arb.cell_kind.cable: hint1}
 
         decomp1 = arb.partition_load_balance(recipe, context, hints1)
         self.assertEqual(1, len(decomp1.groups))
@@ -365,7 +365,7 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
         hint2 = arb.partition_hint()
         hint2.prefer_gpu = False
         hint2.cpu_group_size = int(cells_per_rank / 2)
-        hints2 = dict([(arb.cell_kind.cable, hint2)])
+        hints2 = {arb.cell_kind.cable: hint2}
 
         decomp2 = arb.partition_load_balance(recipe, context, hints2)
         self.assertEqual(2, len(decomp2.groups))
@@ -436,7 +436,7 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
         hint1 = arb.partition_hint()
         hint1.prefer_gpu = False
         hint1.cpu_group_size = 0
-        hints1 = dict([(arb.cell_kind.cable, hint1)])
+        hints1 = {arb.cell_kind.cable: hint1}
 
         with self.assertRaisesRegex(
             RuntimeError,
@@ -447,7 +447,7 @@ class TestDomain_Decompositions_Distributed(unittest.TestCase):
         hint2 = arb.partition_hint()
         hint2.prefer_gpu = True
         hint2.gpu_group_size = 0
-        hints2 = dict([(arb.cell_kind.cable, hint2)])
+        hints2 = {arb.cell_kind.cable: hint2}
 
         with self.assertRaisesRegex(
             RuntimeError,
