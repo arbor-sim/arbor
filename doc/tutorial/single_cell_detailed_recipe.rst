@@ -1,9 +1,9 @@
 .. _tutorialsinglecellswcrecipe:
 
-A detailed single cell recipe
+A detailed single-cell recipe
 =============================
 
-This example builds the same single cell model as :ref:`tutorialsinglecellswc`,
+This example builds the same single-cell model as :ref:`tutorialsinglecellswc`,
 except using a :class:`arbor.recipe` and :class:`arbor.simulation` instead of a :class:`arbor.single_cell_model`.
 
 This time, we'll learn a bit more about setting up advanced features using a :class:`arbor.recipe`.
@@ -14,13 +14,13 @@ This time, we'll learn a bit more about setting up advanced features using a :cl
 
    1. Building a :class:`arbor.recipe`.
    2. Building an :class:`arbor.context`.
-   3. Create a :class:`arbor.simulation`.
-   4. Running the simulation and visualizing the results,
+   3. Creating a :class:`arbor.simulation`.
+   4. Running the simulation and visualising the results.
 
 The cell
 ********
 
-We reuse the cell construction code from :ref:`original example
+We reuse the cell construction code from the :ref:`original example
 <tutorialsinglecellswc-cell>` where it is explained in detail.
 Constructing cells outside the recipe is not required, but may be
 convenient and potentially faster if many copies of the same cell
@@ -29,14 +29,14 @@ are required.
 The recipe
 **********
 
-The :class:`arbor.single_cell_model` used in the original example created a
+The :class:`arbor.single_cell_model` used in the original example created an
 :class:`arbor.recipe` under the hood, and abstracted away the details so we were
 unaware of its existence. In this example, we will examine the recipe in detail:
 how to create one and why it is needed.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 78-126
+   :lines: 78-128
 
 Let's go through the recipe point by point.
 
@@ -78,10 +78,10 @@ return ``cell``, the cell created just above.
 
 Step **(5.5)** overrides the :meth:`~arbor.recipe.probes` method. It takes one
 argument: ``gid``. Given the gid, this method returns all the probes on the
-cell. The probes can be of many different kinds measuring different quantities
-on different locations of the cell. Like in the original example, we will create
+cell. The probes can be of many different kinds, measuring different quantities
+at different locations of the cell. Like in the original example, we will create
 the voltage probe at the ``"custom_terminal"`` locset. This probe was registered
-directly using the :class:`arbor.single_cell_model` object. Now it has to be
+directly using the :class:`arbor.single_cell_model` object. Now, it has to be
 explicitly created and registered in the recipe.
 
 Step **(5.6)** overrides the :meth:`~arbor.recipe.global_properties` method. It
@@ -93,27 +93,27 @@ in step **(1)**.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 129-130
+   :lines: 129-131
 
 Now we can instantiate a ``single_recipe`` object.
 
 The simulation
 **************
 
-We have all we need to create a :class:`arbor.simulation` object.
+We have all we need to create an :class:`arbor.simulation` object.
 
 Before we run the simulation, however, we need to register what results we expect once execution is over.
 This was handled by the :class:`arbor.single_cell_model` object in the original example.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 135-138
+   :lines: 133-140
 
 We would like to get a list of the spikes on the cell during the runtime of the
 simulation, and we would like to plot the voltage registered by the probe on the
 "custom_terminal" locset. Without the call to ``sample``, the probe will be
 present, but no data will recorded. This can help to toggle different probes and
-possible save some memory on the unsampled ones. Sampling requires a unqiue
+possibly save some memory on the unsampled ones. Sampling requires a unique
 identifier for the probe we want to attach to, which consists of the gid of the
 cell and the label we gave to the ``place`` method when setting the probe. Each
 sampler is identified by an opaque handle that can be used to retrieve the
@@ -124,7 +124,7 @@ a time step of 0.025 ms.
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 140-141
+   :lines: 141-142
 
 The results
 ***********
@@ -136,20 +136,20 @@ We can print the times of the spikes:
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 143-147
+   :lines: 144-148
 
 The probe results, again, warrant some more explanation:
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 159
+   :lines: 139
 
-``sim.samples`` takes a ``handle`` that is associated to the probe we wish to
+``sim.samples`` takes a ``handle`` that is associated with the probe we wish to
 examine. These opaque objects are returned from the calls to ``sim.sample``.
 Each call returns a list of ``(data, meta)`` objects. Here, ``meta`` describes
 the location set of the probe, which can be a single place or a list of places.
-The other item -- ``data`` -- is a numpy array comprising one column for the
-time and one for each eantry in the location list. The size of the returned list
+The other item -- ``data`` -- is a Numpy array comprising one column for the
+time and one for each entry in the location list. The size of the returned list
 depends on the number of discrete locations pointed to by the handle. We placed
 the probe on the "custom_terminal" locset which is represented by 2 locations on
 the morphology. We therefore expect the length of ``sim.samples(handle)`` to
@@ -160,7 +160,7 @@ and expect the same results:
 
 .. literalinclude:: ../../python/example/single_cell_detailed_recipe.py
    :language: python
-   :lines: 149-
+   :lines: 150-
 
 The following plot is generated. Identical to the plot of the original example.
 

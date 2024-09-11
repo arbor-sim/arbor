@@ -5,7 +5,7 @@ NEURON {
     SUFFIX SK
     USEION k READ ek WRITE ik
     USEION ca READ cai
-    RANGE gbar, ik
+    RANGE gbar
 }
 
 UNITS {
@@ -19,37 +19,25 @@ PARAMETER {
     zTau = 1       (ms)
 }
 
-ASSIGNED {
-    zInf
-    g     (S/cm2)
-}
+CONSTANT { eps = 1e-7  }
 
-STATE {
-    z FROM 0 TO 1
-}
+STATE { z }
 
 BREAKPOINT {
     SOLVE states METHOD cnexp
-    ik   =  gbar*z*(v - ek)
+    LOCAL g
+    g = gbar*z
+    ik =  g*(v - ek)
 }
 
-DERIVATIVE states {
-    LOCAL l_ca
-    l_ca = cai
-    if(l_ca < 1e-7){
-        l_ca = l_ca + 1e-07
-    }
-    zInf = 1/(1 + (0.00043 / l_ca)^4.8)
-    
-    z' = (zInf - z) / zTau
-}
+DERIVATIVE states { z' = (z_inf(cai) - z) / zTau }
 
-INITIAL {
-    LOCAL l_ca
-    l_ca = cai
-    if(l_ca < 1e-7) {
-      l_ca = l_ca + 1e-07
+INITIAL { z = z_inf(cai) }
+
+FUNCTION z_inf(cai) {
+    if(cai < eps) {
+         z_inf = 1/(1 + (0.00043 / (cai + eps))^4.8)
+    } else {
+         z_inf = 1/(1 + (0.00043 / cai)^4.8)
     }
-    
-    z = 1/(1 + (0.00043 / l_ca)^4.8)
 }

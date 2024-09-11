@@ -20,20 +20,19 @@ An *allocation* enumerates the computational resources to be used for a
 simulation, typically a subset of the resources available on a physical hardware
 node. It also contains flags to enable thread and process `affinity
 <https://en.wikipedia.org/wiki/Processor_affinity>`_. When asked to set affinity,
-Arbor will try to maximize the use of the available resources, i.e. it will
+Arbor will try to maximize the use of the available resources, i.e., it will
 spread out processes and threads such that each gets a maximal share of compute
-units and cache. Existing affinity settings will honoured, so setting it for
-processes while an external mechanism (e.g. SLURM or OpenMPI) does the same is
-ill advised. Threads can not be managed externally, thus requesting thread
+units and cache. Existing affinity settings will be honoured, so setting it for processes while an external mechanism (e.g., SLURM or OpenMPI) does the same is
+ill-advised. Threads can not be managed externally, thus requesting thread
 binding is generally safe and may yield significant performance improvements for
 CPU-only simulations and/or the model build phase. Affinity requires `hwloc
 <https://www.open-mpi.org/projects/hwloc/>`_ to be found during build time.
 
 New users can find using contexts a little verbose. The design is very
 deliberate, to allow fine-grained control over which computational resources an
-Arbor simulation should use. As a result Arbor is much easier to integrate into
+Arbor simulation should use. As a result, Arbor is much easier to integrate into
 workflows that run multiple applications or libraries on the same node, because
-Arbor has a direct API for using on node resources (threads and GPU) and
+Arbor has a direct API for using on-node resources (threads and GPU) and
 distributed resources (MPI) that have been partitioned between
 applications/libraries.
 

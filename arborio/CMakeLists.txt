@@ -6,18 +6,13 @@ set(arborio-sources
     cv_policy_parse.cpp
     label_parse.cpp
     neuroml.cpp
-    nml_parse_morphology.cpp)
+    networkio.cpp
+    nml_parse_morphology.cpp
+    debug.cpp)
 
 add_library(arborio ${arborio-sources})
 
-if (ARB_USE_BUNDLED_PUGIXML)
-    target_include_directories(arborio PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../ext/pugixml/src>)
-    target_compile_definitions(arborio PRIVATE PUGIXML_HEADER_ONLY)
-else()
-    find_package(pugixml REQUIRED)
-    target_link_libraries(arborio PUBLIC pugixml::pugixml)
-endif()
-
+target_link_libraries(arborio PUBLIC ext-pugixml)
 add_library(arborio-public-headers INTERFACE)
 add_library(arborio-private-headers INTERFACE)
 

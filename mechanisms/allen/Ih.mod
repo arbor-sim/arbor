@@ -23,7 +23,7 @@ STATE {
 
 BREAKPOINT {
     SOLVE states METHOD cnexp
-    ihcn = gbar*m*(v-ehcn)
+    ihcn = gbar*m*(v - ehcn)
 }
 
 DERIVATIVE states {

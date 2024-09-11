@@ -17,70 +17,70 @@ jobs:
         config:
         - {
             name:  "Linux Min GCC",
-            os:    "ubuntu-20.04",
-            cc:    "gcc-9",
-            cxx:   "g++-9",
-            py:    "3.8",
+            os:    "ubuntu-22.04",
+            cc:    "gcc-12",
+            cxx:   "g++-12",
+            py:    "3.9",
             cmake: "3.19.x",
             mpi:   "ON",
             simd:  "OFF"
           }
         - {
             name:  "Linux Min Clang",
-            os:    "ubuntu-20.04",
-            cc:    "clang-9",
-            cxx:   "clang++-9",
-            py:    "3.8",
+            os:    "ubuntu-22.04",
+            cc:    "clang-12",
+            cxx:   "clang++-12",
+            py:    "3.9",
             cmake: "3.19.x",
             mpi:   "ON",
             simd:  "OFF"
           }
         - {
             name:  "MacOS Min",
-            os:    "macos-11",
+            os:    "macos-12",
             cc:    "clang",
             cxx:   "clang++",
-            py:    "3.8",
+            py:    "3.9",
             cmake: "3.19.x",
             mpi:   "ON",
             simd:  "OFF"
           }
         - {
             name:  "Linux Max GCC",
-            os:    "ubuntu-22.04",
-            cc:    "gcc-12",
-            cxx:   "g++-12",
-            py:    "3.11",
+            os:    "ubuntu-24.04",
+            cc:    "gcc-14",
+            cxx:   "g++-14",
+            py:    "3.12",
             cmake: "3.22.x",
             mpi:   "ON",
             simd:  "OFF"
           }
         - {
             name:  "Linux SIMD",
-            os:    "ubuntu-22.04",
-            cc:    "gcc-12",
-            cxx:   "g++-12",
-            py:    "3.11",
+            os:    "ubuntu-24.04",
+            cc:    "gcc-14",
+            cxx:   "g++-14",
+            py:    "3.12",
             cmake: "3.22.x",
             mpi:   "OFF",
             simd:  "ON"
           }
         - {
             name:  "Linux Max Clang",
-            os:    "ubuntu-22.04",
-            cc:    "clang-14",
-            cxx:   "clang++-14",
-            py:    "3.11",
+            os:    "ubuntu-24.04",
+            cc:    "clang-18",
+            cxx:   "clang++-18",
+            py:    "3.12",
             cmake: "3.22.x",
             mpi:   "ON",
             simd:  "OFF"
           }
         - {
             name:  "MacOS Max",
-            os:    "macos-13",
+            os:    "macos-14",
             cc:    "clang",
             cxx:   "clang++",
-            py:    "3.11",
+            py:    "3.12",
             cmake: "3.22.x",
             mpi:   "ON",
             simd:  "OFF"
@@ -153,7 +153,7 @@ jobs:
           export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
           mkdir build
           cd build
-          cmake .. -GNinja -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_ASSERTIONS=ON -DARB_WITH_PROFILING=ON
+          cmake .. -GNinja -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_WITH_ASSERTIONS=ON -DARB_WITH_PROFILING=ON
           ninja -j4 tests examples pyarb
           cd -
       - if:   ${{ matrix.variant == 'shared' }}
@@ -162,7 +162,7 @@ jobs:
           export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
           mkdir build
           cd build
-          cmake .. -GNinja -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_ASSERTIONS=ON -DBUILD_SHARED_LIBS=ON -DARB_WITH_PROFILING=ON
+          cmake .. -GNinja -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=${{ matrix.config.simd }} -DPython3_EXECUTABLE=`which python` -DARB_WITH_MPI=${{ matrix.config.mpi }} -DARB_WITH_ASSERTIONS=ON -DBUILD_SHARED_LIBS=ON -DARB_WITH_PROFILING=ON
           ninja -j4 tests examples pyarb
           cd -
       - name: Install arbor

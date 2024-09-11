@@ -12,9 +12,9 @@ Issues
 
 New features, bugfixes or other kinds of contributions ideally start their lives as an Issue (short for Github Issue)
 on our `Issue tracker <https://github.com/arbor-sim/arbor/issues>`_. We distinguish two broad categories of
-issues: feature requests to add new functionality to arbor and bugs pointing out mistakes, inaccuracies,
+issues: feature requests to add new functionality to Arbor and bugs pointing out mistakes, inaccuracies,
 and plain faults in Arbor. Having a formal Github Issue before an implementation addressing a request or bug
-(as a PR containing a code contribution or otherwise) gives others the chance to weigh in and help
+(as a PR containing a code contribution or otherwise) gives others a chance to weigh in and help
 find a solution that fits Arbor and its design, which makes it easier to integrate your contribution.
 Especially for new features, this is a helpful process. Have a look at our
 `blogpost on this subject <https://arbor-sim.org/how-to-file-an-issue/>`_ for some more rationale for
@@ -29,7 +29,7 @@ If you want to contribute code that implements a solution or feature,
 the workflow is as follows:
 
 1. Fork the Arbor repository.
-2. Create a branch off of master and implement your feature.
+2. Create a branch off of the ``master`` branch and implement your feature. Example ``git switch -c my-feature origin/master``
 3. Make a pull request (PR) and refer to the issue(s) that the PR
    addresses. Some tips on how to write a good PR description:
 
@@ -40,11 +40,11 @@ the workflow is as follows:
    - Commit logical units with clear commit messages.
    - Add a change summary to the PR message. If you remembered to commit
      logical units, this could simply be a bulleted list of all commit
-     messages in the PR. If during the review process you make changes
+     messages in the PR. If, during the review process, you make changes
      to the features in the PR, keep the PR description updated.
    - Use text like `fixes #123` in the description to refer to an issue.
    - Prefix your PR title with BUGFIX, BREAKING, FEATURE if it fixes a bug, introduces
-     a breaking change or introduces a (major) new feature respectively.
+     a breaking change or introduces a (major) new feature, respectively.
 
 4. We will accept contributions licensed with the same
    `BSD 3-Clause "New" or "Revised" License <https://github.com/arbor-sim/arbor/blob/master/LICENSE>`_,
@@ -52,7 +52,7 @@ the workflow is as follows:
    If not specified otherwise, we accept your contribution under this license.
    If this is a problem for you, please contact us at
    `contact@arbor-sim.org <mailto:contact@arbor-sim.org>`__.
-5. A PR on Github is automatically built and tested by GitHub Actions CI pipelines.
+5. A PR on GitHub is automatically built and tested by GitHub Actions CI pipelines.
    You can run these tests yourself by building them first
    (``make tests``) and then running them (``./bin/*unit*``).
 
@@ -80,7 +80,7 @@ here the steps for how to do this (with just ``git``).
 
 Alongside the instruction, an example situation will be given. Here, it is assumed that you've created your own
 Github fork of the Arbor repo, and that you have this cloned to disk (and the ``origin`` remote points to your
-fork of Arbor on Github). We'll setup a new remote called ``upstream``, pointing to the ``arbor-sim/arbor`` repo.
+fork of Arbor on Github). We'll set up a new remote called ``upstream``, pointing to the ``arbor-sim/arbor`` repo.
 The example situation is that you want to commit to pull request number ``321``, opened by a 
 Github user called ``github_user_007``, who named the branch they're trying to merge ``my_special_branch``,
 in their fork of the Arbor repo called ``arbor-sim`` (which is the default when you fork on Github).
@@ -113,9 +113,9 @@ Steps
    ``git push git@github.com:$PR_AUTHOR/$REPO $LOCAL_BRANCH_NAME:$REMOTE_BRANCH_NAME``
 
    Example: ``git push git@github.com:github_user_007/arbor-sim my_special_branch:my_special_branch``
-5. The commit should now show up on the PR. When the PR is going to be merged, Github will add a
-   "Co-authored by ..." line to the commit body. Leaving this line in place upon merging, will then list
-   these contributors in Github UI.
+5. The commit should now show up on the PR. When the PR is going to be merged, GitHub will add a
+   "Co-authored by ..." line to the commit body. Leaving this line in place upon merging will then list
+   these contributors in GitHub UI.
 
 .. _contribpr-review:
 
@@ -128,8 +128,8 @@ Each pull request is reviewed according to these guidelines:
    positive review.
 -  GitHub Actions CI must produce a favourable result on your PR.
 -  An Arbor team member will (squash) merge the PR with the PR change
-   summary as commit message.
--  Consider using Gitpod to review larger PRs, see under checks on the Github PR page.
+   summary as a commit message.
+- Consider using Gitpod to review larger PRs, see under checks on the GitHub PR page.
 
 .. _contribpr-lint:
 
@@ -147,9 +147,9 @@ Pull requests will also be subject to a series of automated checks
 Merging a PR
 ------------
 
--  Use PR comment as commit message and verify it covers the changes in
+-  Use the PR comment as a commit message and verify it covers the changes in
    the PR.
--  ONLY squash-and-merge (Github should not allow anything else
+-  ONLY squash-and-merge (GitHub should not allow anything else
    anymore).
 -  The creator of a pull request should not review or merge their own
    pull request.

@@ -101,6 +101,16 @@ public:
         return cell;
     }
 
+    std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
+        if (gid != 0) return {};
+        return {arb::explicit_generator_from_milliseconds({"tgt"},
+                                                          1000.0,           // use a large weight to trigger spikes
+                                                          std::vector{ 1.0, // First event to trigger the spike
+                                                                       1.1, // inside refractory period; should be ignored
+                                                                       50.0 // long after previous event; should trigger new spike
+                                                  })};
+    }
+
 private:
     cell_size_type ncells_;
     float weight_, delay_;
@@ -177,20 +187,6 @@ TEST(lif_cell_group, spikes) {
     auto decomp = partition_load_balance(recipe, context);
     simulation sim(recipe, context, decomp);
 
-    cse_vector events;
-
-    // First event to trigger the spike (first neuron).
-    events.push_back({0, {{0, 1, 1000}}});
-
-    // This event happens inside the refractory period of the previous
-    // event, thus, should be ignored (first neuron)
-    events.push_back({0, {{0, 1.1, 1000}}});
-
-    // This event happens long after the refractory period of the previous
-    // event, should thus trigger new spike (first neuron).
-    events.push_back({0, {{0, 50, 1000}}});
-
-    sim.inject_events(events);
     sim.run(100*U::ms, 0.01*U::ms);
 
     // we expect 4 spikes: 2 by both neurons

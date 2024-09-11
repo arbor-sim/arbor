@@ -31,11 +31,11 @@ produce a catalogue of the same level of integration as the built-in catalogues
    .. code-block :: cmake
 
      make_catalogue(
-       NAME default                                                # Name of your catalogue, must match directory under 2.
+       NAME default                                                # Name of your catalogue, must match the directory under 2.
        MOD exp2syn expsyn expsyn_stdp hh kamt kdrmt nax nernst pas # Space separated list of mechanism names
        CXX                                                         # Optional: list of raw C++ mechanism names
        VERBOSE  ${ARB_CAT_VERBOSE}                                 # Print debug info at configuration time
-       ADD_DEPS ON)                                                # Must be ON, make catalogue part of arbor
+       ADD_DEPS ON)                                                # Must be ON, make catalogue part of Arbor
 5. Add a ``global_NAME_catalogue`` function in ``mechcat.hpp``.
 6. Bind this function in ``python/mechanisms.cpp`` to ``NAME-catalogue``.
 

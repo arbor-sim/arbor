@@ -16,7 +16,7 @@ Arbor can be built with various options, just like the regular CMake build. For 
 Why use Spack?
 --------------
 
-`Spack <https://spack.io>`_ is a package manager for supercomputers, Linux, and macOS. It makes installing scientific software easy. Spack isn’t tied to a particular language; you can build a software stack in Python or R, link to libraries written in C, C++, or Fortran, and easily swap compilers or target specific microarchitectures.
+`Spack <https://spack.io>`_ is a package manager for supercomputers, Linux, and MacOS. It makes installing scientific software easy. Spack isn’t tied to a particular language; you can build a software stack in Python or R, link to libraries written in C, C++, or Fortran, and easily swap compilers or target specific microarchitectures.
 
 A powerful feature for users of scientific software is Spack's `Environment feature <https://spack.readthedocs.io/en/latest/environments.html>`_. One can define and store software environments for reuse, to generate container images or reproduce and rerun software workflows at a later time.
 

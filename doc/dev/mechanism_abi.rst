@@ -26,7 +26,7 @@ instance may be used by multiple :c:struct:`arb_mechanism_interface` instances.
 
 .. Note::
   Note that ``mechanism_abi.h`` is heavily commented and is useful as
-  documentation in its own right, also when writing mechanisms in other languages than C(++).
+  documentation in its own right, and also when writing mechanisms in languages other than C(++).
 
 Metadata: ``arb_mechanism_type``
 --------------------------------
@@ -284,7 +284,7 @@ needed.
     }
 
 .. warning::
-  Note that values in :c:member:`arb_mechanism_ppack.diam_um` cover _all_ CV's regardless whether they
+  Note that values in :c:member:`arb_mechanism_ppack.diam_um` cover _all_ CV's regardless of whether they
   are covered by the current mechanisms. Reading or writing to those values
   is considered undefined behaviour. The same holds for all other fields of
   :c:struct:`arb_mechanism_ppack`.
@@ -317,9 +317,9 @@ The evolution of the state variables is left to the implementation via
 ``integrate_state``, while ``globals`` and ``parameters`` are considered
 read-only. The ion states internal concentration ``Xi``, external concentration
 ``Xo``, trans-membrane current ``iX`` may also be read and written. Note that
-concurrent updates by multiple mechanisms might occur in any order and each
+concurrent updates by multiple mechanisms might occur in any order, and each
 mechanism will only observe the initial values at the time step boundary. All
-contribution by mechanisms are summed up into a final value. Further note that
+contributions by mechanisms are summed up into a final value. Further note that
 accessing these values without declaring this via a relevant ``arb_ion_info`` in
 the ``arb_mechanism_type`` is undefined behaviour. Parameter packs are specific
 to a backend.
@@ -349,7 +349,7 @@ below with some metadata about the backend.
 
   .. c:member:: arb_size_type      partition_width
 
-    granularity for this backed, eg SIMD lanes
+    granularity for this backed, e.g., SIMD lanes
 
   Interface methods:
 
@@ -357,15 +357,15 @@ below with some metadata about the backend.
 
     - called once during instantiation,
     - setup initial state, corresponds to NMODL's INITIAL block,
-    - will receive an allocated and initialised ppack object
+    - will receive an allocated and initialised pack object
 
   .. c:member:: arb_mechanism_method compute_currents
 
     - compute ionic currents and set them through pointers in `ion_state`, currents
       live in `current_density`
-    - called during each integration time step
-      - at the start for reversal potential mechanisms, *before* current reset
-      - after event deliver for anything else
+    - called during each integration time step, and
+      - reversal potential mechanisms: at the beginning of the time step, *before* current reset
+      - after event delivery, if enabled, e.g. by defining ``NET_RECEIVE`` in NMODL
 
   .. c:member:: arb_mechanism_method apply_events
 
@@ -392,7 +392,7 @@ below with some metadata about the backend.
 
   .. c:member:: arb_mechanism_method post_event
 
-    - used to implement spike time dependent plasticity
+    - used to implement spike-timing-dependent plasticity
     - consumes :c:member:`arb_mechanism_ppack.time_since_spike`
     - called during each integration time step, after checking for spikes
     - if implementing this, also set :c:member:`arb_mechanism_type.has_post_events` to ``true`` in the metadata
@@ -423,11 +423,11 @@ below with some metadata about the backend.
 
   .. c:member::  const arb_index_type*        begin
 
-    array of offsets to beginning of marked events
+    array of offsets to the beginning of marked events
 
   .. c:member::  const arb_index_type*        end
 
-    array of offsets to end of marked events
+    array of offsets to the end of marked events
 
 SIMDization
 -----------
@@ -467,7 +467,7 @@ a structure
 
 You can create mechanisms with both ``i_gpu`` and ``i_cpu`` returning ``null``,
 but at least one of the interfaces must be provided or Arbor will refuse to load
-the catalogue this mechanism.
+the catalogue containing this mechanism.
 
 The naming scheme is shown in the example below
 

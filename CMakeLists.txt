@@ -2,8 +2,22 @@ cmake_minimum_required(VERSION 3.19)
 include(CMakeDependentOption)
 include(CheckIPOSupported)
 
+# Usually we don't want to hear those
+set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON CACHE INTERNAL "" FORCE)
+
 # Make CUDA support throw errors if architectures remain unclear
 cmake_policy(SET CMP0104 NEW)
+
+# Set release as the default build type (CMake default is debug.)
+
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE release CACHE STRING "Choose the type of build." FORCE)
+    # Set the possible values of build type for cmake-gui
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
+endif()
+
+set(CPM_USE_LOCAL_PACKAGES ON)
+include(cmake/CPM.cmake)
 
 file(READ VERSION FULL_VERSION_STRING)
 string(STRIP "${FULL_VERSION_STRING}" FULL_VERSION_STRING)
@@ -13,6 +27,7 @@ project(arbor VERSION ${numeric_version})
 enable_language(CXX)
 
 include(GNUInstallDirs)
+include(CheckCXXCompilerFlag)
 
 # Effectively adds '-fpic' flag to CXX_FLAGS. Needed for dynamic catalogues.
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -21,7 +36,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 check_ipo_supported(RESULT HAVE_LTO OUTPUT ERR_LTO)
 if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
   if(HAVE_LTO)
-    message (STATUS "LTO support found, enabling")
+    message (VERBOSE "LTO support found, enabling")
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
   else()
     message(STATUS "No LTO: ${ERR_LTO}")
@@ -32,14 +47,20 @@ endif()
 # redirected from the terminal (e.g. when using ninja or a pager).
 
 option(ARBDEV_COLOR "Always produce ANSI-colored output (GNU/Clang only)." OFF)
+mark_as_advanced(FORCE ARBDEV_COLOR)
 
 #----------------------------------------------------------
 # Configure-time build options for Arbor:
 #----------------------------------------------------------
 
 # Specify target architecture.
-
-set(ARB_ARCH "native" CACHE STRING "Target architecture for arbor libraries")
+check_cxx_compiler_flag("-march=native" CXX_HAS_NATIVE)
+if(CXX_HAS_NATIVE)
+    set(ARB_DEFAULT_ARCH "native")
+else()
+    set(ARB_DEFAULT_ARCH "none")
+endif()
+set(ARB_ARCH ${ARB_DEFAULT_ARCH} CACHE STRING "Target architecture for arbor libraries")
 
 # Perform explicit vectorization?
 
@@ -50,13 +71,20 @@ option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 option(ARB_USE_HWLOC "request support for thread pinning via HWLOC" OFF)
 mark_as_advanced(ARB_USE_HWLOC)
 
+# Build tests and benchmarks, docs
+
+option(BUILD_TESTING "build tests and benchmarks" ON)
+option(BUILD_DOCUMENTATION "build documentation" ON)
+
 # Use externally built modcc?
 
 set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
+mark_as_advanced(FORCE ARB_MODCC)
 
 # Use libunwind to generate stack traces on errors?
 
 option(ARB_BACKTRACE "Enable stacktraces on assertion and exceptions (requires Boost)." OFF)
+mark_as_advanced(FORCE ARB_BACKTRACE)
 
 # Specify GPU build type
 
@@ -69,16 +97,13 @@ cmake_dependent_option(ARB_USE_GPU_RNG
     "Use GPU generated random numbers (only cuda, not bitwise equal to CPU version)" OFF
     "ARB_USE_GPU_DEP" OFF)
 
-# Use bundled 3rd party libraries
-
-option(ARB_USE_BUNDLED_LIBS "Use bundled 3rd party libraries" OFF)
-
 # Optional additional CXX Flags used for all code that will run on the target
 # CPU architecture. Recorded in installed target, for downstream dependencies
 # to use.
 # Useful, for example, when a user wants to compile with target-specific
-# optimization flags.
+# optimization flag.spr
 set(ARB_CXX_FLAGS_TARGET "" CACHE STRING "Optional additional flags for compilation")
+mark_as_advanced(FORCE ARB_CXX_FLAGS_TARGET)
 
 #----------------------------------------------------------
 # Debug support
@@ -94,7 +119,10 @@ mark_as_advanced(ARB_CAT_VERBOSE)
 
 option(ARB_WITH_MPI "build with MPI support" OFF)
 
-option(ARB_WITH_PROFILING "use built-in profiling" OFF)
+option(ARB_WITH_PROFILING "enable Tracy profiling" OFF)
+cmake_dependent_option(ARB_WITH_STACK_PROFILING "enable stack collection in profiling" OFF "ARB_WITH_PROFILING" OFF)
+cmake_dependent_option(ARB_WITH_MEMORY_PROFILING "enable memory in profiling" OFF "ARB_WITH_PROFILING" OFF)
+mark_as_advanced(FORCE ARB_WITH_STACK_PROFILING ARB_WITH_MEMORY_PROFILING)
 
 option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
 
@@ -113,14 +141,6 @@ option(ARB_WITH_PYTHON "enable Python front end" OFF)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(GitSubmodule) # required for check_git_submodule
 include(ErrorTarget)  # reguired for add_error_target
-
-# Set release as the default build type (CMake default is debug.)
-
-if (NOT CMAKE_BUILD_TYPE AND NOT BUILD_TESTING)
-    set(CMAKE_BUILD_TYPE release CACHE STRING "Choose the type of build." FORCE)
-    # Set the possible values of build type for cmake-gui
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
-endif()
 
 # Add CUDA as a language if GPU support requested. (This has to be set early so
 # as to enable CUDA tests in generator expressions.)
@@ -141,13 +161,8 @@ if(ARB_GPU STREQUAL "cuda")
             # Pascal, Volta, Ampere, Hopper
             set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
         endif()
-    elseif(${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 11)
-        if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-            # Pascal, Volta, Ampere
-            set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
-        endif()
     else()
-        message(FATAL_ERROR "Need at least CUDA 11, got ${CUDAToolkit_VERSION_MAJOR}")
+        message(FATAL_ERROR "Need at least CUDA 12, got ${CUDAToolkit_VERSION_MAJOR}")
     endif()
 
     # We _still_ need this otherwise CUDA symbols will not be exported
@@ -158,7 +173,7 @@ if(ARB_GPU STREQUAL "cuda")
 elseif(ARB_GPU STREQUAL "cuda-clang")
     include(FindCUDAToolkit)
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        set(CMAKE_CUDA_ARCHITECTURES 60 70 80)
+        set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
     endif()
     set(ARB_WITH_CUDA_CLANG TRUE)
     enable_language(CUDA)
@@ -195,6 +210,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+mark_as_advanced(FORCE CMAKE_OSX_ARCHITECTURES CMAKE_OSX_DEPLOYMENT_TARGET CMAKE_OSX_SYSROOT)
 
 #----------------------------------------------------------
 # Set up flags and dependencies:
@@ -253,28 +270,11 @@ install(TARGETS arborio-public-deps EXPORT arborio-targets)
 install(PROGRAMS scripts/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 
-# External libraries in `ext` sub-directory: json, tinyopt and random123.
-# Creates interface libraries `ext-tinyopt` and `ext-random123`
+# Add all dependencies.
 
-cmake_dependent_option(ARB_USE_BUNDLED_FMT "Use bundled FMT lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
-cmake_dependent_option(ARB_USE_BUNDLED_PUGIXML "Use bundled XML lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
-cmake_dependent_option(ARB_USE_BUNDLED_GTEST "Use bundled GoogleTest." ON "ARB_USE_BUNDLED_LIBS" OFF)
-# TODO When we get a units spack package...
-#cmake_dependent_option(ARB_USE_BUNDLED_UNITS "Use bundled LLNL units." ON "ARB_USE_BUNDLED_LIBS" OFF)
-set(ARB_USE_BUNDLED_UNITS ON CACHE STRING "Use bundled LLNL units.")
-
-cmake_dependent_option(ARB_USE_BUNDLED_JSON "Use bundled Niels Lohmann's json library." ON "ARB_USE_BUNDLED_LIBS" OFF)
-if(NOT ARB_USE_BUNDLED_JSON)
-  find_package(nlohmann_json 3.11.2 CONFIG REQUIRED)
-  message(STATUS "Using external JSON = ${nlohmann_json_VERSION}")
-endif()
-
-cmake_dependent_option(ARB_USE_BUNDLED_RANDOM123 "Use bundled Random123 lib." ON "ARB_USE_BUNDLED_LIBS" OFF)
-add_library(ext-random123 INTERFACE)
-if(NOT ARB_USE_BUNDLED_RANDOM123)
-    find_package(Random123 REQUIRED)
-    target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
-endif()
+# First make ourselves less chatty
+set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
+set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
 
 # in the event we can find hwloc, just add it
 find_package(hwloc QUIET)
@@ -292,21 +292,115 @@ else()
         message(SEND_ERROR "Requested support for hwloc, but CMake couldn't find it.")
     endif()
 endif()
+install(TARGETS ext-hwloc EXPORT arbor-targets)
 
-add_library(ext-units INTERFACE)
-if(ARB_USE_BUNDLED_UNITS)
-    target_link_libraries(ext-units INTERFACE units::units)
+CPMAddPackage(NAME json
+              GITHUB_REPOSITORY nlohmann/json
+              VERSION 3.11.2
+              OPTIONS "CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON")
+install(TARGETS nlohmann_json EXPORT arbor-targets)
+
+add_library(ext-random123 INTERFACE)
+CPMAddPackage(NAME random123
+              DOWNLOAD_ONLY YES
+              GITHUB_REPOSITORY DEShawResearch/random123
+              VERSION 1.14.0)
+if(random123_ADDED)
+    target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${random123_SOURCE_DIR}/include>)
 else()
-    message(FATAL, "TODO: At the time of Arbor 0.10.0 there is no Spack package")
+    find_package(Random123 REQUIRED)
+    target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
+endif()
+install(TARGETS ext-random123 EXPORT arbor-targets)
+
+if (ARB_WITH_PYTHON)
+    CPMAddPackage(NAME pybind11
+                  GITHUB_REPOSITORY pybind/pybind11
+                  VERSION 2.10.1
+                  OPTIONS "PYBIND11_CPP_STANDARD -std=c++17")
+    # required for find_python_module
+    include(FindPythonModule)
 endif()
 
+CPMAddPackage(NAME pugixml
+              GITHUB_REPOSITORY zeux/pugixml
+              VERSION 1.13
+              DOWNLOAD_ONLY YES)
+add_library(ext-pugixml INTERFACE)
+if(pugixml_ADDED)
+    target_compile_definitions(ext-pugixml INTERFACE PUGIXML_HEADER_ONLY)
+    target_include_directories(ext-pugixml INTERFACE $<BUILD_INTERFACE:${pugixml_SOURCE_DIR}/src>)
+else()
+    find_package(pugixml REQUIRED)
+    target_link_libraries(ext-pugixml INTERFACE pugixml::pugixml)
+endif()
+install(TARGETS ext-pugixml EXPORT arbor-targets)
 
-add_subdirectory(ext)
-install(TARGETS ext-hwloc EXPORT arbor-targets)
-install(TARGETS ext-random123 EXPORT arbor-targets)
+CPMAddPackage(NAME fmt
+              GITHUB_REPOSITORY fmtlib/fmt
+              VERSION 10.0.0
+              GIT_TAG 10.0.0)
+
+if (BUILD_TESTING)
+    CPMAddPackage(NAME benchmark
+                  GITHUB_REPOSITORY google/benchmark
+                  VERSION 1.8.3
+                  OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "CMAKE_BUILD_TYPE release" "BUILD_SHARED_LIBS OFF")
+    CPMAddPackage(NAME googletest
+                  GITHUB_REPOSITORY google/googletest
+                  GIT_TAG release-1.12.1
+                  VERSION 1.12.1
+                  OPTIONS "INSTALL_GTEST OFF" "BUILD_GMOCK OFF")
+endif()
+
+CPMAddPackage(NAME units
+              GITHUB_REPOSITORY llnl/units
+              VERSION 0.9.1
+              OPTIONS "CMAKE_PROJECT_NAME UNITS"
+                      "UNITS_INSTALL ON"
+                      "UNITS_BUILD_STATIC_LIBRARY ON"
+                      "UNITS_ENABLE_TESTS OFF"
+                      "UNITS_BUILD_CONVERTER_APP OFF"
+                      "UNITS_BUILD_WEBSERVER OFF")
+add_library(ext-units INTERFACE)
+if(units_ADDED)
+    target_link_libraries(ext-units INTERFACE units::units)
+else()
+    find_package(units REQUIRED)
+    target_link_libraries(ext-units INTERFACE units::units)
+endif()
 target_link_libraries(arbor-public-deps INTERFACE ext-units)
 install(TARGETS ext-units EXPORT arbor-targets)
-install(TARGETS units compile_flags_target EXPORT arbor-targets)
+
+CPMAddPackage(NAME tinyopt
+              GITHUB_REPOSITORY halfflat/tinyopt
+              GIT_TAG 7e6d707d49c6cb4be27ebd253856be65293288df
+              DOWNLOAD_ONLY YES)
+
+add_library(ext-tinyopt INTERFACE)
+if(tinyopt_ADDED)
+  target_include_directories(ext-tinyopt INTERFACE $<BUILD_INTERFACE:${tinyopt_SOURCE_DIR}/include>)
+else()
+    message(FATAL_ERROR "Could not obtain tinyopt.")
+endif()
+
+# hide all internal vars
+mark_as_advanced(FORCE benchmark_DIR BENCHMARK_BUILD_32_BITS BENCHMARK_DOWNLOAD_DEPENDENCIES BENCHMARK_ENABLE_ASSEMBLY_TESTS BENCHMARK_ENABLE_DOXYGEN BENCHMARK_ENABLE_EXCEPTIONS BENCHMARK_ENABLE_GTEST_TESTS BENCHMARK_ENABLE_INSTALL BENCHMARK_ENABLE_LIBPFM BENCHMARK_ENABLE_LTO BENCHMARK_ENABLE_WERROR BENCHMARK_FORCE_WERROR BENCHMARK_INSTALL_DOCS BENCHMARK_USE_BUNDLED_GTEST BENCHMARK_USE_LIBCXX)
+mark_as_advanced(FORCE googletest_DIR BUILD_GMOCK)
+mark_as_advanced(FORCE json_DIR JSON_CI JSON_BuildTests JSON_Diagnostics JSON_DisableEnumSerialization JSON_GlobalUDLs JSON_ImplicitConversions JSON_Install JSON_LegacyDiscardedValueComparison JSON_MultipleHeaders JSON_SystemInclude)
+mark_as_advanced(FORCE RANDOM123_INCLUDE_DIR)
+mark_as_advanced(FORCE pybind11_DIR PYBIND11_PYTHONLIBS_OVERWRITE PYBIND11_PYTHON_VERSION PYBIND11_FINDPYTHON PYBIND11_INSTALL PYBIND11_INTERNALS_VERSION PYBIND11_NOPYTHON PYBIND11_SIMPLE_GIL_MANAGEMENT PYBIND11_TEST)
+mark_as_advanced(FORCE pugixml_DIR)
+mark_as_advanced(FORCE fmt_DIR)
+mark_as_advanced(FORCE units_DIR UNITS_BUILD_OBJECT_LIBRARY UNITS_BUILD_SHARED_LIBRARY UNITS_HEADER_ONLY UNITS_NAMESPACE)
+mark_as_advanced(FORCE tinyopt_DIR)
+mark_as_advanced(FORCE CXXFEATURECHECK_DEBUG)
+mark_as_advanced(FORCE CPM_DONT_CREATE_PACKAGE_LOCK CPM_DONT_UPDATE_MODULE_PATH CPM_DOWNLOAD_ALL CPM_INCLUDE_ALL_IN_PACKAGE_LOCK CPM_LOCAL_PACKAGES_ONLY CPM_SOURCE_CACHE CPM_USE_NAMED_CACHE_DIRECTORIES)
+mark_as_advanced(FORCE FETCHCONTENT_BASE_DIR FETCHCONTENT_FULLY_DISCONNECTED FETCHCONTENT_QUIET FETCHCONTENT_SOURCE_DIR_BENCHMARK FETCHCONTENT_SOURCE_DIR_GOOGLETEST FETCHCONTENT_SOURCE_DIR_JSON FETCHCONTENT_SOURCE_DIR_PYBIND11 FETCHCONTENT_SOURCE_DIR_RANDOM123 FETCHCONTENT_SOURCE_DIR_TINYOPT FETCHCONTENT_SOURCE_DIR_UNITS FETCHCONTENT_UPDATES_DISCONNECTED FETCHCONTENT_UPDATES_DISCONNECTED_BENCHMARK FETCHCONTENT_UPDATES_DISCONNECTED_GOOGLETEST FETCHCONTENT_UPDATES_DISCONNECTED_JSON FETCHCONTENT_UPDATES_DISCONNECTED_PYBIND11 FETCHCONTENT_UPDATES_DISCONNECTED_RANDOM123 FETCHCONTENT_UPDATES_DISCONNECTED_TINYOPT FETCHCONTENT_UPDATES_DISCONNECTED_UNITS)
+
+
+# Restore chattyness
+set(CMAKE_MESSAGE_LOG_LEVEL ${_saved_CMAKE_MESSAGE_LOG_LEVEL})
 
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
@@ -336,21 +430,24 @@ endif()
 # Add SVE compiler flags if detected/desired
 set(ARB_SVE_WIDTH "auto" CACHE STRING "Default SVE vector length in bits. Default: auto (detection during configure time).")
 mark_as_advanced(ARB_SVE_WIDTH)
-if (ARB_SVE_WIDTH STREQUAL "auto")
-    get_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
-    if (ARB_HAS_SVE)
-        message(STATUS "SVE detected with vector size = ${ARB_SVE_BITS} bits")
-        set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
+
+if (ARB_VECTORIZE)
+    if (ARB_SVE_WIDTH STREQUAL "auto")
+        get_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
+        if (ARB_HAS_SVE)
+            message(STATUS "SVE detected with vector size = ${ARB_SVE_BITS} bits")
+            set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
+        else()
+            message(STATUS "NO SVE detected")
+            set(ARB_CXX_SVE_FLAGS "")
+        endif()
     else()
-        message(STATUS "NO SVE detected")
-        set(ARB_CXX_SVE_FLAGS "")
+        set(ARB_SVE_BITS ${ARB_SVE_WIDTH})
+        set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
     endif()
-else()
-    set(ARB_SVE_BITS ${ARB_SVE_WIDTH})
-    set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
+    list(APPEND ARB_CXX_FLAGS_TARGET_FULL
+        "$<$<BUILD_INTERFACE:$<COMPILE_LANGUAGE:CXX>>:${ARB_CXX_SVE_FLAGS}>")
 endif()
-list(APPEND ARB_CXX_FLAGS_TARGET_FULL
-    "$<$<BUILD_INTERFACE:$<COMPILE_LANGUAGE:CXX>>:${ARB_CXX_SVE_FLAGS}>")
 
 # Compile with `-fvisibility=hidden` to ensure that the symbols of the generated
 # arbor static libraries are hidden from the dynamic symbol tables of any shared
@@ -378,21 +475,18 @@ endif()
 #----------------------------------------------------------
 
 # The minimum version of Python supported by Arbor.
-set(arb_py_version 3.8.0)
+set(arb_py_version 3.9.0)
 
 if(DEFINED PYTHON_EXECUTABLE)
     set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})
 endif()
 
 if(ARB_WITH_PYTHON)
-    cmake_dependent_option(ARB_USE_BUNDLED_PYBIND11 "Use bundled pybind11" ON "ARB_WITH_PYTHON;ARB_USE_BUNDLED_LIBS" OFF)
-
     if(DEFINED ENV{CIBUILDWHEEL} AND (UNIX AND NOT APPLE))
         find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development.Module REQUIRED)
     else()
         find_package(Python3 ${arb_py_version} COMPONENTS Interpreter Development REQUIRED)
     endif()
-
 else()
     # If not building the Python module, the interpreter is still required
     # to build some targets, e.g. when building the documentation.
@@ -401,9 +495,8 @@ endif()
 
 if(${Python3_FOUND})
     set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
-    message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
+    message(VERBOSE "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
 endif()
-
 
 # Threading model
 #-----------------
@@ -420,12 +513,8 @@ if(ARB_WITH_MPI)
     find_package(MPI REQUIRED CXX)
     target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_MPI)
 
-    # target_compile_definitions(MPI::MPI_CXX INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
-    # target_link_libraries(arbor-public-deps INTERFACE MPI::MPI_CXX)
-
-    # CMake 3.9 does not allow us to add definitions to an import target.
-    # so wrap MPI::MPI_CXX in an interface library 'mpi-wrap' instead.
-
+    # CMake 3.9 does not allow us to add definitions to an import target. so
+    # wrap MPI::MPI_CXX in an interface library 'mpi-wrap' instead.
     add_library(mpi-wrap INTERFACE)
     target_link_libraries(mpi-wrap INTERFACE MPI::MPI_CXX)
     target_compile_definitions(mpi-wrap INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
@@ -570,13 +659,17 @@ add_subdirectory(arborenv)
 add_subdirectory(arborio)
 
 # unit, unit-mpi, unit-local, unit-modcc
-add_subdirectory(test)
+if (BUILD_TESTING)
+    add_subdirectory(test)
+endif()
 
 # self contained examples:
 add_subdirectory(example)
 
 # html:
-add_subdirectory(doc)
+if (BUILD_DOCUMENTATION)
+    add_subdirectory(doc)
+endif()
 
 # python interface:
 if(ARB_WITH_PYTHON)

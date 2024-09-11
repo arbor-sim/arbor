@@ -18,7 +18,12 @@ function(check_git_submodule name path)
             "Or download submodules recursively when checking out:\n"
             "    git clone --recursive https://github.com/arbor-sim/arbor.git\n"
         )
-
+        get_filename_component(dotgit "${path}/" ABSOLUTE)
+        file(GLOB RESULT "${path}/*")
+        list(LENGTH RESULT RES_LEN)
+        if(NOT RES_LEN EQUAL 0)
+            message("However, the directory contains some ($RES_LEN) files. Possibly .git was omitted?")
+        endif()
         # if the repository was not available, and git failed, set AVAIL to false
         set(${success_var} OFF PARENT_SCOPE)
     endif()

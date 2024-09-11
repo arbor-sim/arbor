@@ -109,6 +109,7 @@ set(unit_sources
     test_morph_place.cpp
     test_morph_primitives.cpp
     test_morph_stitch.cpp
+    test_network.cpp
     test_ordered_forest.cpp
     test_padded.cpp
     test_partition.cpp
@@ -128,6 +129,7 @@ set(unit_sources
     test_simd.cpp
     test_simulation.cpp
     test_span.cpp
+    test_spatial_tree.cpp
     test_spike_source.cpp
     test_spikes.cpp
     test_spike_store.cpp
@@ -147,6 +149,7 @@ set(unit_sources
     test_vector.cpp
     test_version.cpp
     test_v_clamp.cpp
+    test_debug.cpp
 
     # unit test driver
     test.cpp
@@ -186,7 +189,7 @@ make_catalogue_standalone(
     MOD dummy
     CXX
     CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
-    VERBOSE ON)
+    VERBOSE ${ARB_CAT_VERBOSE})
 
 target_link_libraries(dummy-catalogue PRIVATE arbor-private-deps)
 add_dependencies(unit dummy-catalogue)
@@ -196,4 +199,4 @@ target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}
 target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/testing")
-target_link_libraries(unit PRIVATE ext-gtest ext-random123 arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)
+target_link_libraries(unit PRIVATE gtest gtest_main ext-random123 arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)

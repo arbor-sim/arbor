@@ -1,11 +1,11 @@
 .. _tutorialsinglecell:
 
-A simple single cell model
+A simple single-cell model
 ==========================
 
 Building and testing detailed models of individual cells, then optimizing their
 parameters is usually the first step in building models with multi-compartment cells.
-Arbor supports a *single cell model* workflow for this purpose, which is a good way to
+Arbor supports a *single-cell model* workflow for this purpose, which is a good way to
 introduce Arbor's cell modelling concepts and approach.
 
 .. Note::
@@ -36,7 +36,7 @@ minimize typing. Over the course of this introduction, you will notice that most
 of Arbor's user interface is making use of units. This requires a bit of typing,
 but makes the physical quantities obvious and allows for easy conversion of
 models. You can use any sensible unit for a given dimension and Arbor will
-convert as needed, e.g. you can write ``5 * U.mm`` instead of ``5000 * U.um``.
+convert as needed, e.g., you can write ``5 * U.mm`` instead of ``5000 * U.um``.
 Handing a mismatching dimension to a method will cause a runtime error, so in
 the example above, ``5 * U.mV`` will be rejected.
 
@@ -51,8 +51,8 @@ construct a model of a cylindrical cell with a length of 6 μm and a radius of 3
 
 The first step is to construct the cell. In Arbor, the abstract representation
 used to define a cell with branching cable morphology is a ``cable_cell``, which
-holds a description of the cell's morphology, named regions and locations on the
-morphology, and descriptions of ion channels, synapses, threshold detectors and
+holds a description of the cell's morphology, named regions, and locations on the
+morphology, and descriptions of ion channels, synapses, threshold detectors, and
 electrical properties. We will go over these one by one.
 
 Our *cell* has a simple morphology comprising a single segment, which is why we
@@ -69,7 +69,7 @@ this paragraph on first reading, it explains the details of constructing a
 morphology from scratch. The segment tree is the representation used to
 construct the morphology of a cell. A segment is a tapered cone with a tag; the
 tag can be used to classify the type of the segment (for example soma, dendrite
-etc). To create a segment tree representing our single-cylinder cell, we need to
+, etc). To create a segment tree representing our single-cylinder cell, we need to
 add one segment to our ``tree`` object. We use the
 :meth:`arbor.segment_tree.append` method, which takes 4 arguments: the parent
 segment which does not exist for the first segment, so we use
@@ -85,13 +85,13 @@ Next, we create a dictionary of labels
 handy tool to connect part of your morphology to semantically meaningful names.
 Labels give names to :term:`regions<region>` and :term:`location<locset>`
 described using a DSL based on s-expressions. Labels from the dictionary can
-then be used to facilitate adding synapses, dynamics, stimuli and probes to the
+then be used to facilitate adding synapses, dynamics, stimuli, and probes to the
 cell. We add two labels:
 
 * ``soma`` defines a *region* with ``(tag 1)``. Note that this corresponds to
   the ``tag`` parameter that was used to define the single segment in step (1).
-* ``midpoint`` defines a *location* at ``(location 0 0.5)``, which is the mid
-  point ``0.5`` of branch ``0``, which corresponds to the midpoint of the soma
+* ``midpoint`` defines a *location* at ``(location 0 0.5)``, which is the midpoint
+``0.5`` of branch ``0``, which corresponds to the midpoint of the soma
   on the morphology defined in step (1).
 
 .. literalinclude:: ../../python/example/single_cell_model.py
@@ -114,7 +114,7 @@ properties can be modified, and we can use :meth:`arbor.decor.paint` and
   dynamics on the region we previously named ``"soma"`` in our label dictionary.
 * :meth:`arbor.decor.place` is used to add objects on a precise
   :class:`arbor.location` on a cell. Examples of objects that are *placed* are synapses,
-  threshold detectors, current stimuli, and probes. In the above example we place a current stimulus
+  threshold detectors, current stimuli, and probes. In the above example, we place a current stimulus
   :class:`arbor.iclamp` with a duration of 2 ms and a current of 0.8 nA, starting at 10 ms
   on the location we previously labelled ``"midpoint"``. We also place a :class:`arbor.threshold_detector`
   with a threshold of -10 mV on the same location.
@@ -125,11 +125,11 @@ properties can be modified, and we can use :meth:`arbor.decor.paint` and
 
 The three ingredients -- morphology, labels, and decor -- are joined into a cable cell.
 
-The single cell model
+The single-cell model
 ---------------------
 
 Once the cell description has been built, the next step is to build and run the
-simulation. Arbor provides an interface for constructing single cell models with
+simulation. Arbor provides an interface for constructing single-cell models with
 the :class:`arbor.single_cell_model` helper that creates a model from a cell
 description, with an interface for recording outputs and running the simulation.
 
@@ -137,7 +137,7 @@ description, with an interface for recording outputs and running the simulation.
    :language: python
    :lines: 28-29
 
-The single cell model has 4 main functions:
+The single-cell model has 4 main functions:
 
 1. It holds the **global properties** of the model
 2. It registers **probes** on specific locations on the cell to measure the voltage.
@@ -153,7 +153,7 @@ the results, we need to extract some data.
 
 Note, that the probe is given a location from the label dictionary ``midpoint``,
 the value to record ``voltage``, the sampling frequency, and finally a tag by
-which we can reference it later, here ``Um``.
+which we can reference later here ``Um``.
 
 Now, we can start the actual simulation:
 
@@ -179,7 +179,7 @@ And, finally, we plot the membrane potential
 
 .. literalinclude:: ../../python/example/single_cell_model.py
    :language: python
-   :lines: 42-48
+   :lines: 6-7,42-48
 
 
 We should be seeing something like this:
@@ -188,7 +188,7 @@ We should be seeing something like this:
     :width: 400
     :align: center
 
-    Plot of the potential over time for the voltage probe added in step (6).
+    A plot of the potential over time for the voltage probe was added in step (6).
 
 The full code
 -------------

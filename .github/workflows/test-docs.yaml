@@ -14,8 +14,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04]
-        python-version: [3.8]
+        os: [ubuntu-22.04]
+        python-version: ["3.10"]
     steps:
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v2.0.0
@@ -37,5 +37,5 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python` -DARB_USE_BUNDLED_LIBS=ON
+          cmake .. -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python`
           make html

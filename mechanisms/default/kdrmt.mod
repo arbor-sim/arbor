@@ -13,8 +13,9 @@ NEURON {
 }
 
 PARAMETER {
-    gbar   =  0.002    (mho/cm2)
+    v(mV)
     celsius
+    gbar   =  0.002    (mho/cm2)
     a0m    =  0.0035
     vhalfm = -50
     zetam  =  0.055
@@ -31,8 +32,6 @@ UNITS {
     (pS) = (picosiemens)
     (um) = (micron)
 }
-
-ASSIGNED { v(mV) }
 
 STATE { m }
 

@@ -157,6 +157,29 @@ void register_recipe(pybind11::module& m) {
         .def("__str__",  &con_to_string)
         .def("__repr__", &con_to_string);
 
+    pybind11::class_<arb::ext_cell_connection> ext_cell_connection(m, "external_connection",
+        "Describes a connection between two cells located in Arbor and an external simulation:\n"
+        "  Defined by pre-synaptic and post-synaptic endpoints, a connection weight and a delay time.");
+    ext_cell_connection
+        .def(pybind11::init<arb::cell_remote_label_type, arb::cell_local_label_type, float, const U::quantity&>(),
+            "source"_a, "dest"_a, "weight"_a, "delay"_a,
+            "Construct a connection with arguments:\n"
+            "  source:      The source end point of the connection.\n"
+            "  dest:        The destination end point of the connection.\n"
+            "  weight:      The weight delivered to the target synapse (unit defined by the type of synapse target).\n"
+            "  delay:       The delay of the connection [ms].")
+        .def_readwrite("source", &arb::ext_cell_connection::source,
+            "The source gid and label of the connection.")
+        .def_readwrite("dest", &arb::ext_cell_connection::target,
+            "The destination label of the connection.")
+        .def_readwrite("weight", &arb::ext_cell_connection::weight,
+            "The weight of the connection.")
+        .def_readwrite("delay", &arb::ext_cell_connection::delay,
+            "The delay time of the connection [ms].")
+        .def("__str__",  &con_to_string)
+        .def("__repr__", &con_to_string);
+
+
     // Gap Junction Connections
     pybind11::class_<arb::gap_junction_connection> gap_junction_connection(m, "gap_junction_connection",
         "Describes a gap junction between two gap junction sites.");
@@ -205,6 +228,10 @@ void register_recipe(pybind11::module& m) {
         .def("gap_junctions_on", &recipe::gap_junctions_on,
             "gid"_a,
             "A list of the gap junctions connected to gid, [] by default.")
+        .def("network_description", &recipe::network_description,
+            "Network description of cell connections.")
+        .def("cell_isometry", &recipe::cell_isometry,
+            "Isometry describing translation and rotation of cell.")
         .def("probes", &recipe::probes,
             "gid"_a,
             "The probes to allow monitoring.")
@@ -214,6 +241,5 @@ void register_recipe(pybind11::module& m) {
         // TODO: recipe::global_properties
         .def("__str__",  [](const ::pyarb::recipe&){return "<arbor.recipe>";})
         .def("__repr__", [](const ::pyarb::recipe&){return "<arbor.recipe>";});
-
 }
 } // namespace pyarb
