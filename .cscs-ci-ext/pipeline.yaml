@@ -6,6 +6,8 @@ stages:
   - build_app
   - build_multiarch
 
+# TARGET must be any of  {daint-gpu daint-mc alps-zen2 alps-a100 alps-mi200 alps-gh200 alps-mi300a}
+
 build_base_image_x86_64:
   extends: [.container-builder-cscs-zen2, .dynamic-image-name]
   stage: build_base

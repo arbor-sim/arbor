@@ -1,10 +1,9 @@
 ARG BASE_IMAGE
+FROM $BASE_IMAGE
+
 ARG NUM_PROCS
 ARG GPU
 ARG GPU_ARCH
-
-FROM $BASE_IMAGE
-
 COPY . /arbor.src
 
 RUN mkdir -p /arbor.src/build \

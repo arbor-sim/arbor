@@ -1,9 +1,7 @@
 ARG IMG_BASE
-ARG IMG_HELPER
-ARG TARGET
-
 FROM $IMG_BASE as builder
 
+ARG TARGET
 RUN spack-install-helper --target $TARGET \
   "git" \
   "meson" \
@@ -31,6 +29,7 @@ RUN spack-install-helper --target $TARGET \
 
 # end of builder container, now we are ready to copy necessary files
 # copy only relevant parts to the final container
+ARG IMG_HELPER
 FROM $IMG_HELPER
 
 # it is important to keep the paths, otherwise your installation is broken
