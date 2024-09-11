@@ -2,9 +2,16 @@ include(CMakeFindDependencyMacro)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}")
 
+# Work around the possibility of being installed in a pip-venv...
+get_filename_component(prefix ${CMAKE_CURRENT_LIST_DIR} DIRECTORY)
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${prefix}")
+
 foreach(dep @arbor_export_dependencies@)
     find_dependency(${dep})
 endforeach()
+
+# TODO Explicitely needed... until I find a way out.
+find_dependency(units)
 
 include("${CMAKE_CURRENT_LIST_DIR}/arbor-targets.cmake")
 
