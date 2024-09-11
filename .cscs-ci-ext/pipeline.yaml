@@ -1,0 +1,59 @@
+include:
+  - remote: 'https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.ci-ext.yml'
+
+stages:
+  - build_base
+  - build_app
+  - build_multiarch
+
+build_base_image_x86_64:
+  extends: [.container-builder-cscs-zen2, .dynamic-image-name]
+  stage: build_base
+  variables:
+    DOCKERFILE: .cscs-ci-ext/Dockerfile.base
+    WATCH_FILECHANGES: '.cscs-ci-ext/Dockerfile.base'
+    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbor/baseimg-x86_64
+    CSCS_BUILD_IN_MEMORY: TRUE
+    CSCS_REBUILD_POLICY: "if-not-exists"
+    DOCKER_BUILD_ARGS: '["IMG_BASE=ghcr.io/eth-cscs/docker-ci-ext/base-containers/spack-base:spack0.21.0-ubuntu22.04-cpu", "IMG_HELPER=ghcr.io/eth-cscs/docker-ci-ext/base-containers/spack-helper:ubuntu22.04-cpu", "TARGET=alps-zen2"]'
+
+build_base_image_aarch64:
+  extends: [.container-builder-cscs-gh200, .dynamic-image-name]
+  stage: build_base
+  variables:
+    DOCKERFILE: .cscs-ci-ext/Dockerfile.base
+    WATCH_FILECHANGES: '.cscs-ci-ext/Dockerfile.base'
+    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbpr/baseimg-aarch64
+    CSCS_BUILD_IN_MEMORY: TRUE
+    CSCS_REBUILD_POLICY: "if-not-exists"
+    DOCKER_BUILD_ARGS: '["IMG_BASE=ghcr.io/eth-cscs/docker-ci-ext/base-containers/spack-base:spack0.21.0-ubuntu22.04-cuda12.4.1", "IMG_HELPER=ghcr.io/eth-cscs/docker-ci-ext/base-containers/spack-helper:ubuntu22.04-cuda12.4.1", "TARGET=alps-gh200"]'
+
+build_app_image_x86_64:
+  extends: .container-builder-cscs-zen2
+  stage: build_app
+  needs:
+  - job: build_base_image_x86_64
+    artifacts: true
+  variables:
+    DOCKERFILE: .cscs-ci-ext/Dockerfile.app
+    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbor/appimg-x86_64:$CI_COMMIT_SHORT_SHA
+    DOCKER_BUILD_ARGS: '["IMG=$BASE_IMAGE", "GPU=none", "GPU_ARCH=60"]'
+
+build_app_image_aarch64:
+  extends: .container-builder-cscs-gh200
+  stage: build_app
+  needs:
+  - job: build_base_image_aarch64
+    artifacts: true
+  variables:
+    DOCKERFILE: .cscs-ci-ext/Dockerfile.app
+    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/appimg-aarch64:$CI_COMMIT_SHORT_SHA
+    DOCKER_BUILD_ARGS: '["IMG=$BASE_IMAGE", "GPU=cuda", "GPU_ARCH=90"]'
+
+build_multiarch_image:
+  extends: .make-multiarch-image
+  stage: build_multiarch
+  variables:
+    PERSIST_IMAGE_NAME_X86_64: "$CSCS_REGISTRY_PATH/arbor/appimg-x86_64:$CI_COMMIT_SHORT_SHA"
+    PERSIST_IMAGE_NAME_AARCH64: "$CSCS_REGISTRY_PATH/arbor/appimg-aarch64:$CI_COMMIT_SHORT_SHA"
+    PERSIST_IMAGE_NAME: "$CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA"
