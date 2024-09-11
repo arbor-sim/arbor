@@ -2,8 +2,9 @@ ARG BASE_IMAGE
 FROM $BASE_IMAGE
 
 ARG NUM_PROCS
-ARG GPU
-ARG GPU_ARCH
+ARG MICRO_ARCH
+ARG GPU=none
+ARG GPU_ARCH=60
 COPY . /arbor.src
 
 RUN mkdir -p /arbor.src/build \
@@ -12,6 +13,7 @@ RUN mkdir -p /arbor.src/build \
      -GNinja \
      -DCMAKE_INSTALL_PREFIX=/arbor.install \
      -DCMAKE_BUILD_TYPE=Release \
+     -DARB_ARCH=$MICRO_ARCH \
      -DARB_WITH_ASSERTIONS=ON \
      -DARB_WITH_PROFILING=ON \
      -DARB_VECTORIZE=ON \
