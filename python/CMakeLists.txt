@@ -1,6 +1,6 @@
 include(GNUInstallDirs)
 
-set(PYBIND11_CPP_STANDARD -std=c++17)
+set(PYBIND11_CPP_STANDARD -std=c++20)
 
 if(ARB_USE_BUNDLED_PYBIND11)
   include(FindPythonModule) # required for find_python_module
