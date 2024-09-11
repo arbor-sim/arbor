@@ -39,7 +39,7 @@ build_app_image_x86_64:
   variables:
     DOCKERFILE: .cscs-ci-ext/Dockerfile.app
     PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbor/appimg-x86_64:$CI_COMMIT_SHORT_SHA
-    DOCKER_BUILD_ARGS: '["BASE_IMAGE=$BASE_IMAGE", "MICRO_ARCH=znver2"]'
+    DOCKER_BUILD_ARGS: '["BASE_IMAGE=$BASE_IMAGE", "CXX_FLAGS=\"-march=znver2\""]'
 
 build_app_image_aarch64:
   extends: .container-builder-cscs-gh200
@@ -50,7 +50,7 @@ build_app_image_aarch64:
   variables:
     DOCKERFILE: .cscs-ci-ext/Dockerfile.app
     PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbor/appimg-aarch64:$CI_COMMIT_SHORT_SHA
-    DOCKER_BUILD_ARGS: '["BASE_IMAGE=$BASE_IMAGE", "MICRO_ARCH=neoverse-v2", "GPU=cuda", "GPU_ARCH=90"]'
+    DOCKER_BUILD_ARGS: '["BASE_IMAGE=$BASE_IMAGE", "CXX_FLAGS=\"-mcpu=neoverse-v2 -mtune=neoverse-v2\"", "GPU=cuda", "GPU_ARCH=90"]'
 
 build_multiarch_image:
   extends: .make-multiarch-image

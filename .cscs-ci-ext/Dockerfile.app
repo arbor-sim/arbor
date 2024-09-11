@@ -1,19 +1,20 @@
 ARG BASE_IMAGE
 FROM $BASE_IMAGE
 
-ARG NUM_PROCS
-ARG MICRO_ARCH
-ARG GPU=none
-ARG GPU_ARCH=60
 COPY . /arbor.src
 
+ARG NUM_PROCS
+ARG CXX_FLAGS=""
+ARG GPU=none
+ARG GPU_ARCH=60
 RUN mkdir -p /arbor.src/build \
   && cd /arbor.src/build \
   && cmake .. \
      -GNinja \
      -DCMAKE_INSTALL_PREFIX=/arbor.install \
      -DCMAKE_BUILD_TYPE=Release \
-     -DARB_ARCH=$MICRO_ARCH \
+     -DCMAKE_CXX_FLAGS=$CXX_FLAGS \
+     #-DARB_CXX_FLAGS_TARGET=$CXX_FLAGS \
      -DARB_WITH_ASSERTIONS=ON \
      -DARB_WITH_PROFILING=ON \
      -DARB_VECTORIZE=ON \
