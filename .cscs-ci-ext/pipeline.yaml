@@ -23,7 +23,7 @@ build_base_image_aarch64:
   variables:
     DOCKERFILE: .cscs-ci-ext/Dockerfile.base
     WATCH_FILECHANGES: '.cscs-ci-ext/Dockerfile.base'
-    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbpr/baseimg-aarch64
+    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbor/baseimg-aarch64
     CSCS_BUILD_IN_MEMORY: TRUE
     CSCS_REBUILD_POLICY: "if-not-exists"
     DOCKER_BUILD_ARGS: '["IMG_BASE=ghcr.io/eth-cscs/docker-ci-ext/base-containers/spack-base:spack0.21.0-ubuntu22.04-cuda12.4.1", "IMG_HELPER=ghcr.io/eth-cscs/docker-ci-ext/base-containers/spack-helper:ubuntu22.04-cuda12.4.1", "TARGET=alps-gh200"]'
@@ -47,7 +47,7 @@ build_app_image_aarch64:
     artifacts: true
   variables:
     DOCKERFILE: .cscs-ci-ext/Dockerfile.app
-    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/appimg-aarch64:$CI_COMMIT_SHORT_SHA
+    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbor/appimg-aarch64:$CI_COMMIT_SHORT_SHA
     DOCKER_BUILD_ARGS: '["IMG=$BASE_IMAGE", "GPU=cuda", "GPU_ARCH=90"]'
 
 build_multiarch_image:
