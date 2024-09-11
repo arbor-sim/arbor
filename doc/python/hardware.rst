@@ -27,7 +27,6 @@ Helper functions for checking cmake or environment variables, as well as configu
     * ``ARB_GPU_ENABLED``
     * ``ARB_VECTORIZE``
     * ``ARB_WITH_PROFILING``
-    * ``ARB_USE_BUNDLED_LIBS``
     * ``ARB_VERSION``
     * ``ARB_ARCH``
 

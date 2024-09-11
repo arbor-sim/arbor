@@ -25,7 +25,7 @@ do
         echo " * simd=$simd"
         out=results/$tag-`git rev-parse --short HEAD`/cpp/simd=$simd
         cd build
-        cmake .. -DARB_USE_BUNDLED_LIBS=ON -DCMAKE_CXX_COMPILER=$cxx -DCMAKE_C_COMPILER=$cc -DCMAKE_BUILD_TYPE=release -DARB_VECTORIZE=$simd -DARB_ARCH=native
+        cmake .. -DCMAKE_CXX_COMPILER=$cxx -DCMAKE_C_COMPILER=$cc -DCMAKE_BUILD_TYPE=release -DARB_VECTORIZE=$simd -DARB_ARCH=native
         ninja install examples
         cd -
         for ex in bench brunel gap_junctions generators lfp ring single-cell "probe-demo v"

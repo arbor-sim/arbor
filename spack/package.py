@@ -149,9 +149,6 @@ class Arbor(CMakePackage, CudaPackage):
         # Might return nothing
         if opt_flags:
             args.append("-DARB_CXX_FLAGS_TARGET=" + opt_flags)
-        # Needed, spack has no units package
-        args.append("-DARB_USE_BUNDLED_UNITS=ON")
-
         return args
 
     @run_after("install", when="+python")
