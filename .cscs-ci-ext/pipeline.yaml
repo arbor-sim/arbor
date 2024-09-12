@@ -5,6 +5,7 @@ stages:
   - build_base
   - build_app
   - build_multiarch
+  - test
 
 # TARGET must be any of  {daint-gpu daint-mc alps-zen2 alps-a100 alps-mi200 alps-gh200 alps-mi300a}
 
@@ -59,3 +60,54 @@ build_multiarch_image:
     PERSIST_IMAGE_NAME_X86_64: "$CSCS_REGISTRY_PATH/arbor/appimg-x86_64:$CI_COMMIT_SHORT_SHA"
     PERSIST_IMAGE_NAME_AARCH64: "$CSCS_REGISTRY_PATH/arbor/appimg-aarch64:$CI_COMMIT_SHORT_SHA"
     PERSIST_IMAGE_NAME: "$CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA"
+
+    # 2 sockets wuth 64 cores each (16 cores per numa node), can be hyperthreaded
+test_x86_64:
+  stage: test
+  extends: .container-runner-eiger-mc
+  image: $CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA
+  script:
+    - cd /arbor.src
+    - build/bin/unit-modcc
+    - build/bin/unit-local
+    - build/bin/unit
+    - scripts/run_cpp_examples.sh
+    - python -m venv --system-site-packages /arbor.install
+    - source /arbor.install/bin/activate
+    - python -m unittest discover -v -s python
+    - scripts/run_python_examples.sh
+    - scripts/test_executables.sh
+    - deactivate
+  variables:
+    SLURM_CONSTRAINT: mc
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_NTASKS: 1
+    SLURM_CPUS_PER_TASK: 128
+    SLURM_THREADS_PER_CORE: 1
+    SLURM_CPU_BIND_VERBOSE: "verbose"
+    SLURM_TIMELIMIT: "00:30:00"
+    USE_MPI: "NO"
+
+test_aarch64:
+  stage: test
+  extends: .container-runner-todi-gh200
+  image: $CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA
+  script:
+    - cd /arbor.src
+    - build/bin/unit-modcc
+    - build/bin/unit-local
+    - build/bin/unit
+    - scripts/run_cpp_examples.sh
+    - python -m venv --system-site-packages /arbor.install
+    - source /arbor.install/bin/activate
+    - python -m unittest discover -v -s python
+    - scripts/run_python_examples.sh
+    - scripts/test_executables.sh
+    - deactivate
+  variables:
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_NTASKS: 1
+    SLURM_CPUS_PER_TASK: 72
+    SLURM_CPU_BIND_VERBOSE: "verbose"
+    SLURM_TIMELIMIT: "00:30:00"
+    USE_MPI: "NO"
