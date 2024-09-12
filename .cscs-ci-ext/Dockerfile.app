@@ -7,13 +7,16 @@ ARG NUM_PROCS
 ARG CXX_FLAGS=""
 ARG GPU=none
 ARG GPU_ARCH=60
+
+RUN echo ${CXX_FLAGS}
+
 RUN mkdir -p /arbor.src/build \
   && cd /arbor.src/build \
   && cmake .. \
      -GNinja \
      -DCMAKE_INSTALL_PREFIX=/arbor.install \
      -DCMAKE_BUILD_TYPE=Release \
-     -DCMAKE_CXX_FLAGS=$CXX_FLAGS \
+     -DCMAKE_CXX_FLAGS=${CXX_FLAGS} \
      #-DARB_CXX_FLAGS_TARGET=$CXX_FLAGS \
      -DARB_WITH_ASSERTIONS=ON \
      -DARB_WITH_PROFILING=ON \
