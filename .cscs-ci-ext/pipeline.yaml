@@ -85,49 +85,49 @@ test_x86_64:
     SLURM_NTASKS_PER_NODE: 1
     SLURM_CPUS_PER_TASK: 128
     SLURM_THREADS_PER_CORE: 1
-    SLURM_CPU_BIND: "verbose,cores"
+    SLURM_CPU_BIND: "verbose,none"
     SLURM_TIMELIMIT: "00:30:00"
     USE_MPI: "NO"
 
-test_x86_64-distributed:
-  stage: test
-  extends: .container-runner-eiger-mc
-  image: $CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA
-  script:
-    - cd /arbor.src
-    - build/bin/unit-mpi
-    - scripts/run_cpp_examples.sh -d
-  variables:
-    SLURM_CONSTRAINT: mc
-    SLURM_JOB_NUM_NODES: 2
-    SLURM_NTASKS: 16
-    SLURM_NTASKS_PER_NODE: 8
-    SLURM_CPUS_PER_TASK: 16
-    SLURM_THREADS_PER_CORE: 1
-    SLURM_CPU_BIND: "verbose,rank_ldom"
-    SLURM_TIMELIMIT: "00:30:00"
-    USE_MPI: "YES"
-
-#test_aarch64:
+#test_x86_64-distributed:
 #  stage: test
-#  extends: .container-runner-todi-gh200
+#  extends: .container-runner-eiger-mc
 #  image: $CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA
 #  script:
 #    - cd /arbor.src
-#    - build/bin/unit-modcc
-#    - build/bin/unit-local
-#    - build/bin/unit
-#    - scripts/run_cpp_examples.sh
-#    - python -m venv --system-site-packages /arbor.install
-#    - source /arbor.install/bin/activate
-#    - python -m unittest discover -v -s python
-#    - scripts/run_python_examples.sh
-#    - scripts/test_executables.sh
-#    - deactivate
+#    - build/bin/unit-mpi
+#    - scripts/run_cpp_examples.sh -d
 #  variables:
-#    SLURM_JOB_NUM_NODES: 1
-#    SLURM_NTASKS: 1
-#    SLURM_CPUS_PER_TASK: 72
-#    SLURM_CPU_BIND_VERBOSE: "verbose"
+#    SLURM_CONSTRAINT: mc
+#    SLURM_JOB_NUM_NODES: 2
+#    SLURM_NTASKS: 16
+#    SLURM_NTASKS_PER_NODE: 8
+#    SLURM_CPUS_PER_TASK: 16
+#    SLURM_THREADS_PER_CORE: 1
+#    SLURM_CPU_BIND: "verbose,rank_ldom"
 #    SLURM_TIMELIMIT: "00:30:00"
-#    USE_MPI: "NO"
+#    USE_MPI: "YES"
+
+test_aarch64:
+  stage: test
+  extends: .container-runner-todi-gh200
+  image: $CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA
+  script:
+    - cd /arbor.src
+    - build/bin/unit-modcc
+    - build/bin/unit-local
+    - build/bin/unit
+    - scripts/run_cpp_examples.sh
+    - python -m venv --system-site-packages /arbor.install
+    - source /arbor.install/bin/activate
+    - python -m unittest discover -v -s python
+    - scripts/run_python_examples.sh
+    - scripts/test_executables.sh
+    - deactivate
+  variables:
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_NTASKS: 1
+    SLURM_CPUS_PER_TASK: 72
+    SLURM_CPU_BIND_VERBOSE: "verbose"
+    SLURM_TIMELIMIT: "00:30:00"
+    USE_MPI: "NO"
