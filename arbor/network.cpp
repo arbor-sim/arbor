@@ -661,10 +661,9 @@ struct network_selection_intersect_impl: public network_selection_impl {
         const auto d_right = right->max_distance();
 
         if (d_left && d_right) return std::min(d_left.value(), d_right.value());
-        if (d_left) return d_left.value();
-        if (d_right) return d_right.value();
-
-        return std::nullopt;
+        if (d_left) return d_left;
+        if (d_right) return d_right;
+        return {};
     }
 
     void initialize(const network_label_dict& dict) override {

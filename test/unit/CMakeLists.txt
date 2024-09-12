@@ -179,6 +179,10 @@ if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set_source_files_properties(${unit_sources} PROPERTIES LANGUAGE CXX)
 endif()
 
+set_source_files_properties(${unit_sources}
+                            PROPERTIES SKIP_LINTING ON)
+
+
 add_executable(unit EXCLUDE_FROM_ALL ${unit_sources})
 target_link_libraries(unit PRIVATE catalogue-testing)
 add_dependencies(tests unit)

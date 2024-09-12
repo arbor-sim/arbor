@@ -213,6 +213,7 @@ shared_state::shared_state(task_system_handle,    // ignored in mc backend
     init_voltage(init_membrane_potential.begin(), init_membrane_potential.end(), pad(alignment)),
     temperature_degC(n_cv_, pad(alignment)),
     diam_um(diam.begin(), diam.end(), pad(alignment)),
+    area_um2(area.begin(), area.end(), pad(alignment)),
     time_since_spike(n_cell*static_cast<std::size_t>(n_detector), pad(alignment)),
     src_to_spike(src_to_spike_.begin(), src_to_spike_.end(), pad(alignment)),
     cbprng_seed(cbprng_seed_),

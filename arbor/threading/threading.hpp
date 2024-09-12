@@ -123,7 +123,6 @@ private:
 }// namespace impl
 
 class ARB_ARBOR_API task_system {
-private:
     static constexpr unsigned nil = static_cast<unsigned>(-1);
 
     // Number of notification queues.

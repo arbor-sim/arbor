@@ -80,7 +80,7 @@ option(BUILD_DOCUMENTATION "build documentation" ON)
 option(ARB_CLANG_TIDY "lint C++ sources" OFF)
 
 if (ARB_CLANG_TIDY)
-    set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,clang-analyzer-*,)
+    set(CMAKE_CXX_CLANG_TIDY "clang-tidy;--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy")
 endif ()
 
 
@@ -314,6 +314,7 @@ CPMAddPackage(NAME random123
               VERSION 1.14.0)
 if(random123_ADDED)
     target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${random123_SOURCE_DIR}/include>)
+    write_file(${random123_SOURCE_DIR}/.clang-tidy "Checks: \"-*\"")
 else()
     find_package(Random123 REQUIRED)
     target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
@@ -337,6 +338,7 @@ add_library(ext-pugixml INTERFACE)
 if(pugixml_ADDED)
     target_compile_definitions(ext-pugixml INTERFACE PUGIXML_HEADER_ONLY)
     target_include_directories(ext-pugixml INTERFACE $<BUILD_INTERFACE:${pugixml_SOURCE_DIR}/src>)
+    write_file(${pugixml_SOURCE_DIR}/.clang-tidy "Checks: \"-*\"")
 else()
     find_package(pugixml REQUIRED)
     target_link_libraries(ext-pugixml INTERFACE pugixml::pugixml)
@@ -358,6 +360,12 @@ if (BUILD_TESTING)
                   GIT_TAG release-1.12.1
                   VERSION 1.12.1
                   OPTIONS "INSTALL_GTEST OFF" "BUILD_GMOCK OFF")
+    if(benchmark_ADDED)
+        write_file(${benchmark_SOURCE_DIR}/.clang-tidy "Checks: \"-*\"")
+    endif()
+    if(googletest_ADDED)
+        write_file(${googletest_SOURCE_DIR}/.clang-tidy "Checks: \"-*\"")
+    endif()
 endif()
 
 CPMAddPackage(NAME units
@@ -372,6 +380,7 @@ CPMAddPackage(NAME units
 add_library(ext-units INTERFACE)
 if(units_ADDED)
     target_link_libraries(ext-units INTERFACE units::units)
+    write_file(${units_SOURCE_DIR}/.clang-tidy "Checks: \"-*\"")
 else()
     find_package(units REQUIRED)
     target_link_libraries(ext-units INTERFACE units::units)
@@ -387,6 +396,7 @@ CPMAddPackage(NAME tinyopt
 add_library(ext-tinyopt INTERFACE)
 if(tinyopt_ADDED)
   target_include_directories(ext-tinyopt INTERFACE $<BUILD_INTERFACE:${tinyopt_SOURCE_DIR}/include>)
+  write_file(${tinyopt_SOURCE_DIR}/.clang-tidy "Checks: \"-*\"")
 else()
     message(FATAL_ERROR "Could not obtain tinyopt.")
 endif()
@@ -655,8 +665,6 @@ add_subdirectory(sup)
 
 # modcc, libmodcc:
 add_subdirectory(modcc)
-set_source_files_properties(DIRECTORY modcc
-                            PROPERTIES SKIP_LINTING ON)
 
 # arbor, arbor-private-headers:
 add_subdirectory(arbor)
