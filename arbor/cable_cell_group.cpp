@@ -158,13 +158,13 @@ void run_samples(
     tmp.clear();
     sample_records.clear();
 
-    for (auto j = 0; j<n_sample; ++j) {
+    for (unsigned j = 0; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
         tmp.push_back(p.coef[0]*raw_samples[offset] + p.coef[1]*raw_samples[offset+1]);
     }
 
     const auto& ctmp = tmp;
-    for (auto j = 0; j<n_sample; ++j) {
+    for (unsigned j = 0; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
         sample_records.push_back(sample_record{time_type(raw_times[offset]), &ctmp[j]});
     }
@@ -220,7 +220,7 @@ void run_samples(
 
     auto& tmp = std::get<std::vector<double>>(scratch);
     tmp.clear();
-    tmp.reserve(static_cast<std::size_t>(n_raw_per_sample*n_sample));
+    tmp.reserve(static_cast<std::size_t>(n_raw_per_sample)*n_sample);
 
     for (auto j = 0ul; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
@@ -506,9 +506,10 @@ void cable_cell_group::add_sampler(sampler_association_handle h,
     std::lock_guard<std::mutex> guard(sampler_mex_);
     auto probeset = probe_map_.keys(probeset_ids);
     if (!probeset.empty()) {
-        auto result = sampler_map_.insert({h, sampler_association{std::move(sched),
-                                                                  std::move(fn),
-                                                                  std::move(probeset)}});
+        auto result [[maybe_unused]] = sampler_map_.insert({h,
+                                                            sampler_association{std::move(sched),
+                                                                                std::move(fn),
+                                                                                std::move(probeset)}});
         arb_assert(result.second);
     }
 }

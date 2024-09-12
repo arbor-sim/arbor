@@ -9,7 +9,6 @@
 #include <functional>
 #include <mutex>
 #include <optional>
-#include <string>
 #include <thread>
 #include <unordered_map>
 #include <utility>
@@ -128,7 +127,7 @@ private:
     static constexpr unsigned nil = static_cast<unsigned>(-1);
 
     // Number of notification queues.
-    unsigned count_ = 1;
+    const int count_;
     // Attempt to bind threads?
     bool bind_ = false;
     // Worker threads.

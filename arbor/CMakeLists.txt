@@ -128,7 +128,9 @@ set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
 set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
 add_subdirectory(../mechanisms "${CMAKE_BINARY_DIR}/mechanisms")
 set(CMAKE_MESSAGE_LOG_LEVEL ${_saved_CMAKE_MESSAGE_LOG_LEVEL})
-set_source_files_properties(${arbor-builtin-mechanisms} DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${arbor-builtin-mechanisms}
+                            PROPERTIES GENERATED TRUE
+                                       SKIP_LINTING ON)
 
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set_source_files_properties(${arbor_sources} DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTIES LANGUAGE CXX)

@@ -76,6 +76,14 @@ mark_as_advanced(ARB_USE_HWLOC)
 option(BUILD_TESTING "build tests and benchmarks" ON)
 option(BUILD_DOCUMENTATION "build documentation" ON)
 
+# Use C++ linter
+option(ARB_CLANG_TIDY "lint C++ sources" OFF)
+
+if (ARB_CLANG_TIDY)
+    set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,clang-analyzer-*,)
+endif ()
+
+
 # Use externally built modcc?
 
 set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
@@ -195,8 +203,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Generate a .json file with full compilation command for each file.
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Detect and deprecate xlC.
 
@@ -648,6 +655,8 @@ add_subdirectory(sup)
 
 # modcc, libmodcc:
 add_subdirectory(modcc)
+set_source_files_properties(DIRECTORY modcc
+                            PROPERTIES SKIP_LINTING ON)
 
 # arbor, arbor-private-headers:
 add_subdirectory(arbor)

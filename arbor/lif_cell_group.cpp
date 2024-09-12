@@ -74,7 +74,7 @@ void lif_cell_group::add_sampler(sampler_association_handle h,
     auto assoc = arb::sampler_association{std::move(sched),
                                           std::move(fn),
                                           std::move(probeset)};
-    auto result = samplers_.insert({h, std::move(assoc)});
+    auto result [[maybe_unused]] = samplers_.insert({h, std::move(assoc)});
     arb_assert(result.second);
 }
 

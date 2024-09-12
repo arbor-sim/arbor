@@ -621,7 +621,7 @@ void simulation::set_epoch_callback(epoch_function epoch_callback) {
     impl_->epoch_callback_ = std::move(epoch_callback);
 }
 
-simulation::simulation(simulation&&) = default;
+simulation::simulation(simulation&&) noexcept = default;
 
 simulation::~simulation() = default;
 

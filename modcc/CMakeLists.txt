@@ -26,8 +26,12 @@ set(libmodcc_sources
     printer/infoprinter.cpp
     printer/printerutil.cpp
 )
+set_source_files_properties(${libmodcc_sources}
+                            PROPERTIES SKIP_LINTING ON)
 
 set(modcc_sources modcc.cpp)
+set_source_files_properties(${modcc_sources}
+                            PROPERTIES SKIP_LINTING ON)
 
 add_library(libmodcc STATIC ${libmodcc_sources})
 target_link_libraries(libmodcc PUBLIC arbor-public-headers)

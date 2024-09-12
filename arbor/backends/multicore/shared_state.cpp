@@ -214,7 +214,6 @@ shared_state::shared_state(task_system_handle,    // ignored in mc backend
     temperature_degC(n_cv_, pad(alignment)),
     diam_um(diam.begin(), diam.end(), pad(alignment)),
     time_since_spike(n_cell*static_cast<std::size_t>(n_detector), pad(alignment)),
-    time_since_spike(n_cell*n_detector, pad(alignment)),
     src_to_spike(src_to_spike_.begin(), src_to_spike_.end(), pad(alignment)),
     cbprng_seed(cbprng_seed_),
     watcher{n_cv_, src_to_spike.data(), detector_info}
@@ -258,14 +257,15 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
 
 void shared_state::take_samples() {
     sample_events.mark();
-    const auto& [begin, end] = sample_events.marked_events();
-    if (begin == end) return;
+    auto [begin, end] = sample_events.marked_events();
+    if (begin >= end) return;
     if (begin == nullptr || end == nullptr) throw arbor_internal_error{"Invalid sample stream state."};
     // Null handles are explicitly permitted, and always give a sample of zero.
-    for (auto p = begin; p < end; ++p) {
-        auto off = p->offset;
+    for (; begin < end; ++begin) {
+        auto off = begin->offset;
         sample_time[off] = time;
-        sample_value[off] = p->handle ? *p->handle : 0;
+        sample_value[off] = 0;
+        if (begin->handle) sample_value[off] = *begin->handle;
     }
 }
 
