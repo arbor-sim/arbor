@@ -293,7 +293,7 @@ def create_polygon(x, y, d):
     return list(zip(xp, yp))
 
 
-def get_cv_polycollection(cell_geometry, V_m, vlims=[-66, -64], cmap="viridis"):
+def get_cv_polycollection(cell_geometry, V_m, vlims=(-66, -64), cmap="viridis"):
     """
     Parameters
     ----------

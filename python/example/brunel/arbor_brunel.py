@@ -126,7 +126,6 @@ class brunel_recipe(A.recipe):
 
 
 if __name__ == "__main__":
-
     recipe = brunel_recipe(
         NE,
         NI,
