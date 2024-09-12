@@ -15,8 +15,8 @@ build_base_image_x86_64:
   extends: [.container-builder-cscs-zen2, .dynamic-image-name]
   stage: build_base
   variables:
-    DOCKERFILE: .cscs-ci-ext/Dockerfile.base
-    WATCH_FILECHANGES: '.cscs-ci-ext/Dockerfile.base'
+    DOCKERFILE: .gitlab/docker/Dockerfile.base
+    WATCH_FILECHANGES: '.gitlab/docker/Dockerfile.base'
     PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbor/baseimg-x86_64
     CSCS_BUILD_IN_MEMORY: TRUE
     CSCS_REBUILD_POLICY: "if-not-exists"
@@ -26,8 +26,8 @@ build_base_image_aarch64:
   extends: [.container-builder-cscs-gh200, .dynamic-image-name]
   stage: build_base
   variables:
-    DOCKERFILE: .cscs-ci-ext/Dockerfile.base
-    WATCH_FILECHANGES: '.cscs-ci-ext/Dockerfile.base'
+    DOCKERFILE: .gitlab/docker/Dockerfile.base
+    WATCH_FILECHANGES: '.gitlab/docker/Dockerfile.base'
     PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbor/baseimg-aarch64
     CSCS_BUILD_IN_MEMORY: TRUE
     CSCS_REBUILD_POLICY: "if-not-exists"
@@ -40,7 +40,7 @@ build_app_image_x86_64:
   - job: build_base_image_x86_64
     artifacts: true
   variables:
-    DOCKERFILE: .cscs-ci-ext/Dockerfile.app
+    DOCKERFILE: .gitlab/docker/Dockerfile.app
     PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbor/appimg-x86_64:$CI_COMMIT_SHORT_SHA
     DOCKER_BUILD_ARGS: '["BASE_IMAGE=$BASE_IMAGE", "CXX_FLAGS=-march=znver2"]'
 
@@ -51,7 +51,7 @@ build_app_image_aarch64:
   - job: build_base_image_aarch64
     artifacts: true
   variables:
-    DOCKERFILE: .cscs-ci-ext/Dockerfile.app
+    DOCKERFILE: .gitlab/docker/Dockerfile.app
     PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbor/appimg-aarch64:$CI_COMMIT_SHORT_SHA
     DOCKER_BUILD_ARGS: '["BASE_IMAGE=$BASE_IMAGE", "CXX_FLAGS=-mcpu=neoverse-v2 -mtune=neoverse-v2", "GPU=cuda", "GPU_ARCH=90"]'
 
