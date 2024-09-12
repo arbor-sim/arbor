@@ -82,9 +82,10 @@ test_x86_64:
     SLURM_CONSTRAINT: mc
     SLURM_JOB_NUM_NODES: 1
     SLURM_NTASKS: 1
+    SLURM_NTASKS_PER_NODE: 1
     SLURM_CPUS_PER_TASK: 128
     SLURM_THREADS_PER_CORE: 1
-    SLURM_CPU_BIND: "verbose"
+    SLURM_CPU_BIND: "verbose,cores"
     SLURM_TIMELIMIT: "00:30:00"
     USE_MPI: "NO"
 
@@ -105,6 +106,7 @@ test_x86_64-distributed:
     SLURM_THREADS_PER_CORE: 1
     SLURM_CPU_BIND: "verbose,rank_ldom"
     SLURM_TIMELIMIT: "00:30:00"
+    USE_MPI: "YES"
 
 #test_aarch64:
 #  stage: test
