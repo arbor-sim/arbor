@@ -83,21 +83,42 @@ build_multiarch_image:
     SLURM_NTASKS: 1
     SLURM_NTASKS_PER_NODE: 1
     SLURM_TIMELIMIT: "00:30:00"
+    SLURM_CPU_BIND: "verbose,none"
     USE_MPI: "NO"
-
-test_aarch64:
-  extends: [.container-runner-todi-gh200, .test_unit]
-  variables:
-    SLURM_CPUS_PER_TASK: 72
-    SLURM_CPU_BIND: "verbose"
 
 test_x86_64:
   extends: [.container-runner-eiger-mc, .test_unit]
   variables:
     SLURM_CONSTRAINT: mc
-    SLURM_CPUS_PER_TASK: 128
-    SLURM_THREADS_PER_CORE: 1
-    SLURM_CPU_BIND: "verbose,none"
+
+test_aarch64:
+  extends: [.container-runner-todi-gh200, .test_unit]
+
+.test_distributed:
+  stage: test
+  image: $CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA
+  script:
+    - cd /arbor.src
+    - build/bin/unit-mpi
+    - scripts/run_cpp_examples.sh -d
+  variables:
+    SLURM_JOB_NUM_NODES: 2
+    SLURM_CPU_BIND: "verbose,rank_ldom"
+    SLURM_TIMELIMIT: "00:30:00"
+    USE_MPI: "YES"
+
+test_x86_64-distributed:
+  extends: [.container-runner-eiger-mc, .test_distributed]
+  variables:
+    SLURM_CONSTRAINT: mc
+    SLURM_NTASKS_PER_NODE: 8
+
+test_aarch64-distributed:
+  extends: [.container-runner-todi-gh200, .test_distributed]
+  variables:
+    SLURM_GPUS_PER_NODE: 4
+    SLURM_GPUS_PER_TASK: 1
+    SLURM_NTASKS_PER_NODE: 4
 
 #test_aarch64:
 #  stage: test
