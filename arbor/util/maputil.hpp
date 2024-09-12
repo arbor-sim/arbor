@@ -17,8 +17,10 @@ namespace util {
 
 // View over the keys (first elements) in a sequence of pairs or tuples.
 
+// Trailing return type added here to avoid warnings about ODR violations when building shared
+// lib together with LTO - needs to be re-checked in the future
 template <typename Seq>
-auto keys(Seq&& m) {
+auto keys(Seq&& m) -> decltype(util::transform_view(std::forward<Seq>(m), util::first)) {
     return util::transform_view(std::forward<Seq>(m), util::first);
 }
 

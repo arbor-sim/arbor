@@ -21,7 +21,6 @@
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
-#include "io/sepval.hpp"
 
 #include "common.hpp"
 #include "common_morphologies.hpp"
@@ -42,6 +41,8 @@ using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 
 // instantiate template class
 template class arb::fvm_lowered_cell_impl<arb::multicore::backend>;
+
+namespace U = arb::units;
 
 namespace {
     struct system {
@@ -71,10 +72,12 @@ namespace {
             auto description = builder.make_cell();
             description.decorations.paint("soma"_lab, density("hh"));
             description.decorations.paint("dend"_lab, density("pas"));
-            description.decorations.place(builder.location({1,1}), i_clamp{5, 80, 0.3}, "clamp");
-
+            description.decorations.place(builder.location({1,1}),
+                                          i_clamp{5*arb::units::nA, 80*arb::units::kHz, 0.3*arb::units::rad},
+                                          "clamp");
             s.builders.push_back(std::move(builder));
             descriptions.push_back(description);
+
         }
 
         // Cell 1: ball and 3-stick, but with uneven dendrite
@@ -119,14 +122,18 @@ namespace {
             auto c1 = reg::cable(b1-1, b.location({b1, 0}).pos, 1);
             auto c2 = reg::cable(b2-1, b.location({b2, 0}).pos, 1);
             auto c3 = reg::cable(b3-1, b.location({b3, 0}).pos, 1);
-            desc.decorations.paint(c1, membrane_capacitance{0.017});
-            desc.decorations.paint(c2, membrane_capacitance{0.013});
-            desc.decorations.paint(c3, membrane_capacitance{0.018});
+            desc.decorations.paint(c1, membrane_capacitance{0.017*U::F*U::m.pow(-2)});
+            desc.decorations.paint(c2, membrane_capacitance{0.013*U::F*U::m.pow(-2)});
+            desc.decorations.paint(c3, membrane_capacitance{0.018*U::F*U::m.pow(-2)});
 
-            desc.decorations.place(b.location({2,1}), i_clamp{5.,  80., 0.45}, "clamo0");
-            desc.decorations.place(b.location({3,1}), i_clamp{40., 10.,-0.2}, "clamp1");
+            desc.decorations.place(b.location({2,1}),
+                                   i_clamp::box( 5.*arb::units::ms, 80.*arb::units::ms,  0.45*arb::units::nA),
+                                   "clamp0");
+            desc.decorations.place(b.location({3,1}),
+                                   i_clamp::box(40.*arb::units::ms, 10.*arb::units::ms, -0.2*arb::units::nA),
+                                   "clamp1");
 
-            desc.decorations.set_default(axial_resistivity{90});
+            desc.decorations.set_default(axial_resistivity{90*U::Ohm*U::cm});
 
             s.builders.push_back(std::move(b));
             descriptions.push_back(desc);
@@ -1561,6 +1568,38 @@ TEST(fvm_layout, ion_weights) {
     }
 }
 
+TEST(fvm_layout, global_vs_range_parameters) {
+    soma_cell_builder builder(5);
+    builder.add_branch(0, 100, 0.5, 0.5, 1, "dend");
+
+    {
+        auto desc = builder.make_cell();
+        desc.decorations.paint("dend"_lab, density("pas", {{"e", 42}}));
+
+        EXPECT_THROW(
+            fvm_build_mechanism_data({},
+                                     {{desc}},
+                                     {0},
+                                     {{}},
+                                     fvm_cv_discretize({{desc}},
+                                                       neuron_parameter_defaults)),
+            did_you_mean_global_parameter);
+    }
+    {
+        auto desc = builder.make_cell();
+        desc.decorations.paint("dend"_lab, density("pas/g=23"));
+
+        EXPECT_THROW(
+            fvm_build_mechanism_data({},
+                                     {{desc}},
+                                     {0},
+                                     {{}},
+                                     fvm_cv_discretize({{desc}},
+                                                       neuron_parameter_defaults)),
+            did_you_mean_normal_parameter);
+    }
+}
+
 TEST(fvm_layout, revpot) {
     // Create two cells with three ions 'a', 'b' and 'c'.
     // Configure a reversal potential mechanism that writes to 'a' and
@@ -1587,9 +1626,9 @@ TEST(fvm_layout, revpot) {
     gprop.catalogue = make_unit_test_catalogue();
 
     gprop.ion_species = {{"a", 1}, {"b", 2}, {"c", 3}};
-    gprop.add_ion("a", 1, 10., 0, 0);
-    gprop.add_ion("b", 2, 30., 0, 0);
-    gprop.add_ion("c", 3, 50., 0, 0);
+    gprop.add_ion("a", 1, 10.*U::mM, 0*U::mM, 0*U::mV);
+    gprop.add_ion("b", 2, 30.*U::mM, 0*U::mM, 0*U::mV);
+    gprop.add_ion("c", 3, 50.*U::mM, 0*U::mM, 0*U::mV);
 
     gprop.default_parameters.reversal_potential_method["a"] = "write_eX/a";
     mechanism_desc write_eb_ec = "write_multiple_eX/x=b,y=c";
@@ -1869,3 +1908,87 @@ TEST(fvm_layout, iinterp) {
         EXPECT_EQ(-fc2, I.distal_coef);
     }
 }
+
+TEST(fvm_layout, inhomogeneous_parameters) {
+    struct param_at {
+        double area;
+        double capacitance;
+        double diameter;
+    };
+
+    auto tree = segment_tree{};
+    auto parn = mnpos;
+    parn = tree.append(parn, { 0.,  0., 0., 1.0}, {10.,  0.,  0., 1},    1); // const diam
+    parn = tree.append(parn, {10.,  0., 0., 0.5}, {10., 20.,  0., 0.5},  1); // left turn, discontinous diam
+    parn = tree.append(parn, {10., 20., 0., 0.5}, {10., 20., 10., 0.25}, 1); // turn up, constant taper
+    auto morph = morphology{tree};
+
+    auto param = neuron_parameter_defaults;
+    param.membrane_capacitance = 42.0;
+    param.discretization = cv_policy_fixed_per_branch{30};
+
+    auto expected = std::vector<param_at>{{8.37758,385.369,2},       // constant
+                                          {8.37758,385.369,2},
+                                          {8.37758,385.369,2},
+                                          {8.37758,385.369,2},
+                                          {8.37758,385.369,2},
+                                          {8.37758,385.369,2},
+                                          {8.37758,385.369,2},
+                                          {6.28319,144.513,1.5},     // discontinuity
+                                          {4.18879,96.3422,1},       // constant 1
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.18879,96.3422,1},
+                                          {4.15453,95.5541,0.99182}, // taper
+                                          {3.91076,83.951, 0.933625},
+                                          {3.63142,72.3863,0.866937},
+                                          {3.35208,61.6783,0.80025},
+                                          {3.07274,51.8269,0.733562},
+                                          {2.7934, 42.8321,0.666875},
+                                          {2.51406,34.694, 0.600187},
+                                          {2.23472,27.4126,0.5335},};
+
+    // No scaling applied
+    // capacitance scales with CV area
+    {
+        auto decor = arb::decor{}
+            .set_default(membrane_capacitance{23.0*U::F*U::m.pow(-2)});
+        auto D = fvm_cv_discretize({morph, decor}, param);
+        for (unsigned ix = 0; ix < D.size(); ++ix) {
+            EXPECT_NEAR(D.cv_area[ix]*23.0, D.cv_capacitance[ix], 1e-6);
+        }
+    }
+    // We can paint a scale
+    // capacitance scales with CV area and diameter
+    // NOTE the diameter is evaluated at a _different_ spot (CV center!)
+    {
+        auto decor = arb::decor{}
+            .set_default(membrane_capacitance{23.0*U::F*U::m.pow(-2)})
+            .paint(reg::tagged(1), membrane_capacitance{23.0*U::F*U::m.pow(-2), iexpr::diameter()});
+        auto D = fvm_cv_discretize({morph, decor}, param);
+        EXPECT_EQ(D.size(), 30ul);
+        for (unsigned ix = 0; ix < D.size(); ++ix) {
+            auto& p = expected[ix];
+            EXPECT_NEAR(D.diam_um[ix], p.diameter, 1e-3);
+            EXPECT_NEAR(D.cv_capacitance[ix], p.capacitance, 1e-3);
+            EXPECT_NEAR(D.cv_area[ix], p.area, 1e-3);
+        }
+    }
+
+    // Defaults do not have a scale
+    {
+        auto decor = arb::decor{};
+        EXPECT_THROW(decor.set_default(membrane_capacitance{23.0*U::F*U::m.pow(-2), iexpr::diameter()}), arb::cable_cell_error);
+    }
+}
+

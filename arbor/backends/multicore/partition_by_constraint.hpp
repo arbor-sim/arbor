@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <arbor/simd/simd.hpp>
+#include <arbor/serdes.hpp>
 
 namespace arb {
 namespace multicore {
@@ -17,6 +18,8 @@ struct constraint_partition {
     iarray constant;
     iarray independent;
     iarray none;
+
+    ARB_SERDES_ENABLE(constraint_partition, contiguous, constant, independent, none);
 };
 
 template <typename It>

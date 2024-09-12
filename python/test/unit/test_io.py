@@ -5,12 +5,11 @@ import arbor as A
 from pathlib import Path
 from tempfile import TemporaryDirectory as TD
 from io import StringIO
-from functools import partial
 
 
 acc = """(arbor-component
   (meta-data
-    (version "0.1-dev"))
+    (version "0.9-dev"))
   (cable-cell
     (morphology
       (branch 0 -1
@@ -25,25 +24,25 @@ acc = """(arbor-component
         (location 0 0.5)))
     (decor
       (default
-        (membrane-potential -40.000000))
+        (membrane-potential -40.000000 (scalar 1)))
       (default
-        (ion-internal-concentration "ca" 0.000050))
+        (ion-internal-concentration "ca" 0.000050 (scalar 1)))
       (default
-        (ion-external-concentration "ca" 2.000000))
+        (ion-external-concentration "ca" 2.000000 (scalar 1)))
       (default
-        (ion-reversal-potential "ca" 132.457934))
+        (ion-reversal-potential "ca" 132.457934 (scalar 1)))
       (default
-        (ion-internal-concentration "k" 54.400000))
+        (ion-internal-concentration "k" 54.400000 (scalar 1)))
       (default
-        (ion-external-concentration "k" 2.500000))
+        (ion-external-concentration "k" 2.500000 (scalar 1)))
       (default
-        (ion-reversal-potential "k" -77.000000))
+        (ion-reversal-potential "k" -77.000000 (scalar 1)))
       (default
-        (ion-internal-concentration "na" 10.000000))
+        (ion-internal-concentration "na" 10.000000 (scalar 1)))
       (default
-        (ion-external-concentration "na" 140.000000))
+        (ion-external-concentration "na" 140.000000 (scalar 1)))
       (default
-        (ion-reversal-potential "na" 50.000000))
+        (ion-reversal-potential "na" 50.000000 (scalar 1)))
       (paint
         (tag 1)
         (density
@@ -153,7 +152,10 @@ class TestAccIo(unittest.TestCase):
 class TestSwcArborIo(unittest.TestCase):
     @staticmethod
     def loaders():
-        return (A.load_swc_arbor, partial(A.load_swc_arbor, raw=True))
+        return (
+            lambda f: A.load_swc_arbor(f).morphology,
+            lambda f: A.load_swc_arbor(f).segment_tree,
+        )
 
     def test_stringio(self):
         load_string(self.loaders(), swc_arbor)
@@ -171,7 +173,10 @@ class TestSwcArborIo(unittest.TestCase):
 class TestSwcNeuronIo(unittest.TestCase):
     @staticmethod
     def loaders():
-        return (A.load_swc_neuron, partial(A.load_swc_neuron, raw=True))
+        return (
+            lambda f: A.load_swc_neuron(f).morphology,
+            lambda f: A.load_swc_neuron(f).segment_tree,
+        )
 
     def test_stringio(self):
         load_string(self.loaders(), swc_neuron)
@@ -189,7 +194,10 @@ class TestSwcNeuronIo(unittest.TestCase):
 class TestAscIo(unittest.TestCase):
     @staticmethod
     def loaders():
-        return (A.load_asc, partial(A.load_asc, raw=True))
+        return (
+            lambda f: A.load_asc(f).morphology,
+            lambda f: A.load_asc(f).segment_tree,
+        )
 
     def test_stringio(self):
         load_string(self.loaders(), asc)
@@ -202,3 +210,44 @@ class TestAscIo(unittest.TestCase):
 
     def test_pathio(self):
         load_pathio(self.loaders(), asc, "test.asc")
+
+
+class serdes_recipe(A.recipe):
+    def __init__(self):
+        A.recipe.__init__(self)
+        self.the_props = A.neuron_cable_properties()
+        self.the_props.catalogue = A.default_catalogue()
+
+    def num_cells(self):
+        return 1
+
+    def cell_kind(self, _):
+        return A.cell_kind.cable
+
+    def cell_description(self, _):
+        tree = A.segment_tree()
+        s = tree.append(A.mnpos, A.mpoint(-3, 0, 0, 3), A.mpoint(3, 0, 0, 3), tag=1)
+        _ = tree.append(s, A.mpoint(3, 0, 0, 1), A.mpoint(33, 0, 0, 1), tag=3)
+
+        dec = A.decor()
+        dec.paint("(all)", A.density("pas"))
+        dec.discretization(A.cv_policy("(max-extent 1)"))
+
+        return A.cable_cell(tree, dec)
+
+    def global_properties(self, _):
+        return self.the_props
+
+
+# Very simple test for SerDes
+class TestSerdes(unittest.TestCase):
+    def test_serialize(self):
+        self.maxDiff = 1024 * 1024
+        rec = serdes_recipe()
+        sim = A.simulation(rec)
+        jsn = sim.serialize()
+        try:
+            sim.deserialize(jsn)
+        except RuntimeError as e:
+            print(f"Unexpected error\n{e}\nin JSON:\n{jsn}")
+            raise

@@ -3,14 +3,14 @@
 Cable cell mechanisms
 =====================
 
-Mechanisms describe biophysical processes such as ion channels, synapses and gap-junctions.
+Mechanisms describe biophysical processes such as ion channels, synapses, and gap-junctions.
 Mechanisms are assigned to regions and locations on a cell morphology
 through the process of :ref:`decoration <cablecell-decoration>`.
 Mechanisms are described using a dialect of the :ref:`NMODL <formatnmodl>` domain
 specific language that is similarly used in `NEURON <https://neuron.yale.edu/neuron/>`_.
 
 Arbor supports mechanism descriptions using the NMODL language through our ``modcc``
-compiler. ``modcc`` supports many of NMODL's features but there are a few
+compiler. ``modcc`` supports many of NMODL's features, but there are a few
 additional :ref:`guidelines <formatnmodl>`.
 for users who wish to compile their own mechanisms for Arbor. Out-of-tree mechanism
 building is available in Arbor (See: :ref:`mechanisms_dynamic`). We also have built-in
@@ -40,7 +40,7 @@ Catalogues provide an interface for querying mechanism metadata, which includes 
 
 * Global parameter names, units, and default values.
 * Range parameter names, units, and default values.
-* State variable names, units and default values.
+* State variable names, units, and default values.
 * Ion dependencies: for each ion used by the mechanism, information on whether the mechanism writes
   to its internal or external concentration or to its reversal potential value, and whether it reads
   or asserts the ionic charge.
@@ -56,21 +56,44 @@ the `BBP mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/b
 Built-in Catalogues
 '''''''''''''''''''
 
-Arbor provides the ``default_catalogue`` with the following mechanisms:
+Arbor comes with a number of built-in catalogues. The sources (in :ref:`formatnmodl` format)
+are located in the ``mechanisms`` `subdirectory of the Arbor source <https://github.com/arbor-sim/arbor/tree/master/mechanisms>`_.
+You may need to consult these source files to learn about the parameters and features of the mechanism.
+
+The ``default_catalogue`` comes with the following mechanisms:
 
 * *pas*: Leaky current (:ref:`density mechanism <mechanisms-density>`).
 * *hh*: Classic Hodgkin-Huxley dynamics (:ref:`density mechanism
   <mechanisms-density>`).
-* *nernst*: Calculate reversal potential for an ionic species using the Nernst
-  equation (:ref:`reversal potential mechanism <mechanisms-revpot>`). **NB**
-  This is not meant to be used directly
 * *expsyn*: Synapse with discontinuous change in conductance at an event
   followed by an exponential decay (:ref:`point mechanism <mechanisms-point>`).
 * *exp2syn*: Bi-exponential conductance synapse described by two time constants:
   rise and decay (:ref:`point mechanism <mechanisms-point>`).
 * *gj*: Linear gap-junction mechanism with constant conductance (:ref:`junction mechanism <mechanisms-junction>`).
 
-With the exception of *nernst*, these mechanisms are the same as those available in NEURON.
+These mechanisms are the same as those available in NEURON. Arbor-specific mechanisms in the default catalogue are:
+
+* *nernst*: Calculate reversal potential for an ionic species using the Nernst
+  equation (:ref:`reversal potential mechanism <mechanisms-revpot>`). **NB**
+  This is not meant to be used directly
+* *inject*: Inject (signalling) ions, e.g. Ca++ (:ref:`point mechanism
+  <mechanisms-point>`).
+* *decay*: Exponential decay of ions (:ref:`density mechanism
+  <mechanisms-density>`).
+* *expsyn_cur*: Exponential current-based synapse (:ref:`point mechanism
+  <mechanisms-point>`).
+* *expsyn_stdp*: Exponential synapse with online STDP (:ref:`point mechanism
+  <mechanisms-point>`).
+* *kamt*: K-A current for Mitral Cells (Wang et al. 1996) (:ref:`density mechanism
+  <mechanisms-density>`).
+* *kdrmt*: K-DR current for Mitral Cells (Wang et al. 1996) (:ref:`density mechanism
+  <mechanisms-density>`).
+* *nax*: Na current for axon. No slow inact. (M.Migliore Jul. 1997) (:ref:`density mechanism
+  <mechanisms-density>`).
+* *v_clamp*: Writing directly to the membrane voltage. Breaks the cable model, so use it with caution 
+  (:ref:`See NMODL documentation <formatnmodl_voltageproc>`).
+* *v_limit*: Limit directly the membrane voltage. Breaks the cable model, so use it with caution 
+  (:ref:`See NMODL documentation <formatnmodl_voltageproc>`).
 
 Two catalogues are provided that collect mechanisms associated with specific projects and model databases:
 
@@ -82,7 +105,7 @@ equations:
 
 * *ou_input* Synapse mechanism that can stochastically account for a population of *ou_input*
   synapses.  The mechanism is similar to *expsyn_curr* but with the exponential decay being subject
-  to noise due to a Ornstein-Uhlenbeck process.
+  to noise due to an Ornstein-Uhlenbeck process.
 
 
 .. _mechanisms_dynamic:
@@ -141,7 +164,7 @@ Parameters
 Mechanism behaviour can be tuned using parameters and ion channel dependencies,
 as defined in the NMODL description.
 Parameters and ion species are set initially before a simulation starts, and remain
-unchanged thereafter, for the duration of the simulation.
+unchanged thereafter for the duration of the simulation.
 There are two types of parameters that can be set by users:
 
 * *Global* parameters are a single scalar value that is the same everywhere a mechanism is defined.
@@ -162,7 +185,7 @@ The following example mechanism descriptions for our passive mechanism show that
 ion species dependencies only need to be specified when they differ from their defaults:
 
 * ``("pas")``: the passive mechanism with default parameters.
-* ``("pas/e=-80")``: derive a new passive mechanism with a non-default value for global parameter.
+* ``("pas/e=-80")``: derive a new passive mechanism with a non-default value for the global parameter.
 * ``("pas", {"g": 0.005})``: passive mechanism with a new a non-default range parameter value.
 * ``("pas/e=-80", {"g": 0.005})``: derive a new passive mechanism that overrides both
 
@@ -171,8 +194,8 @@ This allows the use of generic mechanisms that can be adapted to a specific spec
 during model instantiation.
 For example, the ``nernst`` mechanism in Arbor's default mechanism catalogue calculates
 the reversal potential of a generic ionic species ``x`` according to its internal
-and external concentrations and valence. To specialize ``nernst`` for calcium name it
-``("nernst/x=ca")``, or as there is only one ion species in the mechanism the
+and external concentrations and valence. To specialize ``nernst`` for calcium, name it
+``("nernst/x=ca")``, or as there is only one ion species in the mechanism, the
 shorthand ``("nernst/ca")`` can be used unambiguously.
 
 .. _mechanisms-name-note:
@@ -187,7 +210,7 @@ shorthand ``("nernst/ca")`` can be used unambiguously.
 Mechanism types
 ---------------
 
-There are three broad categories of mechanism: density mechanisms, point mechanisms,
+There are three broad categories of mechanisms: density mechanisms, point mechanisms,
 gap-junction mechanisms and a fourth special density mechanism for computing ionic
 reversal potential.
 
@@ -202,7 +225,7 @@ at any given point.
 
 Density mechanisms are commonly used to describe ion channel dynamics,
 for example the ``hh`` and ``pas`` mechanisms provided by NEURON and Arbor,
-which model classic Hodgkin-Huxley and passive leaky currents respectively.
+which model classic Hodgkin-Huxley and passive leaky currents, respectively.
 
 In NMODL, density mechanisms are identified using the ``SUFFIX`` keyword in the
 ``NEURON`` block.
@@ -244,7 +267,7 @@ Point mechanisms
 ''''''''''''''''
 
 *Point mechanisms*, which are associated with connection end points on a
-cable cell, are placed at discrete locations on the cell.
+cable cells are placed at discrete locations on the cell.
 Unlike density mechanisms, whose behaviour is defined purely by the state of the cell
 and the process, their behaviour is additionally governed by the timing and weight of
 events delivered via incoming connections.
@@ -258,7 +281,7 @@ Junction mechanisms
 '''''''''''''''''''
 
 *Junction mechanisms*, which are associated with gap-junction connection end points on a
-cable cell, are placed at discrete locations on the cell.
+cable cells, are placed at discrete locations on the cell.
 A junction mechanism contributes a current at the discrete location of the cell on which it is placed.
 This current contribution depends on the state of the mechanism and the process, as well as the membrane
 potential at the discrete location which forms the other end of the gap-junction connection and the weight
@@ -285,7 +308,7 @@ such equations have the differential form:
 
     d\textbf{X}(t) = \textbf{f}(t, \textbf{X}(t)) dt + \sum_{i=0}^{M-1} \textbf{l}_i(t,\textbf{X}(t)) d B_i(t),
 
-where :math:`\textbf{X}` is the vector of state variables, while the vector valued function
+where :math:`\textbf{X}` is the vector of state variables, while the vector-valued function
 :math:`\textbf{f}` represents the deterministic differential. The *M* functions :math:`\textbf{l}_i`
 are each associated with the Brownian Motion :math:`B_i` (Wiener process). The Brownian motions are
 assumed to be standard: 
@@ -317,7 +340,7 @@ Since we used standard Brownian Motions above, the withe noises :math:`W_i(t)` a
 *t* with :math:`\mu=0`, :math:`\sigma^2=1`.
 
 In Arbor, the white noises :math:`W_i` are assumed to be independent of each other. Furthermore,
-each connection end point (point mechanism) or control volume (density mechanism) are assumed to
+each connection end point (point mechanism) or control volume (density mechanism) is assumed to
 generate independent noise, as well. The system of stochastic equations is interpreted in the `Itô
 sense <https://en.wikipedia.org/wiki/It%C3%B4_calculus>`_ and numerically solved using the
 Euler-Maruyama method.

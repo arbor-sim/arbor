@@ -6,6 +6,8 @@
 
 namespace arb {
 
+constexpr static int gpu_nil_id = -1;
+
 // Requested dry-run parameters.
 struct dry_run_info {
     unsigned num_ranks;
@@ -23,9 +25,9 @@ struct proc_allocation {
 
     // The gpu id corresponds to the `int device` parameter used by
     // CUDA/HIP API calls to identify gpu devices.
-    // A gpud id of -1 indicates no GPU device is to be used.
+    // A gpud id of gpu_nil_id indicates no GPU device is to be used.
     // See documenation for cuda[/hip]SetDevice and cuda[/hip]DeviceGetAttribute.
-    int gpu_id = -1;
+    int gpu_id = gpu_nil_id;
 
     // Try to use HWLOC to bind threads/procs.
     bool bind_procs = false;

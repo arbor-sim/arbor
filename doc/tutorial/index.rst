@@ -44,7 +44,8 @@ Networks
 
    network_ring
    network_two_cells_gap_junctions
-
+   brunel
+   
 Probes
 ------
 
@@ -69,6 +70,14 @@ Hardware
 
    network_ring_mpi
    network_ring_gpu
+
+Advanced
+-------
+
+.. toctree::
+   :maxdepth: 1
+
+   nmodl
 
 Demonstrations
 --------------

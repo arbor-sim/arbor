@@ -6,9 +6,9 @@ Hardware context
 Arbor provides two ways for working with hardware resources:
 
 * *Prescribe* the hardware resources and their contexts for use in Arbor simulations.
-* *Query* available hardware resources (e.g. the number of available GPUs), and initializing MPI.
+* *Query* available hardware resources (e.g., the number of available GPUs), and initializing MPI.
 
-Note that to utilize some hardware features Arbor must be built and installed with the feature enabled, for example MPI or a GPU.
+Note that to utilize some hardware features, Arbor must be built and installed with the feature enabled, for example, MPI or a GPU.
 Please refer to the :ref:`installation guide <in_build_install>` for information on how to enable hardware support.
 
 Available resources
@@ -16,7 +16,7 @@ Available resources
 
 Helper functions for checking cmake or environment variables, as well as configuring and checking MPI are the following:
 
-.. currentmodule:: arbor
+.. py:currentmodule:: arbor
 
 .. function:: config()
 
@@ -27,7 +27,6 @@ Helper functions for checking cmake or environment variables, as well as configu
     * ``ARB_GPU_ENABLED``
     * ``ARB_VECTORIZE``
     * ``ARB_WITH_PROFILING``
-    * ``ARB_USE_BUNDLED_LIBS``
     * ``ARB_VERSION``
     * ``ARB_ARCH``
 
@@ -73,24 +72,46 @@ Env: Helper functions
 
 The ``arbor.env`` module collects helper functions for interacting with the environment.
 
-.. function:: find_private_gpu(comm)
+.. function:: env.find_private_gpu(comm)
 
    Requires GPU and MPI. Will return an integer id of a GPU such that each GPU
    is mapped to at most one MPI task (on the same node as the GPU). Raises an
    exception if
+   
    - not built with GPU or MPI support
    - unable to satisfy the constraints above
    - handed an invalid or unknown MPI communicator object
+
+.. function:: env.thread_concurrency
+
+   Returns the number of locally available CPU cores. Returns 1 if unable to detect the number of cores. Use with caution in combination with MPI.
+
+.. function:: env.get_env_num_threads
+            
+    Retrieve the user-specified number of threads to use from the environment variable ``ARBENV_NUM_THREADS``.
+
+.. function:: env.default_concurrency
+
+    Returns number of threads to use from :py:func:`~arbor.env.get_env_num_threads()`, or else from :py:func:`~arbor.env.thread_concurrency()` if :py:func:`~arbor.env.get_env_num_threads()` returns zero.
+
+.. function:: env.default_gpu
+
+    Determine the GPU id to use from the ``ARBENV_GPU_ID`` environment variable, or from the first available GPU id of those detected.
+
+.. function:: env.default_allocation
+
+    Returns a :func:`~arbor.proc_allocation` with the number of threads intitalized with :func:`~arbor.env.default_concurrency` and GPU number set via :func:`~arbor.env.default_gpu`. Use with caution in combination with MPI.
+
 
 Prescribed resources
 ---------------------
 
 The Python wrapper provides an API for:
 
-  * prescribing which hardware resources are to be used by a
-    simulation using :class:`proc_allocation`.
-  * opaque handles to hardware resources used by simulations called
-    :class:`context`.
+- prescribing which hardware resources are to be used by a
+  simulation using :class:`proc_allocation`.
+- opaque handles to hardware resources used by simulations called
+  :class:`context`.
 
 .. class:: proc_allocation
 
@@ -112,7 +133,7 @@ The Python wrapper provides an API for:
         Must be ``None``, or a non-negative integer.
 
         The :attr:`gpu_id` corresponds to the ``int device`` parameter used by CUDA API calls
-        to identify gpu devices.
+        to identify GPU devices.
         Set to ``None`` to indicate that no GPU device is to be used.
         See ``cudaSetDevice`` and ``cudaDeviceGetAttribute`` provided by the
         `CUDA API <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html>`_.
@@ -122,8 +143,8 @@ The Python wrapper provides an API for:
         Try to generate a binding mask for all MPI processes on a node. This can
         help with performance by suppressing unneeded task migrations from the
         OS. See also `affinity
-        <https://en.wikipedia.org/wiki/Processor_affinity>`. Do not enable if
-        process binding is handled externally, eg by SLURM or OpenMPI, or
+        <https://en.wikipedia.org/wiki/Processor_affinity>`_. Do not enable if
+        process binding is handled externally, e.g., by SLURM or OpenMPI, or
         disable it there first.
 
     .. attribute:: bind_threads
@@ -131,7 +152,7 @@ The Python wrapper provides an API for:
         Try to generate a binding mask for all threads on an MPI process. This can
         help with performance by suppressing unneeded task migrations from the
         OS. See also `affinity
-        <https://en.wikipedia.org/wiki/Processor_affinity>`. If a process
+        <https://en.wikipedia.org/wiki/Processor_affinity>`_. If a process
         binding mask is set -- either externally or by `bind_procs` --, it will
         be respected.
 
@@ -165,40 +186,56 @@ The Python wrapper provides an API for:
     provided by :class:`context`, instead they configure contexts, which are passed to
     Arbor interfaces for domain decomposition and simulation.
 
-    .. method:: context(threads, gpu_id, mpi)
+    .. method:: context()
+
+        When constructed without arguments, an undistributed context is automatically created
+        using :py:func:`~arbor.env.default_allocation()`.
+
+    .. method:: context(threads=threads, gpu_id=gpu_id, mpi=mpi_comm, inter=mpi_comm)
+        :noindex:
         
-        Create a distributed context.
+        Create a context.
 
         :param int threads:
             The number of threads available locally for execution.
-            Must be set to 1 at minimum. 1 by default.
-            Passing ``"avail_threads"`` (as string) will query and use the maximum number
-            of threads the system makes available.
+            Must be set to 1 at minimum.
+            Defaults to the maximum number of threads the system makes available (respecting optional affinity limits imposed through the environment) if gpu_id and mpi are not set, else defaults to 1.
         :param int gpu_id:
             The non-negative identifier of the GPU to use, ``None`` by default.
             Can only be set when Arbor was built with GPU support.
         :type gpu_id: int or None
         :param mpi:
-            The MPI communicator, ``None`` by default for distributed calculation.
+            The MPI communicator for distributed calculation, ``None`` by default.
+            Can only be set when Arbor was built with MPI support.
+        :type mpi: :py:class:`arbor.mpi_comm` or None.
+        :param inter:
+            The MPI communicator for external coupling to Arbor, e.g. another simulator.
+            ``None`` by default.
             Can only be set when Arbor was built with MPI support.
         :type mpi: :py:class:`arbor.mpi_comm` or None.
 
-    .. function:: context(alloc, mpi)
+    .. function:: context(alloc, mpi=mpi_comm, inter=mpi_comm)
         :noindex:
 
-        Create a distributed context.
+        Create a context.
 
         :param alloc:
-            The computational resources, one thread and no GPU by default.
+            The computational resources. It is advised to explicitly provide one
+            if you are providing an MPI communicator for distributed calculation.
         :type alloc: :py:class:`proc_allocation`
         :param mpi:
-            The MPI communicator, ``None`` by default for distributed calculation.
+            The MPI communicator for distributed calculation, ``None`` by default.
+            Can only be set when Arbor was built with MPI support.
+        :type mpi: :py:class:`arbor.mpi_comm` or None.
+        :param inter:
+            The MPI communicator for external coupling to Arbor, e.g. another simulator.
+            ``None`` by default.
             Can only be set when Arbor was built with MPI support.
         :type mpi: :py:class:`arbor.mpi_comm` or None.
 
 
     Contexts can be queried for information about which features a context has enabled,
-    whether it has a GPU, how many threads are in its thread pool.
+    whether it has a GPU and how many threads are in its thread pool.
 
     .. attribute:: has_gpu
 
@@ -221,7 +258,7 @@ The Python wrapper provides an API for:
     .. attribute:: rank
 
         The numeric id of the local domain.
-        If the context has an MPI communicator, return is equivalent to ``MPI_Comm_rank``.
+        If the context has an MPI communicator, the return is equivalent to ``MPI_Comm_rank``.
         If the communicator has no MPI, returns 0.
 
     Here are some simple examples of how to create a :class:`context`:
@@ -238,7 +275,7 @@ The Python wrapper provides an API for:
 
             # Construct a context that:
             #  * uses 8 threads in its thread pool;
-            #  * does not use a GPU, reguardless of whether one is available
+            #  * does not use a GPU, regardless of whether one is available
             #  * does not use MPI.
             alloc   = arbor.proc_allocation(8, None)
             context = arbor.context(alloc)

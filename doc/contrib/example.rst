@@ -5,7 +5,7 @@ Examples
 
 The source for C++ examples are located in ``/example`` and
 Python examples in ``/python/example``. You can add yours in the same
-way you would contribute code, please see the :ref:`contribpr` section.
+way you would contribute code; please see the :ref:`contribpr` section.
 
 Especially when adding new functionality, consider adding an example to demonstrate its use.
 

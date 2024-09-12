@@ -1,11 +1,13 @@
 #pragma once
 
 #include <fstream>
+#include <string>
+
+#include <arbor/arbexcept.hpp>
 
 #include <pybind11/pybind11.h>
 
 #include "strprintf.hpp"
-#include "error.hpp"
 
 namespace pyarb {
 namespace util {
@@ -44,6 +46,17 @@ std::string read_file_or_buffer(py::object fn) {
         fid.read(result.data(), sz);
         return result;
     }
+}
+
+template<typename T>
+std::unordered_map<std::string, T> dict_to_map(pybind11::dict d) {
+    std::unordered_map<std::string, T> result;
+    for (const auto& [k, v]: d) {
+        std::string key = k.template cast<std::string>();
+        T val = v.template cast<T>();
+        result[key] = val;
+    }
+    return result;
 }
 
 }

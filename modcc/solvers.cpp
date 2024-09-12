@@ -68,14 +68,13 @@ void CnexpSolverVisitor::visit(AssignmentExpression *e) {
         return;
     }
     else if (r.is_homogeneous) {
-        // s' = a*s becomes s = s*exp(a*dt); use a_ as a local variable
-        // for the coefficient.
+        // s' = a*s becomes s = s*exp(a*dt); use a_ as a local variable for the
+        // coefficient.
         auto local_a_term = make_unique_local_assign(scope, coef, "a_");
+        auto s_update = pprintf("% = %*exp_pade_11(%*dt)",
+                                s, s, local_a_term.id->is_identifier()->spelling());
         statements_.push_back(std::move(local_a_term.local_decl));
         statements_.push_back(std::move(local_a_term.assignment));
-        auto a_ = local_a_term.id->is_identifier()->spelling();
-
-        std::string s_update = pprintf("% = %*exp_pade_11(%*dt)", s, s, a_);
         statements_.push_back(Parser{s_update}.parse_line_expression());
         return;
     }
@@ -230,7 +229,7 @@ std::vector<expression_ptr> SystemSolver::generate_solution_assignments(std::vec
     for (unsigned i = 0; i < nrow; ++i) {
         const symge::sym_row& row = A_[i];
         unsigned rhs_col = A_.augcol();
-        unsigned lhs_col = -1;
+        unsigned lhs_col = static_cast<unsigned>(-1);
         for (unsigned r = 0; r < A_.nrow(); ++r) {
             if (row[r]) {
                 lhs_col = r;
@@ -1054,7 +1053,7 @@ public:
     }
 
     virtual void visit(IdentifierExpression* e) override {
-        if (lhs_sym && lhs_sym->is_local_variable()) {
+        if (lhs_sym && lhs_sym->is_local_variable() && !lhs_sym->is_local_variable()->external_variable()) {
             deps.insert({lhs_sym->name(), e->name()});
         }
         else {

@@ -1,58 +1,49 @@
 : Reference:        Adams et al. 1982 - M-currents and other potassium currents in bullfrog sympathetic neurones
 : Comment: corrected rates using q10 = 2.3, target temperature 34, orginal 21
 
-NEURON  {
+NEURON {
     SUFFIX Im
     USEION k READ ek WRITE ik
-    RANGE gbar, g, ik
+    RANGE gbar
 }
 
-UNITS   {
+UNITS {
     (S) = (siemens)
     (mV) = (millivolt)
     (mA) = (milliamp)
 }
 
-PARAMETER   {
+PARAMETER {
     gbar = 0.00001 (S/cm2) 
-}
-
-ASSIGNED    {
     v   (mV)
-    g   (S/cm2)
     celsius (degC)
-    mInf
-    mTau
-    mAlpha
-    mBeta
 }
 
-STATE   { 
-    m
-}
+ASSIGNED { qt }
 
-BREAKPOINT  {
+STATE { m }
+
+BREAKPOINT {
     SOLVE states METHOD cnexp
+    LOCAL g
     g = gbar*m
     ik = g*(v-ek)
 }
 
-DERIVATIVE states   {
-    rates(v)
-    m' = (mInf-m)/mTau
+DERIVATIVE states {
+    LOCAL a, b
+    a = alpha(v)
+    b = beta(v)
+    m' = (a - m*(a + b))*qt
 }
 
-INITIAL{
-    rates(v)
-    m = mInf
-}
-
-PROCEDURE rates(v){
-    LOCAL qt
+INITIAL {
+    LOCAL a, b
+    a = alpha(v)
+    b = beta(v)
     qt = 2.3^((celsius-21)/10)
-
-    mAlpha = 3.3e-3*exp(2.5*0.04*(v - -35))
-    mBeta = 3.3e-3*exp(-2.5*0.04*(v - -35))
-    mInf = mAlpha/(mAlpha + mBeta)
-    mTau = (1/(mAlpha + mBeta))/qt
+    m = a/(a + b)
 }
+
+FUNCTION alpha(v) { alpha = 0.0033*exp( 0.1*(v + 35)) }
+FUNCTION beta(v)  { beta  = 0.0033*exp(-0.1*(v + 35)) }

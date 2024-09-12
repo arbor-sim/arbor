@@ -7,7 +7,7 @@ Cable cell decoration
 
 .. py:class:: decor
 
-    A decor object contains a description of the cell dynamics, to be applied
+    A decor object contains a description of the cell dynamics to be applied
     to a morphology when used to instantiate a :py:class:`cable_cell`
 
     .. method:: __init__()
@@ -35,8 +35,10 @@ Cable cell decoration
 
         .. code-block:: Python
 
+            import arbor as A
             # Set cell-wide values for properties for resistivity and capacitance
-            decor.set_property(rL=100, cm=0.1)
+            decor = A.decor()
+            decor.set_property(rL=100 * U.Ohm * U.cm, cm=0.1 * U.F/ U.m2)
 
     .. method:: set_ion(ion, int_con=None, ext_con=None, rev_pot=None, method=None)
 
@@ -59,50 +61,60 @@ Cable cell decoration
 
         .. code-block:: Python
 
+            import arbor as A
             # Set nernst reversal potential method for calcium.
-            decor.set_ion('ca', method=mech('nernst/x=ca'))
+            ca_mech = A.mechanism('nernst/x=ca')
+            decor.set_ion('ca', method=ca_mech)
 
             # Set reversal potential and concentration for sodium.
             # The reversal potential is fixed, so we set the method to None.
-            decor.set_ion('na', int_con=5.0, rev_pot=70, method=None)
+            decor.set_ion('na', int_con=5.0 * U.mM, rev_pot=70 * U.mV, method=None)
 
     Various specialisations of the ``paint`` method are available for setting properties
     and density mechanisms that are applied to regions.
 
     .. method:: paint(region, Vm=None, cm=None, rL=None, tempK=None)
 
-        Set cable properties on a region.
+        Set cable properties on a region. A property ``v`` is given as a float
+        or a string. In the latter, ``v`` will be interpreted as an inhomogeneous
+        expression.
 
         :param str region: description of the region.
         :param Vm: Initial membrane voltage [mV].
-        :type Vm: float or None
+        :type Vm: float, str, or None
         :param cm: Membrane capacitance [F/m²].
-        :type cm: float or None
+        :type cm: float, str, or None
         :param rL: Axial resistivity of cable [Ω·cm].
-        :type rL: float or None
+        :type rL: float, str, or None
         :param tempK: Temperature [Kelvin].
-        :type tempK: float or None
+        :type tempK: float, str, or None
 
         .. code-block:: Python
 
             # Specialize resistivity on soma
-            decor.paint('"soma"', rL=100)
+            decor.paint('"soma"', rL=100 * U.Ohm * U.cm)
             # Specialize resistivity and capacitance on the axon, where
             # axon is defined using a region expression.
-            decor.paint('(tag 2)', cm=0.05, rL=80)
+            decor.paint('(tag 2)', cm=0.05 * U.F/U.m2, rL=80 * U.Ohm * U.cm)
+            # Specialize resistivity on soma and set :math:`r_L(s) = 42.0 \cdot d(s)`
+            # where `s` parametrises the cable segment(s) and :math:`d(s)` is the cable
+            # diameter at `s`.
+            decor.paint('"soma"', rL='(mul 42 (diameter))')
 
     .. method:: paint(region, name, int_con=None, ext_con=None, rev_pot=None)
         :noindex:
 
-        Set ion species properties initial conditions on a region.
+        Set ion species properties initial conditions on a region. A property
+        ``v`` is given as a float or a string. In the latter, ``v`` will be
+        interpreted as an inhomogeneous expression.
 
         :param str name: name of the ion species.
-        :param float int_con: initial internal concentration [mM].
-        :type int_con: float or None.
-        :param float ext_con: initial external concentration [mM].
-        :type ext_con: float or None.
-        :param float rev_pot: reversal potential [mV].
-        :type rev_pot: float or None
+        :param int_con: initial internal concentration [mM].
+        :type int_con: float, str, or None.
+        :param ext_con: initial external concentration [mM].
+        :type ext_con: float, str, or None.
+        :param rev_pot: reversal potential [mV].
+        :type rev_pot: float, str, or None
 
     .. method:: paint(region, density)
         :noindex:
@@ -131,7 +143,7 @@ Cable cell decoration
 
         Place one instance of the gap junction mechanism described by ``junction`` at each location in ``locations``
         and label the group of gap junction sites with ``label``. The label can be used to form gap junction
-        connections to/from one of labeled sites in the :py:class:`arbor.recipe` by creating a
+        connections to/from one of the labeled sites in the :py:class:`arbor.recipe` by creating a
         :py:class:`arbor.gap_junction_connection`.
 
         :param str locations: description of the locset.

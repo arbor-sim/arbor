@@ -14,14 +14,14 @@ is turned into an executable object.
 Terminology
 -----------
 
-In Arbor's codebase some prefixes are used as a low-key namespacing
+In Arbor's codebase, some prefixes are used as a low-key namespacing.
 
-- ``arb_``:: Mech ABI types, in general use through out Arbor, eg
+- ``arb_``:: Mech ABI types, in general use throughout Arbor, eg
   ``arb_mechanism_type``.
 - ``fvm_``:: Concerning use by the Finite Volume Method (FVM), eg
   ``fvm_lowered_cell``.
-- ``mc_``:: Related to Multi-Compartment (Cells), identical to cable cells the
-  difference is purely historical, eg ``mc_cell_group``.
+- ``mc_``:: Related to Multi-Compartment (Cells), identical to cable cells, the
+  difference is purely historical, e.g., ``cable_cell_group``.
 
 Setting up a Cable Cell simulation
 ----------------------------------
@@ -37,7 +37,7 @@ Arbor constructs a runnable simulation from three ingredients:
 
 The interesting part here is the ``recipe``, which is used to lazily produce the
 data required by the ``simulation`` and ``domain_decomposition``. A simple example
-might be this model of a single cell
+might be this model of a single cell.
 
 .. code:: c++
 
@@ -69,11 +69,11 @@ ion channels are described by a structure ``(name, [(parameter, value)])``.
 Lowered Cells, Shared State, and the Discretisation
 ---------------------------------------------------
 
-To obtain a simulation we need to turn the ``cable_cell`` description object
+To obtain a simulation, we need to turn the ``cable_cell`` description object
 into a ``fvm_lowered_cell``. However, multiple cells are collected into a
-``mc_cell_group`` and ``fvm_lowered_cell`` is the lowered representation of a
+``cable_cell_group`` and ``fvm_lowered_cell`` is the lowered representation of a
 full cell group. The ``fvm_lowered_cell`` is responsible for holding the
-backend-specific data of a cell group, managing sampling and stimuli, facilitate
+backend-specific data of a cell group, managing sampling and stimuli, facilitating
 event processing, and driving time integration.
 
 Discretisation splits the segments described by the morphology into *control
@@ -98,10 +98,9 @@ Now we are in a state to simulate a cell group by calling
 
 The integration in Arbor proceeds in *epochs* with a length less than half a
 time constant :math:`T_{min}`, which is the maximum time over which cell groups
-can evolve independently. The length :math:`T_{min}` is derived as the minimum over all
+can evolve independently. The length :math:`T_{min}` is derived as the minimum overall
 axonal/synaptic delays. This works since we know that an event at time :math:`t`
-can have an effect at time :math:`t + T_{min}` at the soonest. The factor of one
-half stems from double-buffering to overlap communication and computation. So,
+can have an effect at time :math:`t + T_{min}` at the soonest. The factor of one-half stems from double-buffering to overlap communication and computation. So,
 Arbor collects all events in an epoch and transmits them in bulk, see
 :ref:`Communication <communication>` for details.
 

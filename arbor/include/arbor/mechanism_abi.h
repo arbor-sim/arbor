@@ -20,7 +20,7 @@ extern "C" {
 
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
-#define ARB_MECH_ABI_VERSION_MINOR 5
+#define ARB_MECH_ABI_VERSION_MINOR 6
 #define ARB_MECH_ABI_VERSION_PATCH 0
 #define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000L * 10000L) + (ARB_MECH_ABI_VERSION_MAJOR * 10000L) + ARB_MECH_ABI_VERSION_PATCH)
 
@@ -99,6 +99,7 @@ typedef struct arb_mechanism_ppack {
     arb_value_type* vec_g;
     arb_value_type* temperature_degC;
     arb_value_type* diam_um;
+    arb_value_type* area_um2;
     arb_value_type* time_since_spike;
     arb_index_type* node_index;
     arb_index_type* peer_index;

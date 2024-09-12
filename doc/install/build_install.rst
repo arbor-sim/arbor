@@ -126,7 +126,7 @@ Optional requirements
 GPU support
 ~~~~~~~~~~~
 
-Arbor has full support for NVIDIA GPUs, for which the NVIDIA CUDA toolkit version 10 is required.
+Arbor has full support for NVIDIA GPUs, for which the NVIDIA CUDA toolkit version 11 is required.
 And experimental support for AMD GPUs when compiled with hip-clang (non-release compiler).
 
 Distributed
@@ -139,11 +139,11 @@ More information on building with MPI is in the `HPC cluster section <cluster_>`
 Python
 ~~~~~~
 
-Arbor has a Python frontend, for which a minimum of Python 3.7 is required.
-In addition, `numpy` is a runtime requirement for the Python package.
-In order to use MPI in combination with the python frontend the
-`mpi4py <https://mpi4py.readthedocs.io/en/stable/install.html#>`_
-Python package is recommended. See :ref:`install-python` for more information.
+Arbor has a Python frontend, for which a minimum of Python 3.9 is required. In
+addition, `numpy` is a runtime requirement for the Python package. In order to
+use MPI in combination with the python frontend the `mpi4py
+<https://mpi4py.readthedocs.io/en/stable/install.html#>`_ Python package is
+recommended. See :ref:`install-python` for more information.
 
 NeuroML
 ~~~~~~~
@@ -168,23 +168,6 @@ will need to install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
 
 .. _install-downloading:
 
-
-External dependencies
-~~~~~~~~~~~~~~~~~~~~~
-
-For the (optional) python bindings Arbor uses `pybind11 <https://github.com/pybind/pybind11>`_, and
-JSON parsing is faciliated through `nlohmann json <https://github.com/nlohmann/json>`_.
-
-There are two ways to obtain these libraries. The default way is to use them from the
-system, e.g., installed via ``apt install python3-pybind11`` and ``apt install nlohmann-json3-dev``
-for a Debian based distribution.
-
-The other possiblity is to use versions of these dependencies that are bundled with Arbor
-via the CMAKE option `ARB_USE_BUNDLED_LIBS`.
-If set, `pybind11 <https://github.com/pybind/pybind11>`_ is retrieved from a Git submodule (see below)
-and `nlohmann json <https://github.com/nlohmann/json>`_ from a copy in the checked out sources.
-
-It is also possible to select only one of the two libraries to be taken from the system or from Arbor.
 
 .. _building:
 
@@ -211,7 +194,7 @@ For more detailed build configuration options, see the `quick start <quickstart_
     # 2) Use CMake to configure the build.
     # By default Arbor builds in release mode, i.e. with optimizations on.
     # Release mode should be used for installing and benchmarking Arbor.
-    cmake .. # add -DARB_USE_BUNDLED_LIBS=ON to use bundled/git-submoduled libs
+    cmake ..
 
     # 3.1) Build Arbor library.
     make -j 4
@@ -440,16 +423,16 @@ CMake ``ARB_WITH_PYTHON`` option:
 By default ``ARB_WITH_PYTHON=OFF``. When this option is turned on, a Python module called :py:mod:`arbor` is built.
 
 A specific version of Python can be set when configuring with CMake using the
-``PYTHON_EXECUTABLE`` variable. For example, to use Python 3.8 installed on a Linux
-system with the executable in ``/usr/bin/python3.8``:
+``PYTHON_EXECUTABLE`` variable. For example, to use Python 3.11 installed on a Linux
+system with the executable in ``/usr/bin/python3.11``:
 
 .. code-block:: bash
 
-    cmake .. -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python3.8
+    cmake .. -DARB_WITH_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python3.11
 
 By default the Python package will be installed in the appropriate sub-directory
 inside ``CMAKE_INSTALL_PREFIX``, determined by querying Python's sysconfig library.
-For example ``${CMAKE_INSTALL_PREFIX}/lib/python3.9/site-packages/``.
+For example ``${CMAKE_INSTALL_PREFIX}/lib/python3.10/site-packages/``.
 
 To install the module in a different location, independent of ``CMAKE_INSTALL_PREFIX``,
 use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is to be installed.
@@ -463,10 +446,10 @@ use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is t
     Therefore, correct installation of the Python package to any other location using ``CMAKE_INSTALL_PREFIX``,
     such as user directory (e.g. `~/.local`), a Python or Conda virtual environment, may result in installation to a wrong path.
 
-    ``python3 -m site --user-site`` (for user installations) or a path from ``python3 -c 'import site; print(site.getsitepackages())'``
+    ``python -m site --user-site`` (for user installations) or a path from ``python -c 'import site; print(site.getsitepackages())'``
     (for virtual environment installation) can be used in combination with ``ARB_PYTHON_LIB_PATH``.
 
-    In addition, installation via ``pip`` or ``python setup.py`` is guaranteed to find the right path. Please refer to the
+    In addition, installation via ``pip`` is guaranteed to find the right path. Please refer to the
     :ref:`Python installation instruction <in_python_custom>`.
 
 
@@ -475,26 +458,23 @@ use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is t
     # A demonstration using ARB_PYTHON_LIB_PATH
 
     # Set up your venv.
-    mkdir myenv
-    cd myenv/
-    python3 -m venv env
+    python -m venv env
     source env/bin/activate
 
     # Install dependencies
-    pip3 install numpy
+    pip install numpy
 
     # Obtain arbor
     git clone --recursive git@github.com:arbor-sim/arbor.git
 
     # Manually set the prefix under which the python package will be installed.
     # In this case, the first directory found by querying Python's list of site-package directories.
-    pyprefix=`python3 -c 'import site; print(site.getsitepackages()[0])'`
+    pyprefix=`python -c 'import site; print(site.getsitepackages()[0])'`
 
     # Setup CMake
     mkdir build
     cd build
     cmake ../arbor -DARB_WITH_PYTHON=on       \       # enable python support.
-                   -DARB_USE_BUNDLED_LIBS=on  \       # use bundled versions of deps.
                    -DARB_PYTHON_LIB_PATH="$pyprefix"  # set Python installation path.
 
     # Build and install
@@ -502,7 +482,7 @@ use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is t
     make install
 
     # Test it out!
-    python -c "import arbor; print(arbor.__config__)"
+    python -c "import arbor; arbor.print_config()"
 
 
 The Arbor Python wrapper has optional support for mpi4py, though
@@ -516,15 +496,14 @@ variable before configuring and building Arbor:
 .. code-block:: bash
 
     # search for path tp python's site-package mpi4py
-    for p in `python3 -c 'import sys; print("\n".join(sys.path))'`; do echo ===== $p; ls $p | grep mpi4py; done
-
-    ===== /path/to/python3/site-packages
+    $ for p in `python -c 'import sys; print("\n".join(sys.path))'`; do echo ===== $p; ls $p | grep mpi4py; done
+    ===== /path/to/python/site-packages
     mpi4py
 
     # set CPATH and run cmake
-    export CPATH="/path/to/python3/site-packages/mpi4py/include/:$CPATH"
+    $ export CPATH="/path/to/python/site-packages/mpi4py/include/:$CPATH"
 
-    cmake -DARB_WITH_PYTHON=ON -DARB_WITH_MPI=ON
+    $ cmake -DARB_WITH_PYTHON=ON -DARB_WITH_MPI=ON
 
 .. _install-neuroml:
 
@@ -963,3 +942,58 @@ need to be `updated <install-downloading_>`_.
         git submodule update
     Or download submodules recursively when checking out:
         git clone --recurse-submodules https://github.com/arbor-sim/arbor.git
+
+
+Build in conda virtual environment using miniconda
+==================================================
+
+If you hope to install Arbor from source in a virtual environment in order not to interfere with other Arbor versions or software you have installed, or if you want to use features that are not included in the official release, you can use miniconda for this purpose. Otherwise, type pip install arbor in your terminal to install arbor. But you will have to fix two issues, one is feeding the correct Python path, and the other is 'GLIBCXX 3.4.30 not found in conda environment'. (Please note: This is assuming Linux and MacOS is not yet covered.)
+
+.. code-block:: bash
+
+    #create a virtual environment    
+    conda create --name arbor_test
+    conda activate arbor_test
+    
+    #go to the folder and clone the Arbor source package from GitHub
+    cd ~/miniconda3/envs/arbor_test/
+    mkdir src
+    cd src
+    git clone https://github.com/arbor-sim/arbor.git --recurse-submodules
+    
+    #install python and numpy in this environment
+    conda install python=3.12.2
+    conda install numpy
+    
+    #start the build
+    cd arbor
+    mkdir build
+    cd build
+    cmake .. -GNinja -DCMAKE_CXX_COMPILER=$(which g++) -DCMAKE_C_COMPILER=$(which gcc) -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=ON -DPython3_EXECUTABLE=$(which python3) -DARB_USE_BUNDLED_LIBS=ON
+    
+    #activate ninja to install
+    ninja
+    sudo ninja install
+    
+    #correct the path to the site packages and the libc files
+    #first request the right Python site package path
+    python -c 'import numpy; print(numpy.__path__)'
+
+    #load the right path to the one used for installing    
+    #replace <site-packages> with the path you get in the previous operation before ‘/numpy’
+    cp -r ~/miniconda3/envs/arbor_test/src/arbor/build/python/arbor <site-packages>
+    
+    #redirect the libc files such that the miniconda environment can access it    
+    ln -sf /lib/x86_64-linux-gnu/libstdc++.so.6 ~/miniconda3/envs/arbor_test/bin/../lib/libstdc++.so.6
+    
+    #go to any working directory to try if you successfully installed arbor, by starting python and importing arbor.
+    #one thing to add here could be testing for the version, i.e.,
+    python -c 'import arbor; print(arbor.__version__)'
+    #should work without errors and print something like 0.91-dev.
+
+
+    #then deactivate the environment if no more actions are planned. In the future, always first activate the virtual environment with and then use arbor in this environment with:
+    conda activate arbor_test
+    python
+    >>>import arbor
+

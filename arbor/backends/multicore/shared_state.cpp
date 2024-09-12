@@ -53,11 +53,9 @@ inline unsigned min_alignment(unsigned align) {
 
 using pad = util::padded_allocator<>;
 
-ion_state::ion_state(
-    int charge,
-    const fvm_ion_config& ion_data,
-    unsigned align,
-    solver_ptr ptr):
+ion_state::ion_state(const fvm_ion_config& ion_data,
+                     unsigned align,
+                     solver_ptr ptr):
     alignment(min_alignment(align)),
     write_eX_(ion_data.revpot_written),
     write_Xo_(ion_data.econc_written),
@@ -74,7 +72,7 @@ ion_state::ion_state(
     reset_Xi_(ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)),
     reset_Xo_(ion_data.reset_econc.begin(), ion_data.reset_econc.end(), pad(alignment)),
     init_eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
-    charge(1u, charge, pad(alignment)),
+    charge(1u, ion_data.charge, pad(alignment)),
     solver(std::move(ptr)) {
     arb_assert(node_index_.size()==init_Xi_.size());
     arb_assert(node_index_.size()==init_Xo_.size());
@@ -199,13 +197,14 @@ shared_state::shared_state(task_system_handle,    // ignored in mc backend
                            const std::vector<arb_value_type>& init_membrane_potential,
                            const std::vector<arb_value_type>& temperature_K,
                            const std::vector<arb_value_type>& diam,
+                           const std::vector<arb_value_type>& area,
                            const std::vector<arb_index_type>& src_to_spike_,
-                           const fvm_detector_info& detector,
+                           const fvm_detector_info& detector_info,
                            unsigned align,
                            arb_seed_type cbprng_seed_):
     alignment(min_alignment(align)),
     alloc(alignment),
-    n_detector(detector.count),
+    n_detector(detector_info.count),
     n_cv(n_cv_),
     cv_to_cell(math::round_up(cv_to_cell_vec.size(), alignment), pad(alignment)),
     voltage(n_cv_, pad(alignment)),
@@ -215,13 +214,11 @@ shared_state::shared_state(task_system_handle,    // ignored in mc backend
     temperature_degC(n_cv_, pad(alignment)),
     diam_um(diam.begin(), diam.end(), pad(alignment)),
     time_since_spike(n_cell*static_cast<std::size_t>(n_detector), pad(alignment)),
+    time_since_spike(n_cell*n_detector, pad(alignment)),
     src_to_spike(src_to_spike_.begin(), src_to_spike_.end(), pad(alignment)),
     cbprng_seed(cbprng_seed_),
-    watcher{n_cv_,
-            src_to_spike.data(),
-            detector.cv,
-            detector.threshold,
-            detector.ctx} {
+    watcher{n_cv_, src_to_spike.data(), detector_info}
+{
     if (cv_to_cell_vec.size()) {
         std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
         std::fill(cv_to_cell.begin() + n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
@@ -276,27 +273,26 @@ void shared_state::take_samples() {
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     using io::csv;
 
-    out << "n_cv         " << s.n_cv << "\n";
-    out << "time         " << s.time << "\n";
-    out << "time_to      " << s.time_to << "\n";
-    out << "dt           " << s.dt << "\n";
-    out << "voltage      " << csv(s.voltage) << "\n";
-    out << "init_voltage " << csv(s.init_voltage) << "\n";
-    out << "temperature  " << csv(s.temperature_degC) << "\n";
-    out << "diameter     " << csv(s.diam_um) << "\n";
-    out << "current      " << csv(s.current_density) << "\n";
-    out << "conductivity " << csv(s.conductivity) << "\n";
-    for (const auto& ki: s.ion_data) {
-        auto& kn = ki.first;
-        auto& i = ki.second;
-        out << kn << "/current_density        " << csv(i.iX_) << "\n";
-        out << kn << "/reversal_potential     " << csv(i.eX_) << "\n";
-        out << kn << "/internal_concentration " << csv(i.Xi_) << "\n";
-        out << kn << "/external_concentration " << csv(i.Xo_) << "\n";
-        out << kn << "/intconc_initial        " << csv(i.init_Xi_) << "\n";
-        out << kn << "/extconc_initial        " << csv(i.init_Xo_) << "\n";
-        out << kn << "/revpot_initial         " << csv(i.init_eX_) << "\n";
-        out << kn << "/node_index             " << csv(i.node_index_) << "\n";
+    out << "n_cv         " << s.n_cv << "\n"
+        << "time         " << s.time << "\n"
+        << "time_to      " << s.time_to << "\n"
+        << "dt           " << s.dt << "\n"
+        << "voltage      " << csv(s.voltage) << "\n"
+        << "init_voltage " << csv(s.init_voltage) << "\n"
+        << "temperature  " << csv(s.temperature_degC) << "\n"
+        << "diameter     " << csv(s.diam_um) << "\n"
+        << "area         " << csv(s.area_um2) << "\n"
+        << "current      " << csv(s.current_density) << "\n"
+        << "conductivity " << csv(s.conductivity) << "\n";
+    for (const auto& [kn, i]: s.ion_data) {
+        out << kn << "/current_density        " << csv(i.iX_) << "\n"
+            << kn << "/reversal_potential     " << csv(i.eX_) << "\n"
+            << kn << "/internal_concentration " << csv(i.Xi_) << "\n"
+            << kn << "/external_concentration " << csv(i.Xo_) << "\n"
+            << kn << "/intconc_initial        " << csv(i.init_Xi_) << "\n"
+            << kn << "/extconc_initial        " << csv(i.init_Xo_) << "\n"
+            << kn << "/revpot_initial         " << csv(i.init_eX_) << "\n"
+            << kn << "/node_index             " << csv(i.node_index_) << "\n";
     }
 
     return out;
@@ -404,6 +400,7 @@ void shared_state::instantiate(arb::mechanism& m,
     m.ppack_.vec_g            = conductivity.data();
     m.ppack_.temperature_degC = temperature_degC.data();
     m.ppack_.diam_um          = diam_um.data();
+    m.ppack_.area_um2         = area_um2.data();
     m.ppack_.time_since_spike = time_since_spike.data();
     m.ppack_.n_detectors      = static_cast<arb_index_type>(n_detector);
     m.ppack_.events           = {};

@@ -6,37 +6,37 @@ Simulations
 From recipe to simulation
 -------------------------
 
-To build a simulation the following concepts are needed:
+To build a simulation, the following concepts are needed:
 
 * an :py:class:`arbor.recipe` that describes the cells and connections in the model;
 * an :py:class:`arbor.context` used to execute the simulation.
 
 The workflow to build a simulation is to first generate an
 :class:`arbor.domain_decomposition` based on the :py:class:`arbor.recipe` and :py:class:`arbor.context` describing the distribution of the model
-over the local and distributed hardware resources (see :ref:`pydomdec`). Then, the simulation is build using this :py:class:`arbor.domain_decomposition`.
+over the local and distributed hardware resources (see :ref:`pydomdec`). Then, the simulation is built using this :py:class:`arbor.domain_decomposition`.
 
 .. container:: example-code
 
     .. code-block:: python
 
-        import arbor
+        import arbor as A
 
         # Get a communication context (with 4 threads, no GPU)
-        context = arbor.context(threads=4, gpu_id=None)
+        context = A.context(threads=4, gpu_id=None)
 
-        # Initialise a recipe of user defined type my_recipe with 100 cells.
+        # Initialise a recipe of user-defined type my_recipe with 100 cells.
         n_cells = 100
         recipe = my_recipe(n_cells)
 
         # Get a description of the partition of the model over the cores.
-        decomp = arbor.partition_load_balance(recipe, context)
+        decomp = A.partition_load_balance(recipe, context)
 
         # Instantiate the simulation.
-        sim = arbor.simulation(recipe, decomp, context)
+        sim = A.simulation(recipe, decomp, context)
 
-        # Run the simulation for 2000 ms with time stepping of 0.025 ms
-        tSim = 2000
-        dt = 0.025
+        # Run the simulation for 2000 ms with a time step of 0.025 ms
+        tSim = 2000 * U.ms
+        dt = 0.025 * U.ms
         sim.run(tSim, dt)
 
 .. currentmodule:: arbor
@@ -53,7 +53,7 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
     * an :py:class:`arbor.recipe` that describes the model;
     * an :py:class:`arbor.domain_decomposition` that describes how the cells in the model are assigned to hardware resources;
     * an :py:class:`arbor.context` which is used to execute the simulation.
-    * a non-negative :py:class:`int` in order to seed the pseudo pandom number generator (optional)
+    * a non-negative :py:class:`int` in order to seed the pseudo random number generator (optional)
 
     Simulations provide an interface for executing and interacting with the model:
 
@@ -66,10 +66,13 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     .. function:: simulation(recipe, domain_decomposition, context, seed)
 
-        Initialize the model described by an :py:class:`arbor.recipe`, with cells and network
-        distributed according to :py:class:`arbor.domain_decomposition`, computational resources
-        described by :py:class:`arbor.context` and with a seed value for generating reproducible
+        Initialize the model described by an :py:class:`~arbor.recipe`, with cells and network
+        distributed according to :py:class:`~arbor.domain_decomposition`, computational resources
+        described by :py:class:`~arbor.context` and with a seed value for generating reproducible
         random numbers (optional, default value: `0`).
+
+        When constructed with a single argument, a :py:class:`~arbor.recipe`, a local context is
+        automatically created with :py:func:`~arbor.env.default_allocation()`.
 
     **Updating Model State:**
 
@@ -91,7 +94,7 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     .. function:: run(tfinal, dt)
 
-        Run the simulation from current simulation time to ``tfinal``,
+        Run the simulation from the current simulation time to ``tfinal``,
         with maximum time step size ``dt``.
 
         :param tfinal: The final simulation time [ms].
@@ -102,18 +105,33 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     .. function:: record(policy)
 
-        Disable or enable recorder of rank-local or global spikes, as determined by the ``policy``.
+        Disable or enable the recorder of rank-local or global spikes, as determined by the ``policy``.
 
         :param policy: Recording policy of type :py:class:`spike_recording`.
 
     .. function:: spikes()
 
         Return a NumPy structured array of spikes recorded during the course of a simulation.
-        Each spike is represented as a NumPy structured datatype with signature
-        ``('source', [('gid', '<u4'), ('index', '<u4')]), ('time', '<f8')``.
+        This array has the following NumpPy ``dtype``:
 
-        The spikes are sorted in ascending order of spike time, and spikes with the same time are
-        sorted accourding to source gid then index.
+        .. code-block:: python
+
+           [('source', [('gid', '<u4'), ('index', '<u4')]), ('time', '<f8')]
+
+        and can be iterated over as
+
+        .. code-block:: python
+
+            for (gid, index), time in sim.spikes():
+                pass
+
+        The fields ``gid`` and ``index`` identify the spike's source by the cell
+        global index ``gid`` and by the source index on that cell ``index``, eg
+        the ``n``th spike detector on a cable cell, and ``time`` is simply the
+        spike time.
+
+        The spikes are sorted in ascending order of spike time, and spikes with
+        the same time are sorted according to source gid then index.
 
     **Sampling probes:**
 
@@ -206,22 +224,22 @@ Spikes recorded during a simulation are returned as a NumPy structured datatype 
 
     .. code-block:: python
 
-        import arbor
+        import arbor as A
 
         # Instantiate the simulation.
-        sim = arbor.simulation(recipe, decomp, context)
+        sim = A.simulation(recipe, decomp, context)
 
         # Direct the simulation to record all spikes, which will record all spikes
-        # across multiple MPI ranks in distrubuted simulation.
-        # To only record spikes from the local MPI rank, use arbor.spike_recording.local
-        sim.record(arbor.spike_recording.all)
+        # across multiple MPI ranks in distributed simulation.
+        # To only record spikes from the local MPI rank, use A.spike_recording.local
+        sim.record(A.spike_recording.all)
 
-        # Run the simulation for 2000 ms with time stepping of 0.025 ms
-        tSim = 2000
-        dt = 0.025
+        # Run the simulation for 2000 ms with a time step of 0.025 ms
+        tSim = 2 * U.s
+        dt = 0.025 * U.ms
         sim.run(tSim, dt)
 
-        # Print the spikes and according spike time
+        # Print the spikes: time and source 
         for s in sim.spikes():
             print(s)
 
@@ -270,10 +288,10 @@ There are three parts to the process of recording cell data over a simulation.
 
    The contents of ``data`` will depend upon the specifics of the probe, but note:
 
-   i. The object type and structure of ``data`` is fully determined by the metadata.
+   i. The object type and structure of ``data`` are fully determined by the metadata.
 
    ii. All currently implemented probes return data that is a NumPy array, with one
-       row per sample, first column being sample time, and the remaining columns containing
+       row per sample, the first column being sample time, and the remaining columns containing
        the corresponding data.
 
 Example
@@ -281,20 +299,21 @@ Example
 
 .. code-block:: python
 
-    import arbor
+    import arbor as A
+    from arbor import units as U
 
     # [... define recipe, decomposition, context ... ]
     # Initialize simulation:
 
-    sim = arbor.simulation(recipe, decomp, context)
+    sim = A.simulation(recipe, decomp, context)
 
     # Sample probeset id (0, 0) (first probeset id on cell 0) every 0.1 ms
 
-    handle = sim.sample((0, 0), arbor.regular_schedule(0.1))
+    handle = sim.sample((0, 0), A.regular_schedule(0.1*U.ms))
 
     # Run simulation and retrieve sample data from the first probe associated with the handle.
 
-    sim.run(tfinal=3, dt=0.1)
+    sim.run(tfinal=3 * U.ms, dt=0.1 * U.ms)
     data, meta = sim.samples(handle)[0]
     print(data)
 

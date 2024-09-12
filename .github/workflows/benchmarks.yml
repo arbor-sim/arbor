@@ -3,6 +3,7 @@ name: Benchmarks
 on:
   pull_request:
     branches: [ master ]
+    paths-ignore: 'doc/**'
 
 jobs:
   build:
@@ -19,11 +20,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build ccache
       - name: Set up cmake
-        uses: jwlawson/actions-setup-cmake@v1.13
+        uses: jwlawson/actions-setup-cmake@v2.0.0
         with:
           cmake-version: 3.22.x
       - name: Clone w/ submodules
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
       # figure out vector extensions for ccache key
@@ -43,7 +44,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_MPI=OFF -DARB_USE_BUNDLED_LIBS=ON
+          cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_MPI=OFF
           ninja -j4 ubenches
           cd -
       - name: Run benchmarks

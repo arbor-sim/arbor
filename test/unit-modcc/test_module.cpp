@@ -188,3 +188,81 @@ TEST(Module, stochastic_density) {
     EXPECT_EQ(wnb.parameters.size(), 2u);
     EXPECT_EQ(wnb.used.size(), 2u);
 }
+
+TEST(Module, stochastic_conditional) {
+    Module m(io::read_all(DATADIR "/mod_files/white_noise_under_conditional.mod"), "wn_else.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    auto const & wnb = m.white_noise_block();
+
+    EXPECT_EQ(wnb.parameters.size(), 1u);
+    EXPECT_EQ(wnb.used.size(), 0u);
+
+    EXPECT_TRUE(m.semantic());
+
+    EXPECT_EQ(wnb.parameters.size(), 1u);
+    EXPECT_EQ(wnb.used.size(), 0u);
+}
+
+TEST(Module, net_receive) {
+    Module m(io::read_all(DATADIR "/mod_files/net_receive.mod"), "net_receive.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    EXPECT_FALSE(m.semantic());
+}
+
+TEST(Module, kinetic_footgun_alternating_reac) {
+    Module m(io::read_all(DATADIR "/mod_files/test_alternating_reaction.mod"), "test_alternating_reaction.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    EXPECT_FALSE(m.semantic());
+}
+
+TEST(Module, kinetic_footgun_alternating_diff) {
+    Module m(io::read_all(DATADIR "/mod_files/test_alternating_differential.mod"), "test_alternating_differential.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    EXPECT_FALSE(m.semantic());
+}
+
+TEST(Module, derivative_alternating) {
+    Module m(io::read_all(DATADIR "/mod_files/test_alternating_derivative.mod"), "test_alternating_derivative.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    EXPECT_TRUE(m.semantic());
+}
+
+TEST(Module, misplaced_reaction) {
+    Module m(io::read_all(DATADIR "/mod_files/test_misplaced_reaction.mod"), "test_misplaced_reaction.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_TRUE(p.parse());
+
+    EXPECT_FALSE(m.semantic());
+}
+
+TEST(Module, reaction_under_conditional) {
+    Module m(io::read_all(DATADIR "/mod_files/test_kinetic_under_conditional.mod"), "test_kinetic_under_conditional.mod");
+    EXPECT_NE(m.buffer().size(), 0u);
+
+    Parser p(m, false);
+    EXPECT_FALSE(p.parse());
+
+    EXPECT_FALSE(m.semantic());
+}

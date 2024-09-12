@@ -41,6 +41,7 @@ static std::ostream& operator << (std::ostream& os, FlopAccumulator const& f) {
 
 class FlopVisitor : public Visitor {
 public:
+    using Visitor::visit;
     void visit(Expression *e) override {}
 
     // traverse the statements in an API method
@@ -183,6 +184,7 @@ public:
 
 class MemOpVisitor : public Visitor {
 public:
+    using Visitor::visit;
     void visit(Expression *e) override {}
 
     // traverse the statements in an API method

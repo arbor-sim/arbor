@@ -90,7 +90,7 @@ The types defined below are used as identifiers for cells and members of cell-lo
            # Create the policy
            policy = arbor.selection_policy.univalent
 
-           # Creat the local label referring to the group of items labeled "syn0".
+           # Create the local label referring to the group of items labeled "syn0".
            # The group is expected to only contain 1 item.
            local_label = arbor.cell_local_label("syn0", policy)
 
@@ -109,9 +109,6 @@ The types defined below are used as identifiers for cells and members of cell-lo
 
         * be associated with a unique cell, identified by the member :attr:`gid`;
         * identify an item within a cell-local collection by the member :attr:`index`.
-
-        An example is uniquely identifying a probeset on the model:
-        ``arbor.cell_member(12, 3)`` can be used to identify the probeset with :attr:`index` 3 on the cell with :attr:`gid` 12.
 
         Lexicographically ordered by :attr:`gid`, then :attr:`index`.
 

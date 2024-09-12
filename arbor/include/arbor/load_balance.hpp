@@ -11,7 +11,7 @@
 namespace arb {
 
 struct partition_hint {
-    constexpr static std::size_t max_size = -1;
+    constexpr static std::size_t max_size = std::numeric_limits<std::size_t>::max();
 
     std::size_t cpu_group_size = 1;
     std::size_t gpu_group_size = max_size;

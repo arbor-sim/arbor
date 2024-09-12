@@ -1,4 +1,4 @@
-# Copyright 2013-2022 Lawrence Livermore National Security, LLC and other
+# Copyright 2013-2023 Lawrence Livermore National Security, LLC and other
 # Spack Project Developers. See the top-level COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
@@ -12,27 +12,42 @@ class Arbor(CMakePackage, CudaPackage):
 
     homepage = "https://arbor-sim.org"
     git = "https://github.com/arbor-sim/arbor.git"
-    url = "https://github.com/arbor-sim/arbor/releases/download/v0.8.1/arbor-v0.8.1-full.tar.gz"
-    maintainers = ["bcumming", "brenthuisman", "haampie", "schmitts"]
+    url = "https://github.com/arbor-sim/arbor/releases/download/v0.8.1/arbor-v0.9.0-full.tar.gz"
+    maintainers = ("thorstenhater", "haampie")
+    submodules = True
 
     version("master", branch="master", submodules=True)
+    version("develop", branch="master", submodules=True)
+    version(
+        "0.10.0",
+        sha256="6b6cc900b85fbf833fae94817b9406a0d690dc28",
+        url="https://github.com/arbor-sim/arbor/releases/download/v0.10.1/arbor-v0.10.0-full.tar.gz",
+        submodules=True,
+    )
+
+    version(
+        "0.9.0",
+        sha256="5f9740955c821aca81e23298c17ad64f33f635756ad9b4a0c1444710f564306a",
+        url="https://github.com/arbor-sim/arbor/releases/download/v0.9.0/arbor-v0.9.0-full.tar.gz",
+        submodules=True,
+    )
     version(
         "0.8.1",
         sha256="caebf96676ace6a9c50436541c420ca4bb53f0639dcab825de6fa370aacf6baa",
         url="https://github.com/arbor-sim/arbor/releases/download/v0.8.1/arbor-v0.8.1-full.tar.gz",
     )
     version(
-        "0.8",
+        "0.8.0",
         sha256="18df5600308841616996a9de93b55a105be0f59692daa5febd3a65aae5bc2c5d",
         url="https://github.com/arbor-sim/arbor/releases/download/v0.8/arbor-v0.8-full.tar.gz",
     )
     version(
-        "0.7",
+        "0.7.0",
         sha256="c3a6b7193946aee882bb85f9c38beac74209842ee94e80840968997ba3b84543",
         url="https://github.com/arbor-sim/arbor/releases/download/v0.7/arbor-v0.7-full.tar.gz",
     )
     version(
-        "0.6",
+        "0.6.0",
         sha256="4cd333b18effc8833428ddc0b99e7dc976804771bc85da90034c272c7019e1e8",
         url="https://github.com/arbor-sim/arbor/releases/download/v0.6/arbor-v0.6-full.tar.gz",
     )
@@ -74,31 +89,41 @@ class Arbor(CMakePackage, CudaPackage):
     # misc dependencies
     depends_on("fmt@7.1:", when="@0.5.3:")  # required by the modcc compiler
     depends_on("fmt@9.1:", when="@0.7.1:")
-    depends_on("googletest@1.12.1", type="test", when="@0.7.1:")
+    depends_on("fmt@10.2:", when="@0.9.1:")
+    depends_on("fmt@10.2:", when="@0.10.0:")
+    depends_on("googletest@1.12.1:", when="@0.7.1:")
     depends_on("pugixml@1.11:", when="@0.7.1:")
-    depends_on("nlohmann-json")
-    depends_on("random123")
+    depends_on("pugixml@1.13:", when="@0.9.1:")
+    depends_on("pugixml@1.14:", when="@0.10.0:")
+    depends_on("nlohmann-json@3.11.3:")
+    depends_on("random123@1.14.0:")
     with when("+cuda"):
         depends_on("cuda@10:")
         depends_on("cuda@11:", when="@0.7.1:")
+        depends_on("cuda@12:", when="@0.9.1:")
+        depends_on("cuda@12:", when="@0.10.0:")
 
     # mpi
     depends_on("mpi", when="+mpi")
     depends_on("py-mpi4py", when="+mpi+python", type=("build", "run"))
 
     # python (bindings)
-    extends("python", when="+python")
-    depends_on("python@3.7:", when="+python", type=("build", "run"))
-    depends_on("py-numpy", when="+python", type=("build", "run"))
     with when("+python"):
-        depends_on("py-pybind11@2.6:", type=("build"))
-        depends_on("py-pybind11@2.8.1:", when="@0.5.3:", type=("build"))
-        depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type=("build"))
+        extends("python")
+        depends_on("python@3.7:", type=("build", "run"))
+        depends_on("python@3.9:", when="@0.9.1:", type=("build", "run"))
+        depends_on("py-numpy", type=("build", "run"))
+        depends_on("py-pybind11@2.6:", type="build")
+        depends_on("py-pybind11@2.8.1:", when="@0.5.3:", type="build")
+        depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
+        depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
+        depends_on("py-pybind11@2.10.1:", when="@2.11.1:", type="build")
 
     # sphinx based documentation
-    depends_on("python@3.7:", when="+doc", type="build")
-    depends_on("py-sphinx", when="+doc", type="build")
-    depends_on("py-svgwrite", when="+doc", type="build")
+    with when("+doc"):
+        depends_on("python@3.10:", type="build")
+        depends_on("py-sphinx", type="build")
+        depends_on("py-svgwrite", type="build")
 
     @property
     def build_targets(self):
@@ -119,8 +144,14 @@ class Arbor(CMakePackage, CudaPackage):
         # query spack for the architecture-specific compiler flags set by its wrapper
         args.append("-DARB_ARCH=none")
         opt_flags = self.spec.target.optimization_flags(
-            self.spec.compiler.name, self.spec.compiler.version
+            self.spec.compiler.name, str(self.spec.compiler.version)
         )
-        args.append("-DARB_CXX_FLAGS_TARGET=" + opt_flags)
-
+        # Might return nothing
+        if opt_flags:
+            args.append("-DARB_CXX_FLAGS_TARGET=" + opt_flags)
         return args
+
+    @run_after("install", when="+python")
+    @on_package_attributes(run_tests=True)
+    def install_test(self):
+        python("-c", "import arbor")

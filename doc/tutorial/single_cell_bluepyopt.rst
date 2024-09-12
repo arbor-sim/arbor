@@ -1,19 +1,19 @@
 .. _tutorialsinglecellbluepyopt:
 
-A single cell model from the BluePyOpt Cell Optimisation Library
+A single-cell model from the BluePyOpt Cell Optimisation Library
 ================================================================
 
-In this tutorial we'll see how we can export a model with optimised cell parameters from the `BluePyOpt package <https://github.com/BlueBrain/BluePyOpt>`_. In the process, we will learn to edit the morphology in order to replace the axon with a surrogate model and use the Arbor GUI to define stimuli and probe locations that are consistent with BluePyOpt protocols for the Neuron simulator.
+In this tutorial, we'll see how we can export a model with optimised cell parameters from the `BluePyOpt package <https://github.com/BlueBrain/BluePyOpt>`_. In the process, we will learn to edit the morphology in order to replace the axon with a surrogate model and use the Arbor GUI to define stimuli and probe locations that are consistent with BluePyOpt protocols for the Neuron simulator.
 
 .. Note::
 
    **Concepts covered in this example:**
 
-   1. Export a model with optimised parameters from BluePyOpt to a mixed JSON/ACC format.
-   2. Load the morphology, label dictionary and decor from the mixed JSON/ACC format in Arbor.
-   3. Perform axon replacement with a surrogate model using the segment tree editing functionality.
-   4. Determine voltage probe locations that match BluePyOpt protocols defined with the Neuron simulator using the Arbor graphical user interface (GUI).
-   5. Create an :class:`arbor.cable_cell` and an :class:`arbor.single_cell_model` or :class:`arbor.recipe` supporting mechanism catalogues that are consistent with BluePyOpt. 
+   1. Exporting a model with optimised parameters from BluePyOpt to a mixed JSON/ACC format.
+   2. Loading the morphology, labeling dictionary and decor from the mixed JSON/ACC format in Arbor.
+   3. Performing axon replacement with a surrogate model using the segment tree editing functionality.
+   4. Determining voltage probe locations that match BluePyOpt protocols defined with the Neuron simulator using the Arbor graphical user interface (GUI).
+   5. Creating an :class:`arbor.cable_cell` and an :class:`arbor.single_cell_model` or :class:`arbor.recipe` supporting mechanism catalogues that are consistent with BluePyOpt. 
    6. Running a simulation and visualising the results.
 
 The model
@@ -191,7 +191,7 @@ The first extra recording of the ``bAP`` protocol is located at 660 µm from the
 
    (distal-translate (on-components 0.5 (region "soma")) 660)
 
-and since we're only interested in the apical dendrite, we can wrap this in ``(restrict ... (region "apic"))``.
+and since we're only interested in the apical dendrite, we can wrap this in ``(restrict-to ... (region "apic"))``.
 
 Unfortunately, for this particular morphology, this does not result in a concrete location as can be seen in the Arbor GUI below (Locset A, violet, is empty). Alternatively, the method :func:`arbor.cable_cell.locations` will also return an empty list of concrete locations for this expression. To obtain a valid location instead, we can replace ``(on-components 0.5 (region "soma"))`` by the proximal boundary of the apical dendrite with ``(proximal (region "apic"))`` (Locset B, orange). The restrict operation to the apical region is no longer necessary. But now, the resulting concrete location is non-unique.
 
@@ -272,7 +272,7 @@ To be runnable in a simulation, we also need to make sure the appropriate mechan
 .. literalinclude:: ../../python/example/single_cell_bluepyopt_l5pc.py
    :language: python
    :dedent:
-   :lines: 51-92
+   :lines: 51-91
 
 If we want to run a model with mechanism catalogues that are not built into Arbor, we can specify a mapping of catalogue name to folder with the NMODL files in the argument ``ext_catalogues`` of the JSON/ACC exporter. We can then load the catalogue with an appropriate prefix analogous to the built-in ones using ``arbor.load_catalogue('<name>-catalogue.so', '<name>::')`` and use it with the exported model. Here, ``<name>-catalogue.so`` is the compiled output of ``arbor-build-catalogue <name> <path/to/nmodl>``. To use such a mechanism catalogue in a BluePyOpt optimisation, ``<name>-catalogue.so`` must be available in the same folder as the NMODL files at runtime. It is then sufficient, to supply the same ``ext_catalogues`` dictionary as used in the JSON/ACC exporter to the ``ephys.simulators.ArbSimulator`` at its construction.
 
@@ -284,7 +284,7 @@ We can now run a simulation with
 .. literalinclude:: ../../python/example/single_cell_bluepyopt_l5pc.py
    :language: python
    :dedent:
-   :lines: 94-96,100-104
+   :lines: 93-103
 
 and visualise the voltage trace for the measurement on the apical dendrite of the layer-5 pyramidal cell that is available through ``sim.samples(handle)``. 
 
@@ -293,7 +293,7 @@ and visualise the voltage trace for the measurement on the apical dendrite of th
     :align: center
 
 
-For the simple-cell, we obtain the following voltage trace using the ``step2`` protocol from the `Jupyter notebook <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/simplecell/simplecell.ipynb>`_
+For the simple-cell, we obtain the following voltage trace using the ``step2`` protocol from the `Jupyter notebook <https://github.com/BlueBrain/BluePyOpt/blob/master/examples/simplecell/simplecell.ipynb>`_.
 
 .. figure:: single_cell_bluepyopt_simplecell.svg
     :width: 600

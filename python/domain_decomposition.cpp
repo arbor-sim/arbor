@@ -1,6 +1,5 @@
 #include <limits>
 #include <string>
-#include <sstream>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -8,6 +7,7 @@
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
+#include <arbor/network_generation.hpp>
 
 #include "context.hpp"
 #include "error.hpp"
@@ -105,9 +105,9 @@ void register_domain_decomposition(pybind11::module& m) {
     // Partition load balancer
     // The Python recipe has to be shimmed for passing to the function that takes a C++ recipe.
     m.def("partition_load_balance",
-        [](std::shared_ptr<py_recipe>& recipe, const context_shim& ctx, arb::partition_hint_map hint_map) {
+        [](std::shared_ptr<recipe>& recipe, const context_shim& ctx, arb::partition_hint_map hint_map) {
             try {
-                return arb::partition_load_balance(py_recipe_shim(recipe), ctx.context, std::move(hint_map));
+                return arb::partition_load_balance(recipe_shim(recipe), ctx.context, std::move(hint_map));
             }
             catch (...) {
                 py_reset_and_throw();
@@ -120,9 +120,9 @@ void register_domain_decomposition(pybind11::module& m) {
         "recipe"_a, "context"_a, "hints"_a=arb::partition_hint_map{});
 
     m.def("partition_by_group",
-          [](std::shared_ptr<py_recipe>& recipe, const context_shim& ctx, const std::vector<arb::group_description>& groups) {
+          [](std::shared_ptr<recipe>& recipe, const context_shim& ctx, const std::vector<arb::group_description>& groups) {
               try {
-                  return arb::domain_decomposition(py_recipe_shim(recipe), ctx.context, groups);
+                  return arb::domain_decomposition(recipe_shim(recipe), ctx.context, groups);
               }
               catch (...) {
                   py_reset_and_throw();
@@ -133,6 +133,20 @@ void register_domain_decomposition(pybind11::module& m) {
           "to the local hardware resources described by context on the calling rank.\n"
           "The cell_groups are guaranteed to be present on the calling rank.",
           "recipe"_a, "context"_a, "groups"_a);
+
+    m.def("generate_network_connections",
+          [](const std::shared_ptr<recipe>& rec,
+             std::shared_ptr<context_shim> ctx,
+             std::optional<arb::domain_decomposition> decomp) {
+              recipe_shim rec_shim(rec);
+              if (!ctx) ctx = std::make_shared<context_shim>(arb::make_context());
+              if (!decomp) decomp = arb::partition_load_balance(rec_shim, ctx->context);
+              return generate_network_connections(rec_shim, ctx->context, decomp.value());
+        },
+        "recipe"_a, "context"_a=pybind11::none(), "decomp"_a=pybind11::none(),
+        "Generate network connections from the network description in the recipe. Will only "
+        "generate connections with local gids in the domain composition as target.");
+
 }
 
 } // namespace pyarb

@@ -1,9 +1,8 @@
-#include <ostream>
-#include <string>
-
 #include <pybind11/pybind11.h>
 
 #include <arbor/common_types.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/spike.hpp>
 
 #include "strprintf.hpp"
 
@@ -23,6 +22,11 @@ void register_identifiers(py::module& m) {
                "Halts at the current location until the round_robin policy is called (again).")
         .value("univalent", arb::lid_selection_policy::assert_univalent,
                "Assert that there is only one possible location associated with a labeled item on the cell. The model throws an exception if the assertion fails.");
+
+    py::class_<arb::cell_address_type> cell_address(m, "cell_address");
+    cell_address
+        .def_readwrite("gid", &arb::cell_address_type::gid)
+        .def_readwrite("tag", &arb::cell_address_type::tag);
 
     py::class_<arb::cell_local_label_type> cell_local_label_type(m, "cell_local_label",
         "For local identification of an item.\n\n"
@@ -46,9 +50,14 @@ void register_identifiers(py::module& m) {
              "Construct a cell_local_label identifier with arguments:\n"
              "  label:  The identifier of a group of one or more items on a cell.\n"
              "  policy: The policy for selecting one of possibly multiple items associated with the label.\n")
-        .def(py::init([](py::tuple t) {
-               if (py::len(t)!=2) throw std::runtime_error("tuple length != 2");
-               return arb::cell_local_label_type{t[0].cast<arb::cell_tag_type>(), t[1].cast<arb::lid_selection_policy>()};
+        .def(py::init([](const std::tuple<arb::cell_tag_type, arb::lid_selection_policy>& t) {
+               return arb::cell_local_label_type{std::get<arb::cell_tag_type>(t), std::get<arb::lid_selection_policy>(t)};
+             }),
+             "Construct a cell_local_label identifier with tuple argument (label, policy):\n"
+             "  label:  The identifier of a group of one or more items on a cell.\n"
+             "  policy: The policy for selecting one of possibly multiple items associated with the label.\n")
+        .def(py::init([](const std::pair<arb::cell_tag_type, arb::lid_selection_policy>& t) {
+               return arb::cell_local_label_type{std::get<arb::cell_tag_type>(t), std::get<arb::lid_selection_policy>(t)};
              }),
              "Construct a cell_local_label identifier with tuple argument (label, policy):\n"
              "  label:  The identifier of a group of one or more items on a cell.\n"
@@ -60,8 +69,10 @@ void register_identifiers(py::module& m) {
         .def("__str__", [](arb::cell_local_label_type m) {return pprintf("<arbor.cell_local_label: label {}, policy {}>", m.tag, m.policy);})
         .def("__repr__",[](arb::cell_local_label_type m) {return pprintf("<arbor.cell_local_label: label {}, policy {}>", m.tag, m.policy);});
 
+    py::implicitly_convertible<std::pair<arb::cell_tag_type, arb::lid_selection_policy>, arb::cell_local_label_type>();
+    py::implicitly_convertible<std::tuple<arb::cell_tag_type, arb::lid_selection_policy>, arb::cell_local_label_type>();
     py::implicitly_convertible<py::tuple, arb::cell_local_label_type>();
-    py::implicitly_convertible<py::str, arb::cell_local_label_type>();
+    py::implicitly_convertible<arb::cell_tag_type, arb::cell_local_label_type>();
 
     py::class_<arb::cell_global_label_type> cell_global_label_type(m, "cell_global_label",
         "For global identification of an item.\n\n"
@@ -85,13 +96,18 @@ void register_identifiers(py::module& m) {
              "Construct a cell_global_label identifier with arguments:\n"
              "  gid:   The global identifier of the cell.\n"
              "  label: The cell_local_label representing the label and selection policy of an item on the cell.\n")
-        .def(py::init([](py::tuple t) {
-               if (py::len(t)!=2) throw std::runtime_error("tuple length != 2");
-               return arb::cell_global_label_type{t[0].cast<arb::cell_gid_type>(), t[1].cast<arb::cell_local_label_type>()};
+        .def(py::init([](const std::tuple<arb::cell_gid_type, arb::cell_local_label_type>& t) {
+               return arb::cell_global_label_type{std::get<arb::cell_gid_type>(t), std::get<arb::cell_local_label_type>(t)};
              }),
              "Construct a cell_global_label identifier with tuple argument (gid, label):\n"
              "  gid:   The global identifier of the cell.\n"
              "  label: The cell_local_label representing the label and selection policy of an item on the cell.\n")
+        .def(py::init([](const std::tuple<arb::cell_gid_type, arb::cell_tag_type>& t) {
+               return arb::cell_global_label_type{std::get<arb::cell_gid_type>(t), std::get<arb::cell_tag_type>(t)};
+             }),
+             "Construct a cell_global_label identifier with tuple argument (gid, label):\n"
+             "  gid:   The global identifier of the cell.\n"
+             "  label: The tag of an item on the cell.\n")
         .def_readwrite("gid",  &arb::cell_global_label_type::gid,
              "The global identifier of the cell.")
         .def_readwrite("label", &arb::cell_global_label_type::label,
@@ -99,7 +115,45 @@ void register_identifiers(py::module& m) {
         .def("__str__", [](arb::cell_global_label_type m) {return pprintf("<arbor.cell_global_label: gid {}, label ({}, {})>", m.gid, m.label.tag, m.label.policy);})
         .def("__repr__",[](arb::cell_global_label_type m) {return pprintf("<arbor.cell_global_label: gid {}, label ({}, {})>", m.gid, m.label.tag, m.label.policy);});
 
+
+    py::implicitly_convertible<std::tuple<arb::cell_gid_type, arb::cell_local_label_type>, arb::cell_global_label_type>();
+    py::implicitly_convertible<std::tuple<arb::cell_gid_type, arb::cell_tag_type>, arb::cell_global_label_type>();
     py::implicitly_convertible<py::tuple, arb::cell_global_label_type>();
+
+    py::class_<arb::cell_remote_label_type> cell_remote_label_type(m, "cell_remote_label",
+        "For remote identification of an item.\n\n"
+        "cell_remote_label members:\n"
+        "(1) a unique cell identified by its gid.\n"
+        "(2) a cell_local_label, referring to a labeled group of items on the cell and a policy for selecting a single item out of the group.\n");
+
+    cell_remote_label_type
+        .def(py::init(
+            [](arb::cell_gid_type gid, arb::cell_lid_type index) {
+              return arb::cell_remote_label_type{gid, index};
+            }),
+             "gid"_a, "index"_a,
+             "Construct a cell_remote_label identifier from a gid and an index identifying an item on the cell.\n"
+             "The default round_robin policy is used for selecting one of possibly multiple items on the cell associated with the label.")
+        .def(py::init(
+            [](arb::cell_gid_type gid, arb::cell_lid_type index) {
+              return arb::cell_remote_label_type{gid, index};
+            }),
+             "gid"_a, "label"_a,
+             "Construct a cell_remote_label identifier with arguments:\n"
+             "  gid:   The remote identifier of the cell.\n"
+             "  index: An index uniquely addressing an item on the remote cell.\n")
+        .def(py::init([](const std::tuple<arb::cell_gid_type, arb::cell_lid_type>& t) { return arb::cell_remote_label_type{std::get<0>(t), std::get<1>(t)}; }),
+             "Construct a cell_remote_label identifier with tuple argument (gid, index):\n"
+             "  gid:   The remote identifier of the cell.\n"
+             "  index: An index uniquely addressing an item on the remote cell.\n")
+        .def_readwrite("gid",  &arb::cell_remote_label_type::rid, "The remote identifier of the cell.")
+        .def_readwrite("index", &arb::cell_remote_label_type::index, "  An index uniquely addressing an item on the remote cell.")
+        .def("__str__", [](arb::cell_remote_label_type m) {return pprintf("<arbor.cell_remote_label: gid {}, index {}>", m.rid, m.index);})
+        .def("__repr__",[](arb::cell_remote_label_type m) {return pprintf("<arbor.cell_remote_label: gid {}, index {}>", m.rid, m.index);});
+
+
+    py::implicitly_convertible<std::tuple<arb::cell_gid_type, arb::cell_lid_type>, arb::cell_remote_label_type>();
+    py::implicitly_convertible<py::tuple, arb::cell_remote_label_type>();
 
     py::class_<arb::cell_member_type> cell_member(m, "cell_member",
         "For global identification of a cell-local item.\n\n"
@@ -149,6 +203,21 @@ void register_identifiers(py::module& m) {
             "Use GPU backend.")
         .value("multicore", arb::backend_kind::multicore,
             "Use multicore backend.");
+
+    // Probes
+    py::class_<arb::probe_info> probe(m, "probe");
+    probe
+        .def("__repr__", [](const arb::probe_info& p){return util::pprintf("<arbor.probe: tag {}>", p.tag);})
+        .def("__str__",  [](const arb::probe_info& p){return util::pprintf("<arbor.probe: tag {}>", p.tag);});
+
+    py::class_<arb::spike> spike(m, "spike");
+    spike
+        .def(py::init([](const arb::cell_member_type& m, arb::time_type t) -> arb::spike { return {m, t}; }))
+        .def_readwrite("source", &arb::spike::source, "The global identifier of the cell.")
+        .def_readwrite("time", &arb::spike::time, "The time of spike.")
+        .def("__repr__", [](const arb::spike& s){return util::pprintf("<arbor.spike: {}>", s);})
+        .def("__str__",  [](const arb::spike& s){return util::pprintf("<arbor.spike: {}>", s);});
+
 }
 
 } // namespace pyarb

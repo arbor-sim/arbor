@@ -39,6 +39,12 @@ inline arb::proc_allocation default_allocation() {
     return arb::proc_allocation{static_cast<unsigned>(default_concurrency()), default_gpu()};
 }
 
+// Construct a default context from a default_allocation()
+
+inline arb::context default_context() {
+    return make_context(default_allocation());
+}
+
 // Retrieve user-specified thread count from ARBENV_NUM_THREADS environment variable.
 //
 // * Throws arbenv::invalid_env_value if ARBENV_NUM_THREADS is set but contains a

@@ -58,6 +58,7 @@ enum class sourceKind {
     ion_valence,
     temperature,
     diameter,
+    area,
     no_source
 };
 
@@ -103,6 +104,8 @@ inline std::string to_string(sourceKind v) {
     case sourceKind::ion_econc:           return "ion_econc";
     case sourceKind::ion_valence:         return "ion_valence";
     case sourceKind::temperature:         return "temperature";
+    case sourceKind::diameter:            return "diameter";
+    case sourceKind::area:                return "area";
     case sourceKind::no_source:           return "no source";
     default:                              return "unknown source";
     }

@@ -8,11 +8,12 @@
 #include <deque>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
-#include <vector>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include <arbor/export.hpp>
 
@@ -124,6 +125,8 @@ private:
 
 class ARB_ARBOR_API task_system {
 private:
+    static constexpr unsigned nil = static_cast<unsigned>(-1);
+
     // Number of notification queues.
     unsigned count_ = 1;
     // Attempt to bind threads?
@@ -218,6 +221,9 @@ public:
 
     // Returns the thread_id map
     std::unordered_map<std::thread::id, std::size_t> get_thread_ids() const;
+
+    // Returns the calling thread id if part of the task system
+    std::optional<std::size_t> get_current_thread_id() const;
 };
 
 class task_group {

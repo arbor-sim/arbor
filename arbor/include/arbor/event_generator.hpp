@@ -1,10 +1,5 @@
 #pragma once
 
-#include <algorithm>
-#include <cstdint>
-#include <memory>
-#include <random>
-#include <type_traits>
 #include <optional>
 
 #include <arbor/assert.hpp>
@@ -106,23 +101,22 @@ event_generator empty_generator(cell_local_label_type target,
 
 
 // Generate events at integer multiples of dt that lie between tstart and tstop.
-
 inline event_generator regular_generator(cell_local_label_type target,
                                          float weight,
-                                         time_type tstart,
-                                         time_type dt,
-                                         time_type tstop=terminal_time) {
+                                         const units::quantity& tstart,
+                                         const units::quantity& dt,
+                                         const units::quantity& tstop=terminal_time*units::ms) {
     return {std::move(target), weight, regular_schedule(tstart, dt, tstop)};
 }
 
-template <typename RNG>
 inline event_generator poisson_generator(cell_local_label_type target,
                                          float weight,
-                                         time_type tstart,
-                                         time_type rate_kHz,
-                                         const RNG& rng,
-                                         time_type tstop=terminal_time) {
-    return {std::move(target), weight, poisson_schedule(tstart, rate_kHz, rng, tstop)};
+                                         const units::quantity& tstart,
+                                         const units::quantity& rate_kHz,
+                                         seed_type seed = default_seed,
+                                         const units::quantity& tstop=terminal_time*units::ms) {
+    // TODO(TH) handle seed
+    return {std::move(target), weight, poisson_schedule(tstart, rate_kHz, seed, tstop)};
 }
 
 
@@ -132,7 +126,14 @@ template<typename S> inline
 event_generator explicit_generator(cell_local_label_type target,
                                    float weight,
                                    const S& s) {
-    return {std::move(target), weight, explicit_schedule(s)};
+    return event_generator(std::move(target), weight, explicit_schedule(s));
+}
+
+template<typename S> inline
+event_generator explicit_generator_from_milliseconds(cell_local_label_type target,
+                                                     float weight,
+                                                     const S& s) {
+    return event_generator(std::move(target), weight, explicit_schedule_from_milliseconds(s));
 }
 
 } // namespace arb

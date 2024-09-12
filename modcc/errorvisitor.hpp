@@ -11,6 +11,8 @@ public:
         : module_name_(m)
     {}
 
+    using Visitor::visit;
+
     void visit(Expression *e)            override;
     void visit(ProcedureExpression *e)   override;
     void visit(FunctionExpression *e)    override;

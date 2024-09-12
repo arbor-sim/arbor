@@ -5,10 +5,10 @@
 
 #include <pybind11/pybind11.h>
 
-#include <arbor/context.hpp>
 #include <arbor/version.hpp>
 #include <arbor/arbexcept.hpp>
-#include <arborenv/concurrency.hpp>
+
+#include <arborenv/default_env.hpp>
 
 #include "context.hpp"
 #include "conversion.hpp"
@@ -21,6 +21,7 @@
 
 namespace pyarb {
 
+// printers
 std::ostream& operator<<(std::ostream& o, const context_shim& ctx) {
     auto& c = ctx.context;
     const char* gpu = arb::has_gpu(c)? "True": "False";
@@ -33,94 +34,81 @@ std::ostream& operator<<(std::ostream& o, const context_shim& ctx) {
           << ">";
 }
 
-// A Python shim that holds the information that describes an arb::proc_allocation.
-struct proc_allocation_shim {
-    std::optional<int> gpu_id = {};
-    unsigned long num_threads = 1;
-    bool bind_procs = false;
-    bool bind_threads = false;
+std::ostream& operator<<(std::ostream& o, const proc_allocation_shim& alloc) {
+    return o << "<arbor.proc_allocation: threads " << alloc.get_num_threads() <<
+                ", gpu_id " << util::to_string(alloc.get_gpu_id()) << 
+                ", bind_threads " << util::to_string(alloc.get_bind_threads()) << 
+                ", bind_procs " << util::to_string(alloc.get_bind_procs()) << 
+                ">";
+}
 
-    proc_allocation_shim(unsigned threads, pybind11::object gpu, bool bp, bool bt) {
-        set_num_threads(threads);
-        set_gpu_id(gpu);
-        set_bind_procs(bp);
-        set_bind_threads(bt);
-    }
+// proc_alloc getter and setter (in order to assert when being set)
+proc_allocation_shim::proc_allocation_shim(unsigned threads, pybind11::object gpu, bool bp, bool bt) {
+    set_num_threads(threads);
+    set_gpu_id(gpu);
+    set_bind_procs(bp);
+    set_bind_threads(bt);
+}
 
-    proc_allocation_shim(): proc_allocation_shim(1, pybind11::none(), false, false) {}
-
-    // getter and setter (in order to assert when being set)
-    void set_gpu_id(pybind11::object gpu) {
-        gpu_id = py2optional<int>(gpu, "gpu_id must be None, or a non-negative integer", is_nonneg());
-    };
-
-    void set_num_threads(unsigned threads) {
-        if (0==threads) {
-            throw arb::zero_thread_requested_error(threads);
-        }
-        num_threads = threads;
-    };
-
-    bool get_bind_threads() const { return bind_threads; }
-    bool get_bind_procs() const { return bind_procs; }
-
-    void set_bind_threads(bool f) { bind_threads = f; }
-    void set_bind_procs(bool f) { bind_procs = f; }
-
-
-    std::optional<int> get_gpu_id() const { return gpu_id; }
-    unsigned get_num_threads() const { return num_threads; }
-    bool has_gpu() const { return bool(gpu_id); }
-
-    // helper function to use arb::make_context(arb::proc_allocation)
-    arb::proc_allocation allocation() const {
-        return arb::proc_allocation(num_threads, gpu_id.value_or(-1), bind_procs, bind_threads);
-    }
+void proc_allocation_shim::set_gpu_id(pybind11::object gpu) {
+    auto gpu_id = py2optional<int>(gpu, "gpu_id must be None, or a non-negative integer", is_nonneg());
+    proc_allocation.gpu_id = gpu_id.value_or(-1);
 };
 
-context_shim create_context(unsigned threads,
-                            std::optional<int> gpu,
-                            pybind11::object mpi, pybind11::object inter,
-                            bool bind_p, bool bind_t) {
+void proc_allocation_shim::set_num_threads(unsigned threads) {
+    if (0==threads) {
+        throw arb::zero_thread_requested_error(threads);
+    }
+    proc_allocation.num_threads = threads;
+};
+
+// generators
+context_shim make_context_shim(proc_allocation_shim alloc, pybind11::object mpi, pybind11::object inter) {
 #ifndef ARB_GPU_ENABLED
-    if (gpu) {
+    if (alloc.has_gpu()) {
         throw pyarb_error("Attempt to set an GPU communicator but Arbor is not configured with GPU support.");
     }
 #endif
-    arb::proc_allocation alloc(threads, gpu.value_or(-1), bind_p, bind_t);
 #ifndef ARB_MPI_ENABLED
     if (!mpi.is_none() || !inter.is_none()) {
         throw pyarb_error("Attempt to set an MPI communicator but Arbor is not configured with MPI support.");
     }
 #else
-    const char* mpi_err_str = "mpi must be None, or an MPI communicator";
+    const char* mpi_err_str = "mpi must be None, or a known MPI communicator type. Supported MPI implementations = native"
+#ifdef ARB_WITH_MPI4PY
+    ", mpi4py.";
+#else
+    ". Consider installing mpi4py and rebuilding Arbor.";
+#endif
     if (mpi.is_none() && !inter.is_none()) {
         throw pyarb_error("Attempted to set an intercommunicator without also providing a intracommunicator.");
     }
     if (can_convert_to_mpi_comm(mpi)) {
         if (can_convert_to_mpi_comm(inter)) {
-            return context_shim(arb::make_context(alloc, convert_to_mpi_comm(mpi), convert_to_mpi_comm(inter)));
+            return context_shim(arb::make_context(alloc.proc_allocation, convert_to_mpi_comm(mpi), convert_to_mpi_comm(inter)));
         }
-        return context_shim(arb::make_context(alloc, convert_to_mpi_comm(mpi)));
+        return context_shim(arb::make_context(alloc.proc_allocation, convert_to_mpi_comm(mpi)));
     }
     if (auto c = py2optional<mpi_comm_shim>(mpi, mpi_err_str)) {
         if (auto i = py2optional<mpi_comm_shim>(inter, mpi_err_str)) {
-            return context_shim(arb::make_context(alloc, c->comm, i->comm));
+            return context_shim(arb::make_context(alloc.proc_allocation, c->comm, i->comm));
         }
-        return context_shim(arb::make_context(alloc, c->comm));
+        return context_shim(arb::make_context(alloc.proc_allocation, c->comm));
     } else {
         if (py2optional<mpi_comm_shim>(inter, mpi_err_str)) {
             throw pyarb_error("Attempted to set an intercommunicator without also providing a intracommunicator.");
         }
     }
 #endif
-    return context_shim{arb::make_context(alloc)};
+    return context_shim{arb::make_context(alloc.proc_allocation)};
 }
 
-std::ostream& operator<<(std::ostream& o, const proc_allocation_shim& alloc) {
-    return o << "<arbor.proc_allocation: threads " << alloc.num_threads << ", gpu_id " << util::to_string(alloc.gpu_id) << ">";
-}
+context_shim make_context_shim() {
+    return context_shim{arb::make_context(arbenv::default_allocation())};
 
+};
+
+// pybind
 void register_contexts(pybind11::module& m) {
     using namespace std::string_literals;
     using namespace pybind11::literals;
@@ -136,8 +124,10 @@ void register_contexts(pybind11::module& m) {
              "bind_procs"_a=false,
              "bind_threads"_a=false,
              "Construct an allocation with arguments:\n"
-             "  threads: The number of threads available locally for execution. Must be set to 1 at minimum. 1 by default.\n"
-             "  gpu_id:  The identifier of the GPU to use, None by default.\n")
+             "  threads:      The number of threads available locally for execution. Must be set to 1 at minimum. 1 by default.\n"
+             "  gpu_id:       The identifier of the GPU to use, None by default.\n"
+             "  bind_procs:   Create process binding mask.\n"
+             "  bind_threads: Create thread binding mask.\n")
         .def_property("threads", &proc_allocation_shim::get_num_threads, &proc_allocation_shim::set_num_threads,
             "The number of threads available locally for execution.")
         .def_property("bind_procs", &proc_allocation_shim::get_bind_procs, &proc_allocation_shim::set_bind_procs,
@@ -151,12 +141,16 @@ void register_contexts(pybind11::module& m) {
             "Whether a GPU is being used (True/False).")
         .def("__str__",  util::to_string<proc_allocation_shim>)
         .def("__repr__", util::to_string<proc_allocation_shim>);
+
     // context
     pybind11::class_<context_shim, std::shared_ptr<context_shim>> context(m, "context", "An opaque handle for the hardware resources used in a simulation.");
     context
         .def(pybind11::init(
-                 [](unsigned threads, std::optional<int> gpu, pybind11::object mpi, pybind11::object inter, bool bind_p, bool bind_t){
-                     return create_context(threads, gpu, mpi, pybind11::none(), bind_p, bind_t);
+                [](){ return make_context_shim(); }),
+             "Construct a local context with proc_allocation = env.default_allocation().\n")
+        .def(pybind11::init(
+                 [](unsigned threads, pybind11::object gpu, pybind11::object mpi, pybind11::object inter, bool bind_p, bool bind_t){
+                     return make_context_shim(proc_allocation_shim(threads, gpu, bind_p, bind_t), mpi, inter);
                  }),
              pybind11::kw_only(),
              "threads"_a=1,
@@ -165,7 +159,7 @@ void register_contexts(pybind11::module& m) {
              "inter"_a=pybind11::none(),
              "bind_procs"_a=false,
              "bind_threads"_a=false,
-             "Construct a distributed context with arguments:\n"
+             "Construct a context with arguments:\n"
              "  threads: The number of threads available locally for execution. Must be set to 1 at minimum. 1 by default.\n"
              "  gpu_id:  The identifier of the GPU to use, None by default. Only available if arbor.__config__['gpu']!=\"none\".\n"
              "  mpi:     The MPI communicator, None by default. Only available if arbor.__config__['mpi']==True.\n"
@@ -173,46 +167,14 @@ void register_contexts(pybind11::module& m) {
              "  bind_procs:   Create process binding mask.\n"
              "  bind_threads: Create thread binding mask.")
         .def(pybind11::init(
-                 [](std::string threads,
-                    std::optional<int> gpu,
-                    pybind11::object mpi, pybind11::object inter,
-                    bool bind_p, bool bind_t){
-                     if ("avail_threads" == threads) {
-                         return create_context(arbenv::thread_concurrency(),
-                                               gpu,
-                                               mpi, pybind11::none(),
-                                               bind_p, bind_t);
-                     }
-                     throw pyarb_error(
-                         util::pprintf("Attempt to set threads to {}. The only valid thread options are a positive integer greater than 0, or 'avial_threads'.", threads));
-
-                 }),
-             pybind11::kw_only(),
-             "threads"_a=1,
-             "gpu_id"_a=pybind11::none(),
-             "mpi"_a=pybind11::none(),
-             "inter"_a=pybind11::none(),
-             "bind_procs"_a=false,
-             "bind_threads"_a=false,
-             "Construct a distributed context with arguments:\n"
-             "  threads:      A string option describing the number of threads. Currently, only \"avail_threads\" is supported.\n"
-             "  gpu_id:       The identifier of the GPU to use, None by default. Only available if arbor.__config__['gpu']!=\"none\".\n"
-             "  mpi:          The MPI communicator, None by default. Only available if arbor.__config__['mpi']==True.\n"
-             "  inter:   An MPI intercommunicator used to connect to external simulations, None by default. Only available if arbor.__config__['mpi']==True.\n"
-             "  bind_procs:   Create process binding mask.\n"
-             "  bind_threads: Create thread binding mask.")
-        .def(pybind11::init(
                  [](proc_allocation_shim alloc, pybind11::object mpi, pybind11::object inter) {
-                     return create_context(alloc.num_threads,
-                                           alloc.gpu_id,
-                                           mpi, inter,
-                                           alloc.bind_procs, alloc.bind_threads);
+                     return make_context_shim(alloc, mpi, inter);
                  }),
              "alloc"_a,
              pybind11::kw_only(),
              "mpi"_a=pybind11::none(),
              "inter"_a=pybind11::none(),
-             "Construct a distributed context with arguments:\n"
+             "Construct a context with arguments:\n"
              "  alloc:   The computational resources to be used for the simulation.\n"
              "  mpi:     The MPI communicator, None by default. Only available if arbor.__config__['mpi']==True.\n"
              "  inter:   An MPI intercommunicator used to connect to external simulations, None by default. Only available if arbor.__config__['mpi']==True.\n")

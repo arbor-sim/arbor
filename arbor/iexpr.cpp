@@ -338,6 +338,11 @@ iexpr::iexpr(double value) { *this = iexpr::scalar(value); }
 
 iexpr iexpr::scalar(double value) { return {iexpr_type::scalar, std::make_tuple(value)}; }
 
+std::optional<double> iexpr::get_scalar() const {
+    if (type_ == iexpr_type::scalar) return std::get<0>(std::any_cast<std::tuple<double>>(args_));
+    return {};
+}
+
 iexpr iexpr::pi() { return iexpr::scalar(math::pi<double>); }
 
 iexpr iexpr::distance(double scale, locset loc) {
@@ -548,7 +553,6 @@ iexpr_ptr thingify(const iexpr& expr, const mprovider& m) {
     }
 
     throw std::runtime_error("thingify iexpr: Unknown iexpr type");
-    return nullptr;
 }
 
 std::ostream& operator<<(std::ostream& o, const iexpr& e) {
@@ -659,6 +663,12 @@ std::ostream& operator<<(std::ostream& o, const iexpr& e) {
 
     o << ")";
     return o;
+}
+
+std::string to_string(const iexpr& e) {
+    std::stringstream ss;
+    ss << e;
+    return ss.str();
 }
 
 }  // namespace arb

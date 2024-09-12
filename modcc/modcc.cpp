@@ -22,19 +22,20 @@
 
 #include <fmt/format.h>
 
-using std::cout;
-using std::cerr;
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 // Options and option parsing:
 
 int report_error(const std::string& message) {
-    cerr << red("error trace:\n") << message << "\n";
+    std::cerr << red("error trace:\n") << message << "\n";
     return 1;
 }
 
 int report_ice(const std::string& message) {
-    cerr << red("internal compiler error:\n") << message << "\n"
-         << "\nPlease report this error to the modcc developers.\n";
+    std::cerr << red("internal compiler error:\n") << message << "\n"
+              << "\nPlease report this error to the modcc developers.\n";
     return 1;
 }
 
@@ -49,14 +50,15 @@ std::unordered_map<std::string, targetKind> targetKindMap = {
 };
 
 std::unordered_map<std::string, enum simd_spec::simd_abi> simdAbiMap = {
-    {"none", simd_spec::none},
-    {"neon", simd_spec::neon},
-    {"sve", simd_spec::sve},
-    {"avx",  simd_spec::avx},
-    {"avx2", simd_spec::avx2},
-    {"avx512", simd_spec::avx512},
+    {"none",        simd_spec::none},
+    {"neon",        simd_spec::neon},
+    {"sve",         simd_spec::sve},
+    {"vls_sve",     simd_spec::vls_sve},
+    {"avx",         simd_spec::avx},
+    {"avx2",        simd_spec::avx2},
+    {"avx512",      simd_spec::avx512},
     {"default_abi", simd_spec::default_abi},
-    {"native", simd_spec::native}
+    {"native",      simd_spec::native}
 };
 
 template <typename Map, typename V>
@@ -70,6 +72,7 @@ auto key_by_value(const Map& map, const V& v) -> decltype(map.begin()->first) {
 struct Options {
     std::string outprefix;
     std::vector<std::string> modfiles;
+    std::vector<std::string> rawfiles;
     std::string modulename;
     std::string catalogue;
     bool verbose = false;
@@ -86,9 +89,6 @@ std::ostream& operator<<(std::ostream& out, const table_prefix& tb) {
 std::ostream& operator<<(std::ostream& out, simd_spec simd) {
     std::stringstream s;
     s << key_by_value(simdAbiMap, simd.abi);
-    if (simd.width!=0) {
-        s << '/' << simd.width;
-    }
     return out << s.str();
 }
 
@@ -101,22 +101,19 @@ std::ostream& operator<<(std::ostream& out, const Options& opt) {
         targets += " "+key_by_value(targetKindMap, t);
     }
 
-    for (const auto& f: opt.modfiles) {
-        out << table_prefix{"file"} << f << line_end;
-    }
-    out << table_prefix{"output"} << (opt.outprefix.empty()? "-": opt.outprefix) << line_end <<
-        table_prefix{"verbose"} << noyes[opt.verbose] << line_end <<
-        table_prefix{"targets"} << targets << line_end <<
-        table_prefix{"analysis"} << noyes[opt.analysis] << line_end;
+    for (const auto& f: opt.modfiles) out << table_prefix{"file"} << f << line_end;
+    out << table_prefix{"output"}   << (opt.outprefix.empty() ? "-" : opt.outprefix) << line_end
+        << table_prefix{"verbose"}  << noyes[opt.verbose] << line_end
+        << table_prefix{"targets"}  << targets << line_end
+        << table_prefix{"analysis"} << noyes[opt.analysis] << line_end;
     return out;
 }
 
 std::ostream& operator<<(std::ostream& out, const printer_options& popt) {
     static const std::string line_end = cyan(" |") + "\n";
-
-    return out <<
-        table_prefix{"namespace"} << popt.cpp_namespace << line_end <<
-        table_prefix{"simd"} << popt.simd << line_end;
+    out <<  table_prefix{"namespace"} << popt.cpp_namespace << line_end
+        << table_prefix{"simd"} << popt.simd << line_end;
+    return out;
 }
 
 std::istream& operator>> (std::istream& i, simd_spec& spec) {
@@ -144,12 +141,11 @@ const char* usage_str =
         "-S|--simd-abi          [Override SIMD ABI in generated code. Use /n suffix to force SIMD width to be size n. Examples: 'avx2', 'native/4', ...]\n"
         "-V|--verbose           [Toggle verbose mode]\n"
         "-A|--analyse           [Toggle analysis mode]\n"
+        "-r|--raw               [Add raw (CXX) mechanisms]\n"
         "-T|--trace-codegen     [Leave trace marks in generated source]\n"
         "<filenames>            [Files to be compiled]\n";
 
 int main(int argc, char **argv) {
-    using namespace to;
-
     Options opt;
     printer_options popt;
     try {
@@ -177,7 +173,8 @@ int main(int argc, char **argv) {
                 { to::action(enable_simd), to::flag,                     "-s", "--simd" },
                 { popt.simd,                                             "-S", "--simd-abi" },
                 { to::set(popt.trace_codegen), to::flag,                 "-T", "--trace-codegen"},
-                { {to::action(add_target, to::keywords(targetKindMap))}, "-t", "--target" },
+                { to::action(add_target, to::keywords(targetKindMap)),   "-t", "--target" },
+                { to::push_back(opt.rawfiles),                           "-r", "--raw"},
                 { to::action(help), to::flag, to::exit,                  "-h", "--help" }
         };
 
@@ -190,99 +187,96 @@ int main(int argc, char **argv) {
 
     if (!opt.catalogue.empty()) popt.cpp_namespace += "::" + opt.catalogue + "_catalogue";
 
-    std::vector<std::string> modules;
+    std::vector<std::pair<std::string, std::string>> modules;
 
-    for (const auto& modfile: opt.modfiles) {
+
+    auto outdir = fs::path(opt.outprefix);
+
+    for (const auto& input: opt.modfiles) {
+        auto modfile = fs::path(input);
         try {
             auto emit_header = [&opt](const char* h) {
                 if (opt.verbose) {
-                    cout << green("[") << h << green("]") << "\n";
+                    std::cout << green("[") << h << green("]") << "\n";
                 }
             };
 
             if (opt.verbose) {
                 static const std::string tableline = cyan("."+std::string(60, '-')+".")+"\n";
-                cout << tableline;
-                cout << opt;
-                cout << popt;
-                cout << tableline;
+                std::cout << tableline
+                          << opt
+                          << popt
+                          << tableline;
             }
 
             // Load module file and initialize Module object.
             Module m(io::read_all(modfile), modfile);
 
-            if (m.empty()) {
-                return report_error("empty file: "+modfile);
-            }
+            if (m.empty()) return report_error(fmt::format("Input file is empty: {}", modfile.string()));
 
             // Perform parsing and semantic analysis passes.
-
             emit_header("parsing");
             Parser p(m, false);
-            if (!p.parse()) {
-                // Parser::parse() writes its own errors to stderr.
-                return 1;
-            }
+            if (!p.parse()) return 1;
 
             emit_header("semantic analysis");
             m.semantic();
             if (m.has_warning()) {
-                cerr << yellow("Warnings:\n");
-                cerr << m.warning_string() << "\n";
+                std::cerr << yellow("Warnings:\n")
+                          << m.warning_string() << "\n";
             }
-            if (m.has_error()) {
-                return report_error(m.error_string());
-            }
+
+            if (m.has_error()) return report_error(m.error_string());
 
             // Generate backend-specific sources for each backend provided.
-
             emit_header("code generation");
 
-            std::string prefix = m.module_name();
-            if (!opt.outprefix.empty()) {
-                if (opt.outprefix.back() != '/') opt.outprefix += "/";
-                prefix = opt.outprefix + prefix;
-            }
+            std::string mod = m.module_name();
 
             bool have_cpu = opt.targets.find(targetKind::cpu) != opt.targets.end();
             bool have_gpu = opt.targets.find(targetKind::gpu) != opt.targets.end();
 
-            io::write_all(build_info_header(m, popt, have_cpu, have_gpu), prefix+".hpp");
+            auto prefix = modfile.filename().replace_extension("").string();
+
+            io::write_all(build_info_header(m, popt, have_cpu, have_gpu), outdir / (mod + ".hpp"));
             for (targetKind target: opt.targets) {
-                std::string outfile = prefix;
                 switch (target) {
-                    case targetKind::gpu:
-                        io::write_all(emit_gpu_cpp_source(m, popt), outfile+"_gpu.cpp");
-                        io::write_all(emit_gpu_cu_source(m, popt), outfile+"_gpu.cu");
+                    case targetKind::gpu: {
+                        fs::path fn = outdir / (mod + "_gpu.cpp");
+                        io::write_all(emit_gpu_cpp_source(m, popt), fn.string());
+                        fn.replace_extension(".cu");
+                        io::write_all(emit_gpu_cu_source(m, popt), fn.string());
                         break;
-                    case targetKind::cpu:
-                        io::write_all(emit_cpp_source(m, popt), outfile+"_cpu.cpp");
+                    }
+                    case targetKind::cpu: {
+                        fs::path fn = outdir / (mod + "_cpu");
+                        fn.replace_extension(".cpp");
+                        io::write_all(emit_cpp_source(m, popt), fn.string());
                         break;
-                }
-            }
-
-            // Optional analysis report.
-
-            if (opt.analysis) {
-                cout << green("performance analysis\n");
-                for (auto &symbol: m.symbols()) {
-                    if (auto method = symbol.second->is_api_method()) {
-                        cout << white("-------------------------\n");
-                        cout << yellow("method " + method->name()) << "\n";
-                        cout << white("-------------------------\n");
-
-                        FlopVisitor flops;
-                        method->accept(&flops);
-                        cout << white("FLOPS\n") << flops.print() << "\n";
-
-                        MemOpVisitor memops;
-                        method->accept(&memops);
-                        cout << white("MEMOPS\n") << memops.print() << "\n";
                     }
                 }
             }
 
-            modules.push_back(m.module_name());
+            // Optional analysis report.
+            if (opt.analysis) {
+                std::cout << green("performance analysis\n");
+                for (auto &symbol: m.symbols()) {
+                    if (auto method = symbol.second->is_api_method()) {
+                        FlopVisitor flops;
+                        method->accept(&flops);
+                        MemOpVisitor memops;
+                        method->accept(&memops);
+
+                        std::cout << white("-------------------------\n")
+                                  << yellow("method " + method->name()) << "\n"
+                                  << white("-------------------------\n")
+                                  << white("FLOPS\n") << flops.print() << "\n"
+                                  << white("MEMOPS\n") << memops.print() << "\n";
+                    }
+                }
+            }
+
+            modules.push_back({mod, prefix});
         }
         catch (io::bulkio_error& e) {
             return report_error(e.what());
@@ -299,45 +293,48 @@ int main(int argc, char **argv) {
     }
 
     if (!opt.catalogue.empty()) {
-        const auto prefix = std::regex_replace(popt.cpp_namespace, std::regex{"::"}, "_");
-        {
-            std::ofstream out(opt.outprefix + opt.catalogue + "_catalogue.cpp");
-            out << "// Automatically generated by modcc\n"
-                "\n"
-                "#include <arbor/mechanism_abi.h>\n"
-                "\n";
+        std::vector<std::string> names = {};
+        for (const auto& [mod, prefix]: modules) names.push_back(mod);
+        for (const auto& mod: opt.rawfiles) names.push_back(mod);
 
-            for (const auto& mod: modules) {
-                out << fmt::format("#include \"{}.hpp\"\n", mod);
-            }
+        const auto ns = std::regex_replace(popt.cpp_namespace, std::regex{"::"}, "_");
+        {
+            auto fn = outdir / (opt.catalogue + "_catalogue.cpp");
+            std::ofstream out(fn);
+             out << "// Automatically generated by modcc\n"
+                   "\n"
+                   "#include <arbor/mechanism_abi.h>\n"
+                   "\n";
+
+            for (const auto& mod: names) out << fmt::format("#include \"{}.hpp\"\n", mod);
 
             out << "\n"
-                "#ifdef STANDALONE\n"
-                "extern \"C\" {\n"
-                "    [[gnu::visibility(\"default\")]] const void* get_catalogue(int* n) {\n";
-            out << fmt::format("        *n = {0};\n"
+                   "#ifdef STANDALONE\n"
+                   "extern \"C\" {\n"
+                   "    [[gnu::visibility(\"default\")]] const void* get_catalogue(int* n) {\n"
+                << fmt::format("        *n = {0};\n"
                                "        static arb_mechanism cat[{0}] = {{\n",
-                               opt.modfiles.size());
-            for (const auto& mod: modules) {
-                out << fmt::format("            make_{}_{}(),\n", prefix, mod);
+                               names.size());
+            for (const auto& mod: names) {
+                out << fmt::format("            make_{}_{}(),\n", ns, mod);
             }
             out << "        };\n"
-                "        return (void*)cat;\n"
-                "    }\n"
-                "}\n"
-                "\n"
-                "#else\n"
-                "\n"
-                "#include <arbor/mechanism.hpp>\n"
-                "#include <arbor/assert.hpp>\n"
-                "\n";
-            out << fmt::format("#include \"{0}_catalogue.hpp\"\n"
+                   "        return (void*)cat;\n"
+                   "    }\n"
+                   "}\n"
+                   "\n"
+                   "#else\n"
+                   "\n"
+                   "#include <arbor/mechanism.hpp>\n"
+                   "#include <arbor/assert.hpp>\n"
+                   "\n"
+                << fmt::format("#include \"{0}_catalogue.hpp\"\n"
                                "\n"
                                "namespace arb {{\n"
                                "mechanism_catalogue build_{0}_catalogue() {{\n"
                                "    mechanism_catalogue cat;\n",
                                opt.catalogue);
-            for (const auto& mod: modules) {
+            for (const auto& mod: names) {
                 out << fmt::format("    {{\n"
                                    "        auto mech = make_{}_{}();\n"
                                    "        auto ty = mech.type();\n"
@@ -349,22 +346,21 @@ int main(int argc, char **argv) {
                                    "        if (ic) cat.register_implementation(nm, std::make_unique<arb::mechanism>(ty, *ic));\n"
                                    "        if (ig) cat.register_implementation(nm, std::make_unique<arb::mechanism>(ty, *ig));\n"
                                    "    }}\n",
-                                   prefix, mod);
+                                   ns, mod);
             }
-
             out << "    return cat;\n"
-                "}\n"
-                "\n";
-            out << fmt::format("ARB_ARBOR_API const mechanism_catalogue& global_{0}_catalogue() {{\n"
+                   "}\n"
+                   "\n"
+                << fmt::format("ARB_ARBOR_API const mechanism_catalogue& global_{0}_catalogue() {{\n"
                                "    static mechanism_catalogue cat = build_{0}_catalogue();\n"
                                "    return cat;\n"
                                "}}\n",
-                               opt.catalogue);
-            out << "} // namespace arb\n"
-                "#endif\n";
+                               opt.catalogue)
+                << "} // namespace arb\n"
+                   "#endif\n";
         }
         {
-        std::ofstream out(opt.outprefix + opt.catalogue + "_catalogue.hpp");
+        std::ofstream out(outdir / (opt.catalogue + "_catalogue.hpp"));
         out << fmt::format("#pragma once\n"
                            "\n"
                            "#include <arbor/mechcat.hpp>\n"

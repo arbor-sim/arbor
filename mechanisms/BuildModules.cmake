@@ -81,6 +81,10 @@ function("make_catalogue_standalone")
     endif()
   endforeach()
 
+  foreach(mech ${MK_CAT_CXX})
+    set(mk_cat_modcc_flags -r ${mech} ${mk_cat_modcc_flags})
+  endforeach()
+
   add_custom_command(OUTPUT            ${catalogue_${MK_CAT_NAME}_source}
                      DEPENDS           ${catalogue_${MK_CAT_NAME}_mods}
                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -93,6 +97,10 @@ function("make_catalogue_standalone")
       list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_gpu.cpp ${MK_CAT_OUT_DIR}/${mech}_gpu.cu)
     endif()
   endforeach()
+
+  if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
+    set_source_files_properties(${catalogue_${MK_CAT_NAME}_source} DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTIES LANGUAGE CXX)
+  endif()
 
   add_library(${MK_CAT_NAME}-catalogue SHARED ${catalogue_${MK_CAT_NAME}_source})
   target_compile_definitions(${MK_CAT_NAME}-catalogue PUBLIC STANDALONE=1)
@@ -124,7 +132,7 @@ function("make_catalogue_lib")
       VERBOSE ${MK_CAT_VERBOSE}
       ADD_DEPS OFF)
   if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
-    set_source_files_properties(${catalogue-${MK_CAT_NAME}-mechanisms} PROPERTIES LANGUAGE CXX)
+    set_source_files_properties(${catalogue-${MK_CAT_NAME}-mechanisms} DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTIES LANGUAGE CXX)
   endif()
   add_library(catalogue-${MK_CAT_NAME} STATIC EXCLUDE_FROM_ALL ${catalogue-${MK_CAT_NAME}-mechanisms})
   target_link_libraries(catalogue-${MK_CAT_NAME} PRIVATE arbor arbor-private-deps)

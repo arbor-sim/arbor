@@ -1,0 +1,18 @@
+#pragma once
+
+namespace arb {
+namespace simd {
+namespace detail {
+
+// number of elements in a vector
+#ifdef __ARM_FEATURE_SVE
+static constexpr unsigned sve_bits = @ARB_SVE_BITS@;
+#else
+static constexpr unsigned sve_bits = 128;
+#endif
+
+static_assert(sve_bits >= 128 && sve_bits <= 2048 && sve_bits%128 == 0);
+
+} // namespace detail
+} // namespace simd
+} // namespace arb

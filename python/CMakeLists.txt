@@ -1,26 +1,5 @@
 include(GNUInstallDirs)
 
-set(PYBIND11_CPP_STANDARD -std=c++17)
-
-if(ARB_USE_BUNDLED_PYBIND11)
-  include(FindPythonModule) # required for find_python_module
-
-  # Set up pybind11 as an external project.
-  set(pb11_src_dir "${PROJECT_SOURCE_DIR}/ext/pybind11")
-  check_git_submodule(pybind11 "${pb11_src_dir}")
-
-  if(NOT pybind11_avail)
-    message(FATAL_ERROR "The git submodule for pybind11 is not available, required for python support")
-  endif()
-
-  # Set up pybind11, which is used to generate Python bindings.
-  # Pybind11 has good cmake support, so just add the pybind11 directory,
-  # instead of using find_package.
-  add_subdirectory(${pb11_src_dir} pybind11)
-else()
-  find_package(pybind11 2.8.1 REQUIRED)
-endif()
-
 set(pyarb_source
     cable_cell_io.cpp
     probes.cpp
@@ -34,20 +13,25 @@ set(pyarb_source
     mechanism.cpp
     morphology.cpp
     mpi.cpp
+    network.cpp
     profiler.cpp
     pyarb.cpp
+    label_dict.cpp
     recipe.cpp
     schedule.cpp
     simulation.cpp
     single_cell_model.cpp
     env.cpp
+    remote.cpp
+    units.cpp
 )
 
-set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_BINARY="${CMAKE_INSTALL_BINDIR}"       APPEND)
-set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_LIB="${CMAKE_INSTALL_LIBDIR}"          APPEND)
-set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_DATA="${CMAKE_INSTALL_DATAROOTDIR}"    APPEND)
-set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_CXX_COMPILER="${CMAKE_CXX_COMPILER}"   APPEND)
-set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_PREFIX="${CMAKE_INSTALL_PREFIX}"       APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_BINARY="${CMAKE_INSTALL_BINDIR}"         APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_LIB="${CMAKE_INSTALL_LIBDIR}"            APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_DATA="${CMAKE_INSTALL_DATAROOTDIR}"      APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_CXX_COMPILER="${CMAKE_CXX_COMPILER}"     APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_PREFIX="${CMAKE_INSTALL_PREFIX}"         APPEND)
+set_property(SOURCE config.cpp PROPERTY COMPILE_DEFINITIONS ARB_PYTHON_LIB_PATH="${ARB_PYTHON_LIB_PATH}" APPEND)
 
 # compile the pyarb sources into an object library that will be
 # use by both the Python wrapper target (pyarb) and for the
@@ -96,11 +80,43 @@ file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "${CMAKE_INSTALL_PREFIX}")
 execute_process(
     COMMAND ${PYTHON_EXECUTABLE} "${PROJECT_SOURCE_DIR}/scripts/where.py"
     INPUT_FILE "${CMAKE_BINARY_DIR}/install-prefix"
-    OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT
+    OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT_REL
     OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+# convert to absolute path if needed (could be a relative path if ccmake was used)
+get_filename_component(ARB_PYTHON_LIB_PATH_DEFAULT "${ARB_PYTHON_LIB_PATH_DEFAULT_REL}"
+    REALPATH  BASE_DIR "${CMAKE_BINARY_DIR}")
 
 # Default to installing in that path, override with user specified ARB_PYTHON_LIB_PATH
 set(ARB_PYTHON_LIB_PATH ${ARB_PYTHON_LIB_PATH_DEFAULT} CACHE PATH "path for installing Python module for Arbor.")
-message(STATUS "Python module installation path: ${ARB_PYTHON_LIB_PATH}")
+message(VERBOSE "Python module installation path: ${ARB_PYTHON_LIB_PATH}")
+mark_as_advanced(FORCE ARB_PYTHON_LIB_PATH)
 
-install(DIRECTORY ${python_mod_path} DESTINATION ${ARB_PYTHON_LIB_PATH})
+# generate type stubs and copy them to the expected places
+if(ARB_BUILD_PYTHON_STUBS)
+  find_python_module(pybind11_stubgen REQUIRED)
+else()
+    find_python_module(pybind11_stubgen)
+endif()
+if(HAVE_PYBIND11_STUBGEN)
+  add_custom_command(TARGET pyarb POST_BUILD
+                     COMMAND
+                       PYTHONPATH=${CMAKE_BINARY_DIR}/python:$ENV{PYTHONPATH} pybind11-stubgen -o ${CMAKE_BINARY_DIR}/stubs arbor
+                     BYPRODUCTS ${CMAKE_BINARY_DIR}/stubs
+                     USES_TERMINAL
+                     COMMENT "Generating type stubs")
+endif()
+
+if(DEFINED SKBUILD_PROJECT_NAME)
+  # Building wheel through scikit-build-core
+  set(_python_module_install_path .)
+else()
+  set(_python_module_install_path ${ARB_PYTHON_LIB_PATH}/arbor)
+endif()
+
+install(TARGETS pyarb DESTINATION ${_python_module_install_path})
+if(HAVE_PYBIND11_STUBGEN)
+  install(DIRECTORY ${CMAKE_BINARY_DIR}/stubs/arbor/ DESTINATION ${_python_module_install_path})
+endif()
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py DESTINATION ${_python_module_install_path})
+install(FILES ${PROJECT_SOURCE_DIR}/VERSION ${PROJECT_SOURCE_DIR}/README.md ${PROJECT_SOURCE_DIR}/LICENSE DESTINATION ${_python_module_install_path})

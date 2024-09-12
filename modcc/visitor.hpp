@@ -105,6 +105,8 @@ public:
         statements_.push_back(e->clone());
     }
 
+    using Visitor::visit;
+
     virtual void visit(UnaryExpression *e) override { visit((Expression*)e); }
     virtual void visit(BinaryExpression *e) override { visit((Expression*)e); }
 

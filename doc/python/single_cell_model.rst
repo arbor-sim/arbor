@@ -1,14 +1,14 @@
 .. _pysinglecellmodel:
 
-Single cell model
+Single-cell model
 =================
 
-.. currentmodule:: arbor
+.. py:currentmodule:: arbor
 
-.. py:class:: single_cell_model
+.. class:: single_cell_model
 
-   Wrapper for simplified description and execution of single cell models.
-   Only available in the python library.
+   Wrapper for simplified description and execution of single-cell models.
+   It is only available in the Python library.
    Abstracts away the details of a :class:`recipe`, :class:`context` and
    :class:`domain_decomposition` for simulations of single, stand-alone
    cable cells.
@@ -42,13 +42,9 @@ Single cell model
 
    .. attribute:: properties
 
-      The :class:`cable_global_properties` of the model.
+      The :class:`~arbor.cable_global_properties` of the model, including the :class:`~arbor.catalogue`.
 
-   .. attribute:: catalogue
-
-      The :class:`mechanism_catalogue` of the model.
-
-.. py:class:: trace
+.. class:: trace
 
    Stores a trace obtained from a probe after running a model.
 

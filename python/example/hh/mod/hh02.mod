@@ -1,0 +1,8 @@
+NEURON {
+    SUFFIX hh02
+    NONSPECIFIC_CURRENT il
+}
+
+BREAKPOINT {
+    il = 0
+}

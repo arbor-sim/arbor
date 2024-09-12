@@ -7,6 +7,7 @@
 
 #include "merge_events.hpp"
 #include "util/rangeutil.hpp"
+#include "util/tourney_tree.hpp"
 
 namespace arb {
 void merge_cell_events(
@@ -27,12 +28,14 @@ static void merge_events(
     const pse_vector& old_events,
     pse_vector& pending,
     std::vector<event_generator>& generators,
-    pse_vector& new_events)
-{
+    pse_vector& new_events) {
     util::sort(pending);
-    merge_cell_events(t_from, t_to, util::range_pointer_view(old_events), util::range_pointer_view(pending), generators, new_events);
+    merge_cell_events(t_from, t_to,
+                      util::range_pointer_view(old_events),
+                      util::range_pointer_view(pending),
+                      generators,
+                      new_events);
 }
-
 
 std::vector<event_generator> empty_gens;
 
@@ -156,7 +159,7 @@ TEST(merge_events, X)
         {0, 26, 4},
     };
 
-    auto gen = regular_generator({"l0"}, 42.f, t0, 5);
+    auto gen = regular_generator({"l0"}, 42.f, t0*arb::units::ms, 5*arb::units::ms);
     gen.resolve_label([](const cell_local_label_type&) {return 2;});
     std::vector<event_generator> generators = {gen};
 
@@ -202,14 +205,14 @@ TEST(merge_events, tourney_seq)
     util::sort(expected);
 
     auto
-        g1 = explicit_generator(l0, w1, times),
-        g2 = explicit_generator(l0, w2, times);
+        g1 = explicit_generator_from_milliseconds(l0, w1, times),
+        g2 = explicit_generator_from_milliseconds(l0, w2, times);
     g1.resolve_label([](const cell_local_label_type&) {return 0;});
     g2.resolve_label([](const cell_local_label_type&) {return 0;});
 
     std::vector<event_span> spans = {g1.events(0, terminal_time),
                                      g2.events(0, terminal_time)};
-    impl::tourney_tree tree(spans);
+    tourney_tree tree(spans);
 
     pse_vector lf;
     while (!tree.empty()) {
@@ -222,9 +225,7 @@ TEST(merge_events, tourney_seq)
 }
 
 // Test the tournament tree on a large set of Poisson generators.
-TEST(merge_events, tourney_poisson)
-{
-    using rndgen = std::mt19937_64;
+TEST(merge_events, tourney_poisson) {
     // Number of poisson generators.
     // Not a power of 2, so that there will be "null" leaf nodes in the
     // tournament tree.
@@ -240,8 +241,8 @@ TEST(merge_events, tourney_poisson)
         float weight = i;
         // the first and last generators have the same seed to test that sorting
         // of events with the same time but different weights works properly.
-        rndgen G(i%(ngen-1));
-        auto gen = poisson_generator(label, weight, t0, lambda, G);
+        auto G = i%(ngen-1);
+        auto gen = poisson_generator(label, weight, t0*arb::units::ms, lambda*arb::units::kHz, G);
         gen.resolve_label([lid](const cell_local_label_type&) {return lid;});
         generators.push_back(std::move(gen));
     }
@@ -265,7 +266,7 @@ TEST(merge_events, tourney_poisson)
     for (auto& gen: generators) {
         spans.emplace_back(gen.events(t0, tfinal));
     }
-    impl::tourney_tree tree(spans);
+    tourney_tree tree(spans);
     pse_vector lf;
     while (!tree.empty()) {
         lf.push_back(tree.head());

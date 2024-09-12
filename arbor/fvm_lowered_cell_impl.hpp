@@ -7,15 +7,10 @@
 // implementation details may be tested in the unit tests.
 // It should otherwise only be used in `fvm_lowered_cell.cpp`.
 
-#include <cmath>
-#include <iterator>
 #include <memory>
 #include <optional>
-#include <queue>
-#include <stdexcept>
 #include <utility>
 #include <vector>
-#include <unordered_set>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -28,10 +23,8 @@
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
 #include "profile/profiler_macro.hpp"
-#include "sampler_map.hpp"
 #include "util/maputil.hpp"
 #include "util/meta.hpp"
-#include "util/range.hpp"
 #include "util/rangeutil.hpp"
 #include "util/strprintf.hpp"
 #include "util/transform.hpp"
@@ -68,6 +61,11 @@ public:
     std::vector<mechanism_ptr>& mechanisms() {
         return mechanisms_;
     }
+
+    ARB_SERDES_ENABLE(fvm_lowered_cell_impl<Backend>, seed_, state_);
+
+    void t_serialize(serializer& ser, const std::string& k) const override { serialize(ser, k, *this); }
+    void t_deserialize(serializer& ser, const std::string& k) override { deserialize(ser, k, *this); }
 
 private:
     // Host or GPU-side back-end dependent storage.
@@ -114,6 +112,16 @@ private:
         const fvm_mechanism_data& M,
         const std::vector<target_handle>& handles,
         const std::unordered_map<std::string, mechanism*>& mech_instance_by_name);
+
+        // Add probes to fvm_info::probe_map
+        void add_probes(const std::vector<cell_gid_type>& gids,
+                        const std::vector<cable_cell>& cells,
+                        const recipe& rec,
+                        const fvm_cv_discretization& D,
+                        const std::unordered_map<std::string, mechanism*>& mechptr_by_name,
+                        const fvm_mechanism_data& mech_data,
+                        const std::vector<target_handle>& target_handles,
+                        probe_association_map& probe_map);
 };
 
 template <typename Backend>
@@ -208,7 +216,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Add stimulus current contributions.
         // NOTE: performed after dt, time_to calculation, in case we want to
         // use mean current contributions as opposed to point sample.
-        PE(advance:integrate:stimuli)
+        PE(advance:integrate:stimuli);
         state_->add_stimulus_current();
         PL();
 
@@ -248,7 +256,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         state_->test_thresholds();
         PL();
 
-        PE(advance:integrate:post)
+        PE(advance:integrate:post);
         if (post_events_) {
             for (auto& m: mechanisms_) {
                 m->post_event();
@@ -307,11 +315,49 @@ fvm_detector_info get_detector_info(arb_size_type max,
     return { max, std::move(cv), std::move(threshold), ctx };
 }
 
-template <typename Backend>
-fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
-    const std::vector<cell_gid_type>& gids,
-    const recipe& rec)
-{
+inline cell_size_type
+add_labels(cell_label_range& clr, const cable_cell::lid_range_map& ranges) {
+    clr.add_cell();
+    cell_size_type count = 0;
+    std::unordered_map<hash_type, cell_tag_type> hashes;
+    for (const auto& [label, range]: ranges) {
+        clr.add_label(label, range);
+        count += (range.end - range.begin);
+    }
+    return count;
+}
+
+template <typename Backend> void
+fvm_lowered_cell_impl<Backend>::add_probes(const std::vector<cell_gid_type>& gids,
+                                           const std::vector<cable_cell>& cells,
+                                           const recipe& rec,
+                                           const fvm_cv_discretization& D,
+                                           const std::unordered_map<std::string, mechanism*>& mechptr_by_name,
+                                           const fvm_mechanism_data& mech_data,
+                                           const std::vector<target_handle>& target_handles,
+                                           probe_association_map& probe_map) {
+    auto ncell = gids.size();
+
+    std::vector<fvm_probe_data> probe_data;
+    for (auto cell_idx: util::make_span(ncell)) {
+        cell_gid_type gid = gids[cell_idx];
+        const auto& rec_probes = rec.get_probes(gid);
+        for (const auto& pi: rec_probes) {
+            resolve_probe_address(probe_data, cells, cell_idx, pi.address, D, mech_data, target_handles, mechptr_by_name);
+            if (!probe_data.empty()) {
+                cell_address_type addr{gid, pi.tag};
+                if (probe_map.count(addr)) throw dup_cell_probe(cell_kind::cable, gid, pi.tag);
+                for (auto& data: probe_data) {
+                    probe_map.insert(addr, std::move(data));
+                }
+            }
+        }
+    }
+}
+
+template <typename Backend> fvm_initialization_data
+fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gids,
+                                           const recipe& rec) {
     using std::any_cast;
     using util::count_along;
     using util::make_span;
@@ -341,28 +387,9 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
     for (auto i : util::make_span(ncell)) {
         auto gid = gids[i];
         const auto& c = cells[i];
-
-        fvm_info.source_data.add_cell();
-        fvm_info.target_data.add_cell();
-        fvm_info.gap_junction_data.add_cell();
-
-        unsigned count = 0;
-        for (const auto& [label, range]: c.detector_ranges()) {
-            fvm_info.source_data.add_label(label, range);
-            count+=(range.end - range.begin);
-        }
-        fvm_info.num_sources[gid] = count;
-
-        count = 0;
-        for (const auto& [label, range]: c.synapse_ranges()) {
-            fvm_info.target_data.add_label(label, range);
-            count+=(range.end - range.begin);
-        }
-        fvm_info.num_targets[gid] = count;
-
-        for (const auto& [label, range]: c.junction_ranges()) {
-            fvm_info.gap_junction_data.add_label(label, range);
-        }
+        fvm_info.num_sources[gid] = add_labels(fvm_info.source_data, c.detector_ranges());
+        fvm_info.num_targets[gid] = add_labels(fvm_info.target_data, c.synapse_ranges());
+        add_labels(fvm_info.gap_junction_data, c.junction_ranges());
     }
 
     cable_cell_global_properties global_props;
@@ -427,8 +454,9 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
 
     // map control volume ids to global cell ids
     std::vector<arb_index_type> cv_to_gid(D.geometry.cv_to_cell.size());
-    std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(), cv_to_gid.begin(),
-        [&gids](auto i){return gids[i]; });
+    std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(),
+                   cv_to_gid.begin(),
+                   [&gids](auto i){return gids[i]; });
 
     // Create shared cell state.
     // Shared state vectors should accommodate each mechanism's data alignment requests.
@@ -438,46 +466,16 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
             [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
 
     auto d_info = get_detector_info(max_detector, ncell, cells, D, context_);
-    const auto ncv = D.size();
     state_ = std::make_unique<shared_state>(context_.thread_pool,
                                             ncell,
-                                            ncv,
                                             std::move(cv_to_cell),
-                                            D.init_membrane_potential,
-                                            D.temperature_K,
-                                            D.diam_um,
+                                            D,
                                             std::move(src_to_spike),
                                             d_info,
+                                            mech_data.ions,
+                                            mech_data.stimuli,
                                             data_alignment? data_alignment: 1u,
                                             seed_);
-    state_->solver =
-        {D.geometry.cv_parent, D.geometry.cell_cv_divs, D.cv_capacitance, D.face_conductance, D.cv_area};
-
-    // Instantiate mechanisms, ions, and stimuli.
-    auto mk_diff_solver = [&](const auto& fd) {
-        // TODO(TH) _all_ solvers should share their RO data, ie everything below D here.
-        return std::make_unique<typename backend::ion_state::solver_type>(D.geometry.cv_parent,
-                                                                          D.geometry.cell_cv_divs,
-                                                                          fd,
-                                                                          D.cv_area);
-    };
-
-    for (const auto& [ion, data]: mech_data.ions) {
-        if (auto charge = value_by_key(global_props.ion_species, ion)) {
-            if (data.is_diffusive) {
-                state_->add_ion(ion, *charge, data, mk_diff_solver(data.face_diffusivity));
-            } else {
-                state_->add_ion(ion, *charge, data, nullptr);
-            }
-        }
-        else {
-            throw cable_cell_error("unrecognized ion '"+ion+"' in mechanism");
-        }
-    }
-
-    if (!mech_data.stimuli.cv.empty()) {
-        state_->configure_stimulus(mech_data.stimuli);
-    }
 
     fvm_info.target_handles.resize(mech_data.n_target);
 
@@ -581,27 +579,7 @@ fvm_initialization_data fvm_lowered_cell_impl<Backend>::initialize(
         }
     }
 
-
-    std::vector<fvm_probe_data> probe_data;
-
-    for (auto cell_idx: make_span(ncell)) {
-        cell_gid_type gid = gids[cell_idx];
-        std::vector<probe_info> rec_probes = rec.get_probes(gid);
-        for (cell_lid_type i: count_along(rec_probes)) {
-            probe_info& pi = rec_probes[i];
-            resolve_probe_address(probe_data, cells, cell_idx, pi.address,
-                D, mech_data, fvm_info.target_handles, mechptr_by_name);
-
-            if (!probe_data.empty()) {
-                cell_member_type probeset_id{gid, i};
-                fvm_info.probe_map.tag[probeset_id] = pi.tag;
-
-                for (auto& data: probe_data) {
-                    fvm_info.probe_map.data.insert({probeset_id, std::move(data)});
-                }
-            }
-        }
-    }
+    add_probes(gids, cells, rec, D, mechptr_by_name, mech_data, fvm_info.target_handles, fvm_info.probe_map);
 
     reset();
     return fvm_info;
@@ -656,16 +634,14 @@ struct probe_resolution_data {
 };
 
 template <typename Backend>
-void fvm_lowered_cell_impl<Backend>::resolve_probe_address(
-    std::vector<fvm_probe_data>& probe_data,
-    const std::vector<cable_cell>& cells,
-    std::size_t cell_idx,
-    const std::any& paddr,
-    const fvm_cv_discretization& D,
-    const fvm_mechanism_data& M,
-    const std::vector<target_handle>& handles,
-    const std::unordered_map<std::string, mechanism*>& mech_instance_by_name)
-{
+void fvm_lowered_cell_impl<Backend>::resolve_probe_address(std::vector<fvm_probe_data>& probe_data,
+                                                           const std::vector<cable_cell>& cells,
+                                                           std::size_t cell_idx,
+                                                           const std::any& paddr,
+                                                           const fvm_cv_discretization& D,
+                                                           const fvm_mechanism_data& M,
+                                                           const std::vector<target_handle>& handles,
+                                                           const std::unordered_map<std::string, mechanism*>& mech_instance_by_name) {
     probe_data.clear();
     probe_resolution_data<Backend> prd{
         probe_data, state_.get(), cells[cell_idx], cell_idx, D, M, handles, mech_instance_by_name};
@@ -855,15 +831,17 @@ void resolve_probe(const cable_probe_stimulus_current_cell& /*p*/, probe_resolut
 
 template <typename B>
 void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>& R) {
-    const arb_value_type* data = R.mechanism_state(p.mechanism, p.state);
+    const auto& mech = p.mechanism;
+    if (!R.mech_instance_by_name.count(mech)) return;
+    const arb_value_type* data = R.mechanism_state(mech, p.state);
     if (!data) return;
 
-    auto support = R.mechanism_support(p.mechanism);
+    auto support = R.mechanism_support(mech);
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
         if (!support.intersects(loc)) continue;
 
         arb_index_type cv = R.D.geometry.location_cv(R.cell_idx, loc, cv_prefer::cv_nonempty);
-        auto opt_i = util::binary_search_index(R.M.mechanisms.at(p.mechanism).cv, cv);
+        auto opt_i = util::binary_search_index(R.M.mechanisms.at(mech).cv, cv);
         if (!opt_i) continue;
 
         R.result.push_back(fvm_probe_scalar{{data+*opt_i}, loc});
@@ -878,6 +856,7 @@ void resolve_probe(const cable_probe_density_state_cell& p, probe_resolution_dat
     if (!data) return;
 
     mextent support = R.mechanism_support(p.mechanism);
+    if (!R.M.mechanisms.count(p.mechanism)) return;
     auto& mech_cvs = R.M.mechanisms.at(p.mechanism).cv;
     mcable_list cables;
 
@@ -897,62 +876,83 @@ void resolve_probe(const cable_probe_density_state_cell& p, probe_resolution_dat
     R.result.push_back(std::move(r));
 }
 
+inline
+auto point_info_of(cell_lid_type target,
+                   int mech_index,
+                   const mlocation_map<synapse>& instances,
+                   const std::vector<arb_index_type>& multiplicity) {
+
+    auto opt_i = util::binary_search_index(instances, target, [](auto& item) { return item.lid; });
+    if (!opt_i) throw arbor_internal_error("inconsistent mechanism state");
+
+    return cable_probe_point_info {target,
+                                   multiplicity.empty() ? 1u: multiplicity.at(mech_index),
+                                   instances[*opt_i].loc};
+}
+
 template <typename B>
 void resolve_probe(const cable_probe_point_state& p, probe_resolution_data<B>& R) {
     arb_assert(R.handles.size()==R.M.target_divs.back());
     arb_assert(R.handles.size()==R.M.n_target);
 
-    const arb_value_type* data = R.mechanism_state(p.mechanism, p.state);
+    const auto& mech   = p.mechanism;
+    const auto& state  = p.state;
+    const auto& target = p.target;
+    const auto& data   = R.mechanism_state(mech, state);
+    if (!R.mech_instance_by_name.count(mech)) return;
+    const auto  mech_id = R.mech_instance_by_name.at(mech)->mechanism_id();
+    const auto& synapses = R.cell.synapses();
+    if (!synapses.count(mech)) return;
     if (!data) return;
 
     // Convert cell-local target number to cellgroup target number.
-    auto cg_target = p.target + R.M.target_divs[R.cell_idx];
-    if (cg_target>=R.M.target_divs.at(R.cell_idx+1)) return;
+    const auto& divs = R.M.target_divs;
+    auto cell = R.cell_idx;
+    auto cg  = target + divs.at(cell);
+    if (cg >= divs.at(cell + 1)) return;
 
-    if (R.handles[cg_target].mech_id!=R.mech_instance_by_name.at(p.mechanism)->mechanism_id()) return;
-    auto mech_index = R.handles[cg_target].mech_index;
-
-    auto& multiplicity = R.M.mechanisms.at(p.mechanism).multiplicity;
-    auto& placed_instances = R.cell.synapses().at(p.mechanism);
-
-    auto opt_i = util::binary_search_index(placed_instances, p.target, [](auto& item) { return item.lid; });
-    if (!opt_i) throw arbor_internal_error("inconsistent mechanism state");
-    mlocation loc = placed_instances[*opt_i].loc;
-
-    cable_probe_point_info metadata{p.target, multiplicity.empty()? 1u: multiplicity.at(mech_index), loc};
-
-    R.result.push_back(fvm_probe_scalar{{data+mech_index}, metadata});
+    const auto& handle = R.handles.at(cg);
+    if (handle.mech_id != mech_id) return;
+    auto mech_index = handle.mech_index;
+    R.result.push_back(fvm_probe_scalar{{data + mech_index},
+                       point_info_of(target,
+                                     mech_index,
+                                     synapses.at(mech),
+                                     R.M.mechanisms.at(mech).multiplicity)});
 }
 
 template <typename B>
 void resolve_probe(const cable_probe_point_state_cell& p, probe_resolution_data<B>& R) {
-    const arb_value_type* data = R.mechanism_state(p.mechanism, p.state);
+    const auto& mech  = p.mechanism;
+    const auto& state = p.state;
+    const auto& data  = R.mechanism_state(mech, state);
+
     if (!data) return;
+    if (!R.mech_instance_by_name.count(mech)) return;
+    auto mech_id = R.mech_instance_by_name.at(mech)->mechanism_id();
+    const auto& multiplicity = R.M.mechanisms.at(mech).multiplicity;
 
-    unsigned id = R.mech_instance_by_name.at(p.mechanism)->mechanism_id();
-    auto& multiplicity = R.M.mechanisms.at(p.mechanism).multiplicity;
-    auto& placed_instances = R.cell.synapses().at(p.mechanism);
+    const auto& synapses = R.cell.synapses();
+    if (!synapses.count(mech)) return;
+    const auto& placed_instances = synapses.at(mech);
 
-    std::size_t cell_targets_base = R.M.target_divs[R.cell_idx];
-    std::size_t cell_targets_end = R.M.target_divs[R.cell_idx+1];
+    auto cell_targets_beg = R.M.target_divs.at(R.cell_idx);
+    auto cell_targets_end = R.M.target_divs.at(R.cell_idx + 1);
 
     fvm_probe_multi r;
     std::vector<cable_probe_point_info> metadata;
 
-    for (auto target: util::make_span(cell_targets_base, cell_targets_end)) {
-        if (R.handles[target].mech_id!=id) continue;
+    for (auto target: util::make_span(cell_targets_beg, cell_targets_end)) {
+        const auto& handle = R.handles.at(target);
+        if (handle.mech_id != mech_id) continue;
 
-        auto mech_index = R.handles[target].mech_index;
-        r.raw_handles.push_back(data+mech_index);
+        auto mech_index = handle.mech_index;
+        r.raw_handles.push_back(data + mech_index);
 
-        auto cell_target = target-cell_targets_base; // Convert to cell-local target index.
-
-        auto opt_i = util::binary_search_index(placed_instances, cell_target, [](auto& item) { return item.lid; });
-        if (!opt_i) throw arbor_internal_error("inconsistent mechanism state");
-        mlocation loc = placed_instances[*opt_i].loc;
-
-        metadata.push_back(cable_probe_point_info{
-            cell_lid_type(cell_target), multiplicity.empty()? 1u: multiplicity.at(mech_index), loc});
+        metadata.push_back(point_info_of(target - cell_targets_beg, // Convert to cell-local target index.
+                                         mech_index,
+                                         placed_instances,
+                                         multiplicity));
     }
 
     r.metadata = std::move(metadata);
@@ -973,7 +973,6 @@ void resolve_probe(const cable_probe_ion_current_density& p, probe_resolution_da
 template <typename B>
 void resolve_probe(const cable_probe_ion_current_cell& p, probe_resolution_data<B>& R) {
     if (!R.state->ion_data.count(p.ion)) return;
-
     auto& ion_cvs = R.M.ions.at(p.ion).cv;
     const arb_value_type* src = R.state->ion_data.at(p.ion).iX_.data();
 

@@ -10,7 +10,7 @@ Arbor models
 
 We try to collect models scientists have built in our `contributor space <https://github.com/arbor-contrib/>`_.
 In addition to the tutorials, browsing these models should give you a good idea of what's possible with Arbor
-and find get in contact with other Arbor users.
+and get in contact with other Arbor users.
 
 Arbor software
 --------------
@@ -25,10 +25,10 @@ NSuite
     A framework for maintaining and running benchmarks and validation tests for multi-compartment neural network simulations on HPC systems. `NSuite documentation <https://nsuite.readthedocs.io>`_
 
 Arbor GUI
-    The Arbor GUI visualizes cable cells and can be used to decorate morphologies. Single cell simulations can be ran (using the Arbor simulator) and output plotted right from the GUI. `Arbor GUI code repository and readme <https://github.com/arbor-sim/gui>`_
+    The Arbor GUI visualizes cable cells and can be used to decorate morphologies. Single-cell simulations can be run (using the Arbor simulator), and output plotted right from the GUI. `Arbor GUI code repository and readme <https://github.com/arbor-sim/gui>`_
 
 nmlcc
-    Arbor has built-in read support for NeuroML morphologies, but not yet for other NeuroML components (mechanisms, networks). `nmlcc` is compiler/translator that aims to generate complete Arbor inputs for any NeuroML file. `nmlcc code repository and readme <https://github.com/thorstenhater/nmlcc/>`_
+    Arbor has built-in read support for NeuroML morphologies but not yet for other NeuroML components (mechanisms, networks). `nmlcc` is a compiler/translator that aims to generate complete Arbor inputs for any NeuroML file. `nmlcc code repository and readme <https://github.com/thorstenhater/nmlcc/>`_
 
 .. figure:: arbor.png
    :align: center
@@ -43,7 +43,7 @@ A list of tools in the computational neuroscience ecosystem is being maintained 
 Simulators
 ~~~~~~~~~~
 
-Arbor exists in the wider computational neuroscience simulator ecosystem. Simulators exist roughly at these four levels: ranging from the lowest level (molecular dynamics) to the highest (whole brain simulation). Needless to say, each level comes with a higher level of abstraction, but attempt to describe larger structures. Co-simulation or Multiscale simulations refers to the attempt to link up the levels and simulators in an attempt to combine the low level of detail (in regions where it is desired) with the effects of the larger structures. The concrete method to interface between levels are typically the submission of spikes, ion (concentrations), field potentials.
+Arbor exists in the wider computational neuroscience simulator ecosystem. Simulators exist roughly at these four levels: ranging from the lowest level (molecular dynamics) to the highest (whole-brain simulation). Needless to say, each level comes with a higher level of abstraction but attempts to describe larger structures. Co-simulation or Multiscale simulations refers to the attempt to link up the levels and simulators in an attempt to combine the low level of detail (in regions where it is desired) with the effects of the larger structures. The concrete method to interface between levels is typically the submission of spikes, ion (concentrations), and field potentials.
 
 .. raw:: html
    :file: index-sims.html
@@ -51,7 +51,7 @@ Arbor exists in the wider computational neuroscience simulator ecosystem. Simula
 Frameworks
 ~~~~~~~~~~
 
-Certain tools combine various components to create integrated experimentation toolchains. They do not only include (interfaces for) simulators, but also converters for file formats, miscellaneous data processing (pre or post), plotting, miscellaneous analysis, and more. An incomplete list:
+Certain tools combine various components to create integrated experimentation toolchains. They do not only include (interfaces for) simulators but also converters for file formats, miscellaneous data processing (pre or post), plotting, miscellaneous analysis, and more. An incomplete list:
 
 - `NeuroMLlite <https://github.com/NeuroML/NeuroMLlite>`_ (NML)
 - `OpenSourceBrain <https://www.opensourcebrain.org>`_ (NML2)

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <utility>
 #include <vector>
 
 #include <arbor/assert.hpp>
@@ -9,6 +10,7 @@
 #include <arbor/context.hpp>
 #include <arbor/export.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/serdes.hpp>
 
 namespace arb {
 
@@ -26,6 +28,8 @@ struct group_description {
     group_description(cell_kind k, std::vector<cell_gid_type> g, backend_kind b):
         kind(k), gids(std::move(g)), backend(b)
     {}
+
+    ARB_SERDES_ENABLE(group_description, kind, gids, backend);
 };
 
 /// Meta data that describes a domain decomposition.
@@ -42,6 +46,7 @@ public:
     domain_decomposition& operator=(const domain_decomposition&) = default;
 
     int gid_domain(cell_gid_type gid) const;
+    cell_size_type index_on_domain(cell_gid_type gid) const;
     int num_domains() const;
     int domain_id() const;
     cell_size_type num_local_cells() const;
@@ -51,12 +56,12 @@ public:
     const group_description& group(unsigned) const;
 
 private:
-    /// Return the domain id of cell with gid.
+    /// Return the domain id and index on domain of cell with gid.
     /// Supplied by the load balancing algorithm that generates the domain
     /// decomposition.
-    std::function<int(cell_gid_type)> gid_domain_;
+    std::function<std::pair<int,cell_size_type>(cell_gid_type)> gid_domain_;
 
-    /// Number of distrubuted domains
+    /// Number of distributed domains
     int num_domains_;
 
     /// The index of the local domain

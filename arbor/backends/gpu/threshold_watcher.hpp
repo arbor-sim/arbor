@@ -5,6 +5,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
 
+#include "backends/common_types.hpp"
 #include "execution_context.hpp"
 #include "memory/memory.hpp"
 #include "util/span.hpp"
@@ -54,6 +55,12 @@ public:
 
     threshold_watcher(const arb_size_type num_cv,
                       const arb_index_type* src_to_spike,
+                      const fvm_detector_info& info):
+        threshold_watcher{num_cv, src_to_spike, info.cv, info.threshold, info.ctx}
+    {}
+
+    threshold_watcher(const arb_size_type num_cv,
+                      const arb_index_type* src_to_spike,
                       const std::vector<arb_index_type>& cv_index,
                       const std::vector<arb_value_type>& thresholds,
                       const execution_context& context):
@@ -65,7 +72,7 @@ public:
         v_prev_(num_cv),
         // TODO: allocates enough space for 10 spikes per watch.
         // A more robust approach might be needed to avoid overflows.
-        stack_(10*size(), context.gpu)
+        stack_(100*size(), context.gpu)
     {
         crossings_.reserve(stack_.capacity());
         // reset() needs to be called before this is ready for use

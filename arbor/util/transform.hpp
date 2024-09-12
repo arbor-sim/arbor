@@ -37,7 +37,7 @@ class transform_iterator: public iterator_adaptor<transform_iterator<I, F>, I> {
     I& inner() { return inner_; }
 
     using inner_value_type = decltype(*inner_);
-    using raw_value_type = std::result_of_t<F (inner_value_type)>;
+    using raw_value_type = std::invoke_result_t<F, inner_value_type>;
 
     static constexpr bool present_lvalue = std::is_reference<raw_value_type>::value;
 

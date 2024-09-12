@@ -32,6 +32,12 @@ become otherwise unwieldy.
 
 ## Benchmarks
 
+### Merge Events
+
+During simulation, we need to collate incoming spike events, events from local generators,
+and events that have yet to be delivered. There are multiple options for doing so: heap/tree
+merge, linear k-merge, or iterative two-way merge.
+
 ### `accumulate_functor_values`
 
 #### Motivation

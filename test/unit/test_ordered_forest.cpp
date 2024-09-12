@@ -2,6 +2,7 @@
 #include <memory>
 #include <type_traits>
 #include <vector>
+#include <algorithm>
 
 #include <gtest/gtest.h>
 #include "util/ordered_forest.hpp"

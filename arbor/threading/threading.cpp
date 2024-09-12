@@ -1,9 +1,11 @@
 #include <atomic>
+#include <optional>
 #include <stdexcept>
 #include <cassert>
 
 #include <arbor/assert.hpp>
 #include <arbor/util/scope_exit.hpp>
+#include <thread>
 
 #include "threading/threading.hpp"
 #include "affinity.hpp"
@@ -90,7 +92,7 @@ void task_system::run(priority_task ptsk) {
 }
 
 void task_system::run_tasks_loop(int index) {
-    auto guard = util::on_scope_exit([] { current_task_queue_ = -1; });
+    auto guard = util::on_scope_exit([] { current_task_queue_ = nil; });
     current_task_queue_ = index;
     if (bind_) set_affinity(index, count_, affinity_kind::thread);
     while (true) {
@@ -129,7 +131,7 @@ void task_system::try_run_task(int lowest_priority) {
 }
 
 thread_local int task_system::current_task_priority_ = -1;
-thread_local unsigned task_system::current_task_queue_ = -1;
+thread_local unsigned task_system::current_task_queue_ = task_system::nil;
 
 // Default construct with one thread.
 task_system::task_system(): task_system(1) {}
@@ -161,7 +163,7 @@ task_system::task_system(int nthreads, bool bind):
 
 task_system::~task_system() {
     current_task_priority_ = -1;
-    current_task_queue_ = -1;
+    current_task_queue_ = nil;
     for (auto& e: q_) e.quit();
     for (auto& e: threads_) e.join();
 }
@@ -184,3 +186,9 @@ void task_system::async(priority_task ptsk) {
 std::unordered_map<std::thread::id, std::size_t> task_system::get_thread_ids() const {
     return thread_ids_;
 };
+
+std::optional<std::size_t> task_system::get_current_thread_id() const {
+    const auto it = thread_ids_.find(std::this_thread::get_id());
+    if(it != thread_ids_.end()) return it->second;
+    return std::nullopt;
+}

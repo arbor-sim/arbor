@@ -3,7 +3,6 @@
 #include <any>
 #include <string>
 #include <sstream>
-#include <iostream>
 #include <typeinfo>
 
 #include <arbor/assert.hpp>

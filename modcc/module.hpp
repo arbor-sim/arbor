@@ -139,7 +139,7 @@ private:
     bool generate_initial_api();
     bool generate_current_api();
     bool generate_state_api();
-    void add_variables_to_symbols();
+    bool add_variables_to_symbols();
 
     bool has_symbol(const std::string& name) {
         return symbols_.find(name) != symbols_.end();

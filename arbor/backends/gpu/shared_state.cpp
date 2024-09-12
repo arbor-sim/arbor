@@ -22,6 +22,8 @@
 #include "util/range.hpp"
 #include "util/strprintf.hpp"
 
+#include <iostream>
+
 using arb::memory::make_const_view;
 
 namespace arb {
@@ -43,8 +45,7 @@ std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, con
 
 // Ion state methods:
 
-ion_state::ion_state(int charge,
-                     const fvm_ion_config& ion_data,
+ion_state::ion_state(const fvm_ion_config& ion_data,
                      unsigned, // alignment/padding ignored.
                      solver_ptr ptr):
     write_eX_(ion_data.revpot_written),
@@ -62,7 +63,7 @@ ion_state::ion_state(int charge,
     reset_Xi_(make_const_view(ion_data.reset_iconc)),
     reset_Xo_(make_const_view(ion_data.reset_econc)),
     init_eX_(make_const_view(ion_data.init_revpot)),
-    charge(1u, charge),
+    charge(1u, static_cast<arb_value_type>(ion_data.charge)),
     solver(std::move(ptr)) {
     arb_assert(node_index_.size()==init_Xi_.size());
     arb_assert(node_index_.size()==init_Xo_.size());
@@ -174,12 +175,13 @@ shared_state::shared_state(task_system_handle tp,
                            const std::vector<arb_value_type>& init_membrane_potential,
                            const std::vector<arb_value_type>& temperature_K,
                            const std::vector<arb_value_type>& diam,
+                           const std::vector<arb_value_type>& area,
                            const std::vector<arb_index_type>& src_to_spike_,
-                           const fvm_detector_info& detector,
+                           const fvm_detector_info& detector_info,
                            unsigned, // align parameter ignored
                            arb_seed_type cbprng_seed_):
     thread_pool(tp),
-    n_detector(detector.count),
+    n_detector(detector_info.count),
     n_cv(n_cv_),
     cv_to_cell(make_const_view(cv_to_cell_vec)),
     voltage(n_cv_),
@@ -188,15 +190,12 @@ shared_state::shared_state(task_system_handle tp,
     init_voltage(make_const_view(init_membrane_potential)),
     temperature_degC(make_const_view(temperature_K)),
     diam_um(make_const_view(diam)),
+    area_um2(make_const_view(area)),
     time_since_spike(n_cell*n_detector),
     src_to_spike(make_const_view(src_to_spike_)),
     cbprng_seed(cbprng_seed_),
     sample_events(thread_pool),
-    watcher{n_cv_,
-            src_to_spike.data(),
-            detector.cv,
-            detector.threshold,
-            detector.ctx}
+    watcher{n_cv_, src_to_spike.data(), detector_info}
 {
     memory::fill(time_since_spike, -1.0);
     add_scalar(temperature_degC.size(), temperature_degC.data(), -273.15);
@@ -237,11 +236,12 @@ void shared_state::instantiate(mechanism& m,
     m.ppack_.vec_g            = conductivity.data();
     m.ppack_.temperature_degC = temperature_degC.data();
     m.ppack_.diam_um          = diam_um.data();
+    m.ppack_.area_um2         = area_um2.data();
     m.ppack_.time_since_spike = time_since_spike.data();
     m.ppack_.n_detectors      = n_detector;
 
-    if (storage.find(id) != storage.end()) throw arb::arbor_internal_error("Duplicate mech id in shared state");
-    auto& store = storage.emplace(id, thread_pool).first->second;
+    if (storage.count(id)) throw arb::arbor_internal_error("Duplicate mech id in shared state");
+    auto& store = storage.emplace(id, mech_storage{thread_pool}).first->second;
 
     // Allocate view pointers
     store.state_vars_ = std::vector<arb_value_type*>(m.mech_.n_state_vars);
@@ -393,26 +393,25 @@ void shared_state::take_samples() {
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s) {
     using io::csv;
 
-    o << " n_cv         " << s.n_cv << "\n";
-    o << " time         " << s.time << "\n";
-    o << " time_to      " << s.time_to << "\n";
-    o << " voltage      " << s.voltage << "\n";
-    o << " init_voltage " << s.init_voltage << "\n";
-    o << " temperature  " << s.temperature_degC << "\n";
-    o << " diameter     " << s.diam_um << "\n";
-    o << " current      " << s.current_density << "\n";
-    o << " conductivity " << s.conductivity << "\n";
-    for (auto& ki: s.ion_data) {
-        auto& kn = ki.first;
-        auto& i = ki.second;
-        o << " " << kn << "/current_density        " << csv(i.iX_) << "\n";
-        o << " " << kn << "/reversal_potential     " << csv(i.eX_) << "\n";
-        o << " " << kn << "/internal_concentration " << csv(i.Xi_) << "\n";
-        o << " " << kn << "/external_concentration " << csv(i.Xo_) << "\n";
-        o << " " << kn << "/intconc_initial        " << csv(i.init_Xi_) << "\n";
-        o << " " << kn << "/extconc_initial        " << csv(i.init_Xo_) << "\n";
-        o << " " << kn << "/revpot_initial         " << csv(i.init_eX_) << "\n";
-        o << " " << kn << "/node_index             " << csv(i.node_index_) << "\n";
+    o << " n_cv         " << s.n_cv << "\n"
+      << " time         " << s.time << "\n"
+      << " time_to      " << s.time_to << "\n"
+      << " voltage      " << s.voltage << "\n"
+      << " init_voltage " << s.init_voltage << "\n"
+      << " temperature  " << s.temperature_degC << "\n"
+      << " diameter     " << s.diam_um << "\n"
+      << " area         " << s.area_um2 << "\n"
+      << " current      " << s.current_density << "\n"
+      << " conductivity " << s.conductivity << "\n";
+    for (auto& [kn, i]: s.ion_data) {
+        o << " " << kn << "/current_density        " << csv(i.iX_) << "\n"
+          << " " << kn << "/reversal_potential     " << csv(i.eX_) << "\n"
+          << " " << kn << "/internal_concentration " << csv(i.Xi_) << "\n"
+          << " " << kn << "/external_concentration " << csv(i.Xo_) << "\n"
+          << " " << kn << "/intconc_initial        " << csv(i.init_Xi_) << "\n"
+          << " " << kn << "/extconc_initial        " << csv(i.init_Xo_) << "\n"
+          << " " << kn << "/revpot_initial         " << csv(i.init_eX_) << "\n"
+          << " " << kn << "/node_index             " << csv(i.node_index_) << "\n";
     }
     return o;
 }

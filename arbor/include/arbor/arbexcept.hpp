@@ -42,6 +42,13 @@ struct ARB_SYMBOL_VISIBLE bad_cell_probe: arbor_exception {
     cell_kind kind;
 };
 
+struct ARB_SYMBOL_VISIBLE dup_cell_probe: arbor_exception {
+    dup_cell_probe(cell_kind kind, cell_gid_type gid, cell_tag_type tag);
+    cell_gid_type gid;
+    cell_kind kind;
+    cell_tag_type tag;
+};
+
 struct ARB_SYMBOL_VISIBLE invalid_mechanism_kind: arbor_exception {
     invalid_mechanism_kind(arb_mechanism_kind);
     arb_mechanism_kind kind;
@@ -133,6 +140,18 @@ struct ARB_SYMBOL_VISIBLE fingerprint_mismatch: arbor_exception {
 
 struct ARB_SYMBOL_VISIBLE no_such_parameter: arbor_exception {
     no_such_parameter(const std::string& mech_name, const std::string& param_name);
+    std::string mech_name;
+    std::string param_name;
+};
+
+struct ARB_SYMBOL_VISIBLE did_you_mean_global_parameter: arbor_exception {
+    did_you_mean_global_parameter(const std::string& mech_name, const std::string& param_name);
+    std::string mech_name;
+    std::string param_name;
+};
+
+struct ARB_SYMBOL_VISIBLE did_you_mean_normal_parameter: arbor_exception {
+    did_you_mean_normal_parameter(const std::string& mech_name, const std::string& param_name);
     std::string mech_name;
     std::string param_name;
 };

@@ -17,6 +17,7 @@ add_subdirectory(lfp)
 add_subdirectory(diffusion)
 add_subdirectory(v_clamp)
 add_subdirectory(ornstein_uhlenbeck)
+add_subdirectory(network_description)
 
 if(ARB_WITH_MPI)
   add_subdirectory(remote)

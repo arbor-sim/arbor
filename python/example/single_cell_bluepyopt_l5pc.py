@@ -23,7 +23,7 @@ cell_json, morpho, decor, labels = ephys.create_acc.read_acc(cell_json_filename)
 
 labels["soma_center"] = "(location 0 0.5)"
 labels["dend1"] = (
-    '(restrict (distal-translate (proximal (region "apic")) 660)'
+    '(restrict-to (distal-translate (proximal (region "apic")) 660)'
     " (proximal-interval (distal (branch 123))))"
 )
 
@@ -69,7 +69,7 @@ class single_recipe(arbor.recipe):
     def num_cells(self):
         return 1
 
-    # (6.3) Override the num_targets method
+    # (6.3) Override the cell_kind method
     def cell_kind(self, gid):
         return arbor.cell_kind.cable
 

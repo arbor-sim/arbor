@@ -1,5 +1,6 @@
 #pragma once
 
+
 // Create/manipulate 1-d piecewise defined objects.
 //
 // A `pw_element<A>` describes a _value_ of type `A` and an _extent_ of
@@ -102,14 +103,13 @@
 
 #include "util/iterutil.hpp"
 #include "util/transform.hpp"
-#include "util/meta.hpp"
 #include "util/partition.hpp"
 
 namespace arb {
 namespace util {
 
 using pw_size_type = unsigned;
-constexpr pw_size_type pw_npos = -1;
+constexpr pw_size_type pw_npos = static_cast<pw_size_type>(-1);
 
 template <typename X = void>
 struct pw_element {
@@ -159,14 +159,29 @@ struct pw_element_proxy {
         extent(pw.extent(i)), value(pw.value(i)) {}
 
     operator pw_element<X>() const { return pw_element<X>{extent, value}; }
-    operator X() const { return value; }
-    pw_element_proxy& operator=(X x) {value = std::move(x); return *this; };
+    operator X&() const { return value; }
+    pw_element_proxy& operator=(X x) { value = std::move(x); return *this; };
 
     double lower_bound() const { return extent.first; }
     double upper_bound() const { return extent.second; }
 
     const std::pair<double, double> extent;
     X& value;
+};
+
+template <typename X>
+struct pw_element_proxy<const X> {
+    pw_element_proxy(const pw_elements<X>& pw, pw_size_type i):
+        extent(pw.extent(i)), value(pw.value(i)) {}
+
+    operator pw_element<X>() const { return pw_element<X>{extent, value}; }
+    operator const X&() const { return value; }
+
+    double lower_bound() const { return extent.first; }
+    double upper_bound() const { return extent.second; }
+
+    const std::pair<double, double> extent;
+    const X& value;
 };
 
 // Compute indices into vertex set corresponding to elements that cover a point x:
@@ -239,12 +254,12 @@ struct pw_elements {
         const_iterator(): pw_(nullptr) {}
 
         using value_type = pw_element<X>;
-        using pointer = const pointer_proxy<pw_element<X>>;
-        using reference = pw_element<X>;
+        using pointer = const pointer_proxy<pw_element_proxy<const X>>;
+        using reference = pw_element_proxy<const X>;
 
-        reference operator[](difference_type j) const { return (*pw_)[j+*c_]; }
-        reference operator*() const { return (*pw_)[*c_]; }
-        pointer operator->() const { return pointer{(*pw_)[*c_]}; }
+        reference operator[](difference_type j) const { return {*pw_, j + *c_}; }
+        reference operator*() const { return {*pw_, *c_}; }
+        pointer operator->() const { return pointer{reference{*pw_, *c_}}; }
 
         // (required for iterator_adaptor)
         counter<pw_size_type>& inner() { return c_; }
@@ -382,13 +397,8 @@ struct pw_elements {
 
     template <typename U>
     void push_back(double left, double right, U&& v) {
-        if (!empty() && left!=vertex_.back()) {
-            throw std::runtime_error("noncontiguous element");
-        }
-
-        if (right<left) {
-            throw std::runtime_error("inverted element");
-        }
+        if (!empty() && left != vertex_.back()) throw std::runtime_error("noncontiguous element");
+        if (right<left) throw std::runtime_error("inverted element");
 
         // Extend value_ first in case a conversion/copy/move throws.
         value_.push_back(std::forward<U>(v));
@@ -727,16 +737,51 @@ struct pw_zip_iterator {
 
     pw_zip_iterator() = default;
     pw_zip_iterator(const pw_elements<A>& a, const pw_elements<B>& b) {
-        double lmax = std::max(a.lower_bound(), b.lower_bound());
-        double rmin = std::min(a.upper_bound(), b.upper_bound());
+        // Default, both a and b are empty
+        is_end = true;
+        ai = a_end = a.end();
+        bi = b_end = b.end();
 
-        is_end = rmin<lmax;
-        if (!is_end) {
-            ai = a.equal_range(lmax).first;
-            a_end = a.equal_range(rmin).second;
-            bi = b.equal_range(lmax).first;
-            b_end = b.equal_range(rmin).second;
-            left = lmax;
+        if (!a.empty() && !b.empty()) {
+            const auto& [al, ah] = a.bounds();
+            const auto& [bl, bh] = b.bounds();
+            double lmax = std::max(al, bl);
+            double rmin = std::min(ah, bh);
+            is_end = rmin < lmax;
+
+            if (!is_end) {
+                ai = a.equal_range(lmax).first;
+                a_end = a.equal_range(rmin).second;
+                bi = b.equal_range(lmax).first;
+                b_end = b.equal_range(rmin).second;
+                left = lmax;
+            }
+        }
+        else if (!a.empty()) { // b must be empty
+            const auto& [al, ah] = a.bounds();
+            double lmax = al;
+            double rmin = ah;
+            is_end = rmin < lmax;
+            if (!is_end) {
+                ai = a.equal_range(lmax).first;
+                a_end = a.equal_range(rmin).second;
+                left = lmax;
+            }
+        }
+        else if (!b.empty()) { // a must be empty
+            const auto& [bl, bh] = b.bounds();
+            double lmax = bl;
+            double rmin = bh;
+            is_end = rmin < lmax;
+
+            if (!is_end) {
+                bi = b.equal_range(lmax).first;
+                b_end = b.equal_range(rmin).second;
+                left = lmax;
+            }
+        }
+        else {
+            // impossible
         }
     }
 
@@ -789,7 +834,6 @@ struct pw_zip_iterator {
         double a_right = ai->upper_bound();
         double b_right = bi->upper_bound();
         double right = std::min(a_right, b_right);
-
         return value_type{{left, right}, {*ai, *bi}};
     }
 

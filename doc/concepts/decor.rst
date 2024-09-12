@@ -36,7 +36,7 @@ Decorations are described by a **decor** object in Arbor. It provides facilities
    All methods on decor objects (``paint``, ``place``, and ``set_default``)
    return a reference to the objects so you can chain them together. This saves
    some repetition. You can break long statements over multiple lines, but in
-   Python this requires use of continuation lines ``\`` or wrapping the whole
+   Python this requires the use of continuation lines ``\`` or wrapping the whole
    expression into parentheses.
 
 .. _cablecell-paint:
@@ -49,16 +49,16 @@ They can be specified at three different levels:
 
 * *globally*: a global default for all cells in a model.
 * *per-cell*: override the global defaults for a specific cell.
-* *per-region*: specialize on specific cell regions.
+* *per-region*: specialize in specific cell regions.
 
 This hierarchical approach for resolving parameters and properties allows
 us to, for example, define a global default value for calcium concentration,
-then provide a different values on specific cell regions.
+then provide different values on specific cell regions.
 
-Some dynamics, such as membrane capacitance and the initial concentration of ion species
+Some dynamics, such as membrane capacitance and the initial concentration of ion species,
 must be defined for all CVs. Others need only be applied where they are
-present, for example ion channels.
-The types of dynamics, and where they can be defined, are
+present, for example, ion channels.
+The types of dynamics and where they can be defined are
 :ref:`tabulated <cablecell-painted-resolution>` below.
 
 .. _cablecell-painted-resolution:
@@ -75,7 +75,7 @@ The types of dynamics, and where they can be defined, are
    ion valence,            --, --, ✓
 
 If a property is defined at multiple levels, the most local definition will be chosen:
-a cell-local definition will override a global definition, and a definition on a region
+a cell-local definition will override a global definition, and a definition of a region
 will override any cell-local or global definition on that region.
 
 .. warning::
@@ -107,16 +107,20 @@ specialised on specific regions.
     .. code-block:: Python
 
         import arbor
+        from arbor import units as U
 
         # Create an empty decor.
         decor = arbor.decor()
 
         # Set cell-wide properties that will be applied by default to the entire cell.
-        decor.set_properties(Vm=-70, cm=0.02, rL=30, tempK=30+273.5)
+        decor.set_properties(Vm=-70 * U.mV,
+                             cm=0.02 * U.F / U.m2,
+                             rL=30 * U.Ohm * U.cm,
+                             tempK=30 * U.celsius) # or 303.15 K
 
         # Override specific values on regions named "soma" and "axon".
-        decor.paint('"soma"', Vm=-50, cm=0.01, rL=35)
-        decor.paint('"axon"', Vm=-60, rL=40)
+        decor.paint('"soma"', Vm=-50 * U.mV, cm=0.01 * U.F / U.m2, rL=35 * U.Ohm * U.cm)
+        decor.paint('"axon"', Vm=-60 * U.mV, rL=40 * U.Ohm * U.cm)
 
 .. _cablecell-density-mechs:
 
@@ -173,19 +177,25 @@ Take for example the built-in mechanism for passive leaky dynamics:
     decor.paint('"soma"', arbor.density(m3)) # error: can't have overlap between two instances of a mechanism
                                              #        with different values for a global parameter.
 
-.. _cablecell-ions:
-
 .. _cablecell-scaled-mechs:
 
-4. Scaled mechanisms
-~~~~~~~~~~~~~~~~~~~~~
-Mechanism parameters are usually homogeneous along a cell. However, sometimes it is useful to scale parameters based on inhomogeneous properties.
-:ref:`Inhomogeneous expressions  <labels-iexpr>` provide a way to describe a desired scaling formula, which for example can include the cell radius or the distance to a given set of locations.
-The name is inspired by NeuroML's https://docs.neuroml.org/Userdocs/Schemas/Cells.html#schema-inhomogeneousparameter.
-Such an expression is evaluated along the cell and yields a scaling factor, which is multiplied with the base value of the selected parameter.
-Internally, this evaluation and scaling is done at mid-points of the cable partition of the cell.
-Currently, only parameters of :ref:`density mechanisms <cablecell-density-mechs>` can be scaled.
+4. Scaling Mechanism and Membrane Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Mechanism parameters are usually homogeneous along a cell. However, sometimes it
+is useful to scale parameters based on inhomogeneous properties.
+:ref:`Inhomogeneous expressions <labels-iexpr>` provide a way to describe a
+desired scaling formula, which for example can include the cell radius or the
+distance to a given set of locations. The name is inspired by NeuroML's
+https://docs.neuroml.org/Userdocs/Schemas/Cells.html#schema-inhomogeneousparameter.
+Such an expression is evaluated along the cell and yields a scaling factor,
+which is multiplied with the base value of the selected parameter. Internally,
+this evaluation and scaling is done at mid-points of the cable partition of the
+cell. Currently, parameters of :ref:`density mechanisms
+<cablecell-density-mechs>` and painted (not defaulted) membrane parameters can
+be scaled. Eligible parameters are: temperature, membrane potential, axial
+resistivity, and membrane capacitance, as well as all ion parameters
+(diffusivity, reversal potential, and concentrations).
 
 .. code-block:: Python
 
@@ -195,6 +205,13 @@ Currently, only parameters of :ref:`density mechanisms <cablecell-density-mechs>
     decor = arbor.decor()
     # paint a scaled density mechanism, where 'g' is scaled with the distance from the root.
     decor.paint('"dend"', arbor.scaled_mechanism(arbor.density(m), {'g': '(distance 1.0 (root))'}))
+
+
+    # initial value for the membrane potential as inhomogeneous expression.
+    # we give a pair of a base value and a scaling iexpr
+    decor.paint('(all)', Vm=(23*U.mV, '(mul 42 (diameter))'))
+
+.. _cablecell-ions:
 
 5. Ion species
 ~~~~~~~~~~~~~~
@@ -282,10 +299,12 @@ using the *paint* interface:
 
     # It is possible to define all of the initial condition values
     # for a ion species.
-    decor.paint('(tag 1)', arbor.ion('ca', int_con=2e-4, ext_con=2.5, rev_pot=114))
+    decor.paint('(tag 1)', ion='ca', int_con=2e-4  * U.mM, ext_con=2.5 * U.mM, rev_pot=114 * U.mV)
 
     # Alternatively, one can selectively overwrite the global defaults.
-    decor.paint('(tag 2)', arbor.ion('ca', rev_pot=126)
+    decor.paint('(tag 2)', ion='ca', rev_pot=126 * U.mV)
+
+.. _cablecell-ions-diffusion:
 
 To enable diffusion of ion species along the morphology (axial diffusion) one
 sets the per-species diffusivity to a positive value. It can be changed per
@@ -296,8 +315,8 @@ concentration and ``ß`` the diffusivity constant.
 .. code-block:: Python
 
     decor = arbor.decor()
-    decor.set_ion('ca', diff=23.0)
-    decor.paint('"region"', 'ca', diff=42.0)
+    decor.set_ion('ca', diff=23.0 * U.mV)
+    decor.paint('"region"', 'ca', diff=42.0 * U.m2/U.s)
 
 Be aware of the consequences of setting ``ß > 0`` only in some places, namely
 pile-up effects similar to reflective bounds.
@@ -342,13 +361,13 @@ A point mechanism (synapse) can form the target of a :term:`connection` on a cel
     expsyn = arbor.mechanism('expsyn')
 
     # Wrap the 'expsyn' mechanism in a `synapse` object and add it to the decor.
-    decor.place('"syn_loc_0"', arbor.synapse(expsyn))
+    decor.place('"syn_loc_0"', arbor.synapse(expsyn), "My_Synapse_1")
 
     # Create an 'expsyn' mechanism with default parameter values as a `synapse` object, and add it to the decor.
-    decor.place('"syn_loc_1"', arbor.synapse("expsyn"))
+    decor.place('"syn_loc_1"', arbor.synapse("expsyn"), "My_Synapse_2")
 
     # Create an 'expsyn' mechanism with modified 'tau' parameter as a `synapse` object, and add it to the decor.
-    decor.place('"syn_loc_2"', arbor.synapse("expsyn", {"tau": 1.0}))
+    decor.place('"syn_loc_2"', arbor.synapse("expsyn", {"tau": 1.0}), "My_Synapse_3")
 
 
 .. _cablecell-threshold-detectors:
@@ -399,10 +418,10 @@ on two separate cells.
     gj = arbor.mechanism("gj", {"g": 2.0})
 
     # Wrap the 'gj' mechanism in a `junction` object and add it to the decor.
-    decor.place('"gj_loc_0"', arbor.junction(gj))
+    decor.place('"gj_loc_0"', arbor.junction(gj), "My_Gap_Junction_1")
 
     # Create a 'gj' mechanism with modified 'g' parameter as a `junction` object, and add it to the decor.
-    decor.place('"gj_loc_1"', arbor.junction("gj", {"g": 1.5}))
+    decor.place('"gj_loc_1"', arbor.junction("gj", {"g": 1.5}), "My_Gap_Junction_2")
 
 .. _cablecell-stimuli:
 
@@ -447,6 +466,36 @@ constant stimuli and constant amplitude stimuli restricted to a fixed time inter
 ~~~~~~~~~
 
 See :ref:`probesample`.
+
+
+Predefined parameter sets
+-------------------------
+
+For convenience, Arbor provides predefined sets of parameters to use. Please
+refer to the API sections on how to enable these
+
+NEURON
+~~~~~~
+
+.. csv-table:: Parameter presets.
+   :widths: 30, 10, 10
+
+    **Parameter**,              **unit**, **NEURON**
+
+    initial membrane potential, [mV],     -65
+    temperature,                [K],      279.45
+    axial resistivity,          [Ω·cm],   35.4
+    membrane capacitance,       [F/m²],   0.01
+
+.. csv-table:: Ion presets.
+   :widths: 25, 10, 10, 10, 10
+
+    **Parameter**,          **unit**, **Na**, **K**, **Ca**
+
+    internal concentration, [mM],      10,    54.4,  0.00005
+    external concentration, [mM],     140,     2.5,  2
+    reversal potential,     [mV],      50,   -77,    132.458
+    diffusivity,            [m²/s],     0,     0,    0
 
 API
 ---

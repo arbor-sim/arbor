@@ -14,6 +14,7 @@ class ARB_LIBMODCC_API GpuPrinter: public CPrinter {
 public:
     GpuPrinter(std::ostream& out): CPrinter(out) {}
 
+    using Visitor::visit;
     void visit(CallExpression*) override;
     void visit(VariableExpression*) override;
     void visit(WhiteNoise*) override;

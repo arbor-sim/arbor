@@ -19,6 +19,7 @@
 #include "nml_parse_morphology.hpp"
 #include "xml.hpp"
 
+using std::optional;
 using arb::util::expected;
 using arb::util::unexpected;
 using std::optional;
@@ -88,8 +89,8 @@ expected<std::vector<std::size_t>, cycle_detected> topological_sort(std::size_t 
     using std::begin;
     using std::end;
 
-    constexpr std::size_t unknown = -1;
-    constexpr std::size_t cycle = -2;
+    constexpr std::size_t unknown = static_cast<std::size_t>(-1);
+    constexpr std::size_t cycle = static_cast<std::size_t>(-2);
 
     std::vector<std::size_t> depth(n, unknown);
     std::stack<std::size_t> stack;
@@ -398,11 +399,13 @@ arb::stitched_morphology construct_morphology(const neuroml_segment_tree& segtre
 }
 }
 
-nml_morphology_data nml_parse_morphology_element(const xml_node& morph,
-                                                 enum neuroml_options::values options) {
+loaded_morphology nml_parse_morphology_element(const xml_node& morph,
+                                               enum neuroml_options::values options) {
     using namespace neuroml_options;
-    nml_morphology_data M;
-    M.id = get_attr<std::string>(morph, "id");
+    loaded_morphology M;
+    M.metadata = nml_metadata{};
+    auto& L = std::get<nml_metadata>(M.metadata);
+    L.id = get_attr<std::string>(morph, "id");
 
     std::vector<neuroml_segment> segments;
 
@@ -512,13 +515,14 @@ nml_morphology_data nml_parse_morphology_element(const xml_node& morph,
         groups.push_back(std::move(group));
     }
 
-    M.group_segments = evaluate_segment_groups(std::move(groups), segtree);
+    L.group_segments = evaluate_segment_groups(std::move(groups), segtree);
 
     // Build morphology and label dictionaries:
 
     arb::stitched_morphology stitched = construct_morphology(segtree);
     M.morphology = stitched.morphology();
-    M.segments = stitched.labels();
+    M.segment_tree = M.morphology.to_segment_tree();
+    L.segments = stitched.labels();
 
     std::unordered_multimap<std::string, non_negative> name_to_ids;
     std::unordered_set<std::string> names;
@@ -534,19 +538,22 @@ nml_morphology_data nml_parse_morphology_element(const xml_node& morph,
         arb::region r;
         auto ids = name_to_ids.equal_range(name);
         for (auto i = ids.first; i!=ids.second; ++i) {
-            r = join(std::move(r), M.segments.regions().at(std::to_string(i->second)));
+            r = join(std::move(r), L.segments.regions().at(std::to_string(i->second)));
         }
-        M.named_segments.set(name, std::move(r));
+        L.named_segments.set(name, std::move(r));
     }
 
-    for (const auto& [group_id, segment_ids]: M.group_segments) {
+    for (const auto& [group_id, segment_ids]: L.group_segments) {
         arb::region r;
         for (auto id: segment_ids) {
-            r = join(std::move(r), M.segments.regions().at(std::to_string(id)));
+            r = join(std::move(r), L.segments.regions().at(std::to_string(id)));
         }
-        M.groups.set(group_id, std::move(r));
+        L.groups.set(group_id, std::move(r));
     }
 
+    M.labels.extend(L.segments);
+    M.labels.extend(L.named_segments);
+    M.labels.extend(L.groups);
     return M;
 }
 

@@ -1066,7 +1066,6 @@ expression_ptr Parser::parse_statement() {
     switch (token_.type) {
     case tok::if_stmt:
         return parse_if();
-        break;
     case tok::conductance:
         return parse_conductance();
     case tok::solve:
@@ -1090,7 +1089,7 @@ expression_ptr Parser::parse_statement() {
         error(pprintf("unexpected token type % '%'", token_string(token_.type), token_.spelling));
         return nullptr;
     }
-    return nullptr;
+    // unreachable!
 }
 
 expression_ptr Parser::parse_identifier() {
@@ -1393,9 +1392,7 @@ expression_ptr Parser::parse_expression(int prec, tok stop_token) {
 
     // Combine all sub-expressions with precedence greater than prec.
     for (;;) {
-        if (token_.type == stop_token) {
-            return lhs;
-        }
+        if (token_.type == stop_token) return lhs;
 
         auto op = token_;
         auto p_op = binop_precedence(op.type);
@@ -1410,8 +1407,7 @@ expression_ptr Parser::parse_expression(int prec, tok stop_token) {
         lhs = parse_binop(std::move(lhs), op);
         if (!lhs) return nullptr;
     }
-
-    return lhs;
+    // unreachable!
 }
 
 expression_ptr Parser::parse_expression() {
@@ -1467,7 +1463,7 @@ expression_ptr Parser::parse_unaryop() {
     default:
         return parse_primary();
     }
-    return nullptr;
+    // unreachable!
 }
 
 /// parse a primary expression node

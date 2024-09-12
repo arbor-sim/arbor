@@ -151,7 +151,7 @@ ARB_ARBOR_API locset boundary(region reg);
 ARB_ARBOR_API locset cboundary(region reg);
 
 // Returns all locations in a locset that are also in the region.
-ARB_ARBOR_API locset restrict(locset ls, region reg);
+ARB_ARBOR_API locset restrict_to(arb::locset ls, region reg);
 
 // Returns locations that mark the segments.
 ARB_ARBOR_API locset segment_boundaries();

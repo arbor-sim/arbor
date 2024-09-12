@@ -1,5 +1,4 @@
 #include <cmath>
-#include <numeric>
 #include <string>
 #include <vector>
 
@@ -26,6 +25,7 @@ using namespace std::string_literals;
 using namespace arborio::literals;
 
 using namespace arb;
+namespace U = arb::units;
 
 constexpr double epsilon  = 1e-6;
 #ifdef ARB_GPU_ENABLED
@@ -49,13 +49,13 @@ struct linear: public recipe {
     arb::cell_size_type num_cells()                             const override { return 1; }
     arb::cell_kind get_cell_kind(arb::cell_gid_type)            const override { return arb::cell_kind::cable; }
     std::any get_global_properties(arb::cell_kind)              const override { return gprop; }
-    std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override { return {arb::cable_probe_ion_diff_concentration_cell{"na"}}; }
+    std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override { return {{arb::cable_probe_ion_diff_concentration_cell{"na"}, "nad"}}; }
     util::unique_any get_cell_description(arb::cell_gid_type)   const override { return arb::cable_cell(morph, decor); }
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
         std::vector<arb::event_generator> result;
         for (const auto& [t, w]: inject_at) {
-            result.push_back(arb::explicit_generator({"Zap"}, w, std::vector<float>{t}));
+            result.push_back(arb::explicit_generator_from_milliseconds({"Zap"}, w, std::vector<arb::time_type>{t}));
         }
         return result;
     }
@@ -72,13 +72,13 @@ struct linear: public recipe {
     linear& add_inject() { decor.place("(location 0 0.5)"_ls, arb::synapse("inject/x=na", {{"alpha", 200.0*cv_length}}), "Zap"); return *this; }
     linear& add_event(double t, float w) { inject_at.push_back({t, w}); return *this; }
     linear& set_diffusivity(double d, std::optional<region> rg = {}) {
-        if (rg) decor.paint(*rg, ion_diffusivity{"na", d});
-        else    decor.set_default(ion_diffusivity{"na", d});
+        if (rg) decor.paint(*rg, ion_diffusivity{"na", d*U::m2/U::s});
+        else    decor.set_default(ion_diffusivity{"na", d*U::m2/U::s});
         return *this;
     }
     linear& set_concentration(double d, std::optional<region> rg = {}) {
-        if (rg) decor.paint(*rg, init_int_concentration{"na", d});
-        else    decor.set_default(init_int_concentration{"na", d});
+        if (rg) decor.paint(*rg, init_int_concentration{"na", d*U::mM});
+        else    decor.set_default(init_int_concentration{"na", d*U::mM});
         return *this;
     }
 };
@@ -86,7 +86,9 @@ struct linear: public recipe {
 using result_t = std::vector<std::tuple<double, double, double>>;
 
 testing::AssertionResult all_near(const result_t& a, const result_t& b, double eps) {
-    if (a.size() != b.size()) return testing::AssertionFailure() << "sequences differ in length";
+    if (a.size() != b.size()) return testing::AssertionFailure() << "sequences differ in length"
+                                                                 << " #expected=" << b.size()
+                                                                 << " #received=" << a.size();
     std::stringstream res;
     for (size_t ix = 0; ix < a.size(); ++ix) {
         const auto&[ax, ay, az] = a[ix];
@@ -117,8 +119,8 @@ testing::AssertionResult run(const linear& rec, const result_t exp) {
     };
     auto ctx = make_context({arbenv::default_concurrency(), with_gpu});
     auto sim = simulation{rec, ctx, partition_load_balance(rec, ctx)};
-    sim.add_sampler(arb::all_probes, arb::regular_schedule(0.1), sampler);
-    sim.run(0.11, 0.01);
+    sim.add_sampler(arb::all_probes, arb::regular_schedule(0.1*arb::units::ms), sampler);
+    sim.run(0.11*arb::units::ms, 0.01*arb::units::ms);
     return all_near(sample_values, exp, epsilon);
 }
 
@@ -315,37 +317,37 @@ TEST(diffusion, setting_diffusivity) {
     // BAD: Trying to use a diffusive ion, but b=0.
     {
         R r;
-        r.gprop.add_ion("bla", 1, 23, 42, 0, 0);
-        EXPECT_THROW(simulation(r).run(1, 1), illegal_diffusive_mechanism);
+        r.gprop.add_ion("bla", 1, 23*U::mM, 42*U::mM, 0*U::mV, 0*U::m2/U::s);
+        EXPECT_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms), illegal_diffusive_mechanism);
     }
     // BAD: Trying to use a partially diffusive ion
     {
         R r;
-        r.gprop.add_ion("bla", 1, 23, 42, 0, 0);
-        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
-        EXPECT_THROW(simulation(r).run(1, 1), cable_cell_error);
+        r.gprop.add_ion("bla", 1, 23*U::mM, 42*U::mM, 0*U::mV, 0*U::m2/U::s);
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m2/U::s});
+        EXPECT_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms), cable_cell_error);
     }
     // OK: Using the global default
     {
         R r;
-        r.gprop.add_ion("bla", 1, 23, 42, 0, 8);
-        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
-        EXPECT_NO_THROW(simulation(r).run(1, 1));
+        r.gprop.add_ion("bla", 1, 23*U::mM, 42*U::mM, 0*U::mV, 8*U::m2/U::s);
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m2/U::s});
+        EXPECT_NO_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms));
     }
     // OK: Using the cell default
     {
         R r;
-        r.gprop.add_ion("bla", 1, 23, 42, 0, 0);
-        r.dec.set_default(ion_diffusivity{"bla", 8});
-        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
-        EXPECT_NO_THROW(simulation(r).run(1, 1));
+        r.gprop.add_ion("bla", 1, 23*U::mM, 42*U::mM, 0*U::mV, 0*U::m2/U::s);
+        r.dec.set_default(ion_diffusivity{"bla", 8*U::m2/U::s});
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m2/U::s});
+        EXPECT_NO_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms));
     }
     // BAD: Using an unknown species
     {
         R r;
-        r.dec.set_default(ion_diffusivity{"bla", 8});
-        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13});
-        EXPECT_THROW(simulation(r).run(1, 1), cable_cell_error);
+        r.dec.set_default(ion_diffusivity{"bla", 8*U::m2/U::s});
+        r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m2/U::s});
+        EXPECT_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms), cable_cell_error);
     }
 
 }
