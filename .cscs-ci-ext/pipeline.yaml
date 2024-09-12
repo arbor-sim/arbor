@@ -8,6 +8,8 @@ stages:
   - test
 
 # TARGET must be any of  {daint-gpu daint-mc alps-zen2 alps-a100 alps-mi200 alps-gh200 alps-mi300a}
+# eiger: 2x AMD EPYC 7742 64-Core, micro-arch: zen2
+# todi: 4x gh200 72-Core + H100, micro-arch: neoverse-v2, cuda-arch: 90
 
 build_base_image_x86_64:
   extends: [.container-builder-cscs-zen2, .dynamic-image-name]
@@ -61,10 +63,8 @@ build_multiarch_image:
     PERSIST_IMAGE_NAME_AARCH64: "$CSCS_REGISTRY_PATH/arbor/appimg-aarch64:$CI_COMMIT_SHORT_SHA"
     PERSIST_IMAGE_NAME: "$CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA"
 
-    # 2 sockets wuth 64 cores each (16 cores per numa node), can be hyperthreaded
-test_x86_64:
+.test_unit:
   stage: test
-  extends: .container-runner-eiger-mc
   image: $CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA
   script:
     - cd /arbor.src
@@ -79,15 +79,76 @@ test_x86_64:
     - scripts/test_executables.sh
     - deactivate
   variables:
-    SLURM_CONSTRAINT: mc
     SLURM_JOB_NUM_NODES: 1
     SLURM_NTASKS: 1
     SLURM_NTASKS_PER_NODE: 1
+    SLURM_TIMELIMIT: "00:30:00"
+    USE_MPI: "NO"
+
+test_aarch64:
+  extends: [.container-runner-todi-gh200, .test_unit]
+  variables:
+    SLURM_CPUS_PER_TASK: 72
+    SLURM_CPU_BIND: "verbose"
+
+test_x86_64:
+  extends: [.container-runner-eiger-mc, .test_unit]
+  variables:
+    SLURM_CONSTRAINT: mc
     SLURM_CPUS_PER_TASK: 128
     SLURM_THREADS_PER_CORE: 1
     SLURM_CPU_BIND: "verbose,none"
-    SLURM_TIMELIMIT: "00:30:00"
-    USE_MPI: "NO"
+
+#test_aarch64:
+#  stage: test
+#  extends: .container-runner-todi-gh200
+#  image: $CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA
+#  script:
+#    - cd /arbor.src
+#    - build/bin/unit-modcc
+#    - build/bin/unit-local
+#    - build/bin/unit
+#    - scripts/run_cpp_examples.sh
+#    - python -m venv --system-site-packages /arbor.install
+#    - source /arbor.install/bin/activate
+#    - python -m unittest discover -v -s python
+#    - scripts/run_python_examples.sh
+#    - scripts/test_executables.sh
+#    - deactivate
+#  variables:
+#    SLURM_JOB_NUM_NODES: 1
+#    SLURM_NTASKS: 1
+#    SLURM_CPUS_PER_TASK: 72
+#    SLURM_CPU_BIND: "verbose"
+#    SLURM_TIMELIMIT: "00:30:00"
+#    USE_MPI: "NO"
+#
+#test_x86_64:
+#  stage: test
+#  extends: .container-runner-eiger-mc
+#  image: $CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA
+#  script:
+#    - cd /arbor.src
+#    - build/bin/unit-modcc
+#    - build/bin/unit-local
+#    - build/bin/unit
+#    - scripts/run_cpp_examples.sh
+#    - python -m venv --system-site-packages /arbor.install
+#    - source /arbor.install/bin/activate
+#    - python -m unittest discover -v -s python
+#    - scripts/run_python_examples.sh
+#    - scripts/test_executables.sh
+#    - deactivate
+#  variables:
+#    SLURM_CONSTRAINT: mc
+#    SLURM_JOB_NUM_NODES: 1
+#    SLURM_NTASKS: 1
+#    SLURM_NTASKS_PER_NODE: 1
+#    SLURM_CPUS_PER_TASK: 128
+#    SLURM_THREADS_PER_CORE: 1
+#    SLURM_CPU_BIND: "verbose,none"
+#    SLURM_TIMELIMIT: "00:30:00"
+#    USE_MPI: "NO"
 
 #test_x86_64-distributed:
 #  stage: test
@@ -107,27 +168,3 @@ test_x86_64:
 #    SLURM_CPU_BIND: "verbose,rank_ldom"
 #    SLURM_TIMELIMIT: "00:30:00"
 #    USE_MPI: "YES"
-
-test_aarch64:
-  stage: test
-  extends: .container-runner-todi-gh200
-  image: $CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA
-  script:
-    - cd /arbor.src
-    - build/bin/unit-modcc
-    - build/bin/unit-local
-    - build/bin/unit
-    - scripts/run_cpp_examples.sh
-    - python -m venv --system-site-packages /arbor.install
-    - source /arbor.install/bin/activate
-    - python -m unittest discover -v -s python
-    - scripts/run_python_examples.sh
-    - scripts/test_executables.sh
-    - deactivate
-  variables:
-    SLURM_JOB_NUM_NODES: 1
-    SLURM_NTASKS: 1
-    SLURM_CPUS_PER_TASK: 72
-    SLURM_CPU_BIND_VERBOSE: "verbose"
-    SLURM_TIMELIMIT: "00:30:00"
-    USE_MPI: "NO"
