@@ -16,8 +16,9 @@ RUN mkdir -p /arbor.src/build \
      -GNinja \
      -DCMAKE_INSTALL_PREFIX=/arbor.install \
      -DCMAKE_BUILD_TYPE=Release \
-     -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
-     #-DARB_CXX_FLAGS_TARGET=$CXX_FLAGS \
+     -DBUILD_TESTING=ON \
+     -DARB_ARCH=none \
+     -DARB_CXX_FLAGS_TARGET="${CXX_FLAGS}" \
      -DARB_WITH_ASSERTIONS=ON \
      -DARB_WITH_PROFILING=ON \
      -DARB_VECTORIZE=ON \
