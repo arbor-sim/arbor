@@ -12,6 +12,8 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -32,3 +34,12 @@ jobs:
       - name: Python analysis
         run: |
           flake8 .
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang clang-tidy cmake ninja-build
+      - name: Lint
+        run: |
+          mkdir build
+          cd build
+          cmake .. -GNinja -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_WITH_PYTHON=OFF -DARB_VECTORIZE=OFF -DARB_WITH_MPI=OFF -DARB_WITH_ASSERTIONS=ON -DARB_CLANG_TIDY=ON
