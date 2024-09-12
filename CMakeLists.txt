@@ -323,6 +323,7 @@ if (ARB_WITH_PYTHON)
 endif()
 
 CPMAddPackage(NAME pugixml
+              FORCE TRUE
               GITHUB_REPOSITORY zeux/pugixml
               VERSION 1.13
               DOWNLOAD_ONLY YES)
@@ -331,8 +332,7 @@ if(pugixml_ADDED)
     target_compile_definitions(ext-pugixml INTERFACE PUGIXML_HEADER_ONLY)
     target_include_directories(ext-pugixml INTERFACE $<BUILD_INTERFACE:${pugixml_SOURCE_DIR}/src>)
 else()
-    find_package(pugixml REQUIRED)
-    target_link_libraries(ext-pugixml INTERFACE pugixml::pugixml)
+    message(FATAL_ERROR "Could not obtain pugixml.")
 endif()
 install(TARGETS ext-pugixml EXPORT arbor-targets)
 
