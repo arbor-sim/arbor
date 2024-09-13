@@ -49,9 +49,19 @@ set_target_properties(pyarb PROPERTIES OUTPUT_NAME _arbor)
 #   arbor.cpython-36m-x86_64-linux-gnu.so
 set_target_properties(pyarb PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
+# Set RPATH for the installation phase
+if(APPLE)
+    set_target_properties(pyarb PROPERTIES INSTALL_RPATH "@loader_path")  # Relative RPATH for macOS
+else()
+    set_target_properties(pyarb PROPERTIES INSTALL_RPATH "$ORIGIN")  # Use relative RPATH on Linux
+endif()
+
 # This dependency has to be spelt out again, despite being added to
 # pyarb_obj because CMake.
 target_link_libraries(pyarb PRIVATE arbor arborenv arborio pybind11::module)
+
+# Ensure RPATH is preserved during installation
+set_target_properties(pyarb PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # Add support for mpi4py if available.
 if (ARB_WITH_MPI)
