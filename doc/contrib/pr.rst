@@ -135,9 +135,9 @@ Each pull request is reviewed according to these guidelines:
 
 Pull requests will also be subject to a series of automated checks
 
-- Python formatting will be checked using the `black <https://black.readthedocs.io/en/stable/index.html>`__ formatter
-- Python files will be checked for common errors and code smells using `flake8 <https://flake8.pycqa.org/en/latest/>`__
-- C++ code will be run against a suite of sanitizers under the `clang <https://clang.llvm.org/docs/index.html>`__ umbrella. The following checks are enabled
+- Python formatting, common errors, and code smells will be checked by `ruff <https://docs.astral.sh/ruff/>`__
+- C++ code will be statically checked by `clang-tidy <https://clang.llvm.org/extra/clang-tidy/>`__.
+- All executable code will be run against a suite of sanitizers under the `clang <https://clang.llvm.org/docs/index.html>`__ umbrella. The following checks are enabled
   - `undefined behavior <https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html>`__: under/overflow, null-deref, ...
   - `threads <https://clang.llvm.org/docs/ThreadSanitizer.html>`__: data races and other threading related issues
   - `memory <https://clang.llvm.org/docs/AddressSanitizer.html>`__: illegal accesses, use-after-free, double free, ...
