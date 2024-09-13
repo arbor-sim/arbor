@@ -8,6 +8,9 @@ set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON CACHE INTERNAL "" FORCE)
 # Make CUDA support throw errors if architectures remain unclear
 cmake_policy(SET CMP0104 NEW)
 
+# Ensure CMake is aware of the policies for modern RPATH behavior
+cmake_policy(SET CMP0072 NEW)
+
 # Set release as the default build type (CMake default is debug.)
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -323,7 +326,6 @@ if (ARB_WITH_PYTHON)
 endif()
 
 CPMAddPackage(NAME pugixml
-              FORCE TRUE
               GITHUB_REPOSITORY zeux/pugixml
               VERSION 1.13
               DOWNLOAD_ONLY YES)
