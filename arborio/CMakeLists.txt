@@ -13,6 +13,9 @@ set(arborio-sources
 add_library(arborio ${arborio-sources})
 
 target_link_libraries(arborio PUBLIC ext-pugixml)
+if(NOT pugixml_ADDED)
+    target_link_libraries(arborio PUBLIC pugixml::pugixml)
+endif()
 add_library(arborio-public-headers INTERFACE)
 add_library(arborio-private-headers INTERFACE)
 
