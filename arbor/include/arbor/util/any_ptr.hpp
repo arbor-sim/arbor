@@ -61,7 +61,7 @@ struct ARB_SYMBOL_VISIBLE any_ptr {
 
     template <typename T, typename = std::enable_if_t<std::is_pointer<T>::value>>
     constexpr T as() const noexcept {
-        if (std::is_same<T, void*>::value) {
+        if constexpr (std::is_same_v<T, void*>) {
             return (T)ptr_;
         }
         else {
