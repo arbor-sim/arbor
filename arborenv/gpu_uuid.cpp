@@ -9,7 +9,6 @@
 #include <ostream>
 #include <stdexcept>
 #include <vector>
-#include <compare>
 
 #include <arbor/util/scope_exit.hpp>
 #include "gpu_uuid.hpp"
@@ -41,15 +40,6 @@ std::optional<std::string> get_hostname() {
 using arb::util::on_scope_exit;
 
 namespace arbenv {
-
-// Strict lexographical ordering of GPU uids
-std::strong_ordering operator<=>(const uuid& lhs, const uuid& rhs) {
-    for (auto i=0u; i<lhs.bytes.size(); ++i) {
-        if (lhs.bytes[i]<rhs.bytes[i]) return std::strong_ordering::less;
-        if (lhs.bytes[i]>lhs.bytes[i]) return std::strong_ordering::greater;
-    }
-    return return std::strong_ordering::equivalent;
-}
 
 std::ostream& operator<<(std::ostream& o, const uuid& id) {
     std::ios old_state(nullptr);
