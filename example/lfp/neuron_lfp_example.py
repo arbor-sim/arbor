@@ -5,6 +5,7 @@
 NEURON and Python - Creating a multi-compartment model with synaptic input
 with randomized activation times
 """
+
 # Import modules for plotting and NEURON itself
 import matplotlib.pyplot as plt
 import neuron
@@ -32,7 +33,7 @@ class Cell:
         counter = 0
         for sec in neuron.h.allsec():
             self.seclist.append(sec)
-            for seg in sec:
+            for _seg in sec:
                 counter += 1
         self.totnsegs = counter  # Total number of compartments in cell model
         self.collect_geometry()
@@ -171,7 +172,7 @@ class Cell:
                 zendvec[counter : counter + nseg] = np.interp(segx1, L, z)
 
                 # fill in values area, diam, length
-                for i, seg in enumerate(sec):
+                for _i, seg in enumerate(sec):
                     areavec[counter] = neuron.h.area(seg.x)
                     diamvec[counter] = seg.diam
                     lengthvec[counter] = sec.L / nseg

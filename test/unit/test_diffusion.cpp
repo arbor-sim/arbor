@@ -86,7 +86,9 @@ struct linear: public recipe {
 using result_t = std::vector<std::tuple<double, double, double>>;
 
 testing::AssertionResult all_near(const result_t& a, const result_t& b, double eps) {
-    if (a.size() != b.size()) return testing::AssertionFailure() << "sequences differ in length";
+    if (a.size() != b.size()) return testing::AssertionFailure() << "sequences differ in length"
+                                                                 << " #expected=" << b.size()
+                                                                 << " #received=" << a.size();
     std::stringstream res;
     for (size_t ix = 0; ix < a.size(); ++ix) {
         const auto&[ax, ay, az] = a[ix];

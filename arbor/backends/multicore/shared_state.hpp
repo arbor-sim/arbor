@@ -147,9 +147,9 @@ struct ARB_ARBOR_API shared_state:
     arb_size_type n_cv = 0;         // Total number of CVs.
 
     iarray cv_to_cell;              // Maps CV index to GID
-    arb_value_type time;            // integration start time [ms].
-    arb_value_type time_to;         // integration end time [ms]
-    arb_value_type dt;              // dt [ms].
+    arb_value_type time = 0.0;      // integration start time [ms].
+    arb_value_type time_to = 0.0;   // integration end time [ms]
+    arb_value_type dt = 0.0;        // dt [ms].
     array voltage;                  // Maps CV index to membrane voltage [mV].
     array current_density;          // Maps CV index to membrane current density contributions [A/m²].
     array conductivity;             // Maps CV index to membrane conductivity [kS/m²].
