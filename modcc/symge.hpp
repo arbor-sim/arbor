@@ -46,7 +46,7 @@ struct symbol_term {
     symbol left, right;
 
     symbol_term() = default;
-    symbol_term(const symbol left): left(std::move(left)) {}
+    symbol_term(symbol left): left(std::move(left)) {}
     symbol_term(symbol left, symbol right): left(std::move(left)), right(std::move(right)) {}
     bool is_zero() const { return !left || !right; }
     operator bool() const { return !is_zero(); }
@@ -56,7 +56,7 @@ struct symbol_term_diff {
     symbol_term left, right;
 
     symbol_term_diff() = default;
-    symbol_term_diff(const symbol_term left): left(std::move(left)) {}
+    symbol_term_diff(symbol_term left): left(std::move(left)) {}
     symbol_term_diff(symbol_term left, symbol_term right): left(std::move(left)), right(std::move(right)) {}
 };
 
