@@ -40,7 +40,7 @@ struct deliverable_event {
     target_handle handle;
 
     deliverable_event() = default;
-    deliverable_event(time_type time, target_handle handle, float weight):
+    constexpr deliverable_event(time_type time, target_handle handle, float weight) noexcept:
         time(time), weight(weight), handle(handle) {}
 
     ARB_SERDES_ENABLE(deliverable_event, time, weight, handle);
