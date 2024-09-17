@@ -13,12 +13,10 @@
 #include "backends/event_stream_state.hpp"
 #include "backends/gpu/chunk_writer.hpp"
 #include "memory/copy.hpp"
-#include "memory/gpu_wrappers.hpp"
 #include "memory/wrappers.hpp"
 #include "util/index_into.hpp"
 #include "util/rangeutil.hpp"
 #include "util/maputil.hpp"
-#include "util/meta.hpp"
 #include "util/range.hpp"
 #include "util/strprintf.hpp"
 
@@ -241,7 +239,8 @@ void shared_state::instantiate(mechanism& m,
     m.ppack_.n_detectors      = n_detector;
 
     if (storage.count(id)) throw arb::arbor_internal_error("Duplicate mech id in shared state");
-    auto& store = storage.emplace(id, mech_storage{thread_pool}).first->second;
+    auto& store = storage.emplace(id, mech_storage{}).first->second;
+    streams[id] = deliverable_event_stream{thread_pool};
 
     // Allocate view pointers
     store.state_vars_ = std::vector<arb_value_type*>(m.mech_.n_state_vars);
@@ -388,6 +387,14 @@ void shared_state::take_samples() {
         take_samples_impl(state, time, sample_time.data(), sample_value.data());
     }
 }
+
+void shared_state::init_events(const event_lane_subrange& lanes,
+                               const std::vector<target_handle>& handles,
+                               const std::vector<size_t>& divs,
+                               const timestep_range& dts) {
+    arb::gpu::event_stream<deliverable_event>::multi_event_stream(lanes, handles, divs, dts, streams);
+}
+
 
 // Debug interface
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s) {
