@@ -2,43 +2,32 @@
 
 // Indexed collection of pop-only event queues --- CUDA back-end implementation.
 
-#include "backends/event_stream_base.hpp"
-#include "memory/memory.hpp"
-#include "util/partition.hpp"
-#include "util/range.hpp"
-#include "util/rangeutil.hpp"
-#include "util/transform.hpp"
-#include "threading/threading.hpp"
 #include <arbor/mechanism_abi.h>
 
-ARB_SERDES_ENABLE_EXT(arb_deliverable_event_data, mech_index, weight);
+#include "backends/event_stream_base.hpp"
+#include "util/transform.hpp"
+#include "threading/threading.hpp"
+#include "timestep_range.hpp"
+#include "memory/memory.hpp"
 
 namespace arb {
 namespace gpu {
 
 template <typename Event>
-class event_stream :
-        public event_stream_base<Event,
-                                 typename memory::device_vector<::arb::event_data_type<Event>>::view_type> {
+struct event_stream: public event_stream_base<Event> {
 public:
-    using base = event_stream_base<Event, typename memory::device_vector<::arb::event_data_type<Event>>::view_type>;
+    using base = event_stream_base<Event>;
     using size_type = typename base::size_type;
     using event_data_type = typename base::event_data_type;
     using device_array = memory::device_vector<event_data_type>;
 
-private: // members
-    task_system_handle thread_pool_;
-    device_array device_ev_data_;
-    std::vector<size_type> offsets_;
+    using base::clear;
+    using base::ev_data_;
+    using base::ev_spans_;
+    using base::base_ptr_;
 
-public:
     event_stream() = default;
     event_stream(task_system_handle t): base(), thread_pool_{t} {}
-
-    void clear() {
-        base::clear();
-        offsets_.clear();
-    }
 
     // Initialize event streams from a vector of vector of events
     // Outer vector represents time step bins
@@ -54,30 +43,31 @@ public:
         if (!num_events) return;
 
         // allocate space for spans and data
-        base::ev_spans_.resize(staged.size());
-        base::ev_data_.resize(num_events);
-        offsets_.resize(staged.size()+1);
+        ev_spans_.resize(staged.size() + 1);
+        ev_data_.resize(num_events);
         resize(device_ev_data_, num_events);
 
         // compute offsets by exclusive scan over staged events
-        util::make_partition(offsets_,
-            util::transform_view(staged, [&](const auto& v) { return v.size(); }),
-            (size_type)0u);
+        util::make_partition(ev_spans_,
+                             util::transform_view(staged, [](const auto& v) { return v.size(); }),
+                             0ull);
 
         // assign, copy to device (and potentially sort) the event data in parallel
         arb_assert(thread_pool_);
-        threading::parallel_for::apply(0, staged.size(), thread_pool_.get(),
-            [this,&staged](size_type i) {
-                const auto offset = offsets_[i];
-                const auto size = staged[i].size();
-                // add device range
-                base::ev_spans_[i] = device_ev_data_(offset, offset + size);
-                // host span
-                auto host_span = memory::make_view(base::ev_data_)(offset, offset + size);
+        arb_assert(ev_spans_.size() == staged.size() + 1);
+        threading::parallel_for::apply(0, ev_spans_.size() - 1, thread_pool_.get(),
+            [this, &staged](size_type i) {
+                const auto beg = ev_spans_[i];
+                const auto end = ev_spans_[i + 1];
+                arb_assert(end >= beg);
+                const auto len = end - beg;
+
+                auto host_span = memory::make_view(ev_data_)(beg, end);
+
                 // make event data and copy
                 std::copy_n(util::transform_view(staged[i],
                                                  [](const auto& x) { return event_data(x); }).begin(),
-                            size,
+                            len,
                             host_span.begin());
                 // sort if necessary
                 if constexpr (has_event_index<Event>::value) {
@@ -85,56 +75,41 @@ public:
                                          [](const event_data_type& ed) { return event_index(ed); });
                 }
                 // copy to device
-                memory::copy_async(host_span, base::ev_spans_[i]);
+                auto device_span = memory::make_view(device_ev_data_)(beg, end);
+                memory::copy_async(host_span, device_span);
             });
 
-        arb_assert(num_events == base::ev_data_.size());
+        base_ptr_ = device_ev_data_.data();
+
+        arb_assert(num_events == device_ev_data_.size());
+        arb_assert(num_events == ev_data_.size());
     }
 
-    friend void serialize(serializer& ser, const std::string& k, const event_stream<Event>& t) {
-        ser.begin_write_map(::arb::to_serdes_key(k));
-        ARB_SERDES_WRITE(ev_data_);
-        ser.begin_write_map("ev_spans_");
-        auto base_ptr = t.device_ev_data_.data();
-        for (size_t ix = 0; ix < t.ev_spans_.size(); ++ix) {
-            ser.begin_write_map(std::to_string(ix));
-            const auto& span = t.ev_spans_[ix];
-            ser.write("offset", static_cast<unsigned long long>(span.begin() - base_ptr));
-            ser.write("size", static_cast<unsigned long long>(span.size()));
-            ser.end_write_map();
-        }
-        ser.end_write_map();
-        ARB_SERDES_WRITE(index_);
-        ARB_SERDES_WRITE(device_ev_data_);
-        ARB_SERDES_WRITE(offsets_);
-        ser.end_write_map();
+    // Initialize event stream assuming ev_data_ and ev_span_ has
+    // been set previously (e.g. by `base::multi_event_stream`)
+    void init() {
+        resize(device_ev_data_, ev_data_.size());
+        base_ptr_ = device_ev_data_.data();
+
+        threading::parallel_for::apply(0, ev_spans_.size() - 1, thread_pool_.get(),
+           [this](size_type i) {
+               const auto beg = ev_spans_[i];
+               const auto end = ev_spans_[i + 1];
+               arb_assert(end >= beg);
+
+               auto host_span = memory::make_view(ev_data_)(beg, end);
+               auto device_span = memory::make_view(device_ev_data_)(beg, end);
+
+               // sort if necessary
+               if constexpr (has_event_index<Event>::value) {
+                   util::stable_sort_by(host_span,
+                                        [](const event_data_type& ed) { return event_index(ed); });
+               }
+               // copy to device
+               memory::copy_async(host_span, device_span);
+           });
     }
 
-    friend void deserialize(serializer& ser, const std::string& k, event_stream<Event>& t) {
-        ser.begin_read_map(::arb::to_serdes_key(k));
-        ARB_SERDES_READ(ev_data_);
-        ser.begin_read_map("ev_spans_");
-        for (size_t ix = 0; ser.next_key(); ++ix) {
-            ser.begin_read_map(std::to_string(ix));
-            unsigned long long offset = 0, size = 0;
-            ser.read("offset", offset);
-            ser.read("size", size);
-            typename base::span_type span{t.ev_data_.data() + offset, size};
-            if (ix < t.ev_spans_.size()) {
-                t.ev_spans_[ix] = span;
-            } else {
-                t.ev_spans_.emplace_back(span);
-            }
-            ser.end_read_map();
-        }
-        ser.end_read_map();
-        ARB_SERDES_READ(index_);
-        ARB_SERDES_READ(device_ev_data_);
-        ARB_SERDES_READ(offsets_);
-        ser.end_read_map();
-    }
-
-private:
     template<typename D>
     static void resize(D& d, std::size_t size) {
         // resize if necessary
@@ -142,6 +117,15 @@ private:
             d = D(size);
         }
     }
+
+    ARB_SERDES_ENABLE(event_stream<Event>,
+                      ev_data_,
+                      ev_spans_,
+                      device_ev_data_,
+                      index_);
+
+    task_system_handle thread_pool_;
+    device_array device_ev_data_;
 };
 
 } // namespace gpu

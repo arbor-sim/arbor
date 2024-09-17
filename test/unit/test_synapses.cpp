@@ -149,10 +149,11 @@ TEST(synapses, syn_basic_state) {
 
     // Deliver two events (at time 0), one each to expsyn synapses 1 and 3
     // and exp2syn synapses 0 and 2.
-
-    state.begin_epoch({{{{0., {0, 1}, 3.14f}, {0., {0, 3}, 1.41f}}},  // events for mech_id == 0
-                       {{{0., {1, 0}, 2.71f}, {0., {1, 2}, 0.07f}}}}, // events for mech_id == 1
-                      {}, dts);
+    std::vector<pse_vector> events{{{0, 0.0, 3.14f}, {1, 0.0, 1.41f}, {2, 0.0, 2.71f}, {3, 0.0, 0.07f}}};
+    auto lanes = event_lane_subrange(events.begin(), events.end());
+    std::vector<target_handle> handles{{0, 1}, {0, 3}, {1, 0}, {1, 2}};
+    std::vector<size_t> divs{0};
+    state.begin_epoch(lanes, {}, dts, handles, divs);
     state.mark_events();
 
     state.deliver_events(*expsyn);
@@ -160,8 +161,8 @@ TEST(synapses, syn_basic_state) {
 
     using fvec = std::vector<arb_value_type>;
 
-    EXPECT_TRUE(testing::seq_almost_eq<arb_value_type>(
-        fvec({0, 3.14f, 0, 1.41f}), mechanism_field(expsyn, "g")));
+    EXPECT_TRUE(testing::seq_almost_eq<arb_value_type>(fvec({0, 3.14f, 0, 1.41f}),
+                                                       mechanism_field(expsyn, "g")));
 
     double factor = mechanism_field(exp2syn, "factor")[0];
     EXPECT_TRUE(factor>1.);
