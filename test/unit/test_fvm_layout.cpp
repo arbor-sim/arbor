@@ -40,7 +40,7 @@ using backend = arb::multicore::backend;
 using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 
 // instantiate template class
-template class arb::fvm_lowered_cell_impl<arb::multicore::backend>;
+template struct arb::fvm_lowered_cell_impl<arb::multicore::backend>;
 
 namespace U = arb::units;
 
