@@ -7,7 +7,8 @@
 #include "backends/common_types.hpp"
 #include "fvm_layout.hpp"
 
-#include "util/rangeutil.hpp"
+#include "event_lane.hpp"
+#include "timestep_range.hpp"
 
 namespace arb {
 
@@ -26,18 +27,14 @@ struct shared_state_base {
         d->time = d->time_to;
     }
 
-    void begin_epoch(const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
+    void begin_epoch(const event_lane_subrange& lanes,
                      const std::vector<std::vector<sample_event>>& samples,
-                     const timestep_range& dts) {
+                     const timestep_range& dts,
+                     const std::vector<target_handle>& handles,
+                     const std::vector<size_t>& divs) {
         auto d = static_cast<D*>(this);
         // events
-        auto& storage = d->storage;
-        for (auto& [mech_id, store] : storage) {
-            if (mech_id < staged_events_per_mech_id.size() && staged_events_per_mech_id[mech_id].size())
-            {
-                store.deliverable_events_.init(staged_events_per_mech_id[mech_id]);
-            }
-        }
+        d->init_events(lanes, handles, divs, dts);
         // samples
         auto n_samples = util::sum_by(samples, [] (const auto& s) {return s.size();});
         if (d->sample_time.size() < n_samples) {
@@ -91,18 +88,15 @@ struct shared_state_base {
 
     void mark_events() {
         auto d = static_cast<D*>(this);
-        auto& storage = d->storage;
-        for (auto& s : storage) {
-            s.second.deliverable_events_.mark();
-        }
+        auto& streams = d->streams;
+        for (auto& stream: streams) stream.second.mark();
     }
 
     void deliver_events(mechanism& m) {
         auto d = static_cast<D*>(this);
-        auto& storage = d->storage;
-        if (auto it = storage.find(m.mechanism_id()); it != storage.end()) {
-            auto& deliverable_events = it->second.deliverable_events_;
-            if (!deliverable_events.empty()) {
+        auto& streams = d->streams;
+        if (auto it = streams.find(m.mechanism_id()); it != streams.end()) {
+            if (auto& deliverable_events = it->second; !deliverable_events.empty()) {
                 auto state = deliverable_events.marked_events();
                 m.deliver_events(state);
             }

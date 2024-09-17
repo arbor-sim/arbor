@@ -47,7 +47,7 @@ class TestCatalogues(unittest.TestCase):
     @fixtures.dummy_catalogue()
     def test_shared_catalogue(self, dummy_catalogue):
         cat = dummy_catalogue
-        nms = [m for m in cat]
+        nms = list(cat)
         self.assertEqual(nms, ["dummy"], "Expected equal names.")
         for nm in nms:
             prm = list(cat[nm].parameters.keys())

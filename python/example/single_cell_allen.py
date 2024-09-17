@@ -54,7 +54,7 @@ def load_allen_fit(fit):
             raise Exception(f"Illegal combination {mech} {name}")
         mechs[(region, mech)][name] = value
 
-    regs = [(r, vs) for r, vs in param.items()]
+    regs = list(param.items())
     mechs = [(r, m, vs) for (r, m), vs in mechs.items()]
 
     default = parameters(

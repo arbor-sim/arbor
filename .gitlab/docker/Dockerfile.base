@@ -1,0 +1,50 @@
+ARG IMG_BASE
+FROM $IMG_BASE as builder
+
+ARG TARGET
+RUN spack-install-helper --target $TARGET \
+  "git" \
+  "meson" \
+  "ninja" \
+  "cmake" \
+  "valgrind" \
+  "python" \
+  "hwloc" \
+  "boost" \
+  "fmt" \
+  "random123" \
+  "py-mpi4py" \
+  "py-sphinx" \
+  "py-svgwrite" \
+  "nlohmann-json" \
+  "py-pybind11" \
+  "py-numpy" \
+  "py-flake8" \
+  "py-black" \
+  "py-pytest" \
+  "py-seaborn" \
+  "py-pandas" \
+  "pugixml" \
+  "googletest"
+
+# end of builder container, now we are ready to copy necessary files
+# copy only relevant parts to the final container
+ARG IMG_HELPER
+FROM $IMG_HELPER
+
+# it is important to keep the paths, otherwise your installation is broken
+# all these paths are created with the above `spack-install-helper` invocation
+COPY --from=builder /opt/spack-environment /opt/spack-environment
+COPY --from=builder /opt/software /opt/software
+COPY --from=builder /opt/._view /opt/._view
+COPY --from=builder /etc/profile.d/z10_spack_environment.sh /etc/profile.d/z10_spack_environment.sh
+
+# Some boilerplate to get all paths correctly - fix_spack_install is part of thebase image
+# and makes sure that all important things are being correctly setup
+RUN fix_spack_install
+
+# Finally install software that is needed, e.g. compilers
+# It is also possible to build compilers via spack and let all dependencies be handled by spack
+RUN apt-get -yqq update && apt-get -yqq upgrade \
+ && apt-get -yqq install build-essential gfortran \
+ && rm -rf /var/lib/apt/lists/*

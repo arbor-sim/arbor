@@ -237,7 +237,7 @@ TEST(fvm_lowered, target_handles) {
     EXPECT_EQ(cells[0].morphology().num_branches(), 1u);
     EXPECT_EQ(cells[1].morphology().num_branches(), 3u);
 
-    auto test_target_handles = [&](fvm_cell& cell, const std::vector<target_handle>& targets) {
+    auto test_target_handles = [&](fvm_cell& cell) {
         mechanism* expsyn = find_mechanism(cell, "expsyn");
         ASSERT_TRUE(expsyn);
         mechanism* exp2syn = find_mechanism(cell, "exp2syn");
@@ -246,28 +246,28 @@ TEST(fvm_lowered, target_handles) {
         unsigned expsyn_id = expsyn->mechanism_id();
         unsigned exp2syn_id = exp2syn->mechanism_id();
 
-        EXPECT_EQ(4u, targets.size());
+        EXPECT_EQ(4u, cell.target_handles_.size());
 
-        EXPECT_EQ(expsyn_id, targets[0].mech_id);
-        EXPECT_EQ(1u, targets[0].mech_index);
+        EXPECT_EQ(expsyn_id, cell.target_handles_[0].mech_id);
+        EXPECT_EQ(1u, cell.target_handles_[0].mech_index);
 
-        EXPECT_EQ(expsyn_id, targets[1].mech_id);
-        EXPECT_EQ(0u, targets[1].mech_index);
+        EXPECT_EQ(expsyn_id, cell.target_handles_[1].mech_id);
+        EXPECT_EQ(0u, cell.target_handles_[1].mech_index);
 
-        EXPECT_EQ(exp2syn_id, targets[2].mech_id);
-        EXPECT_EQ(0u, targets[2].mech_index);
+        EXPECT_EQ(exp2syn_id, cell.target_handles_[2].mech_id);
+        EXPECT_EQ(0u, cell.target_handles_[2].mech_index);
 
-        EXPECT_EQ(expsyn_id, targets[3].mech_id);
-        EXPECT_EQ(2u, targets[3].mech_index);
+        EXPECT_EQ(expsyn_id, cell.target_handles_[3].mech_id);
+        EXPECT_EQ(2u, cell.target_handles_[3].mech_index);
     };
 
     fvm_cell fvcell0(*context);
     auto fvm_info0 = fvcell0.initialize({0, 1}, cable1d_recipe(cells, true));
-    test_target_handles(fvcell0, fvm_info0.target_handles);
+    test_target_handles(fvcell0);
 
     fvm_cell fvcell1(*context);
     auto fvm_info1 = fvcell1.initialize({0, 1}, cable1d_recipe(cells, false));
-    test_target_handles(fvcell1, fvm_info1.target_handles);
+    test_target_handles(fvcell1);
 
 }
 
@@ -699,7 +699,9 @@ TEST(fvm_lowered, point_ionic_current) {
 
     // Only one target, corresponding to our point process on soma.
     double ica_nA = 12.3;
-    deliverable_event ev = {0.04, target_handle{0, 0}, (float)ica_nA};
+    std::vector<pse_vector> events{{{0, 0.04, (float)ica_nA}}};
+    auto lanes = util::subrange_view(events, 0, events.size());
+
 
     auto& state = *(fvcell.*private_state_ptr).get();
     auto& ion = state.ion_data.at("ca"s);
@@ -709,7 +711,7 @@ TEST(fvm_lowered, point_ionic_current) {
 
     // Ionic current should be ica_nA/soma_area after integrating past event time.
     const double time = 0.5; // [ms]
-    (void)fvcell.integrate({time, 0.01}, {{{},{},{},{},{ev}}}, {});
+    (void)fvcell.integrate({time, 0.01}, lanes, {});
 
     double expected_iX = ica_nA*1e-9/soma_area_m2;
     EXPECT_FLOAT_EQ(expected_iX, ion.iX_[0]);
