@@ -20,7 +20,6 @@ set(arbor_sources
     fvm_layout.cpp
     fvm_lowered_cell_impl.cpp
     hardware/memory.cpp
-    hardware/power.cpp
     iexpr.cpp
     label_resolution.cpp
     lif_cell_group.cpp
@@ -49,7 +48,6 @@ set(arbor_sources
     profile/clock.cpp
     profile/memory_meter.cpp
     profile/meter_manager.cpp
-    profile/power_meter.cpp
     profile/profiler.cpp
     schedule.cpp
     spike_event_io.cpp

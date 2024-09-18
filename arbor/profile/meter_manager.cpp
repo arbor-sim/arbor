@@ -4,7 +4,6 @@
 #include <arbor/context.hpp>
 
 #include "memory_meter.hpp"
-#include "power_meter.hpp"
 
 #include "execution_context.hpp"
 #include "util/hostname.hpp"
@@ -47,9 +46,6 @@ meter_manager::meter_manager() {
         meters_.push_back(std::move(m));
     }
     if (auto m = make_gpu_memory_meter()) {
-        meters_.push_back(std::move(m));
-    }
-    if (auto m = make_power_meter()) {
         meters_.push_back(std::move(m));
     }
 };
