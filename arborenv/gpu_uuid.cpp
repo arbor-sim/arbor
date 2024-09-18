@@ -41,23 +41,6 @@ using arb::util::on_scope_exit;
 
 namespace arbenv {
 
-// Test GPU uids for equality
-bool operator==(const uuid& lhs, const uuid& rhs) {
-    for (auto i=0u; i<lhs.bytes.size(); ++i) {
-        if (lhs.bytes[i]!=rhs.bytes[i]) return false;
-    }
-    return true;
-}
-
-// Strict lexographical ordering of GPU uids
-bool operator<(const uuid& lhs, const uuid& rhs) {
-    for (auto i=0u; i<lhs.bytes.size(); ++i) {
-        if (lhs.bytes[i]<rhs.bytes[i]) return true;
-        if (lhs.bytes[i]>lhs.bytes[i]) return false;
-    }
-    return false;
-}
-
 std::ostream& operator<<(std::ostream& o, const uuid& id) {
     std::ios old_state(nullptr);
     old_state.copyfmt(o);

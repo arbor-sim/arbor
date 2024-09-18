@@ -21,7 +21,7 @@ struct basic_spike {
     basic_spike(id_type s, time_type t):
         source(std::move(s)), time(t)
     {}
-
+    auto operator<=>(const basic_spike&) const = default;
     ARB_SERDES_ENABLE(basic_spike<I>, source, time);
 };
 
@@ -29,8 +29,6 @@ struct basic_spike {
 using spike = basic_spike<cell_member_type>;
 
 using spike_predicate = std::function<bool(const spike&)>;
-
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(spike, (a.source, a.time), (b.source, b.time));
 
 // Custom stream operator for printing arb::spike<> values.
 template <typename I>

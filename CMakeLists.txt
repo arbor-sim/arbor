@@ -209,8 +209,8 @@ include("CheckCompilerXLC")
 
 include("CompilerOptions")
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_WALL}>")
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -320,7 +320,7 @@ if (ARB_WITH_PYTHON)
     CPMAddPackage(NAME pybind11
                   GITHUB_REPOSITORY pybind/pybind11
                   VERSION 2.10.1
-                  OPTIONS "PYBIND11_CPP_STANDARD -std=c++17")
+                  OPTIONS "PYBIND11_CPP_STANDARD -std=c++20")
     # required for find_python_module
     include(FindPythonModule)
 endif()

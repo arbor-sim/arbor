@@ -38,6 +38,8 @@ struct branch {
     unsigned parent_idx; //
     unsigned start_idx;  // the index of the first node in the input parent index
     unsigned length;     // the number of nodes in the branch
+
+    bool operator==(const branch&) const = default;
 };
 
 // order branches by:
