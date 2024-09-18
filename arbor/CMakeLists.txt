@@ -22,8 +22,6 @@ set(arbor_sources
     hardware/memory.cpp
     hardware/power.cpp
     iexpr.cpp
-    io/locked_ostream.cpp
-    io/serialize_hex.cpp
     label_resolution.cpp
     lif_cell_group.cpp
     cable_cell_group.cpp
