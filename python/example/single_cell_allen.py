@@ -145,7 +145,7 @@ model = A.single_cell_model(cell)
 model.probe("voltage", '"midpoint"', "Um", frequency=1 / (5 * U.us))
 
 # (14) Install the Allen mechanism catalogue.
-model.properties.catalogue.extend(A.allen_catalogue(), "")
+model.properties.catalogue.extend(A.allen_catalogue())
 
 # (15) Run simulation
 model.run(tfinal=1.4 * U.s, dt=5 * U.us)

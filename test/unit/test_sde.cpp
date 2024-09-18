@@ -244,7 +244,7 @@ public:
     : simple_recipe_base()
     , ncell_(ncell) {
         // add unit test catalogue
-        cell_gprop_.catalogue.import(make_unit_test_catalogue(), "");
+        cell_gprop_.catalogue.extend(make_unit_test_catalogue());
 
         simple_rec_ptr = this;
         auto inst = cell_gprop_.catalogue.instance(arb_backend_kind_cpu, "mean_reverting_stochastic_density_process");
@@ -322,7 +322,7 @@ public:
     : simple_recipe_base()
     , ncell_(ncell) {
         // add unit test catalogue
-        cell_gprop_.catalogue.import(make_unit_test_catalogue(), "");
+        cell_gprop_.catalogue.extend(make_unit_test_catalogue());
 
         // replace mechanisms' advance methods
         if (replace_implementation) {
@@ -952,7 +952,7 @@ public:
     : simple_recipe_base()
     , ncell_(ncell) {
         // add unit test catalogue
-        cell_gprop_.catalogue.import(make_unit_test_catalogue(), "");
+        cell_gprop_.catalogue.extend(make_unit_test_catalogue());
 
         rec_gpu_ptr = this;
 

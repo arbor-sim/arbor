@@ -104,7 +104,7 @@ class single_recipe(A.recipe):
         self.the_props.set_ion(
             ion="ca", int_con=5e-5 * U.mM, ext_con=2 * U.mM, rev_pot=132.5 * U.mV
         )
-        self.the_props.catalogue.extend(A.allen_catalogue(), "")
+        self.the_props.catalogue.extend(A.allen_catalogue())
 
     # (5.2) Override the num_cells method
     def num_cells(self):

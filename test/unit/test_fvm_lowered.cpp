@@ -845,7 +845,7 @@ TEST(fvm_lowered, post_events_shared_state) {
             arb::cable_cell_global_properties gprop;
             gprop.default_parameters = arb::neuron_parameter_defaults;
             gprop.catalogue = make_unit_test_catalogue();
-            gprop.catalogue.import(arb::global_default_catalogue(), "");
+            gprop.catalogue.extend(arb::global_default_catalogue());
             return gprop;
         }
 

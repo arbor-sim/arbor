@@ -56,7 +56,7 @@ public:
         params_(params)
     {
         gprop.default_parameters = arb::neuron_parameter_defaults;
-        gprop.catalogue.import(arb::global_allen_catalogue(), "");
+        gprop.catalogue.extend(arb::global_allen_catalogue());
 
         if (params.cell.complex_cell) {
             gprop.default_parameters.reversal_potential_method["ca"] = "nernst/ca";
