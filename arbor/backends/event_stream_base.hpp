@@ -82,13 +82,13 @@ public:
 
         auto cell = 0;
         for (const auto& lane: lanes) {
-            const auto div = divs[cell];
+            auto div = divs[cell];
             ++cell;
             arb_size_type step = 0;
             for (const auto& evt: lane) {
-                const auto time = evt.time;
-                const auto weight = evt.weight;
-                const auto target = evt.target;
+                auto time = evt.time;
+                auto weight = evt.weight;
+                auto target = evt.target;
                 while(step < n_steps && time >= steps[step].t_end()) ++step;
                 // Events coinciding with epoch's upper boundary belong to next epoch
                 if (step >= n_steps) break;
