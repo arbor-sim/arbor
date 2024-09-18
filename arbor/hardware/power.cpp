@@ -14,7 +14,7 @@ bool has_energy_measurement() {
 }
 
 energy_size_type energy() {
-    energy_size_type result = energy_size_type(-1);
+    auto result = energy_size_type(-1);
 
     std::ifstream fid(CRAY_PM_COUNTER_ENERGY);
     if (fid) {

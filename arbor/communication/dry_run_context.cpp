@@ -15,13 +15,13 @@ struct dry_run_context_impl {
     explicit dry_run_context_impl(unsigned num_ranks, unsigned num_cells_per_tile):
         num_ranks_(num_ranks), num_cells_per_tile_(num_cells_per_tile) {};
     std::vector<spike>
-    remote_gather_spikes(const std::vector<spike>& local_spikes) const {
+    remote_gather_spikes(const std::vector<spike>& /*local_spikes*/) const {
         return {};
     }
     gathered_vector<spike>
     gather_spikes(const std::vector<spike>& local_spikes) const {
 
-        count_type local_size = local_spikes.size();
+        auto local_size = local_spikes.size();
 
         std::vector<spike> gathered_spikes;
         gathered_spikes.reserve(local_size*num_ranks_);
@@ -41,7 +41,7 @@ struct dry_run_context_impl {
             partition.push_back(static_cast<count_type>(i*local_size));
         }
 
-        return gathered_vector<spike>(std::move(gathered_spikes), std::move(partition));
+        return {std::move(gathered_spikes), std::move(partition)};
     }
     void remote_ctrl_send_continue(const epoch&) const {}
     void remote_ctrl_send_done() const {}
@@ -67,7 +67,7 @@ struct dry_run_context_impl {
             partition.push_back(i*local_size);
         }
 
-        return gathered_vector<cell_gid_type>(std::move(gathered_gids), std::move(partition));
+        return {std::move(gathered_gids), std::move(partition)};
     }
 
     cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
@@ -81,7 +81,7 @@ struct dry_run_context_impl {
     cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const {
         auto global_ranges = gather_cell_label_range(local_labels_and_gids.label_range);
         auto gids = gather_gids(local_labels_and_gids.gids);
-        return cell_labels_and_gids(global_ranges, gids.values());
+        return {global_ranges, gids.values()};
     }
 
     template <typename T>

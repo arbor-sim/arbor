@@ -43,33 +43,37 @@ T get_attr(const xml_node& n,
 inline
 std::string xpath_escape(const std::string& x) {
     auto npos = std::string::npos;
-     if (x.find_first_of("'")==npos) {
-         return "'"+x+"'";
-     }
-     else if (x.find_first_of("\"")==npos) {
-         return "\""+x+"\"";
-     }
-     else {
-         std::string r = "concat(";
-         std::string::size_type i = 0;
-         for (;;) {
-             auto j = x.find_first_of("'", i);
-             r += "'";
-             r.append(x, i, j==npos? j: j-i);
-             r += "'";
-             if (j==npos) break;
-             r += ",\"";
-             i = j+1;
-             j = x.find_first_not_of("'",i);
-             r.append(x, i, j==npos? j: j-i);
-             r += "\"";
-             if (j==npos) break;
-             r += ",";
-             i = j+1;
-         }
-         r += ")";
-         return r;
-     }
+
+    auto constexpr squote = '\'';
+    auto constexpr dquote = '\'';
+
+    if (x.find_first_of(squote)==npos) {
+        return "'"+x+"'";
+    }
+    else if (x.find_first_of(dquote)==npos) {
+        return "\""+x+"\"";
+    }
+    else {
+        std::string r = "concat(";
+        std::string::size_type i = 0;
+        for (;;) {
+            auto j = x.find_first_of(squote, i);
+            r += "'";
+            r.append(x, i, j==npos? j: j-i);
+            r += "'";
+            if (j==npos) break;
+            r += ",\"";
+            i = j+1;
+            j = x.find_first_not_of(squote, i);
+            r.append(x, i, j==npos? j: j-i);
+            r += "\"";
+            if (j==npos) break;
+            r += ",";
+            i = j+1;
+        }
+        r += ")";
+        return r;
+    }
 }
 
 }

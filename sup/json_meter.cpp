@@ -4,7 +4,8 @@
 
 namespace sup {
 
-static nlohmann::json to_json(const arb::profile::measurement& mnt) {
+namespace {
+nlohmann::json to_json(const arb::profile::measurement& mnt) {
     nlohmann::json measurements;
     for (const auto& m: mnt.measurements) {
         measurements.push_back(m);
@@ -15,6 +16,7 @@ static nlohmann::json to_json(const arb::profile::measurement& mnt) {
         {"units", mnt.units},
         {"measurements", measurements}
     };
+}
 }
 
 ARB_SUP_API nlohmann::json to_json(const arb::profile::meter_report& report) {

@@ -2,6 +2,7 @@
 
 #include <arbor/export.hpp>
 #include <arbor/schedule.hpp>
+#include <utility>
 
 template<typename K>
 void serialize(arb::serializer& s, const K& k, const arb::schedule&);
@@ -26,7 +27,7 @@ struct ARB_SYMBOL_VISIBLE benchmark_cell {
 
     benchmark_cell() = default;
     benchmark_cell(cell_tag_type source, cell_tag_type target, schedule seq, double ratio):
-        source(source), target(target), time_sequence(seq), realtime_ratio(ratio) {};
+        source(std::move(source)), target(std::move(target)), time_sequence(std::move(seq)), realtime_ratio(ratio) {};
 
     ARB_SERDES_ENABLE(benchmark_cell, source, target, time_sequence, realtime_ratio);
 };

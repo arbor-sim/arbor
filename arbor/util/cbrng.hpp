@@ -7,6 +7,7 @@
 namespace arb {
 namespace util {
 
+inline
 std::vector<double> uniform(uint64_t seed, unsigned left, unsigned right) {
     typedef r123::Threefry2x64 cbrng;
     std::vector<double> r;
@@ -36,6 +37,5 @@ std::vector<double> uniform(uint64_t seed, unsigned left, unsigned right) {
     }
     return r;
 }
-
 }
 }

@@ -19,7 +19,7 @@ domain_decomposition::domain_decomposition(const recipe& rec,
                                            context ctx,
                                            const std::vector<group_description>& groups) {
     struct partition_gid_domain {
-        partition_gid_domain(const gathered_vector<cell_gid_type>& divs, unsigned domains) {
+        partition_gid_domain(const gathered_vector<cell_gid_type>& divs) {
             auto rank_part = util::partition_view(divs.partition());
             for (auto rank: count_along(rank_part)) {
                 cell_size_type index_on_domain = 0;
@@ -72,7 +72,7 @@ domain_decomposition::domain_decomposition(const recipe& rec,
     num_local_cells_ = num_local_cells;
     num_global_cells_ = num_global_cells;
     groups_ = groups;
-    gid_domain_ = partition_gid_domain(global_gids, num_domains);
+    gid_domain_ = partition_gid_domain(global_gids);
 }
 
 int domain_decomposition::gid_domain(cell_gid_type gid) const {

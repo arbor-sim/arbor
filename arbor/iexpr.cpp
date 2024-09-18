@@ -218,7 +218,7 @@ struct interpolation: public iexpr_interface {
         if (!d2) return 0.0;
 
         const auto sum = d1.value() + d2.value();
-        if (!sum) return (prox_v + dist_v) * 0.5;
+        if (0 == sum) return (prox_v + dist_v) * 0.5;
 
         return prox_v * (d2.value() / sum) + dist_v * (d1.value() / sum);
     }
@@ -336,7 +336,7 @@ struct log: public iexpr_interface {
 
 iexpr::iexpr(double value) { *this = iexpr::scalar(value); }
 
-iexpr iexpr::scalar(double value) { return iexpr(iexpr_type::scalar, std::make_tuple(value)); }
+iexpr iexpr::scalar(double value) { return {iexpr_type::scalar, std::make_tuple(value)}; }
 
 std::optional<double> iexpr::get_scalar() const {
     if (type_ == iexpr_type::scalar) return std::get<0>(std::any_cast<std::tuple<double>>(args_));
@@ -346,8 +346,8 @@ std::optional<double> iexpr::get_scalar() const {
 iexpr iexpr::pi() { return iexpr::scalar(math::pi<double>); }
 
 iexpr iexpr::distance(double scale, locset loc) {
-    return iexpr(
-        iexpr_type::distance, std::make_tuple(scale, std::variant<locset, region>(std::move(loc))));
+    return {
+        iexpr_type::distance, std::make_tuple(scale, std::variant<locset, region>(std::move(loc)))};
 }
 
 iexpr iexpr::distance(locset loc) {
@@ -355,8 +355,8 @@ iexpr iexpr::distance(locset loc) {
 }
 
 iexpr iexpr::distance(double scale, region reg) {
-    return iexpr(
-        iexpr_type::distance, std::make_tuple(scale, std::variant<locset, region>(std::move(reg))));
+    return {
+        iexpr_type::distance, std::make_tuple(scale, std::variant<locset, region>(std::move(reg)))};
 }
 
 iexpr iexpr::distance(region reg) {
@@ -364,8 +364,8 @@ iexpr iexpr::distance(region reg) {
 }
 
 iexpr iexpr::proximal_distance(double scale, locset loc) {
-    return iexpr(iexpr_type::proximal_distance,
-        std::make_tuple(scale, std::variant<locset, region>(std::move(loc))));
+    return {iexpr_type::proximal_distance,
+        std::make_tuple(scale, std::variant<locset, region>(std::move(loc)))};
 }
 
 iexpr iexpr::proximal_distance(locset loc) {
@@ -373,8 +373,8 @@ iexpr iexpr::proximal_distance(locset loc) {
 }
 
 iexpr iexpr::proximal_distance(double scale, region reg) {
-    return iexpr(iexpr_type::proximal_distance,
-        std::make_tuple(scale, std::variant<locset, region>(std::move(reg))));
+    return {iexpr_type::proximal_distance,
+        std::make_tuple(scale, std::variant<locset, region>(std::move(reg)))};
 }
 
 iexpr iexpr::proximal_distance(region reg) {
@@ -382,8 +382,8 @@ iexpr iexpr::proximal_distance(region reg) {
 }
 
 iexpr iexpr::distal_distance(double scale, locset loc) {
-    return iexpr(iexpr_type::distal_distance,
-        std::make_tuple(scale, std::variant<locset, region>(std::move(loc))));
+    return {iexpr_type::distal_distance,
+        std::make_tuple(scale, std::variant<locset, region>(std::move(loc)))};
 }
 
 iexpr iexpr::distal_distance(locset loc) {
@@ -391,8 +391,7 @@ iexpr iexpr::distal_distance(locset loc) {
 }
 
 iexpr iexpr::distal_distance(double scale, region reg) {
-    return iexpr(iexpr_type::distal_distance,
-        std::make_tuple(scale, std::variant<locset, region>(std::move(reg))));
+    return {iexpr_type::distal_distance, std::make_tuple(scale, std::variant<locset, region>(std::move(reg)))};
 }
 
 iexpr iexpr::distal_distance(region reg) {
@@ -403,61 +402,59 @@ iexpr iexpr::interpolation(double prox_value,
     locset prox_list,
     double dist_value,
     locset dist_list) {
-    return iexpr(iexpr_type::interpolation,
+    return {iexpr_type::interpolation,
         std::make_tuple(prox_value,
             std::variant<locset, region>(std::move(prox_list)),
             dist_value,
-            std::variant<locset, region>(std::move(dist_list))));
+            std::variant<locset, region>(std::move(dist_list)))};
 }
 
 iexpr iexpr::interpolation(double prox_value,
     region prox_list,
     double dist_value,
     region dist_list) {
-    return iexpr(iexpr_type::interpolation,
+    return {iexpr_type::interpolation,
         std::make_tuple(prox_value,
             std::variant<locset, region>(std::move(prox_list)),
             dist_value,
-            std::variant<locset, region>(std::move(dist_list))));
+            std::variant<locset, region>(std::move(dist_list)))};
 }
 
-iexpr iexpr::radius(double scale) { return iexpr(iexpr_type::radius, std::make_tuple(scale)); }
+iexpr iexpr::radius(double scale) { return {iexpr_type::radius, std::make_tuple(scale)}; }
 
 iexpr iexpr::radius() { return iexpr::radius(1.0); }
 
-iexpr iexpr::diameter(double scale) { return iexpr(iexpr_type::diameter, std::make_tuple(scale)); }
+iexpr iexpr::diameter(double scale) { return {iexpr_type::diameter, std::make_tuple(scale)}; }
 
 iexpr iexpr::diameter() { return iexpr::diameter(1.0); }
 
 iexpr iexpr::add(iexpr left, iexpr right) {
-    return iexpr(iexpr_type::add, std::make_tuple(std::move(left), std::move(right)));
+    return {iexpr_type::add, std::make_tuple(std::move(left), std::move(right))};
 }
 
 iexpr iexpr::sub(iexpr left, iexpr right) {
-    return iexpr(iexpr_type::sub, std::make_tuple(std::move(left), std::move(right)));
+    return {iexpr_type::sub, std::make_tuple(std::move(left), std::move(right))};
 }
 
 iexpr iexpr::mul(iexpr left, iexpr right) {
-    return iexpr(iexpr_type::mul, std::make_tuple(std::move(left), std::move(right)));
+    return {iexpr_type::mul, std::make_tuple(std::move(left), std::move(right))};
 }
 
 iexpr iexpr::div(iexpr left, iexpr right) {
-    return iexpr(iexpr_type::div, std::make_tuple(std::move(left), std::move(right)));
+    return {iexpr_type::div, std::make_tuple(std::move(left), std::move(right))};
 }
 
-iexpr iexpr::exp(iexpr value) { return iexpr(iexpr_type::exp, std::make_tuple(std::move(value))); }
+iexpr iexpr::exp(iexpr value) { return {iexpr_type::exp, std::make_tuple(std::move(value))}; }
 
-iexpr iexpr::step_right(iexpr value) { return iexpr(iexpr_type::step_right, std::make_tuple(std::move(value))); }
+iexpr iexpr::step_right(iexpr value) { return {iexpr_type::step_right, std::make_tuple(std::move(value))}; }
 
-iexpr iexpr::step_left(iexpr value) { return iexpr(iexpr_type::step_left, std::make_tuple(std::move(value))); }
+iexpr iexpr::step_left(iexpr value) { return {iexpr_type::step_left, std::make_tuple(std::move(value))}; }
 
-iexpr iexpr::step(iexpr value) { return iexpr(iexpr_type::step, std::make_tuple(std::move(value))); }
+iexpr iexpr::step(iexpr value) { return {iexpr_type::step, std::make_tuple(std::move(value))}; }
 
-iexpr iexpr::log(iexpr value) { return iexpr(iexpr_type::log, std::make_tuple(std::move(value))); }
+iexpr iexpr::log(iexpr value) { return {iexpr_type::log, std::make_tuple(std::move(value))}; }
 
-iexpr iexpr::named(std::string name) {
-    return iexpr(iexpr_type::named, std::make_tuple(std::move(name)));
-}
+iexpr iexpr::named(std::string name) { return {iexpr_type::named, std::make_tuple(std::move(name))}; }
 
 iexpr_ptr thingify(const iexpr& expr, const mprovider& m) {
     switch (expr.type()) {

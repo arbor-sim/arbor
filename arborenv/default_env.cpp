@@ -23,9 +23,10 @@ ARB_ARBORENV_API unsigned long get_env_num_threads() {
     constexpr const char* env_var = "ARBENV_NUM_THREADS";
     std::optional<long long> env_val = read_env_integer(env_var, throw_on_invalid);
     if (!env_val) return 0;
-
     if (*env_val<1 || static_cast<unsigned long long>(*env_val)>std::numeric_limits<unsigned long>::max()) {
-        throw invalid_env_value(env_var, std::getenv(env_var));
+        std::string var = "???";
+        if (auto v = std::getenv(env_var); v) var = v;
+        throw invalid_env_value(env_var, var);
     }
     return *env_val;
 }

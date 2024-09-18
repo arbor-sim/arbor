@@ -81,7 +81,7 @@ public:
     // default constructor uses a local context: see below.
     distributed_context();
 
-    template <typename Impl>
+    template <typename Impl, typename = std::enable_if<!std::is_same_v<Impl, distributed_context>>>
     distributed_context(Impl&& impl):
         impl_(new wrap<Impl>(std::forward<Impl>(impl)))
     {}
@@ -109,7 +109,7 @@ public:
         return impl_->gather_cell_labels_and_gids(local_labels_and_gids);
     }
 
-    std::vector<std::string> gather(std::string value, int root) const {
+    std::vector<std::string> gather(const std::string& value, int root) const {
         return impl_->gather(value, root);
     }
 
@@ -185,7 +185,7 @@ private:
 
         ARB_PP_FOREACH(ARB_INTERFACE_COLLECTIVES_, ARB_COLLECTIVE_TYPES_)
 
-        virtual ~interface() {}
+        virtual ~interface() = default;
     };
 
     template <typename Impl>
@@ -261,7 +261,7 @@ struct local_context {
         );
     }
     std::vector<spike>
-    remote_gather_spikes(const std::vector<spike>& local_spikes) const {
+    remote_gather_spikes(const std::vector<spike>& /*local_spikes*/) const {
         return {};
     }
     gathered_vector<cell_gid_type>

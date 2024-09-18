@@ -3,6 +3,8 @@
 #include <arbor/mechanism_abi.h>
 #include <arbor/common_types.hpp>
 
+#include "timestep_range.hpp"
+
 #include "backends/event.hpp"
 #include "backends/common_types.hpp"
 #include "fvm_layout.hpp"

@@ -29,8 +29,8 @@ std::vector<cell_connection> symmetric_recipe::connections_on(cell_gid_type i) c
 
     std::vector<cell_connection> conns = tiled_recipe_->connections_on(i % n_local);
 
-    for (unsigned j = 0; j < conns.size(); j++) {
-        conns[j].source.gid = (conns[j].source.gid + offset) % n_global;
+    for (auto& conn: conns) {
+        conn.source.gid = (conn.source.gid + offset) % n_global;
     }
     return conns;
 }

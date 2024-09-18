@@ -24,7 +24,7 @@ public :
     thread_private_spike_store() = default;
     ~thread_private_spike_store();
 
-    thread_private_spike_store(thread_private_spike_store&& t);
+    thread_private_spike_store(thread_private_spike_store&& t) noexcept;
     thread_private_spike_store(const task_system_handle& ts);
 
     /// Collate all of the individual buffers into a single vector of spikes.

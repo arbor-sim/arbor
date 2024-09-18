@@ -79,6 +79,14 @@ mark_as_advanced(ARB_USE_HWLOC)
 option(BUILD_TESTING "build tests and benchmarks" ON)
 option(BUILD_DOCUMENTATION "build documentation" ON)
 
+# Use C++ linter
+option(ARB_CLANG_TIDY "lint C++ sources" OFF)
+
+if (ARB_CLANG_TIDY)
+    set(CMAKE_CXX_CLANG_TIDY "clang-tidy;--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy")
+endif ()
+
+
 # Use externally built modcc?
 
 set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
@@ -198,8 +206,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Generate a .json file with full compilation command for each file.
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Detect and deprecate xlC.
 
@@ -310,6 +317,7 @@ CPMAddPackage(NAME random123
               VERSION 1.14.0)
 if(random123_ADDED)
     target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${random123_SOURCE_DIR}/include>)
+    write_file(${random123_SOURCE_DIR}/.clang-tidy "Checks: \"-*\"")
 else()
     find_package(Random123 REQUIRED)
     target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
@@ -333,6 +341,7 @@ add_library(ext-pugixml INTERFACE)
 if(pugixml_ADDED)
     target_compile_definitions(ext-pugixml INTERFACE PUGIXML_HEADER_ONLY)
     target_include_directories(ext-pugixml INTERFACE $<BUILD_INTERFACE:${pugixml_SOURCE_DIR}/src>)
+    write_file(${pugixml_SOURCE_DIR}/.clang-tidy "Checks: \"-*\"")
 else()
     find_package(pugixml REQUIRED)
     target_link_libraries(ext-pugixml INTERFACE pugixml::pugixml)
@@ -354,6 +363,12 @@ if (BUILD_TESTING)
                   GIT_TAG release-1.12.1
                   VERSION 1.12.1
                   OPTIONS "INSTALL_GTEST OFF" "BUILD_GMOCK OFF")
+    if(benchmark_ADDED)
+        write_file(${benchmark_SOURCE_DIR}/.clang-tidy "Checks: \"-*\"")
+    endif()
+    if(googletest_ADDED)
+        write_file(${googletest_SOURCE_DIR}/.clang-tidy "Checks: \"-*\"")
+    endif()
 endif()
 
 CPMAddPackage(NAME units
@@ -368,6 +383,7 @@ CPMAddPackage(NAME units
 add_library(ext-units INTERFACE)
 if(units_ADDED)
     target_link_libraries(ext-units INTERFACE units::units)
+    write_file(${units_SOURCE_DIR}/.clang-tidy "Checks: \"-*\"")
 else()
     find_package(units REQUIRED)
     target_link_libraries(ext-units INTERFACE units::units)
@@ -383,6 +399,7 @@ CPMAddPackage(NAME tinyopt
 add_library(ext-tinyopt INTERFACE)
 if(tinyopt_ADDED)
   target_include_directories(ext-tinyopt INTERFACE $<BUILD_INTERFACE:${tinyopt_SOURCE_DIR}/include>)
+  write_file(${tinyopt_SOURCE_DIR}/.clang-tidy "Checks: \"-*\"")
 else()
     message(FATAL_ERROR "Could not obtain tinyopt.")
 endif()
@@ -393,13 +410,15 @@ mark_as_advanced(FORCE googletest_DIR BUILD_GMOCK)
 mark_as_advanced(FORCE json_DIR JSON_CI JSON_BuildTests JSON_Diagnostics JSON_DisableEnumSerialization JSON_GlobalUDLs JSON_ImplicitConversions JSON_Install JSON_LegacyDiscardedValueComparison JSON_MultipleHeaders JSON_SystemInclude)
 mark_as_advanced(FORCE RANDOM123_INCLUDE_DIR)
 mark_as_advanced(FORCE pybind11_DIR PYBIND11_PYTHONLIBS_OVERWRITE PYBIND11_PYTHON_VERSION PYBIND11_FINDPYTHON PYBIND11_INSTALL PYBIND11_INTERNALS_VERSION PYBIND11_NOPYTHON PYBIND11_SIMPLE_GIL_MANAGEMENT PYBIND11_TEST)
-mark_as_advanced(FORCE pugixml_DIR)
+mark_as_advanced(FORCE pugixml_DIR FETCHCONTENT_SOURCE_DIR_PUGIXML FETCHCONTENT_UPDATES_DISCONNECTED_PUGIXML)
 mark_as_advanced(FORCE fmt_DIR)
 mark_as_advanced(FORCE units_DIR UNITS_BUILD_OBJECT_LIBRARY UNITS_BUILD_SHARED_LIBRARY UNITS_HEADER_ONLY UNITS_NAMESPACE UNITS_BUILD_FUZZ_TARGETS UNITS_ENABLE_TESTS)
 mark_as_advanced(FORCE tinyopt_DIR)
 mark_as_advanced(FORCE CXXFEATURECHECK_DEBUG)
 mark_as_advanced(FORCE CPM_DONT_CREATE_PACKAGE_LOCK CPM_DONT_UPDATE_MODULE_PATH CPM_DOWNLOAD_ALL CPM_INCLUDE_ALL_IN_PACKAGE_LOCK CPM_LOCAL_PACKAGES_ONLY CPM_SOURCE_CACHE CPM_USE_NAMED_CACHE_DIRECTORIES)
 mark_as_advanced(FORCE FETCHCONTENT_BASE_DIR FETCHCONTENT_FULLY_DISCONNECTED FETCHCONTENT_QUIET FETCHCONTENT_SOURCE_DIR_BENCHMARK FETCHCONTENT_SOURCE_DIR_GOOGLETEST FETCHCONTENT_SOURCE_DIR_JSON FETCHCONTENT_SOURCE_DIR_PYBIND11 FETCHCONTENT_SOURCE_DIR_RANDOM123 FETCHCONTENT_SOURCE_DIR_TINYOPT FETCHCONTENT_SOURCE_DIR_UNITS FETCHCONTENT_UPDATES_DISCONNECTED FETCHCONTENT_UPDATES_DISCONNECTED_BENCHMARK FETCHCONTENT_UPDATES_DISCONNECTED_GOOGLETEST FETCHCONTENT_UPDATES_DISCONNECTED_JSON FETCHCONTENT_UPDATES_DISCONNECTED_PYBIND11 FETCHCONTENT_UPDATES_DISCONNECTED_RANDOM123 FETCHCONTENT_UPDATES_DISCONNECTED_TINYOPT FETCHCONTENT_UPDATES_DISCONNECTED_UNITS)
+mark_as_advanced(FORCE CMAKE_PDB_OUTPUT_DIRECTORY)
+mark_as_advanced(FORCE PY_PYBIND11_STUBGEN PY_SVGWRITE)
 
 
 # Restore chattyness

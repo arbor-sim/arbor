@@ -84,8 +84,8 @@ ARB_ARBORIO_API std::istream& operator>>(std::istream& in, swc_record& record) {
 }
 
 // Parse SWC format data (comments and sequence of SWC records).
-
-static std::vector<swc_record> sort_and_validate_swc(std::vector<swc_record> records) {
+namespace {
+std::vector<swc_record> sort_and_validate_swc(std::vector<swc_record> records) {
     if (records.empty()) return {};
 
     std::unordered_set<int> seen;
@@ -114,6 +114,7 @@ static std::vector<swc_record> sort_and_validate_swc(std::vector<swc_record> rec
 
     return records;
 }
+}
 
 // swc_data
 swc_data::swc_data(std::vector<arborio::swc_record> recs) :
@@ -121,7 +122,7 @@ swc_data::swc_data(std::vector<arborio::swc_record> recs) :
     records_(sort_and_validate_swc(std::move(recs))) {};
 
 swc_data::swc_data(std::string meta, std::vector<arborio::swc_record> recs) :
-    metadata_(meta),
+    metadata_(std::move(meta)),
     records_(sort_and_validate_swc(std::move(recs))) {};
 
 // Parse and validate swc data
@@ -154,7 +155,7 @@ ARB_ARBORIO_API swc_data parse_swc(std::istream& in) {
         records.push_back(r);
     }
 
-    return swc_data(metadata, std::move(records));
+    return {metadata, std::move(records)};
 }
 
 ARB_ARBORIO_API swc_data parse_swc(const std::string& text) {
@@ -285,13 +286,12 @@ arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
     // Construct a soma composed of two cylinders if is represented by a single sample.
     if (spherical_soma) {
         auto& sr = records[0];
-        arb::msize_t pid = arb::mnpos;
-        pid = tree.append(pid, {sr.x-sr.r, sr.y, sr.z, sr.r},
-                               {sr.x,      sr.y, sr.z, sr.r}, soma_tag);
+        auto pid = tree.append(arb::mnpos, {sr.x-sr.r, sr.y, sr.z, sr.r},
+                                           {sr.x,      sr.y, sr.z, sr.r}, soma_tag);
         // Children of the soma sample attach to the distal end of the first segment in the soma.
         segmap[0] = pid;
-        pid = tree.append(pid, {sr.x,      sr.y, sr.z, sr.r},
-                               {sr.x+sr.r, sr.y, sr.z, sr.r}, soma_tag);
+        tree.append(pid, {sr.x,      sr.y, sr.z, sr.r},
+                         {sr.x+sr.r, sr.y, sr.z, sr.r}, soma_tag);
     }
     else {
         segmap[0] = arb::mnpos;

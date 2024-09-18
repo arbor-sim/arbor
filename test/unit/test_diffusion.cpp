@@ -42,7 +42,7 @@ struct linear: public recipe {
         // -----x-----
         segment_tree tree;
         auto p = mnpos;
-        p = tree.append(p, { -extent, 0, 0, diameter}, {extent, 0, 0, diameter}, 1);
+        tree.append(p, { -extent, 0, 0, diameter}, {extent, 0, 0, diameter}, 1);
         morph = {tree};
     }
 

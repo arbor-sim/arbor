@@ -177,7 +177,7 @@ void istim_state::add_current(const arb_value_type time, array& current_density)
             J = math::lerp(J, J1, u);
         }
 
-        if (frequency_[i]) {
+        if (0 != frequency_[i]) {
             J *= std::sin(two_pi*frequency_[i]*time + phase_[i]);
         }
 
@@ -212,7 +212,7 @@ shared_state::shared_state(task_system_handle,    // ignored in mc backend
     temperature_degC(n_cv_, pad(alignment)),
     diam_um(diam.begin(), diam.end(), pad(alignment)),
     area_um2(area.begin(), area.end(), pad(alignment)),
-    time_since_spike(n_cell*n_detector, pad(alignment)),
+    time_since_spike(n_cell*static_cast<std::size_t>(n_detector), pad(alignment)),
     src_to_spike(src_to_spike_.begin(), src_to_spike_.end(), pad(alignment)),
     cbprng_seed(cbprng_seed_),
     watcher{n_cv_, src_to_spike.data(), detector_info}
@@ -256,13 +256,15 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
 
 void shared_state::take_samples() {
     sample_events.mark();
-    if (!sample_events.empty()) {
-        const auto [begin, end] = sample_events.marked_events();
-        // Null handles are explicitly permitted, and always give a sample of zero.
-        for (auto p = begin; p<end; ++p) {
-            sample_time[p->offset] = time;
-            sample_value[p->offset] = p->handle? *p->handle: 0;
-        }
+    auto [begin, end] = sample_events.marked_events();
+    if (begin >= end) return;
+    if (begin == nullptr || end == nullptr) throw arbor_internal_error{"Invalid sample stream state."};
+    // Null handles are explicitly permitted, and always give a sample of zero.
+    for (; begin < end; ++begin) {
+        auto off = begin->offset;
+        sample_time[off] = time;
+        sample_value[off] = 0;
+        if (begin->handle) sample_value[off] = *begin->handle;
     }
 }
 
@@ -398,7 +400,7 @@ void shared_state::instantiate(arb::mechanism& m,
     m.ppack_.diam_um          = diam_um.data();
     m.ppack_.area_um2         = area_um2.data();
     m.ppack_.time_since_spike = time_since_spike.data();
-    m.ppack_.n_detectors      = n_detector;
+    m.ppack_.n_detectors      = static_cast<arb_index_type>(n_detector);
     m.ppack_.events           = {};
 
     bool mult_in_place = !pos_data.multiplicity.empty();
@@ -421,7 +423,7 @@ void shared_state::instantiate(arb::mechanism& m,
         if (!oion) throw arbor_internal_error(util::pprintf("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state", ion));
 
         auto& ion_state = m.ppack_.ion_states[idx];
-        ion_state = {0};
+        ion_state = {nullptr};
         ion_state.current_density         = oion->iX_.data();
         ion_state.reversal_potential      = oion->eX_.data();
         ion_state.internal_concentration  = oion->Xi_.data();

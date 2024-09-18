@@ -21,7 +21,7 @@ struct counter {
     counter(V v): v_{v} {}
 
     counter(const counter&) = default;
-    counter(counter&&) = default;
+    counter(counter&&) noexcept = default;
 
     counter& operator++() {
         ++v_;
@@ -85,7 +85,7 @@ struct counter {
     bool operator>(counter x) const { return v_>x.v_; }
 
     counter& operator=(const counter&) = default;
-    counter& operator=(counter&&) = default;
+    counter& operator=(counter&&) noexcept = default;
 
 private:
     V v_;

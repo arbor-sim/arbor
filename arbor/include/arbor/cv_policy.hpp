@@ -65,7 +65,7 @@ struct cv_policy_base {
     virtual locset cv_boundary_points(const cable_cell& cell) const = 0;
     virtual region domain() const = 0;
     virtual std::unique_ptr<cv_policy_base> clone() const = 0;
-    virtual ~cv_policy_base() {}
+    virtual ~cv_policy_base() = default;
     virtual std::ostream& print(std::ostream&) = 0;
 };
 
@@ -135,7 +135,7 @@ private:
 
 struct ARB_ARBOR_API cv_policy_single: cv_policy_base {
     explicit cv_policy_single(region domain = reg::all()):
-        domain_(domain) {}
+        domain_(std::move(domain)) {}
 
     cv_policy_base_ptr clone() const override;
     locset cv_boundary_points(const cable_cell&) const override;

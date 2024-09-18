@@ -27,13 +27,12 @@ struct probe_info {
     probe_info(const probe_info&) = default;
     probe_info(probe_info&&) = default;
 
-
     template <typename X>
     probe_info(X&& x, std::nullptr_t) = delete;
 
     template <typename X>
-    probe_info(X&& x, const cell_tag_type& tag):
-        tag(tag), address(std::forward<X>(x)) {}
+    probe_info(X&& x, cell_tag_type tag):
+        tag(std::move(tag)), address(std::forward<X>(x)) {}
 };
 
 /* Recipe descriptions are cell-oriented: in order that the building
@@ -81,7 +80,7 @@ struct ARB_ARBOR_API has_gap_junctions {
     virtual std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type) const {
         return {};
     }
-    virtual ~has_gap_junctions() {}
+    virtual ~has_gap_junctions() = default;
 };
 
 struct ARB_ARBOR_API has_synapses {
@@ -89,10 +88,8 @@ struct ARB_ARBOR_API has_synapses {
         return {};
     }
     // Optional network descriptions for generating cell connections
-    virtual std::optional<arb::network_description> network_description() const {
-        return std::nullopt;
-    };
-    virtual ~has_synapses() {}
+    virtual std::optional<arb::network_description> network_description() const { return {}; };
+    virtual ~has_synapses() = default;
 };
 
 struct ARB_ARBOR_API has_external_synapses {
@@ -102,17 +99,17 @@ struct ARB_ARBOR_API has_external_synapses {
 };
 
 struct ARB_ARBOR_API has_probes {
-    virtual std::vector<probe_info> get_probes(cell_gid_type gid) const {
+    virtual std::vector<probe_info> get_probes(cell_gid_type) const {
         return {};
     }
-    virtual ~has_probes() {}
+    virtual ~has_probes() = default;
 };
 
 struct ARB_ARBOR_API has_generators {
     virtual std::vector<event_generator> event_generators(cell_gid_type) const {
         return {};
     }
-    virtual ~has_generators() {}
+    virtual ~has_generators() = default;
 };
 
 // Toppings allow updating a simulation
@@ -120,7 +117,7 @@ struct ARB_ARBOR_API connectivity:
         public has_synapses,
                has_external_synapses,
                has_generators {
-    virtual ~connectivity() {}
+    ~connectivity() override = default;
 };
 
 // Recipes allow building a simulation by lazy queries
@@ -134,9 +131,9 @@ struct ARB_ARBOR_API recipe: public has_gap_junctions, has_probes, connectivity 
     // Global property type will be specific to given cell kind.
     virtual std::any get_global_properties(cell_kind) const { return std::any{}; };
     // Global cell isometry describing rotation and translation of the cell
-    virtual isometry get_cell_isometry(cell_gid_type gid) const { return isometry(); };
+    virtual isometry get_cell_isometry(cell_gid_type) const { return {}; };
 
-    virtual ~recipe() {}
+    ~recipe() override = default;
 };
 
 } // namespace arb

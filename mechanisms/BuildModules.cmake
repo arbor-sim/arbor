@@ -35,6 +35,8 @@ function("make_catalogue")
       list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_gpu.cpp ${MK_CAT_OUT_DIR}/${mech}_gpu.cu)
     endif()
   endforeach()
+  set_source_files_properties(${catalogue_${MK_CAT_NAME}_source}
+                              PROPERTIES SKIP_LINTING ON)
 
   add_custom_command(OUTPUT            ${catalogue_${MK_CAT_NAME}_source}
                      DEPENDS           ${modcc} ${catalogue_${MK_CAT_NAME}_mods}
@@ -80,6 +82,8 @@ function("make_catalogue_standalone")
       list(APPEND catalogue_${MK_CAT_NAME}_source ${MK_CAT_OUT_DIR}/${mech}_gpu.cpp ${MK_CAT_OUT_DIR}/${mech}_gpu.cu)
     endif()
   endforeach()
+  set_source_files_properties(${catalogue_${MK_CAT_NAME}_source}
+                              PROPERTIES SKIP_LINTING ON)
 
   foreach(mech ${MK_CAT_CXX})
     set(mk_cat_modcc_flags -r ${mech} ${mk_cat_modcc_flags})

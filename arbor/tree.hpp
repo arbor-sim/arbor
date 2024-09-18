@@ -27,7 +27,7 @@ public:
 
     /// Create the tree from a parent index that lists the parent segment
     /// of each segment in a cell tree.
-    tree(std::vector<int_type> parent_index);
+    tree(const std::vector<int_type>& parent_index);
 
     size_type num_children() const;
 

@@ -351,7 +351,7 @@ std::vector<section_geometry> generate_sections(double soma_radius, lsys_param P
     return sections;
 }
 
-arb::segment_tree generate_morphology(const lsys_distribution_param& soma, std::vector<lsys_param> Ps, lsys_generator &g) {
+arb::segment_tree generate_morphology(const lsys_distribution_param& soma, const std::vector<lsys_param>& Ps, lsys_generator &g) {
 
     double const soma_diameter = lsys_distribution(soma)(g);
     double const soma_radius = 0.5*soma_diameter;

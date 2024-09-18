@@ -119,11 +119,11 @@ arb::cv_policy make_cv_policy_max_extent(double cv_length, const std::string& re
 // Allows rev_pot_method to be specified with string or mechanism_desc
 std::optional<arb::mechanism_desc> maybe_method(py::object method) {
     if (!method.is_none()) {
-        if (auto m=try_cast<std::string>(method)) {
-            return *m;
+        if (auto m = try_cast<std::string>(method)) {
+            return m;
         }
         else if (auto m=try_cast<arb::mechanism_desc>(method)) {
-            return *m;
+            return m;
         }
         else {
             throw std::runtime_error(util::pprintf("invalid rev_pot_method: {}", method));

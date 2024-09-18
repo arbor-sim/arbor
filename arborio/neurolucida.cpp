@@ -10,8 +10,6 @@
 #include "arbor/morph/primitives.hpp"
 #include "asc_lexer.hpp"
 
-#include <optional>
-
 namespace arborio {
 
 asc_parse_error::asc_parse_error(const std::string& error_msg, unsigned line, unsigned column):
@@ -54,9 +52,7 @@ struct parse_error {
     asc_parse_error make_exception() const {
         // Uncomment to print a stack trace of the parser.
         // A very useful tool for investigating invalid inputs or parser bugs.
-
         //for (auto& frame: stack) std::cout << "  " << frame.file << ":" << frame.line << "\n";
-
         return {msg, loc.line, loc.column};
     }
 };
@@ -95,7 +91,7 @@ parse_hopefully<double> parse_double(asc::lexer& L) {
     return std::stod(t.spelling);
 }
 
-#define PARSE_DOUBLE(L, X) {if (auto rval__ = parse_double(L)) X=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());}
+#define PARSE_DOUBLE(L, X) {if (auto rval__ = parse_double(L)) (X)=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());}
 
 // Attempt to parse an integer in the range [0, 256).
 parse_hopefully<std::uint8_t> parse_uint8(asc::lexer& L) {
@@ -113,7 +109,7 @@ parse_hopefully<std::uint8_t> parse_uint8(asc::lexer& L) {
     return static_cast<std::uint8_t>(value);
 }
 
-#define PARSE_UINT8(L, X) {if (auto rval__ = parse_uint8(L)) X=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());}
+#define PARSE_UINT8(L, X) {if (auto rval__ = parse_uint8(L)) (X)=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());}
 
 // Find the matching closing parenthesis, and consume it.
 // Assumes that opening paren has been consumed.
@@ -233,7 +229,7 @@ parse_hopefully<asc_color> parse_color(asc::lexer& L) {
     return unexpected(PARSE_ERROR("unexpected symbol in Color description \'"+t.spelling+"\'", t.loc));
 }
 
-#define PARSE_COLOR(L, X) {if (auto rval__ = parse_color(L)) X=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());}
+#define PARSE_COLOR(L, X) {if (auto rval__ = parse_color(L)) (X)=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());}
 
 // Parse zSmear statement, which has the form:
 //  (zSmear alpha beta)
@@ -280,7 +276,7 @@ parse_hopefully<zsmear> parse_zsmear(asc::lexer& L) {
     return s;
 }
 
-#define PARSE_ZSMEAR(L, X) if (auto rval__ = parse_zsmear(L)) X=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());
+#define PARSE_ZSMEAR(L, X) 
 
 parse_hopefully<arb::mpoint> parse_point(asc::lexer& L) {
     // check and consume opening paren
@@ -300,7 +296,7 @@ parse_hopefully<arb::mpoint> parse_point(asc::lexer& L) {
     return p;
 }
 
-#define PARSE_POINT(L, X) if (auto rval__ = parse_point(L)) X=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());
+#define PARSE_POINT(L, X) if (auto rval__ = parse_point(L)) (X)=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());
 
 parse_hopefully<asc_spine> parse_spine(asc::lexer& L) {
     // check and consume opening <(
@@ -325,7 +321,7 @@ parse_hopefully<asc_spine> parse_spine(asc::lexer& L) {
     return asc_spine{l, p};
 }
 
-#define PARSE_SPINE(L, X) if (auto rval__ = parse_spine(L)) X=std::move(*rval__); else return FORWARD_PARSE_ERROR(rval__.error());
+#define PARSE_SPINE(L, X) if (auto rval__ = parse_spine(L)) (X)=std::move(*rval__); else return FORWARD_PARSE_ERROR(rval__.error());
 
 parse_hopefully<std::string> parse_name(asc::lexer& L) {
     EXPECT_TOKEN(L, tok::lparen);
@@ -346,7 +342,7 @@ parse_hopefully<std::string> parse_name(asc::lexer& L) {
     return name;
 }
 
-#define PARSE_NAME(L, X) {if (auto rval__ = parse_name(L)) X=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());}
+#define PARSE_NAME(L, X) {if (auto rval__ = parse_name(L)) (X)=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());}
 
 [[maybe_unused]]
 std::ostream& operator<<(std::ostream& o, const asc_marker_set& ms) {
@@ -396,7 +392,7 @@ parse_hopefully<asc_marker_set> parse_markers(asc::lexer& L) {
     return markers;
 }
 
-#define PARSE_MARKER(L, X) if (auto rval__ = parse_markers(L)) X=std::move(*rval__); else return FORWARD_PARSE_ERROR(rval__.error());
+#define PARSE_MARKER(L, X) if (auto rval__ = parse_markers(L)) (X)=std::move(*rval__); else return FORWARD_PARSE_ERROR(rval__.error());
 
 struct branch {
     std::vector<arb::mpoint> samples;
@@ -473,11 +469,8 @@ parse_hopefully<branch> parse_branch(asc::lexer& L) {
             }
             finished = true;
         }
-        else if (branch_end(t)) {
-            finished = true;
-        }
-        // The end of the branch followed by an explicit fork point.
-        else if (t.kind==tok::lparen) {
+        else if (branch_end(t)
+              || t.kind==tok::lparen) {// The end of the branch followed by an explicit fork point.
             finished = true;
         }
         else {
@@ -575,7 +568,12 @@ parse_hopefully<sub_tree> parse_sub_tree(asc::lexer& L) {
             }
             // Ignore zSmear.
             else if (symbol_matches("zSmear", t)) {
-                PARSE_ZSMEAR(L, __attribute__((unused)) auto _);
+                if (auto rval = parse_zsmear(L)) {
+                    __attribute__((unused)) auto _ =*rval;
+                }
+                else {
+                    return FORWARD_PARSE_ERROR(rval.error());
+                }
             }
             else if (t.kind==tok::integer || t.kind==tok::real) {
                 // Assume that this is the first sample.
@@ -652,15 +650,9 @@ parse_asc_string_raw(const char* input) {
         //      Sections
         //      Description
         t = lexer.peek();
-        if (symbol_matches("Description", t)) {
-            lexer.next();
-            parse_to_closing_paren(lexer);
-        }
-        else if (symbol_matches("ImageCoords", t)) {
-            lexer.next();
-            parse_to_closing_paren(lexer);
-        }
-        else if (symbol_matches("Sections", t)) {
+        if (symbol_matches("Description", t)
+         || symbol_matches("ImageCoords", t)
+         || symbol_matches("Sections", t)) {
             lexer.next();
             parse_to_closing_paren(lexer);
         }
@@ -719,7 +711,7 @@ parse_asc_string_raw(const char* input) {
         }
         else {
             // The soma is described by a contour.
-            const auto ns = samples.size();
+            const auto ns = static_cast<double>(samples.size());
             soma_0.x = std::accumulate(samples.begin(), samples.end(), 0., [](double a, auto& s) {return a+s.x;}) / ns;
             soma_0.y = std::accumulate(samples.begin(), samples.end(), 0., [](double a, auto& s) {return a+s.y;}) / ns;
             soma_0.z = std::accumulate(samples.begin(), samples.end(), 0., [](double a, auto& s) {return a+s.z;}) / ns;

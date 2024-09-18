@@ -18,7 +18,7 @@ class ARB_ARBOR_API morphology {
     std::shared_ptr<const morphology_impl> impl_;
 
 public:
-    morphology(segment_tree m);
+    morphology(const segment_tree& m);
     morphology();
 
     // Empty/default-constructed morphology?

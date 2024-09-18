@@ -1,6 +1,6 @@
-#include <atomic>
 #include <optional>
 #include <stdexcept>
+#include <cassert>
 
 #include <arbor/assert.hpp>
 #include <arbor/util/scope_exit.hpp>
@@ -99,7 +99,7 @@ void task_system::run_tasks_loop(int index) {
         // Loop over the levels of priority starting from highest to lowest
         for (int pri = n_priority-1; pri>=0; --pri) {
             // Loop over the threads trying to pop a task of the requested priority.
-            for (unsigned n = 0; n<count_; ++n) {
+            for (int n = 0; n < count_; ++n) {
                 ptsk = q_[(index + n) % count_].try_pop(pri);
                 if (ptsk) break;
             }
@@ -120,7 +120,7 @@ void task_system::try_run_task(int lowest_priority) {
     // Loop over the levels of priority starting from highest to lowest_priority
     for (int pri = n_priority-1; pri>=lowest_priority; --pri) {
         // Loop over the threads trying to pop a task of the requested priority.
-        for (unsigned n = 0; n != count_; n++) {
+        for (int n = 0; n != count_; n++) {
             if (auto ptsk = q_[(i + n) % count_].try_pop(pri)) {
                 run(std::move(ptsk));
                 return;
@@ -139,8 +139,7 @@ task_system::task_system(int nthreads, bool bind):
     count_(nthreads),
     bind_(bind),
     q_(nthreads) {
-    if (nthreads <= 0)
-        throw std::runtime_error("Non-positive number of threads in thread pool");
+    if (count_ <= 0) throw std::runtime_error("Non-positive number of threads in thread pool");
 
     for (unsigned p = 0; p<n_priority; ++p) {
         index_[p] = 0;
@@ -154,7 +153,7 @@ task_system::task_system(int nthreads, bool bind):
     // Bind the master thread
     if (bind_) set_affinity(0, count_, affinity_kind::thread);
 
-    for (unsigned i = 1; i < count_; i++) {
+    for (int i = 1; i < count_; i++) {
         threads_.emplace_back([this, i]{run_tasks_loop(i);});
         tid = threads_.back().get_id();
         thread_ids_[tid] = i;
@@ -169,17 +168,18 @@ task_system::~task_system() {
 }
 
 void task_system::async(priority_task ptsk) {
-    if (ptsk.priority>=n_priority) {
+    assert(count_ != 0);
+    if (count_ == 0) throw std::runtime_error("Non-positive number of threads in thread pool");
+    auto priority = ptsk.priority;
+    if (priority >= n_priority) {
         run(std::move(ptsk));
     }
     else {
-        arb_assert(ptsk.priority < (int)index_.size());
-        auto i = index_[ptsk.priority]++;
-
-        for (unsigned n = 0; n != count_; n++) {
-            if (q_[(i + n) % count_].try_push(ptsk)) return;
+        auto idx = index_[priority]++;
+        for (int n = 0; n < count_; n++) {
+            if (q_[(idx + n) % count_].try_push(ptsk)) return;
         }
-        q_[i % count_].push(std::move(ptsk));
+        q_[idx % count_].push(std::move(ptsk));
     }
 }
 

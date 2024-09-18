@@ -39,7 +39,7 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
     using size_type = arb_size_type;
 
     fvm_lowered_cell_impl(execution_context ctx, arb_seed_type seed = 0):
-        context_(ctx),
+        context_(std::move(ctx)),
         seed_{seed}
     {};
 
@@ -694,7 +694,7 @@ void resolve_probe(const cable_probe_membrane_voltage& p, probe_resolution_data<
 }
 
 template <typename B>
-void resolve_probe(const cable_probe_membrane_voltage_cell& p, probe_resolution_data<B>& R) {
+void resolve_probe(const cable_probe_membrane_voltage_cell&  /*p*/, probe_resolution_data<B>& R) {
     fvm_probe_multi r;
     mcable_list cables;
 
@@ -743,7 +743,7 @@ void resolve_probe(const cable_probe_total_ion_current_density& p, probe_resolut
 }
 
 template <typename B>
-void resolve_probe(const cable_probe_total_ion_current_cell& p, probe_resolution_data<B>& R) {
+void resolve_probe(const cable_probe_total_ion_current_cell& /*p*/, probe_resolution_data<B>& R) {
     fvm_probe_interpolated_multi r;
     std::vector<const double*> stim_handles;
 
@@ -770,7 +770,7 @@ void resolve_probe(const cable_probe_total_ion_current_cell& p, probe_resolution
 }
 
 template <typename B>
-void resolve_probe(const cable_probe_total_current_cell& p, probe_resolution_data<B>& R) {
+void resolve_probe(const cable_probe_total_current_cell& /*p*/, probe_resolution_data<B>& R) {
     fvm_probe_membrane_currents r;
 
     auto cell_cv_ival = R.D.geometry.cell_cv_interval(R.cell_idx);
@@ -810,7 +810,7 @@ void resolve_probe(const cable_probe_total_current_cell& p, probe_resolution_dat
 }
 
 template <typename B>
-void resolve_probe(const cable_probe_stimulus_current_cell& p, probe_resolution_data<B>& R) {
+void resolve_probe(const cable_probe_stimulus_current_cell& /*p*/, probe_resolution_data<B>& R) {
     fvm_probe_weighted_multi r;
 
     const auto& stim_cvs = R.M.stimuli.cv_unique;

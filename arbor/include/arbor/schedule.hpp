@@ -42,7 +42,7 @@ struct ARB_ARBOR_API schedule {
 
     template <typename Impl, typename = std::enable_if_t<!std::is_same_v<util::remove_cvref_t<Impl>, schedule>>>
     explicit schedule(Impl&& impl):
-        impl_(new wrap<Impl>(std::move(impl))) {}
+        impl_(new wrap<Impl>(std::forward<Impl>(impl))) {}
 
     schedule(schedule&& other) = default;
     schedule& operator=(schedule&& other) = default;
@@ -74,7 +74,7 @@ private:
         virtual void reset() = 0;
         virtual void discard(std::size_t n) = 0;
         virtual std::unique_ptr<interface> clone() = 0;
-        virtual ~interface() {}
+        virtual ~interface() = default;
         virtual void t_serialize(serializer&, const std::string&k) const = 0;
         virtual void t_deserialize(serializer&, const std::string&k) = 0;
     };

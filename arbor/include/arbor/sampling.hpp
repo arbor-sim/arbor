@@ -19,7 +19,7 @@ struct one_probe {
 };
 
 struct one_gid {
-    one_gid(cell_gid_type p): gid{std::move(p)} {}
+    one_gid(cell_gid_type p): gid{p} {}
     cell_gid_type gid;
     bool operator()(const cell_address_type& x) { return x.gid == gid; }
 };
@@ -28,7 +28,6 @@ struct one_tag {
     cell_tag_type tag;
     bool operator()(const cell_address_type& x) { return x.tag == tag; }
 };
-
 
 // Probe-specific metadata is provided by cell group implementations.
 //

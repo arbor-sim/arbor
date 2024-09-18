@@ -179,18 +179,20 @@ if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set_source_files_properties(${unit_sources} PROPERTIES LANGUAGE CXX)
 endif()
 
+set_source_files_properties(${unit_sources}
+                            PROPERTIES SKIP_LINTING ON)
+
+
 add_executable(unit EXCLUDE_FROM_ALL ${unit_sources})
 target_link_libraries(unit PRIVATE catalogue-testing)
 add_dependencies(tests unit)
 
-make_catalogue_standalone(
-    NAME dummy
-    SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/dummy"
-    MOD dummy
-    CXX
-    CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
-    VERBOSE ${ARB_CAT_VERBOSE})
-
+make_catalogue_standalone(NAME dummy
+                          SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/dummy"
+                          MOD dummy
+                          CXX
+                          CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
+                          VERBOSE ${ARB_CAT_VERBOSE})
 target_link_libraries(dummy-catalogue PRIVATE arbor-private-deps)
 add_dependencies(unit dummy-catalogue)
 

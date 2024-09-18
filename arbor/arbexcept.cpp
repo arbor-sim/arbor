@@ -80,7 +80,7 @@ bad_probeset_id::bad_probeset_id(cell_member_type probeset_id):
     probeset_id(probeset_id)
 {}
 
-gj_unsupported_lid_selection_policy::gj_unsupported_lid_selection_policy(cell_gid_type gid, cell_tag_type label):
+gj_unsupported_lid_selection_policy::gj_unsupported_lid_selection_policy(cell_gid_type gid, const cell_tag_type& label):
     arbor_exception(pprintf("Model building error on cell {}: gap junction site label \"{}\" must be univalent.", gid, label)),
     gid(gid),
     label(label)
@@ -190,8 +190,8 @@ bad_catalogue_error::bad_catalogue_error(const std::string& msg)
     : arbor_exception(pprintf("Error while opening catalogue '{}'", msg))
 {}
 
-bad_catalogue_error::bad_catalogue_error(const std::string& msg, const std::any& pe)
-    : arbor_exception(pprintf("Error while opening catalogue '{}'", msg)), platform_error(pe)
+bad_catalogue_error::bad_catalogue_error(const std::string& msg, std::any pe)
+    : arbor_exception(pprintf("Error while opening catalogue '{}'", msg)), platform_error(std::move(pe))
 {}
 
 unsupported_abi_error::unsupported_abi_error(size_t v):

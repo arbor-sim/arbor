@@ -153,15 +153,15 @@ s_expr mksexp(const label_dict& dict) {
     };
     auto defs = slist();
     for (auto& r: dict.locsets()) {
-        defs = s_expr(slist("locset-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
+        defs = s_expr(slist("locset-def"_symbol, s_expr(r.first), round_trip(r.second)), defs);
     }
     for (auto& r: dict.regions()) {
-        defs = s_expr(slist("region-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
+        defs = s_expr(slist("region-def"_symbol, s_expr(r.first), round_trip(r.second)), defs);
     }
     for (auto& r: dict.iexpressions()) {
-        defs = s_expr(slist("iexpr-def"_symbol, s_expr(r.first), round_trip(r.second)), std::move(defs));
+        defs = s_expr(slist("iexpr-def"_symbol, s_expr(r.first), round_trip(r.second)), defs);
     }
-    return {"label-dict"_symbol, std::move(defs)};
+    return {"label-dict"_symbol, defs};
 }
 s_expr mksexp(const morphology& morph) {
     // s-expression representation of branch i in the morphology
@@ -355,7 +355,7 @@ morphology make_morphology(const std::vector<std::variant<branch_tuple>>& args) 
     for (const auto& [seg, s_pid]: segs) {
         tree.append(s_pid, seg.prox, seg.dist, seg.tag);
     }
-    return morphology(tree);
+    return {tree};
 }
 
 // Define cable-cell maker
@@ -371,7 +371,7 @@ cable_cell make_cable_cell(const std::vector<std::variant<morphology, label_dict
             [&](const decor & p){ dec = p; });
         std::visit(cable_cell_visitor, a);
     }
-    return cable_cell(morpho, dec, dict);
+    return {morpho, dec, dict};
 }
 version_tuple make_version(const std::string& v) {
     return version_tuple{v};
@@ -553,6 +553,10 @@ struct unordered_match {
 template <typename... Args>
 struct make_unordered_call {
     evaluator state;
+
+    make_unordered_call() = delete;
+    make_unordered_call(const make_unordered_call&) = delete;
+    make_unordered_call(make_unordered_call&&) = delete;
 
     template <typename F>
     make_unordered_call(F&& f, const char* msg="call"):

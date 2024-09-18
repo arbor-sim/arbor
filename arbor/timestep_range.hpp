@@ -95,7 +95,7 @@ public: // ctors, assignment, reset
         dt = dt < 0 ? (t1-t0) : dt;
         dt_ = std::max(std::numeric_limits<time_type>::min(), dt);
         const time_type delta = (t1<=t0)? 0: t1-t0;
-        const size_type m = static_cast<size_type>(delta/dt_);
+        const auto m = static_cast<size_type>(delta/dt_);
         // Allow slightly larger time steps at the end of the epoch in order to avoid tiny time
         // steps, if the the last time step m*dt_ is at most m floating point representations
         // smaller than t1_. The tolerable floating point range is approximated by the scaled

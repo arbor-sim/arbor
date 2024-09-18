@@ -205,7 +205,7 @@ struct cable_cell_impl {
 
 using impl_ptr = std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)>;
 impl_ptr make_impl(cable_cell_impl* c) {
-    return impl_ptr(c, [](cable_cell_impl* p){delete p;});
+    return {c, [](cable_cell_impl* p){ delete p; }};
 }
 
 void cable_cell_impl::init() {

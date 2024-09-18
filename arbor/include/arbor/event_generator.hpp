@@ -94,21 +94,19 @@ private:
 
 // Simplest generator: just do nothing
 inline
-event_generator empty_generator(
-    cell_local_label_type target,
-    float weight) {
-    return event_generator(std::move(target), weight, schedule());
+event_generator empty_generator(cell_local_label_type target,
+                                float weight) {
+    return {std::move(target), weight, schedule()};
 }
 
 
 // Generate events at integer multiples of dt that lie between tstart and tstop.
-
 inline event_generator regular_generator(cell_local_label_type target,
                                          float weight,
                                          const units::quantity& tstart,
                                          const units::quantity& dt,
                                          const units::quantity& tstop=terminal_time*units::ms) {
-    return event_generator(std::move(target), weight, regular_schedule(tstart, dt, tstop));
+    return {std::move(target), weight, regular_schedule(tstart, dt, tstop)};
 }
 
 inline event_generator poisson_generator(cell_local_label_type target,
@@ -118,7 +116,7 @@ inline event_generator poisson_generator(cell_local_label_type target,
                                          seed_type seed = default_seed,
                                          const units::quantity& tstop=terminal_time*units::ms) {
     // TODO(TH) handle seed
-    return event_generator(std::move(target), weight, poisson_schedule(tstart, rate_kHz, seed, tstop));
+    return {std::move(target), weight, poisson_schedule(tstart, rate_kHz, seed, tstop)};
 }
 
 

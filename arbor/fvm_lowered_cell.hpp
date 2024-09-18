@@ -132,8 +132,8 @@ struct missing_probe_info {
 
 struct fvm_probe_data {
     fvm_probe_data() = default;
-    fvm_probe_data(fvm_probe_scalar p): info(std::move(p)) {}
-    fvm_probe_data(fvm_probe_interpolated p): info(std::move(p)) {}
+    fvm_probe_data(fvm_probe_scalar p): info(p) {}
+    fvm_probe_data(fvm_probe_interpolated p): info(p) {}
     fvm_probe_data(fvm_probe_multi p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_weighted_multi p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_interpolated_multi p): info(std::move(p)) {}
@@ -241,7 +241,7 @@ struct fvm_lowered_cell {
 
     virtual arb_value_type time() const = 0;
 
-    virtual ~fvm_lowered_cell() {}
+    virtual ~fvm_lowered_cell() = default;
 
     virtual void t_serialize(serializer& ser, const std::string& k) const = 0;
     virtual void t_deserialize(serializer& ser, const std::string& k) = 0;

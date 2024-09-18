@@ -74,7 +74,7 @@ void lif_cell_group::add_sampler(sampler_association_handle h,
     auto assoc = arb::sampler_association{std::move(sched),
                                           std::move(fn),
                                           std::move(probeset)};
-    auto result = samplers_.insert({h, std::move(assoc)});
+    auto result [[maybe_unused]] = samplers_.insert({h, std::move(assoc)});
     arb_assert(result.second);
 }
 
@@ -102,7 +102,7 @@ lif_decay(const lif_lowered_cell& cell, double t0, double t1) {
 // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
 // Parameter dt is ignored, since we make jumps between two consecutive spikes.
 void lif_cell_group::advance_cell(time_type tfinal,
-                                  time_type dt,
+                                  time_type /*dt*/,
                                   cell_gid_type lid,
                                   const event_lane_subrange& event_lanes) {
     const auto gid = gids_[lid];

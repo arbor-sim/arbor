@@ -75,39 +75,39 @@ cable_cell_parameter_set neuron_parameter_defaults = {
 std::vector<defaultable> cable_cell_parameter_set::serialize() const {
     std::vector<defaultable> D;
     if (init_membrane_potential) {
-        D.push_back(arb::init_membrane_potential{*this->init_membrane_potential*units::mV});
+        D.emplace_back(arb::init_membrane_potential{*this->init_membrane_potential*units::mV});
     }
     if (temperature_K) {
-        D.push_back(arb::temperature{*this->temperature_K*units::Kelvin});
+        D.emplace_back(arb::temperature{*this->temperature_K*units::Kelvin});
     }
     if (axial_resistivity) {
-        D.push_back(arb::axial_resistivity{*this->axial_resistivity*units::Ohm*units::cm});
+        D.emplace_back(arb::axial_resistivity{*this->axial_resistivity*units::Ohm*units::cm});
     }
     if (membrane_capacitance) {
-        D.push_back(arb::membrane_capacitance{*this->membrane_capacitance*units::F/units::m2});
+        D.emplace_back(arb::membrane_capacitance{*this->membrane_capacitance*units::F/units::m2});
     }
 
     for (const auto& [name, data]: ion_data) {
         if (data.init_int_concentration) {
-            D.push_back(init_int_concentration{name, *data.init_int_concentration*units::mM});
+            D.emplace_back(init_int_concentration{name, *data.init_int_concentration*units::mM});
         }
         if (data.init_ext_concentration) {
-            D.push_back(init_ext_concentration{name, *data.init_ext_concentration*units::mM});
+            D.emplace_back(init_ext_concentration{name, *data.init_ext_concentration*units::mM});
         }
         if (data.init_reversal_potential) {
-            D.push_back(init_reversal_potential{name, *data.init_reversal_potential*units::mV});
+            D.emplace_back(init_reversal_potential{name, *data.init_reversal_potential*units::mV});
         }
         if (data.diffusivity) {
-            D.push_back(ion_diffusivity{name, *data.diffusivity*units::m2/units::s});
+            D.emplace_back(ion_diffusivity{name, *data.diffusivity*units::m2/units::s});
         }
     }
 
     for (const auto& [name, mech]: reversal_potential_method) {
-        D.push_back(ion_reversal_potential_method{name, mech});
+        D.emplace_back(ion_reversal_potential_method{name, mech});
     }
 
     if (discretization) {
-        D.push_back(*discretization);
+        D.emplace_back(*discretization);
     }
 
     return D;
