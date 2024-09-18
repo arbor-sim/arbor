@@ -77,7 +77,7 @@ class TestCatalogues(unittest.TestCase):
         # Test empty constructor
         self.assertEqual(0, len(cat), "Expected no mechanisms in `arbor.catalogue()`.")
         # Test empty extend
-        other.extend(cat, "")
+        other.extend(cat)
         self.assertEqual(
             hash_(ref), hash_(other), "Extending cat with empty should not change cat."
         )
@@ -93,7 +93,7 @@ class TestCatalogues(unittest.TestCase):
         self.assertEqual(
             0, len(cat), "Extending cat with prefixed empty should not change empty."
         )
-        cat.extend(other, "")
+        cat.extend(other)
         self.assertEqual(
             hash_(other),
             hash_(cat),
