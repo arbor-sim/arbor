@@ -358,30 +358,29 @@ void run_expsyn_g_cell_probe_test(context ctx) {
     //  * A multiplicity that matches the number of probes sharing a CV if synapses
     //    were coalesced.
     //  * A raw handle that sees an event sent to the corresponding target,
-
-    cv_policy policy = cv_policy_fixed_per_branch(3);
-
-    auto m  = make_y_morphology();
-    arb::decor d;
-    d.set_default(policy);
-
-    std::unordered_map<cell_lid_type, mlocation> expsyn_target_loc_map;
-
-    unsigned n_expsyn = 0;
-    for (unsigned bid = 0; bid<3u; ++bid) {
-        for (unsigned j = 0; j<10; ++j) {
-            auto idx = (bid*10+j)*2;
-            mlocation expsyn_loc{bid, 0.1*j};
-            d.place(expsyn_loc, synapse("expsyn"), "syn"+std::to_string(idx));
-            expsyn_target_loc_map[2*n_expsyn] = expsyn_loc;
-            d.place(mlocation{bid, 0.1*j+0.05}, synapse("exp2syn"), "syn"+std::to_string(idx+1));
-            ++n_expsyn;
-        }
-    }
-
-    std::vector<cable_cell> cells(2, arb::cable_cell(m, d));
-
     auto run_test = [&](bool coalesce_synapses) {
+        cv_policy policy = cv_policy_fixed_per_branch(3);
+
+        auto m  = make_y_morphology();
+        arb::decor d;
+        d.set_default(policy);
+
+        std::unordered_map<cell_lid_type, mlocation> expsyn_target_loc_map;
+
+        unsigned n_expsyn = 0;
+        for (unsigned bid = 0; bid<3u; ++bid) {
+            for (unsigned j = 0; j<10; ++j) {
+                auto idx = (bid*10+j)*2;
+                mlocation expsyn_loc{bid, 0.1*j};
+                d.place(expsyn_loc, synapse("expsyn"), "syn"+std::to_string(idx));
+                expsyn_target_loc_map[2*n_expsyn] = expsyn_loc;
+                d.place(mlocation{bid, 0.1*j+0.05}, synapse("exp2syn"), "syn"+std::to_string(idx+1));
+                ++n_expsyn;
+            }
+        }
+
+        std::vector<cable_cell> cells(2, arb::cable_cell(m, d));
+
         cable1d_recipe rec(cells, coalesce_synapses);
 
         rec.add_probe(0, "expsyn-g", cable_probe_point_state_cell{"expsyn", "g"});
