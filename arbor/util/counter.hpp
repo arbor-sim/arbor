@@ -1,8 +1,6 @@
 #pragma once
 
 /* Present an integral value as an iterator, for integral-range 'containers' */
-
-#include <compare>
 #include <cstddef>
 #include <iterator>
 #include <type_traits>
@@ -83,6 +81,7 @@ struct counter {
     counter& operator=(const counter&) = default;
     counter& operator=(counter&&) = default;
 
+private:
     V v_;
 };
 
