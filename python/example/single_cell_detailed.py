@@ -96,7 +96,7 @@ model.properties.set_ion(
 # second string parameter that can prefix the name of the mechanisms to avoid
 # collisions between catalogues in this case we have no collisions so we use an
 # empty prefix string.
-model.properties.catalogue.extend(A.allen_catalogue(), "")
+model.properties.catalogue.extend(A.allen_catalogue())
 
 # (7) Add probes.
 # Add a voltage probe on "custom_terminal"

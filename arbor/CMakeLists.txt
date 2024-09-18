@@ -48,7 +48,6 @@ set(arbor_sources
     network_impl.cpp
     simulation.cpp
     partition_load_balance.cpp
-    profile/clock.cpp
     profile/memory_meter.cpp
     profile/meter_manager.cpp
     profile/power_meter.cpp

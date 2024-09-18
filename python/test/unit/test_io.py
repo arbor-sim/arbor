@@ -246,4 +246,8 @@ class TestSerdes(unittest.TestCase):
         rec = serdes_recipe()
         sim = A.simulation(rec)
         jsn = sim.serialize()
-        sim.deserialize(jsn)
+        try:
+            sim.deserialize(jsn)
+        except RuntimeError as e:
+            print(f"Unexpected error\n{e}\nin JSON:\n{jsn}")
+            raise

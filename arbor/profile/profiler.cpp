@@ -4,16 +4,17 @@
 
 #include <arbor/context.hpp>
 #include <arbor/profile/profiler.hpp>
+#include <arbor/profile/timer.hpp>
 
 #include "execution_context.hpp"
 #include "threading/threading.hpp"
 #include "util/span.hpp"
 #include "util/rangeutil.hpp"
 
+
 namespace arb {
 namespace profile {
 
-using timer_type = timer<>;
 using util::make_span;
 
 #ifdef ARB_HAVE_PROFILING
@@ -150,12 +151,12 @@ void recorder::enter(region_id_type index) {
         accumulators_.resize(index+1);
     }
     index_ = index;
-    start_time_ = timer_type::tic();
+    start_time_ = timer::tic();
 }
 
 void recorder::leave() {
     // calculate the elapsed time before any other steps, to increase accuracy.
-    auto delta = timer_type::toc(start_time_);
+    auto delta = timer::toc(start_time_);
 
     if (index_==npos) {
         throw std::runtime_error("recorder::leave without matching recorder::enter");

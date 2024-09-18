@@ -1,0 +1,122 @@
+include:
+  - remote: 'https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.ci-ext.yml'
+
+stages:
+  - build_base
+  - build_app
+  - build_multiarch
+  - test
+
+# TARGET must be any of  {daint-gpu daint-mc alps-zen2 alps-a100 alps-mi200 alps-gh200 alps-mi300a}
+# eiger: 2x AMD EPYC 7742 64-Core, micro-arch: zen2
+# todi: 4x gh200 72-Core + H100, micro-arch: neoverse-v2, cuda-arch: 90
+
+build_base_image_x86_64:
+  extends: [.container-builder-cscs-zen2, .dynamic-image-name]
+  stage: build_base
+  variables:
+    DOCKERFILE: .gitlab/docker/Dockerfile.base
+    WATCH_FILECHANGES: '.gitlab/docker/Dockerfile.base'
+    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbor/baseimg-x86_64
+    CSCS_BUILD_IN_MEMORY: TRUE
+    CSCS_REBUILD_POLICY: "if-not-exists"
+    DOCKER_BUILD_ARGS: '["IMG_BASE=ghcr.io/eth-cscs/docker-ci-ext/base-containers/spack-base:spack0.21.0-ubuntu22.04-cpu", "IMG_HELPER=ghcr.io/eth-cscs/docker-ci-ext/base-containers/spack-helper:ubuntu22.04-cpu", "TARGET=alps-zen2"]'
+
+build_base_image_aarch64:
+  extends: [.container-builder-cscs-gh200, .dynamic-image-name]
+  stage: build_base
+  variables:
+    DOCKERFILE: .gitlab/docker/Dockerfile.base
+    WATCH_FILECHANGES: '.gitlab/docker/Dockerfile.base'
+    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbor/baseimg-aarch64
+    CSCS_BUILD_IN_MEMORY: TRUE
+    CSCS_REBUILD_POLICY: "if-not-exists"
+    DOCKER_BUILD_ARGS: '["IMG_BASE=ghcr.io/eth-cscs/docker-ci-ext/base-containers/spack-base:spack0.21.0-ubuntu22.04-cuda12.4.1", "IMG_HELPER=ghcr.io/eth-cscs/docker-ci-ext/base-containers/spack-helper:ubuntu22.04-cuda12.4.1", "TARGET=alps-gh200"]'
+
+build_app_image_x86_64:
+  extends: .container-builder-cscs-zen2
+  stage: build_app
+  needs:
+  - job: build_base_image_x86_64
+    artifacts: true
+  variables:
+    DOCKERFILE: .gitlab/docker/Dockerfile.app
+    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbor/appimg-x86_64:$CI_COMMIT_SHORT_SHA
+    DOCKER_BUILD_ARGS: '["BASE_IMAGE=$BASE_IMAGE", "CXX_FLAGS=-march=znver2"]'
+
+build_app_image_aarch64:
+  extends: .container-builder-cscs-gh200
+  stage: build_app
+  needs:
+  - job: build_base_image_aarch64
+    artifacts: true
+  variables:
+    DOCKERFILE: .gitlab/docker/Dockerfile.app
+    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/arbor/appimg-aarch64:$CI_COMMIT_SHORT_SHA
+    DOCKER_BUILD_ARGS: '["BASE_IMAGE=$BASE_IMAGE", "CXX_FLAGS=-mcpu=neoverse-v2 -mtune=neoverse-v2", "GPU=cuda", "GPU_ARCH=90"]'
+
+build_multiarch_image:
+  extends: .make-multiarch-image
+  stage: build_multiarch
+  variables:
+    PERSIST_IMAGE_NAME_X86_64: "$CSCS_REGISTRY_PATH/arbor/appimg-x86_64:$CI_COMMIT_SHORT_SHA"
+    PERSIST_IMAGE_NAME_AARCH64: "$CSCS_REGISTRY_PATH/arbor/appimg-aarch64:$CI_COMMIT_SHORT_SHA"
+    PERSIST_IMAGE_NAME: "$CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA"
+
+.test_unit:
+  stage: test
+  image: $CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA
+  script:
+    - cd /arbor.src
+    - build/bin/unit-modcc
+    - build/bin/unit-local
+    - build/bin/unit
+    - scripts/run_cpp_examples.sh
+    - python -m venv --system-site-packages /arbor.install
+    - source /arbor.install/bin/activate
+    - python -m unittest discover -v -s python
+    - scripts/run_python_examples.sh
+    - scripts/test_executables.sh
+    - deactivate
+  variables:
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_NTASKS: 1
+    SLURM_NTASKS_PER_NODE: 1
+    SLURM_TIMELIMIT: "00:30:00"
+    SLURM_CPU_BIND: "verbose,none"
+    USE_MPI: "NO"
+
+test_x86_64:
+  extends: [.container-runner-eiger-mc, .test_unit]
+  variables:
+    SLURM_CONSTRAINT: mc
+
+test_aarch64:
+  extends: [.container-runner-todi-gh200, .test_unit]
+
+## distributed tests don't work yet - possible problem with the gitlab runners
+#.test_distributed:
+#  stage: test
+#  image: $CSCS_REGISTRY_PATH/arbor/appimg:$CI_COMMIT_SHORT_SHA
+#  script:
+#    - cd /arbor.src
+#    - build/bin/unit-mpi
+#    - scripts/run_cpp_examples.sh -d
+#  variables:
+#    SLURM_JOB_NUM_NODES: 2
+#    SLURM_CPU_BIND: "verbose,rank_ldom"
+#    SLURM_TIMELIMIT: "00:30:00"
+#    USE_MPI: "YES"
+#
+#test_x86_64-distributed:
+#  extends: [.container-runner-eiger-mc, .test_distributed]
+#  variables:
+#    SLURM_CONSTRAINT: mc
+#    SLURM_NTASKS_PER_NODE: 8
+#
+#test_aarch64-distributed:
+#  extends: [.container-runner-todi-gh200, .test_distributed]
+#  variables:
+#    SLURM_GPUS_PER_NODE: 4
+#    SLURM_GPUS_PER_TASK: 1
+#    SLURM_NTASKS_PER_NODE: 4

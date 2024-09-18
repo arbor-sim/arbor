@@ -14,7 +14,6 @@
 namespace arb {
 namespace profile {
 
-using timer_type = timer<>;
 using util::strprintf;
 
 template <typename C>
@@ -69,14 +68,14 @@ void meter_manager::start(context ctx) {
     arb::threading::task_group(ctx->thread_pool.get()).wait();
     ctx->distributed->barrier();
 
-    start_time_ = timer_type::tic();
+    start_time_ = timer::tic();
 };
 
 void meter_manager::checkpoint(std::string name, context ctx) {
     arb_assert(started_);
 
     // Record the time taken on this domain since the last checkpoint
-    times_.push_back(timer<>::toc(start_time_));
+    times_.push_back(timer::toc(start_time_));
 
     // Update meters
     checkpoint_names_.push_back(std::move(name));
@@ -88,7 +87,7 @@ void meter_manager::checkpoint(std::string name, context ctx) {
     ctx->gpu->synchronize();
     arb::threading::task_group(ctx->thread_pool.get()).wait();
     ctx->distributed->barrier();
-    start_time_ = timer<>::tic();
+    start_time_ = timer::tic();
 }
 
 const std::vector<std::unique_ptr<meter>>& meter_manager::meters() const {

@@ -40,7 +40,7 @@ using backend = arb::multicore::backend;
 using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 
 // instantiate template class
-template class arb::fvm_lowered_cell_impl<arb::multicore::backend>;
+template struct arb::fvm_lowered_cell_impl<arb::multicore::backend>;
 
 namespace U = arb::units;
 
@@ -995,7 +995,7 @@ TEST(fvm_layout, gj_example_2) {
     // Check the GJ CV map
     cable_cell_global_properties gprop;
     gprop.catalogue = make_unit_test_catalogue();
-    gprop.catalogue.import(arb::global_default_catalogue(), "");
+    gprop.catalogue.extend(arb::global_default_catalogue());
     gprop.default_parameters = neuron_parameter_defaults;
 
     auto cells = system.cells();
