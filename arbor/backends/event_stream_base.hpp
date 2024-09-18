@@ -82,7 +82,7 @@ public:
 
         auto cell = 0;
         for (const auto& lane: lanes) {
-            arb_assert(cell >= 0 && cell < divs.size() && false);
+            arb_assert(cell >= 0 && cell < divs.size());
             const auto div = divs[cell];
             ++cell;
             arb_size_type step = 0;

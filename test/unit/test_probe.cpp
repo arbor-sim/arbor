@@ -359,8 +359,7 @@ void run_expsyn_g_cell_probe_test(context ctx) {
     //    were coalesced.
     //  * A raw handle that sees an event sent to the corresponding target,
     auto run_test = [&](bool coalesce_synapses) {
-        cv_policy policy = cv_policy_fixed_per_branch(3);
-
+        auto policy = cv_policy_fixed_per_branch(3);
         auto m  = make_y_morphology();
         arb::decor d;
         d.set_default(policy);
