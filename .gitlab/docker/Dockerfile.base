@@ -51,5 +51,3 @@ RUN fix_spack_install
 #RUN apt-get -yqq update && apt-get -yqq upgrade \
 # && apt-get -yqq install build-essential gfortran \
 # && rm -rf /var/lib/apt/lists/*
-RUN apt-get -yqq update && apt-get -yqq upgrade \
- && rm -rf /var/lib/apt/lists/*
