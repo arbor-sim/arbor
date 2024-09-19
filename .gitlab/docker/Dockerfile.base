@@ -2,12 +2,14 @@ ARG IMG_BASE
 FROM $IMG_BASE as builder
 
 ARG TARGET
+ARG COMPILER=gcc@13.2
 RUN spack-install-helper --target $TARGET \
   "git" \
   "meson" \
   "ninja" \
   "cmake" \
   "valgrind" \
+  "$COMPILER" \
   "python" \
   "hwloc" \
   "boost" \
@@ -17,6 +19,7 @@ RUN spack-install-helper --target $TARGET \
   "py-sphinx" \
   "py-svgwrite" \
   "nlohmann-json" \
+  "python" \
   "py-pybind11" \
   "py-numpy" \
   "py-flake8" \
@@ -43,8 +46,10 @@ COPY --from=builder /etc/profile.d/z10_spack_environment.sh /etc/profile.d/z10_s
 # and makes sure that all important things are being correctly setup
 RUN fix_spack_install
 
-# Finally install software that is needed, e.g. compilers
-# It is also possible to build compilers via spack and let all dependencies be handled by spack
+## Finally install software that is needed, e.g. compilers
+## It is also possible to build compilers via spack and let all dependencies be handled by spack
+#RUN apt-get -yqq update && apt-get -yqq upgrade \
+# && apt-get -yqq install build-essential gfortran \
+# && rm -rf /var/lib/apt/lists/*
 RUN apt-get -yqq update && apt-get -yqq upgrade \
- && apt-get -yqq install build-essential gfortran \
  && rm -rf /var/lib/apt/lists/*

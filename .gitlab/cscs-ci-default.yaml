@@ -11,9 +11,13 @@ stages:
 # eiger: 2x AMD EPYC 7742 64-Core, micro-arch: zen2
 # todi: 4x gh200 72-Core + H100, micro-arch: neoverse-v2, cuda-arch: 90
 
-build_base_image_x86_64:
-  extends: [.container-builder-cscs-zen2, .dynamic-image-name]
+.base_compiler:
   stage: build_base
+  variables:
+    DOCKER_BUILD_ARGS: '["COMPILER=gcc@13.2"]'
+
+build_base_image_x86_64:
+  extends: [.container-builder-cscs-zen2, .dynamic-image-name, .base_compiler]
   variables:
     DOCKERFILE: .gitlab/docker/Dockerfile.base
     WATCH_FILECHANGES: '.gitlab/docker/Dockerfile.base'
@@ -23,8 +27,7 @@ build_base_image_x86_64:
     DOCKER_BUILD_ARGS: '["IMG_BASE=ghcr.io/eth-cscs/docker-ci-ext/base-containers/spack-base:spack0.21.0-ubuntu22.04-cpu", "IMG_HELPER=ghcr.io/eth-cscs/docker-ci-ext/base-containers/spack-helper:ubuntu22.04-cpu", "TARGET=alps-zen2"]'
 
 build_base_image_aarch64:
-  extends: [.container-builder-cscs-gh200, .dynamic-image-name]
-  stage: build_base
+  extends: [.container-builder-cscs-gh200, .dynamic-image-name, .base_compiler]
   variables:
     DOCKERFILE: .gitlab/docker/Dockerfile.base
     WATCH_FILECHANGES: '.gitlab/docker/Dockerfile.base'
