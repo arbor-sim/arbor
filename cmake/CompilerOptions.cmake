@@ -74,13 +74,19 @@ set(CXXOPT_WALL
     #   because there is nothing to fix on our side.
 
     $<IF:$<CXX_COMPILER_ID:GNU>,-Wno-psabi,>
+)
 
-    # Intel:
-    #
-    # Disable warning for unused template parameter
-    # this is raised by a templated function in the json library.
-
-    $<IF:$<CXX_COMPILER_ID:Intel>,-wd488,>)
+# Check for supported compilers / versions
+function(check_supported_cxx)
+    set(cxx_supported_ids "AppleClang" "GNU" "Clang")
+    set(cxx_supported_ver           15    12      12)
+    foreach(id ver IN ZIP_LISTS cxx_supported_ids cxx_supported_ver)
+         if(CMAKE_CXX_COMPILER_ID MATCHES ${id} AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL ${ver})
+             return()
+         endif()
+    endforeach()
+    message(WARNING "Found an unsupported compiler ${CMAKE_CXX_COMPILER_ID} version ${CMAKE_CXX_COMPILER_VERSION}, please consider switching to a supported version of GCC or Clang. Build failure is expected. We reserve the option to close all related issues without consideration.")
+endfunction()
 
 
 # Set ${optvar} in parent scope according to requested architecture.
@@ -106,23 +112,31 @@ function(set_arch_target optvar optvar_cuda_guarded arch)
         # architecture.
         # See clang / gcc manuals and:
         # https://maskray.me/blog/2022-08-28-march-mcpu-mtune
-        if (CMAKE_CXX_COMPILER_ID MATCHES "AppleClang" AND CMAKE_CXX_COMPILER_VERSION LESS 15)
-            set(arch_opt "")
+        if(CMAKE_CXX_COMPILER_ID MATCHES "AppleClang")
+            if(CMAKE_CXX_COMPILER_VERSION LESS 15)
+                message(WARNING "Found an unsupported compiler ${CMAKE_CXX_COMPILER_ID} version ${CMAKE_CXX_COMPILER_VERSION}, please consider upgrading. Build failure is expected. We reserve the option to close all related issues without consideration.")
+            endif()
+            set(arch_opt "-march=${arch}")
         elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-            if ("${target}" MATCHES "(arm64|aarch64)-.*")
+            if(CMAKE_CXX_COMPILER_VERSION LESS 12)
+                message(WARNING "Found an unsupported compiler ${CMAKE_CXX_COMPILER_ID} version ${CMAKE_CXX_COMPILER_VERSION}, please consider upgrading. Build failure is expected. We reserve the option to close all related issues without consideration.")
+            endif()
+            if("${target}" MATCHES "(arm64|aarch64)-.*")
                 # on AArch64, this is correct, ...
                 set(arch_opt "-mcpu=${arch} -mtune=${arch}")
             else()
                 # ... however on x86 mcpu _is_ mtune _and_ deprecated (since 2003!), but ...
                 set(arch_opt "-march=${arch}")
-            endif ()
+            endif()
         elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            if(CMAKE_CXX_COMPILER_VERSION LESS 12)
+                message(WARNING "Found an unsupported compiler ${CMAKE_CXX_COMPILER_ID} version ${CMAKE_CXX_COMPILER_VERSION}, please consider upgrading. Build failure is expected. We reserve the option to close all related issues without consideration.")
+            endif()
             # ... clang likes march (and possibly mtune)
             # See https://discourse.llvm.org/t/when-to-use-mcpu-versus-march/47953/9
             set(arch_opt "-march=${arch} -mtune=${arch}")
-        else ()
-            message(STATUS "Falling back to -march=${arch} for compiler ${CMAKE_CXX_COMPILER_ID}")
-            set(arch_opt "-march=${arch}")
+        else()
+            message(WARNING "Found an unsupported compiler ${CMAKE_CXX_COMPILER_ID} version ${CMAKE_CXX_COMPILER_VERSION}, please consider switching to Clang or GCC. Build failure is expected. We reserve the option to close all related issues without consideration.")
         endif()
     endif()
 
