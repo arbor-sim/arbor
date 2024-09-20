@@ -6,6 +6,7 @@ import unittest
 
 import arbor as A
 from arbor import units as U
+import numpy as np
 
 """
 all tests for schedules (regular, explicit, poisson)
@@ -114,29 +115,22 @@ class TestPoissonSchedule(unittest.TestCase):
         self.assertEqual(ps.seed, 1000)
 
     def test_events_poisson_schedule(self):
-        expected = [17.4107, 502.074, 506.111, 597.116]
-        ps = A.poisson_schedule(tstart=0.0 * U.ms, freq=0.01 * U.kHz, seed=0)
-        for i in range(len(expected)):
-            self.assertAlmostEqual(
-                expected[i], ps.events(0.0 * U.ms, 600.0 * U.ms)[i], places=3
-            )
-        expected = [
-            5030.22,
-            5045.75,
-            5069.84,
-            5091.56,
-            5182.17,
-            5367.3,
-            5566.73,
-            5642.13,
-            5719.85,
-            5796,
-            5808.33,
-        ]
-        for i in range(len(expected)):
-            self.assertAlmostEqual(
-                expected[i], ps.events(5000.0 * U.ms, 6000.0 * U.ms)[i], places=2
-            )
+        # Sanity check for Poisson Point Process;
+        # lifted and generalized from underlying C++ unit tests (see there).
+        # Test that the number of events in a fixed bucket conforms to
+        # a Poisson distribution.
+        chi2_lb = 888.56352318146696
+        chi2_ub = 1118.9480663231843
+        T = 1001.0
+        for seed in range(10):
+            pss = A.poisson_schedule(tstart=0.0 * U.ms, freq=8.13 * U.kHz, seed=seed)
+            evs = pss.events(0.0 * U.ms, T * U.ms)
+            pdf = np.zeros(shape=int(T))
+            for t in evs:
+                pdf[int(t)] += 1
+            dsp = T * np.mean(pdf) / np.var(pdf)
+            self.assertLess(dsp, chi2_ub)
+            self.assertGreater(dsp, chi2_lb)
 
     def test_exceptions_poisson_schedule(self):
         with self.assertRaises(TypeError):
