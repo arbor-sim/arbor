@@ -92,12 +92,10 @@ endfunction()
 # Set ${optvar} in parent scope according to requested architecture.
 # Architectures are given by the same names that GCC uses for its
 # -mcpu or -march options.
-
 function(set_arch_target optvar optvar_cuda_guarded arch)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         # Correct compiler option unfortunately depends upon the target architecture family.
         # Extract this information from running the configured compiler with --verbose.
-
         try_compile(ignore ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/cmake/dummy.cpp COMPILE_DEFINITIONS --verbose OUTPUT_VARIABLE cc_out)
         string(REPLACE "\n" ";" cc_out "${cc_out}")
         set(target)
@@ -113,14 +111,8 @@ function(set_arch_target optvar optvar_cuda_guarded arch)
         # See clang / gcc manuals and:
         # https://maskray.me/blog/2022-08-28-march-mcpu-mtune
         if(CMAKE_CXX_COMPILER_ID MATCHES "AppleClang")
-            if(CMAKE_CXX_COMPILER_VERSION LESS 15)
-                message(WARNING "Found an unsupported compiler ${CMAKE_CXX_COMPILER_ID} version ${CMAKE_CXX_COMPILER_VERSION}, please consider upgrading. Build failure is expected. We reserve the option to close all related issues without consideration.")
-            endif()
             set(arch_opt "-march=${arch}")
         elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-            if(CMAKE_CXX_COMPILER_VERSION LESS 12)
-                message(WARNING "Found an unsupported compiler ${CMAKE_CXX_COMPILER_ID} version ${CMAKE_CXX_COMPILER_VERSION}, please consider upgrading. Build failure is expected. We reserve the option to close all related issues without consideration.")
-            endif()
             if("${target}" MATCHES "(arm64|aarch64)-.*")
                 # on AArch64, this is correct, ...
                 set(arch_opt "-mcpu=${arch} -mtune=${arch}")
@@ -129,14 +121,12 @@ function(set_arch_target optvar optvar_cuda_guarded arch)
                 set(arch_opt "-march=${arch}")
             endif()
         elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-            if(CMAKE_CXX_COMPILER_VERSION LESS 12)
-                message(WARNING "Found an unsupported compiler ${CMAKE_CXX_COMPILER_ID} version ${CMAKE_CXX_COMPILER_VERSION}, please consider upgrading. Build failure is expected. We reserve the option to close all related issues without consideration.")
-            endif()
             # ... clang likes march (and possibly mtune)
             # See https://discourse.llvm.org/t/when-to-use-mcpu-versus-march/47953/9
             set(arch_opt "-march=${arch} -mtune=${arch}")
         else()
-            message(WARNING "Found an unsupported compiler ${CMAKE_CXX_COMPILER_ID} version ${CMAKE_CXX_COMPILER_VERSION}, please consider switching to Clang or GCC. Build failure is expected. We reserve the option to close all related issues without consideration.")
+            message(STATUS "Setting fallback architecture flags for ${CMAKE_CXX_COMPILER}.")
+            set(arch_opt "-march=${arch}")
         endif()
     endif()
 
@@ -154,7 +144,6 @@ function(set_arch_target optvar optvar_cuda_guarded arch)
     else()
         set("${optvar_cuda_guarded}" "${arch_opt}" PARENT_SCOPE)
     endif()
-
 endfunction()
 
 # Set ${has_sve} and ${sve_length} in parent scope according to auto detection.
