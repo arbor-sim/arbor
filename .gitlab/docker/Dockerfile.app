@@ -12,7 +12,7 @@ RUN echo ${CXX_FLAGS}
 
 RUN mkdir -p /arbor.src/build \
   && cd /arbor.src/build \
-  && CXX=`which g++` CC=`which gcc` cmake .. \
+  && CXX=/opt/view/bin/g++ CC=/opt/view/bin/gcc cmake .. \
      -GNinja \
      -DCMAKE_INSTALL_PREFIX=/arbor.install \
      -DCMAKE_BUILD_TYPE=Release \
