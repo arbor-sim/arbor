@@ -398,10 +398,8 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     // Requires state at end of run(), with epoch_.id==k:
     //     * U(k) and D(k) have completed.
 
-    // Compare up to picoseconds
-    time_type eps = 1e-9;
-    if (!std::isfinite(dt) || dt < eps) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
-    if (!std::isfinite(tfinal) || tfinal < eps) throw std::domain_error("simulation: tfinal must be finite, positive, and in [ms]");
+    if (!std::isfinite(dt) || dt <= 0) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
+    if (!std::isfinite(tfinal) || tfinal < 0) throw std::domain_error("simulation: tfinal must be finite, positive, and in [ms]");
 
     // Compute following epoch, with max time tfinal.
     auto next_epoch = [tfinal](epoch e, time_type interval) -> epoch {

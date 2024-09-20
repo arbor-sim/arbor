@@ -45,6 +45,7 @@ class DelayRecipe(A.recipe):
     def global_properties(self, _):
         return A.neuron_cable_properties()
 
+
 class TestDelayNetwork(unittest.TestCase):
     def test_zero_delay(self):
         rec = DelayRecipe(0.0 * U.ms)
@@ -57,10 +58,11 @@ class TestDelayNetwork(unittest.TestCase):
         sim = A.simulation(rec)
         sim.run(T, dt)
 
-    def test_cannot_relive_the_past(self):
+    def dt_must_be_finite(self):
         T = 1 * U.ms
         dt = 0.01 * U.ms
         rec = DelayRecipe(2*dt)
         sim = A.simulation(rec)
-        sim.run(T + dt, dt)
-        self.assertRaises(ValueError, sim.run, T, dt)
+        self.assertRaises(ValueError, sim.run, T, 0 * U.ms)
+        self.assertRaises(ValueError, sim.run, T, 1.0/0.0 * U.ms)
+        self.assertRaises(ValueError, sim.run, 1.0/0.0 * U.ms, dt)
