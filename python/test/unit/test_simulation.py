@@ -6,10 +6,12 @@ import unittest
 End to end tests at simulation level.
 """
 
+
 class DelayRecipe(A.recipe):
     """
     Construct a simple network with configurable axonal delay.
     """
+
     def __init__(self, delay):
         A.recipe.__init__(self)
         self.delay = delay
@@ -23,24 +25,23 @@ class DelayRecipe(A.recipe):
     def cell_description(self, _):
         # morphology
         tree = A.segment_tree()
-        tree.append(A.mnpos,
-                    A.mpoint(-1, 0, 0, 1),
-                    A.mpoint( 1, 0, 0, 1),
-                    tag=1)
+        tree.append(A.mnpos, A.mpoint(-1, 0, 0, 1), A.mpoint(1, 0, 0, 1), tag=1)
 
-        decor = (A.decor()
-                 .place('(location 0 0.5)', A.synapse('expsyn'), "syn")
-                 .place('(location 0 0.5)', A.threshold_detector(-15*U.mV), "det")
-                 .paint('(all)', A.density('hh')))
+        decor = (
+            A.decor()
+            .place("(location 0 0.5)", A.synapse("expsyn"), "syn")
+            .place("(location 0 0.5)", A.threshold_detector(-15 * U.mV), "det")
+            .paint("(all)", A.density("hh"))
+        )
 
         return A.cable_cell(tree, decor, A.label_dict())
 
     def connections_on(self, gid):
         src = (gid + 1) % self.num_cells()
-        return [A.connection((src, "det"), 'syn', 0.42, self.delay)]
+        return [A.connection((src, "det"), "syn", 0.42, self.delay)]
 
     def probes(self, _):
-        return [A.cable_probe_membrane_voltage('(location 0 0.5)', 'Um')]
+        return [A.cable_probe_membrane_voltage("(location 0 0.5)", "Um")]
 
     def global_properties(self, _):
         return A.neuron_cable_properties()
@@ -54,15 +55,15 @@ class TestDelayNetwork(unittest.TestCase):
     def test_dt_half_delay(self):
         T = 1 * U.ms
         dt = 0.01 * U.ms
-        rec = DelayRecipe(2*dt)
+        rec = DelayRecipe(2 * dt)
         sim = A.simulation(rec)
         sim.run(T, dt)
 
     def dt_must_be_finite(self):
         T = 1 * U.ms
         dt = 0.01 * U.ms
-        rec = DelayRecipe(2*dt)
+        rec = DelayRecipe(2 * dt)
         sim = A.simulation(rec)
         self.assertRaises(ValueError, sim.run, T, 0 * U.ms)
-        self.assertRaises(ValueError, sim.run, T, 1.0/0.0 * U.ms)
-        self.assertRaises(ValueError, sim.run, 1.0/0.0 * U.ms, dt)
+        self.assertRaises(ValueError, sim.run, T, 1.0 / 0.0 * U.ms)
+        self.assertRaises(ValueError, sim.run, 1.0 / 0.0 * U.ms, dt)
