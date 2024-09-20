@@ -13,6 +13,7 @@ jobs:
     name: "CMake Matrix Test."
     runs-on: ${{ matrix.config.os }}
     strategy:
+      fail-fast: false
       matrix:
         config:
         - {
@@ -37,7 +38,7 @@ jobs:
           }
         - {
             name:  "MacOS Min",
-            os:    "macos-12",
+            os:    "macos-13",
             cc:    "clang",
             cxx:   "clang++",
             py:    "3.9",

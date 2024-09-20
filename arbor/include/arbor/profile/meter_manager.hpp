@@ -33,7 +33,7 @@ class ARB_ARBOR_API meter_manager {
 private:
     bool started_ = false;
 
-    tick_type start_time_ = 0;
+    tick_type start_time_ = {};
     std::vector<double> times_;
 
     std::vector<std::unique_ptr<meter>> meters_;

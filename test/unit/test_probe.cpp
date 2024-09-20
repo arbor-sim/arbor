@@ -281,7 +281,7 @@ void run_expsyn_g_probe_test(context ctx) {
         fvm_cell lcell(*ctx);
         auto fvm_info = lcell.initialize({0}, rec);
         const auto& probe_map = fvm_info.probe_map;
-        const auto& targets = fvm_info.target_handles;
+        const auto& targets = lcell.target_handles_;
 
         EXPECT_EQ(2u, rec.get_probes(0).size());
         EXPECT_EQ(2u, probe_map.size());
@@ -309,14 +309,12 @@ void run_expsyn_g_probe_test(context ctx) {
         // and another at 2ms to second, weight 1.
 
         arb_assert(targets[0].mech_id == targets[1].mech_id);
-        std::vector<std::vector<std::vector<deliverable_event>>> events(targets[0].mech_id+1);
         const double tfinal = 3.0;
         const double dt = 0.001;
         const timestep_range dts{tfinal, dt};
-        events[targets[0].mech_id].resize(dts.size());
-        events[targets[0].mech_id][dts.find(1.0)-dts.begin()].push_back(deliverable_event{1.0, targets[0], 0.5});
-        events[targets[0].mech_id][dts.find(2.0)-dts.begin()].push_back(deliverable_event{2.0, targets[1], 1.0});
-        lcell.integrate(dts, events, {});
+        std::vector<pse_vector> events{{{0, 1.0, 0.5}, {1, 2.0, 1.0}}};
+        auto lanes = util::subrange_view(events, 0, events.size());
+        lcell.integrate(dts, lanes, {});
 
         arb_value_type g0 = deref(p0);
         arb_value_type g1 = deref(p1);
@@ -360,64 +358,60 @@ void run_expsyn_g_cell_probe_test(context ctx) {
     //  * A multiplicity that matches the number of probes sharing a CV if synapses
     //    were coalesced.
     //  * A raw handle that sees an event sent to the corresponding target,
+    std::vector gids = {0u, 1u};
+    auto policy = cv_policy_fixed_per_branch(3);
 
-    cv_policy policy = cv_policy_fixed_per_branch(3);
-
-    auto m  = make_y_morphology();
-    arb::decor d;
-    d.set_default(policy);
-
+    arb::decor decor;
+    decor.set_default(policy);
     std::unordered_map<cell_lid_type, mlocation> expsyn_target_loc_map;
-
     unsigned n_expsyn = 0;
     for (unsigned bid = 0; bid<3u; ++bid) {
         for (unsigned j = 0; j<10; ++j) {
             auto idx = (bid*10+j)*2;
             mlocation expsyn_loc{bid, 0.1*j};
-            d.place(expsyn_loc, synapse("expsyn"), "syn"+std::to_string(idx));
+            decor.place(expsyn_loc, synapse("expsyn"), "syn"+std::to_string(idx));
             expsyn_target_loc_map[2*n_expsyn] = expsyn_loc;
-            d.place(mlocation{bid, 0.1*j+0.05}, synapse("exp2syn"), "syn"+std::to_string(idx+1));
+            decor.place(mlocation{bid, 0.1*j+0.05}, synapse("exp2syn"), "syn"+std::to_string(idx+1));
             ++n_expsyn;
         }
     }
 
-    std::vector<cable_cell> cells(2, arb::cable_cell(m, d));
+    std::vector cells(2, arb::cable_cell(make_y_morphology(), decor));
 
+    // Weight for target (gid, lid)
+    auto weight = [](auto gid, auto tgt) -> float { return tgt + 100*gid; };
+
+    // Manually send an event to each expsyn synapse and integrate for a tiny time step.
+    // Set up one stream per cell.
+    std::vector events(gids.size(), pse_vector{});
+    for (auto gid: gids) {
+        for (auto target_id: util::keys(expsyn_target_loc_map)) {
+            events[gid].emplace_back(target_id, 0., weight(gid, target_id));
+        }
+    }
+
+    // Independently get cv geometry to compute CV indices.
+    cv_geometry geom;
+    for (const auto& cell: cells) {
+        append(geom, cv_geometry(cell, policy.cv_boundary_points(cell)));
+    }
+
+    // Actual test;
     auto run_test = [&](bool coalesce_synapses) {
         cable1d_recipe rec(cells, coalesce_synapses);
-
-        rec.add_probe(0, "expsyn-g", cable_probe_point_state_cell{"expsyn", "g"});
-        rec.add_probe(1, "expsyn-g", cable_probe_point_state_cell{"expsyn", "g"});
+        for (auto gid: gids) {
+            rec.add_probe(gid, "expsyn-g", cable_probe_point_state_cell{"expsyn", "g"});
+        }
 
         fvm_cell lcell(*ctx);
-        auto fvm_info = lcell.initialize({0, 1}, rec);
+        auto fvm_info = lcell.initialize(gids, rec);
         const auto& probe_map = fvm_info.probe_map;
-        const auto& targets = fvm_info.target_handles;
 
-        // Send an event to each expsyn synapse with a weight = target+100*cell_gid, and
-        // integrate for a tiny time step.
-
-        std::vector<std::vector<std::vector<deliverable_event>>> events(2, std::vector<std::vector<deliverable_event>>(1));
-        for (unsigned i: {0u, 1u}) {
-            // Cells have the same number of targets, so the offset for cell 1 is exactly...
-            cell_local_size_type cell_offset = i==0? 0: targets.size()/2;
-
-            for (auto target_id: util::keys(expsyn_target_loc_map)) {
-                auto h = targets.at(target_id+cell_offset);
-                deliverable_event ev{0., h, float(target_id+100*i)};
-                events[h.mech_id][0].push_back(ev);
-            }
-        }
-        (void)lcell.integrate({1e-5, 1e-5}, events, {});
-
-        // Independently get cv geometry to compute CV indices.
-
-        cv_geometry geom(cells[0], policy.cv_boundary_points(cells[0]));
-        append(geom, cv_geometry(cells[1], policy.cv_boundary_points(cells[1])));
+        (void)lcell.integrate({1e-5, 1e-5}, util::subrange_view(events, 0, events.size()), {});
 
         ASSERT_EQ(2u, probe_map.size());
-        for (unsigned i: {0u, 1u}) {
-            const auto* h_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({i, "expsyn-g"}).front()->info);
+        for (auto gid: gids) {
+            const auto* h_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({gid, "expsyn-g"}).front()->info);
             ASSERT_TRUE(h_ptr);
 
             const auto* m_ptr = std::get_if<std::vector<cable_probe_point_info>>(&h_ptr->metadata);
@@ -429,21 +423,22 @@ void run_expsyn_g_cell_probe_test(context ctx) {
             ASSERT_EQ(h.raw_handles.size(), m.size());
             ASSERT_EQ(n_expsyn, m.size());
 
+            const auto n_targets = lcell.target_handles_.size();
             std::vector<double> expected_coalesced_cv_value(geom.size());
-            std::vector<double> expected_uncoalesced_value(targets.size());
+            std::vector<double> expected_uncoalesced_value(n_targets);
 
-            std::vector<double> target_cv(targets.size(), (unsigned)-1);
+            std::vector<double> target_cv(n_targets, (unsigned)-1);
             std::unordered_map<arb_size_type, unsigned> cv_expsyn_count;
 
             for (unsigned j = 0; j<n_expsyn; ++j) {
                 ASSERT_EQ(1u, expsyn_target_loc_map.count(m[j].target));
                 EXPECT_EQ(expsyn_target_loc_map.at(m[j].target), m[j].loc);
 
-                auto cv = geom.location_cv(i, m[j].loc, cv_prefer::cv_nonempty);
+                auto cv = geom.location_cv(gid, m[j].loc, cv_prefer::cv_nonempty);
                 target_cv[j] = cv;
                 ++cv_expsyn_count[cv];
 
-                double event_weight = m[j].target+100*i;
+                double event_weight = weight(gid, m[j].target);
                 expected_uncoalesced_value[j] = event_weight;
                 expected_coalesced_cv_value[cv] += event_weight;
             }

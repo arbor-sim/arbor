@@ -86,7 +86,6 @@ set(unit_sources
     test_iexpr.cpp
     test_index.cpp
     test_kinetic_linear.cpp
-    test_lexcmp.cpp
     test_label_resolution.cpp
     test_lif_cell_group.cpp
     test_local_context.cpp

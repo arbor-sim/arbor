@@ -1,6 +1,6 @@
 [project]
 name = "arbor"
-version = "0.10.0" # TODO: make dependent on VERSION file. Blocked by https://github.com/scikit-build/scikit-build-core/issues/230
+dynamic = ["version"]
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {file = "LICENSE"}
 description = "High performance simulation of networks of multicompartment neurons."
@@ -39,11 +39,66 @@ sdist.include = ["ext/*/.git"]
 wheel.install-dir = "arbor"
 wheel.packages = []
 
-[tool.black]
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "VERSION"
+regex = "(?P<value>\\d+\\.\\d+\\.\\d+(-.+)?)"
+
+[tool.ruff]
+exclude = [
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".ipynb_checkpoints",
+    "_deps",
+    ".ruff_cache",
+    ".venv",
+    ".vscode",
+    "build",
+    "dist",
+    "ext",
+    "doc/scripts/inputs.py",
+    "doc/scripts/make_images.py",
+    ".*",
+    "spack/package.py"]
+
 line-length = 88
-target-version = ['py39', 'py310', 'py311', 'py312']
-include = '\.pyi?$'
-extend-exclude='^/(ext|doc/scripts/.*_theme|doc/scripts/inputs.py)'
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+ignore = [ # for black
+           "E203", "E231",
+           # zealous line lengths
+           "E501",
+           # ambiguous varnames I ./. l etc
+           "E741",
+           # Ruff doesn't like this rule
+           "ISC001",
+           # old school zip
+           "B905"]
+select = ["C", "E", "F", "W", "B"]
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+mccabe.max-complexity = 15
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+"python/example/brunel/analysis.py" = ["F405", "F403"]
+"python/example/brunel/arbor_brunel.py" = ["F405", "F403"]
+"python/example/brunel/nest_brunel.py" = ["F405", "F403"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+# Disable auto-formatting of code examples in docstrings. Markdown,
+# reStructuredText code/literal blocks and doctests are all supported.
+docstring-code-format = false
+docstring-code-line-length = "dynamic"
 
 [project.urls]
 homepage = "https://arbor-sim.org"

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <algorithm>
 #include <unordered_map>
 
 #include <arborio/label_parse.hpp>

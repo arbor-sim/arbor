@@ -19,16 +19,14 @@ jobs:
       - name: Get packages
         run: |
           python -m pip install --upgrade pip
-          pip install flake8
+          pip install ruff
       - name: Clone w/ submodules
         uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Python Formatting
-        uses: psf/black@stable
-        with:
-          options: --check --extend-exclude '/(ext|doc/scripts/.*_theme|doc/scripts/inputs.py)'
-          src: .
       - name: Python analysis
         run: |
-          flake8 .
+          ruff check --output-format=github .
+      - name: Python formatting
+        run: |
+          ruff format --check .

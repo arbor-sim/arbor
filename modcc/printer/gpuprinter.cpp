@@ -204,8 +204,12 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
         }
     };
 
+    auto n_state_vars = std::count_if(vars.arrays.begin(), vars.arrays.end(),
+                                      [] (const auto& v) { return v->is_state(); });
+
+
     emit_api_kernel(init_api);
-    if (init_api && !init_api->body()->statements().empty()) {
+    if (init_api && !init_api->body()->statements().empty() && n_state_vars > 0) {
         out << fmt::format(FMT_COMPILE("__global__\n"
                                        "void multiply(arb_mechanism_ppack params_) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
@@ -284,9 +288,6 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
 
     {
         auto api_name = init_api->name();
-        auto n = std::count_if(vars.arrays.begin(), vars.arrays.end(),
-                               [] (const auto& v) { return v->is_state(); });
-
         out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack* p) {{"), class_name, api_name);
         if(!init_api->body()->statements().empty()) {
             out << fmt::format(FMT_COMPILE("\n"
@@ -298,9 +299,8 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                "width",
                                api_name);
             // only multiply if we actually have arrays
-            if (n) {
-                out << fmt::format(FMT_COMPILE("    ::arb::gpu::launch({{grid_dim, {}}}, block_dim, multiply, *p);\n"), n);
-            }
+            if (n_state_vars) out << fmt::format(FMT_COMPILE("    ::arb::gpu::launch({{grid_dim, {}}}, block_dim, multiply, *p);\n"),
+                                                 n_state_vars);
         }
         out << "}\n\n";
     }

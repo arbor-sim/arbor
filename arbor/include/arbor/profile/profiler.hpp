@@ -1,13 +1,10 @@
 #pragma once
 
-#include <cstdint>
 #include <ostream>
-#include <unordered_map>
 #include <vector>
 
 #include <arbor/export.hpp>
 #include <arbor/context.hpp>
-#include <arbor/profile/timer.hpp>
 
 namespace arb {
 

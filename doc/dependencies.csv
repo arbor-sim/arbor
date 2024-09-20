@@ -5,7 +5,7 @@ Build option/target,Tool name,Minimum version,Notes,Update criteria
 --,GCC,12.0.0,,"* it is supported by the minimum version of CUDA.
 * it is available either by default or can be installed using standard package manager on the supported Linux versions."
 --,Clang,12.0,,
---,Apple Clang,13,Apple LLVM version 13.0.0 (clang-1300.x.y.z),
+--,Apple Clang,15,Apple LLVM version 15.0.0 (clang-1500.x.y.z),
 ARB_GPU,Hip Clang,ROCm 3.9,HIP support is currently experimental.,
 ARB_GPU,CUDA,12.0,,"* It is available on all of the target HPC systems (Piz Daint, Juwels Booster)"
 ARB_WITH_MPI,MPI,,Many MPI implementations are supported.,
