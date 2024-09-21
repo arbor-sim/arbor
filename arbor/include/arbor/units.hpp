@@ -82,8 +82,8 @@ constexpr inline auto C = ::units::precise::coulomb;
 
 // mol and molarity
 using ::units::precise::mol;
-// M = mol/l = mol/dm^3 = mmol/m^3
-constexpr inline auto M = milli * mol / m.pow(3);
+using ::units::precise::L;
+constexpr inline auto M = mol / L;
 constexpr inline auto mM = milli * M;
 
 using ::units::is_valid;
