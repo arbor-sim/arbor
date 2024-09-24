@@ -10,7 +10,8 @@ import seaborn as sns  # You may have to pip install these.
 
 
 class Cable(A.recipe):
-    def __init__(self,
+    def __init__(
+        self,
         probes,
         Vm,
         length,
@@ -21,7 +22,8 @@ class Cable(A.recipe):
         stimulus_start,
         stimulus_duration,
         stimulus_amplitude,
-        cv_policy_max_extent):
+        cv_policy_max_extent,
+    ):
         """
         probes -- list of probes
 

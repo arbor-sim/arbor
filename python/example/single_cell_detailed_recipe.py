@@ -75,6 +75,7 @@ cvp = A.cv_policy('(replace (single (region "soma")) (max-extent 1.0))')
 # (4) Create the cell
 cell = A.cable_cell(lmrf.morphology, decor, labels, cvp)
 
+
 # (5) Create a class that inherits from A.recipe
 class single_recipe(A.recipe):
     # (5.1) Define the class constructor
