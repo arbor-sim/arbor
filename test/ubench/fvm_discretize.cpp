@@ -88,7 +88,7 @@ void run_discretize_explicit(benchmark::State& state) {
     auto ends = cv_policy_every_segment().cv_boundary_points(cable_cell{morpho, {}, {}, {}});
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(fvm_cv_discretize(cable_cell{morpho, {}, {}, cv_policy_explicit(std::move(ends))}, gdflt));
+        benchmark::DoNotOptimize(fvm_cv_discretize(cable_cell{morpho, {}, {}, cv_policy_explicit(ends)}, gdflt));
     }
 }
 
