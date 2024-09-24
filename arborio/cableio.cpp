@@ -19,7 +19,7 @@ namespace arborio {
 
 using namespace arb;
 
-ARB_ARBORIO_API std::string acc_version() {return "0.9-dev";}
+ARB_ARBORIO_API std::string acc_version() {return "0.10-dev";}
 
 cableio_parse_error::cableio_parse_error(const std::string& msg, const arb::src_location& loc):
     arb::arbor_exception(msg+" at :"+
@@ -116,12 +116,6 @@ s_expr mksexp(const mpoint& p) {
 s_expr mksexp(const msegment& seg) {
     return slist("segment"_symbol, (int)seg.id, mksexp(seg.prox), mksexp(seg.dist), seg.tag);
 }
-// This can be removed once cv_policy is removed from the decor.
-s_expr mksexp(const cv_policy& c) {
-    std::stringstream s;
-    s << c;
-    return slist("cv-policy"_symbol, parse_s_expr(s.str()));
-}
 s_expr mksexp(const decor& d) {
     auto round_trip = [](auto& x) {
         std::stringstream s;
@@ -144,6 +138,11 @@ s_expr mksexp(const decor& d) {
         }, std::get<1>(p)));
     }
     return {"decor"_symbol, slist_range(decorations)};
+}
+s_expr mksexp(const cv_policy& c) {
+    std::stringstream s;
+    s << c;
+    return slist("cv-policy"_symbol, parse_s_expr(s.str()));
 }
 s_expr mksexp(const label_dict& dict) {
     auto round_trip = [](auto& x) {
@@ -202,8 +201,10 @@ ARB_ARBORIO_API std::ostream& write_component(std::ostream& o, const morphology&
     return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), mksexp(x))};
 }
 ARB_ARBORIO_API std::ostream& write_component(std::ostream& o, const cable_cell& x, const meta_data& m) {
-    if (m.version != acc_version()) {
-        throw cableio_version_error(m.version);
+    if (m.version != acc_version()) throw cableio_version_error(m.version);
+    if (const auto& cvp = x.discretization()) {
+        auto cell = s_expr{"cable-cell"_symbol, slist(mksexp(x.morphology()), mksexp(x.labels()), mksexp(x.decorations()), mksexp(*cvp))};
+        return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), cell)};
     }
     auto cell = s_expr{"cable-cell"_symbol, slist(mksexp(x.morphology()), mksexp(x.labels()), mksexp(x.decorations()))};
     return o << s_expr{"arbor-component"_symbol, slist(mksexp(m), cell)};
@@ -360,19 +361,35 @@ morphology make_morphology(const std::vector<std::variant<branch_tuple>>& args) 
 
 // Define cable-cell maker
 // Accepts the morphology, decor and label_dict arguments in any order as a vector
-cable_cell make_cable_cell(const std::vector<std::variant<morphology, label_dict, decor>>& args) {
+cable_cell make_cable_cell4(const std::vector<std::variant<morphology, label_dict, decor, cv_policy>>& args) {
+    decor dec;
+    label_dict dict;
+    morphology morpho;
+    std::optional<cv_policy> cvp;
+    for(const auto& a: args) {
+        auto cable_cell_visitor = arb::util::overload(
+            [&](const morphology& q) { morpho = q; },
+            [&](const label_dict& q) { dict = q; },
+            [&](const cv_policy& q) { cvp = q; },
+            [&](const decor& q){ dec = q; });
+        std::visit(cable_cell_visitor, a);
+    }
+    return cable_cell(morpho, dec, dict, cvp);
+}
+cable_cell make_cable_cell3(const std::vector<std::variant<morphology, label_dict, decor>>& args) {
     decor dec;
     label_dict dict;
     morphology morpho;
     for(const auto& a: args) {
         auto cable_cell_visitor = arb::util::overload(
-            [&](const morphology & p) { morpho = p; },
-            [&](const label_dict & p) { dict = p; },
-            [&](const decor & p){ dec = p; });
+            [&](const morphology& q) { morpho = q; },
+            [&](const label_dict& q) { dict = q; },
+            [&](const decor& q){ dec = q; });
         std::visit(cable_cell_visitor, a);
     }
-    return cable_cell(morpho, dec, dict);
+    return cable_cell(morpho, dec, dict, {});
 }
+
 version_tuple make_version(const std::string& v) {
     return version_tuple{v};
 }
@@ -592,6 +609,16 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_
     auto& hd = e.head();
     if (hd.is_atom()) {
         auto& atom = hd.atom();
+        if (atom.spelling == "cv-policy") {
+            // NOTE tail produces a single item list?
+            auto res = parse_cv_policy_expression(e.tail().head());
+            if (res) {
+                return res.value();
+            }
+            else {
+                return res.error();
+            }
+        }
         // If this is not a symbol, parse as a tuple
         if (atom.kind != tok::symbol) {
             auto args = eval_args(e, map, vec);
@@ -641,9 +668,6 @@ parse_hopefully<std::any> eval(const s_expr& e, const eval_map& map, const eval_
             if (match<iexpr>(l->type())) return eval_cast<iexpr>(l.value());
         }
 
-        // Or it could be a cv-policy expression
-        if (auto p = parse_cv_policy_expression(e)) return p.value();
-
         // Unable to find a match: try to return a helpful error message.
         const auto nc = std::distance(matches.first, matches.second);
         std::string msg = "No matches for found for "+name+" with "+std::to_string(args->size())+" arguments.\n"
@@ -673,27 +697,26 @@ eval_map named_evals{
     ARBIO_ADD_ION_EVAL("ion-diffusivity", make_ion_diffusivity),
     {"quantity", make_call<double, std::string>(make_quantity, "'quantity' with a value:real and a unit:string")},
     {"envelope", make_arg_vec_call<envelope_tuple>(make_envelope,
-        "'envelope' with one or more pairs of start time and amplitude (start:real amplitude:real)")},
+                                                   "'envelope' with one or more pairs of start time and amplitude (start:real amplitude:real)")},
     {"envelope-pulse", make_call<double, double, double>(make_envelope_pulse,
-        "'envelope-pulse' with 3 arguments (delay:real duration:real amplitude:real)")},
+                                                         "'envelope-pulse' with 3 arguments (delay:real duration:real amplitude:real)")},
     {"current-clamp", make_call<std::vector<arb::i_clamp::envelope_point>, double, double>(make_i_clamp,
-        "'current-clamp' with 3 arguments (env:envelope freq:real phase:real)")},
+                                                                                           "'current-clamp' with 3 arguments (env:envelope freq:real phase:real)")},
     {"current-clamp", make_call<pulse_tuple, double, double>(make_i_clamp_pulse,
-        "'current-clamp' with 3 arguments (env:envelope_pulse freq:real phase:real)")},
+                                                             "'current-clamp' with 3 arguments (env:envelope_pulse freq:real phase:real)")},
     {"threshold-detector", make_call<double>(arb::threshold_detector::from_raw_millivolts,
-        "'threshold-detector' with 1 argument (threshold:real)")},
+                                             "'threshold-detector' with 1 argument (threshold:real)")},
     {"mechanism", make_mech_call("'mechanism' with a name argument, and 0 or more parameter settings"
-        "(name:string (param:string val:real))")},
+                                 "(name:string (param:string val:real))")},
     {"ion-reversal-potential-method", make_call<std::string, arb::mechanism_desc>( make_ion_reversal_potential_method,
-        "'ion-reversal-potential-method' with 2 arguments (ion:string mech:mechanism)")},
-    {"cv-policy", make_call<cv_policy>(make_cv_policy,
-        "'cv-policy' with 1 argument (p:policy)")},
+                                                                                   "'ion-reversal-potential-method' with 2 arguments (ion:string mech:mechanism)")},
+    {"cv-policy", make_call<cv_policy>(make_cv_policy, "'cv-policy' with 1 argument (p:policy)")},
     {"junction", make_call<arb::mechanism_desc>(make_wrapped_mechanism<junction>, "'junction' with 1 argumnet (m: mechanism)")},
     {"synapse",  make_call<arb::mechanism_desc>(make_wrapped_mechanism<synapse>, "'synapse' with 1 argumnet (m: mechanism)")},
     {"density",  make_call<arb::mechanism_desc>(make_wrapped_mechanism<density>, "'density' with 1 argumnet (m: mechanism)")},
     {"voltage-process",  make_call<arb::mechanism_desc>(make_wrapped_mechanism<voltage_process>, "'voltage-process' with 1 argumnet (m: mechanism)")},
     {"scaled-mechanism", make_scaled_mechanism_call<arb::density>("'scaled_mechanism' with a density argument, and 0 or more parameter scaling expressions"
-        "(d:density (param:string val:iexpr))")},
+                                                                  "(d:density (param:string val:iexpr))")},
     {"place", make_call<locset, i_clamp, std::string>(make_place, "'place' with 3 arguments (ls:locset c:current-clamp name:string)")},
     {"place", make_call<locset, threshold_detector, std::string>(make_place, "'place' with 3 arguments (ls:locset t:threshold-detector name:string)")},
     {"place", make_call<locset, junction, std::string>(make_place, "'place' with 3 arguments (ls:locset gj:junction name:string)")},
@@ -719,39 +742,42 @@ eval_map named_evals{
     {"default", make_call<ion_diffusivity>(make_default, "'default' with 1 argument (v:ion-diffusivity)")},
     {"default", make_call<init_reversal_potential>(make_default, "'default' with 1 argument (v:ion-reversal-potential)")},
     {"default", make_call<ion_reversal_potential_method>(make_default, "'default' with 1 argument (v:ion-reversal-potential-method)")},
-    {"default", make_call<cv_policy>(make_default, "'default' with 1 argument (v:cv-policy)")},
 
     {"locset-def", make_call<std::string, locset>(make_locset_pair,
-        "'locset-def' with 2 arguments (name:string ls:locset)")},
+                                                  "'locset-def' with 2 arguments (name:string ls:locset)")},
     {"region-def", make_call<std::string, region>(make_region_pair,
-        "'region-def' with 2 arguments (name:string reg:region)")},
+                                                  "'region-def' with 2 arguments (name:string reg:region)")},
     {"iexpr-def", make_call<std::string, iexpr>(make_iexpr_pair,
-        "'iexpr-def' with 2 arguments (name:string e:iexpr)")},
+                                                "'iexpr-def' with 2 arguments (name:string e:iexpr)")},
 
     {"point",   make_call<double, double, double, double>(make_point,
-         "'point' with 4 arguments (x:real y:real z:real radius:real)")},
+                                                          "'point' with 4 arguments (x:real y:real z:real radius:real)")},
     {"segment", make_call<int, mpoint, mpoint, int>(make_segment,
-        "'segment' with 4 arguments (parent:int prox:point dist:point tag:int)")},
+                                                    "'segment' with 4 arguments (parent:int prox:point dist:point tag:int)")},
     {"branch",  make_branch_call(
-        "'branch' with 2 integers and 1 or more segment arguments (id:int parent:int s0:segment s1:segment ..)")},
+            "'branch' with 2 integers and 1 or more segment arguments (id:int parent:int s0:segment s1:segment ..)")},
 
     {"decor", make_arg_vec_call<place_tuple, paint_pair, defaultable>(make_decor,
-        "'decor' with 1 or more `paint`, `place` or `default` arguments")},
+                                                                      "'decor' with 1 or more `paint`, `place` or `default` arguments")},
     {"label-dict", make_arg_vec_call<locset_pair, region_pair, iexpr_pair>(make_label_dict,
-        "'label-dict' with 1 or more `locset-def` or `region-def` or `iexpr-def` arguments")},
+                                                                           "'label-dict' with 1 or more `locset-def` or `region-def` or `iexpr-def` arguments")},
     {"morphology", make_arg_vec_call<branch_tuple>(make_morphology,
-        "'morphology' 1 or more `branch` arguments")},
+                                                   "'morphology' 1 or more `branch` arguments")},
 
-    {"cable-cell", make_unordered_call<morphology, label_dict, decor>(make_cable_cell,
-        "'cable-cell' with 3 arguments: `morphology`, `label-dict`, and `decor` in any order")},
+    {"cable-cell",
+     make_unordered_call<morphology, label_dict, decor, cv_policy>(make_cable_cell4,
+                                                                   "'cable-cell' with 4 arguments: `morphology`, `label-dict`, `decor`, and `cv_policy` in any order")},
+    {"cable-cell",
+     make_unordered_call<morphology, label_dict, decor>(make_cable_cell3,
+                                                        "'cable-cell' with 3 arguments: `morphology`, `label-dict`, and `decor` in any order")},
 
     {"version", make_call<std::string>(make_version, "'version' with one argment (val:std::string)")},
     {"meta-data", make_call<version_tuple>(make_meta_data, "'meta-data' with one argument (v:version)")},
 
-    { "arbor-component", make_call<meta_data, decor>(make_component<decor>, "'arbor-component' with 2 arguments (m:meta_data p:decor)")},
-    { "arbor-component", make_call<meta_data, label_dict>(make_component<label_dict>, "'arbor-component' with 2 arguments (m:meta_data p:label_dict)")},
-    { "arbor-component", make_call<meta_data, morphology>(make_component<morphology>, "'arbor-component' with 2 arguments (m:meta_data p:morphology)")},
-    { "arbor-component", make_call<meta_data, cable_cell>(make_component<cable_cell>, "'arbor-component' with 2 arguments (m:meta_data p:cable_cell)")}
+    {"arbor-component", make_call<meta_data, decor>(make_component<decor>, "'arbor-component' with 2 arguments (m:meta_data p:decor)")},
+    {"arbor-component", make_call<meta_data, label_dict>(make_component<label_dict>, "'arbor-component' with 2 arguments (m:meta_data p:label_dict)")},
+    {"arbor-component", make_call<meta_data, morphology>(make_component<morphology>, "'arbor-component' with 2 arguments (m:meta_data p:morphology)")},
+    {"arbor-component", make_call<meta_data, cable_cell>(make_component<cable_cell>, "'arbor-component' with 2 arguments (m:meta_data p:cable_cell)")}
 };
 
 #undef ARBIO_ADD_EVAL

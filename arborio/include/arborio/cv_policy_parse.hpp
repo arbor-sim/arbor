@@ -1,6 +1,5 @@
 #pragma once
 
-#include <any>
 #include <string>
 
 #include <arbor/cv_policy.hpp>

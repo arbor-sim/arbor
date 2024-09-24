@@ -231,9 +231,7 @@ class serdes_recipe(A.recipe):
 
         dec = A.decor()
         dec.paint("(all)", A.density("pas"))
-        dec.discretization(A.cv_policy("(max-extent 1)"))
-
-        return A.cable_cell(tree, dec)
+        return A.cable_cell(tree, dec, discretization=A.cv_policy("(max-extent 1)"))
 
     def global_properties(self, _):
         return self.the_props

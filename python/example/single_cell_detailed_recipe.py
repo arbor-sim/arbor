@@ -67,14 +67,13 @@ decor = (
     .place('"root"', A.iclamp(30 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp1")
     .place('"root"', A.iclamp(50 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp2")
     .place('"axon_terminal"', A.threshold_detector(-10 * U.mV), "detector")
-    # Set discretisation: Soma as one CV, 1um everywhere else
-    .discretization('(replace (single (region "soma")) (max-extent 1.0))')
 )
 
+# Set discretisation: Soma as one CV, 1um everywhere else
+cvp = A.cv_policy('(replace (single (region "soma")) (max-extent 1.0))')
 
-# (4) Create the cell.
-cell = A.cable_cell(lmrf.morphology, decor, labels)
-
+# (4) Create the cell
+cell = A.cable_cell(lmrf.morphology, decor, labels, cvp)
 
 # (5) Create a class that inherits from A.recipe
 class single_recipe(A.recipe):
