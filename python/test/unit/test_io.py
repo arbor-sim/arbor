@@ -9,7 +9,7 @@ from io import StringIO
 
 acc = """(arbor-component
   (meta-data
-    (version "0.9-dev"))
+    (version "0.10-dev"))
   (cable-cell
     (morphology
       (branch 0 -1

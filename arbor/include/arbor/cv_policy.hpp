@@ -74,7 +74,7 @@ struct ARB_SYMBOL_VISIBLE cv_policy {
     template <typename Impl, typename = std::enable_if_t<!std::is_same_v<std::remove_cvref_t<Impl>, cv_policy>>>
     explicit cv_policy(const Impl& impl): impl_(std::make_unique<wrap<Impl>>(impl)) {}
     template <typename Impl, typename = std::enable_if_t<!std::is_same_v<std::remove_cvref_t<Impl>, cv_policy>>>
-    explicit cv_policy(Impl&& impl): impl_(std::make_unique<wrap<Impl>>(std::move(impl))) {}
+    explicit cv_policy(Impl&& impl): impl_(std::make_unique<wrap<Impl>>(impl)) {}
     // move
     cv_policy(cv_policy&&) = default;
     cv_policy& operator=(cv_policy&&) = default;
