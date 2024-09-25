@@ -27,8 +27,8 @@ jobs:
         sanitizer: ["address", "undefined", "thread"]
         simd:      ["ON", "OFF"]
     env:
-        CC:           clang-14
-        CXX:          clang++-14
+        CC:           clang-18
+        CXX:          clang++-18
         ASAN_OPTIONS: detect_leaks=1
     steps:
       - name: Get build dependencies

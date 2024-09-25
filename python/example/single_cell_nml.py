@@ -63,7 +63,7 @@ decor = (
 )
 
 # Set discretisation: Soma as one CV, 1um everywhere else
-cvp = A.cv_data('(replace (single (region "soma")) (max-extent 1.0))')
+cvp = A.cv_policy('(replace (single (region "soma")) (max-extent 1.0))')
 
 # Combine morphology with region and locset definitions to make a cable cell.
 cell = A.cable_cell(morpho, decor, labels, cvp)
