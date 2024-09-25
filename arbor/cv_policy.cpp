@@ -40,7 +40,8 @@ struct cvp_cv_policy_plus {
         return os;
     }
 
-    cvp_cv_policy_plus(const cv_policy& lhs, const cv_policy& rhs): lhs_{lhs}, rhs_(rhs) {}
+    // TODO This is needed seemingly only for older compilers
+    cvp_cv_policy_plus(cv_policy lhs, cv_policy rhs): lhs_{std::move(lhs)}, rhs_(std::move(rhs)) {}
 
     cv_policy lhs_, rhs_;
 };
@@ -62,6 +63,9 @@ struct cvp_cv_policy_bar {
         os << "(replace " << lhs_ << ' ' << rhs_ << ')';
         return os;
     }
+
+    // TODO This is needed seemingly only for older compilers
+    cvp_cv_policy_bar(cv_policy lhs, cv_policy rhs): lhs_{std::move(lhs)}, rhs_(std::move(rhs)) {}
 
     cv_policy lhs_, rhs_;
 };
