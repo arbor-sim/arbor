@@ -7,7 +7,6 @@
 
 #include <algorithm>
 #include <iterator>
-#include <ostream>
 #include <numeric>
 #include <cstring>
 #include <type_traits>
