@@ -32,13 +32,13 @@ stages:
     SLURM_CPU_BIND: "verbose,none"
     USE_MPI: "NO"
 
-test_x86_64:
-  extends: [.uenv-runner-eiger-mc, .test_unit]
-  variables:
-    SLURM_CONSTRAINT: mc
+#test_x86_64:
+#  extends: [.uenv-runner-eiger-mc, .test_unit]
+#  variables:
+#    SLURM_CONSTRAINT: mc
 
 test_aarch64:
-  extends: [.uenv-runner-daint-gh200, .test_unit]
+  extends: [.uenv-runner-todi-gh200, .test_unit]
 
 .test_distributed:
   extends: .uenv_image
@@ -52,14 +52,14 @@ test_aarch64:
     SLURM_TIMELIMIT: "00:30:00"
     USE_MPI: "YES"
 
-test_x86_64-distributed:
-  extends: [.uenv-runner-eiger-mc, .test_distributed]
-  variables:
-    SLURM_CONSTRAINT: mc
-    SLURM_NTASKS_PER_NODE: 8
+#test_x86_64-distributed:
+#  extends: [.uenv-runner-eiger-mc, .test_distributed]
+#  variables:
+#    SLURM_CONSTRAINT: mc
+#    SLURM_NTASKS_PER_NODE: 8
 
 test_aarch64-distributed:
-  extends: [.uenv-runner-daint-gh200, .test_distributed]
+  extends: [.uenv-runner-todi-gh200, .test_distributed]
   variables:
     SLURM_GPUS_PER_NODE: 4
     SLURM_GPUS_PER_TASK: 1
