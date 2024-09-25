@@ -1,7 +1,5 @@
 #pragma once
 
-#include <format>
-
 // Create/manipulate 1-d piecewise defined objects.
 //
 // A `pw_element<A>` describes a _value_ of type `A` and an _extent_ of
@@ -428,7 +426,8 @@ struct pw_elements {
         // check invariant
         if (!((es == 0 && es == vs)
            || (es != 0 && es + 1 == vs))) {
-            throw std::runtime_error{std::format("Vertices and values need to have matching lengths; #vertices={} #values={}.", vs, es)};
+            // TODO(fmt): Make a better error w/ format.
+            throw std::runtime_error{"Vertices and values need to have matching lengths"};
         }
 
         // clean-up
