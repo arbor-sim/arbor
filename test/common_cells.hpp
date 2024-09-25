@@ -14,10 +14,9 @@ struct cable_cell_description {
     morphology morph;
     label_dict labels;
     decor decorations;
+    std::optional<cv_policy> discretization;
 
-    operator cable_cell() const {
-        return cable_cell(morph, decorations, labels);
-    }
+    operator cable_cell() const { return cable_cell(morph, decorations, labels, discretization); }
 };
 
 class soma_cell_builder {
@@ -38,7 +37,7 @@ public:
     // Add a new branch that is attached to parent_branch.
     // Returns the id of the new branch.
     msize_t add_branch(msize_t parent_branch, double len, double r1, double r2, int ncomp,
-                    const std::string& region);
+                       const std::string& region);
 
     mlocation location(mlocation) const;
     mcable cable(mcable) const;

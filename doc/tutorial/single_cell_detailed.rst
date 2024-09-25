@@ -30,8 +30,8 @@ geometry and dynamics which is constructed from 3 components:
 2. A **label dictionary** storing labelled expressions which define regions and locations of
    interest on the cell.
 3. A **decor** defining various properties and dynamics on these  regions and locations.
-   The decor also includes hints about how the cell is to be modelled under the hood, by
-   splitting it into discrete control volumes (CV).
+4. Finally, the cell needs to know how we will be splitting it into discrete
+   control volumes (CV).
 
 The morphology
 ^^^^^^^^^^^^^^^

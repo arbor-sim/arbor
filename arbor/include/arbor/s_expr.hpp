@@ -7,9 +7,7 @@
 #include <string>
 #include <memory>
 #include <type_traits>
-#include <unordered_map>
 #include <variant>
-#include <vector>
 
 #include <arbor/export.hpp>
 

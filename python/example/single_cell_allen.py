@@ -131,10 +131,10 @@ def make_cell(base, swc, fit):
     decor.place('"midpoint"', A.threshold_detector(-40 * U.mV), "sd")
 
     # (10) discretisation strategy: max compartment length
-    decor.discretization(A.cv_policy_max_extent(20))
+    cvp = A.cv_policy_max_extent(20)
 
     # (11) Create cell
-    return A.cable_cell(morphology, decor, labels), offset
+    return A.cable_cell(morphology, decor, labels, cvp), offset
 
 
 # (12) Create cell, model

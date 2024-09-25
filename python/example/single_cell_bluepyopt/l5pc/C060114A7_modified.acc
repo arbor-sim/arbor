@@ -1,6 +1,6 @@
 (arbor-component 
   (meta-data 
-    (version "0.9-dev"))
+    (version "0.10-dev"))
   (morphology 
     (branch 0 -1 
       (segment 0 

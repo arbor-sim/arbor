@@ -244,17 +244,13 @@ ARB_ARBOR_API fvm_cv_discretization& append(fvm_cv_discretization& dczn, const f
 }
 
 // FVM discretization
-// ------------------
-
 ARB_ARBOR_API fvm_cv_discretization
-fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global_dflt) {
+fvm_cv_discretize(const cable_cell& cell,
+                  const cable_cell_parameter_set& global_dflt) {
     const auto& dflt = cell.default_parameters();
     fvm_cv_discretization D;
-
-    D.geometry = cv_geometry(cell,
-        dflt.discretization? dflt.discretization->cv_boundary_points(cell):
-        global_dflt.discretization? global_dflt.discretization->cv_boundary_points(cell):
-        default_cv_policy().cv_boundary_points(cell));
+    const auto& cvp = cell.discretization().value_or(global_dflt.discretization.value_or(default_cv_policy()));
+    D.geometry = cv_geometry(cell, cvp.cv_boundary_points(cell));
 
     if (D.geometry.empty()) return D;
 

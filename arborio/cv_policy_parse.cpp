@@ -1,6 +1,4 @@
 #include <any>
-#include <limits>
-#include <optional>
 
 #include <arborio/label_parse.hpp>
 #include <arborio/cv_policy_parse.hpp>
@@ -9,7 +7,6 @@
 #include <arbor/cv_policy.hpp>
 #include <arbor/s_expr.hpp>
 #include <arbor/util/expected.hpp>
-
 
 #include "parse_helpers.hpp"
 
@@ -29,43 +26,43 @@ template<typename T> using parse_hopefully = arb::util::expected<T, cv_policy_pa
 
 std::unordered_multimap<std::string, evaluator>
 eval_map {{"default",
-           make_call<>([] () { return arb::cv_policy{arb::default_cv_policy()}; },
+           make_call<>([] () { return arb::default_cv_policy(); },
                        "'default' with no arguments")},
           {"every-segment",
-           make_call<>([] () { return arb::cv_policy{arb::cv_policy_every_segment()}; },
+           make_call<>([] () { return arb::cv_policy_every_segment(); },
                        "'every-segment' with no arguments")},
           {"every-segment",
-           make_call<region>([] (const region& r) { return arb::cv_policy{arb::cv_policy_every_segment(r) }; },
+           make_call<region>([] (const region& r) { return arb::cv_policy_every_segment(r); },
                              "'every-segment' with one argument (every-segment (reg:region))")},
           {"fixed-per-branch",
-           make_call<int>([] (int i) { return arb::cv_policy{arb::cv_policy_fixed_per_branch(i) }; },
+           make_call<int>([] (int i) { return arb::cv_policy_fixed_per_branch(i); },
                           "'every-segment' with one argument (fixed-per-branch (count:int))")},
           {"fixed-per-branch",
-           make_call<int, region>([] (int i, const region& r) { return arb::cv_policy{arb::cv_policy_fixed_per_branch(i, r) }; },
+           make_call<int, region>([] (int i, const region& r) { return arb::cv_policy_fixed_per_branch(i, r); },
                                   "'every-segment' with two arguments (fixed-per-branch (count:int) (reg:region))")},
           {"fixed-per-branch",
-           make_call<int, region, int>([] (int i, const region& r, int f) { return arb::cv_policy{arb::cv_policy_fixed_per_branch(i, r, f) }; },
-                                       "'fixed-per-branch' with three arguments (fixed-per-branch (count:int) (reg:region) (flags:int))")},
+           make_call<int, region, cv_policy_flag>([] (int i, const region& r, cv_policy_flag f) { return arb::cv_policy_fixed_per_branch(i, r, f); },
+                                                  "'fixed-per-branch' with three arguments (fixed-per-branch (count:int) (reg:region) (flags:flag))")},
           {"max-extent",
-           make_call<double>([] (double i) { return arb::cv_policy{arb::cv_policy_max_extent(i) }; },
+           make_call<double>([] (double i) { return arb::cv_policy_max_extent(i); },
                              "'max-extent' with one argument (max-extent (length:double))")},
           {"max-extent",
-           make_call<double, region>([] (double i, const region& r) { return arb::cv_policy{arb::cv_policy_max_extent(i, r) }; },
+           make_call<double, region>([] (double i, const region& r) { return arb::cv_policy_max_extent(i, r); },
                                      "'max-extent' with two arguments (max-extent (length:double) (reg:region))")},
           {"max-extent",
-           make_call<double, region, int>([] (double i, const region& r, int f) { return arb::cv_policy{arb::cv_policy_max_extent(i, r, f) }; },
-                                          "'max-extent' with three arguments (max-extent (length:double) (reg:region) (flags:int))")},
+           make_call<double, region, cv_policy_flag>([] (double i, const region& r, cv_policy_flag f) { return arb::cv_policy_max_extent(i, r, f); },
+                                                     "'max-extent' with three arguments (max-extent (length:double) (reg:region) (flags:flag))")},
           {"single",
-           make_call<>([] () { return arb::cv_policy{arb::cv_policy_single()}; },
+           make_call<>([] () { return arb::cv_policy_single(); },
                        "'single' with no arguments")},
           {"single",
-           make_call<region>([] (const region& r) { return arb::cv_policy{arb::cv_policy_single(r) }; },
+           make_call<region>([] (const region& r) { return arb::cv_policy_single(r); },
                              "'single' with one argument (single (reg:region))")},
           {"explicit",
-           make_call<locset>([] (const locset& l) { return arb::cv_policy{arb::cv_policy_explicit(l) }; },
+           make_call<locset>([] (const locset& l) { return arb::cv_policy_explicit(l); },
                              "'explicit' with one argument (explicit (ls:locset))")},
           {"explicit",
-           make_call<locset, region>([] (const locset& l, const region& r) { return arb::cv_policy{arb::cv_policy_explicit(l, r) }; },
+           make_call<locset, region>([] (const locset& l, const region& r) { return arb::cv_policy_explicit(l, r); },
                                      "'explicit' with two arguments (explicit (ls:locset) (reg:region))")},
           {"join",
            make_fold<cv_policy>([](cv_policy l, cv_policy r) { return l + r; },
@@ -73,6 +70,12 @@ eval_map {{"default",
           {"replace",
            make_fold<cv_policy>([](cv_policy l, cv_policy r) { return l | r; },
                                 "'replace' with at least 2 arguments: (replace cv_policy cv_policy ...)")},
+          {"flag-none",
+           make_call<>([] () { return cv_policy_flag::none; },
+                       "'flag:none' with no arguments")},
+          {"flag-interior-forks",
+           make_call<>([] () { return cv_policy_flag::interior_forks; },
+                       "'flag-interior-forks' with no arguments")},
 };
 
 parse_hopefully<std::any> eval(const s_expr& e);

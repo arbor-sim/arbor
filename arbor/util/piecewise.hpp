@@ -1,6 +1,5 @@
 #pragma once
 
-
 // Create/manipulate 1-d piecewise defined objects.
 //
 // A `pw_element<A>` describes a _value_ of type `A` and an _extent_ of
@@ -398,7 +397,6 @@ struct pw_elements {
     void push_back(double left, double right, U&& v) {
         if (!empty() && left != vertex_.back()) throw std::runtime_error("noncontiguous element");
         if (right<left) throw std::runtime_error("inverted element");
-
         // Extend value_ first in case a conversion/copy/move throws.
         value_.push_back(std::forward<U>(v));
         if (vertex_.empty()) vertex_.push_back(left);
@@ -407,10 +405,7 @@ struct pw_elements {
 
     template <typename U>
     void push_back(double right, U&& v) {
-        if (empty()) {
-            throw std::runtime_error("require initial left vertex for element");
-        }
-
+        if (empty()) throw std::runtime_error("require initial left vertex for element");
         push_back(vertex_.back(), right, std::forward<U>(v));
     }
 
@@ -424,37 +419,41 @@ struct pw_elements {
         using std::begin;
         using std::end;
 
+        // Invariant, see below
+        //   empty() || value_.size() + 1 = vertex_.size()
+        auto vs = std::size(vertices);
+        auto es = std::size(values);
+        // check invariant
+        if (!((es == 0 && es == vs)
+           || (es != 0 && es + 1 == vs))) {
+            // TODO(fmt): Make a better error w/ format.
+            throw std::runtime_error{"Vertices and values need to have matching lengths"};
+        }
+
+        // clean-up
+        clear();
+
+        // We know that invariant holds from here on.
+        if (es == 0) return;
+
         auto vi = begin(vertices);
-        auto ve = end(vertices);
         auto ei = begin(values);
         auto ee = end(values);
 
-        if (ei == ee) { // empty case
-            if (vi != ve) throw std::runtime_error{"Vertices and values need to have same length; values too long."};
-            clear();
-            return;
-        }
-        clear();
-        if (vi == ve) throw std::runtime_error{"Vertices and values need to have same length; values too short."};
-
-        reserve(vertices.size());
+        reserve(vs);
         double left = *vi++;
         double right = *vi++;
         push_back(left, right, *ei++);
-
         while (ei != ee) {
-            if (vi == ve) throw std::runtime_error{"Vertices and values need to have same length; values too short."};
             double right = *vi++;
             push_back(right, *ei++);
         }
-        if (vi != ve) throw std::runtime_error{"Vertices and values need to have same length; values too long."};
     }
 
 private:
     // Consistency requirements:
     // 1. empty() || value_.size()+1 = vertex_.size()
     // 2. vertex_[i]<=vertex_[j] for i<=j.
-
     std::vector<double> vertex_;
     std::vector<X> value_;
 };

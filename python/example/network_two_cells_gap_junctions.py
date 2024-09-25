@@ -60,11 +60,11 @@ class TwoCellsWithGapJunction(A.recipe):
         )
 
         if self.max_extent is not None:
-            decor.discretization(A.cv_policy_max_extent(self.max_extent))
+            cvp = A.cv_policy_max_extent(self.max_extent)
         else:
-            decor.discretization(A.cv_policy_single())
+            cvp = A.cv_policy_single()
 
-        return A.cable_cell(tree, decor, labels)
+        return A.cable_cell(tree, decor, labels, cvp)
 
     def gap_junctions_on(self, gid):
         return [A.gap_junction_connection(((gid + 1) % 2, "gj"), "gj", 1)]

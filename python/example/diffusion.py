@@ -42,7 +42,6 @@ dec = (
     .set_ion("na", int_con=0.0 * U.mM, diff=0.005 * U.m2 / U.s)
     .place("(location 0 0.5)", A.synapse("inject/x=na", {"alpha": 200.0}), "Zap")
     .paint("(all)", A.density("decay/x=na"))
-    .discretization(A.cv_policy("(max-extent 5)"))
     # Set up ion diffusion
     .set_ion(
         "na",
@@ -57,7 +56,7 @@ dec = (
 prb = [
     A.cable_probe_ion_diff_concentration_cell("na", "nad"),
 ]
-cel = A.cable_cell(tree, dec)
+cel = A.cable_cell(tree, dec, discretization=A.cv_policy("(max-extent 5)"))
 rec = recipe(cel, prb)
 sim = A.simulation(rec)
 hdl = (sim.sample((0, "nad"), A.regular_schedule(0.1 * U.ms)),)
