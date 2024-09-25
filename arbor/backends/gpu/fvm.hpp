@@ -1,16 +1,11 @@
 #pragma once
 
-#include <map>
 #include <string>
 
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
 
 #include "memory/memory.hpp"
-#include "util/rangeutil.hpp"
-
-#include "backends/event.hpp"
-
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/shared_state.hpp"
 
@@ -20,7 +15,6 @@ namespace arb {
 namespace gpu {
 
 struct backend {
-    static bool is_supported() { return true; }
     static std::string name() { return "gpu"; }
 
     using value_type = arb_value_type;

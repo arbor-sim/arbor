@@ -62,10 +62,6 @@ enum class sourceKind {
     no_source
 };
 
-inline std::string yesno(bool val) {
-    return std::string(val ? "yes" : "no");
-};
-
 ////////////////////////////////////////////
 // to_string functions convert types
 // to strings for printing diagnostics

@@ -16,7 +16,6 @@ namespace arb {
 namespace multicore {
 
 struct backend {
-    static bool is_supported() { return true; }
     static std::string name() { return "cpu"; }
 
     using value_type = arb_value_type;
