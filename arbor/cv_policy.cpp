@@ -40,6 +40,8 @@ struct cvp_cv_policy_plus {
         return os;
     }
 
+    cvp_cv_policy_plus(const cv_policy& lhs, const cv_policy& rhs): lhs_{lhs}, rhs_(rhs) {}
+
     cv_policy lhs_, rhs_;
 };
 

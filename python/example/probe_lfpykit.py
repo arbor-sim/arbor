@@ -91,7 +91,7 @@ decor = (
 )
 
 # use a fixed 3 CVs per branch
-cvp = A.cv_policy(A.cv_policy_fixed_per_branch(3))
+cvp = A.cv_policy_fixed_per_branch(3)
 
 # place_pwlin can be queried with region/locset expressions to obtain
 # geometrical objects, like points and segments, essentially recovering
