@@ -429,16 +429,18 @@ struct pw_elements {
         auto ei = begin(values);
         auto ee = end(values);
 
-        if (ei == ee) { // empty case
+        // clean-up
+        clear();
+
+        // empty case
+        if (ei == ee) {
             if (vi != ve) throw std::runtime_error{"Vertices and values need to have same length; values too long."};
-            clear();
             return;
         }
-        clear();
         if (vi == ve) throw std::runtime_error{"Vertices and values need to have same length; values too short."};
-
         reserve(vertices.size());
         double left = *vi++;
+        if (vi == ve) throw std::runtime_error{"Vertices and values need to have same length; values too short."};
         double right = *vi++;
         push_back(left, right, *ei++);
 
