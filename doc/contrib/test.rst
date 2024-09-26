@@ -4,8 +4,65 @@ Tests
 =====
 
 C++ tests are located in ``/tests`` and Python (binding) tests in
-``/python/test``. See the documentation on :ref:`building <building>` for the
-C++ tests and ``/python/test/readme.md`` for the latter.
+``/python/test``. See also the documentation on :ref:`building <building>` for
+the C++ tests and ``/python/test/readme.md`` for the latter.
+
+Building and Running Tests
+--------------------------
+
+The C++ tests need to be built using the usual proecdure via CMake + Ninja.
+It is usually advisable to enable assertions for debugging.
+
+.. code-block:: sh
+
+    # more arguments omitted
+    cmake .. -DCMAKE_BUILD_TYPE=debug -DARB_WITH_ASSERTIONS=ON [..]
+    ninja tests
+
+This will produce three binaries
+
+- ``bin/unit`` basic unit tests for Arbor.
+- ``bin/unit-modcc`` unit tests for Arbor's NMODL compiler
+- ``bin/unit-mpi`` unit tests for Arbor's MPI funcionality. Only produced if MPI
+  enabled.
+- ``bin/unit-local`` local (i.e. without MPI) version of ``unit-mpi``.
+
+All accept some arguments determined by the testing framework, among others
+filters to include/exclude tests, try ``bin/unit --help`` for more information.
+Some tests might be skipped if GPU-support is not enabled. Building with GPU and
+failing to locate a GPU will register as failures. Except ``unit-mpi`` each
+testsuite can be run like a normal executable; for MPI tests use
+
+.. code-block:: sh
+
+    mpirun -n 2 bin/unit-mpi
+
+If you are working on the MPI parts of Arbor, don't forget to try different
+process counts.
+
+There also is a collection of micro benchmarks; build these with ``ninja
+ubenches``. Each benchmark will result in a separate executable which measures
+the performance of a critical building block of Arbor.
+
+For Python, two more testsuites are provided in ``python/test``. During
+development these can be run like this
+
+.. code-block:: sh
+
+  # Assuming we have built Arbor in ~/src/arbor/build
+  # and Arbor was cloned into ~/src/arbor
+  PYTHONPATH=$HOME/src/arbor/build/python python3 -munittest discover -v -s $HOME/src/arbor/python/
+
+This will use Arbor's Python module without installing. If you did install Arbor
+beforehand
+
+.. code-block:: sh
+
+  # Assuming Arbor was cloned into ~/src/arbor
+  python3 -munittest discover -v -s $HOME/src/arbor/python/
+
+is sufficient. However, this requires an install step after each change in
+Arbor.
 
 What to test?
 -------------
