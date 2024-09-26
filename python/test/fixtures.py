@@ -111,7 +111,7 @@ class _BuildCatError(Exception):
 
 def _build_cat_local(name, path):
     try:
-        p = subprocess.run(
+        subprocess.run(
             ["arbor-build-catalogue", name, str(path)],
             check=True,
             stderr=subprocess.PIPE,
@@ -172,10 +172,11 @@ def dummy_catalogue(repo_path):
     try:
         path = repo_path / "test" / "unit" / "dummy"
         cat_path = _build_cat("dummy", path)
-        print(cat_path)
         cat = A.load_catalogue(str(cat_path))
     except Exception:
-        raise SkipTest("Couldn't build catalogue, maybe need to install Arbor first?")
+        raise SkipTest(
+            "Couldn't build catalogue, maybe need to install Arbor first?"
+        ) from None
     return cat
 
 
