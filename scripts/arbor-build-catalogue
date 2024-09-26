@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from posixpath import pathsep
 import arbor as A
 import subprocess as sp
 import sys
@@ -11,6 +12,62 @@ import argparse
 import re
 
 class Config:
+    def find_dirs(self):
+        paths = [
+                self.prefix,                          # likely install prefix, possibly overridden
+                self.arb,                             # base dir of arbor package
+                self.arb.parent.parent.parent.parent, # base dir of venv
+        ]
+        for dn in paths:
+            bindir = Path(dn) / self.bin
+            pakdir = Path(dn) / self.lib / "cmake" / "arbor"
+
+            if all(
+                    p.exists()
+                    for p in [
+                bindir / "modcc",
+                pakdir / "arbor-config.cmake",
+            ]
+        ):
+                 self._bindir = bindir
+                 self._pakdir = pakdir
+                 return
+        raise FileNotFoundError(
+            f"Could not find required tools in {paths}. Please check your installation."
+        )
+
+    @property
+    def bin(self):
+        return self._bin
+
+    @bin.setter
+    def bin(self, val):
+        self._pakdir = None
+        self._bindir = None
+        self._bin = val
+
+    @property
+    def lib(self):
+        return self._lib
+
+    @lib.setter
+    def lib(self, val):
+        self._pakdir = None
+        self._bindir = None
+        self._lib = val
+
+    @property
+    def bindir(self):
+        if not self._bindir:
+            self.find_dirs()
+        return self._bindir
+
+    @property
+    def pakdir(self):
+        if not self._pakdir:
+            self.find_dirs()
+        return self._pakdir
+
     @property
     def gpu(self):
         return self._gpu
@@ -61,6 +118,8 @@ class Config:
         else:
             self._cxx = cxx
 
+
+
     @property
     def verbosity(self):
         verbosity = 0
@@ -69,6 +128,7 @@ class Config:
         if self.quiet:
             verbosity = -1
         return verbosity
+
 
     def __init__(self):
         config = A.config()
@@ -79,13 +139,15 @@ class Config:
         self.lib = config['lib_path']
         self.raws = []
         self.mod_dir = None
+        self._pakdir = None
+        self._bindir = None
         self.prefix = Path(config["prefix"])
         self.cxx = Path(config["CXX"])
         self.gpu = config['gpu']
         self.cwd = Path.cwd()
         self.out = self.cwd
         self.debug = None
-        self.arb = list(A.__path__)[0]
+        self.arb = Path(list(A.__path__)[0])
 
 
 def parse_arguments():
@@ -224,32 +286,7 @@ add_compile_options(-xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
         raise RuntimeError(f"Internal Error: Unknown GPU type: {gpu}")
     return gpu_support
 
-
-def find_dirs(prefix, bin, lib, arb):
-    arb = Path(arb)
-    for dn in [
-            prefix,                         # likely install prefix, possibly overridden
-            arb,                            # base dir of arbor package
-            arb.parent.parent.parent.parent,    # base dir of venv
-    ]:
-        bindir = Path(dn) / bin
-        pakdir = Path(dn) / lib / "cmake" / "arbor"
-
-        if all(
-            p.exists()
-            for p in [
-                bindir / "modcc",
-                pakdir / "arbor-config.cmake",
-            ]
-        ):
-            return bindir, pakdir
-    raise FileNotFoundError(
-        f"Could not find required tools. Please check your installation."
-    )
-
-
 def make_cmake(config):
-    pak, bin = find_dirs(prefix=config.prefix, bin=config.bin, lib=config.lib, arb=config.arb)
     gpu = make_gpu_support(cxx=config.cxx, gpu=config.gpu)
     return f"""cmake_minimum_required(VERSION 3.9)
 project({config.name}-cat LANGUAGES CXX)
@@ -257,7 +294,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(arbor_DIR {pak})
+set(arbor_DIR {config.pakdir})
 find_package(arbor REQUIRED)
 {gpu}
 set(CMAKE_BUILD_TYPE release)
@@ -265,7 +302,7 @@ set(CMAKE_CXX_COMPILER  {config.cxx})
 set(CMAKE_CXX_FLAGS     ${{ARB_CXX_FLAGS}})
 
 set(ARB_WITH_EXTERNAL_MODCC true)
-find_program(modcc NAMES modcc PATHS {bin})
+find_program(modcc NAMES modcc PATHS {config.bindir})
 
 function("make_catalogue_standalone")
   cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;VERBOSE" "CXX_FLAGS_TARGET;MOD;CXX" ${{ARGN}})
