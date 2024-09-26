@@ -144,12 +144,8 @@ const std::vector<profile_accumulator>& recorder::accumulators() const {
 }
 
 void recorder::enter(region_id_type index) {
-    if (index_!=npos) {
-        throw std::runtime_error("recorder::enter without matching recorder::leave, still active: " + region_names_(index_));
-    }
-    if (index>=accumulators_.size()) {
-        accumulators_.resize(index+1);
-    }
+    if (index_!=npos) throw std::runtime_error("recorder::enter without matching recorder::leave.");
+    if (index>=accumulators_.size()) accumulators_.resize(index+1);
     index_ = index;
     start_time_ = timer::tic();
 }
@@ -157,10 +153,7 @@ void recorder::enter(region_id_type index) {
 void recorder::leave() {
     // calculate the elapsed time before any other steps, to increase accuracy.
     auto delta = timer::toc(start_time_);
-
-    if (index_==npos) {
-        throw std::runtime_error("recorder::leave without matching recorder::enter");
-    }
+    if (index_==npos) throw std::runtime_error("recorder::leave without matching recorder::enter.");
     accumulators_[index_].count++;
     accumulators_[index_].time += delta;
     index_ = npos;
