@@ -484,13 +484,9 @@ struct expected<void, E> {
     // No emplace ops.
 
     // Swap ops.
-
-    void swap(expected& other) {
-        data_.swap(other.data);
-    }
+    void swap(expected& other) { data_.swap(other.data_); }
 
     // Accessors.
-
     bool has_value() const noexcept { return !data_; }
     explicit operator bool() const noexcept { return has_value(); }
 

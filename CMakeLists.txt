@@ -269,9 +269,7 @@ add_library(arborio-public-deps INTERFACE)
 install(TARGETS arborio-public-deps EXPORT arborio-targets)
 
 # Add scripts and supporting CMake for setting up external catalogues
-
 install(PROGRAMS scripts/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 
 # Add all dependencies.
 

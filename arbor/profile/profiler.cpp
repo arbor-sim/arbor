@@ -145,7 +145,7 @@ const std::vector<profile_accumulator>& recorder::accumulators() const {
 
 void recorder::enter(region_id_type index) {
     if (index_!=npos) {
-        throw std::runtime_error("recorder::enter without matching recorder::leave");
+        throw std::runtime_error("recorder::enter without matching recorder::leave, still active: " + region_names_(index_));
     }
     if (index>=accumulators_.size()) {
         accumulators_.resize(index+1);

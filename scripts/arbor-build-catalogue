@@ -10,28 +10,87 @@ import shutil
 import argparse
 import re
 
+class Config:
+    @property
+    def gpu(self):
+        return self._gpu
 
-config = A.config()
-prefix = Path(config["prefix"])
-CXX = Path(config["CXX"])
-if not CXX.exists():
-    # Example <>/lib/python3.10/site-packages/arbor
-    altern = "c++"
-    from shutil import which
-    if which(altern) == None:
-        print(
-            f"Error: Neither prefix '{CXX}' nor fallback '{altern}' exist. Please provide a path to a C++ compiler with --cxx",
-            file=sys.stderr,
-        )
-        exit(-1)
-    print(
-        f"Warning: prefix '{CXX}' does not exist, falling back to '{altern}'.",
-        file=sys.stderr,
-    )
-    CXX = altern
+    @gpu.setter
+    def gpu(self, gpu):
+        if gpu:
+            self._gpu = gpu
+        else:
+            self._gpu = "none"
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        self._name = re.sub(r"_+", r"_", re.sub(r"[^a-zA-Z0-9_]", r"_", name))
+
+    @property
+    def mods(self):
+        return [f[:-4] for f in os.listdir(self.cwd / self.mod_dir) if f.endswith(".mod")]
+
+
+    @property
+    def cxx(self):
+        return self._cxx
+
+    @cxx.setter
+    def cxx(self, val):
+        cxx = Path(val)
+        if not cxx.exists():
+            # Example <>/lib/python3.10/site-packages/arbor
+            altern = "c++"
+            from shutil import which
+
+            if which(altern) == None:
+                print(
+                    f"Error: Neither prefix '{self.cxx}' nor fallback '{altern}' exist. Please provide a path to a C++ compiler with --cxx",
+                    file=sys.stderr,
+                )
+                exit(-1)
+            print(
+                f"Warning: prefix '{self.cxx}' does not exist, falling back to '{altern}'.",
+                file=sys.stderr,
+            )
+            self._cxx = altern
+        else:
+            self._cxx = cxx
+
+    @property
+    def verbosity(self):
+        verbosity = 0
+        if self.verbose:
+            verbosity = 1
+        if self.quiet:
+            verbosity = -1
+        return verbosity
+
+    def __init__(self):
+        config = A.config()
+        self.quiet = False
+        self.cpu = True
+        self.verbose = False
+        self.bin = config['binary_path']
+        self.lib = config['lib_path']
+        self.raws = []
+        self.mod_dir = None
+        self.prefix = Path(config["prefix"])
+        self.cxx = Path(config["CXX"])
+        self.gpu = config['gpu']
+        self.cwd = Path.cwd()
+        self.out = self.cwd
+        self.debug = None
+        self.arb = list(A.__path__)[0]
 
 
 def parse_arguments():
+    config = Config()
+
     parser = argparse.ArgumentParser(
         description="Generate dynamic catalogue and build it into a shared object.",
         usage="%(prog)s catalogue_name mod_source_dir",
@@ -78,7 +137,7 @@ enabled) must be present in the target directory.""",
     parser.add_argument(
         "--gpu",
         metavar="gpu",
-        default=config["gpu"] if config["gpu"] else "none",
+        default=config.gpu if config.gpu else "none",
         choices=["none", "cuda", "hip", "cuda-clang"],
         help=f"Enable GPU support",
     )
@@ -86,66 +145,53 @@ enabled) must be present in the target directory.""",
     parser.add_argument(
         "--cxx",
         metavar="cxx",
-        default=CXX,
+        default=config.cxx,
         help="Use this C++ compiler.",
     )
 
     parser.add_argument(
         "--prefix",
         metavar="prefix",
-        default=prefix,
+        default=config.prefix,
         help="Arbor's install prefix.",
     )
 
     parser.add_argument(
         "--bin",
         metavar="bin",
-        default=config["binary_path"],
+        default=config.bin,
         help="Look here for Arbor utils like modcc; relative to prefix.",
     )
 
     parser.add_argument(
         "--lib",
         metavar="lib",
-        default=config["lib_path"],
+        default=config.lib,
         help="Look here for Arbor's CMake config; relative to prefix.",
-    )
-
-    parser.add_argument(
-        "--data",
-        metavar="data",
-        default=config["data_path"],
-        help="Look here for Arbor supplementals like generate_catalogue; relative to prefix.",
     )
 
     parser.add_argument(
         "-h", "--help", action="help", help="Display this help and exit."
     )
 
-    return vars(parser.parse_args())
+    res =  vars(parser.parse_args())
+    config.name = res['name']
+    config.lib = res['lib']
+    config.bin = res['bin']
+    config.prefix = res['prefix']
+    config.gpu = res['gpu']
+    config.cpu = res['cpu']
+    config.verbose = res['verbose']
+    config.debug = res['debug']
+    config.quiet = res['quiet']
+    config.raws = res['raw']
+    config.mod_dir = Path.cwd() / res['modpfx']
+    return config
 
 
-args = parse_arguments()
-pwd = Path.cwd()
-name = re.sub(r"_+", r"_", re.sub(r"[^a-zA-Z0-9_]", r"_", args["name"]))
-
-mod_dir = pwd / Path(args["modpfx"])
-mods = [f[:-4] for f in os.listdir(mod_dir) if f.endswith(".mod")]
-quiet = args["quiet"]
-verbose = args["verbose"] and not quiet
-if verbose:
-    print("=" * 80)
-    print(f"{os.path.basename(__file__)} called with the following arguments:")
-    for k, v in args.items():
-        print(k, v)
-    print("=" * 80)
-debug = args["debug"]
-raw = args["raw"]
-gpu = args["gpu"]
-cpu = args["cpu"]
-
-if gpu == "cuda":
-    gpu_support = f"""
+def make_gpu_support(gpu, cxx):
+    if gpu == "cuda":
+        gpu_support = f"""
 include(FindCUDAToolkit)
 add_compile_definitions(ARB_CUDA)
 add_compile_definitions(ARB_HAVE_GPU)
@@ -153,191 +199,259 @@ find_package(CUDAToolkit)
 enable_language(CUDA)
 set(CMAKE_CUDA_STANDARD 14)
 
-set(CMAKE_CUDA_HOST_COMPILER {args["cxx"]})
+set(CMAKE_CUDA_HOST_COMPILER {cxx})
 """
-elif gpu == "cuda-clang":
-    print("CUDA-Clang support is currently considered experimental only.")
-    gpu_support = f"""
+    elif gpu == "cuda-clang":
+        gpu_support = f"""
 add_compile_definitions(ARB_CUDA)
 add_compile_definitions(ARB_HAVE_GPU)
 find_package(CUDAToolkit)
 enable_language(CUDA)
 set(CMAKE_CUDA_STANDARD 14)
-add_compile_options(-xcuda --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-gpu-arch=sm_80 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR}))
+add_compile_options(-xcuda --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-gpu-arch=sm_80 --cuda-path=${{CUDA_TOOLKIT_ROOT_DIR}}))
 """
-elif gpu == "hip":
-    print("HIP support is currently considered experimental only.")
-    gpu_support = f"""
+    elif gpu == "hip":
+        gpu_support = f"""
 add_compile_definitions(ARB_HIP)
 add_compile_definitions(ARB_HAVE_GPU)
 add_compile_options(-xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
 """
-elif gpu == "none":
-    gpu_support = """
+    elif gpu == "none":
+        gpu_support = """
 # GPU: Disabled
 """
-else:
-    print(f"Internal Error: Unknown GPU type: {gpu}", file=sys.stderr)
-    exit(-1)
+    else:
+        raise RuntimeError(f"Internal Error: Unknown GPU type: {gpu}")
+    return gpu_support
 
-def check_dirs(dirry):
-    bindir = Path(dirry) / args["bin"]
-    datdir = Path(dirry) / args["data"] / "arbor"
-    pakdir = Path(dirry) / args["lib"] / "cmake" / "arbor"
 
-    for path in [
-        bindir / "modcc",
-        datdir / "BuildModules.cmake",
-        pakdir / "arbor-config.cmake",
+def find_dirs(prefix, bin, lib, arb):
+    arb = Path(arb)
+    for dn in [
+            prefix,                         # likely install prefix, possibly overridden
+            arb,                            # base dir of arbor package
+            arb.parent.parent.parent.parent,    # base dir of venv
     ]:
-        if not path.exists():
-            raise FileNotFoundError(f"Could not find required tool: {path}. Please check your installation.")
-    return bindir,datdir,pakdir
+        bindir = Path(dn) / bin
+        pakdir = Path(dn) / lib / "cmake" / "arbor"
 
-paths=[
-    args["prefix"],
-    Path(A.__path__[0]).parent.parent.parent.parent,
-    Path(A.__path__[0]),
-]
-
-for path in paths:
-    try:
-        bindir,datdir,pakdir = check_dirs(path)
-    except:
-        pass
-try:
-    bindir
-except NameError:
-    print(
-        f"Could not find required tool: {paths}. Please check your installation.",
-        file=sys.stderr,
+        if all(
+            p.exists()
+            for p in [
+                bindir / "modcc",
+                pakdir / "arbor-config.cmake",
+            ]
+        ):
+            return bindir, pakdir
+    raise FileNotFoundError(
+        f"Could not find required tools. Please check your installation."
     )
-    exit(-1)
 
-cmake = f"""
-cmake_minimum_required(VERSION 3.9)
-project({name}-cat LANGUAGES CXX)
+
+def make_cmake(config):
+    pak, bin = find_dirs(prefix=config.prefix, bin=config.bin, lib=config.lib, arb=config.arb)
+    gpu = make_gpu_support(cxx=config.cxx, gpu=config.gpu)
+    return f"""cmake_minimum_required(VERSION 3.9)
+project({config.name}-cat LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(arbor_DIR {pakdir})
+set(arbor_DIR {pak})
 find_package(arbor REQUIRED)
-{gpu_support}
+{gpu}
 set(CMAKE_BUILD_TYPE release)
-set(CMAKE_CXX_COMPILER  {args["cxx"]})
+set(CMAKE_CXX_COMPILER  {config.cxx})
 set(CMAKE_CXX_FLAGS     ${{ARB_CXX_FLAGS}})
 
-include(BuildModules.cmake)
-
 set(ARB_WITH_EXTERNAL_MODCC true)
-find_program(modcc NAMES modcc PATHS {bindir})
+find_program(modcc NAMES modcc PATHS {bin})
+
+function("make_catalogue_standalone")
+  cmake_parse_arguments(MK_CAT "" "NAME;SOURCES;VERBOSE" "CXX_FLAGS_TARGET;MOD;CXX" ${{ARGN}})
+  set(MK_CAT_OUT_DIR "${{CMAKE_CURRENT_BINARY_DIR}}/generated/${{MK_CAT_NAME}}")
+  file(MAKE_DIRECTORY "${{MK_CAT_OUT_DIR}}")
+
+  if(MK_CAT_VERBOSE)
+    message("Catalogue name:       ${{MK_CAT_NAME}}")
+    message("Catalogue mechanisms: ${{MK_CAT_MOD}}")
+    message("Extra cxx files:      ${{MK_CAT_CXX}}")
+    message("Catalogue sources:    ${{MK_CAT_SOURCES}}")
+    message("Catalogue output:     ${{MK_CAT_OUT_DIR}}")
+    message("Arbor cxx flags:      ${{MK_CAT_CXX_FLAGS_TARGET}}")
+    message("Arbor cxx compiler:   ${{ARB_CXX}}")
+    message("Current cxx compiler: ${{CMAKE_CXX_COMPILER}}")
+  endif()
+
+  set(mk_cat_modcc_flags -t cpu ${{ARB_MODCC_FLAGS}} -N arb -c ${{MK_CAT_NAME}} -o ${{MK_CAT_OUT_DIR}})
+  if(ARB_WITH_GPU)
+    set(mk_cat_modcc_flags -t gpu ${{mk_cat_modcc_flags}})
+  endif()
+
+  set(catalogue_${{MK_CAT_NAME}}_source ${{MK_CAT_OUT_DIR}}/${{MK_CAT_NAME}}_catalogue.cpp)
+
+  foreach(mech ${{MK_CAT_MOD}})
+    list(APPEND catalogue_${{MK_CAT_NAME}}_mods ${{MK_CAT_SOURCES}}/${{mech}}.mod)
+    list(APPEND catalogue_${{MK_CAT_NAME}}_source ${{MK_CAT_OUT_DIR}}/${{mech}}_cpu.cpp)
+    if(ARB_WITH_GPU)
+      list(APPEND catalogue_${{MK_CAT_NAME}}_source ${{MK_CAT_OUT_DIR}}/${{mech}}_gpu.cpp ${{MK_CAT_OUT_DIR}}/${{mech}}_gpu.cu)
+    endif()
+  endforeach()
+
+  foreach(mech ${{MK_CAT_CXX}})
+    set(mk_cat_modcc_flags -r ${{mech}} ${{mk_cat_modcc_flags}})
+  endforeach()
+
+  add_custom_command(OUTPUT            ${{catalogue_${{MK_CAT_NAME}}_source}}
+                     DEPENDS           ${{catalogue_${{MK_CAT_NAME}}_mods}}
+                     WORKING_DIRECTORY ${{CMAKE_CURRENT_SOURCE_DIR}}
+                     COMMAND ${{modcc}} ${{mk_cat_modcc_flags}} ${{catalogue_${{MK_CAT_NAME}}_mods}}
+                     COMMENT "modcc generating: ${{catalogue_${{MK_CAT_NAME}}_source}}")
+
+  foreach(mech ${{MK_CAT_CXX}})
+    list(APPEND catalogue_${{MK_CAT_NAME}}_source ${{MK_CAT_OUT_DIR}}/${{mech}}_cpu.cpp)
+    if(ARB_WITH_GPU)
+      list(APPEND catalogue_${{MK_CAT_NAME}}_source ${{MK_CAT_OUT_DIR}}/${{mech}}_gpu.cpp ${{MK_CAT_OUT_DIR}}/${{mech}}_gpu.cu)
+    endif()
+  endforeach()
+
+  if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
+    set_source_files_properties(${{catalogue_${{MK_CAT_NAME}}_source}} DIRECTORY ${{CMAKE_CURRENT_SOURCE_DIR}} PROPERTIES LANGUAGE CXX)
+  endif()
+
+  add_library(${{MK_CAT_NAME}}-catalogue SHARED ${{catalogue_${{MK_CAT_NAME}}_source}})
+  target_compile_definitions(${{MK_CAT_NAME}}-catalogue PUBLIC STANDALONE=1)
+
+  if(ARB_WITH_GPU)
+    target_compile_definitions(${{MK_CAT_NAME}}-catalogue PUBLIC ARB_GPU_ENABLED)
+  endif()
+
+  target_compile_options(${{MK_CAT_NAME}}-catalogue PUBLIC ${{MK_CAT_CXX_FLAGS_TARGET}})
+  set_target_properties(${{MK_CAT_NAME}}-catalogue
+    PROPERTIES
+    SUFFIX ".so"
+    PREFIX ""
+    CXX_STANDARD 17)
+  target_link_libraries(${{MK_CAT_NAME}}-catalogue PRIVATE arbor::arbor)
+endfunction()
+
 
 make_catalogue_standalone(
-  NAME {name}
+  NAME {config.name}
   SOURCES "${{CMAKE_CURRENT_SOURCE_DIR}}/mod"
-  MOD {' '.join(mods)}
-  CXX {' '.join(raw)}
+  MOD {' '.join(config.mods)}
+  CXX {' '.join(config.raws)}
   CXX_FLAGS_TARGET ${{ARB_CXX_FLAGS_TARGET}}
-  VERBOSE {"ON" if verbose else "OFF"})
+  VERBOSE {"ON" if config.verbose > 1 else "OFF"})
 """
 
-if not quiet:
-    print(f"Building catalogue '{name}' from mechanisms in {mod_dir}")
-    if debug:
-        print("Debug mode enabled.")
-    if mods:
-        print(" * NMODL")
-        for m in mods:
-            print("   *", m)
-    if raw:
-        print(" * Raw")
-        for m in raw:
-            print("   *", m)
 
-if debug:
-    # Overwrite the local reference to `TemporaryDirectory` with a context
-    # manager that doesn't clean up the build folder so that the generated cpp
-    # code can be debugged
-    class TemporaryDirectory:
-        def __enter__(*args, **kwargs):
-            if isinstance(debug, str):
-                path = os.path.abspath(debug)
-                try:
-                    os.makedirs(path, exist_ok=False)
-                except FileExistsError:
-                    sys.stderr.write(
-                        f"Error: Debug destination '{path}' already exists.\n"
-                    )
-                    sys.stderr.flush()
-                    exit(1)
-            else:
-                path = mkdtemp()
-            print(f"Building debug code in '{path}'.")
-            return path
+def run(config):
+    if config.verbosity > 1:
+        print(f"Building catalogue '{config.name}' from mechanisms in {config.mod_dir}")
+        if config.debug:
+            print("Debug mode enabled.")
+        if config.mods:
+            print(" * NMODL")
+            for m in config.mods:
+                print("   *", m)
+        if config.raws:
+            print(" * Raw")
+            for m in config.raws:
+                print("   *", m)
 
-        def __exit__(*args, **kwargs):
-            pass
+    if config.debug:
+        # Overwrite the local reference to `TemporaryDirectory` with a context
+        # manager that doesn't clean up the build folder so that the generated cpp
+        # code can be debugged
+        class TemporaryDirectory:
+            def __enter__(*args, **kwargs):
+                if isinstance(config.debug, str):
+                    path = os.path.abspath(config.debug)
+                    try:
+                        os.makedirs(path, exist_ok=False)
+                    except FileExistsError:
+                        sys.stderr.write(
+                            f"Error: Debug destination '{path}' already exists.\n"
+                        )
+                        sys.stderr.flush()
+                        exit(1)
+                else:
+                    path = mkdtemp()
+                print(f"Building debug code in '{path}'.")
+                return path
 
-else:
-    from tempfile import TemporaryDirectory
+            def __exit__(*args, **kwargs):
+                pass
 
-with TemporaryDirectory() as tmp:
-    tmp = Path(tmp)
-    shutil.copytree(mod_dir, tmp / "mod")
-    os.mkdir(tmp / "build")
-    os.chdir(tmp / "build")
-    with open(tmp / "CMakeLists.txt", "w") as fd:
-        fd.write(cmake)
-    shutil.copy2(f"{datdir}/BuildModules.cmake", tmp)
+    else:
+        from tempfile import TemporaryDirectory
 
-    out = tmp / "build" / "generated" / name
-    os.makedirs(out, exist_ok=True)
-    sfx = [".hpp"]
-    if cpu:
-        sfx += ["_cpu.cpp"]
-    if gpu and gpu != 'none':
-        sfx += ["_gpu.cpp", "_gpu.cu"]
-    for e in raw:
-        for s in sfx:
-            fn = mod_dir / (e + s)
-            if not fn.exists():
-                print(
-                    f"Could not find required file: {fn}. Please check your C++ mechanisms."
-                )
-                exit(-1)
-            else:
-                shutil.copy2(fn, out / (e + s))
-
-    cmake_cmd = "cmake .."
-    make_cmd = "make"
-    if verbose:
-        make_cmd += " VERBOSE=1"
-    try:
-        sp.run(cmake_cmd, shell=True, check=True, capture_output = True, text = True)
-        sp.run(make_cmd, shell=True, check=True, capture_output = True, text = True)
-        shutil.copy2(f"{name}-catalogue.so", pwd)
-    except sp.CalledProcessError as e:
-        import traceback as tb
-
-        if not verbose:
-            # Not in verbose mode, so we have captured the
-            # `stdout` and `stderr` and can print it to the user.
-            sys.stdout.write("Build log:\n")
-            sys.stdout.write(e.stdout)
-            sys.stderr.write(tb.format_exc() + " Error:\n\n")
-            sys.stderr.write(e.stderr)
-        else:
-            # In verbose mode the outputs weren't captured and
-            # have been streamed to `stdout` and `stderr` already.
-            sys.stderr.write(
-                "Catalogue building error occurred."
-                + " Check stdout log for underlying error,"
-                + " or omit verbose flag to capture it."
+    with TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        shutil.copytree(config.mod_dir, tmp / "mod")
+        os.mkdir(tmp / "build")
+        os.chdir(tmp / "build")
+        with open(tmp / "CMakeLists.txt", "w") as fd:
+            fd.write(
+                make_cmake(config)
             )
-        sys.stdout.flush()
-        sys.stderr.flush()
-        exit(e.returncode)
 
-    if not quiet:
-        print(f"Catalogue has been built and copied to {pwd}/{name}-catalogue.so")
+        out = tmp / "build" / "generated" / config.name
+        os.makedirs(out, exist_ok=True)
+        sfx = [".hpp"]
+        if config.cpu:
+            sfx += ["_cpu.cpp"]
+        if config.gpu != "none":
+            sfx += ["_gpu.cpp", "_gpu.cu"]
+        for e in config.raws:
+            for s in sfx:
+                fn = config.mod_dir / (e + s)
+                if not fn.exists():
+                    print(
+                        f"Could not find required file: {fn}. Please check your C++ mechanisms."
+                    )
+                    exit(-1)
+                else:
+                    shutil.copy2(fn, out / (e + s))
+
+        cmake_cmd = "cmake .."
+        make_cmd = "make"
+        if config.verbosity > 1:
+            make_cmd += " VERBOSE=1"
+        try:
+            sp.run(cmake_cmd, shell=True, check=True, capture_output=True, text=True)
+            sp.run(make_cmd, shell=True, check=True, capture_output=True, text=True)
+            shutil.copy2(f"{config.name}-catalogue.so", config.out)
+        except sp.CalledProcessError as e:
+            import traceback as tb
+
+            if config.verbosity <= 0:
+                # Not in verbose mode, so we have captured the
+                # `stdout` and `stderr` and can print it to the user.
+                sys.stdout.write("Build log:\n")
+                sys.stdout.write(e.stdout)
+                sys.stderr.write(tb.format_exc() + " Error:\n\n")
+                sys.stderr.write(e.stderr)
+            else:
+                # In verbose mode the outputs weren't captured and
+                # have been streamed to `stdout` and `stderr` already.
+                sys.stderr.write(
+                    "Catalogue building error occurred."
+                    + " Check stdout log for underlying error,"
+                    + " or omit verbose flag to capture it."
+                )
+            sys.stdout.flush()
+            sys.stderr.flush()
+            exit(e.returncode)
+    if not config.verbosity < 0:
+        print(f"Catalogue has been built and copied to {config.out}/{config.name}-catalogue.so")
+
+
+def cli():
+    config = parse_arguments()
+    run(config)
+
+
+if __name__ == "__main__":
+    cli()

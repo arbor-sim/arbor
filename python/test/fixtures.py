@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import atexit
 import inspect
+from unittest import SkipTest
 
 _mpi_enabled = A.__config__["mpi"]
 _mpi4py_enabled = A.__config__["mpi4py"]
@@ -110,7 +111,7 @@ class _BuildCatError(Exception):
 
 def _build_cat_local(name, path):
     try:
-        subprocess.run(
+        p = subprocess.run(
             ["arbor-build-catalogue", name, str(path)],
             check=True,
             stderr=subprocess.PIPE,
@@ -155,7 +156,6 @@ def _build_cat(name, path, context):
                 "Building catalogue in an MPI context, but `mpi4py` not found."
                 " Concurrent identical catalogue builds might occur."
             ) from None
-
         _build_cat_distributed(comm, name, path)
     else:
         _build_cat_local(name, path)
@@ -169,9 +169,14 @@ def dummy_catalogue(repo_path):
     Fixture that returns a dummy `A.catalogue`
     which contains the `dummy` mech.
     """
-    path = repo_path / "test" / "unit" / "dummy"
-    cat_path = _build_cat("dummy", path)
-    return A.load_catalogue(str(cat_path))
+    try:
+        path = repo_path / "test" / "unit" / "dummy"
+        cat_path = _build_cat("dummy", path)
+        print(cat_path)
+        cat = A.load_catalogue(str(cat_path))
+    except Exception:
+        raise SkipTest("Couldn't build catalogue, maybe need to install Arbor first?")
+    return cat
 
 
 @_fixture

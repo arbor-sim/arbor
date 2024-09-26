@@ -28,8 +28,8 @@ dependencies = [
 ]
 
 [project.scripts]
-modcc = "arbor:modcc"
-arbor-build-catalogue = "arbor:build_catalogue"
+modcc = "arbor.modcc:cli"
+arbor-build-catalogue = "arbor.build_catalogue:cli"
 
 [tool.scikit-build]
 cmake.args = [
