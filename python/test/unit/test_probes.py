@@ -58,7 +58,7 @@ class cc_recipe(A.recipe):
             ),
             A.cable_probe_density_state_cell(mechanism="hh", state="n", tag="hh-n-all"),
             A.cable_probe_point_state(
-                target=0, mechanism="expsyn", state="g", tag="expsyn-g"
+                target="syn0", mechanism="expsyn", state="g", tag="expsyn-g"
             ),
             A.cable_probe_point_state_cell(
                 mechanism="exp2syn", state="B", tag="expsyn-B-all"
