@@ -203,7 +203,7 @@ def run_nrn_sim(tend, sample_dt=0.025, report_t=None, report_dt=None, dt=None, *
     vtraces = []
     vtrace_t_hoc = h.Vector()
 
-    ncomps = set([s.nseg for s in h.allsec() if s.name() != "soma"])
+    ncomps = {s.nseg for s in h.allsec() if s.name() != "soma"}
     if len(ncomps) == 1:
         common_ncomp = {"ncomp": ncomps.pop()}
     else:
@@ -302,8 +302,8 @@ def run_nrn_sim(tend, sample_dt=0.025, report_t=None, report_dt=None, dt=None, *
 
 
 def nrn_assert_no_sections():
-    for s in h.allsec():
-        assert False, "a section exists"
+    for _ in h.allsec():
+        raise RuntimeError("a section exists")
 
 
 def nrn_stop():

@@ -86,7 +86,6 @@ set(unit_sources
     test_iexpr.cpp
     test_index.cpp
     test_kinetic_linear.cpp
-    test_lexcmp.cpp
     test_label_resolution.cpp
     test_lif_cell_group.cpp
     test_local_context.cpp
@@ -189,7 +188,7 @@ make_catalogue_standalone(
     MOD dummy
     CXX
     CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
-    VERBOSE ON)
+    VERBOSE ${ARB_CAT_VERBOSE})
 
 target_link_libraries(dummy-catalogue PRIVATE arbor-private-deps)
 add_dependencies(unit dummy-catalogue)
@@ -199,4 +198,4 @@ target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}
 target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/testing")
-target_link_libraries(unit PRIVATE ext-gtest ext-random123 arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)
+target_link_libraries(unit PRIVATE gtest gtest_main ext-random123 arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)

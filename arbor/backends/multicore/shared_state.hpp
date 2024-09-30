@@ -101,8 +101,6 @@ struct mech_storage {
     std::vector<arb_size_type> gid_;
     std::vector<arb_size_type> idx_;
     cbprng::counter_type random_number_update_counter_ = 0u;
-
-    deliverable_event_stream deliverable_events_;
 };
 
 struct ARB_ARBOR_API istim_state {
@@ -150,9 +148,9 @@ struct ARB_ARBOR_API shared_state:
     arb_size_type n_cv = 0;         // Total number of CVs.
 
     iarray cv_to_cell;              // Maps CV index to GID
-    arb_value_type time;            // integration start time [ms].
-    arb_value_type time_to;         // integration end time [ms]
-    arb_value_type dt;              // dt [ms].
+    arb_value_type time = 0.0;      // integration start time [ms].
+    arb_value_type time_to = 0.0;   // integration end time [ms]
+    arb_value_type dt = 0.0;        // dt [ms].
     array voltage;                  // Maps CV index to membrane voltage [mV].
     array current_density;          // Maps CV index to membrane current density contributions [A/m²].
     array conductivity;             // Maps CV index to membrane conductivity [kS/m²].
@@ -178,6 +176,7 @@ struct ARB_ARBOR_API shared_state:
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
     std::unordered_map<unsigned, mech_storage> storage;
+    std::unordered_map<unsigned, deliverable_event_stream> streams;
 
     shared_state() = default;
 
@@ -247,6 +246,11 @@ struct ARB_ARBOR_API shared_state:
         sample_time_host = util::range_pointer_view(sample_time);
         sample_value_host = util::range_pointer_view(sample_value);
     }
+
+    void init_events(const event_lane_subrange& lanes,
+                     const std::vector<target_handle>& handles,
+                     const std::vector<size_t>& divs,
+                     const timestep_range& dts);
 };
 
 // For debugging only:
@@ -264,6 +268,7 @@ ARB_SERDES_ENABLE_EXT(multicore::shared_state,
                       cbprng_seed,
                       ion_data,
                       storage,
+                      streams,
                       voltage,
                       conductivity,
                       time_since_spike,

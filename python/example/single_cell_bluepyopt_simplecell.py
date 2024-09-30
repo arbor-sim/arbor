@@ -8,7 +8,8 @@ import sys
 try:
     from bluepyopt import ephys
 except ImportError:
-    raise ImportError("Please install bluepyopt to run this example.")
+    print("Please install bluepyopt to run this example.")
+    exit(-42)
 
 # (1) Read the cell JSON description referencing morphology, label dictionary and decor.
 

@@ -21,7 +21,7 @@ target_include_directories(
 
 target_link_libraries(
     py_unit PRIVATE
-    ext-gtest
+    gtest gtest_main
     arbor
     py_unit_lib
     pybind11::module

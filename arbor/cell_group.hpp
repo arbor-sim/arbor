@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -8,11 +7,10 @@
 #include <arbor/sampling.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
-#include <arbor/spike_event.hpp>
 #include <arbor/serdes.hpp>
 
 #include "epoch.hpp"
-#include "util/rangeutil.hpp"
+#include "event_lane.hpp"
 
 // The specialized cell_group constructors are expected to accept at least:
 // - The gid vector of the cells belonging to the cell_group.
@@ -21,8 +19,6 @@
 //   that are to be filled during the construction of the cell group. These
 //   ranges are needed to map (gid, label) pairs to their corresponding lid sets.
 namespace arb {
-
-using event_lane_subrange = util::subrange_view_type<std::vector<pse_vector>>;
 
 class cell_group {
 public:

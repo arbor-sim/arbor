@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
 #include <arbor/common_types.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/spike_event.hpp>
@@ -14,18 +12,19 @@ struct connection {
     float weight = 0.0f;
     float delay = 0.0f;
     cell_size_type index_on_domain = cell_gid_type(-1);
+
+    bool operator==(const connection&) const = default;
+
+    // connections are sorted by source id
+    // these operators make for easy interopability with STL algorithms
+    auto operator<=>(const connection& rhs) const { return source <=> rhs.source; }
+    auto operator<=>(const cell_member_type& rhs) const  { return source <=> rhs; }
 };
 
 inline
 spike_event make_event(const connection& c, const spike& s) {
     return {c.target, s.time + c.delay, c.weight};
 }
-
-// connections are sorted by source id
-// these operators make for easy interopability with STL algorithms
-static inline bool operator<(const connection& lhs, const connection& rhs) { return lhs.source < rhs.source; }
-static inline bool operator<(const connection& lhs, cell_member_type rhs)  { return lhs.source < rhs; }
-static inline bool operator<(cell_member_type lhs, const connection& rhs)  { return lhs < rhs.source; }
 
 } // namespace arb
 

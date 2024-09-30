@@ -5,6 +5,9 @@ on:
     branches: [ master ]
     paths-ignore: 'doc/**'
 
+  pull_request:
+    branches: [ master ]
+
   schedule:
     - cron: '0 2 * * 0' # run at 2 AM every sunday
 
@@ -61,7 +64,7 @@ jobs:
           mkdir build
           cd build
           export SAN="-fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer"
-          cmake .. -GNinja -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS="$SAN" -DCMAKE_C_FLAGS="$SAN" -DCMAKE_EXE_LINKER_FLAGS="$SAN" -DCMAKE_MODULE_LINKER_FLAGS="$SAN" -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_VECTORIZE=${{ matrix.simd }} -DARB_WITH_MPI=OFF -DARB_USE_BUNDLED_LIBS=ON -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python`
+          cmake .. -GNinja -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS="$SAN" -DCMAKE_C_FLAGS="$SAN" -DCMAKE_EXE_LINKER_FLAGS="$SAN" -DCMAKE_MODULE_LINKER_FLAGS="$SAN" -DARB_WITH_ASSERTIONS=ON -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DARB_VECTORIZE=${{ matrix.simd }} -DARB_WITH_MPI=OFF -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python`
           ninja -j4 -v tests examples pyarb
           cd -
       - name: Run unit tests

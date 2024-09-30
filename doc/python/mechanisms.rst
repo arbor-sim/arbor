@@ -469,7 +469,7 @@ Mechanism catalogues
         :return: :class:`py_mech_cat_iterator`
 
 
-    .. py:method:: extend(other, prefix)
+    .. py:method:: extend(other, prefix="")
 
         Import another catalogue, possibly with a prefix. Will raise an exception
         in case of name collisions.
@@ -479,7 +479,7 @@ Mechanism catalogues
             import arbor
 
             cat = arbor.default_catalogue()
-            cat.extend(arbor.allen_catalogue(), "")
+            cat.extend(arbor.allen_catalogue())
 
         :param other: reference to other catalogue.
         :type other: :class:`mechanism_catalogue`

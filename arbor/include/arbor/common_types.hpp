@@ -13,7 +13,6 @@
 #include <string>
 #include <type_traits>
 
-#include <arbor/util/lexcmp_def.hpp>
 #include <arbor/util/hash_def.hpp>
 #include <arbor/export.hpp>
 
@@ -58,6 +57,7 @@ using cell_local_size_type = std::make_unsigned_t<cell_lid_type>;
 struct cell_member_type {
     cell_gid_type gid;
     cell_lid_type index;
+    auto operator<=>(const cell_member_type&) const = default;
 };
 
 // Pair of indexes that describe range of local indices.
@@ -66,8 +66,8 @@ struct lid_range {
     cell_lid_type begin = 0;
     cell_lid_type end = 0;
     lid_range() = default;
-    lid_range(cell_lid_type b, cell_lid_type e):
-        begin(b), end(e) {}
+    lid_range(cell_lid_type b, cell_lid_type e): begin(b), end(e) {}
+    auto operator<=>(const lid_range&) const = default;
 };
 
 // Global range of indices with given step size.
@@ -77,10 +77,8 @@ struct gid_range {
     cell_gid_type end = 0;
     cell_gid_type step = 1;
     gid_range() = default;
-    gid_range(cell_gid_type b, cell_gid_type e):
-        begin(b), end(e), step(1) {}
-    gid_range(cell_gid_type b, cell_gid_type e, cell_gid_type s):
-        begin(b), end(e), step(s) {}
+    gid_range(cell_gid_type b, cell_gid_type e): begin(b), end(e), step(1) {}
+    gid_range(cell_gid_type b, cell_gid_type e, cell_gid_type s): begin(b), end(e), step(s) {}
 };
 
 // Policy for selecting a cell_lid_type from a range of possible values.
@@ -132,18 +130,16 @@ struct cell_address_type {
 
     cell_address_type& operator=(const cell_address_type&) = default;
     cell_address_type& operator=(cell_address_type&&) = default;
-};
 
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_address_type, (a.gid, a.tag), (b.gid, b.tag))
+    auto operator<=>(const cell_address_type&) const = default;
+};
 
 struct cell_remote_label_type {
     cell_gid_type rid;     // remote id
     cell_lid_type index = 0; // index on remote id
-};
 
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_remote_label_type,(a.rid,a.index),(b.rid,b.index))
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(lid_range,(a.begin, a.end),(b.begin,b.end))
+    auto operator<=>(const cell_remote_label_type&) const = default;
+};
 
 // For storing time values [ms]
 
