@@ -275,8 +275,8 @@ void run_expsyn_g_probe_test(context ctx) {
 
     auto run_test = [&](bool coalesce_synapses) {
         cable1d_recipe rec(cable_cell(bs), coalesce_synapses);
-        rec.add_probe(0, "expsyn-g-1", cable_probe_point_state{0u, "expsyn", "g"});
-        rec.add_probe(0, "expsyn-g-2", cable_probe_point_state{1u, "expsyn", "g"});
+        rec.add_probe(0, "expsyn-g-1", cable_probe_point_state{"syn0", "expsyn", "g"});
+        rec.add_probe(0, "expsyn-g-2", cable_probe_point_state{"syn1", "expsyn", "g"});
 
         fvm_cell lcell(*ctx);
         auto fvm_info = lcell.initialize({0}, rec);
@@ -379,7 +379,7 @@ void run_expsyn_g_cell_probe_test(context ctx) {
     std::vector cells(2, arb::cable_cell(make_y_morphology(), decor));
 
     // Weight for target (gid, lid)
-    auto weight = [](auto gid, auto tgt) -> float { return tgt + 100*gid; };
+    auto weight = [](cell_gid_type gid, cell_lid_type lid) -> float { return lid + 100*gid; };
 
     // Manually send an event to each expsyn synapse and integrate for a tiny time step.
     // Set up one stream per cell.
@@ -431,14 +431,16 @@ void run_expsyn_g_cell_probe_test(context ctx) {
             std::unordered_map<arb_size_type, unsigned> cv_expsyn_count;
 
             for (unsigned j = 0; j<n_expsyn; ++j) {
-                ASSERT_EQ(1u, expsyn_target_loc_map.count(m[j].target));
-                EXPECT_EQ(expsyn_target_loc_map.at(m[j].target), m[j].loc);
+                const auto& lid = m[j].lid;
+                const auto& loc = m[j].loc;
+                ASSERT_EQ(1u, expsyn_target_loc_map.count(lid));
+                EXPECT_EQ(expsyn_target_loc_map.at(lid), loc);
 
-                auto cv = geom.location_cv(gid, m[j].loc, cv_prefer::cv_nonempty);
+                auto cv = geom.location_cv(gid, loc, cv_prefer::cv_nonempty);
                 target_cv[j] = cv;
                 ++cv_expsyn_count[cv];
 
-                double event_weight = weight(gid, m[j].target);
+                double event_weight = weight(gid, lid);
                 expected_uncoalesced_value[j] = event_weight;
                 expected_coalesced_cv_value[cv] += event_weight;
             }

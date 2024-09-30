@@ -14,6 +14,7 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/util/any_visitor.hpp>
@@ -882,15 +883,15 @@ void resolve_probe(const cable_probe_density_state_cell& p, probe_resolution_dat
 }
 
 inline
-auto point_info_of(cell_lid_type target,
+auto point_info_of(cell_tag_type target,
+                   cell_lid_type lid,
                    int mech_index,
                    const mlocation_map<synapse>& instances,
                    const std::vector<arb_index_type>& multiplicity) {
-
-    auto opt_i = util::binary_search_index(instances, target, [](auto& item) { return item.lid; });
+    auto opt_i = util::binary_search_index(instances, lid, [](auto& item) { return item.lid; });
     if (!opt_i) throw arbor_internal_error("inconsistent mechanism state");
-
-    return cable_probe_point_info {target,
+    return cable_probe_point_info {std::move(target),
+                                   lid,
                                    multiplicity.empty() ? 1u: multiplicity.at(mech_index),
                                    instances[*opt_i].loc};
 }
@@ -903,6 +904,7 @@ void resolve_probe(const cable_probe_point_state& p, probe_resolution_data<B>& R
     const auto& mech   = p.mechanism;
     const auto& state  = p.state;
     const auto& target = p.target;
+    const auto& t_hash = hash_value(target);
     const auto& data   = R.mechanism_state(mech, state);
     if (!R.mech_instance_by_name.count(mech)) return;
     const auto  mech_id = R.mech_instance_by_name.at(mech)->mechanism_id();
@@ -913,17 +915,27 @@ void resolve_probe(const cable_probe_point_state& p, probe_resolution_data<B>& R
     // Convert cell-local target number to cellgroup target number.
     const auto& divs = R.M.target_divs;
     auto cell = R.cell_idx;
-    auto cg  = target + divs.at(cell);
-    if (cg >= divs.at(cell + 1)) return;
-
-    const auto& handle = R.handles.at(cg);
-    if (handle.mech_id != mech_id) return;
-    auto mech_index = handle.mech_index;
-    R.result.push_back(fvm_probe_scalar{{data + mech_index},
-                       point_info_of(target,
-                                     mech_index,
-                                     synapses.at(mech),
-                                     R.M.mechanisms.at(mech).multiplicity)});
+    auto cg_lo = divs.at(cell);
+    auto cg_hi = divs.at(cell + 1);
+    const auto& [lr_beg, lr_end] = R.cell
+                                    .synapse_ranges()
+                                    .equal_range(t_hash);
+    for (auto lr = lr_beg; lr != lr_end; ++lr) {
+        const auto& [lid_beg, lid_end] = lr->second;
+        for (auto lid = lid_beg; lid != lid_end; ++lid) {
+            auto cg = lid + cg_lo;
+            if (cg >= cg_hi) continue;
+            const auto& handle = R.handles.at(cg);
+            if (handle.mech_id != mech_id) return;
+            auto mech_index = handle.mech_index;
+            R.result.push_back(fvm_probe_scalar{{data + mech_index},
+                                                 point_info_of(target,
+                                                               lid,
+                                                               mech_index,
+                                                               synapses.at(mech),
+                                                               R.M.mechanisms.at(mech).multiplicity)});
+        }
+    }
 }
 
 template <typename B>
@@ -954,7 +966,8 @@ void resolve_probe(const cable_probe_point_state_cell& p, probe_resolution_data<
         auto mech_index = handle.mech_index;
         r.raw_handles.push_back(data + mech_index);
 
-        metadata.push_back(point_info_of(target - cell_targets_beg, // Convert to cell-local target index.
+        metadata.push_back(point_info_of("",
+                                         target - cell_targets_beg, // Convert to cell-local target index.
                                          mech_index,
                                          placed_instances,
                                          multiplicity));
