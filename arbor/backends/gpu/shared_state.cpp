@@ -59,9 +59,12 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
     charge(1u, static_cast<arb_value_type>(ion_data.charge)),
     solver(std::move(ptr)) {
     // We don't need to allocate these if we never use them...
+    if (write_Xi_ || write_Xd_) {
+        // ... but this is used by Xd and Xi!
+        reset_Xi_ = make_const_view(ion_data.reset_iconc);
+    }
     if (write_Xi_) {
         init_Xi_ = make_const_view(ion_data.init_iconc);
-        reset_Xi_ = make_const_view(ion_data.reset_iconc);
         arb_assert(node_index_.size()==init_Xi_.size());
     }
     if (write_Xo_) {
