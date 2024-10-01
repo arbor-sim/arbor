@@ -60,7 +60,7 @@ class single_recipe(A.recipe):
     def probes(self, gid):
         def mk(s, t):
             return A.cable_probe_point_state(
-                "stdp_synapse", "expsyn_stdp", state=s, tag=t
+                "stpd_synapse", "expsyn_stdp", state=s, tag=t
             )
 
         return [
