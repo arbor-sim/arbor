@@ -367,11 +367,11 @@ void run_expsyn_g_cell_probe_test(context ctx) {
     unsigned n_expsyn = 0;
     for (unsigned bid = 0; bid<3u; ++bid) {
         for (unsigned j = 0; j<10; ++j) {
-            auto idx = (bid*10+j)*2;
+            auto idx = 2*(bid*10 + j);
             mlocation expsyn_loc{bid, 0.1*j};
             decor.place(expsyn_loc, synapse("expsyn"), "syn"+std::to_string(idx));
             expsyn_target_loc_map[2*n_expsyn] = expsyn_loc;
-            decor.place(mlocation{bid, 0.1*j+0.05}, synapse("exp2syn"), "syn"+std::to_string(idx+1));
+            decor.place(mlocation{bid, 0.1*j + 0.05}, synapse("exp2syn"), "syn"+std::to_string(idx+1));
             ++n_expsyn;
         }
     }

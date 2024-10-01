@@ -956,26 +956,35 @@ void resolve_probe(const cable_probe_point_state_cell& p, probe_resolution_data<
     auto cell_targets_beg = R.M.target_divs.at(R.cell_idx);
     auto cell_targets_end = R.M.target_divs.at(R.cell_idx + 1);
 
-    fvm_probe_multi r;
-    std::vector<cable_probe_point_info> metadata;
+    const auto& decor = R.cell.decorations();
 
+    fvm_probe_multi result;
+    std::vector<cable_probe_point_info> metadata;
+    cell_lid_type lid = 0;
     for (auto target: util::make_span(cell_targets_beg, cell_targets_end)) {
         const auto& handle = R.handles.at(target);
         if (handle.mech_id != mech_id) continue;
 
         auto mech_index = handle.mech_index;
-        r.raw_handles.push_back(data + mech_index);
+        result.raw_handles.push_back(data + mech_index);
 
-        metadata.push_back(point_info_of("",
-                                         target - cell_targets_beg, // Convert to cell-local target index.
+        // Convert to cell-local target index.
+        const auto& ins = placed_instances.at(lid);
+        auto lid = target - cell_targets_beg;
+        auto tag = decor.tag_of(ins.tag);
+
+        metadata.push_back(point_info_of(tag,
+                                         lid,
                                          mech_index,
                                          placed_instances,
                                          multiplicity));
+        ++lid;
     }
 
-    r.metadata = std::move(metadata);
-    r.shrink_to_fit();
-    R.result.push_back(std::move(r));
+    
+    result.metadata = std::move(metadata);
+    result.shrink_to_fit();
+    R.result.push_back(std::move(result));
 }
 
 template <typename B>

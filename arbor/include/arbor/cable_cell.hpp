@@ -239,6 +239,7 @@ struct placed {
     mlocation loc;
     cell_lid_type lid;
     T item;
+    hash_type tag;
 };
 
 // Note: lid fields of elements of mlocation_map used in cable_cell are strictly increasing.
