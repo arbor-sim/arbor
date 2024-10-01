@@ -46,7 +46,7 @@ struct lfp_demo_recipe: public arb::recipe {
         return {{arb::cable_probe_total_current_cell{}, "Itotal"},
                 {arb::cable_probe_membrane_voltage{synapse_location_}, "Um"},
                 {arb::cable_probe_total_ion_current_density{synapse_location_}, "Iion"},
-                {arb::cable_probe_point_state{0, "expsyn", "g"}, "expsyn-g"}};
+                {arb::cable_probe_point_state{"syn", "expsyn", "g"}, "expsyn-g"}};
     }
 
     arb::cell_kind get_cell_kind(cell_gid_type) const override {

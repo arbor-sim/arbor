@@ -125,6 +125,17 @@ struct ARB_SYMBOL_VISIBLE cable_probe_point_state {
     cell_tag_type target;
     std::string mechanism;
     std::string state;
+
+    // Engage in minimal hygeine. Ideally, we'd disable all nullptr constructors.
+    cable_probe_point_state(std::nullptr_t, std::string, std::string) = delete;
+    cable_probe_point_state() = delete;
+
+    constexpr cable_probe_point_state(cell_tag_type t, std::string m, std::string s):
+        target(std::move(t)), mechanism(std::move(m)), state(std::move(s)) {}
+    constexpr cable_probe_point_state(const cable_probe_point_state&) = default;
+    constexpr cable_probe_point_state(cable_probe_point_state&&) = default;
+    constexpr cable_probe_point_state& operator=(const cable_probe_point_state&) = default;
+    constexpr cable_probe_point_state& operator=(cable_probe_point_state&&) = default;
 };
 
 // Value of state variable `key` in point mechanism `source` at every target

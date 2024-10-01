@@ -247,7 +247,7 @@ Density mechanism state variable
 
    **Metadata**: the explicit :class:`location` of the sample site.
 
-   .. py:function:: cable_probe_density_state_cell(mechanism, state)
+   .. py:function:: cable_probe_density_state_cell(mechanism, state, tag)
 
    The value of the state variable ``state`` in the density mechanism ``mechanism``
    on each cable in each CV of the cell discretization.
@@ -285,7 +285,7 @@ Point process state variable
 
           :class:`location` object corresponding to the target site.
 
-   .. py:function:: cable_probe_point_state_cell(mechanism, state)
+   .. py:function:: cable_probe_point_state_cell(mechanism, state, tag)
 
    The value of the state variable ``state`` in the point process ``mechanism``
    at each of the targets where that mechanism is defined.
