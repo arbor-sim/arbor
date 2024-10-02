@@ -52,7 +52,7 @@ variables:
     - *uenv_activate
     - mkdir -p $BUILD_DIR $INSTALL_DIR
     - |
-        CXX=`which gcc` CC=`which gcc` cmake \
+        CXX=`which g++` CC=`which gcc` cmake \
           -S $CI_PROJECT_DIR \
           -B $BUILD_DIR \
           -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
