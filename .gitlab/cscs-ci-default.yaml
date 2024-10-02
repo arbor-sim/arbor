@@ -50,7 +50,6 @@ variables:
       CXX=`which gcc` CC=`which gcc` cmake \
         -S $CI_PROJECT_DIR \
         -B $BUILD_DIR \
-        -GNinja \
         -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
         -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
         -DBUILD_TESTING=ON \
