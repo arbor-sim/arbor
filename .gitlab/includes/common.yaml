@@ -62,7 +62,6 @@ variables:
           -DARB_WITH_PROFILING=ON \
           -DARB_VECTORIZE=ON \
           -DARB_WITH_PYTHON=ON \
-          -DARB_USE_HWLOC=ON \
           -DARB_WITH_MPI=ON \
           -DARB_GPU=${ARB_GPU} \
           -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
