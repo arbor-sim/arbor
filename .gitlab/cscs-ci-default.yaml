@@ -44,6 +44,7 @@ variables:
   extends: .uenv_image
   stage: build
   script:
+    - . /user-environment/env/develop/activate.sh
     - mkdir -p $BUILD_DIR
     - mkdir -p $INSTALL_DIR
     - |
@@ -86,6 +87,7 @@ build_aarch64:
   extends: .uenv_image
   stage: test
   script:
+    - . /user-environment/env/develop/activate.sh
     - ${BUILD_DIR}/bin/unit-modcc
     - ${BUILD_DIR}/bin/unit-local
     - ${BUILD_DIR}/bin/unit
