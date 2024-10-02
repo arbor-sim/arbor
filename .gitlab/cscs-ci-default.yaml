@@ -12,7 +12,6 @@ variables:
   BUILD_DIR: "$CI_PROJECT_DIR/build"       # Custom build directory
   INSTALL_DIR: "$CI_PROJECT_DIR/install"   # Custom install directory
   CMAKE_BUILD_TYPE: "Debug"                # Debug build type
-  CMAKE_GENERATOR: "Ninja"                 # Ninja backend for CMake
   ARB_GPU: "none"                          # Default to not using GPU
   CUDA_ARCH: "90"                          # Default cuda architecture
 
@@ -51,7 +50,7 @@ variables:
       CXX=`which gcc` CC=`which gcc` cmake \
         -S $CI_PROJECT_DIR \
         -B $BUILD_DIR \
-        -G "$CMAKE_GENERATOR" \
+        -GNinja \
         -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
         -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
         -DBUILD_TESTING=ON \
