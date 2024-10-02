@@ -39,6 +39,9 @@ stages:
 
 test_aarch64:
   extends: [.uenv-runner-todi-gh200, .test_unit]
+  variables:
+    SLURM_ACCOUNT: g154
+    SLURM_RESERVATION: daint
 
 .test_distributed:
   extends: .uenv_image
