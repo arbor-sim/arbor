@@ -4,22 +4,66 @@ include:
 stages:
   - test
 
+##########################
+# vcluster specification #
+##########################
+.eiger:
+  extends: .uenv-runner-eiger-mc
+  variables:
+    SLURM_CONSTRAINT: mc
+
+.todi:
+  extends: .uenv-runner-todi-gh200
+  variables:
+    SLURM_ACCOUNT: g154
+    SLURM_RESERVATION: daint
+
+######################
+# uenv specification #
+######################
 .uenv_image:
   stage: test
   image: arbor/v0.9:latest
   variables:
     UENV_VIEW: 'develop'
 
-.test_unit:
+#################
+# build scripts #
+#################
+.build:
   extends: .uenv_image
   script:
-    - cd /arbor.src
+    - mkdir build
+    - cd build
+    - CXX=`which gcc` CC=`which gcc` cmake .. \
+      -GNinja \
+      -DCMAKE_INSTALL_PREFIX=./install \
+      -DCMAKE_BUILD_TYPE=Debug \
+      -DBUILD_TESTING=ON \
+      -DARB_WITH_ASSERTIONS=ON \
+      -DARB_WITH_PROFILING=ON \
+      -DARB_VECTORIZE=ON \
+      -DARB_WITH_PYTHON=ON \
+      -DARB_USE_HWLOC=ON \
+      -DARB_WITH_MPI=ON \
+      -DARB_GPU=cuda \
+      -DCMAKE_CUDA_ARCHITECTURES=90 \
+      -DARB_USE_GPU_RNG=ON
+    - ninja -j32 tests examples pyarb
+    - ninja install
+
+################
+# test scripts #
+################
+.test_unit:
+  extends: .build
+  script:
     - build/bin/unit-modcc
     - build/bin/unit-local
     - build/bin/unit
     - scripts/run_cpp_examples.sh
-    - python -m venv --system-site-packages /arbor.install
-    - source /arbor.install/bin/activate
+    - python -m venv --system-site-packages ./install
+    - source ./install/bin/activate
     - python -m unittest discover -v -s python
     - scripts/run_python_examples.sh
     - scripts/test_executables.sh
@@ -32,21 +76,9 @@ stages:
     SLURM_CPU_BIND: "verbose,none"
     USE_MPI: "NO"
 
-#test_x86_64:
-#  extends: [.uenv-runner-eiger-mc, .test_unit]
-#  variables:
-#    SLURM_CONSTRAINT: mc
-
-test_aarch64:
-  extends: [.uenv-runner-todi-gh200, .test_unit]
-  variables:
-    SLURM_ACCOUNT: g154
-    SLURM_RESERVATION: daint
-
 .test_distributed:
-  extends: .uenv_image
+  extends: .build
   script:
-    - cd /arbor.src
     - build/bin/unit-mpi
     - scripts/run_cpp_examples.sh -d
   variables:
@@ -55,14 +87,25 @@ test_aarch64:
     SLURM_TIMELIMIT: "00:30:00"
     USE_MPI: "YES"
 
+#####################
+# single node tests #
+#####################
+#test_x86_64:
+#  extends: [.eiger, .test_unit]
+
+test_aarch64:
+  extends: [.todi, .test_unit]
+
+####################
+# multi node tests #
+####################
 #test_x86_64-distributed:
-#  extends: [.uenv-runner-eiger-mc, .test_distributed]
+#  extends: [.eiger, .test_distributed]
 #  variables:
-#    SLURM_CONSTRAINT: mc
 #    SLURM_NTASKS_PER_NODE: 8
 
 test_aarch64-distributed:
-  extends: [.uenv-runner-todi-gh200, .test_distributed]
+  extends: [.todi, .test_distributed]
   variables:
     SLURM_GPUS_PER_NODE: 4
     SLURM_GPUS_PER_TASK: 1
