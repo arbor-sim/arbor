@@ -71,8 +71,9 @@ public:
                        const std::vector<std::size_t>& divs,
                        const timestep_range& steps,
                        std::unordered_map<unsigned, EventStream>& streams) {
-        auto n_steps = steps.size();
+        arb_assert(lanes.size() < divs.size());
 
+        auto n_steps = steps.size();
         std::unordered_map<unsigned, std::vector<std::size_t>> dt_sizes;
         for (auto& [k, v]: streams) {
             v.clear();
@@ -80,21 +81,22 @@ public:
         }
 
         auto cell = 0;
-        for (auto& lane: lanes) {
+        for (const auto& lane: lanes) {
             auto div = divs[cell];
+            ++cell;
             arb_size_type step = 0;
-            for (auto evt: lane) {
+            for (const auto& evt: lane) {
                 auto time = evt.time;
                 auto weight = evt.weight;
                 auto target = evt.target;
                 while(step < n_steps && time >= steps[step].t_end()) ++step;
                 // Events coinciding with epoch's upper boundary belong to next epoch
                 if (step >= n_steps) break;
-                auto& handle = handles[div + target];
+                arb_assert(div + target < handles.size());
+                const auto& handle = handles[div + target];
                 streams[handle.mech_id].ev_data_.push_back({handle.mech_index, weight});
                 dt_sizes[handle.mech_id][step]++;
             }
-            ++cell;
         }
 
         for (auto& [id, stream]: streams) {
