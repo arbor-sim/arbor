@@ -29,7 +29,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m venv ~/env
           source ~/env/bin/activate
-          pip install numpy pybind11-stubgen
       - name: Debug info Python
         run: |
           source ~/env/bin/activate
@@ -56,3 +55,44 @@ jobs:
         run: |
           source ~/env/bin/activate
           scripts/test_executables.sh
+  testfeatures:
+    name: "Pip features"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-24.04]
+        python-version: [3.12]
+    steps:
+      - name: Install MPI
+        run: sudo apt-get install -y libopenmpi-dev
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Clone w/ submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Update pip and setup venv
+        run: |
+          python -m pip install --upgrade pip
+          python -m venv ~/env
+          source ~/env/bin/activate
+      - name: Debug info Python
+        run: |
+          source ~/env/bin/activate
+          which python
+          python --version
+          pip --version
+      - name: Build and install Arbor using pip + build flags
+        run: |
+          source ~/env/bin/activate
+          CMAKE_ARGS="-DARB_VECTORIZE=ON -DARB_ARCH=native" pip install .[mpi]
+      - name: Check that build flags match
+        run: |
+          source ~/env/bin/activate
+          python -c "import arbor; print(arbor.config())"
+          python -c "import arbor; print(arbor.config())" | grep -q "'mpi4py': True"
+      - name: Run Python tests
+        run: |
+          source ~/env/bin/activate
+          mpirun -n 2 python -m unittest discover -v -s python

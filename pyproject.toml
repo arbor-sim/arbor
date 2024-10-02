@@ -27,6 +27,9 @@ dependencies = [
     "numpy"
 ]
 
+[project.optional-dependencies]
+mpi = ["mpi4py"]
+
 [project.scripts]
 modcc = "arbor:modcc"
 arbor-build-catalogue = "arbor:build_catalogue"
