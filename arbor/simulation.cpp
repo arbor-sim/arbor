@@ -20,6 +20,7 @@
 #include "threading/threading.hpp"
 #include "util/maputil.hpp"
 #include "util/span.hpp"
+#include "util/strprintf.hpp"
 #include "profile/profiler_macro.hpp"
 
 namespace arb {
@@ -109,7 +110,11 @@ public:
 
     void set_remote_spike_filter(const spike_predicate& p) { return communicator_.set_remote_spike_filter(p); }
 
-    time_type min_delay() { return communicator_.min_delay(); }
+    time_type min_delay() {
+        auto tau =  communicator_.min_delay();
+        if (tau <= 0.0 || !std::isfinite(tau)) throw std::domain_error("Minimum connection delay must be strictly positive and finite.");
+        return tau;
+    }
 
     spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
@@ -354,7 +359,7 @@ void simulation_state::reset() {
 time_type simulation_state::run(time_type tfinal, time_type dt) {
     // Progress simulation to time tfinal, through a series of integration epochs
     // of length at most t_interval_. t_interval_ is chosen to be no more than
-    // than half the network minimum delay.
+    // than half the network minimum delay and minimally the timestep `dt`.
     //
     // There are three simulation tasks that can be run partially in parallel:
     //
@@ -393,10 +398,8 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     // Requires state at end of run(), with epoch_.id==k:
     //     * U(k) and D(k) have completed.
 
+    if (!std::isfinite(dt) || dt <= 0) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
     if (!std::isfinite(tfinal) || tfinal < 0) throw std::domain_error("simulation: tfinal must be finite, positive, and in [ms]");
-    if (!std::isfinite(dt) || tfinal < 0) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
-
-    if (tfinal<=epoch_.t1) return epoch_.t1;
 
     // Compute following epoch, with max time tfinal.
     auto next_epoch = [tfinal](epoch e, time_type interval) -> epoch {
@@ -580,9 +583,9 @@ void simulation::update(const recipe& rec) { impl_->update(rec); }
 
 time_type simulation::run(const units::quantity& tfinal, const units::quantity& dt) {
     auto dt_ms = dt.value_as(units::ms);
-    if (dt_ms <= 0.0 || std::isnan(dt_ms)) throw domain_error("Finite time-step must be supplied.");
+    if (dt_ms <= 0.0 || !std::isfinite(dt_ms)) throw domain_error("Finite time-step must be supplied.");
     auto tfinal_ms = tfinal.value_as(units::ms);
-    if (tfinal_ms <= 0.0 || std::isnan(tfinal_ms)) throw domain_error("Finite time-step must be supplied.");
+    if (tfinal_ms <= 0.0 || !std::isfinite(tfinal_ms)) throw domain_error("Finite time-step must be supplied.");
     return impl_->run(tfinal_ms, dt_ms);
 }
 

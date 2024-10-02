@@ -66,9 +66,8 @@ struct ARB_SYMBOL_VISIBLE i_clamp {
                        const U::quantity& current):
             t(time.value_as(U::ms)),
             amplitude(current.value_as(U::nA)) {
-
-            if (std::isnan(t)) throw std::domain_error{"Time must be finite and convertible to ms."};
-            if (std::isnan(amplitude)) throw std::domain_error{"Amplitude must be finite and convertible to nA."};
+            if (!std::isfinite(t)) throw std::domain_error{"Time must be finite and convertible to ms."};
+            if (!std::isfinite(amplitude)) throw std::domain_error{"Amplitude must be finite and convertible to nA."};
     }
         double t;         // [ms]
         double amplitude; // [nA]
@@ -104,8 +103,8 @@ struct ARB_SYMBOL_VISIBLE i_clamp {
         frequency(f.value_as(U::kHz)),
         phase(phi.value_as(U::rad))
     {
-        if (std::isnan(frequency)) throw std::domain_error{"Frequency must be finite and convertible to kHz."};
-        if (std::isnan(phase)) throw std::domain_error{"Phase must be finite and convertible to rad."};
+        if (!std::isfinite(frequency)) throw std::domain_error{"Frequency must be finite and convertible to kHz."};
+        if (!std::isfinite(phase)) throw std::domain_error{"Phase must be finite and convertible to rad."};
     }
 
     // A 'box' stimulus with fixed onset time, duration, and constant amplitude.
@@ -123,7 +122,7 @@ struct ARB_SYMBOL_VISIBLE i_clamp {
 // Threshold detector description.
 struct ARB_SYMBOL_VISIBLE threshold_detector {
     threshold_detector(const U::quantity& m): threshold(m.value_as(U::mV)) {
-        if (std::isnan(threshold)) throw std::domain_error{"Threshold must be finite and in [mV]."};
+        if (!std::isfinite(threshold)) throw std::domain_error{"Threshold must be finite and in [mV]."};
     }
     static threshold_detector from_raw_millivolts(double v) { return {v*U::mV}; }
     double threshold; // [mV]
@@ -139,7 +138,7 @@ struct ARB_SYMBOL_VISIBLE init_membrane_potential {
     init_membrane_potential() = default;
     init_membrane_potential(const U::quantity& m, iexpr scale=1):
       value(m.value_as(U::mV)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mV]."};
+        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [mV]."};
     }
 };
 
@@ -151,7 +150,7 @@ struct ARB_SYMBOL_VISIBLE temperature {
     temperature() = default;
     temperature(const U::quantity& m, iexpr scale=1):
       value(m.value_as(U::Kelvin)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [K]."};
+        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [K]."};
     }
 };
 
@@ -162,7 +161,7 @@ struct ARB_SYMBOL_VISIBLE axial_resistivity {
     axial_resistivity() = default;
     axial_resistivity(const U::quantity& m, iexpr scale=1):
       value(m.value_as(U::cm*U::Ohm)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [Ω·cm]."};
+        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [Ω·cm]."};
     }
 };
 
@@ -173,7 +172,7 @@ struct ARB_SYMBOL_VISIBLE membrane_capacitance {
     membrane_capacitance() = default;
     membrane_capacitance(const U::quantity& m, iexpr scale=1):
       value(m.value_as(U::F/U::m2)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [F/m²]."};
+        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [F/m²]."};
     }
 };
 
@@ -185,7 +184,7 @@ struct ARB_SYMBOL_VISIBLE init_int_concentration {
     init_int_concentration() = default;
     init_int_concentration(const std::string& ion, const U::quantity& m, iexpr scale=1):
       ion{ion}, value(m.value_as(U::mM)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mM]."};
+        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [mM]."};
     }
 };
 
@@ -197,7 +196,7 @@ struct ARB_SYMBOL_VISIBLE ion_diffusivity {
     ion_diffusivity() = default;
     ion_diffusivity(const std::string& ion, const U::quantity& m, iexpr scale=1):
       ion{ion}, value(m.value_as(U::m2/U::s)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [m²/s]."};
+        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [m²/s]."};
     }
 };
 
@@ -209,7 +208,7 @@ struct ARB_SYMBOL_VISIBLE init_ext_concentration {
     init_ext_concentration() = default;
     init_ext_concentration(const std::string& ion, const U::quantity& m, iexpr scale=1):
       ion{ion}, value(m.value_as(U::mM)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mM]."};
+        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [mM]."};
     }
 };
 
@@ -221,7 +220,7 @@ struct ARB_SYMBOL_VISIBLE init_reversal_potential {
     init_reversal_potential() = default;
     init_reversal_potential(const std::string& ion, const U::quantity& m, iexpr scale=1):
       ion{ion}, value(m.value_as(U::mV)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mV]."};
+        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [mV]."};
     }
 };
 
@@ -461,13 +460,13 @@ struct ARB_SYMBOL_VISIBLE cable_cell_global_properties {
 
         auto &ion_data = default_parameters.ion_data[ion_name];
         ion_data.init_int_concentration = init_iconc.value_as(U::mM);
-        if (std::isnan(*ion_data.init_int_concentration)) throw std::domain_error("init_int_concentration must be finite and convertible to mM");
+        if (!std::isfinite(*ion_data.init_int_concentration)) throw std::domain_error("init_int_concentration must be finite and convertible to mM");
         ion_data.init_ext_concentration = init_econc.value_as(U::mM);
-        if (std::isnan(*ion_data.init_ext_concentration)) throw std::domain_error("init_ext_concentration must be finite and convertible to mM");
+        if (!std::isfinite(*ion_data.init_ext_concentration)) throw std::domain_error("init_ext_concentration must be finite and convertible to mM");
         ion_data.init_reversal_potential = init_revpot.value_as(U::mV);
-        if (std::isnan(*ion_data.init_reversal_potential)) throw std::domain_error("init_reversal_potential must be finite and convertible to mV");
+        if (!std::isfinite(*ion_data.init_reversal_potential)) throw std::domain_error("init_reversal_potential must be finite and convertible to mV");
         ion_data.diffusivity = diffusivity.value_as(U::m2/U::s);
-        if (std::isnan(*ion_data.diffusivity) || *ion_data.diffusivity < 0) throw std::domain_error("diffusivity must be positive, finite, and convertible to m2/s");
+        if (!std::isfinite(*ion_data.diffusivity) || *ion_data.diffusivity < 0) throw std::domain_error("diffusivity must be positive, finite, and convertible to m2/s");
     }
 
     void add_ion(const std::string& ion_name,
