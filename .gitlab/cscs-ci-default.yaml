@@ -32,7 +32,7 @@ stages:
 #################
 .build:
   extends: .uenv_image
-  script:
+  before_script:
     - mkdir build
     - cd build
     - CXX=`which gcc` CC=`which gcc` cmake .. \
