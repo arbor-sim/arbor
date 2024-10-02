@@ -348,7 +348,7 @@ if (BUILD_TESTING)
     CPMAddPackage(NAME benchmark
                   GITHUB_REPOSITORY google/benchmark
                   VERSION 1.8.3
-                  OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "CMAKE_BUILD_TYPE release" "BUILD_SHARED_LIBS OFF")
+                  OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "CMAKE_BUILD_TYPE release" "BUILD_SHARED_LIBS OFF" "HAVE_STD_REGEX ON" "RUN_HAVE_STD_REGEX 1")
     CPMAddPackage(NAME googletest
                   GITHUB_REPOSITORY google/googletest
                   GIT_TAG release-1.12.1
