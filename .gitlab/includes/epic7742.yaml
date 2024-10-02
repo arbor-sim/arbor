@@ -1,0 +1,29 @@
+###########################
+# vcluster specifications #
+###########################
+.eiger:
+  extends: .uenv-runner-eiger-mc
+  variables:
+    SLURM_CONSTRAINT: mc
+
+#################
+# Build Project #
+#################
+build_x86_64:
+  extends: [.eiger, .build_template]
+  variables:
+    ARB_GPU: "none"  # No GPU for x86_64
+
+#####################
+# Single Node Tests #
+#####################
+test_x86_64:
+  extends: [.eiger, .test_unit_template]
+
+####################
+# Multi Node Tests #
+####################
+test_x86_64_distributed:
+  extends: [.eiger, .test_distributed_template]
+  variables:
+    SLURM_NTASKS_PER_NODE: 8

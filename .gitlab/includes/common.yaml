@@ -1,0 +1,117 @@
+####################
+# Global Variables #
+####################
+variables:
+  BUILD_DIR: "$CI_PROJECT_DIR/build"
+  INSTALL_DIR: "$CI_PROJECT_DIR/install"
+  CMAKE_BUILD_TYPE: "Debug"
+  ARB_GPU: "none"
+  CUDA_ARCH: "90"
+
+###########################
+# SLURM Default Variables #
+###########################
+.default_slurm_vars: &default_slurm_vars
+  SLURM_JOB_NUM_NODES: 1
+  SLURM_NTASKS: 1
+  SLURM_NTASKS_PER_NODE: 1
+  SLURM_TIMELIMIT: "00:30:00"
+  SLURM_CPU_BIND: "verbose,none"
+  USE_MPI: "NO"
+
+###########################
+# SLURM Distributed Setup #
+###########################
+.distributed_slurm_vars: &slurm_distributed_vars
+  SLURM_JOB_NUM_NODES: 2
+  SLURM_CPU_BIND: "verbose,rank_ldom"
+  SLURM_TIMELIMIT: "00:30:00"
+  USE_MPI: "YES"
+
+######################
+# uenv specification #
+######################
+.uenv_image:
+  image: arbor/v0.9:latest
+  variables:
+    UENV_VIEW: 'develop'
+
+##########################
+# uenv Activation Anchor #
+##########################
+.uenv_activate: &uenv_activate
+  - . /user-environment/env/${UENV_VIEW}/activate.sh
+
+#####################
+# Common Build Job #
+#####################
+.build_template:
+  extends: .uenv_image
+  stage: build
+  script:
+    - *uenv_activate
+    - mkdir -p $BUILD_DIR $INSTALL_DIR
+    - |
+        CXX=`which gcc` CC=`which gcc` cmake \
+          -S $CI_PROJECT_DIR \
+          -B $BUILD_DIR \
+          -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
+          -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
+          -DBUILD_TESTING=ON \
+          -DARB_WITH_ASSERTIONS=ON \
+          -DARB_WITH_PROFILING=ON \
+          -DARB_VECTORIZE=ON \
+          -DARB_WITH_PYTHON=ON \
+          -DARB_USE_HWLOC=ON \
+          -DARB_WITH_MPI=ON \
+          -DARB_GPU=${ARB_GPU} \
+          -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
+          -DARB_USE_GPU_RNG=ON
+    - |
+        if [ -z "$SLURM_CPUS_PER_TASK" ]; then
+          echo "SLURM_CPUS_PER_TASK is not set, using 32 cores for building"
+          cmake --build $BUILD_DIR -- -j32
+        else
+          echo "Building with $SLURM_CPUS_PER_TASK cores"
+          cmake --build $BUILD_DIR -- -j${SLURM_CPUS_PER_TASK}
+        fi
+    - cmake --install $BUILD_DIR
+  variables:
+    <<: *default_slurm_vars
+  artifacts:
+    paths:
+      - $INSTALL_DIR
+      - $INSTALL_DIR
+
+#####################
+# Common Test Jobs #
+#####################
+.test_unit_template:
+  extends: .uenv_image
+  stage: test
+  script:
+    - *uenv_activate
+    - ${BUILD_DIR}/bin/unit-modcc
+    - ${BUILD_DIR}/bin/unit-local
+    - ${BUILD_DIR}/bin/unit
+    - scripts/run_cpp_examples.sh
+    - python -m venv --system-site-packages ${INSTALL_DIR}
+    - source ${INSTALL_DIR}/bin/activate
+    - python -m unittest discover -v -s python
+    - scripts/run_python_examples.sh
+    - scripts/test_executables.sh
+    - deactivate
+  variables:
+    <<: *default_slurm_vars
+    SLURM_TIMELIMIT: "00:30:00"
+
+.test_distributed_template:
+  extends: .uenv_image
+  stage: test
+  script:
+    - ${BUILD_DIR}/bin/unit-mpi
+    - scripts/run_cpp_examples.sh -d
+  variables:
+    <<: *distributed_slurm_vars
+    SLURM_TIMELIMIT: "00:15:00"
+
