@@ -2,11 +2,23 @@ include:
   - remote: 'https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.ci-ext.yml'
 
 stages:
+  - build
   - test
 
-##########################
-# vcluster specification #
-##########################
+####################
+# global variables #
+####################
+variables:
+  BUILD_DIR: "$CI_PROJECT_DIR/build"       # Custom build directory
+  INSTALL_DIR: "$CI_PROJECT_DIR/install"   # Custom install directory
+  CMAKE_BUILD_TYPE: "Debug"                # Debug build type
+  CMAKE_GENERATOR: "Ninja"                 # Ninja backend for CMake
+  ARB_GPU: "none"                          # Default to not using GPU
+  CUDA_ARCH: "90"                          # Default cuda architecture
+
+###########################
+# vcluster specifications #
+###########################
 .eiger:
   extends: .uenv-runner-eiger-mc
   variables:
@@ -22,7 +34,6 @@ stages:
 # uenv specification #
 ######################
 .uenv_image:
-  stage: test
   image: arbor/v0.9:latest
   variables:
     UENV_VIEW: 'develop'
@@ -30,61 +41,59 @@ stages:
 #################
 # build scripts #
 #################
-#.build:
-#  extends: .uenv_image
-#  before_script:
-#    - mkdir build
-#    - cd build
-#    - CXX=`which gcc` CC=`which gcc` cmake .. \
-#      -GNinja \
-#      -DCMAKE_INSTALL_PREFIX=./install \
-#      -DCMAKE_BUILD_TYPE=Debug \
-#      -DBUILD_TESTING=ON \
-#      -DARB_WITH_ASSERTIONS=ON \
-#      -DARB_WITH_PROFILING=ON \
-#      -DARB_VECTORIZE=ON \
-#      -DARB_WITH_PYTHON=ON \
-#      -DARB_USE_HWLOC=ON \
-#      -DARB_WITH_MPI=ON \
-#      -DARB_GPU=cuda \
-#      -DCMAKE_CUDA_ARCHITECTURES=90 \
-#      -DARB_USE_GPU_RNG=ON
-#    - ninja -j32 tests examples pyarb
-#    - ninja install
+.build_template:
+  extends: .uenv_image
+  stage: build
+  script:
+    - mkdir -p $BUILD_DIR
+    - mkdir -p $INSTALL_DIR
+    - |
+      CXX=`which gcc` CC=`which gcc` cmake \
+        -S $CI_PROJECT_DIR \
+        -B $BUILD_DIR \
+        -G "$CMAKE_GENERATOR" \
+        -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
+        -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
+        -DBUILD_TESTING=ON \
+        -DARB_WITH_ASSERTIONS=ON \
+        -DARB_WITH_PROFILING=ON \
+        -DARB_VECTORIZE=ON \
+        -DARB_WITH_PYTHON=ON \
+        -DARB_USE_HWLOC=ON \
+        -DARB_WITH_MPI=ON \
+        -DARB_GPU=${ARB_GPU} \
+        -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH} \
+        -DARB_USE_GPU_RNG=ON
+    - cmake --build $BUILD_DIR -- -j32
+    - cmake --install $BUILD_DIR
+  artifacts:
+    paths:
+      - $BUILD_DIR
+      - $INSTALL_DIR
+
+#build_x86_64:
+#  extends: [.eiger, .build_template]
+#  variables:
+#    ARB_GPU: "none"
+
+build_aarch64:
+  extends: [.todi, .build_template]
+  variables:
+    ARB_GPU: "cuda"
 
 ################
 # test scripts #
 ################
-.test_unit:
+.test_unit_template:
   extends: .uenv_image
+  stage: test
   script:
-    - mkdir build
-    - CXX=`which gcc` CC=`which gcc` cmake \
-      -GNinja \
-      -DCMAKE_INSTALL_PREFIX=./install \
-      -DCMAKE_BUILD_TYPE=Debug \
-      -DBUILD_TESTING=ON \
-      -DARB_WITH_ASSERTIONS=ON \
-      -DARB_WITH_PROFILING=ON \
-      -DARB_VECTORIZE=ON \
-      -DARB_WITH_PYTHON=ON \
-      -DARB_USE_HWLOC=ON \
-      -DARB_WITH_MPI=ON \
-      -DARB_GPU=cuda \
-      -DCMAKE_CUDA_ARCHITECTURES=90 \
-      -DARB_USE_GPU_RNG=ON \
-      -S . \
-      -B ./build
-    - cd build
-    - ninja -j32 tests examples pyarb
-    - ninja install
-    - cd ..
-    - build/bin/unit-modcc
-    - build/bin/unit-local
-    - build/bin/unit
+    - ${BUILD_DIR}/bin/unit-modcc
+    - ${BUILD_DIR}/bin/unit-local
+    - ${BUILD_DIR}/bin/unit
     - scripts/run_cpp_examples.sh
-    - python -m venv --system-site-packages ./install
-    - source ./install/bin/activate
+    - python -m venv --system-site-packages ${INSTALL_DIR}
+    - source ${INSTALL_DIR}/bin/activate
     - python -m unittest discover -v -s python
     - scripts/run_python_examples.sh
     - scripts/test_executables.sh
@@ -97,31 +106,11 @@ stages:
     SLURM_CPU_BIND: "verbose,none"
     USE_MPI: "NO"
 
-.test_distributed:
+.test_distributed_template:
   extends: .uenv_image
+  stage: test
   script:
-    - mkdir build
-    - CXX=`which gcc` CC=`which gcc` cmake \
-      -GNinja \
-      -DCMAKE_INSTALL_PREFIX=./install \
-      -DCMAKE_BUILD_TYPE=Debug \
-      -DBUILD_TESTING=ON \
-      -DARB_WITH_ASSERTIONS=ON \
-      -DARB_WITH_PROFILING=ON \
-      -DARB_VECTORIZE=ON \
-      -DARB_WITH_PYTHON=ON \
-      -DARB_USE_HWLOC=ON \
-      -DARB_WITH_MPI=ON \
-      -DARB_GPU=cuda \
-      -DCMAKE_CUDA_ARCHITECTURES=90 \
-      -DARB_USE_GPU_RNG=ON \
-      -S . \
-      -B ./build
-    - cd build
-    - ninja -j32 tests examples pyarb
-    - ninja install
-    - cd ..
-    - build/bin/unit-mpi
+    - ${BUILD_DIR}/bin/unit-mpi
     - scripts/run_cpp_examples.sh -d
   variables:
     SLURM_JOB_NUM_NODES: 2
@@ -133,21 +122,21 @@ stages:
 # single node tests #
 #####################
 #test_x86_64:
-#  extends: [.eiger, .test_unit]
+#  extends: [.eiger, .test_unit_template]
 
 test_aarch64:
-  extends: [.todi, .test_unit]
+  extends: [.todi, .test_unit_template]
 
 ####################
 # multi node tests #
 ####################
 #test_x86_64-distributed:
-#  extends: [.eiger, .test_distributed]
+#  extends: [.eiger, .test_distributed_template]
 #  variables:
 #    SLURM_NTASKS_PER_NODE: 8
 
 test_aarch64-distributed:
-  extends: [.todi, .test_distributed]
+  extends: [.todi, .test_distributed_template]
   variables:
     SLURM_GPUS_PER_NODE: 4
     SLURM_GPUS_PER_TASK: 1
