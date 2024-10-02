@@ -22,7 +22,7 @@ variables:
 ###########################
 # SLURM Distributed Setup #
 ###########################
-.distributed_slurm_vars: &slurm_distributed_vars
+.distributed_slurm_vars: &distributed_slurm_vars
   SLURM_JOB_NUM_NODES: 2
   SLURM_CPU_BIND: "verbose,rank_ldom"
   SLURM_TIMELIMIT: "00:30:00"
