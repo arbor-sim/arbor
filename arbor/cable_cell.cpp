@@ -122,7 +122,7 @@ struct cable_cell_impl {
         cell_lid_type first = lid;
 
         for (const auto& loc: locs) {
-            placed<Item> p{loc, lid++, item};
+            placed<Item> p{loc, lid++, item, label};
             mm.push_back(p);
         }
         auto range = lid_range(first, lid);

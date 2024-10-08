@@ -58,7 +58,7 @@ class cc_recipe(A.recipe):
             ),
             A.cable_probe_density_state_cell(mechanism="hh", state="n", tag="hh-n-all"),
             A.cable_probe_point_state(
-                target=0, mechanism="expsyn", state="g", tag="expsyn-g"
+                target="syn0", mechanism="expsyn", state="g", tag="expsyn-g"
             ),
             A.cable_probe_point_state_cell(
                 mechanism="exp2syn", state="B", tag="expsyn-B-all"
@@ -127,14 +127,14 @@ class TestCableProbes(unittest.TestCase):
         self.assertEqual(1, len(m))
         self.assertEqual(A.location(0, 0.08), m[0].location)
         self.assertEqual(1, m[0].multiplicity)
-        self.assertEqual(0, m[0].target)
+        self.assertEqual("syn0", m[0].target)
 
         m = sim.probe_metadata((0, "expsyn-B-all"))
         self.assertEqual(1, len(m))
         self.assertEqual(1, len(m[0]))
         self.assertEqual(A.location(0, 0.09), m[0][0].location)
         self.assertEqual(1, m[0][0].multiplicity)
-        self.assertEqual(1, m[0][0].target)
+        self.assertEqual("syn1", m[0][0].target)
 
         m = sim.probe_metadata((0, "ina"))
         self.assertEqual(1, len(m))
