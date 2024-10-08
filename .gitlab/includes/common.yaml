@@ -80,7 +80,7 @@ variables:
     <<: *default_slurm_vars
   artifacts:
     paths:
-      - $INSTALL_DIR
+      - $BUILD_DIR
       - $INSTALL_DIR
 
 #####################
