@@ -48,7 +48,7 @@ struct shared_state_base {
 
     void configure_solver(const fvm_cv_discretization& disc) {
         auto d = static_cast<D*>(this);
-        d->solver = {disc.geometry.cv_parent, disc.geometry.cell_cv_divs, disc.cv_capacitance, disc.face_conductance, disc.cv_area};
+        d->solver = {disc.geometry.cv_parent, disc.geometry.cell_cv_divs, disc.cv_capacitance, disc.face_conductance};
     }
 
     void add_ion(const std::string& ion_name,
@@ -134,7 +134,7 @@ struct shared_state_base {
 
     void integrate_cable_state() {
         auto d = static_cast<D*>(this);
-        d->solver.solve(d->voltage, d->dt, d->current_density, d->conductivity);
+        d->solver.solve(d->voltage, d->dt, d->current_density, d->conductivity, d->area_um2);
         for (auto& [ion, data]: d->ion_data) {
             if (data.solver) {
                 data.solver->solve(data.Xd_,
