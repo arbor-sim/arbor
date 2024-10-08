@@ -210,6 +210,9 @@ Note that our new recipe is almost unaltered from the random network
 
 all changes are contained to the way we run the simulation. To add a further
 interesting feature, we skip the rewiring for the first half of the simulation.
+The initial network is unconnected, but could be populated randomly (or any
+other way) if desired by calling ``self.rewire()`` in the constructor of
+``homeostatic_network`` before setting the maxima to eight.
 
 Plasticity is implemented by tweaking the connection table inside the recipe
 between calls to ``run`` and calling ``simulation.update`` with the modified
