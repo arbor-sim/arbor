@@ -1,5 +1,8 @@
 .. _tutorial_plasticity:
 
+Structural Plasticity in Arbor
+==============================
+
 In this tutorial, we are going to demonstrate how a network can be built using
 plasticity and homeostatic connection rules. Despite not playing towards Arbor's
 strengths, we choose a LIF (Leaky Integrate and Fire) neuron model, as we are
@@ -77,11 +80,23 @@ parameters are set in the constructor
 
 We also proceed to add spike recording and generate plots using a helper
 function ``plot_spikes`` from ``util.py``. You can skip the following details
-for now and come back later if you are interested how it works. We generate
-raster plots via ``scatter``. Rates are computed by binning spikes into
-``t_interval`` and the neuron id; the mean rate is the average across the
-neurons smoothed using a Savitzky-Golay filter (``scipy.signal.savgol_filter``).
-We plot per-neuron and mean rates.
+for now and come back later if you are interested how it works. Rates are
+computed by binning spikes into ``t_interval`` and the neuron id; the mean rate
+is the average across the neurons smoothed using a Savitzky-Golay filter
+(``scipy.signal.savgol_filter``).
+
+We plot per-neuron and mean rates:
+
+.. figure:: ../../python/example/plasticity/01-rates.svg
+    :width: 400
+    :align: center
+
+We also generate raster plots via ``scatter``.
+
+.. figure:: ../../python/example/plasticity/01-raster.svg
+    :width: 400
+    :align: center
+
 
 A Randomly Wired Network
 ------------------------
@@ -132,14 +147,31 @@ Both are used in ``rewire`` to produce a random connection matrix
   :language: python
   :lines: 56-65
 
-We then proceed to run the simulation and plot the results as before
+We then proceed to run the simulation
 
 .. literalinclude:: ../../python/example/plasticity/random_network.py
   :language: python
   :lines: 68-79
 
+ and plot the results as before
+
+.. figure:: ../../python/example/plasticity/02-rates.svg
+    :width: 400
+    :align: center
+
+
 Note that we added a plot of the network connectivity using ``plot_network``
 from ``util`` as well. This generates images of the graph and connection matrix.
+
+.. figure:: ../../python/example/plasticity/02-matrix.svg
+    :width: 400
+    :align: center
+
+.. figure:: ../../python/example/plasticity/02-graph.svg
+    :width: 400
+    :align: center
+
+
 
 Adding Homeostasis
 ------------------
@@ -214,8 +246,28 @@ connection partners. The ``randrange`` function produces a shuffled range ``[0,
 N)``. We leverage the helper functions from the random network recipe to
 manipulate the connection table, see the discussion above.
 
-Finally, we plot networks and spikes as before
+Finally, we plot spiking rates as before; the jump at the half-way point is the
+effect of the plasticity activating after which each neuron moves to the
+setpoint
 
-.. literalinclude:: ../../python/example/plasticity/homeostasis.py
-  :language: python
-  :lines: 74-75
+.. figure:: ../../python/example/plasticity/03-rates.svg
+    :width: 400
+    :align: center
+
+and the resulting network
+
+.. figure:: ../../python/example/plasticity/03-graph.svg
+    :width: 400
+    :align: center
+
+Conclusion
+----------
+
+This concludes our foray into structural plasticity. While the building blocks
+
+- an explicit representation of the connections,
+- running the simulation in batches (and calling ``simulation.update``!)
+- a rule to derive the change
+
+will likely be the same in all approaches, the concrete implementation of the
+rules is the centerpiece here.
