@@ -256,7 +256,7 @@ setpoint
 
 and the resulting network
 
-.. figure:: ../../python/example/plasticity/03-graph.svg
+.. figure:: ../../python/example/plasticity/03-final-graph.svg
     :width: 400
     :align: center
 
