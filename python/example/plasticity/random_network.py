@@ -75,4 +75,5 @@ if __name__ == "__main__":
         t += t_interval
         sim.run(t * U.ms, dt * U.ms)
 
-    plot_spikes(sim, rec.num_cells(), t_interval, T, prefix="02-")
+    plot_network(rec, prefix="02-")
+    plot_spikes(sim, N, t_interval, T, prefix="02-")

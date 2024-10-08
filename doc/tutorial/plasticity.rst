@@ -8,8 +8,18 @@ primarily interested in examining the required scaffolding.
 We will build up the simulation in stages, starting with an unconnected network
 and finishing with a dynamically built connectome.
 
-An Unconnected Network
-----------------------
+.. admonition:: Concepts and Requirements
+
+    We cover some advanced topics in this tutorial, mainly structural
+    plasticity. Please refer to other tutorials for the basics of network
+    building. The model employed here --- storing an explicit connection matrix
+    --- is not advisable in most scenarios.
+
+    In addition to Arbor and its requirements, ``scipy``, ``matplotlib``, and
+    ``networkx`` need to be installed.
+
+Unconnected Network
+-------------------
 
 Consider a collection of ``N`` LIF cells. This will be the starting point for
 our exploration. For now, we set up each cell with a Poissonian input such that
@@ -128,6 +138,9 @@ We then proceed to run the simulation and plot the results as before
   :language: python
   :lines: 68-79
 
+Note that we added a plot of the network connectivity using ``plot_network``
+from ``util`` as well. This generates images of the graph and connection matrix.
+
 Adding Homeostasis
 ------------------
 
@@ -145,10 +158,64 @@ equation above, namely adding/deleting exactly one connection if the difference
 of observed to desired spiking frequency exceeds :math:`\pm\alpha`. This is both
 for simplicity and to avoid sudden changes in the network structure.
 
-We do this by tweaking the connection table in between calls to ``run``. In
-particular, we walk the potential pairings of targets and sources in random
-order and check whether the targets requires adding or removing connections. If
-we find an option to fulfill that requirement, we do so and proceed to the next
-target. The randomization is important here, espcially for adding connections as
-to avoid biases, in particular when there are too few eglible connection
-partners.
+As before, we set up global parameters
+
+.. literalinclude:: ../../python/example/plasticity/homeostasis.py
+  :language: python
+  :lines: 10-24
+
+and prepare our simulation
+
+.. literalinclude:: ../../python/example/plasticity/homeostasis.py
+  :language: python
+  :lines: 37-39
+
+Note that our new recipe is almost unaltered from the random network
+
+.. literalinclude:: ../../python/example/plasticity/homeostasis.py
+  :language: python
+  :lines: 27-33
+
+all changes are contained to the way we run the simulation. To add a further
+interesting feature, we skip the rewiring for the first half of the simulation.
+
+Plasticity is implemented by tweaking the connection table inside the recipe
+between calls to ``run`` and calling ``simulation.update`` with the modified
+recipe:
+
+.. literalinclude:: ../../python/example/plasticity/homeostasis.py
+  :language: python
+  :lines: 70
+
+Changes are based on the difference of current rate we compute from the spikes
+during the last interval
+
+.. literalinclude:: ../../python/example/plasticity/homeostasis.py
+  :language: python
+  :lines: 49-54
+
+and the setpoint times the sensitivity
+
+.. literalinclude:: ../../python/example/plasticity/homeostasis.py
+  :language: python
+  :lines: 55
+
+Then, each potential pairing of target and source is checked  in random
+order for whether adding or removing a connection is required
+
+.. literalinclude:: ../../python/example/plasticity/homeostasis.py
+  :language: python
+  :lines: 59-68
+
+If we find an option to fulfill that requirement, we do so and proceed to the
+next target. The randomization is important here, espcially for adding
+connections as to avoid biases, in particular when there are too few eglible
+connection partners. The ``randrange`` function produces a shuffled range ``[0,
+N)``. We leverage the helper functions from the random network recipe to
+manipulate the connection table, see the discussion above.
+
+Finally, we plot networks and spikes as before
+
+.. literalinclude:: ../../python/example/plasticity/homeostasis.py
+  :language: python
+  :lines: 74-75
