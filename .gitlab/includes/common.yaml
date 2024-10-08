@@ -81,6 +81,7 @@ variables:
   artifacts:
     paths:
       - $BUILD_DIR/bin
+      - $BUILD_DIR/lib
       - $INSTALL_DIR
 
 #####################
