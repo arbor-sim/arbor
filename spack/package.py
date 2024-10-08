@@ -70,6 +70,7 @@ class Arbor(CMakePackage, CudaPackage):
         default=False,
         description="Enable vectorization of computational kernels",
     )
+    variant("hwloc", default=False, description="support for thread pinning via HWLOC")
     variant(
         "gpu_rng",
         default=False,
@@ -107,6 +108,9 @@ class Arbor(CMakePackage, CudaPackage):
     depends_on("mpi", when="+mpi")
     depends_on("py-mpi4py", when="+mpi+python", type=("build", "run"))
 
+    # hwloc
+    depends_on("hwloc@2:", when="+hwloc", type=("build", "run"))
+
     # python (bindings)
     with when("+python"):
         extends("python")
@@ -135,6 +139,7 @@ class Arbor(CMakePackage, CudaPackage):
             self.define_from_variant("ARB_WITH_MPI", "mpi"),
             self.define_from_variant("ARB_WITH_PYTHON", "python"),
             self.define_from_variant("ARB_VECTORIZE", "vectorize"),
+            self.define_from_variant("ARB_USE_HWLOC", "hwloc"),
         ]
 
         if "+cuda" in self.spec:
