@@ -222,6 +222,32 @@ recipe:
   :language: python
   :lines: 70
 
+.. note::
+
+   As it is the central point here, it is worth emphasizing why this yields a
+   changed network. The call to ``sim.update(rec)`` causes Arbor to internally
+   re-build the connection table from scratch based on the data returned by
+   ``rec.connections_on``. However, here, this method just inspects the matrix
+   in ``rec.connections`` and converts the data into a ``arbor.connection``.
+   Thus, changing this matrix before ``update`` will build a different network.
+
+   Important caveats:
+
+   - without ``update``, changes to the recipe have no effect
+   - vice versa ``update`` has no effect if the recipe doesn't return different
+     data than before
+   - ``update`` will delete all existing connections and their parameters, so
+     all connections to be kept must be explicitly re-instantiated
+   - ``update`` will **not** delete synapses or their state, e.g. ODEs will
+     still be integrated even if not connected and currents might be produced
+   - neither synapses/targets nor detectors/sources can be altered. Create all
+     endpoints up front.
+   - only the network is updated (this might change in future versions!)
+   - be very aware that ``connections_on`` might be called in arbitrary order
+     and by multiples (potentially different) threads and processes! This
+     requires some thought and synchronization when dealing with random numbers
+     and updating data *inside* ``connections_on``.
+
 Changes are based on the difference of current rate we compute from the spikes
 during the last interval
 
@@ -273,4 +299,10 @@ This concludes our foray into structural plasticity. While the building blocks
 - a rule to derive the change
 
 will likely be the same in all approaches, the concrete implementation of the
-rules is the centerpiece here.
+rules is the centerpiece here. For example, although spike rate homeostasis was
+used here, mechanism states and ion concentrations --- extracted via the normal
+probe and sample interface --- can be leveraged to build rules. Due to the way
+the Python interface is required to link to measurements, using the C++ API for
+access to streaming spike and measurement data could help to address performance
+issues. Plasticity as shown also meshes with the high-level connection builder.
+External tools to build and update connections might be useful as well.
