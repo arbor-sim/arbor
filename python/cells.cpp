@@ -413,46 +413,62 @@ void register_cells(py::module& m) {
     );
 
     membrane_potential
-        .def(py::init([](const U::quantity& v) -> arb::init_membrane_potential { return {v }; }))
-        .def("__repr__",
-             [](const arb::init_membrane_potential& d){
-                 return "Vm=" + to_string(d.value) + " scale=" + to_string(d.scale);});
+        .def(py::init([](const U::quantity& v) -> arb::init_membrane_potential { return {v}; }))
+        .def_property_readonly("value", [](const arb::init_membrane_potential& d) -> U::quantity { return d.value * U::mV; })
+        .def_property_readonly("scale", [](const arb::init_membrane_potential& d) -> arb::iexpr { return d.scale; })
+        .def("__repr__", [](const arb::init_membrane_potential& d) { return "Vm=" + to_string(d.value) + "mV scale=" + to_string(d.scale);});
 
     revpot_method
-        .def(py::init([](const std::string& ion,
-                         const arb::mechanism_desc& d) -> arb::ion_reversal_potential_method {
-            return {ion, d};
-        }))
-        .def("__repr__", [](const arb::ion_reversal_potential_method& d) {
-            return "ion" + d.ion + " method=" + d.method.name();});
+        .def(py::init([](const std::string& ion, const arb::mechanism_desc& d) -> arb::ion_reversal_potential_method { return {ion, d}; }))
+        .def_property_readonly("method", [](const arb::ion_reversal_potential_method& d) -> arb::mechanism_desc { return d.method; })
+        .def_property_readonly("ion", [](const arb::ion_reversal_potential_method& d) -> std::string { return d.ion; })
+        .def("__repr__", [](const arb::ion_reversal_potential_method& d) { return "ion" + d.ion + " method=" + d.method.name();});
 
     membrane_capacitance
         .def(py::init([](const U::quantity& v) -> arb::membrane_capacitance { return {v}; }))
-        .def("__repr__", [](const arb::membrane_capacitance& d){return "Cm=" + to_string(d.value);});
+        .def_property_readonly("value", [](const arb::membrane_capacitance& d) -> U::quantity { return d.value * U::F / U::m2; })
+        .def_property_readonly("scale", [](const arb::membrane_capacitance& d) -> arb::iexpr { return d.scale; })
+        .def("__repr__", [](const arb::membrane_capacitance& d) {return "Cm=" + to_string(d.value) + "F/m² scale=" + to_string(d.scale);});
 
     temperature_K
         .def(py::init([](const U::quantity& v) -> arb::temperature { return {v}; }))
-        .def("__repr__", [](const arb::temperature& d){return "T=" + to_string(d.value);});
+        .def_property_readonly("value", [](const arb::temperature& d) -> U::quantity { return d.value * U::Kelvin; })
+        .def_property_readonly("scale", [](const arb::temperature& d) -> arb::iexpr { return d.scale; })
+        .def("__repr__", [](const arb::temperature& d){return "T=" + to_string(d.value) + "K scale=" + to_string(d.scale);});
 
     axial_resistivity
         .def(py::init([](const U::quantity& v) -> arb::axial_resistivity { return {v}; }))
-        .def("__repr__", [](const arb::axial_resistivity& d){return "Ra" + to_string(d.value);});
+        .def_property_readonly("value", [](const arb::axial_resistivity& d) -> U::quantity { return d.value * U::Ohm * U::cm; })
+        .def_property_readonly("scale", [](const arb::axial_resistivity& d) -> arb::iexpr { return d.scale; })
+        .def("__repr__", [](const arb::axial_resistivity& d){return "Ra" + to_string(d.value) + "Ω·cm scale=" + to_string(d.scale);});
 
     reversal_potential
         .def(py::init([](const std::string& i, const U::quantity& v) -> arb::init_reversal_potential { return {i, v}; }))
+        .def_property_readonly("ion", [](const arb::init_reversal_potential& d) -> std::string { return d.ion; })
+        .def_property_readonly("value", [](const arb::init_reversal_potential& d) -> U::quantity { return d.value * U::mV; })
+        .def_property_readonly("scale", [](const arb::init_reversal_potential& d) -> arb::iexpr { return d.scale; })
         .def("__repr__", [](const arb::init_reversal_potential& d){return "e" + d.ion + "=" + to_string(d.value);});
 
     int_concentration
         .def(py::init([](const std::string& i, const U::quantity& v) -> arb::init_int_concentration { return {i, v}; }))
-        .def("__repr__", [](const arb::init_int_concentration& d){return d.ion + "i" + "=" + to_string(d.value);});
+        .def_property_readonly("ion", [](const arb::init_int_concentration& d) -> std::string { return d.ion; })
+        .def_property_readonly("value", [](const arb::init_int_concentration& d) -> U::quantity { return d.value * U::mM; })
+        .def_property_readonly("scale", [](const arb::init_int_concentration& d) -> arb::iexpr { return d.scale; })
+        .def("__repr__", [](const arb::init_int_concentration& d){return d.ion + "i" + "=" + to_string(d.value) + "mM scale=" + to_string(d.scale);});
 
     ext_concentration
         .def(py::init([](const std::string& i, const U::quantity& v) -> arb::init_ext_concentration { return {i, v}; }))
-        .def("__repr__", [](const arb::init_ext_concentration& d){return d.ion + "o" + "=" + to_string(d.value);});
+        .def_property_readonly("ion", [](const arb::init_ext_concentration& d) -> std::string { return d.ion; })
+        .def_property_readonly("value", [](const arb::init_ext_concentration& d) -> U::quantity { return d.value * U::mM; })
+        .def_property_readonly("scale", [](const arb::init_ext_concentration& d) -> arb::iexpr { return d.scale; })
+        .def("__repr__", [](const arb::init_ext_concentration& d){return d.ion + "o" + "=" + to_string(d.value) + "mM scale=" + to_string(d.scale);});
 
     ion_diffusivity
         .def(py::init([](const std::string& i, const U::quantity& v) -> arb::ion_diffusivity { return {i, v}; }))
-        .def("__repr__", [](const arb::ion_diffusivity& d){return "D" + d.ion + "=" + to_string(d.value);});
+        .def_property_readonly("ion", [](const arb::ion_diffusivity& d) -> std::string { return d.ion; })
+        .def_property_readonly("value", [](const arb::ion_diffusivity& d) -> U::quantity { return d.value * U::m2/U::s; })
+        .def_property_readonly("scale", [](const arb::ion_diffusivity& d) -> arb::iexpr { return d.scale; })
+        .def("__repr__", [](const arb::ion_diffusivity& d){return "D" + d.ion + "=" + to_string(d.value) + "m²/s scale=" + to_string(d.scale);});
 
     density
         .def(py::init([](const std::string& name) {return arb::density(name);}))
