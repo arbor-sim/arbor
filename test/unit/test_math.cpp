@@ -97,15 +97,13 @@ TEST(math, infinity) {
     EXPECT_GT(ldinf, 0.0l);
 
     // check default value promotes correctly (i.e., acts like INFINITY)
-    struct {
-        float f;
-        double d;
-        long double ld;
-    } check = {infinity<>, infinity<>, infinity<>};
+    float f = infinity<>;
+    double d = infinity<>;
+    long double ld = infinity<>;
 
-    EXPECT_EQ(std::numeric_limits<float>::infinity(), check.f);
-    EXPECT_EQ(std::numeric_limits<double>::infinity(), check.d);
-    EXPECT_EQ(std::numeric_limits<long double>::infinity(), check.ld);
+    EXPECT_EQ(std::numeric_limits<float>::infinity(), f);
+    EXPECT_EQ(std::numeric_limits<double>::infinity(), d);
+    EXPECT_EQ(std::numeric_limits<long double>::infinity(), ld);
 }
 
 TEST(math, signum) {

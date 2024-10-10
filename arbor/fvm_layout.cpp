@@ -721,9 +721,11 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
         append(L.reset_econc, R.reset_econc);
         append(L.init_revpot, R.init_revpot);
         append(L.face_diffusivity, R.face_diffusivity);
-        L.is_diffusive |= R.is_diffusive;
+        L.is_diffusive   |= R.is_diffusive;
         L.econc_written  |= R.econc_written;
         L.iconc_written  |= R.iconc_written;
+        L.econc_read     |= R.econc_read;
+        L.iconc_read     |= R.iconc_read;
         L.revpot_written |= R.revpot_written;
     }
 
@@ -826,13 +828,25 @@ struct fvm_ion_build_data {
     mcable_map<double> init_econc_mask;
     bool write_xi = false;
     bool write_xo = false;
+    bool read_xi = false;
+    bool read_xo = false;
     std::vector<arb_index_type> support;
 
-    void add_to_support(const std::vector<arb_index_type>& cvs) {
+    auto& add_to_support(const std::vector<arb_index_type>& cvs) {
         arb_assert(util::is_sorted(cvs));
         support = unique_union(support, cvs);
+        return *this;
+    }
+
+    auto& add_ion_dep(const ion_dependency& dep) {
+        write_xi |= dep.write_concentration_int;
+        write_xo |= dep.write_concentration_ext;
+        read_xi |= dep.read_concentration_int;
+        read_xo |= dep.read_concentration_ext;
+        return *this;
     }
 };
+
 
 using fvm_mechanism_config_map = std::map<std::string, fvm_mechanism_config>;
 using fvm_ion_config_map = std::unordered_map<std::string, fvm_ion_config>;
@@ -913,7 +927,7 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
 // Build reversal potential configs. Returns { X | X ion && eX is written }
 std::unordered_set<std::string>
 make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_desc>& method,
-                             const std::unordered_map<std::string, fvm_ion_config>& ions,
+                             std::unordered_map<std::string, fvm_ion_config>& ions,
                              const cell_build_data& data,
                              fvm_mechanism_config_map&);
 
@@ -1228,10 +1242,9 @@ make_density_mechanism_config(const region_assignment<density>& assignments,
         apply_parameters_on_cv(config, data, param_maps, support);
 
         for (const auto& [ion, dep]: info.ions) {
-            auto& build_data = ion_build_data[ion];
-            build_data.write_xi |= dep.write_concentration_int;
-            build_data.write_xo |= dep.write_concentration_ext;
-            build_data.add_to_support(config.cv);
+            auto& build_data = ion_build_data[ion]
+                .add_ion_dep(dep)
+                .add_to_support(config.cv);
 
             auto ok = true;
             if (dep.write_concentration_int) {
@@ -1343,6 +1356,8 @@ make_ion_config(fvm_ion_map build_data,
 
         config.econc_written = build_data.write_xo;
         config.iconc_written = build_data.write_xi;
+        config.econc_read    = build_data.read_xo;
+        config.iconc_read    = build_data.read_xi;
         if (!config.cv.empty()) result[ion] = std::move(config);
     }
 }
@@ -1528,10 +1543,9 @@ make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<
 
         // If synapse uses an ion, add to ion support.
         for (const auto& [ion, dep]: info.ions) {
-            auto& build_data = ion_build_data[ion];
-            build_data.write_xi |= dep.write_concentration_int;
-            build_data.write_xo |= dep.write_concentration_ext;
-            build_data.add_to_support(config.cv);
+            ion_build_data[ion]
+                .add_ion_dep(dep)
+                .add_to_support(config.cv);
         }
         n_target += config.target.size();
         if (!config.cv.empty()) result[name] = std::move(config);
@@ -1594,9 +1608,8 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
         }
 
         for (const auto& [ion, dep]: info.ions) {
-            auto& build_data = ion_build_data[ion];
-            build_data.write_xi |= dep.write_concentration_int;
-            build_data.write_xo |= dep.write_concentration_ext;
+            ion_build_data[ion].add_ion_dep(dep);
+            // TODO Why don't we add to support here?!
         }
 
         result[name] = std::move(config);
@@ -1627,7 +1640,7 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
 
 std::unordered_set<std::string>
 make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_desc>& method,
-                             const std::unordered_map<std::string, fvm_ion_config>& ions,
+                             std::unordered_map<std::string, fvm_ion_config>& ions,
                              const cell_build_data& data,
                              fvm_mechanism_config_map& result) {
     std::unordered_map<std::string, mechanism_desc> revpot_tbl;
@@ -1667,10 +1680,13 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_des
 
         // Only instantiate if the ion is used.
         if (ions.count(ion)) {
+            auto& ion_conf = ions.at(ion);
+            // NOTE: This _should_ never fail, as writing to eX entails an ion dependency...
+            const auto& dep = info.ions.at(ion);
             // Revpot mechanism already configured? Add cvs for this ion too.
             if (result.count(name)) {
                 fvm_mechanism_config& config = result[name];
-                config.cv = unique_union(config.cv, ions.at(ion).cv);
+                config.cv = unique_union(config.cv, ion_conf.cv);
                 config.norm_area.assign(config.cv.size(), 1.);
 
                 for (auto& [_p, v]: config.param_values) {
@@ -1679,19 +1695,18 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_des
             }
             else {
                 auto config = make_mechanism_config(info, arb_mechanism_kind_reversal_potential);
-                config.cv = ions.at(ion).cv;
+                config.cv = ion_conf.cv;
                 auto n_cv = config.cv.size();
                 config.norm_area.assign(n_cv, 1.);
-
                 auto parameters = ordered_parameters(info);
-
                 for (auto& [param, def]: parameters) {
                     auto val = values.count(param) ? values.at(param) : def;
                     config.param_values.emplace_back(param, std::vector<arb_value_type>(n_cv, val));
                 }
-
                 if (!config.cv.empty()) result[name] = std::move(config);
             }
+            ion_conf.econc_read |= dep.read_concentration_ext;
+            ion_conf.iconc_read |= dep.read_concentration_int;
         }
     }
 

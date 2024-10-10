@@ -24,7 +24,6 @@
 #include <initializer_list>
 #include <backends/multicore/fvm.hpp>
 #include <ion.hpp>
-#include <matrix.hpp>
 #include <memory/wrappers.hpp>
 #include <util/rangeutil.hpp>
 #include <util/cycle.hpp>
