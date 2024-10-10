@@ -65,9 +65,12 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
     if (read_Xo_) {
         Xo_ = make_const_view(ion_data.init_econc);
     }
+    if (write_Xi_ || write_Xd_) {
+        // ... but this is used by Xd and Xi!
+        reset_Xi_ = make_const_view(ion_data.reset_iconc);
+    }
     if (write_Xi_) {
         init_Xi_ = make_const_view(ion_data.init_iconc);
-        reset_Xi_ = make_const_view(ion_data.reset_iconc);
         arb_assert(node_index_.size()==init_Xi_.size());
     }
     if (write_Xo_) {
