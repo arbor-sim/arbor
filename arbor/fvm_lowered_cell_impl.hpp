@@ -1017,7 +1017,7 @@ void resolve_probe(const cable_probe_ion_ext_concentration& p, probe_resolution_
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
         auto opt_i = R.ion_location_index(ion, loc);
         if (!opt_i) continue;
-        R.result.push_back(fvm_probe_scalar{{xo + *opt_i}, loc});
+        R.result.push_back(fvm_probe_scalar{{xo.data() + *opt_i}, loc});
     }
 }
 
@@ -1028,7 +1028,7 @@ void resolve_probe(const cable_probe_ion_diff_concentration& p, probe_resolution
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
         auto opt_i = R.ion_location_index(ion, loc);
         if (!opt_i) continue;
-        R.result.push_back(fvm_probe_scalar{{xd + *opt_i}, loc});
+        R.result.push_back(fvm_probe_scalar{{xd.data() + *opt_i}, loc});
     }
 }
 
