@@ -16,7 +16,7 @@ def make_catalogue():
     print(out)
     # load the new catalogue and extend it with builtin stochastic catalogue
     cat = A.load_catalogue("./ou_lif-catalogue.so")
-    cat.extend(A.stochastic_catalogue(), "")
+    cat.extend(A.stochastic_catalogue())
     return cat
 
 

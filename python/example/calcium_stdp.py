@@ -74,7 +74,7 @@ class stdp_recipe(A.recipe):
         self.the_cell = cell
         # create extended catalogue including stochastic mechanisms
         self.the_props = A.neuron_cable_properties()
-        self.the_props.catalogue.extend(A.stochastic_catalogue(), "")
+        self.the_props.catalogue.extend(A.stochastic_catalogue())
         self.time_lags = time_lags
         self.num = len(time_lags)
 

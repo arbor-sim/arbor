@@ -1,5 +1,6 @@
 #include <map>
 #include <vector>
+#include <algorithm>
 
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/segment_tree.hpp>

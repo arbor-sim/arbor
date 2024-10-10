@@ -3,8 +3,6 @@
 #include <type_traits>
 #include <variant>
 
-#include "util/meta.hpp"
-
 /*
  * Use a proxy iterator to present a range as having the same begin and
  * end types, for use with e.g. pre-C++17 ranged-for loops or STL
@@ -95,10 +93,6 @@ public:
         }
     }
 
-    bool operator!=(const sentinel_iterator& x) const {
-        return !(*this==x);
-    }
-
     // bidirectional iterator requirements
 
     sentinel_iterator& operator--() {
@@ -146,24 +140,7 @@ public:
         return *(iter()+n);
     }
 
-    bool operator<=(const sentinel_iterator& x) const {
-        return x.is_sentinel() || (!is_sentinel() && iter()<=x.iter());
-    }
-
-    bool operator<(const sentinel_iterator& x) const {
-        return !is_sentinel() && (x.is_sentinel() || iter()<=x.iter());
-    }
-
-    bool operator>=(const sentinel_iterator& x) const {
-        return !(x<*this);
-    }
-
-    bool operator>(const sentinel_iterator& x) const {
-        return !(x<=*this);
-    }
-
     // access to underlying iterator/sentinel
-
     bool is_sentinel() const { return e_.index()!=0; }
     bool is_iterator() const { return e_.index()==0; }
 

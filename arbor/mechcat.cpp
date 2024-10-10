@@ -1,5 +1,4 @@
 #include <cstdlib>
-#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -114,19 +113,19 @@ struct catalogue_state {
     catalogue_state() = default;
 
     catalogue_state(const catalogue_state& other) {
-        import(other, "");
+        extend(other, "");
     }
 
     catalogue_state& operator=(const catalogue_state& other) {
         *this = {};
-        import(other, "");
+        extend(other, "");
         return *this;
     }
 
     catalogue_state& operator=(catalogue_state&&) = default;
     catalogue_state(catalogue_state&& other) = default;
 
-    void import(const catalogue_state& other, const std::string& prefix) {
+    void extend(const catalogue_state& other, const std::string& prefix) {
         // Do all checks before adding anything, otherwise we might get inconsistent state.
         auto assert_undefined = [&](const std::string& key) {
             auto pkey = prefix+key;
@@ -579,8 +578,8 @@ void mechanism_catalogue::derive(const std::string& name, const std::string& par
     state_->bind(name, value(state_->derive(parent)));
 }
 
-void mechanism_catalogue::import(const mechanism_catalogue& other, const std::string& prefix) {
-    state_->import(*other.state_, prefix);
+void mechanism_catalogue::extend(const mechanism_catalogue& other, const std::string& prefix) {
+    state_->extend(*other.state_, prefix);
 }
 
 void mechanism_catalogue::remove(const std::string& name) {

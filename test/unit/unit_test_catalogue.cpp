@@ -23,7 +23,7 @@
 
 arb::mechanism_catalogue make_unit_test_catalogue(const arb::mechanism_catalogue& from) {
     auto result = from;
-    result.import(arb::global_testing_catalogue(), "");
+    result.extend(arb::global_testing_catalogue());
     return result;
 }
 

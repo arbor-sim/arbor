@@ -93,7 +93,8 @@ namespace {
 
     constexpr unsigned nrounds = 20u;
 
-    constexpr int native_width = ::arb::simd::simd_abi::native_width<double>::value;
+    // Used with SVE only.
+    constexpr int native_width [[maybe_unused]] = ::arb::simd::simd_abi::native_width<double>::value;
 }
 
 template <typename S>

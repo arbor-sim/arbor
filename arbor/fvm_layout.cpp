@@ -961,6 +961,7 @@ fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
         else {
             throw cable_cell_error("unrecognized ion '"+ion+"' in mechanism.");
         }
+
     }
     return combined;
 }
@@ -1030,11 +1031,9 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     // Track ion usage of mechanisms so that ions are only instantiated where required.
     fvm_ion_map ion_build_data;
 
-    // add diffusive ions to support: If diffusive, it's everywhere.
-    for (const auto& [ion, data]: D.diffusive_ions) {
-        auto& s = ion_build_data[ion].support;
-        s.resize(D.geometry.size());
-        std::iota(s.begin(), s.end(), 0);
+    // pre-extend support of diffusive ions, if diffusive, it's everywhere.
+    for (auto& [ion, data]: D.diffusive_ions) {
+        assign(ion_build_data[ion].support, D.geometry.cell_cvs(cell_idx));
     }
 
     fvm_mechanism_data M;

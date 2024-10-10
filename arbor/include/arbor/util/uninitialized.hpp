@@ -74,11 +74,11 @@ public:
 
     // Apply the one-parameter functor F to the value by reference.
     template <typename F>
-    std::result_of_t<F(reference)> apply(F&& f) { return f(ref()); }
+    std::invoke_result_t<F, reference> apply(F&& f) { return f(ref()); }
 
     // Apply the one-parameter functor F to the value by const reference.
     template <typename F>
-    std::result_of_t<F(const_reference)> apply(F&& f) const { return f(cref()); }
+    std::invoke_result_t<F, const_reference> apply(F&& f) const { return f(cref()); }
 };
 
 /*
