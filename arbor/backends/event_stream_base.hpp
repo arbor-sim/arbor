@@ -65,7 +65,7 @@ public:
     // Construct a mapping of mech_id to a stream s.t. streams are partitioned into
     // time step buckets by `ev_span`
     template<typename EventStream>
-    static std::enable_if_t<std::is_base_of_v<event_stream_base, EventStream>>
+    static std::enable_if_t<std::is_base_of_v<event_stream_base<deliverable_event>, EventStream>>
     multi_event_stream(const event_lane_subrange& lanes,
                        const std::vector<target_handle>& handles,
                        const std::vector<std::size_t>& divs,
@@ -73,13 +73,21 @@ public:
                        std::unordered_map<unsigned, EventStream>& streams) {
         arb_assert(lanes.size() < divs.size());
 
-        auto n_steps = steps.size();
+        // temporary data structures to hold
+        // - the number of events in every time interval per mechanism
+        // - time sorted events per mechanism
         std::unordered_map<unsigned, std::vector<std::size_t>> dt_sizes;
+        std::unordered_map<unsigned, std::vector<deliverable_event>> evts;
+
+        // reset streams and allocate sufficient space for temporaries
+        auto n_steps = steps.size();
         for (auto& [k, v]: streams) {
             v.clear();
             dt_sizes[k].resize(n_steps, 0);
+            evts[k].reserve(v.ev_data_.capacity());
         }
 
+        // loop over lanes: group events by mechanism and sort them by time
         auto cell = 0;
         for (const auto& lane: lanes) {
             auto div = divs[cell];
@@ -94,12 +102,26 @@ public:
                 if (step >= n_steps) break;
                 arb_assert(div + target < handles.size());
                 const auto& handle = handles[div + target];
-                streams[handle.mech_id].ev_data_.push_back({handle.mech_index, weight});
+                auto& sorted_evts = evts[handle.mech_id];
+                sorted_evts.emplace_back(time, handle, weight);
+                // insertion sort with last element as pivot
+                auto first = sorted_evts.begin();
+                auto last = sorted_evts.end();
+                auto pivot = std::prev(last, 1);
+                std::rotate(std::upper_bound(first, pivot, *pivot, [](auto const& l, auto const& r) noexcept { return l.time < r.time; }),
+                    pivot, last);
+                // increment count in current time interval
                 dt_sizes[handle.mech_id][step]++;
             }
         }
 
         for (auto& [id, stream]: streams) {
+            // copy temporary deliverable_events into stream's ev_data_
+            auto& sorted_evts = evts[id];
+            stream.ev_data_.reserve(sorted_evts.size());
+            std::transform(sorted_evts.begin(), sorted_evts.end(), std::back_inserter(stream.ev_data_),
+                [](auto const& e) noexcept -> arb_deliverable_event_data { return {e.handle.mech_index, e.weight}; });
+            // scan over dt_sizes[id] written to ev_spans_
             util::make_partition(stream.ev_spans_, dt_sizes[id]);
             stream.init();
         }
