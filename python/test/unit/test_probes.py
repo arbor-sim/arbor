@@ -19,14 +19,15 @@ class cc_recipe(A.recipe):
         st = A.segment_tree()
         st.append(A.mnpos, (0, 0, 0, 10), (1, 0, 0, 10), 1)
 
-        dec = (A.decor()
-               # This ensures we _read_ nai/nao and can probe them, too
-               .set_ion(ion='na', method='nernst/x=na')
-               .place("(location 0 0.08)", A.synapse("expsyn"), "syn0")
-               .place("(location 0 0.09)", A.synapse("exp2syn"), "syn1")
-               .place("(location 0 0.1)", A.iclamp(20.0 * U.nA), "iclamp")
-               .paint("(all)", A.density("hh"))
-               )
+        dec = (
+            A.decor()
+            # This ensures we _read_ nai/nao and can probe them, too
+            .set_ion(ion="na", method="nernst/x=na")
+            .place("(location 0 0.08)", A.synapse("expsyn"), "syn0")
+            .place("(location 0 0.09)", A.synapse("exp2syn"), "syn1")
+            .place("(location 0 0.1)", A.iclamp(20.0 * U.nA), "iclamp")
+            .paint("(all)", A.density("hh"))
+        )
 
         self.cell = A.cable_cell(st, dec)
 
@@ -147,11 +148,11 @@ class TestCableProbes(unittest.TestCase):
         self.assertEqual(all_cv_cables, m[0])
 
         m = sim.probe_metadata((0, "nai"))
-        self.assertEqual(0, len(m))
+        self.assertEqual(1, len(m))
         self.assertEqual(A.location(0, 0.12), m[0])
 
         m = sim.probe_metadata((0, "nai-all"))
-        self.assertEqual(0, len(m))
+        self.assertEqual(1, len(m))
         self.assertEqual(all_cv_cables, m[0])
 
         m = sim.probe_metadata(0, "nao")

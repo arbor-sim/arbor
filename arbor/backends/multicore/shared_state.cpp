@@ -60,6 +60,7 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
     write_Xd_(ion_data.is_diffusive),
     read_Xo_(ion_data.econc_written || ion_data.econc_read), // ensure that if we have W access, also R access is flagged
     read_Xi_(ion_data.iconc_written || ion_data.iconc_read),
+    read_Xd_(ion_data.is_diffusive),
     node_index_(ion_data.cv.begin(), ion_data.cv.end(), pad(alignment)),
     iX_(ion_data.cv.size(), NAN, pad(alignment)),
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
@@ -90,7 +91,7 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
         init_eX_ = {ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)};
         arb_assert(node_index_.size()==init_eX_.size());
     }
-    if (write_Xd_) {
+    if (read_Xd_) {
         Xd_ = {ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)};
     }
 }
