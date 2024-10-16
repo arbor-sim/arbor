@@ -82,6 +82,19 @@ set_target_properties(pyarb PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${python_mod_pa
 file(COPY "${PROJECT_SOURCE_DIR}/python/__init__.py" DESTINATION "${python_mod_path}")
 file(COPY "${PROJECT_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
 
+configure_file("${PROJECT_SOURCE_DIR}/scripts/arbor-build-catalogue"
+               "${CMAKE_BINARY_DIR}/bin/arbor-build-catalogue"
+               FILE_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE WORLD_READ WORLD_EXECUTE GROUP_READ GROUP_EXECUTE
+               COPYONLY)
+configure_file("${PROJECT_SOURCE_DIR}/scripts/arbor-build-catalogue"
+               "${python_mod_path}/build_catalogue.py"
+               NO_SOURCE_PERMISSIONS
+               COPYONLY)
+configure_file("${PROJECT_SOURCE_DIR}/python/modcc.py"
+               "${python_mod_path}/modcc.py"
+               NO_SOURCE_PERMISSIONS
+               COPYONLY)
+
 # Set the installation path
 
 # Ask Python where it keeps its system (platform) packages.
@@ -106,7 +119,7 @@ mark_as_advanced(FORCE ARB_PYTHON_LIB_PATH)
 if(ARB_BUILD_PYTHON_STUBS)
   find_python_module(pybind11_stubgen REQUIRED)
 else()
-    find_python_module(pybind11_stubgen)
+  find_python_module(pybind11_stubgen)
 endif()
 if(HAVE_PYBIND11_STUBGEN)
   add_custom_command(TARGET pyarb POST_BUILD
@@ -117,7 +130,8 @@ if(HAVE_PYBIND11_STUBGEN)
                      COMMENT "Generating type stubs")
 endif()
 
-if(DEFINED SKBUILD_PROJECT_NAME)
+if(DEFINED
+    SKBUILD_PROJECT_NAME)
   # Building wheel through scikit-build-core
   set(_python_module_install_path .)
 else()
@@ -129,4 +143,8 @@ if(HAVE_PYBIND11_STUBGEN)
   install(DIRECTORY ${CMAKE_BINARY_DIR}/stubs/arbor/ DESTINATION ${_python_module_install_path})
 endif()
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py DESTINATION ${_python_module_install_path})
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/modcc.py DESTINATION ${_python_module_install_path})
+install(FILES ${PROJECT_SOURCE_DIR}/scripts/arbor-build-catalogue
+        DESTINATION ${_python_module_install_path}
+        RENAME build_catalogue.py)
 install(FILES ${PROJECT_SOURCE_DIR}/VERSION ${PROJECT_SOURCE_DIR}/README.md ${PROJECT_SOURCE_DIR}/LICENSE DESTINATION ${_python_module_install_path})
