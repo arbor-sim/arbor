@@ -192,7 +192,7 @@ shared_state::shared_state(task_system_handle tp,
     time_since_spike(n_cell*n_detector),
     src_to_spike(make_const_view(src_to_spike_)),
     cbprng_seed(cbprng_seed_),
-    sample_events(thread_pool),
+    sample_events(),
     watcher{n_cv_, src_to_spike.data(), detector_info}
 {
     memory::fill(time_since_spike, -1.0);
@@ -240,7 +240,7 @@ void shared_state::instantiate(mechanism& m,
 
     if (storage.count(id)) throw arb::arbor_internal_error("Duplicate mech id in shared state");
     auto& store = storage.emplace(id, mech_storage{}).first->second;
-    streams[id] = deliverable_event_stream{thread_pool};
+    streams[id] = spike_event_stream{};
 
     // Allocate view pointers
     store.state_vars_ = std::vector<arb_value_type*>(m.mech_.n_state_vars);
@@ -387,14 +387,6 @@ void shared_state::take_samples() {
         take_samples_impl(state, time, sample_time.data(), sample_value.data());
     }
 }
-
-void shared_state::init_events(const event_lane_subrange& lanes,
-                               const std::vector<target_handle>& handles,
-                               const std::vector<size_t>& divs,
-                               const timestep_range& dts) {
-    arb::gpu::event_stream<deliverable_event>::multi_event_stream(lanes, handles, divs, dts, streams);
-}
-
 
 // Debug interface
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s) {
