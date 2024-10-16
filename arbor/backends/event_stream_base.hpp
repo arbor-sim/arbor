@@ -99,7 +99,7 @@ struct spike_event_stream_base : event_stream_base<deliverable_event> {
                 arb_assert(div + target < handles.size());
                 const auto& handle = handles[div + target];
                 auto& stream = streams[handle.mech_id];
-                stream.spikes_.emplace_back(step, time, handle.mech_index, weight);
+                stream.spikes_.push_back(spike_data{step, time, handle.mech_index, weight});
                 // insertion sort with last element as pivot
                 auto first = stream.spikes_.begin();
                 auto last = stream.spikes_.end();
