@@ -117,7 +117,7 @@ result<Stream> multi_step() {
     for (std::size_t cell=0; cell<num_cells; ++cell) {
         for (std::size_t mech_id=0; mech_id<num_mechanisms; ++mech_id) {
             for (std::size_t mech_index=0; mech_index<num_targets_per_mechanism_and_cell; ++mech_index) {
-                handles.emplace_back(mech_id, mech_index);
+                handles.emplace_back(static_cast<cell_local_size_type>(mech_id), static_cast<cell_local_size_type>(mech_index));
             }
         }
         divs[cell+1] = divs[cell] + num_mechanisms*num_targets_per_mechanism_and_cell;
@@ -139,7 +139,7 @@ result<Stream> multi_step() {
         auto target = mech_id*num_targets_per_mechanism_and_cell + mech_index;
         auto time = time_dist(gen);
         auto weight = 0.0f;
-        events[cell].emplace_back(target, time, weight);
+        events[cell].emplace_back(static_cast<cell_lid_type>(target), time, weight);
     }
 
     // sort events by time
@@ -199,7 +199,7 @@ result<Stream> multi_step() {
         auto mech_id = handle.mech_id;
         auto mech_index = handle.mech_index;
         event.weight = cc++;
-        res.expected[mech_id][step].emplace_back(mech_index, event.weight);
+        res.expected[mech_id][step].push_back(arb_deliverable_event_data{mech_index, event.weight});
     }
 
     // initialize event streams
