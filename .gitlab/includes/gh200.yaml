@@ -5,8 +5,8 @@
   extends: .uenv-runner-todi-gh200
   variables:
     SLURM_ACCOUNT: g154
-    SLURM_PARTITION: debug
-    #SLURM_RESERVATION: daint
+    #SLURM_PARTITION: debug
+    SLURM_RESERVATION: daint
 
 #################
 # Build Project #
