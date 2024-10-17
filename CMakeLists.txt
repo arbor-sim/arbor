@@ -201,13 +201,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
 
-# Detect and deprecate xlC.
-
-include("CheckCompilerXLC")
-
 # Compiler options common to library, examples, tests, etc.
 
 include("CompilerOptions")
+check_supported_cxx()
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_WALL}>")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CUDA_STANDARD 20)
