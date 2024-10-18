@@ -19,12 +19,15 @@ class cc_recipe(A.recipe):
         st = A.segment_tree()
         st.append(A.mnpos, (0, 0, 0, 10), (1, 0, 0, 10), 1)
 
-        dec = A.decor()
-
-        dec.place("(location 0 0.08)", A.synapse("expsyn"), "syn0")
-        dec.place("(location 0 0.09)", A.synapse("exp2syn"), "syn1")
-        dec.place("(location 0 0.1)", A.iclamp(20.0 * U.nA), "iclamp")
-        dec.paint("(all)", A.density("hh"))
+        dec = (
+            A.decor()
+            # This ensures we _read_ nai/nao and can probe them, too
+            .set_ion(ion="na", method="nernst/x=na")
+            .place("(location 0 0.08)", A.synapse("expsyn"), "syn0")
+            .place("(location 0 0.09)", A.synapse("exp2syn"), "syn1")
+            .place("(location 0 0.1)", A.iclamp(20.0 * U.nA), "iclamp")
+            .paint("(all)", A.density("hh"))
+        )
 
         self.cell = A.cable_cell(st, dec)
 
@@ -40,7 +43,7 @@ class cc_recipe(A.recipe):
     def global_properties(self, kind):
         return self.props
 
-    def probes(self, _):
+    def probes(self, gid):
         # Use keyword arguments to check that the wrappers have actually declared keyword arguments correctly.
         # Place single-location probes at (location 0 0.01*j) where j is the index of the probe address in
         # the returned list.

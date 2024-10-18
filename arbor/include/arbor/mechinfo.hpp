@@ -7,8 +7,6 @@
 #include <limits>
 #include <string>
 #include <unordered_map>
-#include <utility>
-#include <vector>
 
 #include <arbor/export.hpp>
 #include <arbor/mechanism_abi.h>
@@ -35,6 +33,8 @@ struct mechanism_field_spec {
 struct ion_dependency {
     bool write_concentration_int = false;
     bool write_concentration_ext = false;
+    bool read_concentration_int = false;
+    bool read_concentration_ext = false;
 
     bool access_concentration_diff = false;
 

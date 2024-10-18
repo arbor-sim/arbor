@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -58,24 +57,43 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
     write_eX_(ion_data.revpot_written),
     write_Xo_(ion_data.econc_written),
     write_Xi_(ion_data.iconc_written),
+    write_Xd_(ion_data.is_diffusive),
+    read_Xo_(ion_data.econc_written || ion_data.econc_read), // ensure that if we have W access, also R access is flagged
+    read_Xi_(ion_data.iconc_written || ion_data.iconc_read),
+    read_Xd_(ion_data.is_diffusive),
     node_index_(ion_data.cv.begin(), ion_data.cv.end(), pad(alignment)),
     iX_(ion_data.cv.size(), NAN, pad(alignment)),
     eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
-    Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),
-    Xd_(ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)),
-    Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)),
     gX_(ion_data.cv.size(), NAN, pad(alignment)),
-    init_Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),
-    init_Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)),
-    reset_Xi_(ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)),
-    reset_Xo_(ion_data.reset_econc.begin(), ion_data.reset_econc.end(), pad(alignment)),
-    init_eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
     charge(1u, ion_data.charge, pad(alignment)),
     solver(std::move(ptr)) {
-    arb_assert(node_index_.size()==init_Xi_.size());
-    arb_assert(node_index_.size()==init_Xo_.size());
-    arb_assert(node_index_.size()==eX_.size());
-    arb_assert(node_index_.size()==init_eX_.size());
+    // We don't need to allocate these if we never use them...
+    if (read_Xi_) {
+        Xi_ = {ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)};
+    }
+    if (read_Xo_) {
+        Xo_ = {ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)};
+    }
+    if (write_Xi_ || write_Xd_) {
+        // ... but this is used by Xd and Xi!
+        reset_Xi_ = {ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)};
+    }
+    if (write_Xi_) {
+        init_Xi_  = {ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)};
+        arb_assert(node_index_.size()==init_Xi_.size());
+    }
+    if (write_Xo_) {
+        init_Xo_  = {ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)};
+        reset_Xo_ = {ion_data.reset_econc.begin(), ion_data.reset_econc.end(), pad(alignment)};
+        arb_assert(node_index_.size()==init_Xo_.size());
+    }
+    if (write_eX_) {
+        init_eX_ = {ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)};
+        arb_assert(node_index_.size()==init_eX_.size());
+    }
+    if (read_Xd_) {
+        Xd_ = {ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)};
+    }
 }
 
 void ion_state::init_concentration() {
@@ -91,10 +109,13 @@ void ion_state::zero_current() {
 
 void ion_state::reset() {
     zero_current();
-    std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xd_.begin());
     if (write_Xi_) std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xi_.begin());
     if (write_Xo_) std::copy(reset_Xo_.begin(), reset_Xo_.end(), Xo_.begin());
     if (write_eX_) std::copy(init_eX_.begin(), init_eX_.end(), eX_.begin());
+    // This goes _last_ or at least after Xi since we might have removed reset_Xi
+    // when Xi is constant. Thus conditionally resetting Xi first and then copying
+    // Xi -> Xd is safe in all cases.
+    if (write_Xd_) std::copy(Xi_.begin(), Xi_.end(), Xd_.begin());
 }
 
 // istim_state methods:
