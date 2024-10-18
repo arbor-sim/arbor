@@ -53,7 +53,8 @@ using cable_sample_range = std::pair<const double*, const double*>;
 //
 // Metadata for point process probes.
 struct ARB_SYMBOL_VISIBLE cable_probe_point_info {
-    cell_lid_type target;   // Target number of point process instance on cell.
+    cell_tag_type target;   // Target tag of point process instance on cell.
+    cell_lid_type lid;      // Target lid of point process instance on cell.
     unsigned multiplicity;  // Number of combined instances at this site.
     mlocation loc;          // Point on cell morphology where instance is placed.
 };
@@ -109,6 +110,7 @@ struct ARB_SYMBOL_VISIBLE cable_probe_density_state {
 };
 
 // Value of state variable `state` in density mechanism `mechanism` across components of the cell.
+//
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
 struct ARB_SYMBOL_VISIBLE cable_probe_density_state_cell {
@@ -117,16 +119,30 @@ struct ARB_SYMBOL_VISIBLE cable_probe_density_state_cell {
 };
 
 // Value of state variable `key` in point mechanism `source` at target `target`.
+//
 // Sample value type: `double`
 // Sample metadata type: `cable_probe_point_info`
 struct ARB_SYMBOL_VISIBLE cable_probe_point_state {
-    cell_lid_type target;
+    cell_tag_type target;
     std::string mechanism;
     std::string state;
+
+    // Engage in minimal hygeine. Ideally, we'd disable all nullptr constructors.
+    cable_probe_point_state(std::nullptr_t, std::string, std::string) = delete;
+    cable_probe_point_state() = delete;
+
+    constexpr cable_probe_point_state(cell_tag_type t, std::string m, std::string s):
+        target(std::move(t)), mechanism(std::move(m)), state(std::move(s)) {}
+    constexpr cable_probe_point_state(const cable_probe_point_state&) = default;
+    constexpr cable_probe_point_state(cable_probe_point_state&&) = default;
+    constexpr cable_probe_point_state& operator=(const cable_probe_point_state&) = default;
+    constexpr cable_probe_point_state& operator=(cable_probe_point_state&&) = default;
 };
 
-// Value of state variable `key` in point mechanism `source` at every target with this mechanism.
-// Metadata has one entry of type cable_probe_point_info for each matched (possibly coalesced) instance.
+// Value of state variable `key` in point mechanism `source` at every target
+// with this mechanism. Metadata has one entry of type cable_probe_point_info
+// for each matched (possibly coalesced) instance.
+//
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `std::vector<cable_probe_point_info>`
 struct ARB_SYMBOL_VISIBLE cable_probe_point_state_cell {
@@ -224,6 +240,7 @@ struct placed {
     mlocation loc;
     cell_lid_type lid;
     T item;
+    hash_type tag;
 };
 
 // Note: lid fields of elements of mlocation_map used in cable_cell are strictly increasing.
