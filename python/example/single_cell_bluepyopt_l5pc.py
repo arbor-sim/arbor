@@ -50,7 +50,7 @@ class single_recipe(A.recipe):
     def __init__(self, cell, probes):
         # The base C++ class constructor must be called first, to ensure that
         # all memory in the C++ class is initialized correctly.
-        A.recipe.__init__(self)
+        super().__init__()
         self.the_cell = cell
         self.the_probes = probes
 
