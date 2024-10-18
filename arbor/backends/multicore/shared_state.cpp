@@ -108,7 +108,7 @@ void ion_state::reset() {
     if (write_eX_) std::copy(init_eX_.begin(), init_eX_.end(), eX_.begin());
     // This goes _last_ or at least after Xi since we might have removed reset_Xi
     // when Xi is constant. Thus conditionally resetting Xi first and then copying
-    // Xi -> Xd is save in all cases.
+    // Xi -> Xd is safe in all cases.
     if (write_Xd_) std::copy(Xi_.begin(), Xi_.end(), Xd_.begin());
 }
 
