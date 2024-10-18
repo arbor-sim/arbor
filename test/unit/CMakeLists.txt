@@ -191,7 +191,7 @@ make_catalogue_standalone(
 target_link_libraries(dummy-catalogue PRIVATE arbor-private-deps)
 add_dependencies(unit dummy-catalogue)
 
-target_link_libraries(unit PRIVATE arbor-private-deps)
+target_link_libraries(unit PRIVATE arbor-private-deps ext-gtest)
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../swc\"")
 target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")

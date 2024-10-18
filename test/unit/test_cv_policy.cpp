@@ -1,6 +1,3 @@
-#include <iterator>
-#include <numeric>
-#include <utility>
 #include <vector>
 
 #include <arbor/cable_cell.hpp>
@@ -43,8 +40,7 @@ TEST(cv_policy, single) {
     for (region reg:
             {reg::all(), reg::branch(2), reg::cable(3, 0.25, 1.),
              join(reg::cable(1, 0.75, 1), reg::branch(3), reg::cable(2, 0, 0.5)),
-             join(reg::cable(2, 0, 0.5), reg::branch(3), reg::cable(4, 0, 0.5))})
-    {
+             join(reg::cable(2, 0, 0.5), reg::branch(3), reg::cable(4, 0, 0.5))}) {
         locset expected = ls::cboundary(reg);
         EXPECT_TRUE(locset_eq(cell.provider(), ls::cboundary(reg), cv_policy_single(reg).cv_boundary_points(cell)));
     }
@@ -94,9 +90,7 @@ TEST(cv_policy, explicit_policy) {
 
 TEST(cv_policy, empty_morphology) {
     // Any policy applied to an empty morphology should give an empty locset.
-
-    using namespace cv_policy_flag;
-
+    using enum cv_policy_flag;
     cv_policy policies[] = {
         cv_policy_fixed_per_branch(3),
         cv_policy_fixed_per_branch(3, interior_forks),
@@ -116,7 +110,7 @@ TEST(cv_policy, empty_morphology) {
 }
 
 TEST(cv_policy, fixed_per_branch) {
-    using namespace cv_policy_flag;
+    using enum cv_policy_flag;
     using L = mlocation;
 
     // Root branch only:
@@ -200,7 +194,7 @@ TEST(cv_policy, fixed_per_branch) {
 }
 
 TEST(cv_policy, max_extent) {
-    using namespace cv_policy_flag;
+    using enum cv_policy_flag;
     using L = mlocation;
 
     // Root branch only:
@@ -268,7 +262,7 @@ TEST(cv_policy, max_extent) {
 }
 
 TEST(cv_policy, every_segment) {
-    using namespace cv_policy_flag;
+    using enum cv_policy_flag;
 
     // Cell with root branch and two child branches, with multiple samples per branch.
     // Fork is at (0., 0., 4.0).
@@ -317,7 +311,7 @@ TEST(cv_policy, every_segment) {
 }
 
 TEST(cv_policy, domain) {
-    using namespace cv_policy_flag;
+    using enum cv_policy_flag;
 
     region reg1 = join(reg::branch(1), reg::cable(2, 0, 0.5));
     region reg2 = join(reg::branch(1), reg::cable(2, 0.5, 1), reg::cable(4, 0, 1));

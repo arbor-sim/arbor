@@ -108,7 +108,7 @@ void run_v_i_probe_test(context ctx) {
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
     auto bs = builder.make_cell();
 
-    bs.decorations.set_default(cv_policy_fixed_per_branch(1));
+    bs.discretization = cv_policy_fixed_per_branch(1);
 
     auto stim = i_clamp::box(0.*U::ms, 100*U::ms, 0.3*U::nA);
     bs.decorations.place(mlocation{1, 1}, stim, "clamp");
@@ -209,12 +209,11 @@ void run_v_cell_probe_test(context ctx) {
         {"interior fork", cv_policy_fixed_per_branch(3, cv_policy_flag::interior_forks)},
     };
 
-    for (auto& testcase: test_policies) {
-        SCOPED_TRACE(testcase.first);
+    for (auto& [name, policy]: test_policies) {
+        SCOPED_TRACE(name);
         decor d;
-        d.set_default(testcase.second);
 
-        cable_cell cell(m, d);
+        cable_cell cell(m, d, {}, policy);
 
         cable1d_recipe rec(cell, false);
         rec.add_probe(0, "U_m", cable_probe_membrane_voltage_cell{});
@@ -236,7 +235,7 @@ void run_v_cell_probe_test(context ctx) {
 
         // Independetly discretize the cell so we can follow cable–CV relationship.
 
-        cv_geometry geom(cell, testcase.second.cv_boundary_points(cell));
+        cv_geometry geom(cell, policy.cv_boundary_points(cell));
 
         // For each cable in metadata, get CV from geom and confirm raw handle is
         // state voltage + CV.
@@ -271,7 +270,7 @@ void run_expsyn_g_probe_test(context ctx) {
     auto bs = builder.make_cell();
     bs.decorations.place(loc0, synapse("expsyn"), "syn0");
     bs.decorations.place(loc1, synapse("expsyn"), "syn1");
-    bs.decorations.set_default(cv_policy_fixed_per_branch(2));
+    bs.discretization = cv_policy_fixed_per_branch(2);
 
     auto run_test = [&](bool coalesce_synapses) {
         cable1d_recipe rec(cable_cell(bs), coalesce_synapses);
@@ -362,7 +361,6 @@ void run_expsyn_g_cell_probe_test(context ctx) {
     auto policy = cv_policy_fixed_per_branch(3);
 
     arb::decor decor;
-    decor.set_default(policy);
     std::unordered_map<cell_lid_type, mlocation> expsyn_target_loc_map;
     unsigned n_expsyn = 0;
     for (unsigned bid = 0; bid<3u; ++bid) {
@@ -376,7 +374,7 @@ void run_expsyn_g_cell_probe_test(context ctx) {
         }
     }
 
-    std::vector cells(2, arb::cable_cell(make_y_morphology(), decor));
+    std::vector cells(2, arb::cable_cell(make_y_morphology(), decor, {}, policy));
 
     // Weight for target (gid, lid)
     auto weight = [](auto gid, auto tgt) -> float { return tgt + 100*gid; };
@@ -492,11 +490,9 @@ void run_ion_density_probe_test(context ctx) {
 
     auto m = make_stick_morphology();
     decor d;
-    d.set_default(cv_policy_fixed_per_branch(3));
 
     // Calcium ions everywhere, half written by write_ca1, half by write_ca2.
     // Sodium ions only on distal half.
-
     d.paint(mcable{0, 0., 0.5}, density("write_ca1"));
     d.paint(mcable{0, 0.5, 1.}, density("write_ca2"));
     d.paint(mcable{0, 0.5, 1.}, density("write_na3"));
@@ -507,7 +503,7 @@ void run_ion_density_probe_test(context ctx) {
     mlocation loc1{0, 0.5};
     mlocation loc2{0, 0.9};
 
-    cable1d_recipe rec(cable_cell(m, d));
+    cable1d_recipe rec(cable_cell(m, d, {}, cv_policy_fixed_per_branch(3)));
     rec.catalogue() = cat;
 
     rec.add_probe(0, "cai-l0", cable_probe_ion_int_concentration{loc0, "ca"});
@@ -648,12 +644,7 @@ void run_partial_density_probe_test(context ctx) {
     cable_cell cells[2];
 
     // Each cell is a simple constant diameter cable, with 3 CVs each.
-
     auto m = make_stick_morphology();
-
-    decor d0, d1;
-    d0.set_default(cv_policy_fixed_per_branch(3));
-    d1.set_default(cv_policy_fixed_per_branch(3));
 
     // Paint the mechanism on every second 10% interval of each cell.
     // Expected values on a CV are the weighted mean of the parameter values
@@ -675,20 +666,21 @@ void run_partial_density_probe_test(context ctx) {
 
     auto mk_mech = [](double param) { return density(mechanism_desc("param_as_state").set("p", param)); };
 
+    decor d0;
     d0.paint(mcable{0, 0.0, 0.1}, mk_mech(2));
     d0.paint(mcable{0, 0.2, 0.3}, mk_mech(3));
     d0.paint(mcable{0, 0.4, 0.5}, mk_mech(4));
     d0.paint(mcable{0, 0.6, 0.7}, mk_mech(5));
     d0.paint(mcable{0, 0.8, 0.9}, mk_mech(6));
+    cells[0] = cable_cell(m, d0, {}, cv_policy_fixed_per_branch(3));
 
+    decor d1;
     d1.paint(mcable{0, 0.1, 0.2}, mk_mech(7));
     d1.paint(mcable{0, 0.3, 0.4}, mk_mech(8));
     d1.paint(mcable{0, 0.5, 0.6}, mk_mech(9));
     d1.paint(mcable{0, 0.7, 0.8}, mk_mech(10));
     d1.paint(mcable{0, 0.9, 1.0}, mk_mech(11));
-
-    cells[0] = cable_cell(m, d0);
-    cells[1] = cable_cell(m, d1);
+    cells[1] = cable_cell(m, d1, {}, cv_policy_fixed_per_branch(3));
 
     // Place probes in the middle of each 10% interval, i.e. at 0.05, 0.15, etc.
     struct test_probe {
@@ -771,7 +763,6 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
 
     const unsigned n_cv = 3;
     cv_policy policy = cv_policy_fixed_per_branch(n_cv);
-    d.set_default(policy);
 
     d.place(mlocation{0, 0}, i_clamp(0.3*U::nA), "clamp");
 
@@ -783,7 +774,7 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
     d.set_default(membrane_capacitance{0.01*U::F/U::m2}); // [F/m²]
     auto tau = 0.1*U::ms;
 
-    cable1d_recipe rec(cable_cell(m, d));
+    cable1d_recipe rec(cable_cell(m, d, {}, policy));
     rec.catalogue() = cat;
 
     cable_cell cell(m, d);
@@ -972,7 +963,7 @@ void run_v_sampled_probe_test(context ctx) {
     builder.add_branch(0, 200, 1.0/2, 1.0/2, 1, "dend");
 
     auto bs = builder.make_cell();
-    bs.decorations.set_default(cv_policy_fixed_per_branch(1));
+    bs.discretization = cv_policy_fixed_per_branch(1);
     auto d0 = bs.decorations;
     auto d1 = bs.decorations;
 
@@ -1057,9 +1048,7 @@ void run_total_current_probe_test(context ctx) {
     auto run_cells = [&](bool interior_forks) {
         auto flags = interior_forks? cv_policy_flag::interior_forks: cv_policy_flag::none;
         cv_policy policy = cv_policy_fixed_per_branch(n_cv_per_branch, flags);
-        d0.set_default(policy);
-        d1.set_default(policy);
-        std::vector<cable_cell> cells = {{m, d0}, {m, d1}};
+        std::vector<cable_cell> cells = {{m, d0, {}, policy}, {m, d1, {}, policy}};
 
 
         for (unsigned i = 0; i<2; ++i) {
@@ -1163,17 +1152,15 @@ void run_stimulus_probe_test(context ctx) {
     cv_policy policy = cv_policy_fixed_per_branch(3);
 
     decor d0, d1;
-    d0.set_default(policy);
     d0.place(mlocation{0, 0.5}, i_clamp::box(stim_from, stim_until, 10.*U::nA), "clamp0");
     d0.place(mlocation{0, 0.5}, i_clamp::box(stim_from, stim_until, 20.*U::nA), "clamp1");
     double expected_stim0 = 30;
 
-    d1.set_default(policy);
     d1.place(mlocation{0, 1}, i_clamp::box(stim_from, stim_until,  30.*U::nA), "clamp0");
     d1.place(mlocation{0, 1}, i_clamp::box(stim_from, stim_until, -10.*U::nA), "clamp1");
     double expected_stim1 = 20;
 
-    std::vector<cable_cell> cells = {{m, d0}, {m, d1}};
+    std::vector<cable_cell> cells = {{m, d0, {}, policy}, {m, d1, {}, policy}};
 
     // Sample the cells during the stimulus, and after.
 
