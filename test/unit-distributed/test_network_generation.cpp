@@ -125,8 +125,8 @@ TEST(network_generation, all) {
     }
 
     for (const auto& group: decomp.groups()) {
-        const auto num_dest = group.kind == cell_kind::spike_source ? 0 : 1;
-        for (const auto gid: group.gids) {
+        std::size_t num_dest = group.kind == cell_kind::spike_source ? 0 : 1;
+        for (std::size_t gid: group.gids) {
             EXPECT_EQ(connections_by_dest[gid].size(), num_cells * num_dest);
         }
     }
@@ -141,7 +141,7 @@ TEST(network_generation, cable_only) {
     const auto weight = 2.0;
     const auto delay = 3.0;
 
-    const auto num_cells = 3 * num_ranks;
+    const std::size_t num_cells = 3 * num_ranks;
 
     auto rec = network_test_recipe(num_cells, selection, weight, delay);
 
@@ -161,7 +161,7 @@ TEST(network_generation, cable_only) {
         for (const auto gid: group.gids) {
             // Only one third is a cable cell
             EXPECT_EQ(connections_by_dest[gid].size(),
-                group.kind == cell_kind::cable ? num_cells / 3 : 0);
+                      group.kind == cell_kind::cable ? num_cells / 3 : 0);
         }
     }
 }

@@ -29,7 +29,7 @@ tree::tree(std::vector<tree::int_type> parent_index) {
     parents_[0] = no_parent;
 
     // compute offsets into children_ array
-    arb::util::make_partition(child_index_, child_count(parents_));
+    util::make_partition(child_index_, child_count(parents_));
 
     std::vector<int_type> pos(parents_.size(), 0);
     for (auto i = 1u; i < parents_.size(); ++i) {
@@ -199,11 +199,9 @@ tree::iarray tree::select_new_root(int_type root) {
     }
 
     // maps new indices to old indices
-    iarray indices (num_nodes);
-    // fill array with indices
-    for (auto i: make_span(num_nodes)) {
-        indices[i] = i;
-    }
+    iarray indices(num_nodes);
+    std::iota(indices.begin(), indices.end(), 0);
+
     // perform sort by depth index to get the permutation
     std::sort(indices.begin(), indices.end(), [&](auto i, auto j){
         if (reduced_depth[i] != reduced_depth[j]) {
@@ -214,16 +212,12 @@ tree::iarray tree::select_new_root(int_type root) {
         }
         return depth[i] < depth[j];
     });
-    // maps old indices to new indices
-    iarray indices_inv (num_nodes);
-    // fill array with indices
-    for (auto i: make_span(num_nodes)) {
-        indices_inv[i] = i;
-    }
-    // perform sort
-    std::sort(indices_inv.begin(), indices_inv.end(), [&](auto i, auto j){
-        return indices[i] < indices[j];
-    });
+
+    // inverse permutation
+    iarray indices_inv(num_nodes, 0);
+    std::iota(indices_inv.begin(), indices_inv.end(), 0);
+    std::sort(indices_inv.begin(), indices_inv.end(),
+              [&](auto i, auto j){ return indices[i] < indices[j]; });
 
     // translate the parent vetor to new indices
     for (auto i: make_span(num_nodes)) {
@@ -241,7 +235,7 @@ tree::iarray tree::select_new_root(int_type root) {
 
     // recompute the children array
     memory::copy(new_parents, parents_);
-    arb::util::make_partition(child_index_, child_count(parents_));
+    util::make_partition(child_index_, child_count(parents_));
 
     std::vector<int_type> pos(parents_.size(), 0);
     for (auto i = 1u; i < parents_.size(); ++i) {

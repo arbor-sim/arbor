@@ -14,7 +14,6 @@
 #include "util/meta.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
-#include "util/sentinel.hpp"
 #include "util/transform.hpp"
 
 #include "common.hpp"
@@ -442,41 +441,34 @@ struct foo {
 };
 
 TEST(range, sort) {
-    char cstr[] = "howdy";
-
-    auto cstr_range = util::make_range(std::begin(cstr), null_terminated);
-
-    // Alas, no forward_iterator sort yet, so make a strict (non-sentinel)
-    // range to sort on below
-
-    // simple sort
-    util::sort(util::strict_view(cstr_range));
-    EXPECT_EQ("dhowy"s, cstr);
-
-    // reverse sort by transform c to -c
-    util::sort_by(util::strict_view(cstr_range), [](char c) { return -c; });
-    EXPECT_EQ("ywohd"s, cstr);
-
-    // stable sort: move capitals to front, numbers to back
-    auto rank = [](char c) {
-        return std::isupper(c)? 0: std::isdigit(c)? 2: 1;
-    };
-
-    char mixed[] = "t5hH4E3erLL2e1O";
-    auto mixed_range = util::make_range(std::begin(mixed), null_terminated);
-
-    util::stable_sort_by(util::strict_view(mixed_range), rank);
-    EXPECT_EQ("HELLOthere54321"s, mixed);
-
-
-    // sort with user-provided less comparison function
-
-    std::vector<foo> X = {{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}, {5, 0}};
-
-    util::sort(X, [](const foo& l, const foo& r) {return l.y<r.y;});
-    EXPECT_EQ(X, (std::vector<foo>{{5, 0}, {4, 1}, {3, 2}, {2, 3}, {1, 4}, {0, 5}}));
-    util::sort(X, [](const foo& l, const foo& r) {return l.x<r.x;});
-    EXPECT_EQ(X, (std::vector<foo>{{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}, {5, 0}}));
+    {
+        // simple sort
+        char cstr[] = "howdy";
+        util::sort(util::range_n(cstr, 5));
+        EXPECT_EQ("dhowy"s, cstr);
+    }
+    {
+        // reverse sort by transform c to -c
+        char cstr[] = "howdy";
+        util::sort_by(util::range_n(cstr, 5),
+                      [](char c) { return -c; });
+        EXPECT_EQ("ywohd"s, cstr);
+    }
+    {
+        // stable sort: move capitals to front, numbers to back
+        char mixed[] = "t5hH4E3erLL2e1O";
+        util::stable_sort_by(util::strict_view(util::make_range(std::begin(mixed), null_terminated)),
+                             [](char c) { return std::isupper(c)? 0: std::isdigit(c)? 2: 1; });
+        EXPECT_EQ("HELLOthere54321"s, mixed);
+    }
+    {
+        // sort with user-provided less comparison function
+        std::vector<foo> X = {{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}, {5, 0}};
+        util::sort(X, [](const foo& l, const foo& r) {return l.y<r.y;});
+        EXPECT_EQ(X, (std::vector<foo>{{5, 0}, {4, 1}, {3, 2}, {2, 3}, {1, 4}, {0, 5}}));
+        util::sort(X, [](const foo& l, const foo& r) {return l.x<r.x;});
+        EXPECT_EQ(X, (std::vector<foo>{{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}, {5, 0}}));
+    }
 }
 
 TEST(range, sum) {
