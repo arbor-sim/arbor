@@ -23,14 +23,6 @@ inline const char* arb_header_prefix() {
     return prefix;
 }
 
-// TODO: this function will be obsoleted once arbor private/public headers are
-// properly split.
-
-inline const char* arb_private_header_prefix() {
-    static const char* prefix = "";
-    return prefix;
-}
-
 struct namespace_declaration_open {
     const std::vector<std::string>& ids;
     namespace_declaration_open(const std::vector<std::string>& ids): ids(ids) {}
@@ -163,16 +155,3 @@ struct ARB_LIBMODCC_API indexed_variable_info {
 };
 
 ARB_LIBMODCC_API indexed_variable_info decode_indexed_variable(IndexedVariable* sym);
-
-template<typename C>
-size_t emit_array(std::ostream& out, const C& vars) {
-    auto n = 0ul;
-    io::separator sep("", ", ");
-    out << "{ ";
-    for (const auto& var: vars) {
-        out << sep << var;
-        ++n;
-    }
-    out << " }";
-    return n;
-}

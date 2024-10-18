@@ -68,7 +68,6 @@ set(unit_sources
     test_cv_geom.cpp
     test_cv_layout.cpp
     test_cv_policy.cpp
-    test_cycle.cpp
     test_domain_decomposition.cpp
     test_dry_run_context.cpp
     test_event_delivery.cpp
@@ -95,7 +94,6 @@ set(unit_sources
     test_matrix.cpp
     test_mcable_map.cpp
     test_cable_cell_group.cpp
-    test_mechanisms.cpp
     test_mech_temp_diam.cpp
     test_mechcat.cpp
     test_mechinfo.cpp
