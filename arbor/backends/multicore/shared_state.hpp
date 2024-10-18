@@ -50,9 +50,10 @@ struct ARB_ARBOR_API ion_state {
 
     unsigned alignment = 1; // Alignment and padding multiple.
 
-    bool write_eX_;          // is eX written?
-    bool write_Xo_;          // is Xo written?
-    bool write_Xi_;          // is Xi written?
+    bool write_eX_ = false;          // is eX written?
+    bool write_Xo_ = false;          // is Xo written?
+    bool write_Xi_ = false;          // is Xi written?
+    bool write_Xd_ = false;          // is Xd written?
 
     iarray node_index_;     // Instance to CV map.
     array iX_;              // (A/m²)  current density

@@ -289,14 +289,12 @@ void fvm_lowered_cell_impl<Backend>::update_ion_state() {
 
 template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::assert_voltage_bounded(arb_value_type bound) {
-    auto v_minmax = state_->voltage_bounds();
-    if (v_minmax.first>=-bound && v_minmax.second<=bound) {
-        return;
-    }
+    const auto& [vmin, vmax] = state_->voltage_bounds();
+    if (vmin >= -bound && vmax <= bound) return;
 
     throw range_check_failure(
         util::pprintf("voltage solution out of bounds for at t = {}", state_->time),
-        v_minmax.first<-bound? v_minmax.first: v_minmax.second);
+        vmin < -bound ? vmin : vmax);
 }
 
 inline
