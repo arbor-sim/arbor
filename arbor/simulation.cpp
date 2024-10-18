@@ -5,7 +5,6 @@
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/export.hpp>
-#include <arbor/generic_event.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/simple_sampler.hpp>
@@ -43,7 +42,11 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
                                      pse_vector& new_events) {
     PE(communication:enqueue:setup);
     new_events.clear();
-    old_events = split_sorted_range(old_events, t_from, event_time_less()).second;
+    constexpr auto event_time_less = [](auto const& l, auto const& r) noexcept {
+        if constexpr (std::is_floating_point_v<std::remove_reference_t<decltype(l)>>) { return l < r.time; }
+        else { return l.time < r; }
+    };
+    old_events = split_sorted_range(old_events, t_from, event_time_less).second;
     PL();
 
     if (!generators.empty()) {
@@ -53,8 +56,8 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
         std::vector<event_span> spanbuf;
         spanbuf.reserve(2+generators.size());
 
-        auto old_split = split_sorted_range(old_events, t_to, event_time_less());
-        auto pending_split = split_sorted_range(pending, t_to, event_time_less());
+        auto old_split = split_sorted_range(old_events, t_to, event_time_less);
+        auto pending_split = split_sorted_range(pending, t_to, event_time_less);
 
         spanbuf.push_back(old_split.first);
         spanbuf.push_back(pending_split.first);

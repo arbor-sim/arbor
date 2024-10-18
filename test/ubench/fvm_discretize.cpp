@@ -10,7 +10,6 @@
 
 #include <benchmark/benchmark.h>
 
-#include "event_queue.hpp"
 #include "fvm_layout.hpp"
 
 #ifndef DATADIR

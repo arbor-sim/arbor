@@ -4,7 +4,6 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/serdes.hpp>
 #include <arbor/mechanism_abi.h>
-#include <arbor/generic_event.hpp>
 
 // Structures for the representation of event delivery targets and
 // staged events.
@@ -46,9 +45,6 @@ struct deliverable_event {
     ARB_SERDES_ENABLE(deliverable_event, time, weight, handle);
 };
 
-template<>
-struct has_event_index<deliverable_event> : public std::true_type {};
-
 // Subset of event information required for mechanism delivery.
 struct deliverable_event_data {
     cell_local_size_type mech_index; // same as target_handle::mech_index
@@ -60,11 +56,6 @@ struct deliverable_event_data {
                       mech_index,
                       weight);
 };
-
-// Stream index accessor function for multi_event_stream:
-inline cell_local_size_type event_index(const arb_deliverable_event_data& ed) {
-    return ed.mech_index;
-}
 
 // Delivery data accessor function for multi_event_stream:
 inline arb_deliverable_event_data event_data(const deliverable_event& ev) {

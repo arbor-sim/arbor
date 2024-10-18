@@ -34,14 +34,14 @@ struct shared_state_base {
                      const std::vector<size_t>& divs) {
         auto d = static_cast<D*>(this);
         // events
-        d->init_events(lanes, handles, divs, dts);
+        initialize(lanes, handles, divs, dts, d->streams);
         // samples
         auto n_samples = util::sum_by(samples, [] (const auto& s) {return s.size();});
         if (d->sample_time.size() < n_samples) {
             d->sample_time = array(n_samples);
             d->sample_value = array(n_samples);
         }
-        d->sample_events.init(samples);
+        initialize(samples, d->sample_events);
         // thresholds
         d->watcher.clear_crossings();
     }
