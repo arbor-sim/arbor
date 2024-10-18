@@ -360,7 +360,7 @@ morphology make_morphology(const std::vector<std::variant<branch_tuple>>& args) 
 }
 
 // Define cable-cell maker
-// Accepts the morphology, decor and label_dict arguments in any order as a vector
+// Accepts the morphology, decor, label_dict and cv_policy arguments in any order as a vector
 cable_cell make_cable_cell4(const std::vector<std::variant<morphology, label_dict, decor, cv_policy>>& args) {
     decor dec;
     label_dict dict;

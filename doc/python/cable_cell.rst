@@ -58,7 +58,7 @@ Cable cells
         :type decorations: :py:class:`decor`
         :param labels: dictionary of labeled regions and locsets
         :type labels: :py:class:`label_dict`
-        :param labels: discretization policy
+        :param discretization: discretization policy
         :type discretization: :py:class:`cv_policy`
 
     .. method:: discretization(policy)
