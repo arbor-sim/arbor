@@ -157,6 +157,7 @@ range<T, T> range_n(T t, size_t n) {
 template <typename Seq>
 auto canonical_view(Seq&& s) {
     using std::begin;
+    using std::end;
     auto b = begin(s);
     auto e = end(s);
     return make_range(make_sentinel_iterator(b, e), make_sentinel_end(b, e));
