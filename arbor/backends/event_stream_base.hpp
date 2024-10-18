@@ -16,14 +16,13 @@ namespace arb {
 
 template <typename Event>
 struct event_stream_base {
-    using size_type = std::size_t;
     using event_type = Event;
     using event_data_type = decltype(event_data(std::declval<Event>()));
 
 protected: // members
     std::vector<event_data_type> ev_data_;
     std::vector<std::size_t> ev_spans_ = {0};
-    size_type index_ = 0;
+    std::size_t index_ = 0;
     event_data_type* base_ptr_ = nullptr;
 
 public:
@@ -80,6 +79,7 @@ struct spike_event_stream_base : event_stream_base<deliverable_event> {
             v.spike_counter_.clear();
             v.spike_counter_.resize(steps.size(), 0);
             v.spikes_.clear();
+            // ev_data_ has been cleared during v.clear(), so we use its capacity
             v.spikes_.reserve(v.ev_data_.capacity());
         }
 
@@ -99,18 +99,13 @@ struct spike_event_stream_base : event_stream_base<deliverable_event> {
                 arb_assert(div + target < handles.size());
                 const auto& handle = handles[div + target];
                 auto& stream = streams[handle.mech_id];
-                stream.spikes_.push_back(spike_data{step, time, handle.mech_index, weight});
+                stream.spikes_.push_back(spike_data{step, handle.mech_index, time, weight});
                 // insertion sort with last element as pivot
+                // ordering: first w.r.t. step, within a step: mech_index, within a mech_index: time
                 auto first = stream.spikes_.begin();
                 auto last = stream.spikes_.end();
                 auto pivot = std::prev(last, 1);
-                std::rotate(std::upper_bound(first, pivot, *pivot, [](auto const& l, auto const& r) noexcept {
-                    if (l.step < r.step) return true;
-                    if (l.step > r.step) return false;
-                    if (l.mech_index < r.mech_index) return true;
-                    if (l.mech_index > r.mech_index) return false;
-                    return l.time < r.time; }),
-                    pivot, last);
+                std::rotate(std::upper_bound(first, pivot, *pivot), pivot, last);
                 // increment count in current time interval
                 stream.spike_counter_[step]++;
             }
@@ -132,9 +127,10 @@ struct spike_event_stream_base : event_stream_base<deliverable_event> {
   protected: // members
     struct spike_data {
         arb_size_type step = 0;
-        time_type time = 0;
         cell_local_size_type mech_index = 0;
+        time_type time = 0;
         float weight = 0;
+        auto operator<=>(spike_data const&) const noexcept = default;
     };
     std::vector<spike_data> spikes_;
     std::vector<std::size_t> spike_counter_;
