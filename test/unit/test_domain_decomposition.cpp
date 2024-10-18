@@ -1,3 +1,5 @@
+#include <numeric>
+
 #include <gtest/gtest.h>
 
 #include <arbor/context.hpp>
