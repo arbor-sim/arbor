@@ -289,14 +289,12 @@ void fvm_lowered_cell_impl<Backend>::update_ion_state() {
 
 template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::assert_voltage_bounded(arb_value_type bound) {
-    auto v_minmax = state_->voltage_bounds();
-    if (v_minmax.first>=-bound && v_minmax.second<=bound) {
-        return;
-    }
+    const auto& [vmin, vmax] = state_->voltage_bounds();
+    if (vmin >= -bound && vmax <= bound) return;
 
     throw range_check_failure(
         util::pprintf("voltage solution out of bounds for at t = {}", state_->time),
-        v_minmax.first<-bound? v_minmax.first: v_minmax.second);
+        vmin < -bound ? vmin : vmax);
 }
 
 inline
@@ -1024,31 +1022,35 @@ void resolve_probe(const cable_probe_ion_current_cell& p, probe_resolution_data<
 
 template <typename B>
 void resolve_probe(const cable_probe_ion_int_concentration& p, probe_resolution_data<B>& R) {
+    const auto& ion = p.ion;
+    const auto& xi = R.state->ion_data.at(ion).Xi_;
+    if (xi.empty()) return;
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
-        auto opt_i = R.ion_location_index(p.ion, loc);
+        auto opt_i = R.ion_location_index(ion, loc);
         if (!opt_i) continue;
-
-        R.result.push_back(fvm_probe_scalar{{R.state->ion_data.at(p.ion).Xi_.data()+*opt_i}, loc});
+        R.result.push_back(fvm_probe_scalar{{xi.data() + *opt_i}, loc});
     }
 }
 
 template <typename B>
 void resolve_probe(const cable_probe_ion_ext_concentration& p, probe_resolution_data<B>& R) {
+    const auto& ion = p.ion;
+    const auto& xo = R.state->ion_data.at(ion).Xo_;
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
-        auto opt_i = R.ion_location_index(p.ion, loc);
+        auto opt_i = R.ion_location_index(ion, loc);
         if (!opt_i) continue;
-
-        R.result.push_back(fvm_probe_scalar{{R.state->ion_data.at(p.ion).Xo_.data()+*opt_i}, loc});
+        R.result.push_back(fvm_probe_scalar{{xo.data() + *opt_i}, loc});
     }
 }
 
 template <typename B>
 void resolve_probe(const cable_probe_ion_diff_concentration& p, probe_resolution_data<B>& R) {
+    const auto& ion = p.ion;
+    const auto& xd = R.state->ion_data.at(ion).Xd_;
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
-        auto opt_i = R.ion_location_index(p.ion, loc);
+        auto opt_i = R.ion_location_index(ion, loc);
         if (!opt_i) continue;
-
-        R.result.push_back(fvm_probe_scalar{{R.state->ion_data.at(p.ion).Xd_.data()+*opt_i}, loc});
+        R.result.push_back(fvm_probe_scalar{{xd.data() + *opt_i}, loc});
     }
 }
 
@@ -1057,7 +1059,6 @@ template <typename B>
 void resolve_ion_conc_common(const std::vector<arb_index_type>& ion_cvs, const arb_value_type* src, probe_resolution_data<B>& R) {
     fvm_probe_multi r;
     mcable_list cables;
-
     for (auto i: util::count_along(ion_cvs)) {
         for (auto cable: R.D.geometry.cables(ion_cvs[i])) {
             if (cable.prox_pos!=cable.dist_pos) {
@@ -1074,18 +1075,21 @@ void resolve_ion_conc_common(const std::vector<arb_index_type>& ion_cvs, const a
 template <typename B>
 void resolve_probe(const cable_probe_ion_int_concentration_cell& p, probe_resolution_data<B>& R) {
     if (!R.state->ion_data.count(p.ion)) return;
+    if (R.state->ion_data.at(p.ion).Xi_.empty()) return;
     resolve_ion_conc_common<B>(R.M.ions.at(p.ion).cv, R.state->ion_data.at(p.ion).Xi_.data(), R);
 }
 
 template <typename B>
 void resolve_probe(const cable_probe_ion_ext_concentration_cell& p, probe_resolution_data<B>& R) {
     if (!R.state->ion_data.count(p.ion)) return;
+    if (R.state->ion_data.at(p.ion).Xo_.empty()) return;
     resolve_ion_conc_common<B>(R.M.ions.at(p.ion).cv, R.state->ion_data.at(p.ion).Xo_.data(), R);
 }
 
 template <typename B>
 void resolve_probe(const cable_probe_ion_diff_concentration_cell& p, probe_resolution_data<B>& R) {
     if (!R.state->ion_data.count(p.ion)) return;
+    if (R.state->ion_data.at(p.ion).Xd_.empty()) return;
     resolve_ion_conc_common<B>(R.M.ions.at(p.ion).cv, R.state->ion_data.at(p.ion).Xd_.data(), R);
 }
 
