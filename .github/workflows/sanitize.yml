@@ -35,6 +35,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build ccache
+          pip install --user --break-system-packages numpy pybind11-stubgen
       - name: Set up cmake
         uses: jwlawson/actions-setup-cmake@v2.0.0
         with:
