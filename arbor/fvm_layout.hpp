@@ -242,6 +242,7 @@ struct fvm_ion_config {
     bool revpot_written = false;
     bool iconc_written = false;
     bool econc_written = false;
+    bool revpot_read = false;
     bool iconc_read = false;
     bool econc_read = false;
 

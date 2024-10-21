@@ -7,7 +7,8 @@ set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON CACHE INTERNAL "" FORCE)
 
 # Make CUDA support throw errors if architectures remain unclear
 cmake_policy(SET CMP0104 NEW)
-
+# Ensure deduplication of static libs
+ cmake_policy(SET CMP0156 NEW)
 # Ensure CMake is aware of the policies for modern RPATH behavior
 cmake_policy(SET CMP0072 NEW)
 

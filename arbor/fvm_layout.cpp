@@ -723,6 +723,7 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
         L.econc_read     |= R.econc_read;
         L.iconc_read     |= R.iconc_read;
         L.revpot_written |= R.revpot_written;
+        L.revpot_read    |= R.revpot_read;
     }
 
     for (const auto& kv: right.mechanisms) {
@@ -826,6 +827,7 @@ struct fvm_ion_build_data {
     bool write_xo = false;
     bool read_xi = false;
     bool read_xo = false;
+    bool read_ex = false;
     std::vector<arb_index_type> support;
 
     auto& add_to_support(const std::vector<arb_index_type>& cvs) {
@@ -839,6 +841,7 @@ struct fvm_ion_build_data {
         write_xo |= dep.write_concentration_ext;
         read_xi |= dep.read_concentration_int;
         read_xo |= dep.read_concentration_ext;
+        read_ex |= dep.read_reversal_potential;
         return *this;
     }
 };
@@ -1354,6 +1357,7 @@ make_ion_config(fvm_ion_map build_data,
         config.iconc_written = build_data.write_xi;
         config.econc_read    = build_data.read_xo;
         config.iconc_read    = build_data.read_xi;
+        config.revpot_read   = build_data.read_ex;
         if (!config.cv.empty()) result[ion] = std::move(config);
     }
 }
