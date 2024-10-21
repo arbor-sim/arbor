@@ -254,15 +254,13 @@ public:
 
         // set cvs explicitly
         double const cv_size = 1.0;
-        dec.set_default(cv_policy_max_extent(cv_size));
-
         // generate cells
         unsigned const n1 = ncvs/2;
         for (unsigned int i=0; i<ncell_; ++i) {
             segment_tree tree;
             tree.append(mnpos, {i*20., 0, 0.0, 4.0}, {i*20., 0, n1*cv_size, 4.0}, 1);
             tree.append(0, {i*20., 0, ncvs*cv_size, 4.0}, 2);
-            cells_.push_back(cable_cell(morphology(tree), dec));
+            cells_.push_back(cable_cell(morphology(tree), dec, {}, cv_policy_max_extent(cv_size)));
         }
     }
 
@@ -335,7 +333,6 @@ public:
 
         // set cvs explicitly
         double const cv_size = 1.0;
-        dec.set_default(cv_policy_max_extent(cv_size));
 
         // generate cells
         unsigned const n1 = ncvs/2;
@@ -343,7 +340,7 @@ public:
             segment_tree tree;
             tree.append(mnpos, {i*20., 0, 0.0, 4.0}, {i*20., 0, n1*cv_size, 4.0}, 1);
             tree.append(0, {i*20., 0, ncvs*cv_size, 4.0}, 2);
-            cells_.push_back(cable_cell(morphology(tree), dec, labels));
+            cells_.push_back(cable_cell(morphology(tree), dec, labels, cv_policy_max_extent(cv_size)));
         }
     }
 
@@ -968,7 +965,6 @@ public:
 
         // set cvs explicitly
         double const cv_size = 1.0;
-        dec.set_default(cv_policy_max_extent(cv_size));
 
         // generate cells
         unsigned const n1 = ncvs/2;
@@ -976,7 +972,7 @@ public:
             segment_tree tree;
             tree.append(mnpos, {i*20., 0, 0.0, 4.0}, {i*20., 0, n1*cv_size, 4.0}, 1);
             tree.append(0, {i*20., 0, ncvs*cv_size, 4.0}, 2);
-            cells_.push_back(cable_cell(morphology(tree), dec, labels));
+            cells_.push_back(cable_cell(morphology(tree), dec, labels, cv_policy_max_extent(cv_size)));
         }
     }
 

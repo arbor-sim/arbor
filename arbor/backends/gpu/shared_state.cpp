@@ -50,20 +50,20 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
     write_Xo_(ion_data.econc_written),
     write_Xi_(ion_data.iconc_written),
     write_Xd_(ion_data.is_diffusive),
+     // ensure that if we have W access, also R access is flagged
+    read_eX_(true || ion_data.revpot_written),
+    read_Xo_(ion_data.econc_written || ion_data.econc_read),
+    read_Xi_(ion_data.iconc_written || ion_data.iconc_read),
+    read_Xd_(ion_data.is_diffusive),
     node_index_(make_const_view(ion_data.cv)),
     iX_(ion_data.cv.size(), NAN),
-    eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end()),
-    Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end()),
-    Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end()),
     gX_(ion_data.cv.size(), NAN),
     charge(1u, static_cast<arb_value_type>(ion_data.charge)),
     solver(std::move(ptr)) {
-    // We don't need to allocate these if we never use them...
+    // Allocate reset data only if anybody overwrites the resettable ararys
+    // This is used by internal and diffusive concentrations
     if (write_Xi_ || write_Xd_) {
-        // ... but this is used by Xd and Xi!
         reset_Xi_ = make_const_view(ion_data.reset_iconc);
-    }
-    if (write_Xi_) {
         init_Xi_ = make_const_view(ion_data.init_iconc);
         arb_assert(node_index_.size()==init_Xi_.size());
     }
@@ -77,7 +77,17 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
         arb_assert(node_index_.size()==init_eX_.size());
     }
     if (write_Xd_) {
-        Xd_ = array(ion_data.cv.size(), NAN);
+        Xd_ = make_const_view(ion_data.reset_iconc);
+    }
+    // Allocate data only if read.
+    if (read_Xi_) {
+        Xi_ = make_const_view(ion_data.init_iconc);
+    }
+    if (read_Xo_) {
+        Xo_ = make_const_view(ion_data.init_econc);
+    }
+    if (read_eX_) {
+        eX_ = make_const_view(ion_data.init_revpot);
     }
 }
 

@@ -50,26 +50,30 @@ struct ARB_ARBOR_API ion_state {
 
     unsigned alignment = 1; // Alignment and padding multiple.
 
-    bool write_eX_ = false;          // is eX written?
-    bool write_Xo_ = false;          // is Xo written?
-    bool write_Xi_ = false;          // is Xi written?
-    bool write_Xd_ = false;          // is Xd written?
+    bool write_eX_:1 = false; // is eX written?
+    bool write_Xo_:1 = false; // is Xo written?
+    bool write_Xi_:1 = false; // is Xi written?
+    bool write_Xd_:1 = false; // is Xd written?
+    bool read_eX_:1  = false; // is eX read?
+    bool read_Xo_:1  = false; // is Xo read?
+    bool read_Xi_:1  = false; // is Xi read?
+    bool read_Xd_:1  = false; // is Xd read?
 
-    iarray node_index_;     // Instance to CV map.
-    array iX_;              // (A/m²)  current density
-    array eX_;              // (mV)    reversal potential
-    array Xi_;              // (mM)    internal concentration
-    array Xd_;              // (mM)    diffusive internal concentration
-    array Xo_;              // (mM)    external concentration
-    array gX_;              // (kS/m²) per-species conductivity
+    iarray node_index_;       // Instance to CV map.
+    array iX_;                // (A/m²)  current density
+    array eX_;                // (mV)    reversal potential
+    array Xi_;                // (mM)    internal concentration
+    array Xd_;                // (mM)    diffusive internal concentration
+    array Xo_;                // (mM)    external concentration
+    array gX_;                // (kS/m²) per-species conductivity
 
-    array init_Xi_;         // (mM) area-weighted initial internal concentration
-    array init_Xo_;         // (mM) area-weighted initial external concentration
-    array reset_Xi_;        // (mM) area-weighted user-set internal concentration
-    array reset_Xo_;        // (mM) area-weighted user-set internal concentration
-    array init_eX_;         // (mV) initial reversal potential
+    array init_Xi_;           // (mM) area-weighted initial internal concentration
+    array init_Xo_;           // (mM) area-weighted initial external concentration
+    array reset_Xi_;          // (mM) area-weighted user-set internal concentration
+    array reset_Xo_;          // (mM) area-weighted user-set internal concentration
+    array init_eX_;           // (mV) initial reversal potential
 
-    array charge;           // charge of ionic species (global value, length 1)
+    array charge;             // charge of ionic species (global value, length 1)
 
     solver_ptr solver = nullptr;
 

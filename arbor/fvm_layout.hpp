@@ -242,6 +242,8 @@ struct fvm_ion_config {
     bool revpot_written = false;
     bool iconc_written = false;
     bool econc_written = false;
+    bool iconc_read = false;
+    bool econc_read = false;
 
     // Ordered CV indices where ion must be present.
     std::vector<index_type> cv;

@@ -7,8 +7,9 @@
 #include "backends/common_types.hpp"
 #include "fvm_layout.hpp"
 
-#include "event_lane.hpp"
+#include "util/rangeutil.hpp"
 #include "timestep_range.hpp"
+#include "event_lane.hpp"
 
 namespace arb {
 
