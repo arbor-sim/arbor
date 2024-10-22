@@ -110,7 +110,7 @@ void ion_state::reset() {
     // This goes _last_ or at least after Xi since we might have removed reset_Xi
     // when Xi is constant. Thus conditionally resetting Xi first and then copying
     // Xi -> Xd is save in all cases.
-    if (write_Xd_) memory::copy(reset_Xi_, Xd_);
+    if (write_Xd_) memory::copy(Xi_, Xd_);
 }
 
 // istim_state methods:
