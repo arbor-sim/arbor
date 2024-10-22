@@ -72,7 +72,6 @@ set(unit_sources
     test_dry_run_context.cpp
     test_event_delivery.cpp
     test_event_generators.cpp
-    test_event_queue.cpp
     test_event_stream.cpp
     test_expected.cpp
     test_filter.cpp

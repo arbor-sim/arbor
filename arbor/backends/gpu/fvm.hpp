@@ -37,8 +37,6 @@ struct backend {
     using threshold_watcher        = arb::gpu::threshold_watcher;
     using cable_solver             = arb::gpu::matrix_state_fine<arb_value_type, arb_index_type>;
     using diffusion_solver         = arb::gpu::diffusion_state<arb_value_type, arb_index_type>;
-    using deliverable_event_stream = arb::gpu::deliverable_event_stream;
-    using sample_event_stream      = arb::gpu::sample_event_stream;
 
     using shared_state = arb::gpu::shared_state;
     using ion_state = arb::gpu::ion_state;
