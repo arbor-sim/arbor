@@ -274,7 +274,7 @@ install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 
 # First make ourselves less chatty
 set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
-set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
+set(CMAKE_MESSAGE_LOG_LEVEL STATUS)
 
 # in the event we can find hwloc, just add it
 find_package(hwloc QUIET)
@@ -341,6 +341,8 @@ CPMAddPackage(NAME fmt
               VERSION 10.0.0
               GIT_TAG 10.0.0)
 
+add_library(ext-gtest INTERFACE)
+add_library(ext-bench INTERFACE)
 if (BUILD_TESTING)
     CPMAddPackage(NAME benchmark
                   GITHUB_REPOSITORY google/benchmark
@@ -351,6 +353,18 @@ if (BUILD_TESTING)
                   GIT_TAG release-1.12.1
                   VERSION 1.12.1
                   OPTIONS "INSTALL_GTEST OFF" "BUILD_GMOCK OFF")
+    if(benchmark_ADDED)
+        target_link_libraries(ext-bench INTERFACE benchmark)
+    else()
+        find_package(benchmark REQUIRED)
+        target_link_libraries(ext-bench INTERFACE benchmark::benchmark)
+    endif()
+    if(googletest_ADDED)
+        target_link_libraries(ext-gtest INTERFACE )
+    else()
+        find_package(googletest REQUIRED)
+        target_link_libraries(ext-gtest INTERFACE gtest gtest_main)
+    endif()
 endif()
 
 CPMAddPackage(NAME units

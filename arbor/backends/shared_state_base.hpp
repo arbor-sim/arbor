@@ -7,8 +7,9 @@
 #include "backends/common_types.hpp"
 #include "fvm_layout.hpp"
 
-#include "event_lane.hpp"
+#include "util/rangeutil.hpp"
 #include "timestep_range.hpp"
+#include "event_lane.hpp"
 
 namespace arb {
 
@@ -34,21 +35,21 @@ struct shared_state_base {
                      const std::vector<size_t>& divs) {
         auto d = static_cast<D*>(this);
         // events
-        d->init_events(lanes, handles, divs, dts);
+        initialize(lanes, handles, divs, dts, d->streams);
         // samples
         auto n_samples = util::sum_by(samples, [] (const auto& s) {return s.size();});
         if (d->sample_time.size() < n_samples) {
             d->sample_time = array(n_samples);
             d->sample_value = array(n_samples);
         }
-        d->sample_events.init(samples);
+        initialize(samples, d->sample_events);
         // thresholds
         d->watcher.clear_crossings();
     }
 
     void configure_solver(const fvm_cv_discretization& disc) {
         auto d = static_cast<D*>(this);
-        d->solver = {disc.geometry.cv_parent, disc.geometry.cell_cv_divs, disc.cv_capacitance, disc.face_conductance, disc.cv_area};
+        d->solver = {disc.geometry.cv_parent, disc.geometry.cell_cv_divs, disc.cv_capacitance, disc.face_conductance};
     }
 
     void add_ion(const std::string& ion_name,
@@ -134,7 +135,7 @@ struct shared_state_base {
 
     void integrate_cable_state() {
         auto d = static_cast<D*>(this);
-        d->solver.solve(d->voltage, d->dt, d->current_density, d->conductivity);
+        d->solver.solve(d->voltage, d->dt, d->current_density, d->conductivity, d->area_um2);
         for (auto& [ion, data]: d->ion_data) {
             if (data.solver) {
                 data.solver->solve(data.Xd_,

@@ -40,9 +40,14 @@ struct ARB_ARBOR_API ion_state {
     using solver_type = arb::gpu::diffusion_state<arb_value_type, arb_index_type>;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
-    bool write_eX_;          // is eX written?
-    bool write_Xo_;          // is Xo written?
-    bool write_Xi_;          // is Xi written?
+    bool write_eX_:1;          // is eX written?
+    bool write_Xo_:1;          // is Xo written?
+    bool write_Xi_:1;          // is Xi written?
+    bool write_Xd_:1;          // is Xd written?
+    bool read_eX_:1;           // is eX read?
+    bool read_Xo_:1;           // is Xo read?
+    bool read_Xi_:1;           // is Xi read?
+    bool read_Xd_:1;           // is Xd read?
 
     iarray node_index_; // Instance to CV map.
     array iX_;          // (A/m²) current density
@@ -169,7 +174,7 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
     std::unordered_map<unsigned, mech_storage> storage;
-    std::unordered_map<unsigned, deliverable_event_stream> streams;
+    std::unordered_map<unsigned, spike_event_stream> streams;
 
     shared_state() = default;
 
@@ -240,11 +245,6 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
         sample_time_host  = memory::on_host(sample_time);
         sample_value_host = memory::on_host(sample_value);
     }
-
-    void init_events(const event_lane_subrange& lanes,
-                     const std::vector<target_handle>& handles,
-                     const std::vector<size_t>& divs,
-                     const timestep_range& dts);
 };
 
 // For debugging only
