@@ -6,7 +6,7 @@ include:
   - remote: 'https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.ci-ext.yml'
   - local: '.gitlab/includes/common.yaml'
   - local: '.gitlab/includes/gh200.yaml'
-  - local: '.gitlab/includes/epic7742.yaml'
+  #- local: '.gitlab/includes/epic7742.yaml'
 
 stages:
   - build
