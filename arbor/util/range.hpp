@@ -169,6 +169,7 @@ auto canonical_view(Seq&& s) {
 template <typename Seq>
 auto strict_view(Seq&& s) {
     using std::begin;
+    using std::end;
     auto b = begin(s);
     auto e = end(s);
     return make_range(b, b==e? b: std::next(util::upto(b, e)));
