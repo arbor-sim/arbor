@@ -111,7 +111,7 @@ endif()
 
 # generate type stubs and copy them to the expected places
 if(ARB_BUILD_PYTHON_STUBS)
-  find_program(PB11_STUBGEN NAMES pybind11_stubgen REQUIRED)
+  find_program(pb11_stubgen NAMES pybind11-stubgen REQUIRED)
   add_custom_command(TARGET pyarb POST_BUILD
                      COMMAND
                        PYTHONPATH=${CMAKE_BINARY_DIR}/python:$ENV{PYTHONPATH} ${PB11_STUBGEN} -o ${CMAKE_BINARY_DIR}/stubs arbor
