@@ -46,7 +46,7 @@ if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
 endif()
 
 # Use pybind11-stubgen to make type stubs.
-option(ARB_BUILD_PYTHON_STUBS "Use pybind11-stubgen to build type stubs." ON)
+cmake_dependent_option(ARB_BUILD_PYTHON_STUBS "Use pybind11-stubgen to build type stubs." ON "ARB_WITH_PYTHON" OFF)
 
 # Turn on this option to force the compilers to produce color output when output is
 # redirected from the terminal (e.g. when using ninja or a pager).
