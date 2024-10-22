@@ -4,6 +4,7 @@
 .eiger:
   extends: .uenv-runner-eiger-mc
   variables:
+    SLURM_ACCOUNT: g154
     SLURM_CONSTRAINT: mc
 
 #################
