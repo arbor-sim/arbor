@@ -76,7 +76,7 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
         init_eX_ = make_const_view(ion_data.init_revpot);
         arb_assert(node_index_.size()==init_eX_.size());
     }
-    if (write_Xd_) {
+    if (read_Xd_) {
         Xd_ = make_const_view(ion_data.reset_iconc);
     }
     // Allocate data only if read.
