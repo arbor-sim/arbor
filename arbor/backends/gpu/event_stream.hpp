@@ -19,7 +19,7 @@ struct event_stream : BaseEventStream {
 
   protected:
     void init() override final {
-        resize(this->device_ev_data_, this->device_ev_data_.size());
+        resize(this->device_ev_data_, this->ev_data_.size());
         memory::copy_async(this->ev_data_, this->device_ev_data_);
         this->base_ptr_ = this->device_ev_data_.data();
     }

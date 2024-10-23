@@ -1,0 +1,34 @@
+###########################
+# vcluster specifications #
+###########################
+.todi:
+  extends: .uenv-runner-todi-gh200
+  variables:
+    SLURM_ACCOUNT: g154
+    #SLURM_PARTITION: debug
+    SLURM_RESERVATION: daint
+
+#################
+# Build Project #
+#################
+build_aarch64:
+  extends: [.todi, .build_template]
+  variables:
+    ARB_GPU: "cuda"
+    CUDA_ARCH: "90"
+
+#####################
+# Single Node Tests #
+#####################
+test_aarch64:
+  extends: [.todi, .test_unit_template]
+
+####################
+# Multi Node Tests #
+####################
+test_aarch64_distributed:
+  extends: [.todi, .test_distributed_template]
+  variables:
+    SLURM_GPUS_PER_NODE: 4
+    SLURM_GPUS_PER_TASK: 1
+    SLURM_NTASKS_PER_NODE: 4
