@@ -46,51 +46,31 @@ std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, con
 ion_state::ion_state(const fvm_ion_config& ion_data,
                      unsigned, // alignment/padding ignored.
                      solver_ptr ptr):
-    write_eX_(ion_data.revpot_written),
-    write_Xo_(ion_data.econc_written),
-    write_Xi_(ion_data.iconc_written),
-    write_Xd_(ion_data.is_diffusive),
-    read_Xo_(ion_data.econc_written || ion_data.econc_read), // ensure that if we have W access, also R access is flagged
-    read_Xi_(ion_data.iconc_written || ion_data.iconc_read),
+    flags_(ion_data),
     node_index_(make_const_view(ion_data.cv)),
     iX_(ion_data.cv.size(), NAN),
-    eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end()),
     gX_(ion_data.cv.size(), NAN),
     charge(1u, static_cast<arb_value_type>(ion_data.charge)),
     solver(std::move(ptr)) {
-    // We don't need to allocate these if we never use them...
-    if (read_Xi_) {
-        Xi_ = make_const_view(ion_data.init_iconc);
-    }
-    if (read_Xo_) {
-        Xo_ = make_const_view(ion_data.init_econc);
-    }
-    if (write_Xi_ || write_Xd_) {
-        // ... but this is used by Xd and Xi!
-        reset_Xi_ = make_const_view(ion_data.reset_iconc);
-    }
-    if (write_Xi_) {
-        init_Xi_ = make_const_view(ion_data.init_iconc);
-        arb_assert(node_index_.size()==init_Xi_.size());
-    }
-    if (write_Xo_) {
-        init_Xo_ = make_const_view(ion_data.init_econc);
-        reset_Xo_ = make_const_view(ion_data.reset_econc);
-        arb_assert(node_index_.size()==init_Xo_.size());
-    }
-    if (write_eX_) {
-        init_eX_ = make_const_view(ion_data.init_revpot);
-        arb_assert(node_index_.size()==init_eX_.size());
-    }
-    if (write_Xd_) {
-        Xd_ = array(ion_data.cv.size(), NAN);
-    }
+    if (flags_.reset_xi()
+      ||flags_.reset_xd()) reset_Xi_ = make_const_view(ion_data.reset_iconc);
+    if (flags_.reset_xi()) init_Xi_  = make_const_view(ion_data.init_iconc);
+    if (flags_.xi())       Xi_       = make_const_view(ion_data.init_iconc);
+
+    if (flags_.reset_xo()) reset_Xo_ = make_const_view(ion_data.reset_econc);
+    if (flags_.reset_xo()) init_Xo_  = make_const_view(ion_data.init_econc);
+    if (flags_.xo())       Xo_       = make_const_view(ion_data.init_econc);
+
+    if (flags_.reset_ex()) init_eX_  = make_const_view(ion_data.init_revpot);
+    if (flags_.ex())       eX_       = make_const_view(ion_data.init_revpot);
+
+    if (flags_.xd())       Xd_       = make_const_view(ion_data.reset_iconc);
 }
 
 void ion_state::init_concentration() {
     // NB. not resetting Xd here, it's controlled via the solver.
-    if (write_Xi_) memory::copy(init_Xi_, Xi_);
-    if (write_Xo_) memory::copy(init_Xo_, Xo_);
+    if (flags_.reset_xi()) memory::copy(init_Xi_, Xi_);
+    if (flags_.reset_xo()) memory::copy(init_Xo_, Xo_);
 }
 
 void ion_state::zero_current() {
@@ -100,13 +80,10 @@ void ion_state::zero_current() {
 
 void ion_state::reset() {
     zero_current();
-    if (write_Xi_) memory::copy(reset_Xi_, Xi_);
-    if (write_Xo_) memory::copy(reset_Xo_, Xo_);
-    if (write_eX_) memory::copy(init_eX_, eX_);
-    // This goes _last_ or at least after Xi since we might have removed reset_Xi
-    // when Xi is constant. Thus conditionally resetting Xi first and then copying
-    // Xi -> Xd is save in all cases.
-    if (write_Xd_) memory::copy(reset_Xi_, Xd_);
+    if (flags_.reset_xi()) memory::copy(reset_Xi_, Xi_);
+    if (flags_.reset_xo()) memory::copy(reset_Xo_, Xo_);
+    if (flags_.reset_ex()) memory::copy(init_eX_, eX_);
+    if (flags_.reset_xd()) memory::copy(reset_Xi_, Xd_);
 }
 
 // istim_state methods:

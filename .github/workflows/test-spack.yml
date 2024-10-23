@@ -74,9 +74,9 @@ jobs:
       - name: build and install arbor through spack dev-build
         run: |
           source spack/share/spack/setup-env.sh
-          spack install --no-check-signature --only dependencies arbor@develop target=x86_64_v2 +python ^python@${{ matrix.python-version }}
+          spack install --no-check-signature --only dependencies arbor@develop target=x86_64_v2 +python ~pystubs ^python@${{ matrix.python-version }}
           cd arbor
-          spack dev-build arbor@develop target=x86_64_v2 +python ^python@${{ matrix.python-version }}
+          spack dev-build arbor@develop target=x86_64_v2 +python ~pystubs ^python@${{ matrix.python-version }}
 
       - name: load arbor and verify installation, python examples.
         run: |
