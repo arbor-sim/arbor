@@ -48,9 +48,9 @@ struct ARB_ARBOR_API ion_state {
     using solver_type = diffusion_solver;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
-    unsigned alignment = 1; // Alignment and padding multiple.
+    unsigned alignment = 1;   // Alignment and padding multiple.
 
-    const ion_data_flags flags_;
+    ion_data_flags flags_;    // Track what and when to reset / allocate
 
     iarray node_index_;       // Instance to CV map.
     array iX_;                // (A/m²)  current density
