@@ -122,7 +122,7 @@ class Arbor(CMakePackage, CudaPackage):
         depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
         depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
         depends_on("py-pybind11@2.10.1:", when="@2.11.1:", type="build")
-        depends_on("py-pybind11-stubgen@0.8", type="build")
+        depends_on("py-pybind11-stubgen@2.5.1", type="build")
 
     # sphinx based documentation
     with when("+doc"):
