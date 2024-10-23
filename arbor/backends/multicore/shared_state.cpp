@@ -60,12 +60,12 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
     write_Xi_(ion_data.iconc_written),
     write_Xd_(ion_data.is_diffusive),
      // ensure that if we have W access, also R access is flagged
-    read_eX_(ion_data.revpot_read   || write_eX_),
-    read_Xo_(ion_data.econc_written || write_Xo_),
-    read_Xi_(ion_data.iconc_written || write_Xi_),
+    read_eX_(ion_data.revpot_read  || write_eX_),
+    read_Xo_(ion_data.econc_read   || write_Xo_),
+    read_Xi_(ion_data.iconc_read   || write_Xi_),
     // NOTE: this is currently a bit odd in that we don't differentiate R/W
     //       cases, it's all or nothing. Leave this in as a reminder, though.
-    read_Xd_(ion_data.is_diffusive  || write_Xd_),
+    read_Xd_(ion_data.is_diffusive || write_Xd_),
     node_index_(ion_data.cv.begin(), ion_data.cv.end(), pad(alignment)),
     iX_(ion_data.cv.size(), NAN, pad(alignment)),
     gX_(ion_data.cv.size(), NAN, pad(alignment)),

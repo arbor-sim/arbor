@@ -707,8 +707,8 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
 
     arb_size_type target_offset = left.n_target;
 
-    for (const auto& [k, R]: right.ions) {
-        fvm_ion_config& L = left.ions[k];
+    for (const auto& [ion, R]: right.ions) {
+        fvm_ion_config& L = left.ions[ion];
 
         append(L.cv, R.cv);
         append(L.init_iconc, R.init_iconc);
@@ -923,10 +923,16 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
                          fvm_ion_map& ion_build_data,
                          fvm_mechanism_config_map&);
 
-// Build reversal potential configs. Returns { X | X ion && eX is written }
-std::unordered_set<std::string>
+// Build reversal potential configs. Returns { X | X ion && eX is written; Xi / Xo read }
+struct revpot_ion_config {
+    bool read_Xi = false;
+    bool read_Xo = false;
+    bool write_eX = false;
+};
+
+std::unordered_map<std::string, revpot_ion_config>
 make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_desc>& method,
-                             std::unordered_map<std::string, fvm_ion_config>& ions,
+                             const std::unordered_map<std::string, fvm_ion_config>& ions,
                              const cell_build_data& data,
                              fvm_mechanism_config_map&);
 
@@ -1086,8 +1092,12 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         auto method = dflt.reversal_potential_method;
         method.insert(global_dflt.reversal_potential_method.begin(),
                       global_dflt.reversal_potential_method.end());
-        auto written = make_revpot_mechanism_config(method, M.ions, data, M.mechanisms);
-        for (const auto& ion: written) M.ions[ion].revpot_written = true;
+        auto confs = make_revpot_mechanism_config(method, M.ions, data, M.mechanisms);
+        for (const auto& [ion, conf]: confs) {
+            M.ions[ion].revpot_written |= conf.write_eX;
+            M.ions[ion].iconc_read     |= conf.read_Xi;
+            M.ions[ion].econc_read     |= conf.read_Xo;
+        }
     }
 
     M.target_divs = {0u, M.n_target};
@@ -1638,13 +1648,13 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
     }
 }
 
-std::unordered_set<std::string>
+std::unordered_map<std::string, revpot_ion_config>
 make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_desc>& method,
-                             std::unordered_map<std::string, fvm_ion_config>& ions,
+                             const std::unordered_map<std::string, fvm_ion_config>& ions,
                              const cell_build_data& data,
                              fvm_mechanism_config_map& result) {
     std::unordered_map<std::string, mechanism_desc> revpot_tbl;
-    std::unordered_set<std::string> written;
+    std::unordered_map<std::string, revpot_ion_config> ex_config;
 
     for (const auto& ion: util::keys(data.ion_species)) {
         if (!method.count(ion)) continue;
@@ -1676,7 +1686,7 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_des
             throw make_cc_error("Revpot mechanism for ion {} does not write this reversal potential", ion);
         }
 
-        written.insert(ion);
+        ex_config[ion].write_eX = true;
 
         // Only instantiate if the ion is used.
         if (ions.count(ion)) {
@@ -1705,19 +1715,19 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_des
                 }
                 if (!config.cv.empty()) result[name] = std::move(config);
             }
-            ion_conf.econc_read |= dep.read_concentration_ext;
-            ion_conf.iconc_read |= dep.read_concentration_int;
+            ex_config[ion].read_Xi |= dep.read_concentration_int;
+            ex_config[ion].read_Xo |= dep.read_concentration_ext;
         }
     }
 
     // Confirm that all ions written to by a revpot have a corresponding entry in a reversal_potential_method table.
     for (auto& [k, v]: revpot_tbl) {
-        if (!written.count(k)) {
+        if (!ex_config.count(k) || !ex_config.at(k).write_eX) {
             throw make_cc_error("Revpot mechanism {} also writes to ion {}.", v.name(), k);
         }
     }
 
-    return written;
+    return ex_config;
 }
 
 } // namespace arb
