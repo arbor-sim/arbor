@@ -51,21 +51,31 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
     write_Xi_(ion_data.iconc_written),
     write_Xd_(ion_data.is_diffusive),
      // ensure that if we have W access, also R access is flagged
-    read_eX_(true || ion_data.revpot_written),
-    read_Xo_(ion_data.econc_written || ion_data.econc_read),
-    read_Xi_(ion_data.iconc_written || ion_data.iconc_read),
-    read_Xd_(ion_data.is_diffusive),
+    read_eX_(ion_data.revpot_read   || write_eX_),
+    read_Xo_(ion_data.econc_written || write_Xo_),
+    read_Xi_(ion_data.iconc_written || write_Xi_),
+    // NOTE: this is currently a bit odd in that we don't differentiate R/W
+    //       cases, it's all or nothing. Leave this in as a reminder, though.
+    read_Xd_(ion_data.is_diffusive  || write_Xd_),
     node_index_(make_const_view(ion_data.cv)),
     iX_(ion_data.cv.size(), NAN),
     gX_(ion_data.cv.size(), NAN),
     charge(1u, static_cast<arb_value_type>(ion_data.charge)),
     solver(std::move(ptr)) {
     // Allocate reset data only if anybody overwrites the resettable ararys
-    // This is used by internal and diffusive concentrations
-    if (write_Xi_ || write_Xd_) {
+    if (write_Xi_) {
         reset_Xi_ = make_const_view(ion_data.reset_iconc);
         init_Xi_ = make_const_view(ion_data.init_iconc);
         arb_assert(node_index_.size()==init_Xi_.size());
+    }
+    // NOTE: 1) in the case that we _do not_ need to reset Xi, but _do_ to reset Xd
+    //          allocate reset_Xi.
+    // NOTE: 2) This still could maybe optimized by considering all cases, but that's
+    //          too bug prone for my tastes, i.e. the extra reset_Xi is only needed if Xd
+    //          needs reset, Xi doesn't and Xi is optimised out, too. Then we reset Xd by
+    //          reset_Xi, in all other cases, we reset Xi first, then copy Xi into X
+    if (write_Xd_ && !write_Xi_) {
+        reset_Xi_ = make_const_view(ion_data.reset_iconc);
     }
     if (write_Xo_) {
         init_Xo_ = make_const_view(ion_data.init_econc);
@@ -76,10 +86,10 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
         init_eX_ = make_const_view(ion_data.init_revpot);
         arb_assert(node_index_.size()==init_eX_.size());
     }
+    // Allocate data only if read.
     if (read_Xd_) {
         Xd_ = make_const_view(ion_data.reset_iconc);
     }
-    // Allocate data only if read.
     if (read_Xi_) {
         Xi_ = make_const_view(ion_data.init_iconc);
     }
@@ -107,10 +117,7 @@ void ion_state::reset() {
     if (write_Xi_) memory::copy(reset_Xi_, Xi_);
     if (write_Xo_) memory::copy(reset_Xo_, Xo_);
     if (write_eX_) memory::copy(init_eX_, eX_);
-    // This goes _last_ or at least after Xi since we might have removed reset_Xi
-    // when Xi is constant. Thus conditionally resetting Xi first and then copying
-    // Xi -> Xd is save in all cases.
-    if (write_Xd_) memory::copy(Xi_, Xd_);
+    if (write_Xd_) memory::copy(reset_Xi_, Xd_);
 }
 
 // istim_state methods:

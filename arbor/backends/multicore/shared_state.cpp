@@ -54,15 +54,18 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
                      unsigned align,
                      solver_ptr ptr):
     alignment(min_alignment(align)),
+    // flags for resetting ion states after W access
     write_eX_(ion_data.revpot_written),
     write_Xo_(ion_data.econc_written),
     write_Xi_(ion_data.iconc_written),
     write_Xd_(ion_data.is_diffusive),
-    // ensure that if we have W access, also R access is flagged
-    read_eX_(true || ion_data.revpot_written),
-    read_Xo_(ion_data.econc_written || ion_data.econc_read),
-    read_Xi_(ion_data.iconc_written || ion_data.iconc_read),
-    read_Xd_(ion_data.is_diffusive),
+     // ensure that if we have W access, also R access is flagged
+    read_eX_(ion_data.revpot_read   || write_eX_),
+    read_Xo_(ion_data.econc_written || write_Xo_),
+    read_Xi_(ion_data.iconc_written || write_Xi_),
+    // NOTE: this is currently a bit odd in that we don't differentiate R/W
+    //       cases, it's all or nothing. Leave this in as a reminder, though.
+    read_Xd_(ion_data.is_diffusive  || write_Xd_),
     node_index_(ion_data.cv.begin(), ion_data.cv.end(), pad(alignment)),
     iX_(ion_data.cv.size(), NAN, pad(alignment)),
     gX_(ion_data.cv.size(), NAN, pad(alignment)),
@@ -70,10 +73,19 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
     solver(std::move(ptr)) {
     // Allocate reset data only if anybody overwrites the resettable ararys
     // This is used by internal and diffusive concentrations
-    if (write_Xi_ || write_Xd_) {
+    if (write_Xi_) {
         init_Xi_  = {ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)};
         reset_Xi_ = {ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)};
         arb_assert(node_index_.size()==init_Xi_.size());
+    }
+    // NOTE: 1) in the case that we _do not_ need to reset Xi, but _do_ to reset Xd
+    //          allocate reset_Xi.
+    // NOTE: 2) This still could maybe optimized by considering all cases, but that's
+    //          too bug prone for my tastes, i.e. the extra reset_Xi is only needed if Xd
+    //          needs reset, Xi doesn't and Xi is optimised out, too. Then we reset Xd by
+    //          reset_Xi, in all other cases, we reset Xi first, then copy Xi into Xd.
+    if (write_Xd_ && !write_Xi_) {
+        reset_Xi_ = {ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)};
     }
     if (write_Xo_) {
         init_Xo_  = {ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)};
@@ -84,10 +96,10 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
         init_eX_ = {ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)};
         arb_assert(node_index_.size()==init_eX_.size());
     }
+    // Allocate data only if read.
     if (read_Xd_) {
         Xd_ = {ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)};
     }
-    // Allocate data only if read.
     if (read_Xi_) {
         Xi_ = {ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)};
     }
@@ -115,10 +127,7 @@ void ion_state::reset() {
     if (write_Xi_) std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xi_.begin());
     if (write_Xo_) std::copy(reset_Xo_.begin(), reset_Xo_.end(), Xo_.begin());
     if (write_eX_) std::copy(init_eX_.begin(), init_eX_.end(), eX_.begin());
-    // This goes _last_ or at least after Xi since we might have removed reset_Xi
-    // when Xi is constant. Thus conditionally resetting Xi first and then copying
-    // Xi -> Xd is safe in all cases.
-    if (write_Xd_) std::copy(Xi_.begin(), Xi_.end(), Xd_.begin());
+    if (write_Xd_) std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xd_.begin());
 }
 
 // istim_state methods:
