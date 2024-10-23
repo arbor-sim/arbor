@@ -65,6 +65,7 @@ class Arbor(CMakePackage, CudaPackage):
     variant("doc", default=False, description="Build documentation.")
     variant("mpi", default=False, description="Enable MPI support")
     variant("python", default=True, description="Enable Python frontend support")
+    variant("pystubs", default=True, when="@0.10:", description="Python stub generation")
     variant(
         "vectorize",
         default=False,
@@ -122,7 +123,7 @@ class Arbor(CMakePackage, CudaPackage):
         depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
         depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
         depends_on("py-pybind11@2.10.1:", when="@2.11.1:", type="build")
-        depends_on("py-pybind11-stubgen@2.5:", when="@0.10:", type="build")
+        depends_on("py-pybind11-stubgen@2.5:", when="+pystubs", type="build")
 
     # sphinx based documentation
     with when("+doc"):
@@ -141,6 +142,7 @@ class Arbor(CMakePackage, CudaPackage):
             self.define_from_variant("ARB_WITH_PYTHON", "python"),
             self.define_from_variant("ARB_VECTORIZE", "vectorize"),
             self.define_from_variant("ARB_USE_HWLOC", "hwloc"),
+            self.define_from_variant("ARB_BUILD_PYTHON_STUBS", "pystubs"),
         ]
 
         if "+cuda" in self.spec:
