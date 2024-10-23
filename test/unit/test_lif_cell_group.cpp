@@ -704,7 +704,7 @@ TEST(lif_cell_group, probe_with_connections) {
         [&spikes](const std::vector<spike>& spk) { for (const auto& s: spk) spikes.push_back(s.time); }
     );
 
-    sim.run(10*U::ms, 0.005*U::ms);
+    sim.run(10*U::ms, 0.0025*U::ms);
     std::vector<Um_type> exp = {{ 0, -18 },
                                 { 0.025, -17.9750624 },
                                 { 0.05, -17.9502492 },
