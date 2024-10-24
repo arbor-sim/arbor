@@ -7,7 +7,6 @@ set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON CACHE INTERNAL "" FORCE)
 
 # Make CUDA support throw errors if architectures remain unclear
 cmake_policy(SET CMP0104 NEW)
-
 # Ensure CMake is aware of the policies for modern RPATH behavior
 cmake_policy(SET CMP0072 NEW)
 
@@ -45,6 +44,9 @@ if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
     message(STATUS "No LTO: ${ERR_LTO}")
   endif()
 endif()
+
+# Use pybind11-stubgen to make type stubs.
+cmake_dependent_option(ARB_BUILD_PYTHON_STUBS "Use pybind11-stubgen to build type stubs." ON "ARB_WITH_PYTHON" OFF)
 
 # Turn on this option to force the compilers to produce color output when output is
 # redirected from the terminal (e.g. when using ninja or a pager).
