@@ -2,16 +2,12 @@
 
 #include <algorithm>
 #include <cassert>
-#include <fstream>
-#include <numeric>
 #include <vector>
 
 #include <arbor/export.hpp>
 #include <arbor/common_types.hpp>
 
-#include "memory/memory.hpp"
 #include "util/rangeutil.hpp"
-#include "util/span.hpp"
 
 namespace arb {
 
