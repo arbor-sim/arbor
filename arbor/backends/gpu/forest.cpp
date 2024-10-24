@@ -1,6 +1,6 @@
 #include "backends/gpu/forest.hpp"
 #include "util/span.hpp"
-#include <iostream>
+#include <fstream>
 
 namespace arb {
 namespace gpu {
