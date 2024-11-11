@@ -21,6 +21,8 @@
 #include "util/span.hpp"
 #include "profile/profiler_macro.hpp"
 
+#include <iostream>
+
 namespace arb {
 
 template <typename Seq, typename Value, typename Less = std::less<>>
@@ -81,8 +83,10 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
     // Merge (remaining) old and pending events.
     PE(communication:enqueue:merge);
     auto n = new_events.size();
-    new_events.resize(n+pending.size()+old_events.size());
-    std::merge(pending.begin(), pending.end(), old_events.begin(), old_events.end(), new_events.begin()+n);
+    new_events.resize(n + pending.size() + old_events.size());
+    std::merge(pending.begin(), pending.end(),
+               old_events.begin(), old_events.end(),
+               new_events.begin() + n);
     PL();
 }
 

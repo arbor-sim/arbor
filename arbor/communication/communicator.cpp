@@ -78,7 +78,7 @@ void communicator::update_connections(const recipe& rec,
     // Also the count of presynaptic sources from each domain
     //   -> src_counts: array with one entry for each domain
 
-    // Record all the gid in a flat vector.
+    // Record all the gids in a flat vector.
 
     PE(init:communicator:update:collect_gids);
     std::vector<cell_gid_type> gids; gids.reserve(num_local_cells_);
