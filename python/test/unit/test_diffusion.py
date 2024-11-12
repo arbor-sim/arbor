@@ -9,7 +9,7 @@ from .. import fixtures
 """
 Tests for the concentration and amount of diffusive particles across time and morphology.
 Four different morphological structures are considered: 1 segment ("soma only"), 2 segments
-("soma with dendrite"), 3 segments with one branching point ("soma with two dendrites"), and 
+("soma with dendrite"), 3 segments with one branching point ("soma with two dendrites"), and
 4 segments with one branching point ("dendrite with one spine").
 
 NOTE: Internally, Arbor only knows concentrations. Thus, particle amounts have to be computed
@@ -269,7 +269,7 @@ class TestDiffusion(unittest.TestCase):
         _ = tree.append(
             s2,
             A.mpoint(+length_2, 0, 0, radius_4),
-            A.mpoint(+length_2+length_4, 0, 0, radius_4),
+            A.mpoint(+length_2 + length_4, 0, 0, radius_4),
             tag=3,
         )
         labels = A.label_dict(
@@ -330,7 +330,7 @@ class TestDiffusion(unittest.TestCase):
         r_2=4.0,
         r_3=4.0,
         r_4=4.0,
-        test_max=True
+        test_max=True,
     ):
         # set parameters
         inject_remove = [
@@ -400,7 +400,7 @@ class TestDiffusion(unittest.TestCase):
 
         # prepare the simulation
         cel = A.cable_cell(morph, dec, labels, cvp)
-        #A.write_component(cel, "morpho.txt")
+        #A.write_component(cel, "morpho.txt"
         rec = recipe(cat, cel, prb, inject_remove)
         sim = A.simulation(rec, ctx)
 
@@ -495,7 +495,18 @@ class TestDiffusion(unittest.TestCase):
             single_context, diffusion_catalogue, 3, 50, l_1=5, l_2=5, l_3=5, r_1=4, r_2=4, r_3=4
         )  # 3 segments with radius 4 µm
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 4, 100, l_1=5, l_2=5, l_3=5, l_4=5, r_1=4, r_2=4, r_3=4, r_4=4, test_max=False
+            diffusion_catalogue,
+            4,
+            100,
+            l_1=5,
+            l_2=5,
+            l_3=5,
+            l_4=5,
+            r_1=4,
+            r_2=4,
+            r_3=4,
+            r_4=4,
+            test_max=False,
         )  # 4 segments with radius 4 µm
 
     # test_diffusion_different_length
@@ -514,7 +525,18 @@ class TestDiffusion(unittest.TestCase):
             single_context, diffusion_catalogue, 3, 50, l_1=5, l_2=3, l_3=3, r_1=4, r_2=4, r_3=4
         )  # 3 segments with radius 4 µm
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 4, 100, l_1=5, l_2=3, l_3=1, l_4=3, r_1=4, r_2=4, r_3=4, r_4=4, test_max=False
+            diffusion_catalogue,
+            4,
+            100,
+            l_1=5,
+            l_2=3,
+            l_3=1,
+            l_4=3,
+            r_1=4,
+            r_2=4,
+            r_3=4,
+            r_4=4,
+            test_max=False,
         )  # 4 segments with radius 4 µm
 
     # test_diffusion_different_radii
@@ -530,5 +552,16 @@ class TestDiffusion(unittest.TestCase):
             single_context, diffusion_catalogue, 3, 50, l_1=5, l_2=5, l_3=5, r_1=4, r_2=6, r_3=6
         )  # 3 segments with radius 4 µm and 6 µm
         self.simulate_and_test_diffusion(
-            diffusion_catalogue, 4, 100, l_1=5, l_2=5, l_3=5, l_4=5, r_1=4, r_2=6, r_3=1, r_4=6, test_max=False
+            diffusion_catalogue,
+            4,
+            100,
+            l_1=5,
+            l_2=5,
+            l_3=5,
+            l_4=5,
+            r_1=4,
+            r_2=6,
+            r_3=1,
+            r_4=6,
+            test_max=False,
         )  # 4 segments with radius 4 µm and 6 µm
