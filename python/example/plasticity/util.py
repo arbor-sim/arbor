@@ -5,6 +5,7 @@ import numpy as np
 from scipy.signal import savgol_filter
 import networkx as nx
 
+
 def plot_network(rec, prefix=""):
     fg, ax = plt.subplots()
     ax.matshow(rec.connections)
@@ -20,7 +21,7 @@ def plot_network(rec, prefix=""):
         for j in range(n):
             for _ in range(rec.connections[i, j]):
                 g.add_edge(i, j)
-    nx.draw(g, with_labels=True, font_weight='bold')
+    nx.draw(g, with_labels=True, font_weight="bold")
     fg.savefig(f"{prefix}graph.pdf")
     fg.savefig(f"{prefix}graph.png")
     fg.savefig(f"{prefix}graph.svg")
@@ -51,9 +52,7 @@ def plot_spikes(sim, n_cells, t_interval, T, prefix=""):
     fg.savefig(f"{prefix}raster.svg")
 
     ts = np.arange(n_interval) * t_interval
-    mean_rate = savgol_filter(
-        rates.mean(axis=1), window_length=5, polyorder=2
-    )
+    mean_rate = savgol_filter(rates.mean(axis=1), window_length=5, polyorder=2)
     fg, ax = plt.subplots()
     ax.plot(ts, rates)
     ax.plot(ts, mean_rate, color="0.8", lw=4, label="Mean rate")
