@@ -23,10 +23,8 @@ struct event_stream_base {
 protected: // members
     std::vector<event_data_type> ev_data_;
     std::vector<std::size_t> ev_spans_ = {0};
-    std::vector<std::size_t> lane_spans_;
     std::size_t index_ = 0;
     event_data_type* base_ptr_ = nullptr;
-
 
 public:
     event_stream_base() = default;
@@ -106,15 +104,6 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
             stream.spikes_.clear();
             // ev_data_ has been cleared during v.clear(), so we use its capacity
             stream.spikes_.reserve(stream.ev_data_.capacity());
-            // record sizes of streams for later merging
-            //
-            // The idea here is that this records the division points `pd` where
-            // `stream` was updated by the lane `lid`. As events within one lane are
-            // sorted, we known that events between two division points are sorted.
-            // Then, we can use `merge_inplace` over `sort` for a small but noticeable
-            // speed-up.
-            stream.lane_spans_.resize(lanes.size() + 1);
-            for (auto& ix: stream.lane_spans_) ix = stream.spikes_.size();
         }
 
         // loop over lanes: group events by mechanism and sort them by time
@@ -135,8 +124,6 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
                 stream.spikes_.push_back(spike_data{step, handle.mech_index, time, weight});
                 stream.spike_counter_[step]++;
             }
-            // record current sizes here. putting this into the above loop is slower. significantly
-            for (auto& [id, stream]: streams) stream.lane_spans_[cell + 1] = stream.spikes_.size();
             ++cell;
         }
 
@@ -146,16 +133,8 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
             tg.run([&stream]() {
                 // scan over spike_counter_
                 util::make_partition(stream.ev_spans_, stream.spike_counter_);
-                // leverage our earlier partitioning to merge the partitions
-                // theoretically, this could be parallelised, too, practically it didn't pay off
-                auto& part = stream.lane_spans_;
-                for (size_t ix = 0; ix < part.size() - 1; ++ix) {
-                    std::inplace_merge(stream.spikes_.begin(),
-                                       stream.spikes_.begin() + part[ix],
-                                       stream.spikes_.begin() + part[ix + 1]);
-                }
-                // Further optimisation: merge(!) merging, transforming, and appending into one
-                // call.
+                // This is made slightly faster by using pdqsort, if we want to take it on.
+                util::sort(stream.spikes_);
                 // copy temporary deliverable_events into stream's ev_data_
                 stream.ev_data_.reserve(stream.spikes_.size());
                 std::transform(stream.spikes_.begin(), stream.spikes_.end(),
