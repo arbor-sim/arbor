@@ -231,9 +231,7 @@ struct fvm_initialization_data {
 struct fvm_lowered_cell {
     virtual void reset() = 0;
 
-    virtual fvm_initialization_data initialize(
-        const std::vector<cell_gid_type>& gids,
-        const recipe& rec) = 0;
+    virtual fvm_initialization_data initialize(const std::vector<cell_gid_type>& gids, const recipe& rec) = 0;
 
     virtual fvm_integration_result integrate(const timestep_range& dts,
                                              const event_lane_subrange& event_lanes,
@@ -249,8 +247,7 @@ struct fvm_lowered_cell {
 
 using fvm_lowered_cell_ptr = std::unique_ptr<fvm_lowered_cell>;
 
-ARB_ARBOR_API fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_context& ctx,
-        std::uint64_t seed = 0);
+ARB_ARBOR_API fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_context& ctx, std::uint64_t seed = 0);
 
 inline
 void serialize(serializer& s, const std::string& k, const fvm_lowered_cell& v) { v.t_serialize(s, k); }

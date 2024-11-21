@@ -42,13 +42,11 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
     fvm_lowered_cell_impl(execution_context ctx, arb_seed_type seed = 0):
         context_(ctx),
         seed_{seed}
-    {};
+    {}
 
     void reset() override;
 
-    fvm_initialization_data initialize(
-        const std::vector<cell_gid_type>& gids,
-        const recipe& rec) override;
+    fvm_initialization_data initialize(const std::vector<cell_gid_type>& gids, const recipe& rec) override;
 
     fvm_integration_result integrate(const timestep_range& dts,
                                      const event_lane_subrange& event_lanes,
@@ -176,7 +174,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
     // Integration setup
     PE(advance:integrate:setup);
     // Push samples and events down to the state and reset the spike thresholds.
-    state_->begin_epoch(event_lanes, staged_samples, dts, target_handles_, target_handle_divisions_);
+    state_->begin_epoch(event_lanes, staged_samples, dts, target_handles_, target_handle_divisions_, context_.thread_pool);
     PL();
 
     // loop over timesteps

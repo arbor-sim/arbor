@@ -32,10 +32,11 @@ struct shared_state_base {
                      const std::vector<std::vector<sample_event>>& samples,
                      const timestep_range& dts,
                      const std::vector<target_handle>& handles,
-                     const std::vector<size_t>& divs) {
+                     const std::vector<size_t>& divs,
+                     task_system_handle ts) {
         auto d = static_cast<D*>(this);
         // events
-        initialize(lanes, handles, divs, dts, d->streams);
+        initialize(lanes, handles, divs, dts, d->streams, ts);
         // samples
         auto n_samples = util::sum_by(samples, [] (const auto& s) {return s.size();});
         if (d->sample_time.size() < n_samples) {
