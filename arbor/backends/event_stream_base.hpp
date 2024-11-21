@@ -130,7 +130,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
         // parallelise over streams
         auto tg = threading::task_group(ts.get());
         for (auto& [id, stream]: streams) {
-            tg.run([&stream]() {
+            tg.run([&stream=stream]() {
                 // scan over spike_counter_
                 util::make_partition(stream.ev_spans_, stream.spike_counter_);
                 // This is made slightly faster by using pdqsort, if we want to take it on.
