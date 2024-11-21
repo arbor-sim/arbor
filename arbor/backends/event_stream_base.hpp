@@ -133,7 +133,11 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
             tg.run([&stream=stream]() {
                 // scan over spike_counter_
                 util::make_partition(stream.ev_spans_, stream.spike_counter_);
-                // This is made slightly faster by using pdqsort, if we want to take it on.
+                // This is made slightly faster by using pdqsort, if we want to
+                // take it on. Despite events being sorted by time in the
+                // partitions defined by the lane index here, they are not
+                // _totally_ sorted, thus sort is needed, merge not being strong
+                // enough :/
                 util::sort(stream.spikes_);
                 // copy temporary deliverable_events into stream's ev_data_
                 stream.ev_data_.reserve(stream.spikes_.size());
