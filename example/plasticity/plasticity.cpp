@@ -68,8 +68,9 @@ struct recipe: public arb::recipe {
         auto decor = arb::decor{}
             .paint(all, arb::density("hh", {{"gl", 5}}))
             .place(center, arb::synapse("expsyn"), syn)
-            .place(center, arb::threshold_detector{-10.0*arb::units::mV}, det);
-        return arb::cable_cell({tree}, decor, {}, arb::cv_policy_every_segment());
+            .place(center, arb::threshold_detector{-10.0*arb::units::mV}, det)
+            .set_default(arb::cv_policy_every_segment());
+        return arb::cable_cell({tree}, decor);
     }
 };
 

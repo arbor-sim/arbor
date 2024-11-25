@@ -26,7 +26,7 @@ namespace U = arb::units;
 struct linear: public recipe {
      linear(double ext, double dx, double Xi, double beta): l{ext}, d{dx}, i{Xi}, b{beta} {
         gprop.default_parameters = neuron_parameter_defaults;
-        gprop.default_parameters.discretization = cv_policy_max_extent(d);
+        gprop.default_parameters.discretization = cv_policy_max_extent{d};
         gprop.add_ion("bla", 1, 23*U::mM, 42*U::mM, 0*U::mV, b*U::m2/U::s);
     }
 

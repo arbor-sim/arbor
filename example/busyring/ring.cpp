@@ -421,7 +421,9 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
 
     if (params.synapses>1) decor.place(syns, arb::synapse("expsyn"), "s");
 
-    return {arb::morphology(tree), decor, {}, arb::cv_policy_every_segment()};
+    decor.set_default(arb::cv_policy_every_segment());
+
+    return {arb::morphology(tree), decor};
 }
 
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
@@ -451,5 +453,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     }
 
     // Make a CV between every sample in the sample tree.
-    return {arb::morphology(tree), decor, {}, arb::cv_policy_every_segment()};
+    decor.set_default(arb::cv_policy_every_segment());
+
+    return {arb::morphology(tree), decor};
 }

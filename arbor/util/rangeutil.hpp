@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <ostream>
 #include <numeric>
 #include <cstring>
 #include <type_traits>
@@ -17,6 +18,18 @@
 
 namespace arb {
 namespace util {
+
+// Present a single item as a range
+
+template <typename T>
+range<T*> singleton_view(T& item) {
+    return {&item, &item+1};
+}
+
+template <typename T>
+range<const T*> singleton_view(const T& item) {
+    return {&item, &item+1};
+}
 
 // Non-owning views and subviews
 

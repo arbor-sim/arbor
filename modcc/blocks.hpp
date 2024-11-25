@@ -4,8 +4,10 @@
 #include <iosfwd>
 #include <string>
 #include <vector>
+#include <set>
 
 #include "identifier.hpp"
+#include "location.hpp"
 #include "token.hpp"
 #include <libmodcc/export.hpp>
 
@@ -45,15 +47,6 @@ struct IonDep {
     };
     bool writes_concentration_ext() const {
         return writes_variable(name + "o");
-    };
-    bool reads_current() const {
-        return reads_variable("i" + name);
-    };
-    bool reads_concentration_int() const {
-        return reads_variable(name + "i");
-    };
-    bool reads_concentration_ext() const {
-        return reads_variable(name + "o");
     };
     bool writes_rev_potential() const {
         return writes_variable("e" + name);

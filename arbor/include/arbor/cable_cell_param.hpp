@@ -8,8 +8,8 @@
 
 #include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
-#include <arbor/iexpr.hpp>
 #include <arbor/cv_policy.hpp>
+#include <arbor/iexpr.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/primitives.hpp>
@@ -380,7 +380,8 @@ using defaultable =
                  init_int_concentration,
                  init_ext_concentration,
                  init_reversal_potential,
-                 ion_reversal_potential_method>;
+                 ion_reversal_potential_method,
+                 cv_policy>;
 
 // Cable cell ion and electrical defaults.
 

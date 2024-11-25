@@ -96,7 +96,7 @@ Cite (Bibtex format)
     :target: https://doi.org/10.1109/EMPDP.2019.8671560
 
 .. |zlatest| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.13284789.svg
-    :target: https://doi.org/10.5281/zenodo.13284789
+    :target: https://doi.org/10.5281/zenodo.13284789image::
 
 .. |z0100| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.13284789.svg
     :target: https://doi.org/10.5281/zenodo.13284789

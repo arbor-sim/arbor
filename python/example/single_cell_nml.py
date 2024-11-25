@@ -60,13 +60,12 @@ decor = (
     .place('"stim_site"', A.iclamp(8 * U.ms, 1 * U.ms, current=4 * U.nA), "iclamp3")
     # Detect spikes at the soma with a voltage threshold of -10 mV.
     .place('"axon_end"', A.threshold_detector(-10 * U.mV), "detector")
+    # Set discretisation: Soma as one CV, 1um everywhere else
+    .discretization('(replace (single (region "soma")) (max-extent 1.0))')
 )
 
-# Set discretisation: Soma as one CV, 1um everywhere else
-cvp = A.cv_policy('(replace (single (region "soma")) (max-extent 1.0))')
-
 # Combine morphology with region and locset definitions to make a cable cell.
-cell = A.cable_cell(morpho, decor, labels, cvp)
+cell = A.cable_cell(morpho, decor, labels)
 
 print(cell.locations('"axon_end"'))
 

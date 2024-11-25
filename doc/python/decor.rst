@@ -173,6 +173,20 @@ Cable cell decoration
         :type d: :py:class:`threshold_detector`
         :param str label: the label of the group of detectors on the locset.
 
+    .. method:: discretization(policy)
+
+        Set the cv_policy used to discretise the cell into control volumes for simulation.
+
+        :param policy: The cv_policy.
+        :type policy: :py:class:`cv_policy`
+
+    .. method:: discretization(policy)
+        :noindex:
+
+        Set the cv_policy used to discretise the cell into control volumes for simulation.
+
+        :param str policy: :ref:`string representation <morph-cv-sexpr>` of a cv_policy.
+
     .. method:: paintings()
 
         Returns a list of tuples ``(region, painted_object)`` for inspection.

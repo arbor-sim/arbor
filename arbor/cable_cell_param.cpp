@@ -105,6 +105,11 @@ std::vector<defaultable> cable_cell_parameter_set::serialize() const {
     for (const auto& [name, mech]: reversal_potential_method) {
         D.push_back(ion_reversal_potential_method{name, mech});
     }
+
+    if (discretization) {
+        D.push_back(*discretization);
+    }
+
     return D;
 }
 
@@ -157,6 +162,9 @@ decor& decor::set_default(defaultable what) {
                 }
                 else if constexpr (std::is_same_v<ion_reversal_potential_method, T>) {
                     defaults_.reversal_potential_method[p.ion] = p.method;
+                }
+                else if constexpr (std::is_same_v<cv_policy, T>) {
+                    defaults_.discretization = std::forward<cv_policy>(p);
                 }
                 else if constexpr (std::is_same_v<ion_diffusivity, T>) {
                     if (p.scale.type() != iexpr_type::scalar) throw cable_cell_error{"Default values cannot have a scale."};

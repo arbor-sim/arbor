@@ -19,15 +19,12 @@ class cc_recipe(A.recipe):
         st = A.segment_tree()
         st.append(A.mnpos, (0, 0, 0, 10), (1, 0, 0, 10), 1)
 
-        dec = (
-            A.decor()
-            # This ensures we _read_ nai/nao and can probe them, too
-            .set_ion(ion="na", method="nernst/x=na")
-            .place("(location 0 0.08)", A.synapse("expsyn"), "syn0")
-            .place("(location 0 0.09)", A.synapse("exp2syn"), "syn1")
-            .place("(location 0 0.1)", A.iclamp(20.0 * U.nA), "iclamp")
-            .paint("(all)", A.density("hh"))
-        )
+        dec = A.decor()
+
+        dec.place("(location 0 0.08)", A.synapse("expsyn"), "syn0")
+        dec.place("(location 0 0.09)", A.synapse("exp2syn"), "syn1")
+        dec.place("(location 0 0.1)", A.iclamp(20.0 * U.nA), "iclamp")
+        dec.paint("(all)", A.density("hh"))
 
         self.cell = A.cable_cell(st, dec)
 
@@ -43,7 +40,7 @@ class cc_recipe(A.recipe):
     def global_properties(self, kind):
         return self.props
 
-    def probes(self, gid):
+    def probes(self, _):
         # Use keyword arguments to check that the wrappers have actually declared keyword arguments correctly.
         # Place single-location probes at (location 0 0.01*j) where j is the index of the probe address in
         # the returned list.
@@ -61,7 +58,7 @@ class cc_recipe(A.recipe):
             ),
             A.cable_probe_density_state_cell(mechanism="hh", state="n", tag="hh-n-all"),
             A.cable_probe_point_state(
-                target="syn0", mechanism="expsyn", state="g", tag="expsyn-g"
+                target=0, mechanism="expsyn", state="g", tag="expsyn-g"
             ),
             A.cable_probe_point_state_cell(
                 mechanism="exp2syn", state="B", tag="expsyn-B-all"
@@ -130,14 +127,14 @@ class TestCableProbes(unittest.TestCase):
         self.assertEqual(1, len(m))
         self.assertEqual(A.location(0, 0.08), m[0].location)
         self.assertEqual(1, m[0].multiplicity)
-        self.assertEqual("syn0", m[0].target)
+        self.assertEqual(0, m[0].target)
 
         m = sim.probe_metadata((0, "expsyn-B-all"))
         self.assertEqual(1, len(m))
         self.assertEqual(1, len(m[0]))
         self.assertEqual(A.location(0, 0.09), m[0][0].location)
         self.assertEqual(1, m[0][0].multiplicity)
-        self.assertEqual("syn1", m[0][0].target)
+        self.assertEqual(1, m[0][0].target)
 
         m = sim.probe_metadata((0, "ina"))
         self.assertEqual(1, len(m))

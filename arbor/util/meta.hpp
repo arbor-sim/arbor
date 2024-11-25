@@ -5,6 +5,7 @@
 #include <array>
 #include <cstddef>
 #include <iterator>
+#include <tuple>
 #include <utility>
 #include <type_traits>
 

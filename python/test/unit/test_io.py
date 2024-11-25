@@ -9,7 +9,7 @@ from io import StringIO
 
 acc = """(arbor-component
   (meta-data
-    (version "0.10-dev"))
+    (version "0.9-dev"))
   (cable-cell
     (morphology
       (branch 0 -1
@@ -231,7 +231,9 @@ class serdes_recipe(A.recipe):
 
         dec = A.decor()
         dec.paint("(all)", A.density("pas"))
-        return A.cable_cell(tree, dec, discretization=A.cv_policy("(max-extent 1)"))
+        dec.discretization(A.cv_policy("(max-extent 1)"))
+
+        return A.cable_cell(tree, dec)
 
     def global_properties(self, _):
         return self.the_props

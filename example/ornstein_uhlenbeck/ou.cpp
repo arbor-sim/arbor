@@ -27,13 +27,14 @@ public:
         // paint the process on the whole cell
         decor dec;
         double const cv_size = 1.0;
+        dec.set_default(cv_policy_max_extent(cv_size));
         dec.paint("(all)"_reg , density("hh"));
         dec.paint("(all)"_reg , density("ornstein_uhlenbeck"));
 
         // single-cell tree with ncvs control volumes
         segment_tree tree;
         tree.append(mnpos, {0, 0, 0.0, 4.0}, {0, 0, ncvs*cv_size, 4.0}, 1);
-        cell_ = cable_cell(morphology(tree), dec, {}, cv_policy_max_extent(cv_size));
+        cell_ = cable_cell(morphology(tree), dec);
     }
 
     arb::cell_size_type num_cells() const override { return 1; }

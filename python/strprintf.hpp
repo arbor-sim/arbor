@@ -168,7 +168,7 @@ namespace impl {
             for (auto& x: s.seq_) {
                 if (!first) o << s.sep_;
                 first = false;
-                o << s.f_(x);
+                o << s.f(x);
             }
             return o;
         }

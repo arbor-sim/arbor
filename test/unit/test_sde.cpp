@@ -254,13 +254,15 @@ public:
 
         // set cvs explicitly
         double const cv_size = 1.0;
+        dec.set_default(cv_policy_max_extent(cv_size));
+
         // generate cells
         unsigned const n1 = ncvs/2;
         for (unsigned int i=0; i<ncell_; ++i) {
             segment_tree tree;
             tree.append(mnpos, {i*20., 0, 0.0, 4.0}, {i*20., 0, n1*cv_size, 4.0}, 1);
             tree.append(0, {i*20., 0, ncvs*cv_size, 4.0}, 2);
-            cells_.push_back(cable_cell(morphology(tree), dec, {}, cv_policy_max_extent(cv_size)));
+            cells_.push_back(cable_cell(morphology(tree), dec));
         }
     }
 
@@ -333,6 +335,7 @@ public:
 
         // set cvs explicitly
         double const cv_size = 1.0;
+        dec.set_default(cv_policy_max_extent(cv_size));
 
         // generate cells
         unsigned const n1 = ncvs/2;
@@ -340,7 +343,7 @@ public:
             segment_tree tree;
             tree.append(mnpos, {i*20., 0, 0.0, 4.0}, {i*20., 0, n1*cv_size, 4.0}, 1);
             tree.append(0, {i*20., 0, ncvs*cv_size, 4.0}, 2);
-            cells_.push_back(cable_cell(morphology(tree), dec, labels, cv_policy_max_extent(cv_size)));
+            cells_.push_back(cable_cell(morphology(tree), dec, labels));
         }
     }
 
@@ -729,7 +732,8 @@ TEST(sde, solver) {
     // context
     auto context = make_context({arbenv::default_concurrency(), -1});
 
-    for (unsigned s=0; s<nsims; ++s) {
+    for (unsigned s=0; s<nsims; ++s)
+    {
         // build a simulation object
         simulation sim = simulation::create(rec)
             .set_context(context)
@@ -766,10 +770,10 @@ TEST(sde, solver) {
             (sigma*sigma/(2*kappa))*(1.0 - std::exp(-2*kappa*t))
         };
     };
-    const auto& expected_m1 = [&](double t) { return expected(0.1, 0.1, t); };
-    const auto& expected_m2 = [&](double t) { return expected(0.01, 0.1, t); };
-    const auto& expected_m3 = [&](double t) { return expected(0.1, 0.05, t); };
-    const auto& expected_m4 = [&](double t) { return expected(0.01, 0.05, t); };
+    auto expected_m1 = [&](double t) { return expected(0.1, 0.1, t); };
+    auto expected_m2 = [&](double t) { return expected(0.01, 0.1, t); };
+    auto expected_m3 = [&](double t) { return expected(0.1, 0.05, t); };
+    auto expected_m4 = [&](double t) { return expected(0.01, 0.05, t); };
 
     auto test = [&] (auto func, const auto& stats) {
         for (unsigned int i=1; i<nsteps; ++i) {
@@ -908,7 +912,7 @@ TEST(sde, coupled) {
     };
 
     for (unsigned int i=1; i<nsteps; ++i) {
-        const auto& ex = expected(i*dt.value(), 0.1, 0.1, 0.1, 0.1, 1, 0.2);
+        auto ex = expected(i*dt.value(), 0.1, 0.1, 0.1, 0.1, 1, 0.2);
 
         const double E_P = ex[0];
         const double E_sigma = ex[1];
@@ -965,6 +969,7 @@ public:
 
         // set cvs explicitly
         double const cv_size = 1.0;
+        dec.set_default(cv_policy_max_extent(cv_size));
 
         // generate cells
         unsigned const n1 = ncvs/2;
@@ -972,7 +977,7 @@ public:
             segment_tree tree;
             tree.append(mnpos, {i*20., 0, 0.0, 4.0}, {i*20., 0, n1*cv_size, 4.0}, 1);
             tree.append(0, {i*20., 0, ncvs*cv_size, 4.0}, 2);
-            cells_.push_back(cable_cell(morphology(tree), dec, labels, cv_policy_max_extent(cv_size)));
+            cells_.push_back(cable_cell(morphology(tree), dec, labels));
         }
     }
 

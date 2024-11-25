@@ -202,9 +202,10 @@ namespace {
                 arb::segment_tree tree;
                 tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
                 arb::decor decor;
+                decor.set_default(arb::cv_policy_fixed_per_branch(10));
                 decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10*arb::units::mV}, "src");
                 decor.place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "tgt");
-                return arb::cable_cell(arb::morphology(tree), decor, {}, arb::cv_policy_fixed_per_branch(10));
+                return arb::cable_cell(arb::morphology(tree), decor);
             }
             return arb::lif_cell("src", "tgt");
         }
@@ -273,9 +274,10 @@ namespace {
             arb::segment_tree tree;
             tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
             arb::decor decor;
+            decor.set_default(arb::cv_policy_fixed_per_branch(10));
             decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10*arb::units::mV}, "src");
             decor.place(arb::ls::uniform(arb::reg::all(), 0, size_, gid), arb::synapse("expsyn"), "tgt");
-            return arb::cable_cell(arb::morphology(tree), decor, {}, arb::cv_policy_fixed_per_branch(10));
+            return arb::cable_cell(arb::morphology(tree), decor);
         }
         cell_kind get_cell_kind(cell_gid_type gid) const override {
             return cell_kind::cable;

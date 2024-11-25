@@ -97,9 +97,11 @@ mcable soma_cell_builder::cable(mcable cab) const {
 
 // Add a new branch that is attached to parent_branch.
 // Returns the id of the new branch.
-msize_t soma_cell_builder::add_branch(msize_t parent_branch,
-                                      double len, double r1, double r2, int ncomp,
-                                      const std::string& region) {
+msize_t soma_cell_builder::add_branch(
+        msize_t parent_branch,
+        double len, double r1, double r2, int ncomp,
+        const std::string& region)
+{
     // Get tag id of region (add a new tag if region does not already exist).
     int tag = get_tag(region);
 
@@ -145,13 +147,18 @@ cable_cell_description soma_cell_builder::make_cell() const {
 
     // Make label dictionary with one entry for each tag.
     label_dict dict;
-    for (auto& [k, v]: tag_map) {
-        dict.set(k, reg::tagged(v));
+    for (auto& tag: tag_map) {
+        dict.set(tag.first, reg::tagged(tag.second));
     }
 
     auto boundaries = cv_boundaries;
-    for (auto& b: boundaries) b = location(b);
-    return {std::move(tree), std::move(dict), {}, cv_policy_explicit(boundaries)};
+    for (auto& b: boundaries) {
+        b = location(b);
+    }
+    decor decorations;
+    decorations.set_default(cv_policy_explicit(boundaries));
+    // Construct cable_cell from sample tree, dictionary and decorations.
+    return {std::move(tree), std::move(dict), std::move(decorations)};
 }
 
 /*
@@ -178,7 +185,7 @@ cable_cell_description make_cell_soma_only(bool with_stim) {
                             "cc");
     }
 
-    return c;
+    return {c.morph, c.labels, c.decorations};
 }
 
 /*
@@ -215,7 +222,7 @@ cable_cell_description make_cell_ball_and_stick(bool with_stim) {
                             "cc");
     }
 
-    return c;
+    return {c.morph, c.labels, c.decorations};
 }
 
 /*
@@ -258,7 +265,7 @@ cable_cell_description make_cell_ball_and_3stick(bool with_stim) {
                             "cc1");
     }
 
-    return c;
+    return {c.morph, c.labels, c.decorations};
 }
 
 } // namespace arb

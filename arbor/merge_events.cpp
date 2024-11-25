@@ -1,9 +1,11 @@
+#include <set>
 #include <vector>
 #include <numeric>
 #include <queue>
 
 #include <arbor/common_types.hpp>
 
+#include "io/trace.hpp"
 #include "merge_events.hpp"
 #include "util/tourney_tree.hpp"
 

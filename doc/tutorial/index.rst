@@ -78,7 +78,6 @@ Advanced
    :maxdepth: 1
 
    nmodl
-   plasticity
 
 Demonstrations
 --------------

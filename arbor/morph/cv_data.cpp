@@ -138,7 +138,7 @@ arb_size_type cell_cv_data::size() const {
 }
 
 ARB_ARBOR_API std::optional<cell_cv_data> cv_data(const cable_cell& cell) {
-    if (const auto& policy = cell.discretization()) {
+    if (auto policy = cell.decorations().defaults().discretization) {
         return cell_cv_data(cell, policy->cv_boundary_points(cell));
     }
     return {};

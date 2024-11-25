@@ -235,10 +235,11 @@ std::string round_trip_network_value(const char* in) {
     }
 }
 
+
 TEST(cv_policies, round_tripping) {
     auto literals = {"(every-segment (tag 42))",
-                     "(fixed-per-branch 23 (segment 0) (flag-interior-forks))",
-                     "(max-extent 23.1 (segment 0) (flag-interior-forks))",
+                     "(fixed-per-branch 23 (segment 0) 1)",
+                     "(max-extent 23.1 (segment 0) 1)",
                      "(single (segment 0))",
                      "(explicit (terminal) (segment 0))",
                      "(join (every-segment (tag 42)) (single (segment 0)))",
@@ -251,8 +252,8 @@ TEST(cv_policies, round_tripping) {
 
 TEST(cv_policies, literals) {
     EXPECT_NO_THROW("(every-segment (tag 42))"_cvp);
-    EXPECT_NO_THROW("(fixed-per-branch 23 (segment 0) (flag-interior-forks))"_cvp);
-    EXPECT_NO_THROW("(max-extent 23.1 (segment 0) (flag-interior-forks))"_cvp);
+    EXPECT_NO_THROW("(fixed-per-branch 23 (segment 0) 1)"_cvp);
+    EXPECT_NO_THROW("(max-extent 23.1 (segment 0) 1)"_cvp);
     EXPECT_NO_THROW("(single (segment 0))"_cvp);
     EXPECT_NO_THROW("(explicit (terminal) (segment 0))"_cvp);
     EXPECT_NO_THROW("(join (every-segment (tag 42)) (single (segment 0)))"_cvp);
@@ -859,7 +860,8 @@ TEST(decor_literals, round_tripping) {
         "(scaled-mechanism (density (mechanism \"pas\" (\"g\" 0.02))) (\"g\" (exp (add (radius 2.1) (scalar 3.2)))))",
     };
     auto default_literals = {
-        "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))"
+        "(ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\"))",
+        "(cv-policy (single (segment 0)))"
     };
     auto place_literals = {
         "(current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 10 0.25)",
@@ -921,7 +923,8 @@ TEST(decor_expressions, round_tripping) {
         "(default (ion-internal-concentration \"ca\" 5 (scalar 75.1)))",
         "(default (ion-external-concentration \"h\" 6 (scalar -50.1)))",
         "(default (ion-reversal-potential \"na\" 7 (scalar 30)))",
-        "(default (ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\")))"
+        "(default (ion-reversal-potential-method \"ca\" (mechanism \"nernst/ca\")))",
+        "(default (cv-policy (max-extent 2 (region \"soma\") 2)))"
     };
     auto decorate_place_literals = {
         "(place (location 3 0.2) (current-clamp (envelope (10 0.5) (110 0.5) (110 0)) 0.5 0.25) \"clamp\")",
@@ -1001,6 +1004,11 @@ TEST(decor, round_tripping) {
                                 "    (default \n"
                                 "      (ion-reversal-potential-method \"na\" \n"
                                 "        (mechanism \"nernst\")))\n"
+                                "    (default \n"
+                                "      (cv-policy \n"
+                                "        (fixed-per-branch 10 \n"
+                                "          (all)\n"
+                                "          1)))\n"
                                 "    (paint \n"
                                 "      (region \"dend\")\n"
                                 "      (density \n"
@@ -1266,11 +1274,7 @@ TEST(cable_cell, round_tripping) {
                                 "            (110.000000 0.500000)\n"
                                 "            (110.000000 0.000000))\n"
                                 "          0.000000 0.000000)\n"
-                                "        \"iclamp\"))\n"
-                                "    (cv-policy \n"
-                                "      (fixed-per-branch 10 \n"
-                                "        (all)\n"
-                                "        (flag-interior-forks)))))";
+                                "        \"iclamp\"))))";
 
     EXPECT_EQ(component_str, round_trip_component(component_str.c_str()));
 

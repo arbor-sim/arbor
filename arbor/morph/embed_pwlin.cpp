@@ -103,7 +103,7 @@ struct embed_pwlin_data {
 
 template <unsigned p, unsigned q>
 double interpolate(double pos, const pw_ratpoly<p, q>& f) {
-    const auto& [extent, poly] = f(pos);
+    auto [extent, poly] = f(pos);
     auto [left, right] = extent;
 
     return left==right? poly[0]: poly((pos-left)/(right-left));

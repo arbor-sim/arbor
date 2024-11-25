@@ -10,27 +10,22 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/spike_event.hpp>
+#include <arbor/generic_event.hpp>
 
 namespace arb {
 
 /* Event classes `Event` used with `event_queue` must be move and copy constructible,
- * and either have a public field `time` that returns the time value, or provide a
- * projection to a time value through the EventTime functor.
+ * and either have a public field `time` that returns the time value, or provide an
+ * overload of `event_time(const Event&)` which returns this value (see generic_event.hpp).
  *
  * Time values must be well ordered with respect to `operator>`.
  */
 
-struct default_event_time {
-    template<typename Event>
-    auto operator()(Event const& e) const noexcept { return e.time; }
-};
-
-template <typename Event, typename EventTime = default_event_time>
+template <typename Event>
 class event_queue {
 public:
-    static constexpr EventTime event_time = {};
     using value_type = Event;
-    using event_time_type = decltype(event_time(std::declval<Event>()));
+    using event_time_type = ::arb::event_time_type<Event>;
 
     event_queue() = default;
 
@@ -55,6 +50,8 @@ public:
         if (queue_.empty()) {
             return std::nullopt;
         }
+
+        using ::arb::event_time;
         auto t = event_time(queue_.top());
         return t_until > t? std::optional(t): std::nullopt;
     }
@@ -63,6 +60,7 @@ public:
     // queue non-empty and the head satisfies predicate.
     template <typename Pred>
     std::optional<value_type> pop_if(Pred&& pred) {
+        using ::arb::event_time;
         if (!queue_.empty() && pred(queue_.top())) {
             auto ev = queue_.top();
             queue_.pop();
@@ -75,6 +73,7 @@ public:
 
     // Pop and return top event `ev` of queue if `t_until` > `event_time(ev)`.
     std::optional<value_type> pop_if_before(const event_time_type& t_until) {
+        using ::arb::event_time;
         return pop_if(
             [&t_until](const value_type& ev) { return t_until > event_time(ev); }
         );
@@ -82,6 +81,7 @@ public:
 
     // Pop and return top event `ev` of queue unless `event_time(ev)` > `t_until`
     std::optional<value_type> pop_if_not_after(const event_time_type& t_until) {
+        using ::arb::event_time;
         return pop_if(
             [&t_until](const value_type& ev) { return !(event_time(ev) > t_until); }
         );
@@ -95,6 +95,7 @@ public:
 private:
     struct event_greater {
         bool operator()(const Event& a, const Event& b) {
+            using ::arb::event_time;
             return event_time(a) > event_time(b);
         }
     };

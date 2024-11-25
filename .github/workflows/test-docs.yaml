@@ -37,5 +37,5 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DARB_WITH_PYTHON=ON -DARB_BUILD_PYTHON_STUBS=OFF  -DPython3_EXECUTABLE=`which python`
+          cmake .. -DARB_WITH_PYTHON=ON -DPython3_EXECUTABLE=`which python`
           make html

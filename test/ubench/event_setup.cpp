@@ -17,9 +17,8 @@
 
 #include <benchmark/benchmark.h>
 
-#include "backends/event.hpp"
-
 #include "event_queue.hpp"
+#include "backends/event.hpp"
 
 using namespace arb;
 

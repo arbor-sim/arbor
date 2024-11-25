@@ -37,7 +37,7 @@ constexpr int    with_gpu = -1;
 struct linear: public recipe {
     linear(double x, double d, double c): extent{x}, diameter{d}, cv_length{c} {
         gprop.default_parameters = arb::neuron_parameter_defaults;
-        gprop.default_parameters.discretization = arb::cv_policy_max_extent(cv_length);
+        gprop.default_parameters.discretization = arb::cv_policy_max_extent{cv_length};
         // Stick morphology
         // -----x-----
         segment_tree tree;

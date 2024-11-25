@@ -59,9 +59,7 @@ class single_recipe(A.recipe):
 
     def probes(self, gid):
         def mk(s, t):
-            return A.cable_probe_point_state(
-                "stpd_synapse", "expsyn_stdp", state=s, tag=t
-            )
+            return A.cable_probe_point_state(1, "expsyn_stdp", state=s, tag=t)
 
         return [
             A.cable_probe_membrane_voltage('"center"', "Um"),

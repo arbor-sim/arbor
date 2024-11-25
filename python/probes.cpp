@@ -194,7 +194,7 @@ arb::probe_info cable_probe_density_state_cell(const char* mechanism, const char
     return {arb::cable_probe_density_state_cell{mechanism, state}, tag};
 };
 
-arb::probe_info cable_probe_point_state(const arb::cell_tag_type& target, const char* mechanism, const char* state, const std::string& tag) {
+arb::probe_info cable_probe_point_state(arb::cell_lid_type target, const char* mechanism, const char* state, const std::string& tag) {
     return {arb::cable_probe_point_state{target, mechanism, state}, tag};
 }
 
@@ -257,17 +257,15 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
 
     cable_probe_point_info
         .def_readwrite("target", &arb::cable_probe_point_info::target,
-            "The tag of the point process instance on the cell.")
-        .def_readwrite("lid", &arb::cable_probe_point_info::lid,
-            "The local index of the point process instance on the cell.")
+            "The target index of the point process instance on the cell.")
         .def_readwrite("multiplicity", &arb::cable_probe_point_info::multiplicity,
             "Number of coalesced point processes (linear synapses) associated with this instance.")
         .def_readwrite("location", &arb::cable_probe_point_info::loc,
             "Location of point process instance on cell.")
         .def("__str__", [](arb::cable_probe_point_info m) {
-            return pprintf("<arbor.cable_probe_point_info: target {}, lid {}, multiplicity {}, location {}>", m.target, m.lid, m.multiplicity, m.loc);})
+            return pprintf("<arbor.cable_probe_point_info: target {}, multiplicity {}, location {}>", m.target, m.multiplicity, m.loc);})
         .def("__repr__",[](arb::cable_probe_point_info m) {
-            return pprintf("<arbor.cable_probe_point_info: target {}, lid {}, multiplicity {}, location {}>", m.target, m.lid, m.multiplicity, m.loc);});
+            return pprintf("<arbor.cable_probe_point_info: target {}, multiplicity {}, location {}>", m.target, m.multiplicity, m.loc);});
 
     // Probe address constructors:
 
@@ -308,8 +306,8 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
           "mechanism"_a, "state"_a, "tag"_a);
     m.def("cable_probe_point_state",
           &cable_probe_point_state,
-          "Probe specification for a cable cell point mechanism state variable value at a given target index.",
-          "target"_a, "mechanism"_a, "state"_a, "tag"_a);
+        "Probe specification for a cable cell point mechanism state variable value at a given target index.",
+        "target"_a, "mechanism"_a, "state"_a, "tag"_a);
     m.def("cable_probe_point_state_cell",
           &cable_probe_point_state_cell,
           "Probe specification for a cable cell point mechanism state variable value at every corresponding target.",

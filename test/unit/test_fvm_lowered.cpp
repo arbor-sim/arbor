@@ -227,9 +227,9 @@ TEST(fvm_lowered, target_handles) {
     // (in increasing target order)
     descriptions[0].decorations.place(mlocation{0, 0.7}, synapse("expsyn"), "syn0");
     descriptions[0].decorations.place(mlocation{0, 0.3}, synapse("expsyn"), "syn1");
-
     descriptions[1].decorations.place(mlocation{2, 0.2}, synapse("exp2syn"), "syn2");
     descriptions[1].decorations.place(mlocation{2, 0.8}, synapse("expsyn"), "syn3");
+
     descriptions[1].decorations.place(mlocation{0, 0}, threshold_detector{3.3*arb::units::mV}, "detector");
 
     cable_cell cells[] = {descriptions[0], descriptions[1]};
@@ -268,6 +268,7 @@ TEST(fvm_lowered, target_handles) {
     fvm_cell fvcell1(*context);
     auto fvm_info1 = fvcell1.initialize({0, 1}, cable1d_recipe(cells, false));
     test_target_handles(fvcell1);
+
 }
 
 TEST(fvm_lowered, stimulus) {
@@ -824,6 +825,7 @@ TEST(fvm_lowered, post_events_shared_state) {
             tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
 
             arb::decor decor;
+            decor.set_default(arb::cv_policy_fixed_per_branch(ncv_));
 
             auto ndetectors = detectors_per_cell_[gid];
             auto offset = 1.0 / ndetectors;
@@ -832,7 +834,7 @@ TEST(fvm_lowered, post_events_shared_state) {
             }
             decor.place(arb::mlocation{0, 0.5}, synapse_, "syanpse");
 
-            return arb::cable_cell(arb::morphology(tree), decor, {}, arb::cv_policy_fixed_per_branch(ncv_));
+            return arb::cable_cell(arb::morphology(tree), decor);
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
@@ -919,20 +921,22 @@ TEST(fvm_lowered, label_data) {
             tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
             {
                 arb::decor decor;
+                decor.set_default(arb::cv_policy_fixed_per_branch(10));
                 decor.place(uniform(all(), 0, 3, 42), arb::synapse("expsyn"), "4_synapses");
                 decor.place(uniform(all(), 4, 4, 42), arb::synapse("expsyn"), "1_synapse");
                 decor.place(uniform(all(), 5, 5, 42), arb::threshold_detector{10*arb::units::mV}, "1_detector");
 
-                cells_.push_back(arb::cable_cell(arb::morphology(tree), decor, {}, arb::cv_policy_fixed_per_branch(10)));
+                cells_.push_back(arb::cable_cell(arb::morphology(tree), decor));
             }
             {
                 arb::decor decor;
+                decor.set_default(arb::cv_policy_fixed_per_branch(10));
                 decor.place(uniform(all(), 0, 2, 24), arb::threshold_detector{10*arb::units::mV}, "3_detectors");
                 decor.place(uniform(all(), 3, 4, 24), arb::threshold_detector{10*arb::units::mV}, "2_detectors");
                 decor.place(uniform(all(), 5, 6, 24), arb::junction("gj"), "2_gap_junctions");
                 decor.place(uniform(all(), 7, 7, 24), arb::junction("gj"), "1_gap_junction");
 
-                cells_.push_back(arb::cable_cell(arb::morphology(tree), decor, {}, arb::cv_policy_fixed_per_branch(10)));
+                cells_.push_back(arb::cable_cell(arb::morphology(tree), decor));
             }
         }
 

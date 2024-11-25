@@ -48,7 +48,7 @@ Cable cells
         # Construct a cable cell.
         cell = arbor.cable_cell(lmrf.morphology, decor, lmrf.labels)
 
-    .. method:: __init__(morphology, decorations, labels=None, discretization=None)
+    .. method:: __init__(morphology, decorations, labels)
 
         Constructor.
 
@@ -58,23 +58,15 @@ Cable cells
         :type decorations: :py:class:`decor`
         :param labels: dictionary of labeled regions and locsets
         :type labels: :py:class:`label_dict`
-        :param discretization: discretization policy
-        :type discretization: :py:class:`cv_policy`
 
-    .. method:: discretization(policy)
+    .. method:: placed_lid_range(index)
 
-        Set the cv_policy used to discretise the cell into control volumes for simulation.
+        Returns the range of local indexes assigned to a placement in the decorations as a tuple of two integers,
+        that define the range of indexes as a half open interval.
 
-        :param policy: The cv_policy.
-        :type policy: :py:class:`cv_policy`
-
-    .. method:: discretization(policy)
-        :noindex:
-
-        Set the cv_policy used to discretise the cell into control volumes for simulation.
-
-        :param str policy: :ref:`string representation <morph-cv-sexpr>` of a cv_policy.
-
+        :param index: the unique index of the placement.
+        :type index: int
+        :rtype: tuple(int, int)
 
 .. py:class:: ion
 

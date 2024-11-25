@@ -12,7 +12,6 @@
 #include <utility>
 #include <vector>
 #include <algorithm>
-#include <ostream>
 
 #include <gtest/gtest.h>
 

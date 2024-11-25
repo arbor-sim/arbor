@@ -4,6 +4,7 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/generic_event.hpp>
 #include <arbor/spike_event.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/arbexcept.hpp>

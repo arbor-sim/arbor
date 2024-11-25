@@ -69,77 +69,146 @@ struct cv_policy_base {
     virtual std::ostream& print(std::ostream&) = 0;
 };
 
+using cv_policy_base_ptr = std::unique_ptr<cv_policy_base>;
+
 struct ARB_SYMBOL_VISIBLE cv_policy {
-    // construct from anything except other policies
-    template <typename Impl, typename = std::enable_if_t<!std::is_same_v<std::remove_cvref_t<Impl>, cv_policy>>>
-    explicit cv_policy(const Impl& impl): impl_(std::make_unique<wrap<Impl>>(impl)) {}
-    template <typename Impl, typename = std::enable_if_t<!std::is_same_v<std::remove_cvref_t<Impl>, cv_policy>>>
-    explicit cv_policy(Impl&& impl): impl_(std::make_unique<wrap<Impl>>(std::move(impl))) {}
-    // move
-    cv_policy(cv_policy&&) = default;
-    cv_policy& operator=(cv_policy&&) = default;
-    // copy
-    cv_policy(const cv_policy& other): impl_(other.impl_->clone()) {}
+    cv_policy(const cv_policy_base& ref) { // implicit
+        policy_ptr = ref.clone();
+    }
+
+    cv_policy(const cv_policy& other):
+        policy_ptr(other.policy_ptr->clone()) {}
+
     cv_policy& operator=(const cv_policy& other) {
-        impl_ = other.impl_->clone();
+        policy_ptr = other.policy_ptr->clone();
         return *this;
     }
 
-    // interface
-    locset cv_boundary_points(const cable_cell& cell) const { return impl_->cv_boundary_points(cell); }
-    region domain() const { return impl_->domain(); }
-    std::ostream& format(std::ostream& os) const { return impl_->format(os); }
+    cv_policy(cv_policy&&) = default;
+    cv_policy& operator=(cv_policy&&) = default;
 
-    friend ARB_ARBOR_API std::ostream& operator<<(std::ostream& os, const cv_policy& cvp) { return cvp.format(os); }
+    locset cv_boundary_points(const cable_cell& cell) const {
+        return policy_ptr->cv_boundary_points(cell);
+    }
+
+    region domain() const {
+        return policy_ptr->domain();
+    }
+
+    friend std::ostream& operator<<(std::ostream& o, const cv_policy& p) {
+        return p.policy_ptr->print(o);
+    }
 
 private:
-    struct iface {
-        virtual locset cv_boundary_points(const cable_cell& cell) const = 0;
-        virtual region domain() const = 0;
-        virtual std::unique_ptr<iface> clone() const = 0;
-        virtual ~iface() {}
-        virtual std::ostream& format(std::ostream&) const = 0;
-    };
-
-    using iface_ptr = std::unique_ptr<iface>;
-
-    template <typename Impl>
-    struct wrap: iface {
-        explicit wrap(const Impl& impl): inner_(impl) {}
-        explicit wrap(Impl&& impl): inner_(std::move(impl)) {}
-
-        locset cv_boundary_points(const cable_cell& cell) const override { return inner_.cv_boundary_points(cell); }
-        region domain() const override { return inner_.domain(); };
-        iface_ptr clone() const override { return std::make_unique<wrap<Impl>>(inner_); }
-        std::ostream& format(std::ostream& os) const override { return inner_.format(os); };
-
-        Impl inner_;
-    };
-
-    iface_ptr impl_;
-};
-
-// Common flags for CV policies; bitwise composable.
-enum class cv_policy_flag: unsigned {
-  none = 0,
-  interior_forks = 1<<0
+    cv_policy_base_ptr policy_ptr;
 };
 
 ARB_ARBOR_API cv_policy operator+(const cv_policy&, const cv_policy&);
 ARB_ARBOR_API cv_policy operator|(const cv_policy&, const cv_policy&);
 
-ARB_ARBOR_API cv_policy cv_policy_explicit(locset, region = reg::all());
 
-ARB_ARBOR_API cv_policy cv_policy_max_extent(double, region, cv_policy_flag = cv_policy_flag::none);
-ARB_ARBOR_API cv_policy cv_policy_max_extent(double, cv_policy_flag = cv_policy_flag::none);
+// Common flags for CV policies; bitwise composable.
+namespace cv_policy_flag {
+    using value = unsigned;
+    enum : unsigned {
+        none = 0,
+        interior_forks = 1<<0
+    };
+}
 
-ARB_ARBOR_API cv_policy cv_policy_fixed_per_branch(unsigned, region, cv_policy_flag = cv_policy_flag::none);
-ARB_ARBOR_API cv_policy cv_policy_fixed_per_branch(unsigned, cv_policy_flag = cv_policy_flag::none);
+struct ARB_ARBOR_API cv_policy_explicit: cv_policy_base {
+    explicit cv_policy_explicit(locset locs, region domain = reg::all()):
+        locs_(std::move(locs)), domain_(std::move(domain)) {}
 
-ARB_ARBOR_API cv_policy cv_policy_single(region domain = reg::all());
+    cv_policy_base_ptr clone() const override;
+    locset cv_boundary_points(const cable_cell&) const override;
+    region domain() const override;
+    std::ostream& print(std::ostream& os) override {
+        os << "(explicit " << locs_ << ' ' << domain_ << ')';
+        return os;
+    }
 
-ARB_ARBOR_API cv_policy cv_policy_every_segment(region domain = reg::all());
+private:
+    locset locs_;
+    region domain_;
+};
 
-inline cv_policy default_cv_policy() { return cv_policy_fixed_per_branch(1); }
+struct ARB_ARBOR_API cv_policy_single: cv_policy_base {
+    explicit cv_policy_single(region domain = reg::all()):
+        domain_(domain) {}
+
+    cv_policy_base_ptr clone() const override;
+    locset cv_boundary_points(const cable_cell&) const override;
+    region domain() const override;
+    std::ostream& print(std::ostream& os) override {
+        os << "(single " << domain_ << ')';
+        return os;
+    }
+
+private:
+    region domain_;
+};
+
+struct ARB_ARBOR_API cv_policy_max_extent: cv_policy_base {
+    cv_policy_max_extent(double max_extent, region domain, cv_policy_flag::value flags = cv_policy_flag::none):
+         max_extent_(max_extent), domain_(std::move(domain)), flags_(flags) {}
+
+    explicit cv_policy_max_extent(double max_extent, cv_policy_flag::value flags = cv_policy_flag::none):
+         max_extent_(max_extent), domain_(reg::all()), flags_(flags) {}
+
+    cv_policy_base_ptr clone() const override;
+    locset cv_boundary_points(const cable_cell&) const override;
+    region domain() const override;
+    std::ostream& print(std::ostream& os) override {
+        os << "(max-extent " << max_extent_ << ' ' << domain_ << ' ' << flags_ << ')';
+        return os;
+    }
+
+private:
+    double max_extent_;
+    region domain_;
+    cv_policy_flag::value flags_;
+};
+
+struct ARB_ARBOR_API cv_policy_fixed_per_branch: cv_policy_base {
+    cv_policy_fixed_per_branch(unsigned cv_per_branch, region domain, cv_policy_flag::value flags = cv_policy_flag::none):
+         cv_per_branch_(cv_per_branch), domain_(std::move(domain)), flags_(flags) {}
+
+    explicit cv_policy_fixed_per_branch(unsigned cv_per_branch, cv_policy_flag::value flags = cv_policy_flag::none):
+         cv_per_branch_(cv_per_branch), domain_(reg::all()), flags_(flags) {}
+
+    cv_policy_base_ptr clone() const override;
+    locset cv_boundary_points(const cable_cell&) const override;
+    region domain() const override;
+    std::ostream& print(std::ostream& os) override {
+        os << "(fixed-per-branch " << cv_per_branch_ << ' ' << domain_ << ' ' << flags_ << ')';
+        return os;
+    }
+
+private:
+    unsigned cv_per_branch_;
+    region domain_;
+    cv_policy_flag::value flags_;
+};
+
+struct ARB_ARBOR_API cv_policy_every_segment: cv_policy_base {
+    explicit cv_policy_every_segment(region domain = reg::all()):
+         domain_(std::move(domain)) {}
+
+    cv_policy_base_ptr clone() const override;
+    locset cv_boundary_points(const cable_cell&) const override;
+    region domain() const override;
+    std::ostream& print(std::ostream& os) override {
+        os << "(every-segment " << domain_ << ')';
+        return os;
+    }
+
+private:
+    region domain_;
+};
+
+inline cv_policy default_cv_policy() {
+    return cv_policy_fixed_per_branch(1);
+}
 
 } // namespace arb

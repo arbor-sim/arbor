@@ -11,6 +11,7 @@
 
 #include <arbor/spike_event.hpp>
 
+#include "event_queue.hpp"
 #include "backends/event.hpp"
 
 

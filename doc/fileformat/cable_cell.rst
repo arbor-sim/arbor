@@ -396,7 +396,7 @@ Parsable arbor-components and meta-data
 The formats described above can be used to generate a :ref:`label dictionary <labels>`,
 :ref:`decoration <cablecell-decoration>`, :ref:`morphology <morph>`, or :ref:`cable cell <cablecell>`
 object. These are denoted as arbor-components. Arbor-components need to be accompanied by *meta-data*
-specifying the version of the format being used. The only version currently supported is ``0.10-dev``.
+specifying the version of the format being used. The only version currently supported is ``0.9-dev``.
 
 .. label:: (version val:string)
 
@@ -418,7 +418,7 @@ Label-dict
 .. code:: lisp
 
    (arbor-component
-     (meta-data (version "0.10-dev"))
+     (meta-data (version "0.9-dev"))
      (label-dict
        (region-def "my_soma" (tag 1))
        (locset-def "root" (root))))
@@ -429,7 +429,7 @@ Decoration
 .. code:: lisp
 
    (arbor-component
-     (meta-data (version "0.10-dev"))
+     (meta-data (version "0.9-dev"))
      (decor
        (default (membrane-potential -55.000000))
        (place (locset "root") (synapse (mechanism "expsyn")) "root_synapse")
@@ -441,7 +441,7 @@ Morphology
 .. code:: lisp
 
    (arbor-component
-     (meta-data (version "0.10-dev"))
+     (meta-data (version "0.9-dev"))
      (morphology
         (branch 0 -1
           (segment 0 (point 0 0 0 2) (point 4 0 0 2) 1)
@@ -454,7 +454,7 @@ Cable-cell
 .. code:: lisp
 
    (arbor-component
-     (meta-data (version "0.10-dev"))
+     (meta-data (version "0.9-dev"))
      (cable-cell
        (label-dict
          (region-def "my_soma" (tag 1))

@@ -1402,7 +1402,7 @@ TEST(fvm_layout, density_norm_area_partial) {
     hh_end["gkbar"] = end_gkbar;
 
     auto desc = builder.make_cell();
-    desc.discretization = cv_policy_fixed_per_branch(1);
+    desc.decorations.set_default(cv_policy_fixed_per_branch(1));
 
     desc.decorations.paint(builder.cable({1, 0., 0.3}), density(hh_begin));
     desc.decorations.paint(builder.cable({1, 0.4, 1.}), density(hh_end));
@@ -1693,7 +1693,8 @@ TEST(fvm_layout, vinterp_cable) {
 
     // CV midpoints at branch pos 0.1, 0.3, 0.5, 0.7, 0.9.
     // Expect voltage reference locations to be CV modpoints.
-    cable_cell cell{m, d, {}, cv_policy_fixed_per_branch(5)};
+    d.set_default(cv_policy_fixed_per_branch(5));
+    cable_cell cell{m, d};
     fvm_cv_discretization D = fvm_cv_discretize(cell, neuron_parameter_defaults);
 
     // Test locations, either side of CV midpoints plus extrema, CV boundaries.
@@ -1752,7 +1753,8 @@ TEST(fvm_layout, vinterp_forked) {
     // CV 0 contains branch 0 and the fork point; CV 1 and CV 2 have CV 0 as parent,
     // and contain branches 1 and 2 respectively, excluding the fork point.
     mlocation_list cv_ends{{1, 0.}, {2, 0.}};
-    cable_cell cell{m, d, {}, cv_policy_explicit(cv_ends)};
+    d.set_default(cv_policy_explicit(cv_ends));
+    cable_cell cell{m, d};
     fvm_cv_discretization D = fvm_cv_discretize(cell, neuron_parameter_defaults);
 
     // Points in branch 0 should only get CV 0 for interpolation.
@@ -1804,10 +1806,12 @@ TEST(fvm_layout, iinterp) {
         if (p.second.empty()) continue;
         decor d;
 
-        cells.emplace_back(cable_cell{p.second, d, {}, cv_policy_fixed_per_branch(3)});
+        d.set_default(cv_policy_fixed_per_branch(3));
+        cells.emplace_back(cable_cell{p.second, d});
         label.push_back(p.first+": forks-at-end"s);
 
-        cells.emplace_back(cable_cell{p.second, d, {}, cv_policy_fixed_per_branch(3, cv_policy_flag::interior_forks)});
+        d.set_default(cv_policy_fixed_per_branch(3, cv_policy_flag::interior_forks));
+        cells.emplace_back(cable_cell{p.second, d});
         label.push_back(p.first+": interior-forks"s);
     }
 
@@ -1855,7 +1859,8 @@ TEST(fvm_layout, iinterp) {
     // CV 0 contains branch 0 and the fork point; CV 1 and CV 2 have CV 0 as parent,
     // and contain branches 1 and 2 respectively, excluding the fork point.
     mlocation_list cv_ends{{1, 0.}, {2, 0.}};
-    cable_cell cell{m, d, {}, cv_policy_explicit(cv_ends)};
+    d.set_default(cv_policy_explicit(cv_ends));
+    cable_cell cell{m, d};
     D = fvm_cv_discretize(cell, neuron_parameter_defaults);
 
     // Expect axial current interpolations on branches 1 and 2 to match CV 1 and 2
@@ -1920,7 +1925,7 @@ TEST(fvm_layout, inhomogeneous_parameters) {
 
     auto param = neuron_parameter_defaults;
     param.membrane_capacitance = 42.0;
-    param.discretization = cv_policy_fixed_per_branch(30);
+    param.discretization = cv_policy_fixed_per_branch{30};
 
     auto expected = std::vector<param_at>{{8.37758,385.369,2},       // constant
                                           {8.37758,385.369,2},

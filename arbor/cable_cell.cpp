@@ -83,22 +83,18 @@ struct cable_cell_impl {
     // The decorations on the cell.
     decor decorations;
 
-    // Discretization
-    std::optional<cv_policy> discretization_;
-
     // The placeable label to lid_range map
     dynamic_typed_map<constant_type<std::unordered_multimap<hash_type, lid_range>>::type> labeled_lid_ranges;
 
-    cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations, const std::optional<cv_policy>& cvp):
+    cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
         provider(m, labels),
         dictionary(labels),
-        decorations(decorations),
-        discretization_{cvp}
+        decorations(decorations)
     {
         init();
     }
 
-    cable_cell_impl(): cable_cell_impl({}, {}, {}, {}) {}
+    cable_cell_impl(): cable_cell_impl({},{},{}) {}
 
     cable_cell_impl(const cable_cell_impl& other) = default;
 
@@ -126,7 +122,7 @@ struct cable_cell_impl {
         cell_lid_type first = lid;
 
         for (const auto& loc: locs) {
-            placed<Item> p{loc, lid++, item, label};
+            placed<Item> p{loc, lid++, item};
             mm.push_back(p);
         }
         auto range = lid_range(first, lid);
@@ -207,10 +203,6 @@ struct cable_cell_impl {
     }
 };
 
-const std::optional<cv_policy>& cable_cell::discretization() const { return impl_->discretization_; }
-void cable_cell::discretization(cv_policy cvp) { impl_->discretization_ = std::move(cvp); }
-
-
 using impl_ptr = std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)>;
 impl_ptr make_impl(cable_cell_impl* c) {
     return impl_ptr(c, [](cable_cell_impl* p){delete p;});
@@ -240,8 +232,8 @@ void cable_cell_impl::init() {
     }
 }
 
-cable_cell::cable_cell(const arb::morphology& m, const decor& decorations, const label_dict& dictionary, const std::optional<cv_policy>& cvp):
-    impl_(make_impl(new cable_cell_impl(m, dictionary, decorations, cvp)))
+cable_cell::cable_cell(const arb::morphology& m, const decor& decorations, const label_dict& dictionary):
+    impl_(make_impl(new cable_cell_impl(m, dictionary, decorations)))
 {}
 
 cable_cell::cable_cell(): impl_(make_impl(new cable_cell_impl())) {}
