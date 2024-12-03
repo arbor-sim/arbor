@@ -9,7 +9,7 @@
 #include "event_lane.hpp"
 #include "threading/threading.hpp"
 #include "timestep_range.hpp"
-#include "util/partition.hpp"
+#include "util/pdqsort.h"
 
 ARB_SERDES_ENABLE_EXT(arb_deliverable_event_data, mech_index, weight);
 
@@ -99,8 +99,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
         auto n_steps = steps.size();
         for (auto& [id, stream]: streams) {
             stream.clear();
-            stream.spike_counter_.clear();
-            stream.spike_counter_.resize(steps.size(), 0);
+            stream.ev_spans_.resize(steps.size() + 1, 0);
             stream.spikes_.clear();
             // ev_data_ has been cleared during v.clear(), so we use its capacity
             stream.spikes_.reserve(stream.ev_data_.capacity());
@@ -112,43 +111,42 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
             auto div = divs[cell];
             arb_size_type step = 0;
             for (const auto& evt: lane) {
-                auto time = evt.time;
-                auto weight = evt.weight;
-                auto target = evt.target;
-                while(step < n_steps && time >= steps[step].t_end()) ++step;
+                step = std::lower_bound(steps.begin() + step,
+                                        steps.end(),
+                                        evt.time,
+                                        [](const auto& bucket, time_type time) { return bucket.t_end() < time; })
+                     - steps.begin();
                 // Events coinciding with epoch's upper boundary belong to next epoch
                 if (step >= n_steps) break;
-                arb_assert(div + target < handles.size());
-                const auto& handle = handles[div + target];
+                arb_assert(div + evt.target < handles.size());
+                const auto& handle = handles[div + evt.target];
                 auto& stream = streams[handle.mech_id];
-                stream.spikes_.push_back(spike_data{step, handle.mech_index, time, weight});
-                stream.spike_counter_[step]++;
+                stream.spikes_.emplace_back(step, handle.mech_index, evt.time, evt.weight);
+                stream.ev_spans_[step + 1]++;
             }
             ++cell;
         }
 
-        // parallelise over streams
-        auto tg = threading::task_group(ts.get());
+        // TODO parallelise over streams
+        // auto tg = threading::task_group(ts.get());
         for (auto& [id, stream]: streams) {
-            tg.run([&stream=stream]() {
-                // scan over spike_counter_
-                util::make_partition(stream.ev_spans_, stream.spike_counter_);
-                // This is made slightly faster by using pdqsort, if we want to
-                // take it on. Despite events being sorted by time in the
-                // partitions defined by the lane index here, they are not
-                // _totally_ sorted, thus sort is needed, merge not being strong
-                // enough :/
-                util::sort(stream.spikes_);
+            // tg.run([&stream=stream]() {
+                // scan to partition stream
+                std::inclusive_scan(stream.ev_spans_.begin(), stream.ev_spans_.end(),
+                                    stream.ev_spans_.begin());
+                // This is made slightly faster by using pdqsort.
+                // Despite events being sorted by time in the partitions defined
+                // by the lane index here, they are not _totally_ sorted, thus
+                // sort is needed, merge not being strong enough :/
+                pdqsort_branchless(stream.spikes_.begin(), stream.spikes_.end());
                 // copy temporary deliverable_events into stream's ev_data_
                 stream.ev_data_.reserve(stream.spikes_.size());
-                std::transform(stream.spikes_.begin(), stream.spikes_.end(),
-                               std::back_inserter(stream.ev_data_),
-                               [](auto const& e) noexcept -> arb_deliverable_event_data { return {e.mech_index, e.weight}; });
+                for (const auto& spike: stream.spikes_) stream.ev_data_.emplace_back(spike.mech_index, spike.weight);
                 // delegate to derived class init: static cast necessary to access protected init()
                 static_cast<spike_event_stream_base&>(stream).init();
-            });
+            // });
         }
-        tg.wait();
+        // tg.wait();
     }
 
   protected: // members
@@ -160,7 +158,6 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
         auto operator<=>(spike_data const&) const noexcept = default;
     };
     std::vector<spike_data> spikes_;
-    std::vector<std::size_t> spike_counter_;
 };
 
 struct sample_event_stream_base : event_stream_base<sample_event> {
