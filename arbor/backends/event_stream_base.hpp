@@ -114,7 +114,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
                 step = std::lower_bound(steps.begin() + step,
                                         steps.end(),
                                         evt.time,
-                                        [](const auto& bucket, time_type time) { return bucket.t_end() < time; })
+                                        [](const auto& bucket, time_type time) { return bucket.t_end() <= time; })
                      - steps.begin();
                 // Events coinciding with epoch's upper boundary belong to next epoch
                 if (step >= n_steps) break;
