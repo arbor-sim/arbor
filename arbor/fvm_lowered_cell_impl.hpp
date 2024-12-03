@@ -171,11 +171,8 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
     arb_assert(state_->time == dts.t_begin());
     set_gpu();
 
-    // Integration setup
-    PE(advance:integrate:setup);
     // Push samples and events down to the state and reset the spike thresholds.
     state_->begin_epoch(event_lanes, staged_samples, dts, target_handles_, target_handle_divisions_, context_.thread_pool);
-    PL();
 
     // loop over timesteps
     for (const auto& ts : dts) {

@@ -11,6 +11,8 @@
 #include "timestep_range.hpp"
 #include "event_lane.hpp"
 
+#include "profile/profiler_macro.hpp"
+
 namespace arb {
 
 // Common functionality for CPU/GPU shared state.
@@ -36,16 +38,22 @@ struct shared_state_base {
                      task_system_handle ts) {
         auto d = static_cast<D*>(this);
         // events
+        PE(advance:integrate:init_events);
         initialize(lanes, handles, divs, dts, d->streams, ts);
+        PL();
         // samples
+        PE(advance:integrate:init_samples);
         auto n_samples = util::sum_by(samples, [] (const auto& s) {return s.size();});
         if (d->sample_time.size() < n_samples) {
             d->sample_time = array(n_samples);
             d->sample_value = array(n_samples);
         }
         initialize(samples, d->sample_events);
+        PL();
         // thresholds
+        PE(advance:integrate:clear_thresholds);
         d->watcher.clear_crossings();
+        PL();
     }
 
     void configure_solver(const fvm_cv_discretization& disc) {

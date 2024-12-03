@@ -21,6 +21,8 @@
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
 
+#include <iostream>
+
 #include "communication/communicator.hpp"
 
 namespace arb {
@@ -259,21 +261,12 @@ void communicator::remote_ctrl_send_done() { ctx_->distributed->remote_ctrl_send
 // queue that has the same source as the connection
 // at index.
 template<typename It>
-void enqueue_from_source(const communicator::connection_list& cons,
+It enqueue_from_source(const communicator::connection_list& cons,
                          const size_t idx,
-                         It& spk,
+                         It spk,
                          const It end,
                          std::vector<pse_vector>& out) {
     // const refs to connection.
-    auto src = cons.srcs[idx];
-    auto dst = cons.dests[idx];
-    auto del = cons.delays[idx];
-    auto wgt = cons.weights[idx];
-    auto dom = cons.idx_on_domain[idx];
-    auto& que = out[dom];
-    for (; spk != end && spk->source == src; ++spk) {
-        que.emplace_back(dst, spk->time + del, wgt);
-    }
 }
     
 // Internal helper to append to the event queues
@@ -292,19 +285,33 @@ void append_events_from_domain(const communicator::connection_list& cons, size_t
     // We iterate over whichever set is the smallest, which has
     // complexity of order max(S log(C), C log(S)), where S is the
     // number of spikes, and C is the number of connections.
+    // Thus the whole algorithm has O(min(S, C) log max(S, C))
     if (cons.size() < spks.size()) {
-        for (; sp != se && cn < ce; ++cn) {
-            // sp is now the beginning of a range of spikes from the same
-            // source.
-            sp = std::lower_bound(sp, se,
-                                  cons.srcs[cn],
-                                  [](const auto& spk, const auto& src) { return spk.source < src; });
-            // now, sp is at the end of the equal source range.
-            enqueue_from_source(cons, cn, sp, se, queues);
+        while (sp != se && cn < ce) {
+            auto src = cons.srcs[cn];
+            // identify range of spikes to enqueue.
+            auto spk = std::lower_bound(sp, se,
+                                        src,
+                                        [](const auto& spk, const auto& src) { return spk.source < src; });
+            // Handle all connections with the same source
+            for (; cn < ce && cons.srcs[cn] == src; ++cn) {
+                auto dst = cons.dests[cn];
+                auto del = cons.delays[cn];
+                auto wgt = cons.weights[cn];
+                auto dom = cons.idx_on_domain[cn];
+                auto& que = queues[dom];
+                // scan the range of spikes, once per connection
+                for (sp = spk; sp < se && sp->source == src; ++sp) {
+                    que.emplace_back(dst, sp->time + del, wgt);
+                }
+            }
+            // once we leave here, sp will be at the end of the eglible range
+            // and all connections with the same source will have been treated.
+            // so, we can just leave sp at this end.
         }
     }
     else {
-        while (sp != se) {
+        while (sp != se && cn < ce) {
             auto beg = sp;
             auto src = beg->source;
             // Here, `cn` is the index of the first connection whose source
@@ -314,15 +321,20 @@ void append_events_from_domain(const communicator::connection_list& cons, size_t
                                   cons.srcs.begin() + ce,
                                   src)
                 - cons.srcs.begin();
-            for (;  cn < ce && cons.srcs[cn] == src; ++cn) {
-                // Reset the spike iterator as we walk the same sub-range
-                // for each connection with the same source.
-                sp = beg;
+            for (; cn < ce && cons.srcs[cn] == src; ++cn) {
+                auto dst = cons.dests[cn];
+                auto del = cons.delays[cn];
+                auto wgt = cons.weights[cn];
+                auto dom = cons.idx_on_domain[cn];
+                auto& que = queues[dom];
                 // If we ever get multiple spikes from the same source, treat
                 // them all. This is mostly rare.
-                enqueue_from_source(cons, cn, sp, se, queues);
+                // NB: Reset the spike iterator as we walk the same sub-range
+                // for each connection with the same source.
+                for (sp = beg; sp < se && sp->source == src; ++sp) {
+                    que.emplace_back(dst, sp->time + del, wgt);
+                }
             }
-            while (sp != se && sp->source == src) ++sp;
         }
     }
 }
