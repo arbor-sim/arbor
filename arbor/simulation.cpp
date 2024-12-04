@@ -36,12 +36,13 @@ auto split_sorted_range(Seq&& seq, const Value& v, Less cmp = Less{}) {
 
 // Create a new cell event_lane vector from sorted pending events, previous event_lane events,
 // and events from event generators for the given interval.
-ARB_ARBOR_API void merge_cell_events(time_type t_from,
-                                     time_type t_to,
-                                     event_span old_events,
-                                     event_span pending,
-                                     std::vector<event_generator>& generators,
-                                     pse_vector& new_events) {
+ARB_ARBOR_API void
+merge_cell_events(time_type t_from,
+                  time_type t_to,
+                  event_span old_events,                       // (spike_event*, spike_event*)
+                  event_span pending,                          // (spike_event*, spike_event*)
+                  std::vector<event_generator>& generators,
+                  pse_vector& new_events) {                    // [spike_event] sorted by time
     PE(communication:enqueue:setup);
     new_events.clear();
     constexpr auto event_time_less = [](auto const& l, auto const& r) noexcept {
