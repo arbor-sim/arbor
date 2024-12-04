@@ -117,8 +117,7 @@ private:
 };
 
 // LIF cell with probe
-class probe_recipe: public arb::recipe {
-public:
+struct probe_recipe: public arb::recipe {
     probe_recipe(size_t n_conn = 0): n_conn_{n_conn} {}
 
     cell_size_type num_cells() const override {

@@ -17,9 +17,11 @@ void check(Result result) {
 }
 
 TEST(event_stream, single_step) {
-    check(single_step<multicore::spike_event_stream>());
+    auto ctx = arb::make_context();
+    check(single_step<multicore::spike_event_stream>(ctx));
 }
 
 TEST(event_stream, multi_step) {
-    check(multi_step<multicore::spike_event_stream>());
+    auto ctx = arb::make_context();
+    check(multi_step<multicore::spike_event_stream>(ctx));
 }

@@ -153,8 +153,8 @@ TEST(synapses, syn_basic_state) {
     auto lanes = event_lane_subrange(events.begin(), events.end());
     std::vector<target_handle> handles{{0, 1}, {0, 3}, {1, 0}, {1, 2}};
     std::vector<size_t> divs{0, handles.size()};
-    state.begin_epoch(lanes, {}, dts, handles, divs);
-    state.mark_events();
+    auto ctx = arb::make_context();
+    state.begin_epoch(lanes, {}, dts, handles, divs, ctx->thread_pool);
 
     state.deliver_events(*expsyn);
     state.deliver_events(*exp2syn);

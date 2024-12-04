@@ -14,12 +14,14 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
+#include <arbor/morph/segment_tree.hpp>
 
 #include <arborenv/default_env.hpp>
 #include <arborenv/gpu_env.hpp>
@@ -46,12 +48,14 @@ struct cl_options {
     float delay = 0.1;
     float rel_inh_strength = 1;
     double poiss_lambda = 1;
-
+    // use cable cells instead of LIF
+    bool use_cc = false;
     // Simulation running parameters:
     double tfinal = 100.;
     double dt = 1;
     uint32_t group_size = 10;
     uint32_t seed = 42;
+
 
     // Parameters for spike output.
     std::string spike_file_output = "";
@@ -91,9 +95,17 @@ void add_subset(cell_gid_type gid,
  */
 class brunel_recipe: public recipe {
 public:
-    brunel_recipe(cell_size_type nexc, cell_size_type ninh, cell_size_type next, double in_degree_prop,
-                  float weight, float delay, float rel_inh_strength, double poiss_lambda, int seed = 42):
-        ncells_exc_(nexc), ncells_inh_(ninh), delay_(delay), seed_(seed) {
+    brunel_recipe(cell_size_type nexc,
+                  cell_size_type ninh,
+                  cell_size_type next,
+                  double in_degree_prop,
+                  float weight,
+                  float delay,
+                  float rel_inh_strength,
+                  double poiss_lambda,
+                  int seed=42,
+                  bool use_cc=false):
+        ncells_exc_(nexc), ncells_inh_(ninh), delay_(delay), seed_(seed), use_cable_cells(use_cc) {
         // Make sure that in_degree_prop in the interval (0, 1]
         if (in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
             throw std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
@@ -108,6 +120,18 @@ public:
         // each cell receives next incoming Poisson sources with mean rate poiss_lambda, which is equivalent
         // to a single Poisson source with mean rate next*poiss_lambda
         lambda_ = next * poiss_lambda;
+        // construct cable cell prototype
+        arb::segment_tree tree;
+        tree.append(arb::mnpos, {-1.0, 0, 0, 1.0}, {1, 0, 0, 1.0}, 1);
+
+        auto dec = arb::decor{}
+            .paint(arb::reg::tagged(1), arb::density("hh"))
+            .place(arb::ls::location(0, 0.5), arb::synapse("expsyn"), "tgt")
+            .place(arb::ls::location(0, 0.5), arb::threshold_detector(-10 * U::mV), "src")
+            ;
+
+        cable = arb::cable_cell(tree, dec, {});
+        prop.default_parameters = arb::neuron_parameter_defaults;
     }
 
     cell_size_type num_cells() const override {
@@ -115,7 +139,12 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::lif;
+        if (use_cable_cells) {
+            return cell_kind::cable;
+        }
+        else {
+            return cell_kind::lif;
+        }
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
@@ -127,15 +156,15 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto cell = lif_cell("src", "tgt");
-        cell.tau_m = 10*U::ms;
-        cell.V_th = 10*U::mV;
-        cell.C_m = 20*U::pF;
-        cell.E_L = 0*U::mV;
-        cell.V_m = 0*U::mV;
-        cell.t_ref = 2*U::ms;
-        return cell;
+        if (use_cable_cells) {
+            return cable;
+        }
+        else {
+            return lif;
+        }
     }
+
+    std::any get_global_properties(cell_kind) const override { return prop; }
 
     std::vector<event_generator> event_generators(cell_gid_type gid) const override {
         return {poisson_generator({"tgt"}, weight_ext_, 0*arb::units::ms, lambda_*arb::units::kHz, gid + seed_)};
@@ -171,6 +200,21 @@ private:
 
     // Seed used for the Poisson spikes generation.
     int seed_;
+
+    // LIF cell prototype
+    arb::lif_cell lif = {
+        .source="src",
+        .target="tgt",
+        .tau_m = 10*U::ms,
+        .V_th = 10*U::mV,
+        .C_m = 20*U::pF,
+        .E_L = 0*U::mV,
+        .V_m = 0*U::mV,
+        .t_ref = 2*U::ms,
+    };
+    arb::cable_cell cable;
+    arb::cable_cell_global_properties prop;
+    bool use_cable_cells = true;
 };
 
 int main(int argc, char** argv) {
@@ -239,7 +283,7 @@ int main(int argc, char** argv) {
 
         unsigned seed = options.seed;
 
-        brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda, seed);
+        brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda, seed, options.use_cc);
 
         partition_hint_map hints;
         hints[cell_kind::lif].cpu_group_size = group_size;
@@ -346,6 +390,7 @@ std::optional<cl_options> read_options(int argc, char** argv) {
                      "-S|--seed              [Seed for poisson spike generators]\n"
                      "-f|--write-spikes      [Save spikes to file]\n"
                      "-z|--profile-rank-zero [Only output profile information for rank 0]\n"
+                     "-c|--use-cable-cells   [Use a cable cell model]\n"
                      "-v|--verbose           [Print more verbose information to stdout]\n";
 
     cl_options opt;
@@ -354,22 +399,22 @@ std::optional<cl_options> read_options(int argc, char** argv) {
     };
 
     to::option options[] = {
-            { opt.nexc,              "-n", "--n-excitatory" },
-            { opt.ninh,              "-m", "--n-inhibitory" },
-            { opt.next,              "-e", "--n-external" },
-            { opt.syn_per_cell_prop, "-p", "--in-degree-prop" },
-            { opt.weight,            "-w", "--weight" },
-            { opt.delay,             "-d", "--delay" },
-            { opt.rel_inh_strength,  "-g", "--rel-inh-w" },
-            { opt.poiss_lambda,      "-l", "--lambda" },
-            { opt.tfinal,            "-t", "--tfinal" },
-            { opt.dt,                "-s", "--dt" },
-            { opt.group_size,        "-G", "--group-size" },
-            { opt.seed,              "-S", "--seed" },
-            { opt.spike_file_output, "-f", "--write-spikes" },
-            // { to::set(opt.profile_only_zero), to::flag, "-z", "--profile-rank-zero" },
-            { to::set(opt.verbose),           to::flag, "-v", "--verbose" },
-            { to::action(help),               to::flag, to::exit, "-h", "--help" }
+            { opt.nexc,                        "-n", "--n-excitatory" },
+            { opt.ninh,                        "-m", "--n-inhibitory" },
+            { opt.next,                        "-e", "--n-external" },
+            { opt.syn_per_cell_prop,           "-p", "--in-degree-prop" },
+            { opt.weight,                      "-w", "--weight" },
+            { opt.delay,                       "-d", "--delay" },
+            { opt.rel_inh_strength,            "-g", "--rel-inh-w" },
+            { opt.poiss_lambda,                "-l", "--lambda" },
+            { opt.tfinal,                      "-t", "--tfinal" },
+            { opt.dt,                          "-s", "--dt" },
+            { opt.group_size,                  "-G", "--group-size" },
+            { opt.seed,                        "-S", "--seed" },
+            { opt.spike_file_output,           "-f", "--write-spikes" },
+            { to::set(opt.use_cc),   to::flag, "-c", "--use-cable-cells" },
+            { to::set(opt.verbose),  to::flag, "-v", "--verbose" },
+            { to::action(help),      to::flag, to::exit, "-h", "--help" }
     };
 
     if (!to::run(options, argc, argv+1)) return {};

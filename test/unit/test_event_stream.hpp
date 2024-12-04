@@ -4,6 +4,9 @@
 #include <random>
 #include <gtest/gtest.h>
 
+#include <arbor/spike_event.hpp>
+#include "arbor/context.hpp"
+#include "execution_context.hpp"
 #include "timestep_range.hpp"
 #include "backends/event.hpp"
 #include "util/rangeutil.hpp"
@@ -12,7 +15,8 @@ namespace {
 
 using namespace arb;
 
-void check_result(arb_deliverable_event_data const* results, std::vector<arb_deliverable_event_data> const& expected) {
+inline void
+check_result(arb_deliverable_event_data const* results, std::vector<arb_deliverable_event_data> const& expected) {
     for (std::size_t i=0; i<expected.size(); ++i) {
         EXPECT_EQ(results[i].weight, expected[i].weight);
     }
@@ -26,7 +30,7 @@ struct result {
 };
 
 template<typename Stream>
-result<Stream> single_step() {
+result<Stream> single_step(const arb::context& ctx) {
     // events for 3 cells and 2 mechanisms and according targets
     //
     // target handles                            | events
@@ -87,13 +91,13 @@ result<Stream> single_step() {
 
     // initialize event streams
     auto lanes = util::subrange_view(events, 0u, events.size());
-    initialize(lanes, handles, divs, res.steps, res.streams);
+    initialize(lanes, handles, divs, res.steps, res.streams, ctx->thread_pool);
 
     return res;
 }
 
 template<typename Stream>
-result<Stream> multi_step() {
+result<Stream> multi_step(const arb::context& ctx) {
     // number of events, cells, mechanisms and targets
     std::size_t num_events = 500;
     std::size_t num_cells = 20;
@@ -204,8 +208,7 @@ result<Stream> multi_step() {
 
     // initialize event streams
     auto lanes = util::subrange_view(events, 0u, events.size());
-    initialize(lanes, handles, divs, res.steps, res.streams);
-
+    initialize(lanes, handles, divs, res.steps, res.streams, ctx->thread_pool);
     return res;
 }
 

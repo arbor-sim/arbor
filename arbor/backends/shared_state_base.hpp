@@ -11,6 +11,8 @@
 #include "timestep_range.hpp"
 #include "event_lane.hpp"
 
+#include "profile/profiler_macro.hpp"
+
 namespace arb {
 
 // Common functionality for CPU/GPU shared state.
@@ -32,19 +34,26 @@ struct shared_state_base {
                      const std::vector<std::vector<sample_event>>& samples,
                      const timestep_range& dts,
                      const std::vector<target_handle>& handles,
-                     const std::vector<size_t>& divs) {
+                     const std::vector<size_t>& divs,
+                     task_system_handle ts) {
         auto d = static_cast<D*>(this);
         // events
-        initialize(lanes, handles, divs, dts, d->streams);
+        PE(advance:integrate:init_events);
+        initialize(lanes, handles, divs, dts, d->streams, ts);
+        PL();
         // samples
+        PE(advance:integrate:init_samples);
         auto n_samples = util::sum_by(samples, [] (const auto& s) {return s.size();});
         if (d->sample_time.size() < n_samples) {
             d->sample_time = array(n_samples);
             d->sample_value = array(n_samples);
         }
         initialize(samples, d->sample_events);
+        PL();
         // thresholds
+        PE(advance:integrate:clear_thresholds);
         d->watcher.clear_crossings();
+        PL();
     }
 
     void configure_solver(const fvm_cv_discretization& disc) {
@@ -87,21 +96,16 @@ struct shared_state_base {
         return nullptr;
     }
 
-    void mark_events() {
-        auto d = static_cast<D*>(this);
-        auto& streams = d->streams;
-        for (auto& stream: streams) stream.second.mark();
-    }
-
     void deliver_events(mechanism& m) {
         auto d = static_cast<D*>(this);
         auto& streams = d->streams;
-        if (auto it = streams.find(m.mechanism_id()); it != streams.end()) {
-            if (auto& deliverable_events = it->second; !deliverable_events.empty()) {
-                auto state = deliverable_events.marked_events();
-                m.deliver_events(state);
-            }
-        }
+        auto id = m.mechanism_id();
+        if (!streams.count(id)) return;
+        auto& stream = streams.at(id);
+        stream.mark();
+        if (stream.empty()) return;
+        auto marked = stream.marked_events();
+        m.deliver_events(marked);
     }
 
     void reset_thresholds() {
