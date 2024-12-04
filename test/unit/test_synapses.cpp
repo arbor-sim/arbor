@@ -155,7 +155,6 @@ TEST(synapses, syn_basic_state) {
     std::vector<size_t> divs{0, handles.size()};
     auto ctx = arb::make_context();
     state.begin_epoch(lanes, {}, dts, handles, divs, ctx->thread_pool);
-    state.mark_events();
 
     state.deliver_events(*expsyn);
     state.deliver_events(*exp2syn);
