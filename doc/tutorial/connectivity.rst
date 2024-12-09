@@ -7,6 +7,14 @@ In this tutorial, we are going to demonstrate how to leverage Arbor's
 declarative connection description facilities to generate a few common network
 types.
 
+.. admonition:: Concepts and Requirements
+
+    We will assume that you have read the basic network tutorials.
+
+    In addition to Arbor and its requirements `matplotlib`` and ``networkx``
+    need to be installed.
+
+
 Prelude: Unconnected Cells
 --------------------------
 
@@ -110,31 +118,42 @@ Upon close inspection, these combinators directly spell out the prose
 description of the ring network given above! Connect adjacent cells and close
 the ring by connecting the beginning and end.
 
-Running the network and plotting the spikes we find cells deeper into the ring spiking now.
+Running the network and plotting the spikes we find cells deeper into the ring spiking now
 
 .. figure:: ../../python/example/connectivity/02-raster.svg
     :width: 400
     :align: center
 
+The network structure is rendered via ``networkx``
+
+.. figure:: ../../python/example/connectivity/02-raster.svg
+    :width: 400
+    :align: center
 
 Excercise: All-to-all Network
 -----------------------------
 
-Using the ``unconnected`` recipe and the network
-https://docs.arbor-sim.org/en/stable/concepts/interconnectivity.html#network-selection-expressions
-documentation , define fully connected network, i.e. where each cell is
+Using the ``unconnected`` recipe and the `network documentation <https://docs.arbor-sim.org/en/stable/concepts/interconnectivity.html#network-selection-expressions>`_
+ , define fully connected network, i.e. where each cell is
 connected to every other cell except itself.
 
-Hint 1: ``source-cell`` and ``target-cell`` can take a range of ids
 
-Hint 2: Use ``inter-cell`` to remove self connections
+.. hint::
 
-You can find our soluction in ``python/example/all-to-all.py``, it produces the following output
+   1. ``source-cell`` and ``target-cell`` can take a range of ids
+   2. Use and intersection with ``inter-cell`` to remove self connections
+
+You can find our solution in ``python/example/all-to-all.py``, it produces the following output
 
 .. figure:: ../../python/example/connectivity/03-raster.svg
     :width: 400
     :align: center
 
+The network structure is rendered via ``networkx``
+
+.. figure:: ../../python/example/connectivity/03-raster.svg
+    :width: 400
+    :align: center
 
 Brunel Network
 --------------
@@ -168,6 +187,16 @@ population is defined by the ``gid`` of the neuron; the first 80% of cells is
 considered excitatory and the remainder inhibitory. The predicate ``inh``
 reifies this description. The weight function ``weight`` then dispatches to one
 of two values based on the predicate.
+
+Rendering the structure becomes slow and frankly unusable, but showing the
+adjacency matrix might be helpful
+
+.. figure:: ../../python/example/connectivity/04-matrix.svg
+    :width: 400
+    :align: center
+
+Note that by default the rendering is disabled to avoid the slowdown.
+
 
 Final Thoughts
 --------------

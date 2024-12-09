@@ -45,6 +45,7 @@ Networks
    network_ring
    network_two_cells_gap_junctions
    brunel
+
    
 Probes
 ------
@@ -79,6 +80,7 @@ Advanced
 
    nmodl
    plasticity
+   connectivity
 
 Demonstrations
 --------------
