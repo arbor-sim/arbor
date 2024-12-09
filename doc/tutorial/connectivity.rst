@@ -13,8 +13,9 @@ Declarative Connectivity in Arbor
 In this tutorial, we are going to demonstrate how to leverage Arbor's
 declarative connection description facilities to generate a few common network
 types. We will gradually build up complexity and generally show the full recipe
-first before discussing some of the relevant parts.
-
+first before discussing some of the relevant parts. High-level connectivity
+descriptions can be more intuitive for some types of networks as well as more
+performant in Python simulations, as the construction is handled entirely in C++.
 
 Prelude: Unconnected Cells
 --------------------------
@@ -220,7 +221,7 @@ adjacency matrix might be helpful
     :width: 400
     :align: center
 
-Note that by default the rendering is disabled to avoid the slowdown.
+Note that rendering can be disabled, if things get too slow.
 
 
 Final Thoughts

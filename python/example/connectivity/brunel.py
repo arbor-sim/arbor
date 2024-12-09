@@ -8,7 +8,7 @@ from unconnected import unconnected
 
 # global parameters
 # cell count
-N = 12500
+N = 125
 # total runtime [ms]
 T = 100
 # numerical time step [ms]
@@ -48,5 +48,4 @@ if __name__ == "__main__":
     sim.record(A.spike_recording.all)
     sim.run(T * U.ms, dt * U.ms)
     plot_spikes(sim, T, N, prefix="04-")
-    # this becomes _very slow_ with many cells
-    # plot_network(rec, prefix="04-")
+    plot_network(rec, prefix="04-", graph=True)

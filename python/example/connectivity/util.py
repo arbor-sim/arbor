@@ -6,7 +6,7 @@ import networkx as nx
 import arbor as A
 
 
-def plot_network(rec, prefix=""):
+def plot_network(rec, prefix="", graph=True):
     fg, ax = plt.subplots()
     n = rec.num_cells()
     mat = np.zeros((n, n), dtype=int)
@@ -23,17 +23,18 @@ def plot_network(rec, prefix=""):
     fg.savefig(f"{prefix}matrix.png")
     fg.savefig(f"{prefix}matrix.svg")
 
-    fg, ax = plt.subplots()
-    g = nx.MultiDiGraph()
-    g.add_nodes_from(np.arange(n))
-    for i in range(n):
-        for j in range(n):
-            for _ in range(mat[i, j]):
-                g.add_edge(i, j)
-    nx.draw(g, with_labels=True, font_weight="bold")
-    fg.savefig(f"{prefix}graph.pdf")
-    fg.savefig(f"{prefix}graph.png")
-    fg.savefig(f"{prefix}graph.svg")
+    if graph:
+        fg, ax = plt.subplots()
+        g = nx.MultiDiGraph()
+        g.add_nodes_from(np.arange(n))
+        for i in range(n):
+            for j in range(n):
+                for _ in range(mat[i, j]):
+                    g.add_edge(i, j)
+        nx.draw(g, with_labels=True, font_weight="bold")
+        fg.savefig(f"{prefix}graph.pdf")
+        fg.savefig(f"{prefix}graph.png")
+        fg.savefig(f"{prefix}graph.svg")
 
 
 def plot_spikes(sim, T, N, prefix=""):
