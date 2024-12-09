@@ -5,6 +5,7 @@ import numpy as np
 import networkx as nx
 import arbor as A
 
+
 def plot_network(rec, prefix=""):
     fg, ax = plt.subplots()
     n = rec.num_cells()
@@ -48,7 +49,7 @@ def plot_spikes(sim, T, N, prefix=""):
     ax.set_xlabel("Time $(t/ms)$")
     ax.set_ylabel("GID")
     ax.set_xlim(0, T)
-    ax.set_ylim(0, N+1)
+    ax.set_ylim(0, N + 1)
     fg.savefig(f"{prefix}raster.pdf")
     fg.savefig(f"{prefix}raster.png")
     fg.savefig(f"{prefix}raster.svg")

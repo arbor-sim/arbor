@@ -3,16 +3,17 @@
 Declarative Connectivity in Arbor
 =================================
 
-In this tutorial, we are going to demonstrate how to leverage Arbor's
-declarative connection description facilities to generate a few common network
-types.
-
 .. admonition:: Concepts and Requirements
 
-    We will assume that you have read the basic network tutorials.
+    We will assume that you have read the basic recipe and network tutorials.
 
-    In addition to Arbor and its requirements `matplotlib`` and ``networkx``
+    In addition to Arbor and its requirements ``matplotlib`` and ``networkx``
     need to be installed.
+
+In this tutorial, we are going to demonstrate how to leverage Arbor's
+declarative connection description facilities to generate a few common network
+types. We will gradually build up complexity and generally show the full recipe
+first before discussing some of the relevant parts.
 
 
 Prelude: Unconnected Cells
@@ -28,7 +29,7 @@ we want to emphasize building networks. We begin by defining the global settings
 
 .. literalinclude:: ../../python/example/connectivity/unconnected.py
   :language: python
-  :lines: 7-15
+  :lines: 7-13
 
 - ``N`` is the cell count of the simulation.
 - ``T`` is the total runtime of the simulation in ``ms``.
@@ -38,37 +39,44 @@ These parameters are used here:
 
 .. literalinclude:: ../../python/example/connectivity/unconnected.py
   :language: python
-  :lines: 52-62
+  :lines: 50-
 
-where we run the simulation in increments of ``t_interval``.
-
-Back to the recipe, we set a prototypical LIF cell:
+where we run the simulation. Before we discuss the relevant details, the recipe
+reads in full
 
 .. literalinclude:: ../../python/example/connectivity/unconnected.py
   :language: python
-  :lines: 23
+  :lines: 16-47
+
+In the recipe, we set a prototypical LIF cell:
+
+.. literalinclude:: ../../python/example/connectivity/unconnected.py
+  :language: python
+  :lines: 21
 
 and deliver it for all ``gid``:
 
 .. literalinclude:: ../../python/example/connectivity/unconnected.py
   :language: python
-  :lines: 42-43
+  :lines: 43-44
 
-Also, the _first cell_ has an event generator attached, using a Poisson point process
-seeded with the cell's ``gid``.
+With large and complicated cells this can sometimes help with performance, here,
+it's just a convenient way to structure our recipe. Also, the *first cell* has
+an event generator attached, a Poisson point process seeded with the
+cell's ``gid``.
 
 .. literalinclude:: ../../python/example/connectivity/unconnected.py
   :language: python
-  :lines: 33-41
+  :lines: 31-41
 
 All other parameters are set in the constructor:
 
 .. literalinclude:: ../../python/example/connectivity/unconnected.py
   :language: python
-  :lines: 19-28
+  :lines: 17-26
 
 We also proceed to add spike recording and generate raster plots using a helper
-function ``plot_spikes`` from ``util.py``.
+function ``plot_spikes`` from ``util.py``, which results in
 
 .. figure:: ../../python/example/connectivity/01-raster.svg
     :width: 400
@@ -84,8 +92,15 @@ network. A ring structure is defined by connecting each cell to its predecessor,
 i.e. the cell with ``gid = i`` is connected to the cell with ``gid = i - 1`` and
 the cell ``gid = 0`` is connected to the last cell ``gid = N - 1``.
 
-We construct such a network by defining a new class ``ring`` deriving from the
+We construct such a network by defining a new recpi ``ring`` deriving from the
 unconnected network
+
+.. literalinclude:: ../../python/example/connectivity/ring.py
+  :language: python
+
+The idiomatic way of extending classes with new functionality is to use
+inheritance. Importantly, the burden of initializing the base class falls on the
+derived class:
 
 .. literalinclude:: ../../python/example/connectivity/ring.py
   :language: python
@@ -93,12 +108,12 @@ unconnected network
 
 Next, we add a new method that is responsible for the network. Note that this
 --- in contrast to most other methods on recipe --- does not have an argument of
-``gid``, since it is definining the _global_ network.
+``gid``, since it is definining the *global* network.
 
 .. literalinclude:: ../../python/example/connectivity/ring.py
   :language: python
   :lines: 22-31
-/
+
 Similar to the construction of a ``decor`` or ``cv_policy``, a light-weight
 language inspired by LISP or Scheme is used here. For this tutorial, we use
 Python format strings to compose expressions. Networks comprise a structure and
@@ -115,10 +130,9 @@ algebra queries operating on abstract sets of source and target identifiers.
 - ``join`` takes two sub-structures ``A`` and ``B`` and returns their union.
 
 Upon close inspection, these combinators directly spell out the prose
-description of the ring network given above! Connect adjacent cells and close
-the ring by connecting the beginning and end.
-
-Running the network and plotting the spikes we find cells deeper into the ring spiking now
+description of the ring network given above: Connect adjacent cells and close
+the ring by connecting the beginning and end! Running the network and plotting
+the spikes we find cells deeper into the ring spiking now
 
 .. figure:: ../../python/example/connectivity/02-raster.svg
     :width: 400
@@ -126,34 +140,38 @@ Running the network and plotting the spikes we find cells deeper into the ring s
 
 The network structure is rendered via ``networkx``
 
-.. figure:: ../../python/example/connectivity/02-raster.svg
+.. figure:: ../../python/example/connectivity/02-graph.svg
     :width: 400
     :align: center
 
 Excercise: All-to-all Network
 -----------------------------
 
-Using the ``unconnected`` recipe and the `network documentation <https://docs.arbor-sim.org/en/stable/concepts/interconnectivity.html#network-selection-expressions>`_
- , define fully connected network, i.e. where each cell is
-connected to every other cell except itself.
-
+Using the ``unconnected`` recipe and the
+`network documentation <https://docs.arbor-sim.org/en/stable/concepts/interconnectivity.html#network-selection-expressions>`_
+define a fully connected network, i.e. where each cell is connected to every other cell except itself.
 
 .. hint::
 
    1. ``source-cell`` and ``target-cell`` can take a range of ids
    2. Use and intersection with ``inter-cell`` to remove self connections
 
-You can find our solution in ``python/example/all-to-all.py``, it produces the following output
+Our solution produces the following output
 
 .. figure:: ../../python/example/connectivity/03-raster.svg
     :width: 400
     :align: center
 
-The network structure is rendered via ``networkx``
+The network should look like this
 
-.. figure:: ../../python/example/connectivity/03-raster.svg
+.. figure:: ../../python/example/connectivity/03-graph.svg
     :width: 400
     :align: center
+
+For reference, we reproduce it here:
+
+.. literalinclude:: ../../python/example/connectivity/all-to-all.py
+  :language: python
 
 Brunel Network
 --------------
@@ -174,11 +192,18 @@ excitatory and inhibitory populations, such that
 3. If the pre-synaptic cell is in the inhitatory population, the weight is :math:`w_{inh} < 0`
    - :math:`|w_{inh}| < |w_{exc}|`
 
-We write down these rules in the recipe
+The Brunel network simulation can be implemented like this
 
 .. literalinclude:: ../../python/example/connectivity/brunel.py
   :language: python
-  :lines: 28-36
+  :lines: 18-32
+
+again using the base class ``unconnected`` to define everything except the
+network. We implement these by writing down the rules above in the recipe
+
+.. literalinclude:: ../../python/example/connectivity/brunel.py
+  :language: python
+  :lines: 34-42
 
 The ``rand`` structure encodes the random connectivity and removes any potential
 self-connections by ``intersect`` with ``inter-cell``, as before. Next, we

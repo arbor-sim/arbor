@@ -24,10 +24,10 @@ class ring(unconnected):
         wraps = f"(intersect (source-cell {self.N - 1}) (target-cell 0))"
         cells = f"(gid-range 0 {self.N})"
         chain = f"(chain {cells})"
-        ring  = f"(join {chain} {wraps})"
+        ring = f"(join {chain} {wraps})"
         # parameters
         weight = "(scalar 199.99999219)"
-        delay  = "(scalar 0.5)"
+        delay = "(scalar 0.5)"
         return A.network_description(ring, weight, delay, {})
 
 

@@ -73,7 +73,7 @@ Hardware
    network_ring_gpu
 
 Advanced
--------
+--------
 
 .. toctree::
    :maxdepth: 1
@@ -85,6 +85,7 @@ Advanced
 Demonstrations
 --------------
 
-We try to collect models scientists have built in our `contributor space <https://github.com/arbor-contrib/>`_.
-In addition to the tutorials, browsing these models should give you a good idea of what's possible with Arbor
-and find get in contact with other Arbor users.
+We try to collect models scientists have built in our `contributor space
+<https://github.com/arbor-contrib/>`_. In addition to the tutorials, browsing
+these models should give you a good idea of what's possible with Arbor and find
+get in contact with other Arbor users.

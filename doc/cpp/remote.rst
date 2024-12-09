@@ -24,7 +24,7 @@ Control Messages
 
     Request termination, giving the reason as a message.
 
-    .. cpp:member:: char[512] reason
+    .. cpp:member:: char reason[512]
 
 .. cpp:class:: msg_epoch
 

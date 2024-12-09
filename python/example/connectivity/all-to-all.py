@@ -24,7 +24,7 @@ class all2all(unconnected):
         full = f"(intersect (inter-cell) (source-cell (gid-range 0 {self.N})) (target-cell (gid-range 0 {self.N})))"
         # parameters
         weight = "(scalar 125)"
-        delay  = "(scalar 0.5)"
+        delay = "(scalar 0.5)"
         return A.network_description(full, weight, delay, {})
 
 
