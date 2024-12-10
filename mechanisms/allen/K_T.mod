@@ -52,5 +52,5 @@ INITIAL {
     h = h_inf(v - vshift)
 }
 
-FUNCTION m_inf(vs) { m_inf = 1/(1 + exp(-(vs + 47)/29))
-FUNCTION h_inf(vs) { h_inf = 1/(1 + exp( (vs + 66)/10))
+FUNCTION m_inf(vs) { m_inf = 1/(1 + exp(-(vs + 47)/29)) }
+FUNCTION h_inf(vs) { h_inf = 1/(1 + exp( (vs + 66)/10)) }
