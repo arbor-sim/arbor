@@ -13,20 +13,20 @@ UNITS {
 }
 
 PARAMETER {
-    v    (mV)
-    celsius (degC)
+    v                   (mV)
+    celsius             (degC)
 
-    gbar = 0.00001 (S/cm2)
+    gbar    =   0.00001 (S/cm2)
 
-    malphaF = 0.182
-    mbetaF = 0.124
-    mvhalf = -48 (mV)
-    mk = 6 (mV)
+    malphaF =   0.182
+    mbetaF  =   0.124
+    mvhalf  = -48       (mV)
+    mk      =   6       (mV)
 
-    halphaF = 0.015
-    hbetaF = 0.015
-    hvhalf = -69 (mV)
-    hk = 6 (mV)
+    halphaF =   0.015
+    hbetaF  =   0.015
+    hvhalf  = -69       (mV)
+    hk      =   6       (mV)
 }
 
 ASSIGNED { qt }
@@ -62,16 +62,9 @@ INITIAL {
   h = ha/(ha + hb)
 }
 
+FUNCTION vtrap(x, y) { vtrap = y*exprelr(x/y) }
 FUNCTION m_alpha(v) { m_alpha = malphaF * vtrap(-(v - mvhalf), mk) }
 FUNCTION m_beta(v)  { m_beta  = mbetaF  * vtrap(  v - mvhalf,  mk) }
 : ng - adjusted this to match actual Colbert & Pan values for soma model
 FUNCTION h_alpha(v) { h_alpha = halphaF * vtrap(  v - hvhalf,  hk) }
 FUNCTION h_beta(v)  { h_beta  = hbetaF  * vtrap(-(v - hvhalf), hk) }
-
-FUNCTION vtrap(x, y) { : Traps for 0 in denominator of rate equations
-    if (fabs(x / y) < 1e-6) {
-        vtrap = y * (1 - x / y / 2)
-    } else {
-        vtrap = x / (exp(x / y) - 1)
-    }
-}

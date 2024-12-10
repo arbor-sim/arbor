@@ -1,12 +1,14 @@
-: Comment: LVA ca channel. Note: mtau is an approximation from the plots
-: Reference:        Avery and Johnston 1996, tau from Randall 1997
-: Comment: shifted by -10 mv to correct for junction potential
-: Comment: corrected rates using q10 = 2.3, target temperature 34, orginal 21
+: Comment: LVA ca channel.
+:          Note:
+:          - mtau is an approximation from the plots
+:          - shifted by -10 mv to correct for junction potential
+:          - corrected rates using q10 = 2.3, target temperature 34, orginal 21
+: Reference: Avery and Johnston 1996, tau from Randall 1997
 
 NEURON {
     SUFFIX Ca_LVA
     USEION ca READ eca WRITE ica
-    RANGE gbar
+    RANGE gbar, qt
 }
 
 UNITS {
@@ -20,35 +22,32 @@ PARAMETER {
     celsius
 }
 
-ASSIGNED {
-    qt
-}
+ASSIGNED { qt }
 
-STATE {
-    m
-    h
-}
+STATE { m h }
 
 BREAKPOINT {
     SOLVE states METHOD cnexp
-    ica = gbar*m*m*h*(v - eca)
+    LOCAL g
+    g = gbar*m*m*h
+    ica = g*(v - eca)
 }
 
 DERIVATIVE states {
-    LOCAL mInf, mRat, hInf, hRat
-				  
-    mInf = 1/(1 + exp((v + 40)/-6))
-    hInf = 1/(1 + exp((v + 90)/6.4))
-    mRat = qt/(5  + 20/(1 + exp((v + 35)/5)))				
+    LOCAL mRat, hRat
+
+    mRat = qt/(5  + 20/(1 + exp((v + 35)/5)))
     hRat = qt/(20 + 50/(1 + exp((v + 50)/7)))
      
-    m' = (mInf - m)*mRat
-    h' = (hInf - h)*hRat
+    m' = (m_inf(v) - m)*mRat
+    h' = (h_inf(v) - h)*hRat
 }
 
 INITIAL {
     qt = 2.3^((celsius-21)/10)
-		   
-    m = 1/(1 + exp((v + 40)/-6))
-    h = 1/(1 + exp((v + 90)/6.4))
+    m = m_inf(v)
+    h = h_inf(v)
 }
+
+FUNCTION h_inf(v) { h_inf = 1/(1 + exp( (v + 90)/6.4)) }
+FUNCTION m_inf(v) { m_inf = 1/(1 + exp(-(v + 40)/6)) }

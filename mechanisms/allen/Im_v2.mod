@@ -3,7 +3,7 @@
 NEURON   {
    SUFFIX Im_v2
    USEION k READ ek WRITE ik
-   RANGE gbar
+   RANGE gbar, qt
 }
 
 UNITS {
@@ -17,9 +17,8 @@ PARAMETER {
    gbar = 0.00001   (S/cm2)
 }
 
-STATE {
-   m
-}
+ASSIGNED { qt }
+STATE { m }
 
 BREAKPOINT {
    SOLVE states METHOD cnexp
@@ -27,27 +26,23 @@ BREAKPOINT {
 }
 
 DERIVATIVE states {
-    LOCAL qt, mAlpha, mBeta, mInf, mRat, iab
-    
-    qt = 2.3^((celsius - 30)/10)
+    LOCAL mAlpha, mBeta, mAlphaBeta
 
-    mAlpha = 0.007 * exp(( 6 *       0.4 * (v + 48))/26.12)
-    mBeta  = 0.007 * exp((-6 * (1 - 0.4) * (v + 48))/26.12)
+    mAlpha     = m_alpha(v)
+    mBeta      = m_beta(v)
+    mAlphaBeta = mAlpha + mBeta
 
-    iab    = 1/(mAlpha + mBeta)
-
-    mInf = mAlpha*iab
-    mRat = qt/(15 + iab)
-    
-    m' = (mInf - m)*mRat
+    m' = qt*(mAlpha - m*mAlphaBeta)/(1 + 15*mAlphaBeta)
 }
 
 INITIAL {
     LOCAL mAlpha, mBeta
     
-    mAlpha = 0.007*exp(( 6 *      0.4  * (v + 48))/26.12)
-    mBeta  = 0.007*exp((-6 * (1 - 0.4) * (v + 48))/26.12)
-
+    mAlpha = m_alpha(v)
+    mBeta  = m_beta(v)
     m = mAlpha/(mAlpha + mBeta)
+    qt = 2.3^((celsius - 30)/10)
 }
 
+FUNCTION m_alpha(v) { m_alpha = 0.007*exp(( 6 *      0.4  * (v + 48))/26.12) }
+FUNCTION m_beta(v)  { m_beta  = 0.007*exp((-6 * (1 - 0.4) * (v + 48))/26.12) }

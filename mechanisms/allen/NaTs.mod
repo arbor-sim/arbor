@@ -13,20 +13,20 @@ UNITS {
 }
 
 PARAMETER {
-    gbar = 0.00001 (S/cm2)
+    gbar    =   0.00001 (S/cm2)
 
-    malphaF = 0.182
-    mbetaF = 0.124
-    mvhalf = -40 (mV)
-    mk = 6 (mV)
+    malphaF =   0.182
+    mbetaF  =   0.124
+    mvhalf  = -40       (mV)
+    mk      =   6       (mV)
 
-    halphaF = 0.015
-    hbetaF = 0.015
-    hvhalf = -66 (mV)
-    hk = 6 (mV)
+    halphaF =   0.015
+    hbetaF  =   0.015
+    hvhalf  = -66       (mV)
+    hk      =   6       (mV)
 
-    v    (mV)
-    celsius (degC)
+    v                   (mV)
+    celsius             (degC)
 }
 
 ASSIGNED { qt }
@@ -35,7 +35,7 @@ STATE { m h }
 
 BREAKPOINT {
     SOLVE states METHOD cnexp
-	LOCAL g
+    LOCAL g
     g = gbar*m*m*m*h
     ina = g*(v-ena)
 }
@@ -65,11 +65,4 @@ FUNCTION m_alpha(v) { m_alpha = malphaF * vtrap(-(v - mvhalf), mk) }
 FUNCTION m_beta(v)  { m_beta  = mbetaF  * vtrap(  v - mvhalf,  mk) }
 FUNCTION h_alpha(v) { h_alpha = halphaF * vtrap(  v - hvhalf,  hk) }
 FUNCTION h_beta(v)  { h_beta  = hbetaF  * vtrap(-(v - hvhalf), hk) }
-
-FUNCTION vtrap(x, y) { : Traps for 0 in denominator of rate equations
-    if (fabs(x / y) < 1e-6) {
-        vtrap = y * (1 - x / y / 2)
-    } else {
-        vtrap = x / (exp(x / y) - 1)
-    }
-}
+FUNCTION vtrap(x, y) { vtrap = y*exprelr(x/y) }

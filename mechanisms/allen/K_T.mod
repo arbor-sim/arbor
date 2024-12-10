@@ -1,11 +1,12 @@
 : Comment:   The transient component of the K current
 : Reference: Voltage-gated K+ channels in layer 5 neocortical pyramidal neurones from young rats:subtypes and gradients
-:            Korngreen and Sakmann, J. Physiology, 2000
+:            Korngreen and Sakmann,
+:            J. Physiology, 2000
 
 NEURON {
     SUFFIX K_T
     USEION k READ ek WRITE ik
-    RANGE gbar
+    RANGE gbar, qt, vshift, mTauF, hTauF
 }
 
 UNITS {
@@ -22,31 +23,34 @@ PARAMETER {
     celsius          (degC)
 }
 
-STATE {
-    m
-    h
-}
+STATE { m h }
+
+ASSIGNED { qt }
 
 BREAKPOINT {
     SOLVE states METHOD cnexp
-    ik = gbar*m*m*m*m*h*(v-ek)
+    LOCAL g
+    g = gbar*m*m*m*m*h
+    ik = g*(v - ek)
 }
 
 DERIVATIVE states {
-    LOCAL qt, mRat, hRat, hInf, mInf
+    LOCAL m_rho, h_rho, vs
 
-    qt = 2.3^((celsius-21)/10)
+    vs = v - vshift
 
-    mInf =  1/(1 + exp(-(v + 47 - vshift)/29))
-    hInf =  1/(1 + exp( (v + 66 - vshift)/10))
-    mRat =  qt/(0.34 + mTauF*0.92*exp(-((v + 71 - vshift)/59)^2))
-    hRat =  qt/(8    + hTauF*49  *exp(-((v + 73 - vshift)/23)^2))
+    m_rho =  qt/(0.34 + mTauF* 0.92*exp(-((vs + 71)/59)^2))
+    h_rho =  qt/(8    + hTauF*49.  *exp(-((vs + 73)/23)^2))
 
-    m' = (mInf - m)*mRat
-    h' = (hInf - h)*hRat
+    m' = (m_inf(vs) - m)*m_rho
+    h' = (h_inf(vs) - h)*h_rho
 }
 
-INITIAL{
-    m =  1/(1 + exp(-(v + 47 - vshift)/29))
-    h =  1/(1 + exp( (v + 66 - vshift)/10))
+INITIAL {
+    qt = 2.3^(0.1*(celsius - 21))
+    m = m_inf(v - vshift)
+    h = h_inf(v - vshift)
 }
+
+FUNCTION m_inf(vs) { m_inf = 1/(1 + exp(-(vs + 47)/29)) }
+FUNCTION h_inf(vs) { h_inf = 1/(1 + exp( (vs + 66)/10)) }
