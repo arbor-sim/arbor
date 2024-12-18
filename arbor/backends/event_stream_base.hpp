@@ -108,8 +108,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
             auto div = divs[cell];
             arb_size_type step = 0;
             for (const auto& evt: lane) {
-                step = std::lower_bound(steps.begin() + step,
-                                        steps.end(),
+                step = std::lower_bound(steps.begin() + step, steps.end(),
                                         evt.time,
                                         [](const auto& bucket, time_type time) { return bucket.t_end() <= time; })
                      - steps.begin();
@@ -128,7 +127,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
         // auto tg = threading::task_group(ts.get());
         for (auto& [id, stream]: streams) {
             // tg.run([&stream=stream]() {
-                // scan to partition stream
+                // scan to partition stream (aliasing is explicitly allowed)
                 std::inclusive_scan(stream.ev_spans_.begin(), stream.ev_spans_.end(),
                                     stream.ev_spans_.begin());
                 // This is made slightly faster by using pdqsort.
