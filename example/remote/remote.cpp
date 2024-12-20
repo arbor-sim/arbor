@@ -21,15 +21,16 @@ struct remote_recipe: public arb::recipe {
 
         arb::cell_size_type num_cells() const override { return size; }
         arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
-            auto lif = arb::lif_cell("src", "tgt");
-            lif.tau_m =   2.0*U::ms;
-            lif.V_th  = -10.0*U::mV;
-            lif.C_m   =  20.0*U::pF;
-            lif.E_L   = -23.0*U::mV;
-            lif.V_m   = -23.0*U::mV;
-            lif.E_R   = -23.0*U::mV;
-            lif.t_ref =   0.2*U::ms;
-            return lif;
+            return arb::lif_cell{.source = "src",
+                                 .target = "tgt",
+                                 .tau_m  =   2.0*U::ms,
+                                 .V_th   = -10.0*U::mV,
+                                 .C_m    =  20.0*U::pF,
+                                 .E_L    = -23.0*U::mV,
+                                 .E_R    = -23.0*U::mV,
+                                 .V_m    = -23.0*U::mV,
+                                 .t_ref  =   0.2*U::ms,
+            };
         }
         std::vector<arb::ext_cell_connection> external_connections_on(arb::cell_gid_type) const override {
             std::vector<arb::ext_cell_connection> res;

@@ -266,7 +266,9 @@ void register_cells(py::module& m) {
                std::optional<U::quantity> E_R,
                std::optional<U::quantity> V_m,
                std::optional<U::quantity> t_ref) {
-                auto cell = arb::lif_cell{std::move(source_label), std::move(target_label)};
+                auto cell = arb::lif_cell{};
+                cell.source = std::move(source_label);
+                cell.target = std::move(target_label);
                 if (tau_m) cell.tau_m = *tau_m;
                 if (V_th) cell.V_th = *V_th;
                 if (C_m) cell.C_m = *C_m;

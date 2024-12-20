@@ -38,7 +38,7 @@ public:
     cell_size_type num_cells() const override { return num_cells_; }
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        if (gid % 3 == 1) { return lif_cell("source", "target"); }
+        if (gid % 3 == 1) { return lif_cell{.source="source", .target="target"}; }
         if (gid % 3 == 2) { return spike_source_cell("spike_source"); }
 
         // cable cell

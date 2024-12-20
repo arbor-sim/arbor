@@ -124,11 +124,15 @@ struct lif_chain: public recipe {
     cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::lif; }
     util::unique_any get_cell_description(cell_gid_type) const override {
         // A hair-trigger LIF cell with tiny time constant and no refractory period.
-        lif_cell lif("src", "tgt");
-        lif.tau_m = 0.01*U::ms;           // time constant (ms)
-        lif.t_ref = 0*U::ms;              // refactory period (ms)
-        lif.V_th = lif.E_L + 0.001*U::mV; // threshold voltage 1 µV higher than resting
-        return lif;
+        auto E_L = 0_mV;
+        return lif_cell {
+            .source = "src",
+            .target = "tgt",
+            .tau_m  = 0.01*U::ms,      // time constant
+            .V_th   = E_L + 1.0*U::uV, // threshold voltage 1 µV higher than resting
+            .E_L    = E_L,
+            .t_ref  = 0*U::ms,         // refactory period (ms)
+        };
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type target) const override {

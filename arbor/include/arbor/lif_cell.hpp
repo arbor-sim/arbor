@@ -12,8 +12,8 @@ using namespace U::literals;
 
 // Model parameters of leaky integrate and fire neuron model.
 struct ARB_SYMBOL_VISIBLE lif_cell {
-    cell_tag_type source; // Label of source.
-    cell_tag_type target; // Label of target.
+    cell_tag_type source = ""; // Label of source.
+    cell_tag_type target = ""; // Label of target.
 
     // Neuronal parameters.
     U::quantity tau_m = 10_ms;    // Membrane potential decaying constant [ms].
@@ -23,10 +23,6 @@ struct ARB_SYMBOL_VISIBLE lif_cell {
     U::quantity E_R   =  0_mV;    // Reset potential [mV].
     U::quantity V_m   =  0_mV;    // Initial value of the Membrane potential [mV].
     U::quantity t_ref =  2_ms;    // Refractory period [ms].
-
-    lif_cell() = default;
-    lif_cell(cell_tag_type source, cell_tag_type target): source(std::move(source)), target(std::move(target)) {}
-
 };
 
 // LIF probe metadata, to be passed to sampler callbacks. Intentionally left blank.
