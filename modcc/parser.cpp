@@ -1427,7 +1427,7 @@ expression_ptr Parser::parse_expression(tok t) {
 expression_ptr Parser::parse_unaryop() {
     expression_ptr e;
     Token op = token_;
-    switch (token_.type) {
+    switch (op.type) {
     case tok::plus:
         // plus sign is simply ignored
         get_token(); // consume '+'
@@ -1436,6 +1436,12 @@ expression_ptr Parser::parse_unaryop() {
         get_token();         // consume '-'
         e = parse_unaryop(); // handle recursive unary
         if (!e) return nullptr;
+        // Handle precedence of pow over negation: -X^2 is -(X^2); _not_ (-X)^2
+        if (token_.type == tok::pow) {
+            auto op = token_;
+            get_token();         // consume '^'
+            e = parse_binop(std::move(e), op);
+        }
         return unary_expression(token_.location, op.type, std::move(e));
     case tok::exp:
     case tok::sin:
