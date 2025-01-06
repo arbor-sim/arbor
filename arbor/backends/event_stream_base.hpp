@@ -8,6 +8,7 @@
 #include "backends/event_stream_state.hpp"
 #include "event_lane.hpp"
 #include "timestep_range.hpp"
+#include "util/partition.hpp"
 
 ARB_SERDES_ENABLE_EXT(arb_deliverable_event_data, mech_index, weight);
 
