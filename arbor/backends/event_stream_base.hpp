@@ -108,10 +108,6 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
             auto div = divs[cell];
             arb_size_type step = 0;
             for (const auto& evt: lane) {
-                auto time = evt.time;
-                auto weight = evt.weight;
-                auto target = evt.target;
-                while(step < n_steps && time >= steps[step].t_end()) ++step;
                 step = std::lower_bound(steps.begin() + step,
                                         steps.end(),
                                         evt.time,
