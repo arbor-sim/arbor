@@ -108,7 +108,12 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
             auto div = divs[cell];
             arb_size_type step = 0;
             for (const auto& evt: lane) {
-                step = std::lower_bound(steps.begin() + step, steps.end(),
+                auto time = evt.time;
+                auto weight = evt.weight;
+                auto target = evt.target;
+                while(step < n_steps && time >= steps[step].t_end()) ++step;
+                step = std::lower_bound(steps.begin() + step,
+                                        steps.end(),
                                         evt.time,
                                         [](const auto& bucket, time_type time) { return bucket.t_end() <= time; })
                      - steps.begin();
@@ -123,7 +128,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
             ++cell;
         }
 
-        // TODO parallelise over streams
+        // TODO parallelise over streams, however, need a proper testcase/benchmark.
         // auto tg = threading::task_group(ts.get());
         for (auto& [id, stream]: streams) {
             // tg.run([&stream=stream]() {
