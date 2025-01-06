@@ -59,6 +59,7 @@ constexpr inline auto pA = pico  * A;
 
 constexpr inline auto V = ::units::precise::volt;
 constexpr inline auto mV = milli * V;
+constexpr inline auto uV = micro * V;
 
 constexpr inline auto  Hz = ::units::precise::second.pow(-1);
 constexpr inline auto kHz = kilo * Hz;

@@ -67,8 +67,7 @@ public:
             return spike_source_cell("src", explicit_schedule_from_milliseconds({0.}));
         }
         // LIF cell.
-        auto cell = lif_cell("src", "tgt");
-        return cell;
+        return lif_cell{.source="src", .target="tgt"};
     }
 
 private:
@@ -97,8 +96,7 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto cell = lif_cell("src", "tgt");
-        return cell;
+        return lif_cell{.source="src", .target="tgt"};
     }
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
@@ -137,7 +135,7 @@ public:
         return res;
     }
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto cell = lif_cell("src", "tgt");
+        auto cell = lif_cell{.source="src", .target="tgt"};
         if (gid == 0) {
             cell.E_R = -23.0*U::mV;
             cell.V_m = -18.0*U::mV;
