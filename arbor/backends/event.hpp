@@ -39,9 +39,9 @@ struct deliverable_event {
     target_handle handle;
 
     deliverable_event() = default;
-    constexpr deliverable_event(const time_type time,
+    constexpr deliverable_event(time_type time,
                                 target_handle handle,
-                                const float weight) noexcept:
+                                float weight) noexcept:
         time(time), weight(weight), handle(std::move(handle)) {}
 
     ARB_SERDES_ENABLE(deliverable_event, time, weight, handle);
@@ -51,7 +51,7 @@ struct deliverable_event {
 struct deliverable_event_data {
     cell_local_size_type mech_index = 0; // same as target_handle::mech_index
     float weight = 0;
-    deliverable_event_data(const cell_local_size_type idx, const float w) noexcept:
+    deliverable_event_data(cell_local_size_type idx, float w) noexcept:
         mech_index(idx),
         weight(w) {}
     ARB_SERDES_ENABLE(deliverable_event_data,

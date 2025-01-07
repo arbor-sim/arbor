@@ -104,7 +104,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
         }
 
         // loop over lanes: group events by mechanism and sort them by time
-        auto cell = 0;
+        arb_size_type cell = 0;
         for (const auto& lane: lanes) {
             auto div = divs[cell];
             arb_size_type step = 0;
@@ -119,7 +119,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
                 arb_assert(div + evt.target < handles.size());
                 const auto& handle = handles[div + evt.target];
                 auto& stream = streams[handle.mech_id];
-                stream.spikes_.emplace_back(step, handle.mech_index, evt.time, evt.weight);
+                stream.spikes_.push_back(spike_data(step, handle.mech_index, evt.time, evt.weight));
                 stream.ev_spans_[step + 1]++;
             }
             ++cell;
