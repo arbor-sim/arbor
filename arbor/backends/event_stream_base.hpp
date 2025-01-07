@@ -8,7 +8,6 @@
 #include "backends/event_stream_state.hpp"
 #include "event_lane.hpp"
 #include "timestep_range.hpp"
-#include "util/partition.hpp"
 
 ARB_SERDES_ENABLE_EXT(arb_deliverable_event_data, mech_index, weight);
 
@@ -119,7 +118,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
                 arb_assert(div + evt.target < handles.size());
                 const auto& handle = handles[div + evt.target];
                 auto& stream = streams[handle.mech_id];
-                stream.spikes_.emplace_back({step, handle.mech_index, evt.time, evt.weight});
+                stream.spikes_.emplace_back(spike_data{step, handle.mech_index, evt.time, evt.weight});
                 stream.ev_spans_[step + 1]++;
             }
             ++cell;
@@ -139,7 +138,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
                 std::sort(stream.spikes_.begin(), stream.spikes_.end());
                 // copy temporary deliverable_events into stream's ev_data_
                 stream.ev_data_.reserve(stream.spikes_.size());
-                for (const auto& spike: stream.spikes_) stream.ev_data_.emplace_back({spike.mech_index, spike.weight});
+                for (const auto& spike: stream.spikes_) stream.ev_data_.emplace_back(event_data_type{spike.mech_index, spike.weight});
                 // delegate to derived class init: static cast necessary to access protected init()
                 static_cast<spike_event_stream_base&>(stream).init();
             // });
