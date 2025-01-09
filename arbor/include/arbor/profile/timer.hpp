@@ -1,19 +1,20 @@
 #pragma once
 
-#include <arbor/profile/clock.hpp>
+#include <chrono>
+
+// NOTE This is only in the public API as meter_manager is and has a private
+//      member of tick_type.
 
 namespace arb {
 namespace profile {
 
-template <typename Clock = default_clock>
-struct timer {
-    static inline tick_type tic() {
-        return Clock::now();
-    }
+using clock_type = std::chrono::steady_clock;
+using tick_type = clock_type::time_point;
 
-    static inline double toc(tick_type t) {
-        return (Clock::now()-t)*Clock::seconds_per_tick();
-    }
+struct timer {
+    constexpr static double scale = 1e-9; // ns -> s
+    static inline tick_type tic() { return clock_type::now(); }
+    static inline double toc(tick_type t) { return scale*std::chrono::duration_cast<std::chrono::nanoseconds>(clock_type::now() - t).count(); }
 };
 
 } // namespace profile

@@ -5,7 +5,6 @@
 //
 // Defines array, iarray, and specialized multi-event stream classes.
 
-#include <utility>
 #include <vector>
 
 #include <arbor/fvm_types.hpp>
@@ -23,9 +22,6 @@ using padded_vector = std::vector<V, util::padded_allocator<V>>;
 
 using array  = padded_vector<arb_value_type>;
 using iarray = padded_vector<arb_index_type>;
-
-using deliverable_event_stream = arb::multicore::event_stream<deliverable_event>;
-using sample_event_stream = arb::multicore::event_stream<sample_event>;
 
 } // namespace multicore
 } // namespace arb

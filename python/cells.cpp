@@ -266,7 +266,9 @@ void register_cells(py::module& m) {
                std::optional<U::quantity> E_R,
                std::optional<U::quantity> V_m,
                std::optional<U::quantity> t_ref) {
-                auto cell = arb::lif_cell{std::move(source_label), std::move(target_label)};
+                auto cell = arb::lif_cell{};
+                cell.source = std::move(source_label);
+                cell.target = std::move(target_label);
                 if (tau_m) cell.tau_m = *tau_m;
                 if (V_th) cell.V_th = *V_th;
                 if (C_m) cell.C_m = *C_m;
@@ -358,30 +360,30 @@ void register_cells(py::module& m) {
 
     // arb::cell_cv_data
     cell_cv_data
-    .def_property_readonly("num_cv", [](const arb::cell_cv_data& data){return data.size();},
-                 "Return the number of CVs in the cell.")
-            .def("cables",
-                 [](const arb::cell_cv_data& d, unsigned index) {
-                    if (index >= d.size()) throw py::index_error("index out of range");
-                    return d.cables(index);
-                 },
-                 "index"_a, "Return a list of cables representing the CV at the given index.")
-            .def("children",
-                 [](const arb::cell_cv_data& d, unsigned index) {
-                     if (index >= d.size()) throw py::index_error("index out of range");
-                     return d.children(index);
-                 },
-                 "index"_a,
-                 "Return a list of indices of the CVs representing the children of the CV at the given index.")
-            .def("parent",
-                 [](const arb::cell_cv_data& d, unsigned index) {
-                     if (index >= d.size()) throw py::index_error("index out of range");
-                     return d.parent(index);
-                 },
-                 "index"_a,
-                 "Return the index of the CV representing the parent of the CV at the given index.")
-            .def("__str__",  [](const arb::cell_cv_data& p){return "<arbor.cell_cv_data>";})
-            .def("__repr__", [](const arb::cell_cv_data& p){return "<arbor.cell_cv_data>";});
+        .def_property_readonly("num_cv", [](const arb::cell_cv_data& data){return data.size();},
+                               "Return the number of CVs in the cell.")
+        .def("cables",
+             [](const arb::cell_cv_data& d, unsigned index) {
+                 if (index >= d.size()) throw py::index_error("index out of range");
+                 return d.cables(index);
+             },
+             "index"_a, "Return a list of cables representing the CV at the given index.")
+        .def("children",
+             [](const arb::cell_cv_data& d, unsigned index) {
+                 if (index >= d.size()) throw py::index_error("index out of range");
+                 return d.children(index);
+             },
+             "index"_a,
+             "Return a list of indices of the CVs representing the children of the CV at the given index.")
+        .def("parent",
+             [](const arb::cell_cv_data& d, unsigned index) {
+                 if (index >= d.size()) throw py::index_error("index out of range");
+                 return d.parent(index);
+             },
+             "index"_a,
+             "Return the index of the CV representing the parent of the CV at the given index.")
+        .def("__str__",  [](const arb::cell_cv_data& p){return "<arbor.cell_cv_data>";})
+        .def("__repr__", [](const arb::cell_cv_data& p){return "<arbor.cell_cv_data>";});
 
     m.def("cv_data", [](const arb::cable_cell& cell) { return arb::cv_data(cell);},
           "cell"_a, "the cable cell",
@@ -916,34 +918,22 @@ void register_cells(py::module& m) {
             },
             "locations"_a, "detector"_a, "label"_a,
             "Add a voltage spike detector at each location in locations."
-            "The group of spike detectors has the label 'label', used for forming connections between cells.")
-        .def("discretization",
-            [](arb::decor& dec, const arb::cv_policy& p) { return dec.set_default(p); },
-            py::arg("policy"),
-             "A cv_policy used to discretise the cell into compartments for simulation")
-        .def("discretization",
-            [](arb::decor& dec, const std::string& p) {
-                return dec.set_default(arborio::parse_cv_policy_expression(p).unwrap());
-            },
-            py::arg("policy"),
-            "An s-expression string representing a cv_policy used to discretise the "
-            "cell into compartments for simulation");
-
+            "The group of spike detectors has the label 'label', used for forming connections between cells.");
     cable_cell
         .def(py::init(
-            [](const arb::morphology& m, const arb::decor& d, const std::optional<label_dict_proxy>& l) {
-                if (l) return arb::cable_cell(m, d, l->dict);
-                return arb::cable_cell(m, d);
+            [](const arb::morphology& m, const arb::decor& d, const std::optional<label_dict_proxy>& l, const std::optional<arb::cv_policy>& p) {
+                if (l) return arb::cable_cell(m, d, l->dict, p);
+                return arb::cable_cell(m, d, {}, p);
             }),
-            "morphology"_a, "decor"_a, "labels"_a=py::none(),
-            "Construct with a morphology, decor, and label dictionary.")
+            "morphology"_a, "decor"_a, "labels"_a=py::none(), "discretization"_a=py::none(),
+            "Construct with a morphology, decor, label dictionary, and cv policy.")
         .def(py::init(
-            [](const arb::segment_tree& t, const arb::decor& d, const std::optional<label_dict_proxy>& l) {
-                if (l) return arb::cable_cell({t}, d, l->dict);
-                return arb::cable_cell({t}, d);
+            [](const arb::segment_tree& t, const arb::decor& d, const std::optional<label_dict_proxy>& l, const std::optional<arb::cv_policy>& p) {
+                if (l) return arb::cable_cell({t}, d, l->dict, p);
+                return arb::cable_cell({t}, d, {}, p);
             }),
-            "segment_tree"_a, "decor"_a, "labels"_a=py::none(),
-            "Construct with a morphology derived from a segment tree, decor, and label dictionary.")
+            "segment_tree"_a, "decor"_a, "labels"_a=py::none(), "discretization"_a=py::none(),
+            "Construct with a morphology derived from a segment tree, decor, label dictionary, and cv policy.")
         .def_property_readonly("num_branches",
             [](const arb::cable_cell& c) {return c.morphology().num_branches();},
             "The number of unbranched cable sections in the morphology.")
@@ -955,6 +945,21 @@ void register_cells(py::module& m) {
         .def("cables",
             [](arb::cable_cell& c, const char* label) {return c.concrete_region(arborio::parse_region_expression(label).unwrap()).cables();},
             "label"_a, "The cable segments of the cell morphology for a region label.")
+        // Discretization
+        .def("discretization",
+            [](const arb::cable_cell& c) { return c.discretization(); },
+             "The cv_policy used to discretise the cell into compartments for simulation")
+        .def("discretization",
+            [](arb::cable_cell& c, const arb::cv_policy& p) { return c.discretization(p); },
+            py::arg("policy"),
+             "A cv_policy used to discretise the cell into compartments for simulation")
+        .def("discretization",
+            [](arb::cable_cell& c, const std::string& p) {
+                return c.discretization(arborio::parse_cv_policy_expression(p).unwrap());
+            },
+            py::arg("policy"),
+            "An s-expression string representing a cv_policy used to discretise the "
+            "cell into compartments for simulation")
         // Stringification
         .def("__repr__", [](const arb::cable_cell&){return "<arbor.cable_cell>";})
         .def("__str__",  [](const arb::cable_cell&){return "<arbor.cable_cell>";});

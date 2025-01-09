@@ -1,7 +1,5 @@
 #include <algorithm>
-#include <cfloat>
 #include <cmath>
-#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -15,8 +13,6 @@
 #include <arbor/mechanism.hpp>
 #include <arbor/simd/simd.hpp>
 
-#include "backends/event.hpp"
-#include "backends/rand_impl.hpp"
 #include "io/sepval.hpp"
 #include "util/index_into.hpp"
 #include "util/padded_alloc.hpp"
@@ -27,11 +23,11 @@
 
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
+#include "fvm.hpp"
 
 namespace arb {
 namespace multicore {
 
-using util::make_range;
 using util::make_span;
 using util::ptr_by_key;
 using util::value_by_key;
@@ -58,32 +54,31 @@ ion_state::ion_state(const fvm_ion_config& ion_data,
                      unsigned align,
                      solver_ptr ptr):
     alignment(min_alignment(align)),
-    write_eX_(ion_data.revpot_written),
-    write_Xo_(ion_data.econc_written),
-    write_Xi_(ion_data.iconc_written),
+    flags_{ion_data},
     node_index_(ion_data.cv.begin(), ion_data.cv.end(), pad(alignment)),
     iX_(ion_data.cv.size(), NAN, pad(alignment)),
-    eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
-    Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),
-    Xd_(ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)),
-    Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)),
-    init_Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end(), pad(alignment)),
-    init_Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end(), pad(alignment)),
-    reset_Xi_(ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)),
-    reset_Xo_(ion_data.reset_econc.begin(), ion_data.reset_econc.end(), pad(alignment)),
-    init_eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end(), pad(alignment)),
+    gX_(ion_data.cv.size(), NAN, pad(alignment)),
     charge(1u, ion_data.charge, pad(alignment)),
     solver(std::move(ptr)) {
-    arb_assert(node_index_.size()==init_Xi_.size());
-    arb_assert(node_index_.size()==init_Xo_.size());
-    arb_assert(node_index_.size()==eX_.size());
-    arb_assert(node_index_.size()==init_eX_.size());
+    if (flags_.reset_xi()
+      ||flags_.reset_xd()) reset_Xi_ = {ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(), pad(alignment)};
+    if (flags_.reset_xi()) init_Xi_  = {ion_data.init_iconc.begin(),  ion_data.init_iconc.end(),  pad(alignment)};
+    if (flags_.xi())       Xi_       = {ion_data.init_iconc.begin(),  ion_data.init_iconc.end(),  pad(alignment)};
+
+    if (flags_.reset_xo()) reset_Xo_ = {ion_data.reset_econc.begin(), ion_data.reset_econc.end(), pad(alignment)};
+    if (flags_.reset_xo()) init_Xo_  = {ion_data.init_econc.begin(),  ion_data.init_econc.end(),  pad(alignment)};
+    if (flags_.xo())       Xo_       = {ion_data.init_econc.begin(),  ion_data.init_econc.end(),  pad(alignment)};
+
+    if (flags_.reset_ex()) init_eX_ = {ion_data.init_revpot.begin(), ion_data.init_revpot.end(),  pad(alignment)};
+    if (flags_.ex())       eX_      = {ion_data.init_revpot.begin(), ion_data.init_revpot.end(),  pad(alignment)};
+
+    if (flags_.xd())       Xd_      = {ion_data.reset_iconc.begin(), ion_data.reset_iconc.end(),  pad(alignment)};
 }
 
 void ion_state::init_concentration() {
     // NB. not resetting Xd here, it's controlled via the solver.
-    if (write_Xi_) std::copy(init_Xi_.begin(), init_Xi_.end(), Xi_.begin());
-    if (write_Xo_) std::copy(init_Xo_.begin(), init_Xo_.end(), Xo_.begin());
+    if (flags_.reset_xi()) std::copy(init_Xi_.begin(), init_Xi_.end(), Xi_.begin());
+    if (flags_.reset_xo()) std::copy(init_Xo_.begin(), init_Xo_.end(), Xo_.begin());
 }
 
 void ion_state::zero_current() {
@@ -92,10 +87,10 @@ void ion_state::zero_current() {
 
 void ion_state::reset() {
     zero_current();
-    std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xd_.begin());
-    if (write_Xi_) std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xi_.begin());
-    if (write_Xo_) std::copy(reset_Xo_.begin(), reset_Xo_.end(), Xo_.begin());
-    if (write_eX_) std::copy(init_eX_.begin(), init_eX_.end(), eX_.begin());
+    if (flags_.reset_xi()) std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xi_.begin());
+    if (flags_.reset_xo()) std::copy(reset_Xo_.begin(), reset_Xo_.end(), Xo_.begin());
+    if (flags_.reset_ex()) std::copy(init_eX_.begin(), init_eX_.end(), eX_.begin());
+    if (flags_.reset_xd()) std::copy(reset_Xi_.begin(), reset_Xi_.end(), Xd_.begin());
 }
 
 // istim_state methods:
@@ -382,9 +377,8 @@ void shared_state::instantiate(arb::mechanism& m,
 
     util::padded_allocator<> pad(m.data_alignment());
 
-    if (storage.find(id) != storage.end()) {
-        throw arbor_internal_error("Duplicate mechanism id in MC shared state.");
-    }
+    if (storage.count(id)) throw arbor_internal_error("Duplicate mechanism id in MC shared state.");
+    streams[id] = spike_event_stream{};
     auto& store = storage[id];
     auto width = pos_data.cv.size();
     // Assign non-owning views onto shared state:

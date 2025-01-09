@@ -7,7 +7,6 @@
 
 #include <algorithm>
 #include <iterator>
-#include <ostream>
 #include <numeric>
 #include <cstring>
 #include <type_traits>
@@ -18,18 +17,6 @@
 
 namespace arb {
 namespace util {
-
-// Present a single item as a range
-
-template <typename T>
-range<T*> singleton_view(T& item) {
-    return {&item, &item+1};
-}
-
-template <typename T>
-range<const T*> singleton_view(const T& item) {
-    return {&item, &item+1};
-}
 
 // Non-owning views and subviews
 
@@ -346,11 +333,9 @@ bool equal(const Seq1& seq1, const Seq2& seq2, Eq p = Eq{}) {
 // (TODO: this will perform unnecessary copies if `proj` returns a reference;
 // specialize on this if it becomes an issue.)
 
-template <
-    typename Seq,
-    typename Proj,
-    typename Compare = std::less<std::result_of_t<Proj (typename sequence_traits<const Seq&>::value_type)>>
->
+template <typename Seq,
+          typename Proj,
+          typename Compare = std::less<std::invoke_result_t<Proj, typename sequence_traits<const Seq&>::value_type>>>
 bool is_sorted_by(const Seq& seq, const Proj& proj, Compare cmp = Compare{}) {
     using std::begin;
     using std::end;

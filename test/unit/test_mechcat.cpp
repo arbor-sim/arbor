@@ -540,7 +540,7 @@ TEST(mechcat, copy) {
 TEST(mechcat, import) {
     auto cat = build_fake_catalogue();
     mechanism_catalogue cat2;
-    cat2.import(cat, "fake_");
+    cat2.extend(cat, "fake_");
 
     EXPECT_TRUE(cat.has("fleeb2"));
     EXPECT_FALSE(cat.has("fake_fleeb2"));
@@ -561,8 +561,8 @@ TEST(mechcat, import_collisions) {
         auto cat = build_fake_catalogue();
 
         mechanism_catalogue cat2;
-        EXPECT_NO_THROW(cat2.import(cat, "prefix:")); // Should have no collisions.
-        EXPECT_NO_THROW(cat.import(cat2, "prefix:")); // Should have no collisions here either.
+        EXPECT_NO_THROW(cat2.extend(cat, "prefix:")); // Should have no collisions.
+        EXPECT_NO_THROW(cat.extend(cat2, "prefix:")); // Should have no collisions here either.
 
         // cat should have both original entries and copies with 'prefix:prefix:' prefixed.
         ASSERT_TRUE(cat.has("fleeb2"));
@@ -580,7 +580,7 @@ TEST(mechcat, import_collisions) {
             mechanism_catalogue other;
             other.add("fleeb", mk_burble_info()); // Note different mechanism info!
 
-            EXPECT_THROW(cat.import(other, ""), arb::duplicate_mechanism);
+            EXPECT_THROW(cat.extend(other), arb::duplicate_mechanism);
             ASSERT_EQ(cat["fleeb"], mk_fleeb_info());
         }
 
@@ -592,7 +592,7 @@ TEST(mechcat, import_collisions) {
             other.add("fleeb2", mk_burble_info());
 
             auto fleeb2_info = cat["fleeb2"];
-            EXPECT_THROW(cat.import(other, ""), arb::duplicate_mechanism);
+            EXPECT_THROW(cat.extend(other), arb::duplicate_mechanism);
             EXPECT_EQ(cat["fleeb2"], fleeb2_info);
         }
 
@@ -606,7 +606,7 @@ TEST(mechcat, import_collisions) {
             ASSERT_FALSE(other["fleeb"]==mk_fleeb_info());
 
             ASSERT_FALSE(cat.has("zonkers"));
-            EXPECT_THROW(cat.import(other, ""), arb::duplicate_mechanism);
+            EXPECT_THROW(cat.extend(other), arb::duplicate_mechanism);
             EXPECT_EQ(cat["fleeb"], mk_fleeb_info());
             EXPECT_FALSE(cat.has("zonkers"));
         }
@@ -623,7 +623,7 @@ TEST(mechcat, import_collisions) {
             ASSERT_FALSE(other["fleeb2"]==fleeb2_info);
 
             ASSERT_FALSE(cat.has("zonkers"));
-            EXPECT_THROW(cat.import(other, ""), arb::duplicate_mechanism);
+            EXPECT_THROW(cat.extend(other), arb::duplicate_mechanism);
             EXPECT_EQ(cat["fleeb2"], fleeb2_info);
             EXPECT_FALSE(cat.has("zonkers"));
         }

@@ -3,8 +3,6 @@
 
 #include "fine.hpp"
 
-#include <ostream>
-
 namespace arb {
 namespace gpu {
 ARB_ARBOR_API void assemble_matrix_fine(

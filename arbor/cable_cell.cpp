@@ -83,24 +83,28 @@ struct cable_cell_impl {
     // The decorations on the cell.
     decor decorations;
 
+    // Discretization
+    std::optional<cv_policy> discretization_;
+
     // The placeable label to lid_range map
     dynamic_typed_map<constant_type<std::unordered_multimap<hash_type, lid_range>>::type> labeled_lid_ranges;
 
-    cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations):
+    cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations, const std::optional<cv_policy>& cvp):
         provider(m, labels),
         dictionary(labels),
-        decorations(decorations)
+        decorations(decorations),
+        discretization_{cvp}
     {
-        init(decorations);
+        init();
     }
 
-    cable_cell_impl(): cable_cell_impl({},{},{}) {}
+    cable_cell_impl(): cable_cell_impl({}, {}, {}, {}) {}
 
     cable_cell_impl(const cable_cell_impl& other) = default;
 
     cable_cell_impl(cable_cell_impl&& other) = default;
 
-    void init(const decor&);
+    void init();
 
     template <typename T>
     mlocation_map<T>& get_location_map(const T&) {
@@ -116,13 +120,13 @@ struct cable_cell_impl {
     }
 
     template <typename Item>
-    void place(const locset& ls, const Item& item, const hash_type& label) {
+    void place(const mlocation_list& locs, const Item& item, const hash_type& label) {
         auto& mm = get_location_map(item);
         cell_lid_type& lid = placed_count.get<Item>();
         cell_lid_type first = lid;
 
-        for (auto l: thingify(ls, provider)) {
-            placed<Item> p{l, lid++, item};
+        for (const auto& loc: locs) {
+            placed<Item> p{loc, lid++, item, label};
             mm.push_back(p);
         }
         auto range = lid_range(first, lid);
@@ -160,42 +164,36 @@ struct cable_cell_impl {
         return region_map.get<init_reversal_potential>()[init.ion];
     }
 
-    void paint(const region& reg, const density& prop) {
-        this->paint(reg, scaled_mechanism<density>(prop));
+    void paint(const mextent& cables, const std::string& str, const density& prop) {
+        this->paint(cables, str, scaled_mechanism<density>(prop));
     }
 
-    void paint(const region& reg, const scaled_mechanism<density>& prop) {
+    void paint(const mextent& cables, const std::string& str, const scaled_mechanism<density>& prop) {
         std::unordered_map<std::string, iexpr_ptr> im;
-        for (const auto& [fst, snd]: prop.scale_expr) {
-            im.insert_or_assign(fst, thingify(snd, provider));
+        for (const auto& [label, iex]: prop.scale_expr) {
+            im.insert_or_assign(label, thingify(iex, provider));
         }
 
         auto& mm = get_region_map(prop.t_mech);
-        const auto& cables = thingify(reg, provider);
-        for (const auto& c: cables) {
+        for (const auto& cable: cables) {
             // Skip zero-length cables in extent:
-            if (c.prox_pos == c.dist_pos) continue;
-
-            if (!mm.insert(c, {prop.t_mech, im})) {
-                std::stringstream rg; rg << reg;
+            if (cable.prox_pos == cable.dist_pos) continue;
+            if (!mm.insert(cable, {prop.t_mech, im})) {
                 throw cable_cell_error(util::pprintf("Setting mechanism '{}' on region '{}' overpaints at cable {}",
-                                                     prop.t_mech.mech.name(), rg.str(), c));
+                                                     prop.t_mech.mech.name(), str, cable));
             }
         }
     }
 
     template <typename TaggedMech>
-    void paint(const region& reg, const TaggedMech& prop) {
-        mextent cables = thingify(reg, provider);
+    void paint(const mextent& cables, const std::string& str, const TaggedMech& prop) {
         auto& mm = get_region_map(prop);
-
-        for (auto c: cables) {
+        for (const auto& cable: cables) {
             // Skip zero-length cables in extent:
-            if (c.prox_pos==c.dist_pos) continue;
-
-            if (!mm.insert(c, prop)) {
-                std::stringstream rg; rg << reg;
-                throw cable_cell_error(util::pprintf("Setting property '{}' on region '{}' overpaints at '{}'", show(prop), rg.str(), c));
+            if (cable.prox_pos == cable.dist_pos) continue;
+            if (!mm.insert(cable, prop)) {
+                throw cable_cell_error(util::pprintf("Setting property '{}' on region '{}' overpaints at cable {}",
+                                                     show(prop), str, cable));
             }
         }
     }
@@ -209,26 +207,41 @@ struct cable_cell_impl {
     }
 };
 
+const std::optional<cv_policy>& cable_cell::discretization() const { return impl_->discretization_; }
+void cable_cell::discretization(cv_policy cvp) { impl_->discretization_ = std::move(cvp); }
+
+
 using impl_ptr = std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)>;
 impl_ptr make_impl(cable_cell_impl* c) {
     return impl_ptr(c, [](cable_cell_impl* p){delete p;});
 }
 
-void cable_cell_impl::init(const decor& d) {
-    for (const auto& p: d.paintings()) {
-        auto& where = p.first;
-        std::visit([this, &where] (auto&& what) {this->paint(where, what);}, p.second);
+void cable_cell_impl::init() {
+    // Try to cache with a lookback of one since most models paint/place one
+    // region/locset in direct succession. We also key on the stringy view of
+    // expressions since in general equality is undecidable.
+    std::string last_label = "";
+    mextent last_region;
+    mlocation_list last_locset;
+    for (const auto& [where, what]: decorations.paintings()) {
+        if (auto region = util::to_string(where); last_label != region) {
+            last_label  = std::move(region);
+            last_region = thingify(where, provider);
+        }
+        std::visit([this, &last_region, &last_label] (auto&& what) { this->paint(last_region, last_label, what); }, what);
     }
-    for (const auto& p: d.placements()) {
-        auto& where = std::get<0>(p);
-        auto& label = std::get<2>(p);
-        std::visit([this, &where, &label] (auto&& what) {return this->place(where, what, label); },
-                   std::get<1>(p));
+    for (const auto& [where, what, label]: decorations.placements()) {
+        if (auto locset = util::to_string(where); last_label != locset) {
+            last_label  = std::move(locset);
+            last_locset = thingify(where, provider);
+        }
+        std::visit([this, &last_locset, &label=label] (auto&& what) { return this->place(last_locset, what, label); },
+                   what);
     }
 }
 
-cable_cell::cable_cell(const arb::morphology& m, const decor& decorations, const label_dict& dictionary):
-    impl_(make_impl(new cable_cell_impl(m, dictionary, decorations)))
+cable_cell::cable_cell(const arb::morphology& m, const decor& decorations, const label_dict& dictionary, const std::optional<cv_policy>& cvp):
+    impl_(make_impl(new cable_cell_impl(m, dictionary, decorations, cvp)))
 {}
 
 cable_cell::cable_cell(): impl_(make_impl(new cable_cell_impl())) {}

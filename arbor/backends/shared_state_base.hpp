@@ -9,6 +9,8 @@
 
 #include "timestep_range.hpp"
 #include "util/rangeutil.hpp"
+#include "timestep_range.hpp"
+#include "event_lane.hpp"
 
 namespace arb {
 
@@ -29,25 +31,21 @@ struct shared_state_base {
         d->time = d->time_to;
     }
 
-    void begin_epoch(const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
+    void begin_epoch(const event_lane_subrange& lanes,
                      const std::vector<std::vector<sample_event>>& samples,
-                     const timestep_range& dts) {
+                     const timestep_range& dts,
+                     const std::vector<target_handle>& handles,
+                     const std::vector<size_t>& divs) {
         auto d = static_cast<D*>(this);
         // events
-        auto& storage = d->storage;
-        for (auto& [mech_id, store] : storage) {
-            if (mech_id < staged_events_per_mech_id.size() && staged_events_per_mech_id[mech_id].size())
-            {
-                store.deliverable_events_.init(staged_events_per_mech_id[mech_id]);
-            }
-        }
+        initialize(lanes, handles, divs, dts, d->streams);
         // samples
         auto n_samples = util::sum_by(samples, [] (const auto& s) {return s.size();});
         if (d->sample_time.size() < n_samples) {
             d->sample_time = array(n_samples);
             d->sample_value = array(n_samples);
         }
-        d->sample_events.init(samples);
+        initialize(samples, d->sample_events);
         // thresholds
         d->watcher.clear_crossings();
     }
@@ -57,8 +55,7 @@ struct shared_state_base {
         d->solver = {disc.geometry.cv_parent,
                      disc.geometry.cell_cv_divs,
                      disc.cv_capacitance,
-                     disc.face_conductance,
-                     disc.cv_area};
+                     disc.face_conductance};
     }
 
     void add_ion(const std::string& ion_name,
@@ -98,18 +95,15 @@ struct shared_state_base {
 
     void mark_events() {
         auto d = static_cast<D*>(this);
-        auto& storage = d->storage;
-        for (auto& s : storage) {
-            s.second.deliverable_events_.mark();
-        }
+        auto& streams = d->streams;
+        for (auto& stream: streams) stream.second.mark();
     }
 
     void deliver_events(mechanism& m) {
         auto d = static_cast<D*>(this);
-        auto& storage = d->storage;
-        if (auto it = storage.find(m.mechanism_id()); it != storage.end()) {
-            auto& deliverable_events = it->second.deliverable_events_;
-            if (!deliverable_events.empty()) {
+        auto& streams = d->streams;
+        if (auto it = streams.find(m.mechanism_id()); it != streams.end()) {
+            if (auto& deliverable_events = it->second; !deliverable_events.empty()) {
                 auto state = deliverable_events.marked_events();
                 m.deliver_events(state);
             }
@@ -147,7 +141,7 @@ struct shared_state_base {
 
     void integrate_cable_state() {
         auto d = static_cast<D*>(this);
-        d->solver.solve(d->voltage, d->dt, d->current_density, d->conductivity);
+        d->solver.solve(d->voltage, d->dt, d->current_density, d->conductivity, d->area_um2);
         for (auto& [ion, data]: d->ion_data) {
             if (data.solver) {
                 data.solver->solve(data.Xd_,

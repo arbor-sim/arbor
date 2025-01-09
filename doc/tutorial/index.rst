@@ -45,7 +45,9 @@ Networks
 
    network_ring
    network_two_cells_gap_junctions
+   brunel
 
+   
 Probes
 ------
 
@@ -78,11 +80,14 @@ Advanced
    :maxdepth: 1
 
    nmodl
+   plasticity
+   connectivity
    full-feature-diffusion
 
 Demonstrations
 --------------
 
-We try to collect models scientists have built in our `contributor space <https://github.com/arbor-contrib/>`_.
-In addition to the tutorials, browsing these models should give you a good idea of what's possible with Arbor
-and find get in contact with other Arbor users.
+We try to collect models scientists have built in our `contributor space
+<https://github.com/arbor-contrib/>`_. In addition to the tutorials, browsing
+these models should give you a good idea of what's possible with Arbor and find
+get in contact with other Arbor users.

@@ -20,4 +20,4 @@ if not os.path.isfile(catname):
     print("ERROR: unable to open catalogue file")
     sys.exit(1)
 
-print([n for n in arbor.load_catalogue(catname).keys()])
+print(list(arbor.load_catalogue(catname)))

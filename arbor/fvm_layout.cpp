@@ -243,17 +243,13 @@ ARB_ARBOR_API fvm_cv_discretization& append(fvm_cv_discretization& dczn, const f
 }
 
 // FVM discretization
-// ------------------
-
 ARB_ARBOR_API fvm_cv_discretization
-fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global_dflt) {
+fvm_cv_discretize(const cable_cell& cell,
+                  const cable_cell_parameter_set& global_dflt) {
     const auto& dflt = cell.default_parameters();
     fvm_cv_discretization D;
-
-    D.geometry = cv_geometry(cell,
-        dflt.discretization? dflt.discretization->cv_boundary_points(cell):
-        global_dflt.discretization? global_dflt.discretization->cv_boundary_points(cell):
-        default_cv_policy().cv_boundary_points(cell));
+    const auto& cvp = cell.discretization().value_or(global_dflt.discretization.value_or(default_cv_policy()));
+    D.geometry = cv_geometry(cell, cvp.cv_boundary_points(cell));
 
     if (D.geometry.empty()) return D;
 
@@ -708,8 +704,8 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
 
     arb_size_type target_offset = left.n_target;
 
-    for (const auto& [k, R]: right.ions) {
-        fvm_ion_config& L = left.ions[k];
+    for (const auto& [ion, R]: right.ions) {
+        fvm_ion_config& L = left.ions[ion];
 
         append(L.cv, R.cv);
         append(L.init_iconc, R.init_iconc);
@@ -718,10 +714,13 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
         append(L.reset_econc, R.reset_econc);
         append(L.init_revpot, R.init_revpot);
         append(L.face_diffusivity, R.face_diffusivity);
-        L.is_diffusive |= R.is_diffusive;
+        L.is_diffusive   |= R.is_diffusive;
         L.econc_written  |= R.econc_written;
         L.iconc_written  |= R.iconc_written;
+        L.econc_read     |= R.econc_read;
+        L.iconc_read     |= R.iconc_read;
         L.revpot_written |= R.revpot_written;
+        L.revpot_read    |= R.revpot_read;
     }
 
     for (const auto& kv: right.mechanisms) {
@@ -823,13 +822,27 @@ struct fvm_ion_build_data {
     mcable_map<double> init_econc_mask;
     bool write_xi = false;
     bool write_xo = false;
+    bool read_xi = false;
+    bool read_xo = false;
+    bool read_ex = false;
     std::vector<arb_index_type> support;
 
-    void add_to_support(const std::vector<arb_index_type>& cvs) {
+    auto& add_to_support(const std::vector<arb_index_type>& cvs) {
         arb_assert(util::is_sorted(cvs));
         support = unique_union(support, cvs);
+        return *this;
+    }
+
+    auto& add_ion_dep(const ion_dependency& dep) {
+        write_xi |= dep.write_concentration_int;
+        write_xo |= dep.write_concentration_ext;
+        read_xi |= dep.read_concentration_int;
+        read_xo |= dep.read_concentration_ext;
+        read_ex |= dep.read_reversal_potential;
+        return *this;
     }
 };
+
 
 using fvm_mechanism_config_map = std::map<std::string, fvm_mechanism_config>;
 using fvm_ion_config_map = std::unordered_map<std::string, fvm_ion_config>;
@@ -907,8 +920,14 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
                          fvm_ion_map& ion_build_data,
                          fvm_mechanism_config_map&);
 
-// Build reversal potential configs. Returns { X | X ion && eX is written }
-std::unordered_set<std::string>
+// Build reversal potential configs. Returns { X | X ion && eX is written; Xi / Xo read }
+struct revpot_ion_config {
+    bool read_Xi = false;
+    bool read_Xo = false;
+    bool write_eX = false;
+};
+
+std::unordered_map<std::string, revpot_ion_config>
 make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_desc>& method,
                              const std::unordered_map<std::string, fvm_ion_config>& ions,
                              const cell_build_data& data,
@@ -944,6 +963,7 @@ fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
         else {
             throw cable_cell_error("unrecognized ion '"+ion+"' in mechanism.");
         }
+
     }
     return combined;
 }
@@ -1013,11 +1033,9 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     // Track ion usage of mechanisms so that ions are only instantiated where required.
     fvm_ion_map ion_build_data;
 
-    // add diffusive ions to support: If diffusive, it's everywhere.
-    for (const auto& [ion, data]: D.diffusive_ions) {
-        auto& s = ion_build_data[ion].support;
-        s.resize(D.geometry.size());
-        std::iota(s.begin(), s.end(), 0);
+    // pre-extend support of diffusive ions, if diffusive, it's everywhere.
+    for (auto& [ion, data]: D.diffusive_ions) {
+        assign(ion_build_data[ion].support, D.geometry.cell_cvs(cell_idx));
     }
 
     fvm_mechanism_data M;
@@ -1071,8 +1089,12 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         auto method = dflt.reversal_potential_method;
         method.insert(global_dflt.reversal_potential_method.begin(),
                       global_dflt.reversal_potential_method.end());
-        auto written = make_revpot_mechanism_config(method, M.ions, data, M.mechanisms);
-        for (const auto& ion: written) M.ions[ion].revpot_written = true;
+        auto confs = make_revpot_mechanism_config(method, M.ions, data, M.mechanisms);
+        for (const auto& [ion, conf]: confs) {
+            M.ions[ion].revpot_written |= conf.write_eX;
+            M.ions[ion].iconc_read     |= conf.read_Xi;
+            M.ions[ion].econc_read     |= conf.read_Xo;
+        }
     }
 
     M.target_divs = {0u, M.n_target};
@@ -1224,10 +1246,9 @@ make_density_mechanism_config(const region_assignment<density>& assignments,
         apply_parameters_on_cv(config, data, param_maps, support);
 
         for (const auto& [ion, dep]: info.ions) {
-            auto& build_data = ion_build_data[ion];
-            build_data.write_xi |= dep.write_concentration_int;
-            build_data.write_xo |= dep.write_concentration_ext;
-            build_data.add_to_support(config.cv);
+            auto& build_data = ion_build_data[ion]
+                .add_ion_dep(dep)
+                .add_to_support(config.cv);
 
             auto ok = true;
             if (dep.write_concentration_int) {
@@ -1339,6 +1360,9 @@ make_ion_config(fvm_ion_map build_data,
 
         config.econc_written = build_data.write_xo;
         config.iconc_written = build_data.write_xi;
+        config.econc_read    = build_data.read_xo;
+        config.iconc_read    = build_data.read_xi;
+        config.revpot_read   = build_data.read_ex;
         if (!config.cv.empty()) result[ion] = std::move(config);
     }
 }
@@ -1524,10 +1548,9 @@ make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<
 
         // If synapse uses an ion, add to ion support.
         for (const auto& [ion, dep]: info.ions) {
-            auto& build_data = ion_build_data[ion];
-            build_data.write_xi |= dep.write_concentration_int;
-            build_data.write_xo |= dep.write_concentration_ext;
-            build_data.add_to_support(config.cv);
+            ion_build_data[ion]
+                .add_ion_dep(dep)
+                .add_to_support(config.cv);
         }
         n_target += config.target.size();
         if (!config.cv.empty()) result[name] = std::move(config);
@@ -1590,9 +1613,8 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
         }
 
         for (const auto& [ion, dep]: info.ions) {
-            auto& build_data = ion_build_data[ion];
-            build_data.write_xi |= dep.write_concentration_int;
-            build_data.write_xo |= dep.write_concentration_ext;
+            ion_build_data[ion].add_ion_dep(dep);
+            // TODO Why don't we add to support here?!
         }
 
         result[name] = std::move(config);
@@ -1621,13 +1643,13 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
     }
 }
 
-std::unordered_set<std::string>
+std::unordered_map<std::string, revpot_ion_config>
 make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_desc>& method,
                              const std::unordered_map<std::string, fvm_ion_config>& ions,
                              const cell_build_data& data,
                              fvm_mechanism_config_map& result) {
     std::unordered_map<std::string, mechanism_desc> revpot_tbl;
-    std::unordered_set<std::string> written;
+    std::unordered_map<std::string, revpot_ion_config> ex_config;
 
     for (const auto& ion: util::keys(data.ion_species)) {
         if (!method.count(ion)) continue;
@@ -1659,14 +1681,17 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_des
             throw make_cc_error("Revpot mechanism for ion {} does not write this reversal potential", ion);
         }
 
-        written.insert(ion);
+        ex_config[ion].write_eX = true;
 
         // Only instantiate if the ion is used.
         if (ions.count(ion)) {
+            auto& ion_conf = ions.at(ion);
+            // NOTE: This _should_ never fail, as writing to eX entails an ion dependency...
+            const auto& dep = info.ions.at(ion);
             // Revpot mechanism already configured? Add cvs for this ion too.
             if (result.count(name)) {
                 fvm_mechanism_config& config = result[name];
-                config.cv = unique_union(config.cv, ions.at(ion).cv);
+                config.cv = unique_union(config.cv, ion_conf.cv);
                 config.norm_area.assign(config.cv.size(), 1.);
 
                 for (auto& [_p, v]: config.param_values) {
@@ -1675,30 +1700,29 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_des
             }
             else {
                 auto config = make_mechanism_config(info, arb_mechanism_kind_reversal_potential);
-                config.cv = ions.at(ion).cv;
+                config.cv = ion_conf.cv;
                 auto n_cv = config.cv.size();
                 config.norm_area.assign(n_cv, 1.);
-
                 auto parameters = ordered_parameters(info);
-
                 for (auto& [param, def]: parameters) {
                     auto val = values.count(param) ? values.at(param) : def;
                     config.param_values.emplace_back(param, std::vector<arb_value_type>(n_cv, val));
                 }
-
                 if (!config.cv.empty()) result[name] = std::move(config);
             }
+            ex_config[ion].read_Xi |= dep.read_concentration_int;
+            ex_config[ion].read_Xo |= dep.read_concentration_ext;
         }
     }
 
     // Confirm that all ions written to by a revpot have a corresponding entry in a reversal_potential_method table.
     for (auto& [k, v]: revpot_tbl) {
-        if (!written.count(k)) {
+        if (!ex_config.count(k) || !ex_config.at(k).write_eX) {
             throw make_cc_error("Revpot mechanism {} also writes to ion {}.", v.name(), k);
         }
     }
 
-    return written;
+    return ex_config;
 }
 
 } // namespace arb

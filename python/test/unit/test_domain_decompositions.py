@@ -120,7 +120,7 @@ class TestDomain_Decompositions(unittest.TestCase):
         # Each cell group contains 1 cell of kind cable
         # Each group should also be tagged for cpu execution
         grps = list(range(n_cells))
-        kind_lists = dict()
+        kind_lists = {}
         for i in grps:
             grp = decomp.groups[i]
             self.assertEqual(len(grp.gids), 1)
@@ -185,12 +185,10 @@ class TestDomain_Decompositions(unittest.TestCase):
         spike_hint = arb.partition_hint()
         spike_hint.prefer_gpu = False
         spike_hint.cpu_group_size = 4
-        hints = dict(
-            [
-                (arb.cell_kind.cable, cable_hint),
-                (arb.cell_kind.spike_source, spike_hint),
-            ]
-        )
+        hints = {
+            arb.cell_kind.cable: cable_hint,
+            arb.cell_kind.spike_source: spike_hint,
+        }
 
         decomp = arb.partition_load_balance(recipe, context, hints)
 
@@ -226,13 +224,10 @@ class TestDomain_Decompositions(unittest.TestCase):
         spike_hint = arb.partition_hint()
         spike_hint.prefer_gpu = False
         spike_hint.gpu_group_size = 1
-        hints = dict(
-            [
-                (arb.cell_kind.cable, cable_hint),
-                (arb.cell_kind.spike_source, spike_hint),
-            ]
-        )
-
+        hints = {
+            arb.cell_kind.cable: cable_hint,
+            arb.cell_kind.spike_source: spike_hint,
+        }
         with self.assertRaisesRegex(
             RuntimeError,
             "unable to perform load balancing because cell_kind::cable has invalid suggested cpu_cell_group size of 0",
@@ -245,12 +240,10 @@ class TestDomain_Decompositions(unittest.TestCase):
         spike_hint = arb.partition_hint()
         spike_hint.prefer_gpu = True
         spike_hint.gpu_group_size = 0
-        hints = dict(
-            [
-                (arb.cell_kind.cable, cable_hint),
-                (arb.cell_kind.spike_source, spike_hint),
-            ]
-        )
+        hints = {
+            arb.cell_kind.cable: cable_hint,
+            arb.cell_kind.spike_source: spike_hint,
+        }
 
         with self.assertRaisesRegex(
             RuntimeError,

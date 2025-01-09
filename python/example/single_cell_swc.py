@@ -60,13 +60,14 @@ decor = (
     .place('"stim_site"', A.iclamp(8 * U.ms, 1 * U.ms, current=4 * U.nA), "iclamp3")
     # Detect spikes at the soma with a voltage threshold of -10 mV.
     .place('"axon_end"', A.threshold_detector(-10 * U.mV), "detector")
-    # Create the policy used to discretise the cell into CVs.
-    # Use a single CV for the soma, and CVs of maximum length 1 μm elsewhere.
-    .discretization('(replace (single (region "soma")) (max-extent 1.0))')
 )
 
+# Create the policy used to discretise the cell into CVs.
+# Use a single CV for the soma, and CVs of maximum length 1 μm elsewhere.
+cvp = A.cv_policy('(replace (single (region "soma")) (max-extent 1.0))')
+
 # Combine morphology with region and locset definitions to make a cable cell.
-cell = A.cable_cell(morpho, decor, labels)
+cell = A.cable_cell(morpho, decor, labels, cvp)
 
 # Make single cell model.
 m = A.single_cell_model(cell)

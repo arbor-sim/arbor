@@ -16,7 +16,10 @@ struct get_value {
 // Convert mcable_map values to a piecewise function over an mcable.
 // The projection gives the map from the values in the mcable_map to the values in the piecewise function.
 template <typename T, typename U, typename Proj = impl::get_value>
-util::pw_elements<U> pw_over_cable(const mcable_map<T>& mm, mcable cable, U dflt_value, Proj projection = Proj{}) {
+util::pw_elements<U> pw_over_cable(const mcable_map<T>& mm,
+                                   mcable cable,
+                                   U dflt_value,
+                                   Proj projection = Proj{}) {
     using value_type = typename mcable_map<T>::value_type;
     msize_t bid = cable.branch;
 
@@ -26,8 +29,11 @@ util::pw_elements<U> pw_over_cable(const mcable_map<T>& mm, mcable cable, U dflt
         as_branch(msize_t x): value(x) {}
     };
 
-    auto map_on_branch = util::make_range(
-        std::equal_range(mm.begin(), mm.end(), bid, [](as_branch a, as_branch b) { return a.value<b.value; }));
+    auto map_on_branch = util::make_range(std::equal_range(mm.begin(), mm.end(),
+                                                           bid,
+                                                           [](as_branch a, as_branch b) {
+                                                               return a.value < b.value;
+                                                           }));
 
     if (map_on_branch.empty()) {
         return util::pw_elements<U>({cable.prox_pos, cable.dist_pos}, {dflt_value});

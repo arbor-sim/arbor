@@ -192,6 +192,8 @@ typedef struct arb_ion_info {
     const char* name;
     bool write_int_concentration;
     bool write_ext_concentration;
+    bool read_int_concentration;
+    bool read_ext_concentration;
     bool use_diff_concentration;
     bool write_rev_potential;
     bool read_rev_potential;

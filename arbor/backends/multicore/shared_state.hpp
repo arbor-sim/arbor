@@ -44,26 +44,25 @@ struct ARB_ARBOR_API ion_state {
     using solver_type = diffusion_solver;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
-    unsigned alignment = 1; // Alignment and padding multiple.
+    unsigned alignment = 1;   // Alignment and padding multiple.
 
-    bool write_eX_;          // is eX written?
-    bool write_Xo_;          // is Xo written?
-    bool write_Xi_;          // is Xi written?
+    ion_data_flags flags_;    // Track what and when to reset / allocate
 
-    iarray node_index_;     // Instance to CV map.
-    array iX_;              // (A/m²)  current density
-    array eX_;              // (mV)    reversal potential
-    array Xi_;              // (mM)    internal concentration
-    array Xd_;              // (mM)    diffusive internal concentration
-    array Xo_;              // (mM)    external concentration
+    iarray node_index_;       // Instance to CV map.
+    array iX_;                // (A/m²)  current density
+    array eX_;                // (mV)    reversal potential
+    array Xi_;                // (mM)    internal concentration
+    array Xd_;                // (mM)    diffusive internal concentration
+    array Xo_;                // (mM)    external concentration
+    array gX_;                // (kS/m²) per-species conductivity
 
-    array init_Xi_;         // (mM) area-weighted initial internal concentration
-    array init_Xo_;         // (mM) area-weighted initial external concentration
-    array reset_Xi_;        // (mM) area-weighted user-set internal concentration
-    array reset_Xo_;        // (mM) area-weighted user-set internal concentration
-    array init_eX_;         // (mV) initial reversal potential
+    array init_Xi_;           // (mM) area-weighted initial internal concentration
+    array init_Xo_;           // (mM) area-weighted initial external concentration
+    array reset_Xi_;          // (mM) area-weighted user-set internal concentration
+    array reset_Xo_;          // (mM) area-weighted user-set internal concentration
+    array init_eX_;           // (mV) initial reversal potential
 
-    array charge;           // charge of ionic species (global value, length 1)
+    array charge;             // charge of ionic species (global value, length 1)
 
     solver_ptr solver = nullptr;
 
@@ -95,8 +94,6 @@ struct mech_storage {
     std::vector<arb_size_type> gid_;
     std::vector<arb_size_type> idx_;
     cbprng::counter_type random_number_update_counter_ = 0u;
-
-    deliverable_event_stream deliverable_events_;
 };
 
 struct ARB_ARBOR_API istim_state {
@@ -144,9 +141,9 @@ struct ARB_ARBOR_API shared_state:
     arb_size_type n_cv = 0;         // Total number of CVs.
 
     iarray cv_to_cell;              // Maps CV index to GID
-    arb_value_type time;            // integration start time [ms].
-    arb_value_type time_to;         // integration end time [ms]
-    arb_value_type dt;              // dt [ms].
+    arb_value_type time = 0.0;      // integration start time [ms].
+    arb_value_type time_to = 0.0;   // integration end time [ms]
+    arb_value_type dt = 0.0;        // dt [ms].
     array voltage;                  // Maps CV index to membrane voltage [mV].
     array current_density;          // Maps CV index to membrane current density contributions [A/m²].
     array conductivity;             // Maps CV index to membrane conductivity [kS/m²].
@@ -172,6 +169,7 @@ struct ARB_ARBOR_API shared_state:
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
     std::unordered_map<unsigned, mech_storage> storage;
+    std::unordered_map<unsigned, spike_event_stream> streams;
 
     shared_state() = default;
 
@@ -258,6 +256,7 @@ ARB_SERDES_ENABLE_EXT(multicore::shared_state,
                       cbprng_seed,
                       ion_data,
                       storage,
+                      streams,
                       voltage,
                       conductivity,
                       time_since_spike,

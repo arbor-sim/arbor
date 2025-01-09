@@ -37,7 +37,7 @@ constexpr int    with_gpu = -1;
 struct linear: public recipe {
     linear(double x, double d, double c): extent{x}, diameter{d}, cv_length{c} {
         gprop.default_parameters = arb::neuron_parameter_defaults;
-        gprop.default_parameters.discretization = arb::cv_policy_max_extent{cv_length};
+        gprop.default_parameters.discretization = arb::cv_policy_max_extent(cv_length);
         // Stick morphology
         // -----x-----
         segment_tree tree;
@@ -86,7 +86,9 @@ struct linear: public recipe {
 using result_t = std::vector<std::tuple<double, double, double>>;
 
 testing::AssertionResult all_near(const result_t& a, const result_t& b, double eps) {
-    if (a.size() != b.size()) return testing::AssertionFailure() << "sequences differ in length";
+    if (a.size() != b.size()) return testing::AssertionFailure() << "sequences differ in length"
+                                                                 << " #expected=" << b.size()
+                                                                 << " #received=" << a.size();
     std::stringstream res;
     res << std::setprecision(9);
     for (size_t ix = 0; ix < a.size(); ++ix) {

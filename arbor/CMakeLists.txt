@@ -20,10 +20,7 @@ set(arbor_sources
     fvm_layout.cpp
     fvm_lowered_cell_impl.cpp
     hardware/memory.cpp
-    hardware/power.cpp
     iexpr.cpp
-    io/locked_ostream.cpp
-    io/serialize_hex.cpp
     label_resolution.cpp
     lif_cell_group.cpp
     cable_cell_group.cpp
@@ -48,10 +45,8 @@ set(arbor_sources
     network_impl.cpp
     simulation.cpp
     partition_load_balance.cpp
-    profile/clock.cpp
     profile/memory_meter.cpp
     profile/meter_manager.cpp
-    profile/power_meter.cpp
     profile/profiler.cpp
     schedule.cpp
     spike_event_io.cpp
@@ -124,7 +119,10 @@ install(TARGETS arbor-private-headers EXPORT arbor-targets)
 # variable, build_all_mods target. Note: CMake source file properties are
 # directory-local.
 
+set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
+set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
 add_subdirectory(../mechanisms "${CMAKE_BINARY_DIR}/mechanisms")
+set(CMAKE_MESSAGE_LOG_LEVEL ${_saved_CMAKE_MESSAGE_LOG_LEVEL})
 set_source_files_properties(${arbor-builtin-mechanisms} DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTIES GENERATED TRUE)
 
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)

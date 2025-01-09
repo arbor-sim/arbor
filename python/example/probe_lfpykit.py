@@ -88,15 +88,16 @@ decor = (
     .paint("(all)", A.density("pas/e=-65", g=0.0001))
     # attach the stimulus
     .place(str(clamp_location), iclamp, "iclamp")
-    # use a fixed 3 CVs per branch
-    .discretization(A.cv_policy_fixed_per_branch(3))
 )
+
+# use a fixed 3 CVs per branch
+cvp = A.cv_policy_fixed_per_branch(3)
 
 # place_pwlin can be queried with region/locset expressions to obtain
 # geometrical objects, like points and segments, essentially recovering
 # geometry from morphology.
 ppwl = A.place_pwlin(morphology)
-cell = A.cable_cell(morphology, decor)
+cell = A.cable_cell(morphology, decor, discretization=cvp)
 
 # instantiate recipe with cell
 rec = Recipe(cell)
@@ -293,7 +294,7 @@ def create_polygon(x, y, d):
     return list(zip(xp, yp))
 
 
-def get_cv_polycollection(cell_geometry, V_m, vlims=[-66, -64], cmap="viridis"):
+def get_cv_polycollection(cell_geometry, V_m, vlims=(-66, -64), cmap="viridis"):
     """
     Parameters
     ----------
