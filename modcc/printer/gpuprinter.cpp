@@ -471,12 +471,13 @@ void emit_state_update_cu(std::ostream& out,
     auto use_weight = d.always_use_weight || !flags.is_point;
     std::string weight = scale + (use_weight ? pp_var_pfx + "weight[tid_]" : "1.0");
     if (d.additive && flags.use_additive) {
+        // additive means we are treating a diffusive concentration
         out << name << " -= " << var << ";\n";
         if (flags.is_point) {
             out << fmt::format("::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n", weight, name, data, index);
         }
         else {
-            out << var << " = fma(" << weight << ", " << name << ", " << var << ");\n";
+            out << fmt::format("{0} = fma({1}, {2}, {0});\n", var, weight, name);
         }
     }
     else if (write_voltage) {
