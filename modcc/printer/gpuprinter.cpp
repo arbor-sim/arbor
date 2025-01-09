@@ -474,7 +474,7 @@ void emit_state_update_cu(std::ostream& out,
         // additive means we are treating a diffusive concentration
         out << name << " -= " << var << ";\n";
         if (flags.is_point) {
-            out << fmt::format("::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n", weight, name, data, index);
+            out << fmt::format("::arb::gpu::reduce_by_key({}*{}{}, {}, {}, lane_mask_);\n", weight, scale, name, data, index);
         }
         else {
             out << var << " = fma(" << scale << weight << ", " << name << ", " << var << ");\n";
