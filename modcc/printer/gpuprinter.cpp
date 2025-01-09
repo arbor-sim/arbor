@@ -477,7 +477,7 @@ void emit_state_update_cu(std::ostream& out,
             out << fmt::format("::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n", weight, name, data, index);
         }
         else {
-            out << fmt::format("{0} = fma({1}, {2}, {0});\n", var, weight, name);
+            out << var << " = fma(" << scale << weight << ", " << name << ", " << var << ");\n";
         }
     }
     else if (write_voltage) {
