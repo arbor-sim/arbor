@@ -6,8 +6,6 @@ from arbor import units as U
 import numpy as np
 from .. import fixtures
 
-print(A.__path__)
-
 """
 Tests for the concentration and amount of diffusive particles across time and morphology.
 Three different morphological structures are considered: 1 segment ("soma only"), 2 segments
@@ -20,8 +18,6 @@ NOTE: Internally, Arbor only knows concentrations. Thus, particle amounts have t
 """
 
 
-# ---------------------------------------------------------------------------------------
-# recipe class
 class recipe(A.recipe):
     # Constructor
     # - cat: catalogue of custom mechanisms
@@ -71,8 +67,6 @@ class recipe(A.recipe):
         return event_gens
 
 
-# ---------------------------------------------------------------------------------------
-# test class
 class TestDiffusion(unittest.TestCase):
     # Constructor (overridden)
     # - args: arguments that are passed to the super class
@@ -90,7 +84,6 @@ class TestDiffusion(unittest.TestCase):
     # - length_1: axial length of the first segment in µm
     # - radius_1: radius of the first segment in µm
     def get_morph_and_decor_1_seg(self, length_1, radius_1):
-        # ---------------------------------------------------------------------------------------
         # set up the morphology
         tree = A.segment_tree()
         _ = tree.append(
@@ -108,14 +101,14 @@ class TestDiffusion(unittest.TestCase):
             }
         )
         morph = A.morphology(tree)
-
-        # ---------------------------------------------------------------------------------------
         # decorate the morphology with mechanisms
-        dec = A.decor()
-        dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_A")
-        dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_B")
-        dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_inh")
-        dec.paint("(all)", A.density("neuron_with_diffusion"))
+        dec = (
+            A.decor()
+            .place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_A")
+            .place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_B")
+            .place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_inh")
+            .paint("(all)", A.density("neuron_with_diffusion"))
+        )
 
         return morph, dec, labels
 
@@ -128,8 +121,6 @@ class TestDiffusion(unittest.TestCase):
     # - radius_1: radius of the first segment in µm
     # - radius_2: radius of the second segment in µm
     def get_morph_and_decor_2_seg(self, length_1, length_2, radius_1, radius_2):
-        # ---------------------------------------------------------------------------------------
-        # set up the morphology
         tree = A.segment_tree()
         s = tree.append(
             A.mnpos,
@@ -154,16 +145,16 @@ class TestDiffusion(unittest.TestCase):
             }
         )
         morph = A.morphology(tree)
-
-        # ---------------------------------------------------------------------------------------
         # decorate the morphology with mechanisms
-        dec = A.decor()
-        dec.place(
-            '"dendriteA-center"', A.synapse("synapse_with_diffusion"), "syn_exc_A"
+        dec = (
+            A.decor()
+            .place(
+                '"dendriteA-center"', A.synapse("synapse_with_diffusion"), "syn_exc_A"
+            )
+            .place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_B")
+            .place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_inh")
+            .paint("(all)", A.density("neuron_with_diffusion"))
         )
-        dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_B")
-        dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_inh")
-        dec.paint("(all)", A.density("neuron_with_diffusion"))
 
         return morph, dec, labels
 
@@ -186,8 +177,6 @@ class TestDiffusion(unittest.TestCase):
         radius_2,
         radius_3,
     ):
-        # ---------------------------------------------------------------------------------------
-        # set up the morphology
         tree = A.segment_tree()
         s = tree.append(
             A.mnpos,
@@ -221,17 +210,18 @@ class TestDiffusion(unittest.TestCase):
         )
         morph = A.morphology(tree)
 
-        # ---------------------------------------------------------------------------------------
         # decorate the morphology with mechanisms
-        dec = A.decor()
-        dec.place(
-            '"dendriteA-center"', A.synapse("synapse_with_diffusion"), "syn_exc_A"
+        dec = (
+            A.decor()
+            .place(
+                '"dendriteA-center"', A.synapse("synapse_with_diffusion"), "syn_exc_A"
+            )
+            .place(
+                '"dendriteB-center"', A.synapse("synapse_with_diffusion"), "syn_exc_B"
+            )
+            .place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_inh")
+            .paint("(all)", A.density("neuron_with_diffusion"))
         )
-        dec.place(
-            '"dendriteB-center"', A.synapse("synapse_with_diffusion"), "syn_exc_B"
-        )
-        dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_inh")
-        dec.paint("(all)", A.density("neuron_with_diffusion"))
 
         return morph, dec, labels
 
@@ -259,7 +249,6 @@ class TestDiffusion(unittest.TestCase):
         r_2=4.0,
         r_3=4.0,
     ):
-        # ---------------------------------------------------------------------------------------
         # set parameters
         inject_remove = [
             {"time": 0.1, "synapse": "syn_exc_A", "change": 600},
@@ -268,7 +257,6 @@ class TestDiffusion(unittest.TestCase):
         ]  # changes in particle amount (in 1e-18 mol)
         diffusivity = 1  # diffusivity (in m^2/s)
 
-        # ---------------------------------------------------------------------------------------
         # get morphology, decoration, and labels, and calculate geometrical measures
         if num_segs == 1:
             r_2 = l_2 = 0  # set radius and length of second segment to zero
@@ -306,11 +294,9 @@ class TestDiffusion(unittest.TestCase):
             r_1**2 * l_1 + r_2**2 * l_2 + r_3**2 * l_3
         )  # volume of the whole setup in µm^3
 
-        # ---------------------------------------------------------------------------------------
         # add the diffusive particle species 's'
         dec.set_ion("s", int_con=0.0 * U.mM, diff=diffusivity * U.m2 / U.s)
 
-        # ---------------------------------------------------------------------------------------
         # set probes
         prb = [
             A.cable_probe_ion_diff_concentration('"soma-start"', "s", "X"),
@@ -320,30 +306,24 @@ class TestDiffusion(unittest.TestCase):
             A.cable_probe_density_state_cell("neuron_with_diffusion", "sV", "XVs"),
         ]
 
-        # ---------------------------------------------------------------------------------------
         # prepare the simulation
-
         cel = A.cable_cell(morph, dec, labels, cvp)
         rec = recipe(cat, cel, prb, inject_remove)
         if A.config()["gpu"]:
             ctx = A.context(gpu_id=0)
         else:
             ctx = A.context()
-        print(ctx)
         sim = A.simulation(rec, ctx)
 
-        # ---------------------------------------------------------------------------------------
         # set handles
         sched = A.regular_schedule(self.dt)
         hdl_s = sim.sample((0, "X"), sched)  # s at "soma-start"
         hdl_sV = sim.sample((0, "XV"), sched)  # sV at "soma-start"
         hdl_sV_all = sim.sample((0, "XVs"), sched)  # sV (cell-wide array)
 
-        # ---------------------------------------------------------------------------------------
         # run the simulation
         sim.run(dt=self.dt, tfinal=self.runtime)
 
-        # ---------------------------------------------------------------------------------------
         # retrieve data and do the testing
         data_s = sim.samples(hdl_s)[0][0]
         data_sV = sim.samples(hdl_sV)[0][0]
