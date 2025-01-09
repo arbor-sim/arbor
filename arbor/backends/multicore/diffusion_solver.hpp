@@ -90,7 +90,7 @@ struct diffusion_solver {
             if (first >= last || d[first] == 0) continue; // skip cell with no CVs
 
             // backward sweep
-            for(int i = last - 1; i >= first; --i) {
+            for(int i = last - 1; i > first; --i) {
                 const auto pi = parent_index[i];
                 const auto factor = u[i] / d[i];
                 d[pi] -= factor * u[i];
