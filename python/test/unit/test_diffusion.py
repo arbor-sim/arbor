@@ -89,7 +89,7 @@ class TestDiffusion(unittest.TestCase):
     # - num_cvs_per_seg: number of CVs per segment
     # - length_1: axial length of the first segment in µm
     # - radius_1: radius of the first segment in µm
-    def get_morph_and_decor_1_seg(self, num_cvs_per_seg, length_1, radius_1):
+    def get_morph_and_decor_1_seg(self, length_1, radius_1):
         # ---------------------------------------------------------------------------------------
         # set up the morphology
         tree = A.segment_tree()
@@ -112,9 +112,6 @@ class TestDiffusion(unittest.TestCase):
         # ---------------------------------------------------------------------------------------
         # decorate the morphology with mechanisms
         dec = A.decor()
-        dec.discretization(
-            A.cv_policy(f"(fixed-per-branch {num_cvs_per_seg})")
-        )  # use 'fixed-per-branch' policy to obtain exact number of CVs; there's one branch here
         dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_A")
         dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_exc_B")
         dec.place('"soma-end"', A.synapse("synapse_with_diffusion"), "syn_inh")
@@ -130,9 +127,7 @@ class TestDiffusion(unittest.TestCase):
     # - length_2: axial length of the second segment in µm
     # - radius_1: radius of the first segment in µm
     # - radius_2: radius of the second segment in µm
-    def get_morph_and_decor_2_seg(
-        self, num_cvs_per_seg, length_1, length_2, radius_1, radius_2
-    ):
+    def get_morph_and_decor_2_seg(self, length_1, length_2, radius_1, radius_2):
         # ---------------------------------------------------------------------------------------
         # set up the morphology
         tree = A.segment_tree()
@@ -163,9 +158,6 @@ class TestDiffusion(unittest.TestCase):
         # ---------------------------------------------------------------------------------------
         # decorate the morphology with mechanisms
         dec = A.decor()
-        dec.discretization(
-            A.cv_policy(f"(fixed-per-branch {2 * num_cvs_per_seg})")
-        )  # use 'fixed-per-branch' policy to obtain exact number of CVs; there's one branch here
         dec.place(
             '"dendriteA-center"', A.synapse("synapse_with_diffusion"), "syn_exc_A"
         )
@@ -187,7 +179,6 @@ class TestDiffusion(unittest.TestCase):
     # - radius_3: radius of the third segment in µm
     def get_morph_and_decor_3_seg(
         self,
-        num_cvs_per_seg,
         length_1,
         length_2,
         length_3,
@@ -233,9 +224,6 @@ class TestDiffusion(unittest.TestCase):
         # ---------------------------------------------------------------------------------------
         # decorate the morphology with mechanisms
         dec = A.decor()
-        dec.discretization(
-            A.cv_policy(f"(fixed-per-branch {num_cvs_per_seg})")
-        )  # use 'fixed-per-branch' policy to obtain exact number of CVs; there are three branches here
         dec.place(
             '"dendriteA-center"', A.synapse("synapse_with_diffusion"), "syn_exc_A"
         )
@@ -285,27 +273,28 @@ class TestDiffusion(unittest.TestCase):
         if num_segs == 1:
             r_2 = l_2 = 0  # set radius and length of second segment to zero
             r_3 = l_3 = 0  # set radius and length of third segment to zero
-            morph, dec, labels = self.get_morph_and_decor_1_seg(
-                num_cvs_per_seg, l_1, r_1
-            )  # get morphology, decoration, and labels
+            morph, dec, labels = self.get_morph_and_decor_1_seg(l_1, r_1)
             length_soma_cv = (
                 l_1 / num_cvs_per_seg
             )  # consider 'fixed-per-branch' policy for one segment, which forms one branch
+            cvp = A.cv_policy(f"(fixed-per-branch {num_cvs_per_seg})")
         elif num_segs == 2:
             r_3 = l_3 = 0  # set radius and length of third segment to zero
-            morph, dec, labels = self.get_morph_and_decor_2_seg(
-                num_cvs_per_seg, l_1, l_2, r_1, r_2
-            )  # get morphology, decoration, and labels
-            length_soma_cv = (l_1 + l_2) / (
-                2 * num_cvs_per_seg
+            morph, dec, labels = self.get_morph_and_decor_2_seg(l_1, l_2, r_1, r_2)
+            length_soma_cv = (
+                (l_1 + l_2) / (2 * num_cvs_per_seg)
             )  # consider 'fixed-per-branch' policy for two segments, which only form one branch
+            # use 'fixed-per-branch' policy to obtain exact number of CVs; there's one branch here
+            cvp = A.cv_policy(f"(fixed-per-branch {2 * num_cvs_per_seg})")
         elif num_segs == 3:
             morph, dec, labels = self.get_morph_and_decor_3_seg(
-                num_cvs_per_seg, l_1, l_2, l_3, r_1, r_2, r_3
+                l_1, l_2, l_3, r_1, r_2, r_3
             )  # get morphology, decoration, and labels
             length_soma_cv = (
                 l_1 / num_cvs_per_seg
             )  # consider 'fixed-per-branch' policy for three segments, which form three branches
+            # use 'fixed-per-branch' policy to obtain exact number of CVs; there are three branches here
+            cvp = A.cv_policy(f"(fixed-per-branch {num_cvs_per_seg})")
         else:
             raise ValueError(
                 f"Specified number of segments ({num_segs}) not supported."
@@ -333,7 +322,8 @@ class TestDiffusion(unittest.TestCase):
 
         # ---------------------------------------------------------------------------------------
         # prepare the simulation
-        cel = A.cable_cell(morph, dec, labels)
+
+        cel = A.cable_cell(morph, dec, labels, cvp)
         rec = recipe(cat, cel, prb, inject_remove)
         if A.config()["gpu"]:
             ctx = A.context(gpu_id=0)

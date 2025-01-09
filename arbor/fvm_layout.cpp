@@ -397,6 +397,7 @@ fvm_cv_discretize(const cable_cell& cell,
             // Compute
             auto len = embedding.integrate_length(span);
             for (auto& [ion, info]: diffusive_ions) {
+                // TODO scale to m/s^2
                 auto sigma = len/embedding.integrate_ixa(span, info.axial_resistivity[0].at(bid));
                 info.face_diffusivity[i] = sigma;
             }
