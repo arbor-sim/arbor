@@ -16,7 +16,7 @@ Theory
 ------
 
 In order to build a complete model, we will need to review the foundational
-equations as implemented in Arbor. We assume a single ion species :math:`s` with
+equations as implemented in Arbor. We assume a single ion (in general: particle) species :math:`s` with
 valence :math:`q_s` and no leak currents such that :math:`I_m = I_s`. More ion
 species can be added, but do not change the fundamental mechanisms. First, the
 cable equation
@@ -71,7 +71,7 @@ amount, in conjunction with the charge per ion :math:`q_s`, which we scale again
 by the volume :math:`V` to arrive at a change in concentration.
 
 We implement this as an NMODL file intended to be added to the full cell that
-should look like this
+should look like this (cf. :ref:`here <formatnmodl>`):
 
 .. code-block::
 
@@ -84,7 +84,7 @@ should look like this
 
     PARAMETER {
         F = 96485.3321233100184 (coulomb/mole) : Faraday's constant
-        diam
+        diam                                   : compartment diameter
         xi0                                    : initial concentration
     }
 
@@ -112,9 +112,9 @@ Note that this requires explicit intialisation of both ``xi`` and ``xd``.
 Setting up a Simulation
 -----------------------
 
-Having layed the foundation, adding this to a simulation is pretty simple. Save
+Having laid the foundation, adding this to a simulation is pretty simple. Save
 the NMODL file, add it to your local catalogue, and compile & load that via the
-usual method.
+usual method (cf. :ref:`here <mechanism_abi>`).
 
 First, declare the ion -- we'll use a new species ``X`` here, but any name will
 do -- by calling ``set_ion("X", valence=1)`` on your global properties object.
@@ -148,13 +148,13 @@ While simple, note some subtleties around our custom concentration mechanism:
   ``xi``. If that is not your intention, you will have to provide a modified
   version of ``nernst`` in which ``xi`` is replaced with ``xd``.
 
-Conclusion
-----------
+Final notes
+-----------
 
-Apart from some theory, adding an ion with diffusion and full feedback via the
-transmembrane current to a simulation is actually quite straightforward. You
-might also consider changing the external concentration ``Xo`` according to the
-ion current ``iX``. This was not shown above for two reasons. First, Arbor does
+Although the related theory is somewhat intricate, as this tutorial has shown, adding an ion (or another particle) with diffusion and full
+transmembrane current dynamics to a simulation is quite straightforward. You
+might also want to consider changing the external concentration ``Xo`` according to the
+ion current ``iX``. This was not shown here for two reasons. First, Arbor does
 not handle extra-cellular dynamics and thus has no extra-cellular diffusion.
 Second, the method for handling this is identical to what we have done for
 ``xi``, so including it doesn't add any insight.
