@@ -122,8 +122,7 @@ inline float gpu_atomic_sub(float* address, float val) {
 template<typename T>
 __device__ __inline__
 std::enable_if_t< !std::is_same_v<std::decay_t<T>, double>, std::decay_t<T>>
-shfl(T x, int lane)
-{
+shfl(T x, int lane) {
     return __shfl(x, lane);
 }
 
@@ -140,6 +139,10 @@ __device__ __inline__ double shfl(double x, int lane)
 
 __device__ __inline__ unsigned ballot(unsigned mask, unsigned is_root) {
     return __ballot(is_root);
+}
+
+__device__ __inline__ unsigned active_mask() {
+    return __active_mask();
 }
 
 __device__ __inline__ unsigned any(unsigned mask, unsigned width) {
