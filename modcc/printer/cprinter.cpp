@@ -127,6 +127,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     APIMethod* write_ions_api  = find_api_method(module_, "write_ions");
 
     bool with_simd = opt.simd.abi!=simd_spec::none;
+    bool is_point_proc = (module_.kind() == moduleKind::point) || (module_.kind() == moduleKind::junction);
 
     options_trace_codegen = opt.trace_codegen;
 
@@ -318,6 +319,8 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     out << popindent << "}\n\n";
 
     if (net_receive_api) {
+        auto flags = net_recv_flags;
+        flags.point(is_point_proc);
         out << fmt::format(FMT_COMPILE("static void apply_events(arb_mechanism_ppack* pp, arb_deliverable_event_stream* stream_ptr) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
                                        "    auto [begin_, end_] = *stream_ptr;\n"
@@ -325,13 +328,15 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
                                        "        [[maybe_unused]] auto [i_, {0}] = *begin_;\n"),
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
         out << indent << indent;
-        emit_api_body(out, net_receive_api, net_recv_flags);
+        emit_api_body(out, net_receive_api, flags);
         out << popindent << "}\n" << popindent << "}\n\n";
     } else {
         out << "static void apply_events(arb_mechanism_ppack*, arb_deliverable_event_stream*) {}\n\n";
     }
 
     if(post_event_api) {
+        auto flags = post_evt_flags;
+        flags.point(is_point_proc);
         const std::string time_arg = post_event_api->args().empty() ? "time" : post_event_api->args().front()->is_argument()->name();
         out << fmt::format(FMT_COMPILE("static void post_event(arb_mechanism_ppack* pp) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
@@ -345,7 +350,7 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
                            pp_var_pfx,
                            time_arg);
         out << indent << indent << indent << indent;
-        emit_api_body(out, post_event_api, post_evt_flags);
+        emit_api_body(out, post_event_api, flags);
         out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n" << popindent << "}\n";
     } else {
         out << "static void post_event(arb_mechanism_ppack*) {}\n";

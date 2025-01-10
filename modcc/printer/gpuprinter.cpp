@@ -224,6 +224,8 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
 
     // event delivery
     if (net_receive_api) {
+        ApiFlags flags = {false, false, true}; // No CV loop, no PPACK, use additive
+        flags.point(is_point_proc);
         out << fmt::format(FMT_COMPILE("__global__\n"
                                        "void apply_events(arb_mechanism_ppack params_, const arb_deliverable_event_data* begin_,\n"
                                        "                  const arb_deliverable_event_data* end_) {{\n"
@@ -238,7 +240,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                        "            [[maybe_unused]] auto {0} = i_->weight;\n"),
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
         out << indent << indent << indent;
-        emit_api_body_cu(out, net_receive_api, ApiFlags{}.point(is_point_proc).loop(false).iface(false));
+        emit_api_body_cu(out, net_receive_api, flags);
         out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n\n";
     }
 
@@ -311,20 +313,15 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
     } else {
         emit_empty_wrapper("post_event");
     }
-    if (net_receive_api) {
-        auto api_name = "apply_events";
-        out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack* p, arb_deliverable_event_stream* stream_ptr) {{"), class_name, api_name);
-        if(!net_receive_api->body()->statements().empty()) {
-            out << fmt::format(FMT_COMPILE("\n"
-                                           "    const arb_deliverable_event_data* const begin = stream_ptr->begin;\n"
-                                           "    const arb_deliverable_event_data* const end = stream_ptr->end;\n"
-                                           "    ::arb::gpu::launch_1d(end - begin, 128, {}, *p, begin, end);\n"),
-                               api_name);
-        }
-        out << "}\n\n";
+    if (net_receive_api && !net_receive_api->body()->statements().empty()) {
+        out << fmt::format(FMT_COMPILE("void {}_apply_events_(arb_mechanism_ppack* p, arb_deliverable_event_stream* stream_ptr) {{\n"
+                                       "    const arb_deliverable_event_data* const begin = stream_ptr->begin;\n"
+                                       "    const arb_deliverable_event_data* const end = stream_ptr->end;\n"
+                                       "    ::arb::gpu::launch_1d(end - begin, 128, apply_events, *p, begin, end);\n"
+                                       "}}\n\n"), class_name);
     } else {
-        auto api_name = "apply_events";
-        out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack* p, arb_deliverable_event_stream* events) {{}}\n\n"), class_name, api_name);
+        out << fmt::format(FMT_COMPILE("void {}_apply_events_(arb_mechanism_ppack* p, arb_deliverable_event_stream* events) {{}}\n\n"),
+                           class_name);
     }
     out << namespace_declaration_close(ns_components);
     return out.str();
@@ -471,13 +468,14 @@ void emit_state_update_cu(std::ostream& out,
     auto use_weight = d.always_use_weight || !flags.is_point;
     std::string weight = scale + (use_weight ? pp_var_pfx + "weight[tid_]" : "1.0");
     if (d.additive && flags.use_additive) {
-        // additive means we are treating a diffusive concentration
+        // NOTE additive means we are treating a diffusive concentration, so we
+        // can do a lot of specialised stuff here.
         out << name << " -= " << var << ";\n";
         if (flags.is_point) {
-            out << fmt::format("::arb::gpu::reduce_by_key({}*{}{}, {}, {}, lane_mask_);\n", weight, scale, name, data, index);
+            out << fmt::format("::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n", weight, name, data, index);
         }
         else {
-            out << var << " = fma(" << scale << weight << ", " << name << ", " << var << ");\n";
+            out << var << " = fma(" << weight << ", " << name << ", " << var << ");\n";
         }
     }
     else if (write_voltage) {
