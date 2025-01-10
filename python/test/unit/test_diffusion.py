@@ -2,6 +2,7 @@
 
 import unittest
 import arbor as A
+import sys
 from arbor import units as U
 import numpy as np
 from .. import fixtures
@@ -76,6 +77,18 @@ class TestDiffusion(unittest.TestCase):
         self.runtime = 5.00 * U.ms  # runtime of the whole simulation in ms
         self.dt = 0.01 * U.ms  # duration of one timestep in ms
         self.dev = 0.01  # accepted relative deviation for `assertAlmostEqual`
+        mpi = None
+        if A.config()["mpi"]:
+            from mpi4py import MPI
+            mpi = MPI.COMM_WORLD
+        gpu_id = None
+        if A.config()["gpu"]:
+            if mpi:
+                gpu_id = A.env.find_private_gpu(mpi)
+            else:
+                gpu_id = 0
+        self.ctx = A.context(gpu_id=gpu_id, mpi=mpi)
+
 
     # get_morph_and_decor_1_seg
     # Method that sets up and returns a morphology and decoration for one segment with the given parameters
@@ -249,6 +262,7 @@ class TestDiffusion(unittest.TestCase):
         r_2=4.0,
         r_3=4.0,
     ):
+        print("Running tests...", file=sys.stderr)
         # set parameters
         inject_remove = [
             {"time": 0.1, "synapse": "syn_exc_A", "change": 600},
@@ -309,11 +323,7 @@ class TestDiffusion(unittest.TestCase):
         # prepare the simulation
         cel = A.cable_cell(morph, dec, labels, cvp)
         rec = recipe(cat, cel, prb, inject_remove)
-        if A.config()["gpu"]:
-            ctx = A.context(gpu_id=0)
-        else:
-            ctx = A.context()
-        sim = A.simulation(rec, ctx)
+        sim = A.simulation(rec, self.ctx)
 
         # set handles
         sched = A.regular_schedule(self.dt)
