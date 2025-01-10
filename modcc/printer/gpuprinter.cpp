@@ -391,7 +391,7 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, const ApiFlags& flags) {
             auto it = std::find_if(indexed_vars.begin(), indexed_vars.end(),
                       [](auto& sym){return sym->external_variable()->is_write();});
             if (it!=indexed_vars.end()) {
-                out << "unsigned lane_mask_ = arb::gpu::ballot(active_mask(), tid_<n_);\n";
+                out << "unsigned lane_mask_ = arb::gpu::ballot(arb::gpu::active_mask(), tid_<n_);\n";
             }
         }
         if (flags.ppack_iface) out << "PPACK_IFACE_BLOCK;\n";
