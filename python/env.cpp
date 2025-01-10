@@ -1,6 +1,8 @@
 #include <pybind11/pybind11.h>
 #include "conversion.hpp"
 
+#include <arbor/version.hpp>
+
 #include <arborenv/gpu_env.hpp>
 #include <arborenv/concurrency.hpp>
 #include <arborenv/default_env.hpp>
