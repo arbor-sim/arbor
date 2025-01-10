@@ -142,7 +142,7 @@ __device__ __inline__ unsigned ballot(unsigned mask, unsigned is_root) {
 }
 
 __device__ __inline__ unsigned active_mask() {
-    return __active_mask();
+    return __activemask();
 }
 
 __device__ __inline__ unsigned any(unsigned mask, unsigned width) {
