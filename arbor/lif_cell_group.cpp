@@ -211,7 +211,10 @@ void lif_cell_group::advance_cell(time_type tfinal,
                             // Store U for later use.
                             sampled_voltages.push_back(U);
                             // Set up reference to sampled value
-                            sampled[hdl][key].push_back(sample_record{time, {&sampled_voltages.back()}});
+                            sampled[hdl][key].push_back(sample_record{
+                                .time=time,
+                                .values={&sampled_voltages.back(), &sampled_voltages.back()+1}
+                            });
                             break;
                         }
                         default:

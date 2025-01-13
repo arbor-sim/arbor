@@ -682,13 +682,13 @@ template <typename B>
 void resolve_probe(const cable_probe_membrane_voltage& p, probe_resolution_data<B>& R) {
     const arb_value_type* data = R.state->voltage.data();
 
-    for (mlocation loc: thingify(p.locations, R.cell.provider())) {
+    for (const mlocation& loc: thingify(p.locations, R.cell.provider())) {
         fvm_voltage_interpolant in = fvm_interpolate_voltage(R.cell, R.D, R.cell_idx, loc);
 
         R.result.push_back(fvm_probe_interpolated{
             {data+in.proximal_cv, data+in.distal_cv},
             {in.proximal_coef, in.distal_coef},
-            loc});
+            std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
     }
 }
 
@@ -720,7 +720,7 @@ void resolve_probe(const cable_probe_axial_current& p, probe_resolution_data<B>&
         R.result.push_back(fvm_probe_interpolated{
             {data+in.proximal_cv, data+in.distal_cv},
             {in.proximal_coef, in.distal_coef},
-            loc});
+            std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
     }
 }
 
@@ -737,7 +737,7 @@ void resolve_probe(const cable_probe_total_ion_current_density& p, probe_resolut
         R.result.push_back(fvm_probe_interpolated{
             {current_cv_ptr, stim_cv_ptr},
             {1., -1.},
-            loc});
+            std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
     }
 }
 
@@ -848,7 +848,7 @@ void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>&
         auto opt_i = util::binary_search_index(R.M.mechanisms.at(mech).cv, cv);
         if (!opt_i) continue;
 
-        R.result.push_back(fvm_probe_scalar{{data+*opt_i}, loc});
+        R.result.push_back(fvm_probe_scalar{{data+*opt_i}, std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
     }
 }
 
@@ -927,11 +927,11 @@ void resolve_probe(const cable_probe_point_state& p, probe_resolution_data<B>& R
             if (handle.mech_id != mech_id) return;
             auto mech_index = handle.mech_index;
             R.result.push_back(fvm_probe_scalar{{data + mech_index},
-                                                 point_info_of(target,
-                                                               lid,
-                                                               mech_index,
-                                                               synapses.at(mech),
-                                                               R.M.mechanisms.at(mech).multiplicity)});
+                                                std::vector{point_info_of(target,
+                                                                          lid,
+                                                                          mech_index,
+                                                                          synapses.at(mech),
+                                                                          R.M.mechanisms.at(mech).multiplicity)}});
         }
     }
 }
@@ -990,8 +990,8 @@ void resolve_probe(const cable_probe_ion_current_density& p, probe_resolution_da
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
         auto opt_i = R.ion_location_index(p.ion, loc);
         if (!opt_i) continue;
-
-        R.result.push_back(fvm_probe_scalar{{R.state->ion_data.at(p.ion).iX_.data()+*opt_i}, loc});
+        R.result.push_back(fvm_probe_scalar{{R.state->ion_data.at(p.ion).iX_.data()+*opt_i},
+                                            std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
     }
 }
 
@@ -1028,7 +1028,8 @@ void resolve_probe(const cable_probe_ion_int_concentration& p, probe_resolution_
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
         auto opt_i = R.ion_location_index(ion, loc);
         if (!opt_i) continue;
-        R.result.push_back(fvm_probe_scalar{{xi.data() + *opt_i}, loc});
+        R.result.push_back(fvm_probe_scalar{{xi.data() + *opt_i},
+                                            std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
     }
 }
 
@@ -1039,7 +1040,8 @@ void resolve_probe(const cable_probe_ion_ext_concentration& p, probe_resolution_
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
         auto opt_i = R.ion_location_index(ion, loc);
         if (!opt_i) continue;
-        R.result.push_back(fvm_probe_scalar{{xo.data() + *opt_i}, loc});
+        R.result.push_back(fvm_probe_scalar{{xo.data() + *opt_i},
+                                            std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
     }
 }
 
@@ -1050,7 +1052,8 @@ void resolve_probe(const cable_probe_ion_diff_concentration& p, probe_resolution
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
         auto opt_i = R.ion_location_index(ion, loc);
         if (!opt_i) continue;
-        R.result.push_back(fvm_probe_scalar{{xd.data() + *opt_i}, loc});
+        R.result.push_back(fvm_probe_scalar{{xd.data() + *opt_i},
+                                            std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
     }
 }
 

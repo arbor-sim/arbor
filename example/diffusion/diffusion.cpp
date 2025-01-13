@@ -64,7 +64,7 @@ void sampler(probe_metadata pm, std::size_t n, const sample_record* samples) {
     out << "time,prox,dist,Xd\n"
         << std::fixed << std::setprecision(4);
     for (std::size_t i = 0; i<n; ++i) {
-        const auto& [val, _ig] = *util::any_cast<const cable_sample_range*>(samples[i].data);
+        const auto& [val, _ig] = samples[i].values;
         for (unsigned j = 0; j<n_cable; ++j) {
             mcable loc = (*ptr)[j];
             out << samples[i].time << ',' << loc.prox_pos << ',' << loc.dist_pos << ',' << val[j] << '\n';

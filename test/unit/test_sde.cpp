@@ -680,9 +680,7 @@ TEST(sde, solver) {
         unsigned stride = n_entities;
         assert(n == nsteps);
         for (std::size_t i = 0; i<n; ++i) {
-            auto* value_range = arb::util::any_cast<const arb::cable_sample_range*>(samples[i].data);
-            assert(value_range);
-            const auto& [lo, hi] = *value_range;
+            const auto& [lo, hi] = samples[i].values;
             assert(n_entities==hi-lo);
             for (unsigned j = 0; j<n_entities; ++j) {
                 results[offset + stride*i + j] = lo[j];
@@ -828,9 +826,7 @@ TEST(sde, coupled) {
         unsigned stride = n_entities;
         assert(n == nsteps);
         for (std::size_t i = 0; i<n; ++i) {
-            auto* value_range = arb::util::any_cast<const arb::cable_sample_range*>(samples[i].data);
-            assert(value_range);
-            const auto& [lo, hi] = *value_range;
+            const auto& [lo, hi] = samples[i].values;
             assert(n_entities==hi-lo);
             for (unsigned j = 0; j<n_entities; ++j) {
                 results[offset + stride*i + j] = lo[j];

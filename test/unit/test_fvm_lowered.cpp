@@ -466,7 +466,7 @@ TEST(fvm_lowered, derived_mechs) {
         sampler_function sampler =
             [&](probe_metadata pm, std::size_t n, const sample_record* records) {
                 for (std::size_t i = 0; i<n; ++i) {
-                    double v = *util::any_cast<const double*>(records[i].data);
+                    double v = *records[i].values.first;
                     samples[pm.id.gid].push_back(v);
                 }
             };

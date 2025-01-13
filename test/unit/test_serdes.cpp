@@ -186,7 +186,7 @@ void sampler(arb::probe_metadata pm,
     loc = loc ? loc : &(point_info->loc);
 
     for (std::size_t i = 0; i<n; ++i) {
-        auto* value = arb::util::any_cast<const double*>(samples[i].data);
+        auto* value = samples[i].values.first;
         output->push_back(*value);
     }
 }

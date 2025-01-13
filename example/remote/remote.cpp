@@ -152,8 +152,8 @@ void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* sa
         if (pm.id.gid != 0) continue;
         if (pm.id.tag != "Um") continue;
         const auto& sample = samples[ix];
-        auto value = *arb::util::any_cast<double*>(sample.data);
+        const auto& [lo, hi]  = sample.values;
         auto time  = sample.time;
-        trace.emplace_back(time, value);
+        trace.emplace_back(time, *lo);
     }
 }

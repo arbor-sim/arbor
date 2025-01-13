@@ -100,11 +100,11 @@ template <typename V>
 struct trace_push_back {
     template <typename Meta>
     static bool push_back(trace_data<V, Meta>& trace, const sample_record& rec) {
-        if (auto p = util::any_cast<const V*>(rec.data)) {
-            trace.push_back({rec.time, *p});
-            return true;
-        }
-        return false;
+        if (rec.values.first == nullptr
+         || rec.values.second == nullptr
+         || rec.values.second <= rec.values.first) return false;
+        trace.push_back({rec.time, *rec.values.first});
+        return true;
     }
 };
 
@@ -112,15 +112,11 @@ template <typename V>
 struct trace_push_back<std::vector<V>> {
     template <typename Meta>
     static bool push_back(trace_data<std::vector<V>, Meta>& trace, const sample_record& rec) {
-        if (auto p = util::any_cast<const std::vector<V>*>(rec.data)) {
-            trace.push_back({rec.time, *p});
-            return true;
-        }
-        else if (auto p = util::any_cast<const std::pair<const V*, const V*>*>(rec.data)) {
-            trace.push_back({rec.time, std::vector<V>(p->first, p->second)});
-            return true;
-        }
-        return false;
+        if (rec.values.first == nullptr
+         || rec.values.second == nullptr
+         || rec.values.second <= rec.values.first) return false;
+        trace.push_back({rec.time, std::vector<V>(rec.values.first, rec.values.second)});
+        return true;
     }
 };
 
@@ -143,17 +139,9 @@ public:
         }
         else {
             const Meta* m = util::any_cast<const Meta*>(pm.meta);
-            if (!m) {
-                throw std::runtime_error("unexpected metadata type in simple_sampler");
-            }
-
-            if (trace_.size()<=pm.index) {
-                trace_.resize(pm.index+1);
-            }
-
-            if (trace_[pm.index].empty()) {
-                trace_[pm.index].meta = *m;
-            }
+            if (!m) throw std::runtime_error("unexpected metadata type in simple_sampler");
+            if (trace_.size()<=pm.index) trace_.resize(pm.index+1);
+            if (trace_[pm.index].empty()) trace_[pm.index].meta = *m;
 
             for (std::size_t i = 0; i<n; ++i) {
                 if (!trace_push_back<V>::push_back(trace_[pm.index], recs[i])) {

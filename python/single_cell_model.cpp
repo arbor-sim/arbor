@@ -60,14 +60,15 @@ struct trace_callback {
         auto* loc = any_cast<const arb::mlocation*>(md.meta);
         if (locmap_.count(*loc)) {
             auto& trace = traces_[locmap_.at(*loc)];
-            for (std::size_t i=0; i<n; ++i) {
-                if (auto p = any_cast<const double*>(recs[i].data)) {
-                    trace.t.push_back(recs[i].time);
-                    trace.v.push_back(*p);
+            for (std::size_t i = 0; i < n; ++i) {
+                const auto& rec = recs[i];
+                if (rec.values.first == nullptr
+                 || rec.values.second == nullptr
+                 || rec.values.second <= rec.values.first) {
+                    throw std::runtime_error("empty samples");
                 }
-                else {
-                    throw std::runtime_error("unexpected sample type");
-                }
+                trace.t.push_back(rec.time);
+                trace.v.push_back(*rec.values.first);
             }
         }
     }

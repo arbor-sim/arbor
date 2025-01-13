@@ -36,7 +36,7 @@ class brunel(unconnected):
                                 (random {self.seed} {self.p}))"""
         inh = f"(gid-range {self.n_exc} {self.N})"
         weight = f"""(if-else (source-cell {inh})
-                              (scalar {self.g*self.weight})
+                              (scalar {self.g * self.weight})
                               (scalar {self.weight}))"""
         delay = "(scalar 0.5)"
         return A.network_description(rand, weight, delay, {})

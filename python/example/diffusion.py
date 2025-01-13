@@ -59,14 +59,15 @@ prb = [
 cel = A.cable_cell(tree, dec, discretization=A.cv_policy("(max-extent 5)"))
 rec = recipe(cel, prb)
 sim = A.simulation(rec)
-hdl = (sim.sample((0, "nad"), A.regular_schedule(0.1 * U.ms)),)
+hdl = (sim.sample((0, "nad"), A.regular_schedule(0.01 * U.ms)),)
 
-sim.run(tfinal=0.5 * U.ms)
+sim.run(tfinal=0.5 * U.ms, dt=0.01*U.ms)
 
 sns.set_theme()
 fg, ax = plt.subplots()
 for h in hdl:
     for d, m in sim.samples(h):
+        print(d)
         # Plot
         for lbl, ix in zip(m, range(1, d.shape[1])):
             ax.plot(d[:, 0], d[:, ix], label=lbl)

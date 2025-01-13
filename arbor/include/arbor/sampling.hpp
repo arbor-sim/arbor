@@ -44,7 +44,7 @@ struct probe_metadata {
 
 struct sample_record {
     time_type time;
-    util::any_ptr data;
+    std::pair<const double*, const double*> values = {nullptr, nullptr};
 };
 
 using sampler_function = std::function<

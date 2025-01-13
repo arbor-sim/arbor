@@ -26,9 +26,7 @@ cable_cell_group::cable_cell_group(const std::vector<cell_gid_type>& gids,
                                    cell_label_range& cg_sources,
                                    cell_label_range& cg_targets,
                                    fvm_lowered_cell_ptr lowered):
-    gids_(gids), lowered_(std::move(lowered))
-{
-
+    gids_(gids), lowered_(std::move(lowered)) {
     // Construct cell implementation, retrieving handles and maps.
     auto fvm_info = lowered_->initialize(gids_, rec);
 
@@ -49,11 +47,9 @@ cable_cell_group::cable_cell_group(const std::vector<cell_gid_type>& gids,
 
 void cable_cell_group::reset() {
     spikes_.clear();
-
     for (auto &entry: sampler_map_) {
         entry.second.sched.reset();
     }
-
     lowered_->reset();
 }
 
@@ -93,25 +89,21 @@ void reserve_scratch(fvm_probe_scratch& scratch, std::size_t n) {
     tuple_foreach([n](auto& v) { v.reserve(n); }, scratch);
 }
 
-void run_samples(
-    const missing_probe_info&,
-    const sampler_call_info&,
-    const arb_value_type*,
-    const arb_value_type*,
-    std::vector<sample_record>&,
-    fvm_probe_scratch&)
-{
+void run_samples(const missing_probe_info&,
+                 const sampler_call_info&,
+                 const arb_value_type*,
+                 const arb_value_type*,
+                 std::vector<sample_record>&,
+                 fvm_probe_scratch&) {
     throw arbor_internal_error("invalid fvm_probe_data in sampler map");
 }
 
-void run_samples(
-    const fvm_probe_scalar& p,
-    const sampler_call_info& sc,
-    const arb_value_type* raw_times,
-    const arb_value_type* raw_samples,
-    std::vector<sample_record>& sample_records,
-    fvm_probe_scratch&)
-{
+void run_samples(const fvm_probe_scalar& p,
+                 const sampler_call_info& sc,
+                 const arb_value_type* raw_times,
+                 const arb_value_type* raw_samples,
+                 std::vector<sample_record>& sample_records,
+                 fvm_probe_scratch&) {
     // Scalar probes do not need scratch space — provided that the user-presented
     // sample type (double) matches the raw type (arb_value_type).
     static_assert(std::is_same<double, arb_value_type>::value, "require sample value translation");
@@ -119,20 +111,21 @@ void run_samples(
     sample_size_type n_sample = sc.end_offset-sc.begin_offset;
     sample_records.clear();
     for (auto i = sc.begin_offset; i!=sc.end_offset; ++i) {
-       sample_records.push_back(sample_record{time_type(raw_times[i]), &raw_samples[i]});
+        sample_records.push_back(sample_record{
+            .time=time_type(raw_times[i]),
+            .values={raw_samples + i, raw_samples + i + 1},
+        });
     }
 
     sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
 }
 
-void run_samples(
-    const fvm_probe_interpolated& p,
-    const sampler_call_info& sc,
-    const arb_value_type* raw_times,
-    const arb_value_type* raw_samples,
-    std::vector<sample_record>& sample_records,
-    fvm_probe_scratch& scratch)
-{
+void run_samples(const fvm_probe_interpolated& p,
+                 const sampler_call_info& sc,
+                 const arb_value_type* raw_times,
+                 const arb_value_type* raw_samples,
+                 std::vector<sample_record>& sample_records,
+                 fvm_probe_scratch& scratch) {
     constexpr sample_size_type n_raw_per_sample = 2;
     sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
     arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
@@ -146,23 +139,24 @@ void run_samples(
         tmp.push_back(p.coef[0]*raw_samples[offset] + p.coef[1]*raw_samples[offset+1]);
     }
 
-    const auto& ctmp = tmp;
+    const auto ctmp = tmp.data();
     for (sample_size_type j = 0; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
-        sample_records.push_back(sample_record{time_type(raw_times[offset]), &ctmp[j]});
+        sample_records.push_back(sample_record{
+            .time=time_type(raw_times[offset]),
+            .values={ctmp + j, ctmp + j + 1},
+        });
     }
 
     sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
 }
 
-void run_samples(
-    const fvm_probe_multi& p,
-    const sampler_call_info& sc,
-    const arb_value_type* raw_times,
-    const arb_value_type* raw_samples,
-    std::vector<sample_record>& sample_records,
-    fvm_probe_scratch& scratch)
-{
+void run_samples(const fvm_probe_multi& p,
+                 const sampler_call_info& sc,
+                 const arb_value_type* raw_times,
+                 const arb_value_type* raw_samples,
+                 std::vector<sample_record>& sample_records,
+                 fvm_probe_scratch& scratch) {
     const sample_size_type n_raw_per_sample = p.raw_handles.size();
     sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
     arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
@@ -179,20 +173,20 @@ void run_samples(
     const auto& csample_ranges = sample_ranges;
     for (sample_size_type j = 0; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
-        sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
+        sample_records.push_back(sample_record{
+            .time=time_type(raw_times[offset]),
+            .values=csample_ranges[j]});
     }
 
     sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
 }
 
-void run_samples(
-    const fvm_probe_weighted_multi& p,
-    const sampler_call_info& sc,
-    const arb_value_type* raw_times,
-    const arb_value_type* raw_samples,
-    std::vector<sample_record>& sample_records,
-    fvm_probe_scratch& scratch)
-{
+void run_samples(const fvm_probe_weighted_multi& p,
+                 const sampler_call_info& sc,
+                 const arb_value_type* raw_times,
+                 const arb_value_type* raw_samples,
+                 std::vector<sample_record>& sample_records,
+                 fvm_probe_scratch& scratch) {
     const sample_size_type n_raw_per_sample = p.raw_handles.size();
     sample_size_type n_sample = (sc.end_offset - sc.begin_offset)/n_raw_per_sample;
     arb_assert((sc.end_offset - sc.begin_offset)==n_sample*n_raw_per_sample);
@@ -222,7 +216,10 @@ void run_samples(
     const auto& csample_ranges = sample_ranges;
     for (sample_size_type j = 0; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
-        sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
+        sample_records.push_back(sample_record{
+            .time=time_type(raw_times[offset]),
+            .values=csample_ranges[j]
+        });
     }
 
     sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
@@ -267,20 +264,21 @@ void run_samples(const fvm_probe_interpolated_multi& p,
     const auto& csample_ranges = sample_ranges;
     for (sample_size_type j = 0; j<n_sample; ++j) {
         auto offset = j*n_interp_per_sample+sc.begin_offset;
-        sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
+        sample_records.push_back(sample_record{
+            .time=time_type(raw_times[offset]),
+            .values=csample_ranges[j]
+        });
     }
 
     sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
 }
 
-void run_samples(
-    const fvm_probe_membrane_currents& p,
-    const sampler_call_info& sc,
-    const arb_value_type* raw_times,
-    const arb_value_type* raw_samples,
-    std::vector<sample_record>& sample_records,
-    fvm_probe_scratch& scratch)
-{
+void run_samples(const fvm_probe_membrane_currents& p,
+                 const sampler_call_info& sc,
+                 const arb_value_type* raw_times,
+                 const arb_value_type* raw_samples,
+                 std::vector<sample_record>& sample_records,
+                 fvm_probe_scratch& scratch) {
     const sample_size_type n_raw_per_sample = p.raw_handles.size();
     sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
     arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
@@ -341,21 +339,23 @@ void run_samples(
     const auto& csample_ranges = sample_ranges;
     for (sample_size_type j = 0; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
-        sample_records.push_back(sample_record{time_type(raw_times[offset]), &csample_ranges[j]});
+        sample_records.push_back(sample_record{
+            .time=time_type(raw_times[offset]),
+            .values=csample_ranges[j]
+        });
     }
 
     sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
 }
 
 // Generic run_samples dispatches on probe info variant type.
-void run_samples(
-    const sampler_call_info& sc,
-    const arb_value_type* raw_times,
-    const arb_value_type* raw_samples,
-    std::vector<sample_record>& sample_records,
-    fvm_probe_scratch& scratch)
-{
-    std::visit([&](auto& x) {run_samples(x, sc, raw_times, raw_samples, sample_records, scratch); }, sc.pdata_ptr->info);
+void run_samples(const sampler_call_info& sc,
+                 const arb_value_type* raw_times,
+                 const arb_value_type* raw_samples,
+                 std::vector<sample_record>& sample_records,
+                 fvm_probe_scratch& scratch) {
+    std::visit([&](auto& x) { run_samples(x, sc, raw_times, raw_samples, sample_records, scratch); },
+               sc.pdata_ptr->info);
 }
 
 void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
@@ -447,7 +447,6 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     // generate spikes with global spike source ids. The threshold crossings
     // record the local spike source index, which must be converted to a
     // global index for spike communication.
-
     for (auto c: result.crossings) {
         spikes_.emplace_back(spike_sources_[c.index], time_type(c.time));
     }

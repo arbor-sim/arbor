@@ -81,8 +81,7 @@ struct options {
 };
 
 bool parse_options(options&, int& argc, char** argv);
-void vector_sampler(arb::probe_metadata, std::size_t, const arb::sample_record*);
-void scalar_sampler(arb::probe_metadata, std::size_t, const arb::sample_record*);
+void sampler(arb::probe_metadata, std::size_t, const arb::sample_record*);
 
 struct cable_recipe: public arb::recipe {
     arb::cable_cell_global_properties gprop;
@@ -143,8 +142,8 @@ int main(int argc, char** argv) {
         arb::simulation sim(R);
 
         sim.add_sampler(arb::all_probes,
-                arb::regular_schedule(opt.sample_dt*arb::units::ms),
-                opt.scalar_probe? scalar_sampler: vector_sampler);
+                        arb::regular_schedule(opt.sample_dt*arb::units::ms),
+                        sampler);
 
         // CSV header for sample output:
         std::cout << "t, " << (opt.scalar_probe? "x, ": "x0, x1, ") << opt.value_name << '\n';
@@ -161,45 +160,38 @@ int main(int argc, char** argv) {
     }
 }
 
-void scalar_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
-    auto* loc = any_cast<const arb::mlocation*>(pm.meta);
-    auto* point_info = any_cast<const arb::cable_probe_point_info*>(pm.meta);
-	assert((loc != nullptr) || (point_info != nullptr));
+void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
+    auto* cables_ptr      = any_cast<const arb::mcable_list*>(pm.meta);
+    auto* point_infos_ptr = any_cast<const std::vector<arb::cable_probe_point_info>*>(pm.meta);
 
-	loc = loc ? loc : &(point_info->loc);
-
-    std::cout << std::fixed << std::setprecision(4);
-    for (std::size_t i = 0; i<n; ++i) {
-        auto* value = any_cast<const double*>(samples[i].data);
-        assert(value);
-
-        std::cout << samples[i].time << ", " << loc->pos << ", " << *value << '\n';
+    unsigned n_entities = 0;
+    if (cables_ptr) {
+        n_entities = cables_ptr->size();
     }
-}
-
-void vector_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
-    auto* cables_ptr = any_cast<const arb::mcable_list*>(pm.meta);
-    auto* point_info_ptr = any_cast<const std::vector<arb::cable_probe_point_info>*>(pm.meta);
-
-	assert((cables_ptr != nullptr) || (point_info_ptr != nullptr));
-
-    unsigned n_entities = cables_ptr ? cables_ptr->size() : point_info_ptr->size();
+    else if (point_infos_ptr) {
+        n_entities = point_infos_ptr->size();
+    }
+    else {
+        throw std::runtime_error{"No usable metadata found; cable cell probe expected"};
+    }
 
     std::cout << std::fixed << std::setprecision(4);
     for (std::size_t i = 0; i<n; ++i) {
-        auto* value_range = any_cast<const arb::cable_sample_range*>(samples[i].data);
-        assert(value_range);
-        const auto& [lo, hi] = *value_range;
-        assert(n_entities==hi-lo);
+        const auto& [lo, hi] = samples[i].values;
+        assert(n_entities == hi - lo);
 
-        for (unsigned j = 0; j<n_entities; ++j) {
+        for (unsigned j = 0; j < n_entities; ++j) {
             std::cout << samples[i].time << ", ";
             if (cables_ptr) {
                 arb::mcable where = (*cables_ptr)[j];
                 std::cout << where.prox_pos << ", " << where.dist_pos << ", ";
-            } else {
-                arb::mlocation loc = (*point_info_ptr)[j].loc;
+            }
+            else if (point_infos_ptr) {
+                arb::mlocation loc = (*point_infos_ptr)[j].loc;
                 std::cout << loc.pos << ", ";
+            }
+            else {
+                // unreachable!
             }
             std::cout << lo[j] << '\n';
         }

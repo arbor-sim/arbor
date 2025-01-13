@@ -67,8 +67,7 @@ struct sampler {
         arb_assert(n_steps_ == n);
 
         for (std::size_t i=0; i<n; ++i) {
-            const auto* data = arb::util::any_cast<const arb::cable_sample_range*>(samples[i].data);
-            auto [lo, hi] = *data;
+            const auto& [lo, hi] = samples[i].values;
             arb_assert(static_cast<std::size_t>(hi-lo) == n_cvs_);
             for (std::size_t j=0; j<n_cvs_; ++j) {
                 data_[i*n_cvs_ + j] = lo[j];

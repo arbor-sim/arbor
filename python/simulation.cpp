@@ -129,9 +129,9 @@ public:
             spike_record_.insert(spike_record_.end(), spikes.begin(), spikes.end());
             // Sort the newly appended spikes.
             std::sort(spike_record_.begin()+old_size, spike_record_.end(),
-                    [](const auto& lhs, const auto& rhs) {
-                        return std::tie(lhs.time, lhs.source.gid, lhs.source.index)<std::tie(rhs.time, rhs.source.gid, rhs.source.index);
-                    });
+                      [](const auto& lhs, const auto& rhs) {
+                          return std::tie(lhs.time, lhs.source.gid, lhs.source.index)<std::tie(rhs.time, rhs.source.gid, rhs.source.index);
+                      });
         };
 
         switch (policy) {

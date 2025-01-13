@@ -78,13 +78,13 @@ struct recipe: public arb::recipe {
 std::mutex mtx;
 
 void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
-    auto* loc = arb::util::any_cast<const arb::mlocation*>(pm.meta);
+    const auto& loc = *arb::util::any_cast<const arb::mcable_list*>(pm.meta);
 
     for (std::size_t i = 0; i<n; ++i) {
         std::lock_guard<std::mutex> lock{mtx};
-        auto* value = arb::util::any_cast<const double*>(samples[i].data);
+        const auto& [lo, hi] = samples[i].values;
         std::cout << std::fixed << std::setprecision(4)
-                  << "|  " << samples[i].time << " |      " << loc->pos << " | " << *value << " |\n";
+                  << "|  " << samples[i].time << " |      " << loc[i] << " | " << *lo << " |\n";
     }
 }
 

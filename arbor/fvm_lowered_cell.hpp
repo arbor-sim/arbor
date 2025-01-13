@@ -37,7 +37,7 @@ namespace arb {
 
 struct fvm_probe_scalar {
     probe_handle raw_handles[1] = {nullptr};
-    std::variant<mlocation, cable_probe_point_info> metadata;
+    std::variant<mcable_list, std::vector<cable_probe_point_info>> metadata;
 
     util::any_ptr get_metadata_ptr() const {
         return std::visit([](const auto& x) -> util::any_ptr { return &x; }, metadata);
@@ -47,7 +47,7 @@ struct fvm_probe_scalar {
 struct fvm_probe_interpolated {
     probe_handle raw_handles[2] = {nullptr, nullptr};
     double coef[2] = {};
-    mlocation metadata;
+    mcable_list metadata;
 
     util::any_ptr get_metadata_ptr() const { return &metadata; }
 };
@@ -98,7 +98,7 @@ struct fvm_probe_interpolated_multi {
 // Trans-membrane currents require special handling!
 struct fvm_probe_membrane_currents {
     std::vector<probe_handle> raw_handles; // Voltage per CV, followed by stim current densities.
-    std::vector<mcable> metadata;          // Cables from each CV, in CV order.
+    mcable_list metadata;                  // Cables from each CV, in CV order.
 
     std::vector<unsigned> cv_parent;       // Parent CV index for each CV.
     std::vector<double> cv_parent_cond;    // Face conductance between CV and parent.

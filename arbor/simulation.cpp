@@ -589,11 +589,9 @@ time_type simulation::run(const units::quantity& tfinal, const units::quantity& 
     return impl_->run(tfinal_ms, dt_ms);
 }
 
-sampler_association_handle simulation::add_sampler(
-    cell_member_predicate probeset_ids,
-    schedule sched,
-    sampler_function f)
-{
+sampler_association_handle simulation::add_sampler(cell_member_predicate probeset_ids,
+                                                   schedule sched,
+                                                   sampler_function f) {
     return impl_->add_sampler(std::move(probeset_ids), std::move(sched), std::move(f));
 }
 

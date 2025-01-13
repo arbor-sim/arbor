@@ -60,14 +60,15 @@ struct recorder_cable_scalar: recorder_base<Meta> {
     using recorder_base<Meta>::sample_raw_;
 
     void record(any_ptr, std::size_t n_sample, const arb::sample_record* records) override {
-        for (std::size_t i = 0; i<n_sample; ++i) {
-            if (auto* v_ptr =any_cast<const double*>(records[i].data)) {
-                sample_raw_.push_back(records[i].time);
-                sample_raw_.push_back(*v_ptr);
+        for (std::size_t i = 0; i < n_sample; ++i) {
+            const auto& rec = records[i];
+            if (rec.values.first == nullptr
+             || rec.values.second == nullptr
+             || rec.values.second <= rec.values.first) {
+                throw arb::arbor_internal_error("Cable recorder: empty samples");
             }
-            else {
-                throw arb::arbor_internal_error("unexpected sample type");
-            }
+            sample_raw_.push_back(rec.time);
+            sample_raw_.push_back(*rec.values.first);
         }
     }
 
@@ -79,15 +80,15 @@ struct recorder_lif: recorder_base<arb::lif_probe_metadata> {
     using recorder_base<arb::lif_probe_metadata>::sample_raw_;
 
     void record(any_ptr, std::size_t n_sample, const arb::sample_record* records) override {
-        for (std::size_t i = 0; i<n_sample; ++i) {
-            if (auto* v_ptr = any_cast<double*>(records[i].data)) {
-                sample_raw_.push_back(records[i].time);
-                sample_raw_.push_back(*v_ptr);
+        for (std::size_t i = 0; i < n_sample; ++i) {
+            const auto& rec = records[i];
+            if (rec.values.first == nullptr
+             || rec.values.second == nullptr
+             || rec.values.second <= rec.values.first) {
+                throw arb::arbor_internal_error("LIF recorder: empty samples");
             }
-            else {
-                std::string ty = records[i].data.type().name();
-                throw arb::arbor_internal_error("LIF recorder: unexpected sample type " + ty);
-            }
+            sample_raw_.push_back(rec.time);
+            sample_raw_.push_back(*rec.values.first);
         }
     }
 
@@ -100,13 +101,17 @@ struct recorder_cable_vector: recorder_base<Meta> {
     using recorder_base<Meta>::sample_raw_;
 
     void record(any_ptr, std::size_t n_sample, const arb::sample_record* records) override {
-        for (std::size_t i = 0; i<n_sample; ++i) {
-            if (auto* v_ptr = any_cast<const arb::cable_sample_range*>(records[i].data)) {
-                sample_raw_.push_back(records[i].time);
-                sample_raw_.insert(sample_raw_.end(), v_ptr->first, v_ptr->second);
+        for (std::size_t i = 0; i < n_sample; ++i) {
+            const auto& rec = records[i];
+            if (rec.values.first == nullptr
+             || rec.values.second == nullptr
+             || rec.values.second <= rec.values.first) {
+                throw arb::arbor_internal_error("Cable recorder: empty samples");
             }
-            else {
-                throw arb::arbor_internal_error("unexpected sample type");
+            const auto& [lo, hi] = rec.values;
+            sample_raw_.push_back(rec.time);
+            for (auto it = lo; it != hi; ++it) {
+                sample_raw_.push_back(*it);
             }
         }
     }
@@ -117,17 +122,6 @@ protected:
 };
 
 // Specific recorder classes:
-
-struct recorder_cable_scalar_mlocation: recorder_cable_scalar<arb::mlocation> {
-    explicit recorder_cable_scalar_mlocation(const arb::mlocation* meta_ptr):
-        recorder_cable_scalar(meta_ptr) {}
-};
-
-struct recorder_cable_scalar_point_info: recorder_cable_scalar<arb::cable_probe_point_info> {
-    explicit recorder_cable_scalar_point_info(const arb::cable_probe_point_info* meta_ptr):
-        recorder_cable_scalar(meta_ptr) {}
-};
-
 struct recorder_cable_vector_mcable: recorder_cable_vector<arb::mcable_list> {
     explicit recorder_cable_vector_mcable(const arb::mcable_list* meta_ptr):
         recorder_cable_vector(meta_ptr, std::ptrdiff_t(meta_ptr->size())) {}
@@ -270,7 +264,6 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
             return pprintf("<arbor.cable_probe_point_info: target {}, lid {}, multiplicity {}, location {}>", m.target, m.lid, m.multiplicity, m.loc);});
 
     // Probe address constructors:
-
     m.def("lif_probe_voltage", &lif_probe_voltage,
           "Probe specification for LIF cell membrane voltage.",
           "tag"_a);
@@ -349,8 +342,6 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
 
     // Add probe metadata to maps for converters and recorders.
 
-    register_probe_meta_maps<arb::mlocation, recorder_cable_scalar_mlocation>(global_ptr);
-    register_probe_meta_maps<arb::cable_probe_point_info, recorder_cable_scalar_point_info>(global_ptr);
     register_probe_meta_maps<arb::mcable_list, recorder_cable_vector_mcable>(global_ptr);
     register_probe_meta_maps<std::vector<arb::cable_probe_point_info>, recorder_cable_vector_point_info>(global_ptr);
     register_probe_meta_maps<arb::lif_probe_metadata, recorder_lif>(global_ptr);

@@ -24,15 +24,16 @@ for scalar probes, or a ``cable_sample_range`` describing a half-open range of
 
 The probe metadata passed to the sampler will be a const pointer to:
 
-*   ``mlocation`` for most scalar probes;
 
-*   ``cable_probe_point_info`` for point mechanism state queries;
+*   ``std::vector<cable_probe_point_info>`` for point mechanism state queries;
 
-*   ``mcable_list`` for most vector queries;
+*   ``mcable_list`` for all other queries;
 
-*   ``std::vector<cable_probe_point_info>`` for cell-wide point mechanism state queries.
+Probes on a point will produce a single item ``vector`` with an ``mcable`` where
+the proximal and distal positions are identical.
 
-The type ``cable_probe_point_info`` holds metadata for a single target on a cell:
+The type ``cable_probe_point_info`` holds metadata for a single target on a
+cell:
 
 .. code::
 
@@ -75,7 +76,7 @@ Queries cell membrane potential at each site in ``locations``.
 
 *  Sample value: ``double``. Membrane potential in millivolts.
 
-*  Metadata: ``mlocation``. Location of probe.
+*  Metadata: ``mcable_list``. Location of probe.
 
 
 .. code::
@@ -105,7 +106,7 @@ in the distal direction.
 
 *  Sample value: ``double``. Current in nanoamperes.
 
-*  Metadata: ``mlocation``. Location as of probe.
+*  Metadata: ``mcable_list``. Location as of probe.
 
 
 Transmembrane current
@@ -123,7 +124,7 @@ each site in ``locations``.
 
 *  Sample value: ``double``. Current density in amperes per square metre.
 
-*  Metadata: ``mlocation``. Location of probe.
+*  Metadata: ``mcable_list``. Location of probe.
 
 
 .. code::
@@ -152,7 +153,7 @@ Membrane current density at given locations _excluding_ capacitive currents.
 
 *  Sample value: ``double``. Current density in amperes per square metre.
 
-*  Metadata: ``mlocation``. Location of probe.
+*  Metadata: ``mcable_list``. Location of probe.
 
 
 .. code::
@@ -210,7 +211,7 @@ Ionic internal concentration of ion at each site in ``locations``.
 
 *  Sample value: ``double``. Ion concentration in millimoles per litre.
 
-*  Metadata: ``mlocation``. Location of probe.
+*  Metadata: ``mcable_list``. Location of probe.
 
 
 .. code::
@@ -232,7 +233,7 @@ Ionic external concentration of ion across components of the cell.
 .. code::
 
     struct cable_probe_ion_ext_concentration {
-        mlocation location;
+        mcable_list location;
         std::string ion;
     };
 
@@ -240,7 +241,7 @@ Ionic external concentration of ion at each site in ``locations``.
 
 *  Sample value: ``double``. Ion concentration in millimoles per litre.
 
-*  Metadata: ``mlocation``. Location of probe.
+*  Metadata: ``mcable_list``. Location of probe.
 
 
 .. code::
@@ -297,7 +298,7 @@ If the mechanism is not defined at a particular site, that site is ignored.
 
 *  Sample value: ``double``. State variable value.
 
-*  Metadata: ``mlocation``. Location as given in the probeset address.
+*  Metadata: ``mcable_list``. Location as given in the probeset address.
 
 
 .. code::
@@ -330,7 +331,7 @@ If the mechanism is not associated with this target, the probe is ignored.
 
 *  Sample value: ``double``. State variable value.
 
-*  Metadata: ``cable_probe_point_info``. Target number, multiplicity and location.
+*  Metadata: ``std::vector<cable_probe_point_info>``. Target number, multiplicity and location.
 
 
 .. code::
@@ -457,19 +458,17 @@ given simulation time point:
     .. code-block:: cpp
 
             struct sample_record {
-                time_type time;    // simulation time of sample
-                any_ptr data;      // sample data
+                time_type time;                     // simulation time of sample
+                std::pair<double*, double*> values; // sample range
             };
 
-The ``data`` field points to the sample data, wrapped in ``any_ptr`` for
-type-checked access. The exact representation will depend on the nature of
-the object that is being probed, but it should depend only on the cell type and
-probeset address.
-
-The data pointed to by ``data``, and the sample records themselves, are
+The ``values = [lo, hi]`` field is a range of sample data, with ``lo`` being the
+first valid value and ``hi`` one past the last valid value. The API guarantees
+that the range described is of the same length as the list contained in the meta
+data. The data pointed to by ``values``, and the sample records themselves, are
 only guaranteed to be valid for the duration of the call to the sampler
-function. A simple sampler implementation for ``double`` data, assuming
-one probe per probeset id, might be as follows:
+function. A simple sampler implementation, assuming one probe per probeset id,
+might be as follows:
 
 .. container:: example-code
 
@@ -477,18 +476,16 @@ one probe per probeset id, might be as follows:
 
             using sample_data = std::map<cell_address_type, std::vector<std::pair<double, double>>>;
 
-            struct scalar_sampler {
+            struct sampler {
                 sample_data& samples;
 
-                explicit scalar_sample(sample_data& samples): samples(samples) {}
+                explicit sampler(sample_data& samples): samples(samples) {}
 
                 void operator()(probe_metadata pm, size_t n, const sample_record* records) {
                     for (size_t i=0; i<n; ++i) {
                         const auto& rec = records[i];
-
-                        const double* data = any_cast<const double*>(rec.data);
-                        assert(data);
-                        samples[pm.id].emplace_back(rec.time, *data);
+                        const auto& [lo, hi] = rec.values;
+                        for (auto it = lo; it != hi; ++it) samples[pm.id].emplace_back(rec.time, *it);
                     }
                 }
             };

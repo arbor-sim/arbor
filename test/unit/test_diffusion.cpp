@@ -110,7 +110,7 @@ testing::AssertionResult run(const linear& rec, const result_t exp) {
         ASSERT_NE(ptr, nullptr);
         auto n_cable = ptr->size();
         for (std::size_t i = 0; i<n; ++i) {
-            const auto& [val, _ig] = *arb::util::any_cast<const arb::cable_sample_range*>(samples[i].data);
+            const auto& [val, _ig] = samples[i].values;
             for (unsigned j = 0; j<n_cable; ++j) {
                 arb::mcable loc = (*ptr)[j];
                 sample_values.push_back({samples[i].time, loc.prox_pos, val[j]});

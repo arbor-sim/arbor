@@ -132,11 +132,9 @@ struct lfp_sampler {
             for (std::size_t i = 0; i<n; ++i) {
                 lfp_time.push_back(samples[i].time);
 
-                auto data_ptr = any_cast<const arb::cable_sample_range*>(samples[i].data);
-                assert(data_ptr);
-
+                const auto& [lo, hi] = samples[i].values;
                 for (unsigned j = 0; j<response.size(); ++j) {
-                    lfp_voltage[j].push_back(std::inner_product(data_ptr->first, data_ptr->second, response[j].begin(), 0.));
+                    lfp_voltage[j].push_back(std::inner_product(lo, hi, response[j].begin(), 0.));
                 }
             }
         };
@@ -206,7 +204,7 @@ int main(int argc, char** argv) {
     auto sample_schedule = arb::regular_schedule(sample_dt*U::ms);
     sim.add_sampler(arb::one_probe({0, "Itotal"}), sample_schedule, lfp.callback());
 
-    arb::trace_vector<double, arb::mlocation> membrane_voltage;
+    arb::trace_vector<double, std::vector<arb::mcable>> membrane_voltage;
     sim.add_sampler(arb::one_probe({0, "Um"}), sample_schedule, make_simple_sampler(membrane_voltage));
 
     arb::trace_vector<double> ionic_current_density;
@@ -243,8 +241,9 @@ int main(int argc, char** argv) {
             samples.back().push_back(std::array<double, 3>{seg.dist.x, seg.dist.z, seg.dist.radius});
         }
     }
-
-    auto probe_xz = to_xz(placed_cell.at(membrane_voltage.get(0).meta));
+    auto cable = membrane_voltage.get(0).meta.at(0);
+    auto mloc = arb::mlocation{cable.branch, cable.dist_pos};
+    auto probe_xz = to_xz(placed_cell.at(mloc));
     std::vector<std::array<double, 2>> electrodes_xz;
     std::transform(electrodes.begin(), electrodes.end(), std::back_inserter(electrodes_xz), to_xz);
 
