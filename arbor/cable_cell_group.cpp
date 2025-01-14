@@ -110,13 +110,12 @@ void run_samples(const fvm_probe_scalar& p,
 
     sample_size_type n_sample = sc.end_offset-sc.begin_offset;
     sample_records.clear();
-    for (auto i = sc.begin_offset; i!=sc.end_offset; ++i) {
+    for (auto i = sc.begin_offset; i != sc.end_offset; ++i) {
         sample_records.push_back(sample_record{
             .time=time_type(raw_times[i]),
             .values={raw_samples + i, raw_samples + i + 1},
         });
     }
-
     sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
 }
 
@@ -480,7 +479,7 @@ void cable_cell_group::remove_all_samplers() {
 std::vector<probe_metadata> cable_cell_group::get_probe_metadata(const cell_address_type& probeset_id) const {
     // SAFETY: Probe associations are fixed after construction, so we do not
     //         need to grab the mutex.
-    auto data = probe_map_.data_on(probeset_id);
+    const auto& data = probe_map_.data_on(probeset_id);
 
     std::vector<probe_metadata> result;
     result.reserve(data.size());

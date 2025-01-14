@@ -848,7 +848,7 @@ void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>&
         auto opt_i = util::binary_search_index(R.M.mechanisms.at(mech).cv, cv);
         if (!opt_i) continue;
 
-        R.result.push_back(fvm_probe_scalar{{data+*opt_i}, std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
+        R.result.push_back(fvm_probe_scalar{{data + *opt_i}, std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
     }
 }
 
