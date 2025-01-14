@@ -106,25 +106,24 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
     }
 
     // Translate cell probe descriptions into probe handles etc.
-    void resolve_probe_address(
-        std::vector<fvm_probe_data>& probe_data, // out parameter
-        const std::vector<cable_cell>& cells,
-        std::size_t cell_idx,
-        const std::any& paddr,
-        const fvm_cv_discretization& D,
-        const fvm_mechanism_data& M,
-        const std::vector<target_handle>& handles,
-        const std::unordered_map<std::string, mechanism*>& mech_instance_by_name);
+    void resolve_probe_address(std::vector<fvm_probe_data>& probe_data, // out parameter
+                               const std::vector<cable_cell>& cells,
+                               std::size_t cell_idx,
+                               const std::any& paddr,
+                               const fvm_cv_discretization& D,
+                               const fvm_mechanism_data& M,
+                               const std::vector<target_handle>& handles,
+                               const std::unordered_map<std::string, mechanism*>& mech_instance_by_name);
 
-        // Add probes to fvm_info::probe_map
-        void add_probes(const std::vector<cell_gid_type>& gids,
-                        const std::vector<cable_cell>& cells,
-                        const recipe& rec,
-                        const fvm_cv_discretization& D,
-                        const std::unordered_map<std::string, mechanism*>& mechptr_by_name,
-                        const fvm_mechanism_data& mech_data,
-                        const std::vector<target_handle>& target_handles,
-                        probe_association_map& probe_map);
+    // Add probes to fvm_info::probe_map
+    void add_probes(const std::vector<cell_gid_type>& gids,
+                    const std::vector<cable_cell>& cells,
+                    const recipe& rec,
+                    const fvm_cv_discretization& D,
+                    const std::unordered_map<std::string, mechanism*>& mechptr_by_name,
+                    const fvm_mechanism_data& mech_data,
+                    const std::vector<target_handle>& target_handles,
+                    probe_association_map& probe_map);
 };
 
 template <typename Backend>
@@ -336,7 +335,6 @@ fvm_lowered_cell_impl<Backend>::add_probes(const std::vector<cell_gid_type>& gid
                                            const std::vector<target_handle>& target_handles,
                                            probe_association_map& probe_map) {
     auto ncell = gids.size();
-
     std::vector<fvm_probe_data> probe_data;
     for (auto cell_idx: util::make_span(ncell)) {
         cell_gid_type gid = gids[cell_idx];
@@ -346,10 +344,9 @@ fvm_lowered_cell_impl<Backend>::add_probes(const std::vector<cell_gid_type>& gid
             if (!probe_data.empty()) {
                 cell_address_type addr{gid, pi.tag};
                 if (probe_map.count(addr)) throw dup_cell_probe(cell_kind::cable, gid, pi.tag);
-                for (auto& data: probe_data) {
-                    probe_map.insert(addr, std::move(data));
-                }
+                for (auto& data: probe_data) probe_map.insert(addr, std::move(data));
             }
+            probe_data.clear();
         }
     }
 }
@@ -646,50 +643,70 @@ void fvm_lowered_cell_impl<Backend>::resolve_probe_address(std::vector<fvm_probe
                                                            const fvm_mechanism_data& M,
                                                            const std::vector<target_handle>& handles,
                                                            const std::unordered_map<std::string, mechanism*>& mech_instance_by_name) {
-    probe_data.clear();
     probe_resolution_data<Backend> prd{
-        probe_data, state_.get(), cells[cell_idx], cell_idx, D, M, handles, mech_instance_by_name};
+        .result=probe_data,
+        .state=state_.get(),
+        .cell=cells[cell_idx],
+        .cell_idx=cell_idx,
+        .D=D,
+        .M=M,
+        .handles=handles,
+        .mech_instance_by_name=mech_instance_by_name
+    };
 
-    using V = util::any_visitor<
-        cable_probe_membrane_voltage,
-        cable_probe_membrane_voltage_cell,
-        cable_probe_axial_current,
-        cable_probe_total_ion_current_density,
-        cable_probe_total_ion_current_cell,
-        cable_probe_total_current_cell,
-        cable_probe_stimulus_current_cell,
-        cable_probe_density_state,
-        cable_probe_density_state_cell,
-        cable_probe_point_state,
-        cable_probe_point_state_cell,
-        cable_probe_ion_current_density,
-        cable_probe_ion_current_cell,
-        cable_probe_ion_int_concentration,
-        cable_probe_ion_int_concentration_cell,
-        cable_probe_ion_diff_concentration,
-        cable_probe_ion_diff_concentration_cell,
-        cable_probe_ion_ext_concentration,
-        cable_probe_ion_ext_concentration_cell>;
+    using V = util::any_visitor<cable_probe_membrane_voltage,
+                                cable_probe_membrane_voltage_cell,
+                                cable_probe_axial_current,
+                                cable_probe_total_ion_current_density,
+                                cable_probe_total_ion_current_cell,
+                                cable_probe_total_current_cell,
+                                cable_probe_stimulus_current_cell,
+                                cable_probe_density_state,
+                                cable_probe_density_state_cell,
+                                cable_probe_point_state,
+                                cable_probe_point_state_cell,
+                                cable_probe_ion_current_density,
+                                cable_probe_ion_current_cell,
+                                cable_probe_ion_int_concentration,
+                                cable_probe_ion_int_concentration_cell,
+                                cable_probe_ion_diff_concentration,
+                                cable_probe_ion_diff_concentration_cell,
+                                cable_probe_ion_ext_concentration,
+                                cable_probe_ion_ext_concentration_cell>;
 
-    auto visitor = util::overload(
-        [&prd](auto& probe_addr) { resolve_probe(probe_addr, prd); },
-        [] { throw cable_cell_error("unrecognized probe type"), fvm_probe_data{}; });
+    auto visitor = util::overload([&prd](auto& probe_addr) { resolve_probe(probe_addr, prd); },
+                                  [] { throw cable_cell_error("unrecognized probe type"), fvm_probe_data{}; });
 
     return V::visit(visitor, paddr);
 }
 
 template <typename B>
-void resolve_probe(const cable_probe_membrane_voltage& p, probe_resolution_data<B>& R) {
-    const arb_value_type* data = R.state->voltage.data();
+void resolve_probe(const cable_probe_membrane_voltage& p, probe_resolution_data<B>& res) {
+    const arb_value_type* data = res.state->voltage.data();
 
-    for (const mlocation& loc: thingify(p.locations, R.cell.provider())) {
-        fvm_voltage_interpolant in = fvm_interpolate_voltage(R.cell, R.D, R.cell_idx, loc);
-
-        R.result.push_back(fvm_probe_interpolated{
-            {data+in.proximal_cv, data+in.distal_cv},
-            {in.proximal_coef, in.distal_coef},
-            std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
+    std::vector<probe_handle> handles_p, handles_d;
+    std::vector<double> coef_p;
+    std::vector<double> coef_d;
+    mcable_list meta;
+    for (const mlocation& loc: thingify(p.locations, res.cell.provider())) {
+        fvm_voltage_interpolant in = fvm_interpolate_voltage(res.cell, res.D, res.cell_idx, loc);
+        handles_p.push_back(data + in.proximal_cv);
+        handles_d.push_back(data + in.distal_cv);
+        coef_p.push_back(in.proximal_coef);
+        coef_d.push_back(in.distal_coef);
+            // {, data+in.distal_cv},
+        meta.push_back(mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos});
     }
+    util::append(handles_p, handles_d);
+    handles_p.shrink_to_fit();
+    meta.shrink_to_fit();
+    coef_p.shrink_to_fit();
+    coef_d.shrink_to_fit();
+    res.result.push_back(fvm_probe_interpolated_multi{
+            .raw_handles=std::move(handles_p),
+            .coef={std::move(coef_p), std::move(coef_d)},
+            .metadata=std::move(meta),
+    });
 }
 
 template <typename B>

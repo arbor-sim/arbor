@@ -165,12 +165,11 @@ void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* sa
     for (std::size_t i = 0; i<n; ++i) {
         const auto& [lo, hi] = samples[i].values;
         assert(n_entities == hi - lo);
-
+        std::cout << samples[i].time << ", ";
         for (unsigned j = 0; j < n_entities; ++j) {
-            std::cout << samples[i].time << ", ";
             if (cables_ptr) {
                 arb::mcable where = (*cables_ptr)[j];
-                std::cout << where.prox_pos << ", " << where.dist_pos << ", ";
+                std::cout << where.branch << ", " << where.prox_pos << ", " << where.dist_pos << ", ";
             }
             else if (point_infos_ptr) {
                 arb::mlocation loc = (*point_infos_ptr)[j].loc;
@@ -179,8 +178,9 @@ void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* sa
             else {
                 // unreachable!
             }
-            std::cout << lo[j] << '\n';
+            std::cout << lo[j] << ", ";
         }
+        std::cout  << '\n';
     }
 }
 
@@ -196,7 +196,7 @@ bool parse_options(options& opt, int& argc, char** argv) {
     using probe_spec_t = std::tuple<std::string, std::function<any(std::any)>>;
     std::pair<const char*, probe_spec_t> probe_tbl[] {
         // located probes
-        {"v",            {"v",         [](std::any a) { return arb::cable_probe_membrane_voltage{any2loc(a)}; }}},
+        {"v",            {"v",         [](std::any a) { return arb::cable_probe_membrane_voltage{arb::ls::segment_boundaries()}; }}},
         {"i_axial",      {"i_axial",   [](std::any a) { return arb::cable_probe_axial_current{any2loc(a)}; }}},
         {"j_ion",        {"j_ion",     [](std::any a) { return arb::cable_probe_total_ion_current_density{any2loc(a)}; }}},
         {"j_na",         {"j_na",      [](std::any a) { return arb::cable_probe_ion_current_density{any2loc(a), "na"}; }}},

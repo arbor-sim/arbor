@@ -139,8 +139,8 @@ void run_v_i_probe_test(context ctx) {
     // implemented as an interpolated probe too, in order to account
     // for stimulus contributions.
 
-    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Um-l0"}).front()->info));
-    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Um-l1"}).front()->info));
+    ASSERT_TRUE(std::get_if<fvm_probe_interpolated_multi>(&probe_map.data_on({0, "Um-l0"}).front()->info));
+    ASSERT_TRUE(std::get_if<fvm_probe_interpolated_multi>(&probe_map.data_on({0, "Um-l1"}).front()->info));
     ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Ii-l2"}).front()->info));
 
     probe_handle p0a = get_probe_raw_handle({0, "Um-l0"}, 0);
@@ -973,10 +973,7 @@ void run_multi_probe_test(context ctx) {
 
     // Expect a single sample per terminal
     std::vector<std::pair<mcable, double>> vals;
-    for (auto& trace: tracev) {
-        // ASSERT_EQ(1u, trace.size());
-        vals.push_back({trace.meta.at(0), trace[0].v});
-    }
+    for (auto& trace: tracev) vals.emplace_back(trace.meta.at(0), trace[0].v);
 
     util::sort(vals);
     EXPECT_EQ((mcable{1, 1., 1.}), vals[0].first);
