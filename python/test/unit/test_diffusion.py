@@ -88,7 +88,7 @@ class TestDiffusion(unittest.TestCase):
             else:
                 gpu_id = 0
         self.ctx = A.context(gpu_id=gpu_id, mpi=mpi)
-        print(ctx, A.config())
+        print(self.ctx, A.config())
 
     # get_morph_and_decor_1_seg
     # Method that sets up and returns a morphology and decoration for one segment with the given parameters
