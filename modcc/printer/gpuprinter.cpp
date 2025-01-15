@@ -472,7 +472,7 @@ void emit_state_update_cu(std::ostream& out,
         // can do a lot of specialised stuff here.
         out << name << " -= " << var << ";\n";
         if (flags.is_point) {
-            out << fmt::format("::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n", weight, name, data, index);
+            out << fmt::format("::arb::gpu::gpu_atomic_add({}*{}, {} + {});\n", weight, name, data, index);
         }
         else {
             out << var << " = fma(" << weight << ", " << name << ", " << var << ");\n";
