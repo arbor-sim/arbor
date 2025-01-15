@@ -25,7 +25,7 @@ namespace pyarb {
 #else
                   auto err = "Private GPU: Invalid MPI Communicator.";
                   if (can_convert_to_mpi_comm(mpi)) {
-                      return arbenv::find_private_gpu(convert_to_mpi_comm(mpi));
+                      return arbenv::find_private_gpu<MPI_Comm>(convert_to_mpi_comm(mpi));
                   }
                   else if (auto c = py2optional<mpi_comm_shim>(mpi, err)) {
                       return arbenv::find_private_gpu(c->comm);
