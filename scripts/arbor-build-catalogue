@@ -149,10 +149,13 @@ if gpu == "cuda":
 include(FindCUDAToolkit)
 add_compile_definitions(ARB_CUDA)
 add_compile_definitions(ARB_HAVE_GPU)
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+    # Pascal, Volta, Ampere, Hopper
+    set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
+endif()
 find_package(CUDAToolkit)
 enable_language(CUDA)
 set(CMAKE_CUDA_STANDARD 20)
-
 set(CMAKE_CUDA_HOST_COMPILER {args["cxx"]})
 """
 elif gpu == "cuda-clang":
