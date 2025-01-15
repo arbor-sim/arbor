@@ -151,7 +151,7 @@ add_compile_definitions(ARB_CUDA)
 add_compile_definitions(ARB_HAVE_GPU)
 find_package(CUDAToolkit)
 enable_language(CUDA)
-set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_STANDARD 20)
 
 set(CMAKE_CUDA_HOST_COMPILER {args["cxx"]})
 """
@@ -217,7 +217,7 @@ except NameError:
 cmake = f"""
 cmake_minimum_required(VERSION 3.9)
 project({name}-cat LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
