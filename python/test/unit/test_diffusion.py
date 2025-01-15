@@ -80,7 +80,6 @@ class TestDiffusion(unittest.TestCase):
         mpi = None
         if A.config()["mpi"]:
             from mpi4py import MPI
-
             mpi = MPI.COMM_WORLD
         gpu_id = None
         if A.config()["gpu"]:
@@ -89,6 +88,7 @@ class TestDiffusion(unittest.TestCase):
             else:
                 gpu_id = 0
         self.ctx = A.context(gpu_id=gpu_id, mpi=mpi)
+        print(ctx, A.config())
 
     # get_morph_and_decor_1_seg
     # Method that sets up and returns a morphology and decoration for one segment with the given parameters
