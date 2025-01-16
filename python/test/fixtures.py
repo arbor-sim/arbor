@@ -73,10 +73,8 @@ def repo_path():
 
 
 def _finalize_mpi():
-    print("Context fixture finalizing mpi")
     if _mpi4py_enabled:
         from mpi4py import MPI
-
         MPI.Finalize()
     else:
         A.mpi_finalize()
@@ -90,14 +88,11 @@ def context():
     if _mpi_enabled:
         if _mpi4py_enabled:
             from mpi4py import MPI
-
             if not MPI.Is_initialized():
-                print("Context fixture initializing mpi4py", flush=True)
                 MPI.Initialize()
                 atexit.register(_finalize_mpi)
             return A.context(A.proc_allocation(), mpi=MPI.COMM_WORLD)
         elif not A.mpi_is_initialized():
-            print("Context fixture initializing mpi", flush=True)
             A.mpi_init()
             atexit.register(_finalize_mpi)
         return A.context(A.proc_allocation(), mpi=A.mpi_comm())
@@ -110,13 +105,12 @@ class _BuildCatError(Exception):
 
 def _build_cat_local(name, path):
     try:
-        pass
-        # subprocess.run(
-            # ["arbor-build-catalogue", name, str(path)],
-            # check=True,
-            # stderr=subprocess.PIPE,
-            # stdout=subprocess.PIPE,
-        # )
+        subprocess.run(
+            ["arbor-build-catalogue", name, str(path)],
+            check=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+        )
     except subprocess.CalledProcessError as e:
         raise _BuildCatError(
             f"Tests can't build catalogue '{name}' from '{path}':\n"
