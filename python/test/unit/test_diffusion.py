@@ -80,6 +80,7 @@ class TestDiffusion(unittest.TestCase):
         mpi = None
         if A.config()["mpi"]:
             from mpi4py import MPI
+
             mpi = MPI.COMM_WORLD
         gpu_id = None
         if A.config()["gpu"]:

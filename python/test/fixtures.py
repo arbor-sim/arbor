@@ -75,6 +75,7 @@ def repo_path():
 def _finalize_mpi():
     if _mpi4py_enabled:
         from mpi4py import MPI
+
         MPI.Finalize()
     else:
         A.mpi_finalize()
@@ -88,6 +89,7 @@ def context():
     if _mpi_enabled:
         if _mpi4py_enabled:
             from mpi4py import MPI
+
             if not MPI.Is_initialized():
                 MPI.Initialize()
                 atexit.register(_finalize_mpi)
