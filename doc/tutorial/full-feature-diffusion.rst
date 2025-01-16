@@ -4,13 +4,13 @@ A Diffusion Process with Full Feedback
 ======================================
 
 Originally we intended for the axial diffusion process to be fully integrated
-into the cable model. However, for various technical reasons, this has proven
+into the cable model (linked to the internal concentration, see :ref:`here <cablecell-decoration>`). However, for various technical reasons, this has proven
 infeasible and was replaced by introduction of an extra variable ``Xd`` which
 is subject to diffusion as opposed to the internal concentration.
 
 This tutorial will show you how to build a simulation that fully integrates
-diffusive ion dynamics with a cable cell neuron. While we focus on a single
-neuron, this should simply work as is in a network of cells.
+diffusive particle dynamics with a cable cell neuron. While we focus on a single
+neuron, this will naturally work as well in a network of cells.
 
 Theory
 ------
