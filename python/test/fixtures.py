@@ -78,6 +78,7 @@ def get_mpi_comm_world():
     if A.config()["mpi"]:
         if A.config()["mpi4py"]:
             from mpi4py import MPI
+
             return MPI.COMM_WORLD
         else:
             if not A.mpi_is_initialized():
