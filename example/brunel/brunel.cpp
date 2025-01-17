@@ -351,10 +351,9 @@ void add_subset(cell_gid_type gid,
     // Exclude ourself
     std::set<cell_gid_type> seen{gid};
     std::mt19937 gen(gid + 42);
-    std::uniform_int_distribution<cell_gid_type> dis(start, end - 1);
-
     while(m) {
-        cell_gid_type val = dis(gen);
+        // simple, compiler independent int in range
+        cell_gid_type val = gen() % (end - start) + start;
         if (!seen.count(val)) {
             conns.push_back({{val, src}, {tgt}, weight, delay*U::ms});
             seen.insert(val);
