@@ -95,6 +95,19 @@ def context():
     return A.context(mpi=get_mpi_comm_world())
 
 
+@_fixture
+def single_context():
+    """
+    Fixture that produces an non-MPI `A.context`, which includes
+    a GPU, if enabled.
+    """
+    mpi = None
+    gpu = None
+    if A.config()["gpu"]:
+        gpu = 0
+    return A.context(mpi=mpi, gpu_id=gpu)
+
+
 class _BuildCatError(Exception):
     pass
 
