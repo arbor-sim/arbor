@@ -77,11 +77,7 @@ class TestDiffusion(unittest.TestCase):
         self.runtime = 5.00 * U.ms  # runtime of the whole simulation in ms
         self.dt = 0.01 * U.ms  # duration of one timestep in ms
         self.dev = 0.01  # accepted relative deviation for `assertAlmostEqual`
-        mpi = None
-        if A.config()["mpi"]:
-            from mpi4py import MPI
-
-            mpi = MPI.COMM_WORLD
+        mpi = fixtures.get_mpi_comm_world()
         gpu_id = None
         if A.config()["gpu"]:
             if mpi:

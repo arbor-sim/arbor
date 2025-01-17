@@ -4,11 +4,7 @@ import functools
 from functools import lru_cache as cache
 from pathlib import Path
 import subprocess
-import atexit
 import inspect
-
-_mpi_enabled = A.__config__["mpi"]
-_mpi4py_enabled = A.__config__["mpi4py"]
 
 # The API of `functools`'s caches went through a bunch of breaking changes from
 # 3.6 to 3.9. Patch them up in a local `cache` function.
@@ -72,13 +68,22 @@ def repo_path():
     return Path(__file__).parent.parent.parent
 
 
-def _finalize_mpi():
-    if _mpi4py_enabled:
-        from mpi4py import MPI
-
-        MPI.Finalize()
-    else:
-        A.mpi_finalize()
+def get_mpi_comm_world():
+    """
+    Obtain MPI_COMM_WORLD as --- in order ---
+    1. MPI4PY.MPI.COMM_WORLD
+    2. Arbor MPI
+    3. None
+    """
+    if A.config()["mpi"]:
+        if A.config()["mpi4py"]:
+            from mpi4py import MPI
+            return MPI.COMM_WORLD
+        else:
+            if not A.mpi_is_initialized():
+                A.mpi_init()
+            return A.mpi_comm()
+    return None
 
 
 @_fixture
@@ -86,19 +91,7 @@ def context():
     """
     Fixture that produces an MPI sensitive `A.context`
     """
-    if _mpi_enabled:
-        if _mpi4py_enabled:
-            from mpi4py import MPI
-
-            if not MPI.Is_initialized():
-                MPI.Initialize()
-                atexit.register(_finalize_mpi)
-            return A.context(A.proc_allocation(), mpi=MPI.COMM_WORLD)
-        elif not A.mpi_is_initialized():
-            A.mpi_init()
-            atexit.register(_finalize_mpi)
-        return A.context(A.proc_allocation(), mpi=A.mpi_comm())
-    return A.context(A.proc_allocation())
+    return A.context(mpi=get_mpi_comm_world())
 
 
 class _BuildCatError(Exception):
