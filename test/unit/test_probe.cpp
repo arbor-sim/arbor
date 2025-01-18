@@ -141,7 +141,7 @@ void run_v_i_probe_test(context ctx) {
 
     ASSERT_TRUE(std::get_if<fvm_probe_interpolated_multi>(&probe_map.data_on({0, "Um-l0"}).front()->info));
     ASSERT_TRUE(std::get_if<fvm_probe_interpolated_multi>(&probe_map.data_on({0, "Um-l1"}).front()->info));
-    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Ii-l2"}).front()->info));
+    ASSERT_TRUE(std::get_if<fvm_probe_interpolated_multi>(&probe_map.data_on({0, "Ii-l2"}).front()->info));
 
     probe_handle p0a = get_probe_raw_handle({0, "Um-l0"}, 0);
     probe_handle p0b = get_probe_raw_handle({0, "Um-l0"}, 1);
@@ -576,10 +576,10 @@ void run_ion_density_probe_test(context ctx) {
 
     const auto& probe_map = fvm_info.probe_map;
 
-    // Should be no sodium ion instantiated on CV 0, so probe (0, 6) should
+    // Should be no sodium ion instantiated on CV 0, so probe (0, nai-l0) should
     // have been silently discared. Similarly, write_ca2 is not instantiated on
-    // CV 0, and so probe (0, 8) should have been discarded. All other probes
-    // should be in the map.
+    // CV 0, and so probe (0, state-s-l0) should have been discarded. All other
+    // probes should be in the map.
 
     EXPECT_EQ(13u, rec.get_probes(0).size());
     EXPECT_EQ(11u, probe_map.size());

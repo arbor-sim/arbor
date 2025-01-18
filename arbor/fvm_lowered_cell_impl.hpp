@@ -689,12 +689,11 @@ void resolve_probe(const cable_probe_membrane_voltage& p, probe_resolution_data<
     std::vector<double> coef_d;
     mcable_list meta;
     for (const mlocation& loc: thingify(p.locations, res.cell.provider())) {
-        fvm_voltage_interpolant in = fvm_interpolate_voltage(res.cell, res.D, res.cell_idx, loc);
+        const auto& in = fvm_interpolate_voltage(res.cell, res.D, res.cell_idx, loc);
         handles_p.push_back(data + in.proximal_cv);
         handles_d.push_back(data + in.distal_cv);
         coef_p.push_back(in.proximal_coef);
         coef_d.push_back(in.distal_coef);
-            // {, data+in.distal_cv},
         meta.push_back(mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos});
     }
     util::append(handles_p, handles_d);
@@ -728,34 +727,59 @@ void resolve_probe(const cable_probe_membrane_voltage_cell& p, probe_resolution_
 }
 
 template <typename B>
-void resolve_probe(const cable_probe_axial_current& p, probe_resolution_data<B>& R) {
-    const arb_value_type* data = R.state->voltage.data();
+void resolve_probe(const cable_probe_axial_current& p, probe_resolution_data<B>& res) {
+    const arb_value_type* data = res.state->voltage.data();
 
-    for (mlocation loc: thingify(p.locations, R.cell.provider())) {
-        fvm_voltage_interpolant in = fvm_axial_current(R.cell, R.D, R.cell_idx, loc);
-
-        R.result.push_back(fvm_probe_interpolated{
-            {data+in.proximal_cv, data+in.distal_cv},
-            {in.proximal_coef, in.distal_coef},
-            std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
+    std::vector<probe_handle> handles_p, handles_d;
+    std::vector<double> coef_p;
+    std::vector<double> coef_d;
+    mcable_list meta;
+    for (const mlocation& loc: thingify(p.locations, res.cell.provider())) {
+        const auto& in = fvm_axial_current(res.cell, res.D, res.cell_idx, loc);
+        handles_p.push_back(data + in.proximal_cv);
+        handles_d.push_back(data + in.distal_cv);
+        coef_p.push_back(in.proximal_coef);
+        coef_d.push_back(in.distal_coef);
+        meta.push_back(mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos});
     }
+    util::append(handles_p, handles_d);
+    handles_p.shrink_to_fit();
+    meta.shrink_to_fit();
+    coef_p.shrink_to_fit();
+    coef_d.shrink_to_fit();
+    res.result.push_back(fvm_probe_interpolated_multi{
+            .raw_handles=std::move(handles_p),
+            .coef={std::move(coef_p), std::move(coef_d)},
+            .metadata=std::move(meta),
+    });
 }
 
 template <typename B>
-void resolve_probe(const cable_probe_total_ion_current_density& p, probe_resolution_data<B>& R) {
+void resolve_probe(const cable_probe_total_ion_current_density& p, probe_resolution_data<B>& res) {
     // Use interpolated probe with coeffs 1, -1 to represent difference between accumulated current density and stimulus.
-    for (mlocation loc: thingify(p.locations, R.cell.provider())) {
-        arb_index_type cv = R.D.geometry.location_cv(R.cell_idx, loc, cv_prefer::cv_nonempty);
-        const double* current_cv_ptr = R.state->current_density.data() + cv;
-
-        auto opt_i = util::binary_search_index(R.M.stimuli.cv_unique, cv);
-        const double* stim_cv_ptr = opt_i? R.state->stim_data.accu_stim_.data()+*opt_i: nullptr;
-
-        R.result.push_back(fvm_probe_interpolated{
-            {current_cv_ptr, stim_cv_ptr},
-            {1., -1.},
-            std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
+    std::vector<probe_handle> handles_p, handles_d;
+    std::vector<double> coef_p;
+    std::vector<double> coef_d;
+    mcable_list meta;
+    for (const mlocation& loc: thingify(p.locations, res.cell.provider())) {
+        auto cv = res.D.geometry.location_cv(res.cell_idx, loc, cv_prefer::cv_nonempty);
+        auto opt_i = util::binary_search_index(res.M.stimuli.cv_unique, cv);
+        handles_p.push_back(res.state->current_density.data() + cv);
+        handles_d.push_back(opt_i ? res.state->stim_data.accu_stim_.data()+ *opt_i: nullptr);
+        coef_p.push_back( 1.0);
+        coef_d.push_back(-1.0);
+        meta.push_back(mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos});
     }
+    util::append(handles_p, handles_d);
+    handles_p.shrink_to_fit();
+    meta.shrink_to_fit();
+    coef_p.shrink_to_fit();
+    coef_d.shrink_to_fit();
+    res.result.push_back(fvm_probe_interpolated_multi{
+            .raw_handles=std::move(handles_p),
+            .coef={std::move(coef_p), std::move(coef_d)},
+            .metadata=std::move(meta),
+    });
 }
 
 template <typename B>
@@ -845,7 +869,6 @@ void resolve_probe(const cable_probe_stimulus_current_cell& p, probe_resolution_
             }
         }
     }
-
     r.shrink_to_fit();
     R.result.push_back(std::move(r));
 }
