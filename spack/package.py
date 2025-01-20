@@ -65,7 +65,9 @@ class Arbor(CMakePackage, CudaPackage):
     variant("doc", default=False, description="Build documentation.")
     variant("mpi", default=False, description="Enable MPI support")
     variant("python", default=True, description="Enable Python frontend support")
-    variant("pystubs", default=True, when="@0.11:", description="Python stub generation")
+    variant(
+        "pystubs", default=True, when="@0.11:", description="Python stub generation"
+    )
     variant(
         "vectorize",
         default=False,

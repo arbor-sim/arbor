@@ -57,8 +57,7 @@ def make_cable_cell(gid):
     decor = (
         A.decor()
         # Put hh dynamics on soma, and passive properties on the dendrites.
-        .paint('"soma"', A.density("hh"))
-        .paint('"dend"', A.density("pas"))
+        .paint('"soma"', A.density("hh")).paint('"dend"', A.density("pas"))
         # (4) Attach a single synapse.
         .place('"synapse_site"', A.synapse("expsyn"), "syn")
         # Attach a detector with threshold of -10 mV.

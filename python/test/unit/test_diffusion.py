@@ -354,8 +354,8 @@ class TestDiffusion(unittest.TestCase):
             r_3 = l_3 = 0  # set radius and length of third segment to zero
             r_4 = l_4 = 0  # set radius and length of fourth segment to zero
             morph, dec, labels = self.get_morph_and_decor_2_seg(l_1, l_2, r_1, r_2)
-            length_soma_cv = (
-                (l_1 + l_2) / (2 * num_cvs_per_seg)
+            length_soma_cv = (l_1 + l_2) / (
+                2 * num_cvs_per_seg
             )  # consider 'fixed-per-branch' policy for two segments, which only form one branch
             # use 'fixed-per-branch' policy to obtain exact number of CVs; there's one branch here
             cvp = A.cv_policy(f"(fixed-per-branch {2 * num_cvs_per_seg})")
@@ -370,7 +370,9 @@ class TestDiffusion(unittest.TestCase):
             # use 'fixed-per-branch' policy to obtain exact number of CVs; there are three branches here
             cvp = A.cv_policy(f"(fixed-per-branch {num_cvs_per_seg})")
         elif num_segs == 4:
-            morph, dec, labels = self.get_morph_and_decor_4_seg(l_1, l_2, l_3, l_4, r_1, r_2, r_3, r_4)
+            morph, dec, labels = self.get_morph_and_decor_4_seg(
+                l_1, l_2, l_3, l_4, r_1, r_2, r_3, r_4
+            )
             length_soma_cv = (
                 l_1 / num_cvs_per_seg
             )  # consider 'fixed-per-branch' policy for three segments, which form three branches
@@ -400,7 +402,7 @@ class TestDiffusion(unittest.TestCase):
 
         # prepare the simulation
         cel = A.cable_cell(morph, dec, labels, cvp)
-        #A.write_component(cel, "morpho.txt"
+        # A.write_component(cel, "morpho.txt"
         rec = recipe(cat, cel, prb, inject_remove)
         sim = A.simulation(rec, ctx)
 
@@ -484,7 +486,9 @@ class TestDiffusion(unittest.TestCase):
     # - diffusion_catalogue: catalogue of diffusion mechanisms
     @fixtures.single_context()
     @fixtures.diffusion_catalogue()
-    def test_diffusion_equal_radii_equal_length(self, single_context, diffusion_catalogue):
+    def test_diffusion_equal_radii_equal_length(
+        self, single_context, diffusion_catalogue
+    ):
         self.simulate_and_test_diffusion(
             single_context, diffusion_catalogue, 1, 150, l_1=5, r_1=4
         )  # 1 segment with radius 4 µm
@@ -492,9 +496,19 @@ class TestDiffusion(unittest.TestCase):
             single_context, diffusion_catalogue, 2, 75, l_1=5, l_2=5, r_1=4, r_2=4
         )  # 2 segments with radius 4 µm
         self.simulate_and_test_diffusion(
-            single_context, diffusion_catalogue, 3, 50, l_1=5, l_2=5, l_3=5, r_1=4, r_2=4, r_3=4
+            single_context,
+            diffusion_catalogue,
+            3,
+            50,
+            l_1=5,
+            l_2=5,
+            l_3=5,
+            r_1=4,
+            r_2=4,
+            r_3=4,
         )  # 3 segments with radius 4 µm
         self.simulate_and_test_diffusion(
+            single_context,
             diffusion_catalogue,
             4,
             100,
@@ -514,7 +528,9 @@ class TestDiffusion(unittest.TestCase):
     # - diffusion_catalogue: catalogue of diffusion mechanisms
     @fixtures.single_context()
     @fixtures.diffusion_catalogue()
-    def test_diffusion_equal_radii_different_length(self, single_context, diffusion_catalogue):
+    def test_diffusion_equal_radii_different_length(
+        self, single_context, diffusion_catalogue
+    ):
         self.simulate_and_test_diffusion(
             single_context, diffusion_catalogue, 1, 150, l_1=5, r_1=4
         )  # 1 segment with radius 4 µm
@@ -522,9 +538,19 @@ class TestDiffusion(unittest.TestCase):
             single_context, diffusion_catalogue, 2, 75, l_1=5, l_2=3, r_1=4, r_2=4
         )  # 2 segments with radius 4 µm
         self.simulate_and_test_diffusion(
-            single_context, diffusion_catalogue, 3, 50, l_1=5, l_2=3, l_3=3, r_1=4, r_2=4, r_3=4
+            single_context,
+            diffusion_catalogue,
+            3,
+            50,
+            l_1=5,
+            l_2=3,
+            l_3=3,
+            r_1=4,
+            r_2=4,
+            r_3=4,
         )  # 3 segments with radius 4 µm
         self.simulate_and_test_diffusion(
+            single_context,
             diffusion_catalogue,
             4,
             100,
@@ -544,14 +570,26 @@ class TestDiffusion(unittest.TestCase):
     # - diffusion_catalogue: catalogue of diffusion mechanisms
     @fixtures.single_context()
     @fixtures.diffusion_catalogue()
-    def test_diffusion_different_radii_equal_length(self, single_context, diffusion_catalogue):
+    def test_diffusion_different_radii_equal_length(
+        self, single_context, diffusion_catalogue
+    ):
         self.simulate_and_test_diffusion(
             single_context, diffusion_catalogue, 2, 75, l_1=5, l_2=5, r_1=4, r_2=6
         )  # 2 segments with radius 4 µm and 6 µm
         self.simulate_and_test_diffusion(
-            single_context, diffusion_catalogue, 3, 50, l_1=5, l_2=5, l_3=5, r_1=4, r_2=6, r_3=6
+            single_context,
+            diffusion_catalogue,
+            3,
+            50,
+            l_1=5,
+            l_2=5,
+            l_3=5,
+            r_1=4,
+            r_2=6,
+            r_3=6,
         )  # 3 segments with radius 4 µm and 6 µm
         self.simulate_and_test_diffusion(
+            single_context,
             diffusion_catalogue,
             4,
             100,
