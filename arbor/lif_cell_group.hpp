@@ -43,13 +43,13 @@ struct ARB_SYMBOL_VISIBLE lif_lowered_cell {
         V_m = lif.V_m.value_as(U::mV);
         t_ref = lif.t_ref.value_as(U::ms);
 
-        if (std::isnan(V_th)) throw std::out_of_range("V_th must be finite and in [mV]");
-        if (std::isnan(tau_m) || tau_m < 0) throw std::out_of_range("tau_m must be positive, finite, and in [ms]");
-        if (std::isnan(C_m) || C_m < 0) throw std::out_of_range("C_m must be positive, finite, and in [pF]");
-        if (std::isnan(E_L)) throw std::out_of_range("E_L must be finite and in [mV]");
-        if (std::isnan(E_R)) throw std::out_of_range("E_R must be finite and in [mV]");
-        if (std::isnan(V_m)) throw std::out_of_range("V_m must be finite and in [mV]");
-        if (std::isnan(t_ref) || t_ref < 0) throw std::out_of_range("t_ref must be positive, finite, and in [ms]");
+        if (!std::isfinite(V_th)) throw std::domain_error("V_th must be finite and in [mV]");
+        if (!std::isfinite(tau_m) || tau_m < 0) throw std::domain_error("tau_m must be positive, finite, and in [ms]");
+        if (!std::isfinite(C_m) || C_m < 0) throw std::domain_error("C_m must be positive, finite, and in [pF]");
+        if (!std::isfinite(E_L)) throw std::domain_error("E_L must be finite and in [mV]");
+        if (!std::isfinite(E_R)) throw std::domain_error("E_R must be finite and in [mV]");
+        if (!std::isfinite(V_m)) throw std::domain_error("V_m must be finite and in [mV]");
+        if (!std::isfinite(t_ref) || t_ref < 0) throw std::domain_error("t_ref must be positive, finite, and in [ms]");
     }
 
     ARB_SERDES_ENABLE(lif_lowered_cell, source, target, tau_m, V_th, C_m, E_L, E_R, V_m, t_ref);
