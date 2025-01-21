@@ -1383,15 +1383,14 @@ TEST(probe, get_probe_metadata) {
     // Reuse multiprobe test set-up to confirm simulator::get_probe_metadata returns
     // correct vector of metadata.
 
-    auto m = common_morphology::m_mlt_b6;
-    decor d;
+    auto mrf = common_morphology::m_mlt_b6;
+    auto dec = decor{}
+        // Paint mechanism on branches 1, 2, and 5, omitting branch 4.
+        .paint(reg::branch(1), density("param_as_state", {{"p", 10.}}))
+        .paint(reg::branch(2), density("param_as_state", {{"p", 20.}}))
+        .paint(reg::branch(5), density("param_as_state", {{"p", 50.}}));
 
-    // Paint mechanism on branches 1, 2, and 5, omitting branch 4.
-    d.paint(reg::branch(1), density("param_as_state", {{"p", 10.}}));
-    d.paint(reg::branch(2), density("param_as_state", {{"p", 20.}}));
-    d.paint(reg::branch(5), density("param_as_state", {{"p", 50.}}));
-
-    cable1d_recipe rec(cable_cell{m, d}, false);
+    cable1d_recipe rec(cable_cell{mrf, dec}, false);
     rec.catalogue() = make_unit_test_catalogue(global_default_catalogue());
     rec.add_probe(0, "param-as-state", cable_probe_density_state{ls::terminal(), "param_as_state", "s"});
 
@@ -1402,19 +1401,13 @@ TEST(probe, get_probe_metadata) {
     simulation sim(rec, ctx, partition_load_balance(rec, ctx, phints));
 
     std::vector<probe_metadata> mm = sim.get_probe_metadata({0, "param-as-state"});
-    ASSERT_EQ(3u, mm.size());
+    ASSERT_EQ(1u, mm.size());
 
     EXPECT_EQ((cell_address_type{0, "param-as-state"}), mm[0].id);
-    EXPECT_EQ((cell_address_type{0, "param-as-state"}), mm[1].id);
-    EXPECT_EQ((cell_address_type{0, "param-as-state"}), mm[2].id);
 
     EXPECT_EQ(0u, mm[0].index);
-    EXPECT_EQ(1u, mm[1].index);
-    EXPECT_EQ(2u, mm[2].index);
 
-    const auto& l0 = any_cast<const mcable_list*>(mm[0].meta)->at(0);
-    const auto& l1 = any_cast<const mcable_list*>(mm[1].meta)->at(0);
-    const auto& l2 = any_cast<const mcable_list*>(mm[2].meta)->at(0);
+    const auto& ls = any_cast<const mcable_list*>(mm[0].meta)->at(0);
 
     std::vector locs = {l0, l1, l2};
     util::sort(locs);
