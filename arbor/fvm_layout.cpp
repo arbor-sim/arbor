@@ -212,33 +212,32 @@ ARB_ARBOR_API cv_geometry& append(cv_geometry& geom, const cv_geometry& right) {
 ARB_ARBOR_API fvm_cv_discretization& append(fvm_cv_discretization& dczn, const fvm_cv_discretization& right) {
     using util::append;
 
-    append(dczn.geometry, right.geometry);
-
-    // Those in L and R: merge
-    for (auto& [ion, data]: dczn.diffusive_ions) {
-        const auto& rhs = right.diffusive_ions.find(ion);
-        if (rhs != right.diffusive_ions.end()) {
-            append(data.axial_inv_diffusivity, rhs->second.axial_inv_diffusivity);
-            append(data.face_diffusivity, rhs->second.face_diffusivity);
-        }
-    }
-    // Those only in R: add to L
-    for (auto& [ion, data]: right.diffusive_ions) {
-        const auto& lhs = dczn.diffusive_ions.find(ion);
-        if (lhs == dczn.diffusive_ions.end()) {
-            dczn.diffusive_ions[ion].axial_inv_diffusivity = data.axial_inv_diffusivity;
-            dczn.diffusive_ions[ion].face_diffusivity      = data.face_diffusivity;
+    // Merge diffusive ion data, scan ions in L and R, then...
+    // ... those in L and R: append R's data to that of L
+    for (auto& [ion, lhs]: dczn.diffusive_ions) {
+        if (auto rhs = right.diffusive_ions.find(ion); rhs != right.diffusive_ions.end()) {
+            append(lhs.axial_resistivity, rhs->second.axial_resistivity);
+            append(lhs.face_diffusivity,  rhs->second.face_diffusivity);
         }
     }
 
-    append(dczn.face_conductance, right.face_conductance);
-    append(dczn.cv_area, right.cv_area);
-    append(dczn.cv_capacitance, right.cv_capacitance);
+    // ... those only in R: add to L
+    for (auto& [ion, rhs]: right.diffusive_ions) {
+        if (0 == dczn.diffusive_ions.count(ion)) {
+            dczn.diffusive_ions[ion].axial_resistivity = rhs.axial_resistivity;
+            dczn.diffusive_ions[ion].face_diffusivity  = rhs.face_diffusivity;
+        }
+    }
+
+    append(dczn.geometry,                right.geometry);
+    append(dczn.face_conductance,        right.face_conductance);
+    append(dczn.cv_area,                 right.cv_area);
+    append(dczn.cv_volume,               right.cv_volume);
+    append(dczn.cv_capacitance,          right.cv_capacitance);
     append(dczn.init_membrane_potential, right.init_membrane_potential);
-    append(dczn.temperature_K, right.temperature_K);
-    append(dczn.diam_um, right.diam_um);
-
-    append(dczn.axial_resistivity, right.axial_resistivity);
+    append(dczn.temperature_K,           right.temperature_K);
+    append(dczn.diam_um,                 right.diam_um);
+    append(dczn.axial_resistivity,       right.axial_resistivity);
 
     return dczn;
 }
@@ -255,8 +254,9 @@ fvm_cv_discretize(const cable_cell& cell,
     if (D.geometry.empty()) return D;
 
     auto n_cv = D.geometry.size();
-    D.face_conductance.resize(n_cv);
+    D.face_conductance.resize(n_cv, 0.0);
     D.cv_area.resize(n_cv);
+    D.cv_volume.resize(n_cv);
     D.cv_capacitance.resize(n_cv);
     D.init_membrane_potential.resize(n_cv);
     D.temperature_K.resize(n_cv);
@@ -275,13 +275,9 @@ fvm_cv_discretize(const cable_cell& cell,
     const auto& diffusivity   = assignments.get<ion_diffusivity>();
     const auto& provider      = cell.provider();
 
-    struct inv_diff {
-        iexpr value;
-    };
-
     // Set up for ion diffusivity
     std::unordered_map<std::string, fvm_diffusion_info> diffusive_ions;
-    std::unordered_map<std::string, mcable_map<inv_diff>> inverse_diffusivity;
+    std::unordered_map<std::string, mcable_map<iexpr>> ion_diffusivity;
 
     // Collect all eglible ions: those where any cable has finite diffusivity
     for (const auto& [ion, data]: global_dflt.ion_data) {
@@ -305,30 +301,30 @@ fvm_cv_discretize(const cable_cell& cell,
                                      });
         if (diffusive) {
             // Provide a (non-sensical) default.
-            if (!diffusive_ions.count(ion)) diffusive_ions[ion] = {NAN};
-            auto& inv = inverse_diffusivity[ion];
-            for (const auto& [k, v]: data) inv.insert(k, {1.0/v.value});
+            if (!diffusive_ions.count(ion)) diffusive_ions[ion] = {};
+            auto& diff = ion_diffusivity[ion];
+            for (const auto& [k, v]: data) diff.insert(k, v.value);
         }
     }
 
     // Remap diffusivity to resistivity
     for (auto& [ion, data]: diffusive_ions) {
-        auto& id_map = inverse_diffusivity[ion];
+        auto& id_map = ion_diffusivity[ion];
         arb_value_type def = data.default_value;
         if (def <= 0.0 || std::isnan(def)) {
             throw make_cc_error("Illegal global diffusivity '{}' for ion '{}'; possibly unset."
                                 " Please define a positive global or cell default.", def, ion);
         }
         // Write inverse diffusivity / diffuse resistivity map
-        auto& id = data.axial_inv_diffusivity;
+        auto& id = data.axial_resistivity;
         id.resize(1);
         msize_t n_branch = D.geometry.n_branch(0);
         id.reserve(n_branch);
         for (msize_t i = 0; i<n_branch; ++i) {
             auto cable = mcable{i, 0., 1.};
-            auto scale_param = [&, ion=ion](const auto&,
-                                   const inv_diff& par) -> double {
-                auto ie = thingify(par.value, provider);
+            auto scale_param = [&, ion=ion](const auto&, const iexpr& par) {
+                auto ii = 1.0/par;
+                auto ie = thingify(ii, provider);
                 auto sc = ie->eval(provider, cable);
                 if (def <= 0.0 || std::isnan(def)) {
                     throw make_cc_error("Illegal diffusivity '{}' for ion '{}' at cable {}."
@@ -340,7 +336,7 @@ fvm_cv_discretize(const cable_cell& cell,
             id[0].push_back(pw);
         }
         // Prepare conductivity map
-        data.face_diffusivity.resize(n_cv);
+        data.face_diffusivity.resize(n_cv, 0.0);
     }
 
     D.axial_resistivity.resize(1);
@@ -374,7 +370,9 @@ fvm_cv_discretize(const cable_cell& cell,
         }
 
         arb_index_type p = D.geometry.cv_parent[i];
-        if (p!=-1) {
+        bool has_parent = p != -1;
+
+        if (has_parent) {
             auto parent_cables = D.geometry.cables(p);
             msize_t bid = cv_cables.front().branch;
             double parent_refpt = 0;
@@ -396,9 +394,12 @@ fvm_cv_discretize(const cable_cell& cell,
             mcable span{bid, parent_refpt, cv_refpt};
             double resistance = embedding.integrate_ixa(span, D.axial_resistivity[0].at(bid));
             D.face_conductance[i] = 100/resistance; // 100 scales to µS.
+            // Compute
+            auto len = embedding.integrate_length(span);
             for (auto& [ion, info]: diffusive_ions) {
-                double resistance = embedding.integrate_ixa(span, info.axial_inv_diffusivity[0].at(bid));
-                info.face_diffusivity[i] = 1.0/resistance; // scale to m^2/s
+                // TODO scale to m^2/s (now at 1e-7*m^2/s)
+                auto sigma = len/embedding.integrate_ixa(span, info.axial_resistivity[0].at(bid));
+                info.face_diffusivity[i] = sigma;
             }
         }
 
@@ -408,7 +409,7 @@ fvm_cv_discretize(const cable_cell& cell,
         D.diam_um[i] = 0;
         double cv_length = 0;
 
-        for (mcable cable: cv_cables) {
+        for (const mcable& cable: cv_cables) {
             auto scale_param = [&](const auto&, const auto& par) -> double {
                 auto ie = thingify(par.scale, provider);
                 auto sc = par.value*ie->eval(provider, cable);
@@ -426,30 +427,27 @@ fvm_cv_discretize(const cable_cell& cell,
             cv_length                    += embedding.integrate_length(cable);
         }
 
-        if (D.cv_area[i]>0) {
-            auto A = D.cv_area[i];
-            D.init_membrane_potential[i] /= A;
-            D.temperature_K[i] /= A;
+        double area = D.cv_area[i];
+        if (cv_length > 0) {
+            D.diam_um[i] = area/(cv_length*math::pi<double>);
+        }
+        D.cv_volume[i] = 0.25*area*D.diam_um[i];
 
-            for (auto& [ion, info]: diffusive_ions) {
-                info.face_diffusivity[i] /= A;
-            }
-            // If parent is trivial, and there is no grandparent, then we can use values from this CV
-            // to get initial values for the parent. (The other case, when there is a grandparent, is
-            // caught below.)
-            if (p!=-1 && D.geometry.cv_parent[p]==-1 && D.cv_area[p]==0) {
+        if (area > 0) {
+            D.init_membrane_potential[i] /= area;
+            D.temperature_K[i] /= area;
+            // If parent is trivial, and there is no grandparent, use values from this CV
+            // as initial values for the parent.
+            // The other case, when there is a grandparent, is caught below when i == p.
+            if (has_parent && D.geometry.cv_parent[p] == -1 && D.cv_area[p] == 0) {
                 D.init_membrane_potential[p] = D.init_membrane_potential[i];
-                D.temperature_K[p] = D.temperature_K[i];
+                D.temperature_K[p]           = D.temperature_K[i];
             }
         }
-        else if (p!=-1) {
+        else if (has_parent) {
             // Use parent CV to get a sensible initial value for voltage and temp on zero-size CVs.
             D.init_membrane_potential[i] = D.init_membrane_potential[p];
-            D.temperature_K[i] = D.temperature_K[p];
-        }
-
-        if (cv_length>0) {
-            D.diam_um[i] = D.cv_area[i]/(cv_length*math::pi<double>);
+            D.temperature_K[i]           = D.temperature_K[p];
         }
     }
 
@@ -1219,8 +1217,6 @@ make_density_mechanism_config(const region_assignment<density>& assignments,
     for (const auto& [name, cables]: assignments) {
         const auto& info = data.catalogue[name];
         auto config = make_mechanism_config(info, arb_mechanism_kind_density);
-
-
         auto parameters = ordered_parameters(info);
         auto n_param = parameters.size();
 

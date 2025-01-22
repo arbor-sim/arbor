@@ -1,5 +1,6 @@
 import representation
 from representation import Segment
+
 ############# iexpr (label_morph)
 
 iexpr_directional_loc = {"type": "locset", "value": [(0, 1.0)]}

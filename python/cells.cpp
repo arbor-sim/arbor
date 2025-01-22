@@ -637,7 +637,7 @@ void register_cells(py::module& m) {
                 if (rL) props.default_parameters.axial_resistivity=rL.value().value_as(U::Ohm*U::cm);
                 if (tempK) props.default_parameters.temperature_K=tempK.value().value_as(U::Kelvin);
             },
-             "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
+             py::kw_only(), "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
              "Set global default values for cable and cell properties.\n"
              " * Vm:    initial membrane voltage [mV].\n"
              " * cm:    membrane capacitance [F/m²].\n"
@@ -654,9 +654,12 @@ void register_cells(py::module& m) {
              "Remove ion species from properties.")
         .def("set_ion",
              [](arb::cable_cell_global_properties& props, const char* ion,
-                optional<int> valence, optional<U::quantity> int_con,
-                optional<U::quantity> ext_con, optional<U::quantity> rev_pot,
-                py::object method, optional<U::quantity> diff) {
+                optional<int> valence,
+                optional<U::quantity> int_con,
+                optional<U::quantity> ext_con,
+                optional<U::quantity> rev_pot,
+                py::object method,
+                optional<U::quantity> diff) {
                  if (!props.ion_species.count(ion) && !valence) {
                      throw std::runtime_error(util::pprintf("New ion species: '{}', missing valence", ion));
                  }
@@ -672,7 +675,7 @@ void register_cells(py::module& m) {
                      props.default_parameters.reversal_potential_method[ion] = *m;
                  }
              },
-             "ion"_a, "valence"_a=py::none(), "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "method"_a =py::none(), "diff"_a=py::none(),
+             "ion"_a, py::kw_only(), "valence"_a=py::none(), "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "method"_a =py::none(), "diff"_a=py::none(),
              "Set the global default properties of ion species named 'ion'.\n"
              " * valence: valence of the ion species [e].\n"
              " * int_con: initial internal concentration [mM].\n"
@@ -742,7 +745,7 @@ void register_cells(py::module& m) {
                  if (tempK) d.set_default(arb::temperature{*tempK});
                  return d;
              },
-             "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
+             py::kw_only(), "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
              "Set default values for cable and cell properties:\n"
              " * Vm:    initial membrane voltage [mV].\n"
              " * cm:    membrane capacitance [F/m²].\n"
@@ -762,7 +765,7 @@ void register_cells(py::module& m) {
                  if (auto m = maybe_method(method)) d.set_default(arb::ion_reversal_potential_method{ion, *m});
                  return d;
              },
-             "ion"_a, "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "method"_a =py::none(), "diff"_a=py::none(),
+             "ion"_a, py::kw_only(), "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "method"_a =py::none(), "diff"_a=py::none(),
              "Set the cell-level properties of ion species named 'ion'.\n"
              " * int_con: initial internal concentration [mM].\n"
              " * ext_con: initial external concentration [mM].\n"
@@ -844,7 +847,7 @@ void register_cells(py::module& m) {
                 }
                 return dec;
             },
-            "region"_a, "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
+            "region"_a, py::kw_only(), "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
             "Set cable properties on a region.\n"
              "Set global default values for cable and cell properties.\n"
              " * Vm:    initial membrane voltage [mV].\n"

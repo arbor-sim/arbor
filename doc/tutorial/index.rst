@@ -1,3 +1,4 @@
+
 .. _tutorial:
 
 Tutorials
@@ -81,6 +82,7 @@ Advanced
    nmodl
    plasticity
    connectivity
+   full-feature-diffusion
 
 Demonstrations
 --------------
