@@ -9,28 +9,26 @@ NEURON {
 }
 
 UNITS {
-    (mV)	= (millivolt)
-    (mA)	= (milliamp)
-    (molar)	= (1/liter)
-    (mM)	= (millimolar)
-    (um)	= (micron)
+    (mV)    = (millivolt)
+    (mA)    = (milliamp)
+    (molar) = (1/liter)
+    (mM)    = (millimolar)
+    (um)    = (micron)
 }
 
 PARAMETER {
-    F		= 96485.3321233100184	(coulomb/mole)	: Faraday's constant
-    gamma	= 0.05			()		: percent of free calcium (not buffered)
-    decay	= 80			(ms)		: rate of removal of calcium
-    depth	= 0.1			(um)		: depth of shell
-    minCai	= 1e-4			(mM)
+    F        = 96485.3321233100184  (coulomb/mole) : Faraday's constant
+    gamma    = 0.05                 ()             : percent of free calcium (not buffered)
+    decay    = 80                   (ms)           : rate of removal of calcium
+    depth    = 0.1                  (um)           : depth of shell
+    minCai   = 1e-4                 (mM)
 }
 
 INITIAL {
     cai = minCai
 }
 
-STATE {
-    cai (mM)
-}
+STATE { cai (mM) }
 
 BREAKPOINT {
     SOLVE states METHOD cnexp

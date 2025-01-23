@@ -5,12 +5,10 @@ TITLE Mouse sodium current
 NEURON {
   SUFFIX NaV
   USEION na READ ena WRITE ina
-  RANGE gbar
+  RANGE gbar, qt
 }
 
-ASSIGNED {
-    qt
-}
+ASSIGNED { qt }
 
 UNITS {
     (mV) = (millivolt)
@@ -18,25 +16,26 @@ UNITS {
 }
 
 PARAMETER {
-    gbar	= .015  (S/cm2)
-    celsius             (degC)
+    celsius       (degC)
+    v             (mV)
+    gbar  = .015  (S/cm2)
 
    : kinetic parameters
-    Con		= 0.01  (/ms)                    : closed -> inactivated transitions
-    Coff	= 40    (/ms)                    : inactivated -> closed transitions
-    Oon		= 8     (/ms)                    : open -> Ineg transition
-    Ooff	= 0.05  (/ms)                    : Ineg -> open transition
-    alpha	= 400   (/ms)
-    beta	= 12    (/ms)
-    gamma	= 250   (/ms)                    : opening
-    delta	= 60    (/ms)                    : closing
+    Con   = 0.01  (/ms)                    : closed -> inactivated transitions
+    Coff  = 40    (/ms)                    : inactivated -> closed transitions
+    Oon   = 8     (/ms)                    : open -> Ineg transition
+    Ooff  = 0.05  (/ms)                    : Ineg -> open transition
+    alpha = 400   (/ms)
+    beta  = 12    (/ms)
+    gamma = 250   (/ms)                    : opening
+    delta = 60    (/ms)                    : closing
 
-    alfac	= 2.51
-    btfac	= 5.32
+    alfac = 2.51
+    btfac = 5.32
 
     : Vdep
-    x1		= 24    (mV)                     : Vdep of activation (alpha)
-    x2		= -24   (mV)                     : Vdep of deactivation (beta)
+    x1    = 24    (mV)                     : Vdep of activation (alpha)
+    x2    = -24   (mV)                     : Vdep of deactivation (beta)
 }
 
 STATE {
