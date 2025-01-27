@@ -150,7 +150,7 @@ TEST(diffusion, errors) {
 
 TEST(diffusion, by_initial_concentration) {
     auto rec = linear{30, 3, 6}
-        .set_diffusivity(0.005)
+        .set_diffusivity(5e-10)
         .set_concentration(0.0)
         .set_concentration(0.1, "(cable 0 0.5 0.6)"_reg);
     result_t exp = {{0.000000, 0.000000, 0.000000},
@@ -178,7 +178,7 @@ TEST(diffusion, by_initial_concentration) {
 
 TEST(diffusion, by_event) {
     auto rec = linear{30, 3, 6}
-        .set_diffusivity(0.005)
+        .set_diffusivity(5e-10)
         .set_concentration(0.0)
         .add_inject()
         .add_event(0, 0.005);
@@ -235,7 +235,7 @@ TEST(diffusion, decay) {
 
 TEST(diffusion, decay_by_initial_concentration) {
     auto rec = linear{30, 3, 6}
-        .set_diffusivity(0.005)
+        .set_diffusivity(5e-10)
         .set_concentration(0.0)
         .set_concentration(0.1, "(cable 0 0.5 0.6)"_reg)
         .add_decay();
@@ -264,7 +264,7 @@ TEST(diffusion, decay_by_initial_concentration) {
 
 TEST(diffusion, decay_by_event) {
     auto rec = linear{30, 3, 6}
-        .set_diffusivity(0.005)
+        .set_diffusivity(5e-10)
         .set_concentration(0.0)
         .add_decay()
         .add_inject()
