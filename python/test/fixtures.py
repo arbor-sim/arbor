@@ -200,7 +200,6 @@ class empty_recipe(A.recipe):
     pass
 
 
-@_fixture
 class art_spiker_recipe(A.recipe):
     """
     Recipe fixture with 3 artificial spiking cells and one cable cell.
@@ -211,32 +210,11 @@ class art_spiker_recipe(A.recipe):
         self.the_props = A.neuron_cable_properties()
         self.trains = [[0.8, 2, 2.1, 3], [0.4, 2, 2.2, 3.1, 4.5], [0.2, 2, 2.8, 3]]
 
-    def num_cells(self):
-        return 4
-
-    def cell_kind(self, gid):
-        if gid < 3:
-            return A.cell_kind.spike_source
-        else:
-            return A.cell_kind.cable
-
-    def connections_on(self, gid):
-        return []
-
-    def event_generators(self, gid):
-        return []
-
-    def global_properties(self, kind):
-        return self.the_props
-
-    def probes(self, gid):
-        if gid < 3:
-            return []
-        else:
-            return [A.cable_probe_membrane_voltage('"midpoint"', "Um")]
+        tree, labels, decor = self._cable_cell_elements()
+        self.the_cell = A.cable_cell(tree, decor, labels)
 
     def _cable_cell_elements(self):
-        # (1) Create a morphology with a single (cylindrical) segment of length=diameter
+                # (1) Create a morphology with a single (cylindrical) segment of length=diameter
         #  = # 6 μm
         tree = A.segment_tree()
         tree.append(
@@ -262,12 +240,29 @@ class art_spiker_recipe(A.recipe):
         # be modified before calling A.cable_cell())
         return tree, labels, decor
 
+    def num_cells(self):
+        return 4
+
+    def cell_kind(self, gid):
+        if gid >= 3:
+            return A.cell_kind.cable
+        return A.cell_kind.spike_source
+
+    def global_properties(self, kind):
+        if kind == A.cell_kind.cable:
+            return self.the_props
+        return None
+
+    def probes(self, gid):
+        if gid >= 3:
+            return [A.cable_probe_membrane_voltage('"midpoint"', "Um")]
+        return []
+
     def cell_description(self, gid):
-        if gid < 3:
-            return A.spike_source_cell("src", self.schedule(gid))
-        else:
-            tree, labels, decor = self._cable_cell_elements()
-            return A.cable_cell(tree, decor, labels)
+        if gid >= 3:
+            return self.the_cell
+        return A.spike_source_cell("src", self.schedule(gid))
+
 
     def schedule(self, gid):
         return A.explicit_schedule([t * U.ms for t in self.trains[gid]])
@@ -293,7 +288,7 @@ def sum_weight_hh_spike_2():
 
 @_fixture
 @context()
-@art_spiker_recipe()
-def art_spiking_sim(context, art_spiker_recipe):
-    dd = A.partition_load_balance(art_spiker_recipe, context)
-    return A.simulation(art_spiker_recipe, context, dd)
+def art_spiking_sim(context):
+    rec = art_spiker_recipe()
+    dd = A.partition_load_balance(rec, context)
+    return A.simulation(rec, context, dd)
