@@ -266,7 +266,9 @@ void register_cells(py::module& m) {
                std::optional<U::quantity> E_R,
                std::optional<U::quantity> V_m,
                std::optional<U::quantity> t_ref) {
-                auto cell = arb::lif_cell{std::move(source_label), std::move(target_label)};
+                auto cell = arb::lif_cell{};
+                cell.source = std::move(source_label);
+                cell.target = std::move(target_label);
                 if (tau_m) cell.tau_m = *tau_m;
                 if (V_th) cell.V_th = *V_th;
                 if (C_m) cell.C_m = *C_m;
@@ -358,30 +360,30 @@ void register_cells(py::module& m) {
 
     // arb::cell_cv_data
     cell_cv_data
-    .def_property_readonly("num_cv", [](const arb::cell_cv_data& data){return data.size();},
-                 "Return the number of CVs in the cell.")
-            .def("cables",
-                 [](const arb::cell_cv_data& d, unsigned index) {
-                    if (index >= d.size()) throw py::index_error("index out of range");
-                    return d.cables(index);
-                 },
-                 "index"_a, "Return a list of cables representing the CV at the given index.")
-            .def("children",
-                 [](const arb::cell_cv_data& d, unsigned index) {
-                     if (index >= d.size()) throw py::index_error("index out of range");
-                     return d.children(index);
-                 },
-                 "index"_a,
-                 "Return a list of indices of the CVs representing the children of the CV at the given index.")
-            .def("parent",
-                 [](const arb::cell_cv_data& d, unsigned index) {
-                     if (index >= d.size()) throw py::index_error("index out of range");
-                     return d.parent(index);
-                 },
-                 "index"_a,
-                 "Return the index of the CV representing the parent of the CV at the given index.")
-            .def("__str__",  [](const arb::cell_cv_data& p){return "<arbor.cell_cv_data>";})
-            .def("__repr__", [](const arb::cell_cv_data& p){return "<arbor.cell_cv_data>";});
+        .def_property_readonly("num_cv", [](const arb::cell_cv_data& data){return data.size();},
+                               "Return the number of CVs in the cell.")
+        .def("cables",
+             [](const arb::cell_cv_data& d, unsigned index) {
+                 if (index >= d.size()) throw py::index_error("index out of range");
+                 return d.cables(index);
+             },
+             "index"_a, "Return a list of cables representing the CV at the given index.")
+        .def("children",
+             [](const arb::cell_cv_data& d, unsigned index) {
+                 if (index >= d.size()) throw py::index_error("index out of range");
+                 return d.children(index);
+             },
+             "index"_a,
+             "Return a list of indices of the CVs representing the children of the CV at the given index.")
+        .def("parent",
+             [](const arb::cell_cv_data& d, unsigned index) {
+                 if (index >= d.size()) throw py::index_error("index out of range");
+                 return d.parent(index);
+             },
+             "index"_a,
+             "Return the index of the CV representing the parent of the CV at the given index.")
+        .def("__str__",  [](const arb::cell_cv_data& p){return "<arbor.cell_cv_data>";})
+        .def("__repr__", [](const arb::cell_cv_data& p){return "<arbor.cell_cv_data>";});
 
     m.def("cv_data", [](const arb::cable_cell& cell) { return arb::cv_data(cell);},
           "cell"_a, "the cable cell",
@@ -635,7 +637,7 @@ void register_cells(py::module& m) {
                 if (rL) props.default_parameters.axial_resistivity=rL.value().value_as(U::Ohm*U::cm);
                 if (tempK) props.default_parameters.temperature_K=tempK.value().value_as(U::Kelvin);
             },
-             "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
+             py::kw_only(), "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
              "Set global default values for cable and cell properties.\n"
              " * Vm:    initial membrane voltage [mV].\n"
              " * cm:    membrane capacitance [F/m²].\n"
@@ -652,9 +654,12 @@ void register_cells(py::module& m) {
              "Remove ion species from properties.")
         .def("set_ion",
              [](arb::cable_cell_global_properties& props, const char* ion,
-                optional<int> valence, optional<U::quantity> int_con,
-                optional<U::quantity> ext_con, optional<U::quantity> rev_pot,
-                py::object method, optional<U::quantity> diff) {
+                optional<int> valence,
+                optional<U::quantity> int_con,
+                optional<U::quantity> ext_con,
+                optional<U::quantity> rev_pot,
+                py::object method,
+                optional<U::quantity> diff) {
                  if (!props.ion_species.count(ion) && !valence) {
                      throw std::runtime_error(util::pprintf("New ion species: '{}', missing valence", ion));
                  }
@@ -670,7 +675,7 @@ void register_cells(py::module& m) {
                      props.default_parameters.reversal_potential_method[ion] = *m;
                  }
              },
-             "ion"_a, "valence"_a=py::none(), "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "method"_a =py::none(), "diff"_a=py::none(),
+             "ion"_a, py::kw_only(), "valence"_a=py::none(), "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "method"_a =py::none(), "diff"_a=py::none(),
              "Set the global default properties of ion species named 'ion'.\n"
              " * valence: valence of the ion species [e].\n"
              " * int_con: initial internal concentration [mM].\n"
@@ -740,7 +745,7 @@ void register_cells(py::module& m) {
                  if (tempK) d.set_default(arb::temperature{*tempK});
                  return d;
              },
-             "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
+             py::kw_only(), "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
              "Set default values for cable and cell properties:\n"
              " * Vm:    initial membrane voltage [mV].\n"
              " * cm:    membrane capacitance [F/m²].\n"
@@ -760,7 +765,7 @@ void register_cells(py::module& m) {
                  if (auto m = maybe_method(method)) d.set_default(arb::ion_reversal_potential_method{ion, *m});
                  return d;
              },
-             "ion"_a, "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "method"_a =py::none(), "diff"_a=py::none(),
+             "ion"_a, py::kw_only(), "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "method"_a =py::none(), "diff"_a=py::none(),
              "Set the cell-level properties of ion species named 'ion'.\n"
              " * int_con: initial internal concentration [mM].\n"
              " * ext_con: initial external concentration [mM].\n"
@@ -842,7 +847,7 @@ void register_cells(py::module& m) {
                 }
                 return dec;
             },
-            "region"_a, "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
+            "region"_a, py::kw_only(), "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
             "Set cable properties on a region.\n"
              "Set global default values for cable and cell properties.\n"
              " * Vm:    initial membrane voltage [mV].\n"
@@ -913,34 +918,22 @@ void register_cells(py::module& m) {
             },
             "locations"_a, "detector"_a, "label"_a,
             "Add a voltage spike detector at each location in locations."
-            "The group of spike detectors has the label 'label', used for forming connections between cells.")
-        .def("discretization",
-            [](arb::decor& dec, const arb::cv_policy& p) { return dec.set_default(p); },
-            py::arg("policy"),
-             "A cv_policy used to discretise the cell into compartments for simulation")
-        .def("discretization",
-            [](arb::decor& dec, const std::string& p) {
-                return dec.set_default(arborio::parse_cv_policy_expression(p).unwrap());
-            },
-            py::arg("policy"),
-            "An s-expression string representing a cv_policy used to discretise the "
-            "cell into compartments for simulation");
-
+            "The group of spike detectors has the label 'label', used for forming connections between cells.");
     cable_cell
         .def(py::init(
-            [](const arb::morphology& m, const arb::decor& d, const std::optional<label_dict_proxy>& l) {
-                if (l) return arb::cable_cell(m, d, l->dict);
-                return arb::cable_cell(m, d);
+            [](const arb::morphology& m, const arb::decor& d, const std::optional<label_dict_proxy>& l, const std::optional<arb::cv_policy>& p) {
+                if (l) return arb::cable_cell(m, d, l->dict, p);
+                return arb::cable_cell(m, d, {}, p);
             }),
-            "morphology"_a, "decor"_a, "labels"_a=py::none(),
-            "Construct with a morphology, decor, and label dictionary.")
+            "morphology"_a, "decor"_a, "labels"_a=py::none(), "discretization"_a=py::none(),
+            "Construct with a morphology, decor, label dictionary, and cv policy.")
         .def(py::init(
-            [](const arb::segment_tree& t, const arb::decor& d, const std::optional<label_dict_proxy>& l) {
-                if (l) return arb::cable_cell({t}, d, l->dict);
-                return arb::cable_cell({t}, d);
+            [](const arb::segment_tree& t, const arb::decor& d, const std::optional<label_dict_proxy>& l, const std::optional<arb::cv_policy>& p) {
+                if (l) return arb::cable_cell({t}, d, l->dict, p);
+                return arb::cable_cell({t}, d, {}, p);
             }),
-            "segment_tree"_a, "decor"_a, "labels"_a=py::none(),
-            "Construct with a morphology derived from a segment tree, decor, and label dictionary.")
+            "segment_tree"_a, "decor"_a, "labels"_a=py::none(), "discretization"_a=py::none(),
+            "Construct with a morphology derived from a segment tree, decor, label dictionary, and cv policy.")
         .def_property_readonly("num_branches",
             [](const arb::cable_cell& c) {return c.morphology().num_branches();},
             "The number of unbranched cable sections in the morphology.")
@@ -952,6 +945,21 @@ void register_cells(py::module& m) {
         .def("cables",
             [](arb::cable_cell& c, const char* label) {return c.concrete_region(arborio::parse_region_expression(label).unwrap()).cables();},
             "label"_a, "The cable segments of the cell morphology for a region label.")
+        // Discretization
+        .def("discretization",
+            [](const arb::cable_cell& c) { return c.discretization(); },
+             "The cv_policy used to discretise the cell into compartments for simulation")
+        .def("discretization",
+            [](arb::cable_cell& c, const arb::cv_policy& p) { return c.discretization(p); },
+            py::arg("policy"),
+             "A cv_policy used to discretise the cell into compartments for simulation")
+        .def("discretization",
+            [](arb::cable_cell& c, const std::string& p) {
+                return c.discretization(arborio::parse_cv_policy_expression(p).unwrap());
+            },
+            py::arg("policy"),
+            "An s-expression string representing a cv_policy used to discretise the "
+            "cell into compartments for simulation")
         // Stringification
         .def("__repr__", [](const arb::cable_cell&){return "<arbor.cable_cell>";})
         .def("__str__",  [](const arb::cable_cell&){return "<arbor.cable_cell>";});

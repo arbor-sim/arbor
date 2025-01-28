@@ -411,7 +411,7 @@ TEST(Parser, parse_line_expression) {
         "qt=q10^((celsius-22)/10)",
         "x=2        ",
         "x=2        ",
-        "x = -y\n   "
+        "x = -y\n   ",
         "x=2*y      ",
         "x=y + 2 * z",
         "x=(y + 2) * z      ",
@@ -656,7 +656,6 @@ TEST(Parser, parse_binop) {
         {"min(3,2)", 2.},
         {"max(2,3)", 3.},
         {"max(3,2)", 3.},
-
         // more complicated
         {"2+3*2", 2. + (3 * 2)},
         {"2*3-5", (2. * 3) - 5.},
@@ -668,7 +667,6 @@ TEST(Parser, parse_binop) {
         {"max(2+3, min(12, 24))", 12.},
         {"max(min(12, 24), 2+3)", 12.},
         {"2 * 7 - 3 * 11 + 4 * 13", 2. * 7. - 3. * 11. + 4. * 13.},
-
         // right associative
         {"2^3^1.5", pow(2., pow(3., 1.5))},
         {"2^3^1.5^2", pow(2., pow(3., pow(1.5, 2.)))},
@@ -676,15 +674,19 @@ TEST(Parser, parse_binop) {
         {"(2^2)^3", pow(pow(2., 2.), 3.)},
         {"3./2^7.", 3. / pow(2., 7.)},
         {"3^2*5.", pow(3., 2.) * 5.},
-
+        // precedence
+        {"-2+2",   0.0},
+        {"-3*2",  -6.0},
+        {"-4^2", -16.0},
         // multilevel
         {"1-2*3^4*5^2^3-3^2^3/4/8-5",
-            1. - 2 * pow(3., 4.) * pow(5., pow(2., 3.)) - pow(3, pow(2., 3.)) / 4. / 8. - 5}};
+            1. - 2 * pow(3., 4.) * pow(5., pow(2., 3.)) - pow(3, pow(2., 3.)) / 4. / 8. - 5}
+    };
 
-    for (const auto& test_case: tests) {
+    for (const auto& [exp, val]: tests) {
         std::unique_ptr<Expression> e;
-        EXPECT_TRUE(check_parse(e, &Parser::parse_expression, test_case.first));
-        EXPECT_NEAR(eval(e.get()), test_case.second, 1e-10);
+        EXPECT_TRUE(check_parse(e, &Parser::parse_expression, exp));
+        EXPECT_NEAR(eval(e.get()), val, 1e-10);
     }
 
     std::pair<const char*, bool> bool_tests[] = {

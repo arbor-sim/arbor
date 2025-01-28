@@ -29,8 +29,8 @@ jobs:
         - {
             name:  "Linux Min Clang",
             os:    "ubuntu-22.04",
-            cc:    "clang-12",
-            cxx:   "clang++-12",
+            cc:    "clang-13",
+            cxx:   "clang++-13",
             py:    "3.9",
             cmake: "3.19.x",
             mpi:   "ON",
@@ -116,7 +116,7 @@ jobs:
       - name: Update pip
         run: python -m pip install --upgrade pip
       - name: Install Python packages
-        run:  pip install numpy sphinx svgwrite sphinx-rtd-theme mpi4py pandas seaborn
+        run:  pip install numpy sphinx svgwrite sphinx-rtd-theme mpi4py pandas seaborn pybind11-stubgen
       - name: Clone w/ submodules
         uses: actions/checkout@v4
         with:

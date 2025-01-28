@@ -14,16 +14,12 @@
 #include <arbor/simd/simd.hpp>
 
 #include "fvm_layout.hpp"
-
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
-
 #include "threading/threading.hpp"
-
 #include "backends/common_types.hpp"
 #include "backends/rand_fwd.hpp"
 #include "backends/shared_state_base.hpp"
-
 #include "backends/multicore/threshold_watcher.hpp"
 #include "backends/multicore/multicore_common.hpp"
 #include "backends/multicore/partition_by_constraint.hpp"
@@ -48,27 +44,25 @@ struct ARB_ARBOR_API ion_state {
     using solver_type = diffusion_solver;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
-    unsigned alignment = 1; // Alignment and padding multiple.
+    unsigned alignment = 1;   // Alignment and padding multiple.
 
-    bool write_eX_;          // is eX written?
-    bool write_Xo_;          // is Xo written?
-    bool write_Xi_;          // is Xi written?
+    ion_data_flags flags_;    // Track what and when to reset / allocate
 
-    iarray node_index_;     // Instance to CV map.
-    array iX_;              // (A/m²)  current density
-    array eX_;              // (mV)    reversal potential
-    array Xi_;              // (mM)    internal concentration
-    array Xd_;              // (mM)    diffusive internal concentration
-    array Xo_;              // (mM)    external concentration
-    array gX_;              // (kS/m²) per-species conductivity
+    iarray node_index_;       // Instance to CV map.
+    array iX_;                // (A/m²)  current density
+    array eX_;                // (mV)    reversal potential
+    array Xi_;                // (mM)    internal concentration
+    array Xd_;                // (mM)    diffusive internal concentration
+    array Xo_;                // (mM)    external concentration
+    array gX_;                // (kS/m²) per-species conductivity
 
-    array init_Xi_;         // (mM) area-weighted initial internal concentration
-    array init_Xo_;         // (mM) area-weighted initial external concentration
-    array reset_Xi_;        // (mM) area-weighted user-set internal concentration
-    array reset_Xo_;        // (mM) area-weighted user-set internal concentration
-    array init_eX_;         // (mV) initial reversal potential
+    array init_Xi_;           // (mM) area-weighted initial internal concentration
+    array init_Xo_;           // (mM) area-weighted initial external concentration
+    array reset_Xi_;          // (mM) area-weighted user-set internal concentration
+    array reset_Xo_;          // (mM) area-weighted user-set internal concentration
+    array init_eX_;           // (mV) initial reversal potential
 
-    array charge;           // charge of ionic species (global value, length 1)
+    array charge;             // charge of ionic species (global value, length 1)
 
     solver_ptr solver = nullptr;
 
@@ -175,7 +169,7 @@ struct ARB_ARBOR_API shared_state:
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
     std::unordered_map<unsigned, mech_storage> storage;
-    std::unordered_map<unsigned, deliverable_event_stream> streams;
+    std::unordered_map<unsigned, spike_event_stream> streams;
 
     shared_state() = default;
 
@@ -245,11 +239,6 @@ struct ARB_ARBOR_API shared_state:
         sample_time_host = util::range_pointer_view(sample_time);
         sample_value_host = util::range_pointer_view(sample_value);
     }
-
-    void init_events(const event_lane_subrange& lanes,
-                     const std::vector<target_handle>& handles,
-                     const std::vector<size_t>& divs,
-                     const timestep_range& dts);
 };
 
 // For debugging only:
@@ -257,7 +246,7 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const shared_state& s);
 } // namespace multicore
 
 // Xd and gX are the only things that persist
-ARB_SERDES_ENABLE_EXT(multicore::ion_state, Xd_, gX_);
+ARB_SERDES_ENABLE_EXT(multicore::ion_state, Xd_);
 ARB_SERDES_ENABLE_EXT(multicore::mech_storage,
                       data_,
                       // NOTE(serdes) ion_states_, this is just a bunch of pointers

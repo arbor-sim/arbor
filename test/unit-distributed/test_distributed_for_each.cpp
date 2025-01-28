@@ -40,10 +40,9 @@ TEST(distributed_for_each, one_zero) {
     for (int i = 0; i < rank; ++i) { data.push_back(rank); }
 
     auto sample = [&](const util::range<int*>& range) {
-        const auto origin_rank = range.empty() ? 0 : range.front();
-
+        std::size_t origin_rank = range.empty() ? 0 : range.front();
         EXPECT_EQ(origin_rank, range.size());
-        for (const auto& value: range) { EXPECT_EQ(value, origin_rank); }
+        for (std::size_t value: range) { EXPECT_EQ(value, origin_rank); }
         ++call_count;
     };
 
@@ -71,14 +70,14 @@ TEST(distributed_for_each, multiple) {
     auto sample = [&](const util::range<int*>& range_1,
                       const util::range<double*>& range_2,
                       const util::range<std::complex<double>*>& range_3) {
-        const auto origin_rank = range_1.empty() ? 0 : range_1.front();
+        std::size_t origin_rank = range_1.empty() ? 0 : range_1.front();
 
         EXPECT_EQ(origin_rank + 1, range_1.size());
         EXPECT_EQ(range_2.size(), 2 * range_1.size());
         EXPECT_EQ(range_3.size(), 3 * range_1.size());
-        for (const auto& value: range_1) { EXPECT_EQ(value, origin_rank); }
-        for (const auto& value: range_2) { EXPECT_EQ(value, double(origin_rank)); }
-        for (const auto& value: range_3) { EXPECT_EQ(value, std::complex<double>(origin_rank)); }
+        for (std::size_t value: range_1) { EXPECT_EQ(value, origin_rank); }
+        for (auto value: range_2) { EXPECT_EQ(value, double(origin_rank)); }
+        for (auto value: range_3) { EXPECT_EQ(value, std::complex<double>(origin_rank)); }
         ++call_count;
     };
 

@@ -66,10 +66,14 @@ class Arbor(CMakePackage, CudaPackage):
     variant("mpi", default=False, description="Enable MPI support")
     variant("python", default=True, description="Enable Python frontend support")
     variant(
+        "pystubs", default=True, when="@0.11:", description="Python stub generation"
+    )
+    variant(
         "vectorize",
         default=False,
         description="Enable vectorization of computational kernels",
     )
+    variant("hwloc", default=False, description="support for thread pinning via HWLOC")
     variant(
         "gpu_rng",
         default=False,
@@ -107,6 +111,9 @@ class Arbor(CMakePackage, CudaPackage):
     depends_on("mpi", when="+mpi")
     depends_on("py-mpi4py", when="+mpi+python", type=("build", "run"))
 
+    # hwloc
+    depends_on("hwloc@2:", when="+hwloc", type=("build", "run"))
+
     # python (bindings)
     with when("+python"):
         extends("python")
@@ -118,6 +125,7 @@ class Arbor(CMakePackage, CudaPackage):
         depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
         depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
         depends_on("py-pybind11@2.10.1:", when="@2.11.1:", type="build")
+        depends_on("py-pybind11-stubgen@2.5:", when="+pystubs", type="build")
 
     # sphinx based documentation
     with when("+doc"):
@@ -135,6 +143,8 @@ class Arbor(CMakePackage, CudaPackage):
             self.define_from_variant("ARB_WITH_MPI", "mpi"),
             self.define_from_variant("ARB_WITH_PYTHON", "python"),
             self.define_from_variant("ARB_VECTORIZE", "vectorize"),
+            self.define_from_variant("ARB_USE_HWLOC", "hwloc"),
+            self.define_from_variant("ARB_BUILD_PYTHON_STUBS", "pystubs"),
         ]
 
         if "+cuda" in self.spec:

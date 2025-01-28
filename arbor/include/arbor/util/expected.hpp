@@ -486,7 +486,7 @@ struct expected<void, E> {
     // Swap ops.
 
     void swap(expected& other) {
-        data_.swap(other.data);
+        data_.swap(other.data_);
     }
 
     // Accessors.

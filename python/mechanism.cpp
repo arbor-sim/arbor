@@ -65,19 +65,27 @@ void register_mechanisms(pybind11::module& m) {
         .def(pybind11::init<const arb::ion_dependency&>())
         .def_readonly("write_int_con", &arb::ion_dependency::write_concentration_int)
         .def_readonly("write_ext_con", &arb::ion_dependency::write_concentration_ext)
+        .def_readonly("read_int_con", &arb::ion_dependency::read_concentration_int)
+        .def_readonly("read_ext_con", &arb::ion_dependency::read_concentration_ext)
         .def_readonly("write_rev_pot", &arb::ion_dependency::write_reversal_potential)
         .def_readonly("read_rev_pot",  &arb::ion_dependency::read_reversal_potential)
         .def("__repr__",
                 [](const arb::ion_dependency& dep) {
                     auto tf = [](bool x) {return x? "True": "False";};
-                    return util::pprintf("{write_int_con: {}, write_ext_con: {}, write_rev_pot: {}, read_rev_pot: {}}",
-                                         tf(dep.write_concentration_int), tf(dep.write_concentration_ext),
+                    return util::pprintf("{read_int_con: {}, write_int_con: {}, read_ext_con: {}, write_ext_con: {}, write_rev_pot: {}, read_rev_pot: {}}",
+                                         tf(dep.read_concentration_int),
+                                         tf(dep.write_concentration_int),
+                                         tf(dep.read_concentration_ext),
+                                         tf(dep.write_concentration_ext),
                                          tf(dep.write_reversal_potential), tf(dep.read_reversal_potential)); })
         .def("__str__",
                 [](const arb::ion_dependency& dep) {
                     auto tf = [](bool x) {return x? "True": "False";};
-                    return util::pprintf("{write_int_con: {}, write_ext_con: {}, write_rev_pot: {}, read_rev_pot: {}}",
-                                         tf(dep.write_concentration_int), tf(dep.write_concentration_ext),
+                    return util::pprintf("{read_int_con: {}, write_int_con: {}, read_ext_con: {}, write_ext_con: {}, write_rev_pot: {}, read_rev_pot: {}}",
+                                         tf(dep.read_concentration_int),
+                                         tf(dep.write_concentration_int),
+                                         tf(dep.read_concentration_ext),
+                                         tf(dep.write_concentration_ext),
                                          tf(dep.write_reversal_potential), tf(dep.read_reversal_potential)); })
         ;
 

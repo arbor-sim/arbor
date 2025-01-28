@@ -23,7 +23,6 @@ struct cable_solver {
     array d;              // [μS]
     array u;              // [μS]
     array cv_capacitance; // [pF]
-    array cv_area;        // [μm^2]
     array invariant_d;    // [μS] invariant part of matrix diagonal
 
     cable_solver() = default;
@@ -36,13 +35,11 @@ struct cable_solver {
     cable_solver(const std::vector<index_type>& p,
                  const std::vector<index_type>& cell_cv_divs,
                  const std::vector<value_type>& cap,
-                 const std::vector<value_type>& cond,
-                 const std::vector<value_type>& area):
+                 const std::vector<value_type>& cond):
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
         d(size(), 0), u(size(), 0),
         cv_capacitance(cap.begin(), cap.end()),
-        cv_area(area.begin(), area.end()),
         invariant_d(size(), 0)
     {
         // Sanity check
@@ -56,18 +53,16 @@ struct cable_solver {
                 const auto gij = cond[i];
                 u[i] = -gij;
                 invariant_d[i] += gij;
-                if (p[i]!=-1) { // root
-                    invariant_d[p[i]] += gij;
-                }
+                if (auto pi= p[i]; pi != -1) invariant_d[pi] += gij;
             }
         }
     }
 
     // Setup and solve the cable equation
     // * expects the voltage from its first argument
-    // * will likewise overwrite the first argument with the solction
+    // * will likewise overwrite the first argument with the solution
     template<typename T>
-    void solve(T& rhs, const value_type dt, const_view current, const_view conductivity) {
+    void solve(T& rhs, const value_type dt, const_view current, const_view conductivity, const_view cv_area) {
         value_type * const ARB_NO_ALIAS d_ = d.data();
         value_type * const ARB_NO_ALIAS r_ = rhs.data();
 

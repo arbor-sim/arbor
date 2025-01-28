@@ -1,16 +1,11 @@
 #pragma once
 
-#include <map>
 #include <string>
 
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
 
 #include "memory/memory.hpp"
-#include "util/rangeutil.hpp"
-
-#include "backends/event.hpp"
-
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/shared_state.hpp"
 
@@ -20,7 +15,6 @@ namespace arb {
 namespace gpu {
 
 struct backend {
-    static bool is_supported() { return true; }
     static std::string name() { return "gpu"; }
 
     using value_type = arb_value_type;
@@ -43,8 +37,6 @@ struct backend {
     using threshold_watcher        = arb::gpu::threshold_watcher;
     using cable_solver             = arb::gpu::matrix_state_fine<arb_value_type, arb_index_type>;
     using diffusion_solver         = arb::gpu::diffusion_state<arb_value_type, arb_index_type>;
-    using deliverable_event_stream = arb::gpu::deliverable_event_stream;
-    using sample_event_stream      = arb::gpu::sample_event_stream;
 
     using shared_state = arb::gpu::shared_state;
     using ion_state = arb::gpu::ion_state;

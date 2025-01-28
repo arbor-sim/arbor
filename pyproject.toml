@@ -57,6 +57,7 @@ exclude = [
     "build",
     "dist",
     "ext",
+    "install-*",
     "doc/scripts/inputs.py",
     "doc/scripts/make_images.py",
     ".*",

@@ -7,7 +7,6 @@ set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON CACHE INTERNAL "" FORCE)
 
 # Make CUDA support throw errors if architectures remain unclear
 cmake_policy(SET CMP0104 NEW)
-
 # Ensure CMake is aware of the policies for modern RPATH behavior
 cmake_policy(SET CMP0072 NEW)
 
@@ -45,6 +44,9 @@ if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
     message(STATUS "No LTO: ${ERR_LTO}")
   endif()
 endif()
+
+# Use pybind11-stubgen to make type stubs.
+cmake_dependent_option(ARB_BUILD_PYTHON_STUBS "Use pybind11-stubgen to build type stubs." ON "ARB_WITH_PYTHON" OFF)
 
 # Turn on this option to force the compilers to produce color output when output is
 # redirected from the terminal (e.g. when using ninja or a pager).
@@ -201,13 +203,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
 
-# Detect and deprecate xlC.
-
-include("CheckCompilerXLC")
-
 # Compiler options common to library, examples, tests, etc.
 
 include("CompilerOptions")
+check_supported_cxx()
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_WALL}>")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CUDA_STANDARD 20)
@@ -277,7 +276,7 @@ install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 
 # First make ourselves less chatty
 set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
-set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
+set(CMAKE_MESSAGE_LOG_LEVEL STATUS)
 
 # in the event we can find hwloc, just add it
 find_package(hwloc QUIET)
@@ -344,6 +343,8 @@ CPMAddPackage(NAME fmt
               VERSION 10.0.0
               GIT_TAG 10.0.0)
 
+add_library(ext-gtest INTERFACE)
+add_library(ext-bench INTERFACE)
 if (BUILD_TESTING)
     CPMAddPackage(NAME benchmark
                   GITHUB_REPOSITORY google/benchmark
@@ -354,6 +355,18 @@ if (BUILD_TESTING)
                   GIT_TAG release-1.12.1
                   VERSION 1.12.1
                   OPTIONS "INSTALL_GTEST OFF" "BUILD_GMOCK OFF")
+    if(benchmark_ADDED)
+        target_link_libraries(ext-bench INTERFACE benchmark)
+    else()
+        find_package(benchmark REQUIRED)
+        target_link_libraries(ext-bench INTERFACE benchmark::benchmark)
+    endif()
+    if(googletest_ADDED)
+        target_link_libraries(ext-gtest INTERFACE )
+    else()
+        find_package(googletest REQUIRED)
+        target_link_libraries(ext-gtest INTERFACE gtest gtest_main)
+    endif()
 endif()
 
 CPMAddPackage(NAME units

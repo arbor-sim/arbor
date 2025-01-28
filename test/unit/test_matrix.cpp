@@ -21,10 +21,9 @@ using value_type  = arb_value_type;
 
 using vvec = std::vector<value_type>;
 
-TEST(matrix, construct_from_parent_only)
-{
+TEST(matrix, construct_from_parent_only) {
     std::vector<index_type> p = {0,0,1};
-    solver_type m(p, {0, 3}, vvec(3), vvec(3), vvec(3));
+    solver_type m(p, {0, 3}, vvec(3), vvec(3));
     EXPECT_EQ(m.num_cells(), 1u);
     EXPECT_EQ(m.size(), 3u);
     EXPECT_EQ(p.size(), 3u);
@@ -35,14 +34,13 @@ TEST(matrix, construct_from_parent_only)
     EXPECT_EQ(mp[2], index_type(1));
 }
 
-TEST(matrix, solve_host)
-{
+TEST(matrix, solve_host) {
     using util::make_span;
     using util::fill;
 
     // trivial case : 1x1 matrix
     {
-        solver_type m({0}, {0,1}, vvec(1), vvec(1), vvec(1));
+        solver_type m({0}, {0,1}, vvec(1), vvec(1));
         fill(m.d,  2);
         fill(m.u, -1);
         array x({1});
@@ -56,7 +54,7 @@ TEST(matrix, solve_host)
         for(auto n : make_span(2, 1001)) {
             auto p = std::vector<index_type>(n);
             std::iota(p.begin()+1, p.end(), 0);
-            solver_type m(p, {0, n}, vvec(n), vvec(n), vvec(n));
+            solver_type m(p, {0, n}, vvec(n), vvec(n));
 
             EXPECT_EQ(m.size(), (unsigned)n);
             EXPECT_EQ(m.num_cells(), 1u);
@@ -78,8 +76,7 @@ TEST(matrix, solve_host)
     }
 }
 
-TEST(matrix, solve_multi_matrix)
-{
+TEST(matrix, solve_multi_matrix) {
     // Use assemble method to construct same zero-diagonal
     // test case from CV data.
 
@@ -107,7 +104,7 @@ TEST(matrix, solve_multi_matrix)
 
     // Initial voltage of zero; currents alone determine rhs.
     auto v = vvec{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    vvec area(7, 1.0);
+    array area(7, 1.0);
 
     // (Scaled) membrane conductances contribute to diagonal.
     array mg = { 1000, 2000, 3000, 4000, 5000, 6000, 7000 };
@@ -121,9 +118,9 @@ TEST(matrix, solve_multi_matrix)
     // Expected solution:
     // x = [ 4 5 6 7 8 9 10 ]
 
-    solver_type m(p, c, Cm, g, area);
+    solver_type m(p, c, Cm, g);
     std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};
 
-    m.solve(v, dt, i, mg);
+    m.solve(v, dt, i, mg, area);
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected, v));
 }

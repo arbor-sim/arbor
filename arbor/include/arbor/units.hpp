@@ -59,6 +59,7 @@ constexpr inline auto pA = pico  * A;
 
 constexpr inline auto V = ::units::precise::volt;
 constexpr inline auto mV = milli * V;
+constexpr inline auto uV = micro * V;
 
 constexpr inline auto  Hz = ::units::precise::second.pow(-1);
 constexpr inline auto kHz = kilo * Hz;
@@ -82,7 +83,8 @@ constexpr inline auto C = ::units::precise::coulomb;
 
 // mol and molarity
 using ::units::precise::mol;
-constexpr inline auto M = mol / m.pow(3);
+using ::units::precise::L;
+constexpr inline auto M = mol / L;
 constexpr inline auto mM = milli * M;
 
 using ::units::is_valid;
