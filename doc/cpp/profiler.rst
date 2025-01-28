@@ -187,14 +187,7 @@ and the profiler regions can be reset.
 
             // Print a summary of the profiler to stdout
             std::cout << profile::profiler_summary() << "\n";
-
-            // Clear the profiler state, which can then be used to record
-            // profile information for a different part of the code.
-            profile::profiler_clear();
         }
-
-After a call to ``util::profiler_clear``, all counters and timers are set to zero.
-This could be used, for example, to generate separate profiler reports for model building and model execution phases.
 
 Profiler output
 ~~~~~~~~~~~~~~~
