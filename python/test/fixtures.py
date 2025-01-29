@@ -214,7 +214,7 @@ class art_spiker_recipe(A.recipe):
         self.the_cell = A.cable_cell(tree, decor, labels)
 
     def _cable_cell_elements(self):
-                # (1) Create a morphology with a single (cylindrical) segment of length=diameter
+        # (1) Create a morphology with a single (cylindrical) segment of length=diameter
         #  = # 6 μm
         tree = A.segment_tree()
         tree.append(
@@ -262,7 +262,6 @@ class art_spiker_recipe(A.recipe):
         if gid >= 3:
             return self.the_cell
         return A.spike_source_cell("src", self.schedule(gid))
-
 
     def schedule(self, gid):
         return A.explicit_schedule([t * U.ms for t in self.trains[gid]])

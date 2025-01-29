@@ -158,7 +158,6 @@ class TestMultipleConnections(unittest.TestCase):
     def test_multiple_connections_rr_no_halt(
         self, context, sum_weight_hh_spike, sum_weight_hh_spike_2
     ):
-
         weight = (
             sum_weight_hh_spike / 2
         )  # connection strength which is, summed over two connections, just enough to evoke an immediate spike at t=1ms
@@ -202,6 +201,7 @@ class TestMultipleConnections(unittest.TestCase):
 
                     return [conn_0_3_n1, conn_0_3_n2, conn_1_3_n1, conn_1_3_n2]
                 return []
+
         # run the main part of this test
         sim, handle_mem = self.rr_main(context, recipe(), weight, weight2)
 
