@@ -49,6 +49,9 @@ class DelayRecipe(A.recipe):
 
 class TestDelayNetwork(unittest.TestCase):
     def test_zero_delay(self):
+        if A.config()["profiling"]:
+            A.profiler_clear()
+
         rec = DelayRecipe(0.0 * U.ms)
         self.assertRaises(ValueError, A.simulation, rec)
         if A.config()["profiling"]:
