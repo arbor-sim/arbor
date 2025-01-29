@@ -51,6 +51,8 @@ class TestDelayNetwork(unittest.TestCase):
     def test_zero_delay(self):
         rec = DelayRecipe(0.0 * U.ms)
         self.assertRaises(ValueError, A.simulation, rec)
+        if A.config()["profiling"]:
+            A.profiler_clear()
 
     def test_dt_half_delay(self):
         T = 1 * U.ms
