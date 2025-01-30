@@ -55,11 +55,16 @@ class TestDelayNetwork(unittest.TestCase):
             A.profiler_clear()
 
     def test_dt_half_delay(self):
+        if A.config()["profiling"]:
+            A.profiler_clear()
         T = 1 * U.ms
         dt = 0.01 * U.ms
         rec = DelayRecipe(2 * dt)
         sim = A.simulation(rec)
         sim.run(T, dt)
+        if A.config()["profiling"]:
+            A.profiler_clear()
+
 
     def dt_must_be_finite(self):
         T = 1 * U.ms
