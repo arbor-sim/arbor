@@ -16,7 +16,7 @@ class TestSpikes(unittest.TestCase):
     # test that all spikes are sorted by time then by gid
     @fixtures.single_context()
     def test_spikes_sorted(self, single_context):
-        rec = art_spiker_recipe()
+        rec = fixtures.art_spiker_recipe()
         dd = A.partition_load_balance(rec, single_context)
         sim = A.simulation(rec, single_context, dd)
         sim.record(A.spike_recording.all)
