@@ -16,6 +16,8 @@ class TestSpikes(unittest.TestCase):
     # test that all spikes are sorted by time then by gid
     @fixtures.single_context()
     def test_spikes_sorted(self, single_context):
+        if A.config()["profiling"]:
+            A.profiler_clear()
         rec = fixtures.art_spiker_recipe()
         dd = A.partition_load_balance(rec, single_context)
         sim = A.simulation(rec, single_context, dd)
@@ -35,3 +37,5 @@ class TestSpikes(unittest.TestCase):
         self.assertEqual(
             [0.2, 0.4, 0.8, 2.0, 2.0, 2.0, 2.1, 2.2, 2.8, 3.0, 3.0, 3.1, 4.5], times
         )
+        if A.config()["profiling"]:
+            A.profiler_clear()
