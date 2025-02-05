@@ -50,11 +50,12 @@ class DelayRecipe(A.recipe):
 
 
 class TestDelayNetwork(unittest.TestCase):
-    def test_zero_delay(self):
+    @fixtures.single_context()
+    def test_zero_delay(self, single_context):
         if A.config()["profiling"]:
             A.profiler_clear()
         rec = DelayRecipe(0.0 * U.ms)
-        self.assertRaises(ValueError, A.simulation, rec)
+        self.assertRaises(ValueError, A.simulation, rec, single_context)
         if A.config()["profiling"]:
             A.profiler_clear()
 
