@@ -754,7 +754,6 @@ void run_partial_density_probe_test(context ctx) {
 
     // There should be 10 probes on each cell, but only 10 in total in the probe map,
     // as only those probes that are in the mechanism support should have an entry.
-
     EXPECT_EQ(10u, rec.get_probes(0).size());
     EXPECT_EQ(10u, rec.get_probes(1).size());
     EXPECT_EQ(10u, probe_map.size());
@@ -1407,9 +1406,8 @@ TEST(probe, get_probe_metadata) {
 
     EXPECT_EQ(0u, mm[0].index);
 
-    const auto& ls = any_cast<const mcable_list*>(mm[0].meta)->at(0);
+    auto locs = *any_cast<const mcable_list*>(mm[0].meta);
 
-    std::vector locs = {l0, l1, l2};
     util::sort(locs);
     EXPECT_EQ(mcable(1, 1., 1.), locs[0]);
     EXPECT_EQ(mcable(2, 1., 1.), locs[1]);

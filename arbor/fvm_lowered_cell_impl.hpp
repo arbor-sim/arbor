@@ -885,9 +885,10 @@ void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>&
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
         if (!support.intersects(loc)) continue;
 
-        arb_index_type cv = R.D.geometry.location_cv(R.cell_idx, loc, cv_prefer::cv_nonempty);
+        auto cv = R.D.geometry.location_cv(R.cell_idx, loc, cv_prefer::cv_nonempty);
         auto opt_i = util::binary_search_index(R.M.mechanisms.at(mech).cv, cv);
         if (!opt_i) continue;
+
         handles.push_back(data + *opt_i);
         meta.push_back(mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos});
     }
