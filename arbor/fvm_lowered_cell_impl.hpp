@@ -11,7 +11,6 @@
 #include <optional>
 #include <utility>
 #include <vector>
-#include <iostream>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -1041,12 +1040,24 @@ void resolve_probe(const cable_probe_point_state_cell& p, probe_resolution_data<
 
 template <typename B>
 void resolve_probe(const cable_probe_ion_current_density& p, probe_resolution_data<B>& R) {
+    if(!R.state->ion_data.count(p.ion)) return;
+    mcable_list meta;
+    std::vector<probe_handle> handles;
+    const auto data = R.state->ion_data.at(p.ion).iX_.data();
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
         auto opt_i = R.ion_location_index(p.ion, loc);
         if (!opt_i) continue;
-        R.result.push_back(fvm_probe_scalar{{R.state->ion_data.at(p.ion).iX_.data()+*opt_i},
-                                            std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
+        handles.push_back(data + *opt_i);
+        meta.push_back(mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos});
     }
+    if (meta.empty()) return;
+    meta.shrink_to_fit();
+    handles.shrink_to_fit();
+    R.result.push_back(
+        fvm_probe_multi{
+            .raw_handles=handles,
+            .metadata=meta,
+        });
 }
 
 template <typename B>
@@ -1075,45 +1086,55 @@ void resolve_probe(const cable_probe_ion_current_cell& p, probe_resolution_data<
 }
 
 template <typename B>
-void resolve_probe(const cable_probe_ion_int_concentration& p, probe_resolution_data<B>& R) {
-    const auto& ion = p.ion;
-    const auto& xi = R.state->ion_data.at(ion).Xi_;
-    if (xi.empty()) return;
-    for (mlocation loc: thingify(p.locations, R.cell.provider())) {
+void resolve_ion_conc_common(const locset& ls,
+                             const std::string& ion,
+                             const typename B::array& values,
+                             probe_resolution_data<B>& R) {
+    if (values.empty()) return;
+    mcable_list meta;
+    std::vector<probe_handle> handles;
+    for (mlocation loc: thingify(ls, R.cell.provider())) {
         auto opt_i = R.ion_location_index(ion, loc);
         if (!opt_i) continue;
-        R.result.push_back(fvm_probe_scalar{{xi.data() + *opt_i},
-                                            std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
+        handles.push_back(values.data() + *opt_i);
+        meta.push_back(mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos});
     }
+    if (meta.empty()) return;
+    meta.shrink_to_fit();
+    handles.shrink_to_fit();
+    R.result.push_back(
+        fvm_probe_multi{
+            .raw_handles=handles,
+            .metadata=meta,
+        });
+}
+
+template <typename B>
+void resolve_probe(const cable_probe_ion_int_concentration& p, probe_resolution_data<B>& R) {
+    const auto& ion = p.ion;
+    if (!R.state->ion_data.count(ion)) return;
+    resolve_ion_conc_common(p.locations, ion, R.state->ion_data.at(ion).Xi_, R);
 }
 
 template <typename B>
 void resolve_probe(const cable_probe_ion_ext_concentration& p, probe_resolution_data<B>& R) {
     const auto& ion = p.ion;
-    const auto& xo = R.state->ion_data.at(ion).Xo_;
-    for (mlocation loc: thingify(p.locations, R.cell.provider())) {
-        auto opt_i = R.ion_location_index(ion, loc);
-        if (!opt_i) continue;
-        R.result.push_back(fvm_probe_scalar{{xo.data() + *opt_i},
-                                            std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
-    }
+    if (!R.state->ion_data.count(ion)) return;
+    resolve_ion_conc_common(p.locations, ion, R.state->ion_data.at(ion).Xo_, R);
 }
 
 template <typename B>
 void resolve_probe(const cable_probe_ion_diff_concentration& p, probe_resolution_data<B>& R) {
     const auto& ion = p.ion;
-    const auto& xd = R.state->ion_data.at(ion).Xd_;
-    for (mlocation loc: thingify(p.locations, R.cell.provider())) {
-        auto opt_i = R.ion_location_index(ion, loc);
-        if (!opt_i) continue;
-        R.result.push_back(fvm_probe_scalar{{xd.data() + *opt_i},
-                                            std::vector{mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos}}});
-    }
+    if (!R.state->ion_data.count(ion)) return;
+    resolve_ion_conc_common(p.locations, ion, R.state->ion_data.at(ion).Xd_, R);
 }
 
 // Common implementation for int and ext concentrations across whole cell:
 template <typename B>
-void resolve_ion_conc_common(const std::vector<arb_index_type>& ion_cvs, const arb_value_type* src, probe_resolution_data<B>& R) {
+void resolve_ion_conc_cell_common(const std::vector<arb_index_type>& ion_cvs,
+                                  const arb_value_type* src,
+                                  probe_resolution_data<B>& R) {
     fvm_probe_multi r;
     mcable_list cables;
     for (auto i: util::count_along(ion_cvs)) {
@@ -1133,21 +1154,21 @@ template <typename B>
 void resolve_probe(const cable_probe_ion_int_concentration_cell& p, probe_resolution_data<B>& R) {
     if (!R.state->ion_data.count(p.ion)) return;
     if (R.state->ion_data.at(p.ion).Xi_.empty()) return;
-    resolve_ion_conc_common<B>(R.M.ions.at(p.ion).cv, R.state->ion_data.at(p.ion).Xi_.data(), R);
+    resolve_ion_conc_cell_common<B>(R.M.ions.at(p.ion).cv, R.state->ion_data.at(p.ion).Xi_.data(), R);
 }
 
 template <typename B>
 void resolve_probe(const cable_probe_ion_ext_concentration_cell& p, probe_resolution_data<B>& R) {
     if (!R.state->ion_data.count(p.ion)) return;
     if (R.state->ion_data.at(p.ion).Xo_.empty()) return;
-    resolve_ion_conc_common<B>(R.M.ions.at(p.ion).cv, R.state->ion_data.at(p.ion).Xo_.data(), R);
+    resolve_ion_conc_cell_common<B>(R.M.ions.at(p.ion).cv, R.state->ion_data.at(p.ion).Xo_.data(), R);
 }
 
 template <typename B>
 void resolve_probe(const cable_probe_ion_diff_concentration_cell& p, probe_resolution_data<B>& R) {
     if (!R.state->ion_data.count(p.ion)) return;
     if (R.state->ion_data.at(p.ion).Xd_.empty()) return;
-    resolve_ion_conc_common<B>(R.M.ions.at(p.ion).cv, R.state->ion_data.at(p.ion).Xd_.data(), R);
+    resolve_ion_conc_cell_common<B>(R.M.ions.at(p.ion).cv, R.state->ion_data.at(p.ion).Xd_.data(), R);
 }
 
 } // namespace arb
