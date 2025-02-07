@@ -34,24 +34,6 @@ namespace arb {
 // a sample value (possibly non-scalar) presented to a sampler
 // function, and one or more probe handles that reference data
 // in the FVM back-end.
-
-struct fvm_probe_scalar {
-    probe_handle raw_handles[1] = {nullptr};
-    std::variant<mcable_list, std::vector<cable_probe_point_info>> metadata;
-
-    util::any_ptr get_metadata_ptr() const {
-        return std::visit([](const auto& x) -> util::any_ptr { return &x; }, metadata);
-    }
-};
-
-struct fvm_probe_interpolated {
-    probe_handle raw_handles[2] = {nullptr, nullptr};
-    double coef[2] = {};
-    mcable_list metadata;
-
-    util::any_ptr get_metadata_ptr() const { return &metadata; }
-};
-
 struct fvm_probe_multi {
     std::vector<probe_handle> raw_handles;
     std::variant<mcable_list, std::vector<cable_probe_point_info>> metadata;
@@ -132,22 +114,16 @@ struct missing_probe_info {
 
 struct fvm_probe_data {
     fvm_probe_data() = default;
-    fvm_probe_data(fvm_probe_scalar p): info(std::move(p)) {}
-    fvm_probe_data(fvm_probe_interpolated p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_multi p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_weighted_multi p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_interpolated_multi p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_membrane_currents p): info(std::move(p)) {}
 
-    std::variant<
-        missing_probe_info,
-        fvm_probe_scalar,
-        fvm_probe_interpolated,
-        fvm_probe_multi,
-        fvm_probe_weighted_multi,
-        fvm_probe_interpolated_multi,
-        fvm_probe_membrane_currents
-    > info = missing_probe_info{};
+    std::variant<missing_probe_info,
+                 fvm_probe_multi,
+                 fvm_probe_weighted_multi,
+                 fvm_probe_interpolated_multi,
+                 fvm_probe_membrane_currents> info = missing_probe_info{};
 
     auto raw_handle_range() const {
         return util::make_range(

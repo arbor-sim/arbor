@@ -971,6 +971,8 @@ void resolve_probe(const cable_probe_point_state& p, probe_resolution_data<B>& R
     const auto& [lr_beg, lr_end] = R.cell
                                     .synapse_ranges()
                                     .equal_range(t_hash);
+    std::vector<cable_probe_point_info> meta;
+    std::vector<probe_handle> handles;
     for (auto lr = lr_beg; lr != lr_end; ++lr) {
         const auto& [lid_beg, lid_end] = lr->second;
         for (auto lid = lid_beg; lid != lid_end; ++lid) {
@@ -979,14 +981,22 @@ void resolve_probe(const cable_probe_point_state& p, probe_resolution_data<B>& R
             const auto& handle = R.handles.at(cg);
             if (handle.mech_id != mech_id) return;
             auto mech_index = handle.mech_index;
-            R.result.push_back(fvm_probe_scalar{{data + mech_index},
-                                                std::vector{point_info_of(target,
-                                                                          lid,
-                                                                          mech_index,
-                                                                          synapses.at(mech),
-                                                                          R.M.mechanisms.at(mech).multiplicity)}});
+            meta.push_back(point_info_of(target,
+                                         lid,
+                                         mech_index,
+                                         synapses.at(mech),
+                                         R.M.mechanisms.at(mech).multiplicity));
+            handles.push_back(data + mech_index);
         }
     }
+    if (meta.empty()) return;
+    meta.shrink_to_fit();
+    handles.shrink_to_fit();
+    R.result.push_back(
+        fvm_probe_multi{
+            .raw_handles=handles,
+            .metadata=meta,
+        });
 }
 
 template <typename B>

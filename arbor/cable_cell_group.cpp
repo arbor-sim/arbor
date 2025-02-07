@@ -72,22 +72,15 @@ void cable_cell_group::t_deserialize(serializer& ser,
                                      const std::string& k) { deserialize(ser, k, *this); }
 
 // Working space for computing and collating data for samplers.
-using fvm_probe_scratch = std::tuple<std::vector<double>, std::vector<cable_sample_range>>;
+struct fvm_probe_scratch {
+    std::vector<double> values;
+    std::vector<cable_sample_range> ranges;
 
-template <typename VoidFn, typename... A>
-void tuple_foreach(VoidFn&& f, std::tuple<A...>& t) {
-    // executes functions in order (pack expansion)
-    // uses comma operator (unary left fold)
-    // avoids potentially overloaded comma operator (cast to void)
-    std::apply(
-        [g = std::forward<VoidFn>(f)](auto&& ...x){
-            (..., static_cast<void>(g(std::forward<decltype(x)>(x))));},
-        t);
-}
-
-void reserve_scratch(fvm_probe_scratch& scratch, std::size_t n) {
-    tuple_foreach([n](auto& v) { v.reserve(n); }, scratch);
-}
+    void reserve(size_t n) {
+        values.reserve(n);
+        ranges.reserve(n);
+    }
+};
 
 void run_samples(const missing_probe_info&,
                  const sampler_call_info&,
@@ -96,58 +89,6 @@ void run_samples(const missing_probe_info&,
                  std::vector<sample_record>&,
                  fvm_probe_scratch&) {
     throw arbor_internal_error("invalid fvm_probe_data in sampler map");
-}
-
-void run_samples(const fvm_probe_scalar& p,
-                 const sampler_call_info& sc,
-                 const arb_value_type* raw_times,
-                 const arb_value_type* raw_samples,
-                 std::vector<sample_record>& sample_records,
-                 fvm_probe_scratch&) {
-    // Scalar probes do not need scratch space — provided that the user-presented
-    // sample type (double) matches the raw type (arb_value_type).
-    static_assert(std::is_same<double, arb_value_type>::value, "require sample value translation");
-
-    sample_size_type n_sample = sc.end_offset-sc.begin_offset;
-    sample_records.clear();
-    for (auto i = sc.begin_offset; i != sc.end_offset; ++i) {
-        sample_records.push_back(sample_record{
-            .time=time_type(raw_times[i]),
-            .values={raw_samples + i, raw_samples + i + 1},
-        });
-    }
-    sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
-}
-
-void run_samples(const fvm_probe_interpolated& p,
-                 const sampler_call_info& sc,
-                 const arb_value_type* raw_times,
-                 const arb_value_type* raw_samples,
-                 std::vector<sample_record>& sample_records,
-                 fvm_probe_scratch& scratch) {
-    constexpr sample_size_type n_raw_per_sample = 2;
-    sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
-    arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
-
-    auto& tmp = std::get<std::vector<double>>(scratch);
-    tmp.clear();
-    sample_records.clear();
-
-    for (sample_size_type j = 0; j<n_sample; ++j) {
-        auto offset = j*n_raw_per_sample+sc.begin_offset;
-        tmp.push_back(p.coef[0]*raw_samples[offset] + p.coef[1]*raw_samples[offset+1]);
-    }
-
-    const auto ctmp = tmp.data();
-    for (sample_size_type j = 0; j<n_sample; ++j) {
-        auto offset = j*n_raw_per_sample+sc.begin_offset;
-        sample_records.push_back(sample_record{
-            .time=time_type(raw_times[offset]),
-            .values={ctmp + j, ctmp + j + 1},
-        });
-    }
-
-    sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()}, n_sample, sample_records.data());
 }
 
 void run_samples(const fvm_probe_multi& p,
@@ -160,7 +101,7 @@ void run_samples(const fvm_probe_multi& p,
     sample_size_type n_sample = (sc.end_offset - sc.begin_offset)/n_raw_per_sample;
     arb_assert((sc.end_offset - sc.begin_offset) == n_sample*n_raw_per_sample);
 
-    auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
+    auto& sample_ranges = scratch.ranges;
     sample_ranges.clear();
     sample_records.clear();
 
@@ -191,11 +132,11 @@ void run_samples(const fvm_probe_weighted_multi& p,
     arb_assert((sc.end_offset - sc.begin_offset)==n_sample*n_raw_per_sample);
     arb_assert((unsigned)n_raw_per_sample == p.weight.size());
 
-    auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
+    auto& sample_ranges = scratch.ranges;
     sample_ranges.clear();
     sample_records.clear();
 
-    auto& tmp = std::get<std::vector<double>>(scratch);
+    auto& tmp = scratch.values;
     tmp.clear();
     tmp.reserve(n_raw_per_sample*n_sample);
 
@@ -237,11 +178,11 @@ void run_samples(const fvm_probe_interpolated_multi& p,
     arb_assert((unsigned)n_interp_per_sample == p.coef[0].size());
     arb_assert((unsigned)n_interp_per_sample == p.coef[1].size());
 
-    auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
+    auto& sample_ranges = scratch.ranges;
     sample_ranges.clear();
     sample_records.clear();
 
-    auto& tmp = std::get<std::vector<double>>(scratch);
+    auto& tmp = scratch.values;
     tmp.clear();
     tmp.reserve(n_interp_per_sample*n_sample);
 
@@ -288,10 +229,10 @@ void run_samples(const fvm_probe_membrane_currents& p,
     const auto n_stim = p.stim_scale.size();
     arb_assert(n_stim+n_cv==(unsigned)n_raw_per_sample);
 
-    auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
+    auto& sample_ranges = scratch.ranges;
     sample_ranges.clear();
 
-    auto& tmp = std::get<std::vector<double>>(scratch);
+    auto& tmp = scratch.values;
     tmp.assign(n_cable*n_sample, 0.);
 
     sample_records.clear();
@@ -435,7 +376,7 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     sample_records.reserve(max_samples_per_call);
 
     fvm_probe_scratch scratch;
-    reserve_scratch(scratch, max_samples_per_call);
+    scratch.reserve(max_samples_per_call);
 
     for (auto& sc: call_info) {
         run_samples(sc, result.sample_time.data(), result.sample_value.data(), sample_records, scratch);
