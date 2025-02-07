@@ -157,16 +157,16 @@ void run_samples(const fvm_probe_multi& p,
                  std::vector<sample_record>& sample_records,
                  fvm_probe_scratch& scratch) {
     const sample_size_type n_raw_per_sample = p.raw_handles.size();
-    sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
-    arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
+    sample_size_type n_sample = (sc.end_offset - sc.begin_offset)/n_raw_per_sample;
+    arb_assert((sc.end_offset - sc.begin_offset) == n_sample*n_raw_per_sample);
 
     auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
     sample_ranges.clear();
     sample_records.clear();
 
     for (sample_size_type j = 0; j<n_sample; ++j) {
-        auto offset = j*n_raw_per_sample+sc.begin_offset;
-        sample_ranges.push_back({raw_samples+offset, raw_samples+offset+n_raw_per_sample});
+        auto offset = j*n_raw_per_sample + sc.begin_offset;
+        sample_ranges.push_back({raw_samples + offset, raw_samples + offset + n_raw_per_sample});
     }
 
     const auto& csample_ranges = sample_ranges;

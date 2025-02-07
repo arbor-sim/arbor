@@ -877,12 +877,14 @@ template <typename B>
 void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>& R) {
     const auto& mech = p.mechanism;
     if (!R.mech_instance_by_name.count(mech)) return;
-    const arb_value_type* data = R.mechanism_state(mech, p.state);
+
+    const auto* data = R.mechanism_state(mech, p.state);
     if (!data) return;
-    auto support = R.mechanism_support(mech);
+
+    const auto& support = R.mechanism_support(mech);
     mcable_list meta;
     std::vector<probe_handle> handles;
-    for (mlocation loc: thingify(p.locations, R.cell.provider())) {
+    for (const mlocation& loc: thingify(p.locations, R.cell.provider())) {
         if (!support.intersects(loc)) continue;
 
         auto cv = R.D.geometry.location_cv(R.cell_idx, loc, cv_prefer::cv_nonempty);
@@ -892,6 +894,8 @@ void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>&
         handles.push_back(data + *opt_i);
         meta.push_back(mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos});
     }
+    handles.shrink_to_fit();
+    meta.shrink_to_fit();
     R.result.push_back(fvm_probe_multi{.raw_handles=std::move(handles), .metadata=std::move(meta)});
 }
 
