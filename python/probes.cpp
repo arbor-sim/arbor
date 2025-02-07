@@ -51,29 +51,8 @@ protected:
     std::ptrdiff_t stride_;
 
     recorder_base(const Meta* meta_ptr, std::ptrdiff_t width):
-        meta_(*meta_ptr), stride_(1+width)
+        meta_(*meta_ptr), stride_(1 + width)
     {}
-};
-
-template <typename Meta>
-struct recorder_cable_scalar: recorder_base<Meta> {
-    using recorder_base<Meta>::sample_raw_;
-
-    void record(any_ptr, std::size_t n_sample, const arb::sample_record* records) override {
-        for (std::size_t i = 0; i < n_sample; ++i) {
-            const auto& rec = records[i];
-            if (rec.values.first == nullptr
-             || rec.values.second == nullptr
-             || rec.values.second <= rec.values.first) {
-                throw arb::arbor_internal_error("Cable recorder: empty samples");
-            }
-            sample_raw_.push_back(rec.time);
-            sample_raw_.push_back(*rec.values.first);
-        }
-    }
-
-protected:
-    recorder_cable_scalar(const Meta* meta_ptr): recorder_base<Meta>(meta_ptr, 1) {}
 };
 
 struct recorder_lif: recorder_base<arb::lif_probe_metadata> {
@@ -82,9 +61,8 @@ struct recorder_lif: recorder_base<arb::lif_probe_metadata> {
     void record(any_ptr, std::size_t n_sample, const arb::sample_record* records) override {
         for (std::size_t i = 0; i < n_sample; ++i) {
             const auto& rec = records[i];
-            if (rec.values.first == nullptr
-             || rec.values.second == nullptr
-             || rec.values.second <= rec.values.first) {
+            const auto& [lo, hi] = rec.values;
+            if (lo == nullptr || hi == nullptr || lo >= hi) {
                 throw arb::arbor_internal_error("LIF recorder: empty samples");
             }
             sample_raw_.push_back(rec.time);
@@ -103,16 +81,12 @@ struct recorder_cable_vector: recorder_base<Meta> {
     void record(any_ptr, std::size_t n_sample, const arb::sample_record* records) override {
         for (std::size_t i = 0; i < n_sample; ++i) {
             const auto& rec = records[i];
-            if (rec.values.first == nullptr
-             || rec.values.second == nullptr
-             || rec.values.second <= rec.values.first) {
+            const auto& [lo, hi] = rec.values;
+            if (lo == nullptr || hi == nullptr || lo >= hi) {
                 throw arb::arbor_internal_error("Cable recorder: empty samples");
             }
-            const auto& [lo, hi] = rec.values;
             sample_raw_.push_back(rec.time);
-            for (auto it = lo; it != hi; ++it) {
-                sample_raw_.push_back(*it);
-            }
+            for (auto it = lo; it != hi; ++it) sample_raw_.push_back(*it);
         }
     }
 

@@ -232,10 +232,10 @@ void run_samples(const fvm_probe_interpolated_multi& p,
                  fvm_probe_scratch& scratch) {
     const sample_size_type n_raw_per_sample = p.raw_handles.size();
     const sample_size_type n_interp_per_sample = n_raw_per_sample/2;
-    sample_size_type n_sample = (sc.end_offset-sc.begin_offset)/n_raw_per_sample;
-    arb_assert((sc.end_offset-sc.begin_offset)==n_sample*n_raw_per_sample);
-    arb_assert((unsigned)n_interp_per_sample==p.coef[0].size());
-    arb_assert((unsigned)n_interp_per_sample==p.coef[1].size());
+    sample_size_type n_sample = (sc.end_offset - sc.begin_offset)/n_raw_per_sample;
+    arb_assert((sc.end_offset - sc.begin_offset) == n_sample*n_raw_per_sample);
+    arb_assert((unsigned)n_interp_per_sample == p.coef[0].size());
+    arb_assert((unsigned)n_interp_per_sample == p.coef[1].size());
 
     auto& sample_ranges = std::get<std::vector<cable_sample_range>>(scratch);
     sample_ranges.clear();
@@ -245,24 +245,24 @@ void run_samples(const fvm_probe_interpolated_multi& p,
     tmp.clear();
     tmp.reserve(n_interp_per_sample*n_sample);
 
-    for (sample_size_type j = 0; j<n_sample; ++j) {
-        auto offset = j*n_raw_per_sample+sc.begin_offset;
+    for (sample_size_type j = 0; j < n_sample; ++j) {
+        auto offset = j*n_raw_per_sample + sc.begin_offset;
         const auto* raw_a = raw_samples + offset;
         const auto* raw_b = raw_a + n_interp_per_sample;
-        for (sample_size_type i = 0; i<n_interp_per_sample; ++i) {
-            tmp.push_back(raw_a[i]*p.coef[0][i]+raw_b[i]*p.coef[1][i]);
+        for (sample_size_type i = 0; i < n_interp_per_sample; ++i) {
+            tmp.push_back(raw_a[i]*p.coef[0][i] + raw_b[i]*p.coef[1][i]);
         }
     }
 
     const double* tmp_ptr = tmp.data();
-    for (sample_size_type j = 0; j<n_sample; ++j) {
-        sample_ranges.push_back({tmp_ptr, tmp_ptr+n_interp_per_sample});
+    for (sample_size_type j = 0; j < n_sample; ++j) {
+        sample_ranges.push_back({tmp_ptr, tmp_ptr + n_interp_per_sample});
         tmp_ptr += n_interp_per_sample;
     }
 
     const auto& csample_ranges = sample_ranges;
-    for (sample_size_type j = 0; j<n_sample; ++j) {
-        auto offset = j*n_interp_per_sample+sc.begin_offset;
+    for (sample_size_type j = 0; j < n_sample; ++j) {
+        auto offset = j*n_raw_per_sample + sc.begin_offset;
         sample_records.push_back(sample_record{
             .time=time_type(raw_times[offset]),
             .values=csample_ranges[j]

@@ -11,6 +11,7 @@
 #include <optional>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -747,6 +748,7 @@ void resolve_probe(const cable_probe_axial_current& p, probe_resolution_data<B>&
     meta.shrink_to_fit();
     coef_p.shrink_to_fit();
     coef_d.shrink_to_fit();
+    if (meta.empty()) return;
     res.result.push_back(fvm_probe_interpolated_multi{
             .raw_handles=std::move(handles_p),
             .coef={std::move(coef_p), std::move(coef_d)},
@@ -762,7 +764,7 @@ void resolve_probe(const cable_probe_total_ion_current_density& p, probe_resolut
     std::vector<double> coef_d;
     mcable_list meta;
     for (const mlocation& loc: thingify(p.locations, res.cell.provider())) {
-        auto cv = res.D.geometry.location_cv(res.cell_idx, loc, cv_prefer::cv_nonempty);
+        arb_index_type cv = res.D.geometry.location_cv(res.cell_idx, loc, cv_prefer::cv_nonempty);
         auto opt_i = util::binary_search_index(res.M.stimuli.cv_unique, cv);
         handles_p.push_back(res.state->current_density.data() + cv);
         handles_d.push_back(opt_i ? res.state->stim_data.accu_stim_.data()+ *opt_i: nullptr);
@@ -775,6 +777,7 @@ void resolve_probe(const cable_probe_total_ion_current_density& p, probe_resolut
     meta.shrink_to_fit();
     coef_p.shrink_to_fit();
     coef_d.shrink_to_fit();
+    if (meta.empty()) return;
     res.result.push_back(fvm_probe_interpolated_multi{
             .raw_handles=std::move(handles_p),
             .coef={std::move(coef_p), std::move(coef_d)},
@@ -806,6 +809,7 @@ void resolve_probe(const cable_probe_total_ion_current_cell& p, probe_resolution
 
     util::append(r.raw_handles, stim_handles);
     r.shrink_to_fit();
+    if (r.metadata.empty()) return;
     R.result.push_back(std::move(r));
 }
 
@@ -846,6 +850,7 @@ void resolve_probe(const cable_probe_total_current_cell& p, probe_resolution_dat
         r.stim_scale.push_back(0.001*R.D.cv_area[cv]); // Scale from [µm²·A/m²] to [nA].
     }
     r.shrink_to_fit();
+    if (r.metadata.empty()) return;
     R.result.push_back(std::move(r));
 }
 
@@ -870,6 +875,7 @@ void resolve_probe(const cable_probe_stimulus_current_cell& p, probe_resolution_
         }
     }
     r.shrink_to_fit();
+    if (r.metadata.empty()) return;
     R.result.push_back(std::move(r));
 }
 
@@ -887,7 +893,7 @@ void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>&
     for (const mlocation& loc: thingify(p.locations, R.cell.provider())) {
         if (!support.intersects(loc)) continue;
 
-        auto cv = R.D.geometry.location_cv(R.cell_idx, loc, cv_prefer::cv_nonempty);
+        arb_index_type cv = R.D.geometry.location_cv(R.cell_idx, loc, cv_prefer::cv_nonempty);
         auto opt_i = util::binary_search_index(R.M.mechanisms.at(mech).cv, cv);
         if (!opt_i) continue;
 
@@ -896,6 +902,7 @@ void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>&
     }
     handles.shrink_to_fit();
     meta.shrink_to_fit();
+    if (meta.empty()) return;
     R.result.push_back(fvm_probe_multi{.raw_handles=std::move(handles), .metadata=std::move(meta)});
 }
 

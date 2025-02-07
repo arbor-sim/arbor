@@ -580,7 +580,6 @@ void run_ion_density_probe_test(context ctx) {
     // have been silently discared. Similarly, write_ca2 is not instantiated on
     // CV 0, and so probe (0, state-s-l0) should have been discarded. All other
     // probes should be in the map.
-
     EXPECT_EQ(13u, rec.get_probes(0).size());
     EXPECT_EQ(11u, probe_map.size());
 
@@ -959,20 +958,26 @@ void run_multi_probe_test(context ctx) {
     d.paint(reg::branch(2), density("param_as_state", {{"p", 20.}}));
     d.paint(reg::branch(5), density("param_as_state", {{"p", 50.}}));
 
-    auto tracev = run_simple_sampler<double, mcable_list>(ctx, 0.1*U::ms,
-                                                          {cable_cell{m, d}},
-                                                          {0, "probe"},
-                                                          cable_probe_density_state{ls::terminal(),
-                                                                                    "param_as_state",
-                                                                                    "s"},
-                                                          {0.0*U::ms});
+    auto tracev = run_simple_sampler<std::vector<double>, mcable_list>(ctx, 0.1*U::ms,
+                                                                       {cable_cell{m, d}},
+                                                                       {0, "probe"},
+                                                                       cable_probe_density_state{ls::terminal(),
+                                                                                                 "param_as_state",
+                                                                                                 "s"},
+                                                                       {0.0*U::ms});
+    ASSERT_EQ(1u, tracev.size());
+    ASSERT_EQ(3u, tracev[0].meta.size());
 
     // Expect to have received a sample on each of the terminals of branches 1, 2, and 5.
-    ASSERT_EQ(3u, tracev.size());
-
-    // Expect a single sample per terminal
     std::vector<std::pair<mcable, double>> vals;
-    for (auto& trace: tracev) vals.emplace_back(trace.meta.at(0), trace[0].v);
+    for (auto& trace: tracev) {
+        ASSERT_EQ(3u, trace.meta.size());
+        for (size_t ix = 0; ix < trace.size(); ++ix) {
+            for (size_t iy = 0; iy < trace[ix].v.size(); ++iy) {
+                vals.emplace_back(trace.meta.at(iy), trace[ix].v[iy]);
+            }
+        }
+    }
 
     util::sort(vals);
     EXPECT_EQ((mcable{1, 1., 1.}), vals[0].first);

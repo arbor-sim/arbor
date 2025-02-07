@@ -121,8 +121,7 @@ struct trace_push_back<std::vector<V>> {
 };
 
 template <typename V, typename Meta = void>
-class simple_sampler {
-public:
+struct simple_sampler {
     explicit simple_sampler(trace_vector<V, Meta>& trace): trace_(trace) {}
 
     void operator()(probe_metadata pm, std::size_t n, const sample_record* recs) {
@@ -143,13 +142,14 @@ public:
             if (trace_.size()<=pm.index) trace_.resize(pm.index+1);
             if (trace_[pm.index].empty()) trace_[pm.index].meta = *m;
 
-            for (std::size_t i = 0; i<n; ++i) {
+            for (std::size_t i = 0; i < n; ++i) {
                 if (!trace_push_back<V>::push_back(trace_[pm.index], recs[i])) {
                     throw std::runtime_error("unexpected sample type in simple_sampler");
                 }
             }
         }
     }
+
 
 private:
     trace_vector<V, Meta>& trace_;
