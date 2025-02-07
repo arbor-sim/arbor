@@ -251,8 +251,7 @@ TEST(lif_cell_group, probe) {
                       const sample_record* samples) {
         for (std::size_t ix = 0; ix < n; ++ix) {
             const auto& [t, v] = samples[ix];
-            double u = *util::any_cast<double*>(v);
-            ums[pm.id].push_back({t, u});
+            ums[pm.id].push_back({t, *v.first});
         }
     };
     auto rec = probe_recipe{};
@@ -687,8 +686,7 @@ TEST(lif_cell_group, probe_with_connections) {
                       const sample_record* samples) {
         for (std::size_t ix = 0; ix < n; ++ix) {
             const auto& [t, v] = samples[ix];
-            double u = *util::any_cast<double*>(v);
-            ums[pm.id].push_back({t, u});
+            ums[pm.id].push_back({t, *v.first});
         }
     };
     auto rec = probe_recipe{5};

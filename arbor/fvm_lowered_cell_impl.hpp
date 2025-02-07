@@ -1054,7 +1054,7 @@ void resolve_probe(const cable_probe_ion_current_density& p, probe_resolution_da
     mcable_list meta;
     std::vector<probe_handle> handles;
     const auto data = R.state->ion_data.at(p.ion).iX_.data();
-    for (mlocation loc: thingify(p.locations, R.cell.provider())) {
+    for (const auto& loc: thingify(p.locations, R.cell.provider())) {
         auto opt_i = R.ion_location_index(p.ion, loc);
         if (!opt_i) continue;
         handles.push_back(data + *opt_i);
@@ -1103,7 +1103,7 @@ void resolve_ion_conc_common(const locset& ls,
     if (values.empty()) return;
     mcable_list meta;
     std::vector<probe_handle> handles;
-    for (mlocation loc: thingify(ls, R.cell.provider())) {
+    for (const auto& loc: thingify(ls, R.cell.provider())) {
         auto opt_i = R.ion_location_index(ion, loc);
         if (!opt_i) continue;
         handles.push_back(values.data() + *opt_i);

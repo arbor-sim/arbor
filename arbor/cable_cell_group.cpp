@@ -113,7 +113,7 @@ void run_samples(const fvm_probe_multi& p,
     const auto& csample_ranges = sample_ranges;
     for (sample_size_type j = 0; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
-        sample_records.push_back(sample_record{
+        sample_records.push_back(sample_record {
             .time=time_type(raw_times[offset]),
             .values=csample_ranges[j]});
     }
@@ -140,15 +140,15 @@ void run_samples(const fvm_probe_weighted_multi& p,
     tmp.clear();
     tmp.reserve(n_raw_per_sample*n_sample);
 
-    for (sample_size_type j = 0; j<n_sample; ++j) {
-        auto offset = j*n_raw_per_sample+sc.begin_offset;
-        for (sample_size_type i = 0; i<n_raw_per_sample; ++i) {
+    for (sample_size_type j = 0; j < n_sample; ++j) {
+        auto offset = j*n_raw_per_sample + sc.begin_offset;
+        for (sample_size_type i = 0; i < n_raw_per_sample; ++i) {
             tmp.push_back(raw_samples[offset+i]*p.weight[i]);
         }
     }
 
     const double* tmp_ptr = tmp.data();
-    for (sample_size_type j = 0; j<n_sample; ++j) {
+    for (sample_size_type j = 0; j < n_sample; ++j) {
         sample_ranges.push_back({tmp_ptr, tmp_ptr+n_raw_per_sample});
         tmp_ptr += n_raw_per_sample;
     }
@@ -156,7 +156,7 @@ void run_samples(const fvm_probe_weighted_multi& p,
     const auto& csample_ranges = sample_ranges;
     for (sample_size_type j = 0; j<n_sample; ++j) {
         auto offset = j*n_raw_per_sample+sc.begin_offset;
-        sample_records.push_back(sample_record{
+        sample_records.push_back(sample_record {
             .time=time_type(raw_times[offset]),
             .values=csample_ranges[j]
         });
