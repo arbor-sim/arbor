@@ -77,12 +77,11 @@ TEST(v_process, clamp) {
                                   const arb::sample_record* samples) {
         for (std::size_t ix = 0ul; ix < n; ++ix) {
             const auto& [t, v] = samples[ix];
-            double u = *arb::util::any_cast<const double*>(v);
             if (pm.id.tag == "Um-(0, 0.125)") {
-                u_soma.push_back({t, u});
+                u_soma.push_back({t, *v.first});
             }
             else if (pm.id.tag == "Um-(0, 0.625)") {
-                u_dend.push_back({t, u});
+                u_dend.push_back({t, *v.first});
             }
             else {
                 throw std::runtime_error{"Unexpected probe id"};
@@ -145,12 +144,11 @@ TEST(v_process, limit) {
                                   const arb::sample_record* samples) {
         for (std::size_t ix = 0ul; ix < n; ++ix) {
             const auto& [t, v] = samples[ix];
-            double u = *arb::util::any_cast<const double*>(v);
             if (pm.id.tag == "Um-(0, 0.125)") {
-                u_soma.push_back({t, u});
+                u_soma.push_back({t, *v.first});
             }
             else if (pm.id.tag == "Um-(0, 0.625)") {
-                u_dend.push_back({t, u});
+                u_dend.push_back({t, *v.first});
             }
             else {
                 throw std::runtime_error{"Unexpected probe id"};
@@ -213,12 +211,11 @@ TEST(v_process, clamp_fine) {
                                   const arb::sample_record* samples) {
         for (std::size_t ix = 0ul; ix < n; ++ix) {
             const auto& [t, v] = samples[ix];
-            double u = *arb::util::any_cast<const double*>(v);
             if (pm.id.tag == "Um-(0, 0.125)") {
-                u_soma.push_back({t, u});
+                u_soma.push_back({t, *v.first});
             }
             else if (pm.id.tag == "Um-(0, 0.625)") {
-                u_dend.push_back({t, u});
+                u_dend.push_back({t, *v.first});
             }
             else {
                 throw std::runtime_error{"Unexpected probe id"};

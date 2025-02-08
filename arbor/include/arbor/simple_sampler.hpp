@@ -25,7 +25,6 @@ struct trace_entry {
 // a copy of the probe-specific metadata associated with a probe.
 //
 // If `Meta` is void, ignore any metadata.
-
 template <typename V, typename Meta = void>
 struct trace_data: private std::vector<trace_entry<V>> {
     Meta meta;
@@ -69,12 +68,9 @@ struct trace_data<V, void>: private std::vector<trace_entry<V>> {
 //
 // The method `get(i)` returns a const reference to the ith
 // element if it exists, or else to an empty trace_data value.
-
 template <typename V, typename Meta = void>
 struct trace_vector: private std::vector<trace_data<V, Meta>> {
-    const trace_data<V, Meta>& get(std::size_t i) const {
-        return i<this->size()? (*this)[i]: empty_trace;
-    }
+    const trace_data<V, Meta>& get(std::size_t i) const { return i < this->size() ? (*this)[i] : empty_trace; }
 
     using base = std::vector<trace_data<V, Meta>>;
     using base::size;
@@ -95,15 +91,13 @@ private:
 // Add a bit of smarts for collecting variable-length samples which are
 // passed back as a pair of pointers describing a range; these can
 // be used to populate a trace of vectors.
-
 template <typename V>
 struct trace_push_back {
     template <typename Meta>
     static bool push_back(trace_data<V, Meta>& trace, const sample_record& rec) {
-        if (rec.values.first == nullptr
-         || rec.values.second == nullptr
-         || rec.values.second <= rec.values.first) return false;
-        trace.push_back({rec.time, *rec.values.first});
+        const auto& [lo, hi] = rec.values;
+        if (lo == nullptr || hi == nullptr || hi <= lo) return false;
+        trace.push_back({rec.time, *lo});
         return true;
     }
 };
@@ -112,10 +106,9 @@ template <typename V>
 struct trace_push_back<std::vector<V>> {
     template <typename Meta>
     static bool push_back(trace_data<std::vector<V>, Meta>& trace, const sample_record& rec) {
-        if (rec.values.first == nullptr
-         || rec.values.second == nullptr
-         || rec.values.second <= rec.values.first) return false;
-        trace.push_back({rec.time, std::vector<V>(rec.values.first, rec.values.second)});
+        const auto& [lo, hi] = rec.values;
+        if (lo == nullptr || hi == nullptr || hi <= lo) return false;
+        trace.push_back({rec.time, std::vector<V>(lo, hi)});
         return true;
     }
 };
@@ -125,31 +118,19 @@ struct simple_sampler {
     explicit simple_sampler(trace_vector<V, Meta>& trace): trace_(trace) {}
 
     void operator()(probe_metadata pm, std::size_t n, const sample_record* recs) {
-        if constexpr (std::is_void_v<Meta>) {
-            if (trace_.size()<=pm.index) {
-                trace_.resize(pm.index+1);
-            }
-
-            for (std::size_t i = 0; i<n; ++i) {
-                if (!trace_push_back<V>::push_back(trace_[pm.index], recs[i])) {
-                    throw std::runtime_error("unexpected sample type in simple_sampler");
-                }
-            }
-        }
-        else {
+        if constexpr (!std::is_void_v<Meta>) {
             const Meta* m = util::any_cast<const Meta*>(pm.meta);
             if (!m) throw std::runtime_error("unexpected metadata type in simple_sampler");
-            if (trace_.size()<=pm.index) trace_.resize(pm.index+1);
             if (trace_[pm.index].empty()) trace_[pm.index].meta = *m;
+        }
+        if (trace_.size() <= pm.index) trace_.resize(pm.index + 1);
 
-            for (std::size_t i = 0; i < n; ++i) {
-                if (!trace_push_back<V>::push_back(trace_[pm.index], recs[i])) {
-                    throw std::runtime_error("unexpected sample type in simple_sampler");
-                }
+        for (std::size_t i = 0; i < n; ++i) {
+            if (!trace_push_back<V>::push_back(trace_[pm.index], recs[i])) {
+                throw std::runtime_error("unexpected sample type in simple_sampler");
             }
         }
     }
-
 
 private:
     trace_vector<V, Meta>& trace_;
