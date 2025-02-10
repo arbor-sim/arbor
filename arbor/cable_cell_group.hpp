@@ -74,9 +74,6 @@ private:
 
     // Collection of samplers to be run against probes in this group.
     sampler_association_map sampler_map_;
-
-    // Mutex for thread-safe access to sampler associations.
-    std::mutex sampler_mex_;
 };
 
 } // namespace arb

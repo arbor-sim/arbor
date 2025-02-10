@@ -389,9 +389,7 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     sample_size_type n_samples = 0;
     sample_size_type max_samples_per_call = 0;
 
-    if (!sampler_map_.empty()) { // NOTE: We avoid the lock here as often as possible
-        // SAFETY: We need the lock here, as _schedule_ is not reentrant.
-        std::lock_guard<std::mutex> guard(sampler_mex_);
+    if (!sampler_map_.empty()) { // NOTE: We avoid work here as often as possible
         for (auto& [sk, sa]: sampler_map_) {
             if (sa.probeset_ids.empty()) continue; // No need to make any schedule
             auto sample_times = util::make_range(sa.sched.events(tstart, ep.t1));
@@ -457,8 +455,6 @@ void cable_cell_group::add_sampler(sampler_association_handle h,
                                    cell_member_predicate probeset_ids,
                                    schedule sched,
                                    sampler_function fn) {
-    // SAFETY? Both probe_map and sampler must be protected by this lock?!
-    std::lock_guard<std::mutex> guard(sampler_mex_);
     auto probeset = probe_map_.keys(probeset_ids);
     if (!probeset.empty()) {
         auto result = sampler_map_.insert({h, sampler_association{std::move(sched),
@@ -469,12 +465,10 @@ void cable_cell_group::add_sampler(sampler_association_handle h,
 }
 
 void cable_cell_group::remove_sampler(sampler_association_handle h) {
-    std::lock_guard<std::mutex> guard(sampler_mex_);
     sampler_map_.erase(h);
 }
 
 void cable_cell_group::remove_all_samplers() {
-    std::lock_guard<std::mutex> guard(sampler_mex_);
     sampler_map_.clear();
 }
 

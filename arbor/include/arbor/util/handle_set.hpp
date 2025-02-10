@@ -1,9 +1,7 @@
 #pragma once
 
-#include <mutex>
+#include <atomic>
 #include <stdexcept>
-#include <utility>
-#include <vector>
 
 /*
  * Manage a set of integer-valued handles.
@@ -17,25 +15,23 @@
 namespace arb {
 namespace util {
 
-template <typename Handle>
 class handle_set {
 public:
-    using value_type = Handle;
+    using value_type = std::size_t;
 
     value_type acquire() {
-        lock_guard lock(mex_);
-
-        if (top_==std::numeric_limits<Handle>::max()) {
+        auto nxt = top_.fetch_add(1);
+        // We would run into UB _next_ time, so die now.
+        if (top_ == std::numeric_limits<value_type>::max()) {
             throw std::out_of_range("no more handles");
         }
-        return top_++;
+        return nxt;
     }
 
     // Pre-requisite: h is a handle returned by
     // `acquire`, which has not been subject
     // to a subsequent `release`.
     void release(value_type h) {
-        lock_guard lock(mex_);
 
         if (h+1==top_) {
             --top_;
@@ -43,17 +39,10 @@ public:
     }
 
     // Release all handles.
-    void clear() {
-        lock_guard lock(mex_);
-
-        top_ = 0;
-    }
+    void clear() { top_.store(0); }
 
 private:
-    value_type top_ = 0;
-
-    using lock_guard = std::lock_guard<std::mutex>;
-    std::mutex mex_;
+    std::atomic<value_type> top_ = 0;
 };
 
 } // namespace util
