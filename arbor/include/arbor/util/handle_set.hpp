@@ -28,14 +28,13 @@ public:
         return nxt;
     }
 
-    // Pre-requisite: h is a handle returned by
-    // `acquire`, which has not been subject
-    // to a subsequent `release`.
+    // Pre-requisite: h is a handle returned by `acquire`, which has not been
+    // subject to a subsequent `release`.
     void release(value_type h) {
-
-        if (h+1==top_) {
-            --top_;
-        }
+        // _if_ this was the last handle to be acquire, release it.
+        value_type ex = h + 1;
+        top_.compare_exchange_strong(ex, ex - 1);
+        // if not, continue as if nothing happened.
     }
 
     // Release all handles.
