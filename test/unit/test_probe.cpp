@@ -1012,21 +1012,20 @@ void run_v_sampled_probe_test(context ctx) {
     const auto t_end = 1.*U::ms; // [ms]
     std::vector when = {0.3*U::ms, 0.6*U::ms}; // Sample at 0.3 and 0.6 ms.
 
+    auto probe = cable_probe_membrane_voltage{ls::location(probe_loc.branch,
+                                                           probe_loc.dist_pos)};
+
     auto trace0 = run_simple_sampler<double, mcable_list>(ctx, t_end, cells, {0, "Um-loc"},
-                                                          cable_probe_membrane_voltage{ls::location(probe_loc.branch,
-                                                                                                    probe_loc.dist_pos)},
+                                                          probe,
                                                           when).at(0);
     ASSERT_TRUE(trace0);
-
     EXPECT_EQ(probe_loc, trace0.meta.at(0));
     EXPECT_EQ(2u, trace0.size());
 
     auto trace1 = run_simple_sampler<double, mcable_list>(ctx, t_end, cells, {1, "Um-loc"},
-                                                          cable_probe_membrane_voltage{ls::location(probe_loc.branch,
-                                                                                                    probe_loc.dist_pos)},
+                                                          probe,
                                                           when).at(0);
     ASSERT_TRUE(trace1);
-
     EXPECT_EQ(probe_loc, trace1.meta.at(0));
     EXPECT_EQ(2u, trace1.size());
 
