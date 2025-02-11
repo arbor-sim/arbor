@@ -149,38 +149,37 @@ int main(int argc, char** argv) {
 void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
     auto* cables_ptr      = any_cast<const arb::mcable_list*>(pm.meta);
     auto* point_infos_ptr = any_cast<const std::vector<arb::cable_probe_point_info>*>(pm.meta);
-
-    unsigned n_entities = 0;
+    std::cout << std::fixed << std::setprecision(4);
     if (cables_ptr) {
-        n_entities = cables_ptr->size();
+        auto n_entities = cables_ptr->size();
+        for (std::size_t i = 0; i<n; ++i) {
+            const auto& [lo, hi] = samples[i].values;
+            assert(n_entities == hi - lo);
+            std::cout << samples[i].time << ", ";
+            for (unsigned j = 0; j < n_entities; ++j) {
+                const arb::mcable& where = cables_ptr->at(j);
+                std::cout << where.branch << ", "
+                          << where.prox_pos << ", " << where.dist_pos << ", "
+                          << lo[j] << ", ";
+            }
+            std::cout  << '\n';
+        }
     }
     else if (point_infos_ptr) {
-        n_entities = point_infos_ptr->size();
+        auto n_entities = point_infos_ptr->size();
+        for (std::size_t i = 0; i<n; ++i) {
+            const auto& [lo, hi] = samples[i].values;
+            assert(n_entities == hi - lo);
+            std::cout << samples[i].time << ", ";
+            for (unsigned j = 0; j < n_entities; ++j) {
+                const arb::mlocation& loc = point_infos_ptr->at(j).loc;
+                std::cout << loc.pos << ", " << lo[j] << ", ";
+            }
+            std::cout  << '\n';
+        }
     }
     else {
-        throw std::runtime_error{"No usable metadata found; cable cell probe expected"};
-    }
-
-    std::cout << std::fixed << std::setprecision(4);
-    for (std::size_t i = 0; i<n; ++i) {
-        const auto& [lo, hi] = samples[i].values;
-        assert(n_entities == hi - lo);
-        std::cout << samples[i].time << ", ";
-        for (unsigned j = 0; j < n_entities; ++j) {
-            if (cables_ptr) {
-                arb::mcable where = (*cables_ptr)[j];
-                std::cout << where.branch << ", " << where.prox_pos << ", " << where.dist_pos << ", ";
-            }
-            else if (point_infos_ptr) {
-                arb::mlocation loc = (*point_infos_ptr)[j].loc;
-                std::cout << loc.pos << ", ";
-            }
-            else {
-                // unreachable!
-            }
-            std::cout << lo[j] << ", ";
-        }
-        std::cout  << '\n';
+        throw std::runtime_error{"Expected cable cell probe, found " + std::string(pm.meta.type().name())};
     }
 }
 
@@ -196,7 +195,7 @@ bool parse_options(options& opt, int& argc, char** argv) {
     using probe_spec_t = std::tuple<std::string, std::function<any(std::any)>>;
     std::pair<const char*, probe_spec_t> probe_tbl[] {
         // located probes
-        {"v",            {"v",        [](std::any a) { return arb::cable_probe_membrane_voltage{arb::ls::segment_boundaries()}; }}},
+        {"v",            {"v",        [](std::any a) { return arb::cable_probe_membrane_voltage{any2loc(a)}; }}},
         {"i_axial",      {"i_axial",  [](std::any a) { return arb::cable_probe_axial_current{any2loc(a)}; }}},
         {"j_ion",        {"j_ion",    [](std::any a) { return arb::cable_probe_total_ion_current_density{any2loc(a)}; }}},
         {"j_na",         {"j_na",     [](std::any a) { return arb::cable_probe_ion_current_density{any2loc(a), "na"}; }}},
