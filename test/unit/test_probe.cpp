@@ -1408,7 +1408,7 @@ TEST(probe, get_probe_metadata) {
     auto locs = *any_cast<const mcable_list*>(mm[0].meta);
 
     util::sort(locs);
-    EXPECT_EQ(mcable(1, 1., 1.), locs[0]);
-    EXPECT_EQ(mcable(2, 1., 1.), locs[1]);
-    EXPECT_EQ(mcable(5, 1., 1.), locs[2]);
+    EXPECT_EQ((mcable{1, 1., 1.}), locs[0]);
+    EXPECT_EQ((mcable{2, 1., 1.}), locs[1]);
+    EXPECT_EQ((mcable{5, 1., 1.}), locs[2]);
 }
