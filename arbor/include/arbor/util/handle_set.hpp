@@ -22,7 +22,12 @@ public:
     value_type acquire() {
         auto nxt = top_.fetch_add(1);
         // We would run into UB _next_ time, so die now.
-        if (top_ == std::numeric_limits<value_type>::max()) {
+        // SAFETY:
+        //  1. cannot check if we have already overrun, since another thread
+        //     might already be using a wrapped value
+        //  2. we also cannot check if top == max since it might already have
+        //     been wrapped by another thread
+        if (nxt + 1 == std::numeric_limits<value_type>::max()) {
             throw std::out_of_range("no more handles");
         }
         return nxt;
