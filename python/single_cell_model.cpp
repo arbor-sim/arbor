@@ -57,18 +57,18 @@ struct trace_callback {
 
     void operator()(arb::probe_metadata md, std::size_t n, const arb::sample_record* recs) {
         // Push each (time, value) pair from the last epoch into trace_.
-        auto* loc = any_cast<const arb::mlocation*>(md.meta);
-        if (locmap_.count(*loc)) {
-            auto& trace = traces_[locmap_.at(*loc)];
+        auto* cables = any_cast<const arb::mcable_list*>(md.meta);
+        auto loc = arb::mlocation {.branch=cables->at(0).branch, .pos=cables->at(0).dist_pos};
+        if (locmap_.count(loc)) {
+            auto& trace = traces_[locmap_.at(loc)];
             for (std::size_t i = 0; i < n; ++i) {
                 const auto& rec = recs[i];
-                if (rec.values.first == nullptr
-                 || rec.values.second == nullptr
-                 || rec.values.second <= rec.values.first) {
+                const auto& [lo, hi] = rec.values;
+                if (lo == nullptr || hi == nullptr || hi <= lo) {
                     throw std::runtime_error("empty samples");
                 }
                 trace.t.push_back(rec.time);
-                trace.v.push_back(*rec.values.first);
+                trace.v.push_back(*lo);
             }
         }
     }
