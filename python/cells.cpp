@@ -600,7 +600,7 @@ void register_cells(py::module& m) {
         .def_readonly("diffusivity",            &arb::cable_cell_ion_data::diffusivity,             "Diffusivity.")
         .def_readonly("reversal_concentration", &arb::cable_cell_ion_data::init_reversal_potential, "Reversal potential.");
 
-    ion_data
+    py_ion_data
         .def_property_readonly("charge",                    [](const ion_settings& s) { return s.charge; },                    "Valence.")
         .def_property_readonly("internal_concentration",    [](const ion_settings& s) { return s.internal_concentration; },    "Internal concentration.")
         .def_property_readonly("external_concentration",    [](const ion_settings& s) { return s.external_concentration; },    "External concentration.")
