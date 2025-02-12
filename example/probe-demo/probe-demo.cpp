@@ -183,7 +183,7 @@ void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* sa
     }
 }
 
-static auto any2loc(std::any a) { return arb::mlocation(0, std::any_cast<double>(a)); }
+static auto any2loc(std::any a) -> arb::mlocation { return arb::mlocation { .branch=0, .pos=std::any_cast<double>(a) }; }
 
 bool parse_options(options& opt, int& argc, char** argv) {
     using std::get;
