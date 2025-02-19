@@ -299,12 +299,6 @@ Cable cell morphology
 
         A list of the segments.
 
-    .. method:: show
-
-        Return a string containing an ASCII rendering of the tree.
-
-        :return: string
-
 .. py:class:: morphology
 
     A *morphology* describes the geometry of a cell as unbranched cables
@@ -357,12 +351,6 @@ Cable cell morphology
 
             :param int i: branch index
             :rtype: list[msegment]
-
-    .. method:: show
-
-        Return a string containing an ASCII rendering of the morphology.
-
-        :return: string
 
 .. py:class:: place_pwlin
 
