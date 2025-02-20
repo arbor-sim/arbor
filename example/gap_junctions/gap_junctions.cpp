@@ -1,10 +1,8 @@
-/*
- * A miniapp that demonstrates how to make a model with gap junctions
- *
- */
+// A miniapp that demonstrates how to make a model with gap junctions
 
 #include <any>
 #include <fstream>
+#include <format>
 #include <iomanip>
 #include <iostream>
 
@@ -60,8 +58,11 @@ using arb::cell_size_type;
 using arb::cell_kind;
 using arb::time_type;
 
+using probe_t = arb::cable_probe_membrane_voltage;
+using sample_results = std::vector<arb::simple_sampler_result<probe_t::meta_type, probe_t::value_type>>;
+
 // Writes voltage trace as a json file.
-void write_trace_json(const std::vector<arb::trace_vector<double>>& trace, unsigned rank);
+void write_trace_json(const sample_results& traces, unsigned rank);
 
 // Generate a cell.
 arb::cable_cell gj_cell(cell_gid_type gid, unsigned ncells, double stim_duration);
@@ -141,11 +142,7 @@ int main(int argc, char** argv) {
         unsigned nt = arbenv::default_concurrency();
         int gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(arb::proc_allocation{nt, gpu_id}, MPI_COMM_WORLD);
-        {
-            int rank;
-            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            root = rank==0;
-        }
+        root = arb::rank(context) == 0;
 #else
         auto context = arb::make_context(arbenv::default_allocation());
 #endif
@@ -156,11 +153,14 @@ int main(int argc, char** argv) {
 
         std::cout << sup::mask_stream(root);
 
+        auto b2a = [](bool c) { return c ; };
+
         // Print a banner with information about hardware configuration
-        std::cout << "gpu:      " << (has_gpu(context)? "yes": "no") << "\n";
-        std::cout << "threads:  " << num_threads(context) << "\n";
-        std::cout << "mpi:      " << (has_mpi(context)? "yes": "no") << "\n";
-        std::cout << "ranks:    " << num_ranks(context) << "\n" << std::endl;
+        std::cout << std::format("gpu:      {}\n"
+                                 "threads:  {}\n"
+                                 "mpi:      {}\n"
+                                 "ranks:    {}\n",
+                                 b2a(has_gpu(context)), num_threads(context), b2a(has_mpi(context)), num_ranks(context));
 
         auto params = read_options(argc, argv);
 
@@ -179,12 +179,13 @@ int main(int argc, char** argv) {
 
         auto sched = arb::regular_schedule(0.025*U::ms);
         // This is where the voltage samples will be stored as (time, value) pairs
-        std::vector<arb::trace_vector<double>> voltage_traces(decomp.num_local_cells());
+
+        sample_results voltage_traces(decomp.num_local_cells());
 
         // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
-        unsigned j=0;
-        for (auto g : decomp.groups()) {
-            for (auto i : g.gids) {
+        unsigned j = 0;
+        for (const auto& g: decomp.groups()) {
+            for (auto i: g.gids) {
                 sim.add_sampler(arb::one_probe({i, "Um"}), sched, arb::make_simple_sampler(voltage_traces[j++]));
             }
         }
@@ -243,25 +244,18 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void write_trace_json(const std::vector<arb::trace_vector<double>>& traces, unsigned rank) {
+void write_trace_json(const sample_results& traces, unsigned rank) {
     for (unsigned i = 0; i < traces.size(); i++) {
-        std::string path = "./voltages_" + std::to_string(rank) +
-                           "_" + std::to_string(i) + ".json";
+        std::string path = std::format("./voltages_{}_{}.json", rank, i);
 
         nlohmann::json json;
-        json["name"] = "gj demo: cell " + std::to_string(i);
+        json["name"] = std::format("gj demo: cell {}", i);
         json["units"] = "mV";
-        json["cell"] = std::to_string(i);
-        json["group"] = std::to_string(rank);
+        json["cell"] = i;
+        json["group"] = rank;
         json["probe"] = "0";
-
-        auto &jt = json["data"]["time"];
-        auto &jy = json["data"]["voltage"];
-
-        for (const auto &sample: traces[i].at(0)) {
-            jt.push_back(sample.t);
-            jy.push_back(sample.v);
-        }
+        json["data"]["time"] = traces[i].time;
+        json["data"]["voltage"] = traces[i].values[0];
 
         std::ofstream file(path);
         file << std::setw(1) << json << "\n";
@@ -318,9 +312,7 @@ gap_params read_options(int argc, char** argv) {
     std::cout << "Loading parameters from file: " << fname << "\n";
     std::ifstream f(fname);
 
-    if (!f.good()) {
-        throw std::runtime_error("Unable to open input parameter file: "+fname);
-    }
+    if (!f.good()) throw std::runtime_error("Unable to open input parameter file: "+fname);
 
     nlohmann::json json;
     f >> json;

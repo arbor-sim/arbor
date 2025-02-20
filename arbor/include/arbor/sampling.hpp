@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <format>
 #include <functional>
 
 #include <arbor/common_types.hpp>
@@ -83,17 +84,23 @@ struct sample_reader {
 template<typename M, typename V>
 auto make_sample_reader(util::any_ptr apm, const sample_records& sr) {
     auto pm = util::any_cast<M*>(apm);
+    if (!pm) {
+        throw std::runtime_error{std::format("Sample reader: could not cast to metadata type; expected {}, got {}.",
+                                             typeid((M*)nullptr).name(), apm.type().name())};
+    }
+    auto val = any_cast<V*>(sr.values);
+    if (!val) {
+        throw std::runtime_error{std::format("Sample reader: could not cast to value type; expected {}, got {}.",
+                                             typeid((V*)nullptr).name(), sr.values.type().name())};
+    }
     return sample_reader<M, V> { .width=sr.width,
                                  .n_sample=sr.n_sample,
                                  .time=sr.time,
-                                 .values=any_cast<V*>(sr.values),
+                                 .values=val,
                                  .metadata=pm };
 }
 
-using sampler_function = std::function<
-    void (const probe_metadata&,
-          const sample_records& // pointer to first sample record
-         )>;
+using sampler_function = std::function<void(const probe_metadata&, const sample_records&)>;
 
 using sampler_association_handle = std::size_t;
 

@@ -44,7 +44,7 @@ struct fvm_probe_multi {
     }
 
     util::any_ptr get_metadata_ptr() const {
-        return std::visit([](const auto& x) -> util::any_ptr { return &x; }, metadata);
+        return std::visit([](const auto& x) -> util::any_ptr { return x.data(); }, metadata);
     }
 };
 
@@ -59,7 +59,7 @@ struct fvm_probe_weighted_multi {
         metadata.shrink_to_fit();
     }
 
-    util::any_ptr get_metadata_ptr() const { return &metadata; }
+    util::any_ptr get_metadata_ptr() const { return metadata.data(); }
 };
 
 struct fvm_probe_interpolated_multi {
@@ -75,7 +75,7 @@ struct fvm_probe_interpolated_multi {
     }
 
     util::any_ptr get_metadata_ptr() const {
-        return std::visit([](const auto& x) -> util::any_ptr { return &x; }, metadata);
+        return std::visit([](const auto& x) -> util::any_ptr { return x.data(); }, metadata);
     }
 };
 
@@ -103,7 +103,7 @@ struct fvm_probe_membrane_currents {
         stim_cv.shrink_to_fit();
     }
 
-    util::any_ptr get_metadata_ptr() const { return &metadata; }
+    util::any_ptr get_metadata_ptr() const { return metadata.data(); }
 };
 
 struct missing_probe_info {
@@ -111,7 +111,7 @@ struct missing_probe_info {
     std::array<probe_handle, 0> raw_handles;
     void* metadata = nullptr;
 
-    util::any_ptr get_metadata_ptr() const { return util::any_ptr{}; }
+    util::any_ptr get_metadata_ptr() const { return nullptr; }
 };
 
 struct fvm_probe_data {
