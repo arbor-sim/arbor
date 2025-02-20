@@ -35,22 +35,64 @@ struct one_tag {
 // User code is responsible for correctly determining the metadata type,
 // but the value of that metadata must be sufficient to determine the
 // correct interpretation of sample data provided to sampler callbacks.
-
 struct probe_metadata {
-    cell_address_type id; // probe id
-    unsigned index;       // index of probe source within those supplied by probe id
-    util::any_ptr meta;   // probe-specific metadata
+    cell_address_type id;  // probe id
+    unsigned index;        // index of probe source within those supplied by probe id
+    util::any_ptr meta;    // probe-specific metadata
 };
 
-struct sample_record {
-    time_type time;
-    std::pair<const double*, const double*> values = {nullptr, nullptr};
+struct sample_records {
+    std::size_t n_sample = 0;         // count of sample _rows_
+    std::size_t width = 0;            // count of sample _columns_
+    const time_type* time = nullptr;  // pointer to time data
+    std::any values;                  // resolves to pointer of probe-specific payload data D of layout D[n_sample][width]
 };
+
+// Helper class, to be specialized in each cell header, mapping from Metadata to Value types
+template <typename M>
+struct probe_value_type_of {
+    using meta_type = M;
+    using type = void;
+};
+
+template<typename M,
+         typename V// = probe_value_type_of<M>::type
+         >
+struct sample_reader {
+    using value_type = V;
+    using meta_type = M;
+
+    std::size_t width = 0;
+    std::size_t n_sample = 0;
+    const time_type* time = nullptr;
+    value_type* values = nullptr;
+    meta_type* metadata = nullptr;
+
+    // Retrieve sample value corresponding to
+    // - time=get_time(i)
+    // - location=get_metadata(j)
+    value_type get_value(std::size_t i, std::size_t j = 0) const { return values[i*width + j]; }
+
+    time_type get_time(std::size_t i) const { return values[i]; }
+
+    // meta_type get_metadata(std::size_t j, std::enable_if_t<!std::is_same_v<void, M>>) { return metadata[j]; }
+    meta_type get_metadata(std::size_t j) const { return metadata[j]; }
+};
+
+// TODO M is enough to know V!
+template<typename M, typename V>
+auto make_sample_reader(util::any_ptr apm, const sample_records& sr) {
+    auto pm = util::any_cast<M*>(apm);
+    return sample_reader<M, V> { .width=sr.width,
+                                 .n_sample=sr.n_sample,
+                                 .time=sr.time,
+                                 .values=any_cast<V*>(sr.values),
+                                 .metadata=pm };
+}
 
 using sampler_function = std::function<
-    void (probe_metadata,
-          std::size_t,          // number of sample records
-          const sample_record*  // pointer to first sample record
+    void (const probe_metadata&,
+          const sample_records& // pointer to first sample record
          )>;
 
 using sampler_association_handle = std::size_t;

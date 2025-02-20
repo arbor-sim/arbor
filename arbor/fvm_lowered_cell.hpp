@@ -36,7 +36,7 @@ namespace arb {
 // in the FVM back-end.
 struct fvm_probe_multi {
     std::vector<probe_handle> raw_handles;
-    std::variant<mcable_list, std::vector<cable_probe_point_info>> metadata;
+    std::variant<mcable_list, mlocation_list, std::vector<cable_probe_point_info>> metadata;
 
     void shrink_to_fit() {
         raw_handles.shrink_to_fit();
@@ -65,16 +65,18 @@ struct fvm_probe_weighted_multi {
 struct fvm_probe_interpolated_multi {
     std::vector<probe_handle> raw_handles; // First half take coef[0], second half coef[1].
     std::vector<double> coef[2];
-    mcable_list metadata;
+    std::variant<mcable_list, mlocation_list> metadata;
 
     void shrink_to_fit() {
         raw_handles.shrink_to_fit();
         coef[0].shrink_to_fit();
         coef[1].shrink_to_fit();
-        metadata.shrink_to_fit();
+        std::visit([](auto& v) { v.shrink_to_fit(); }, metadata);
     }
 
-    util::any_ptr get_metadata_ptr() const { return &metadata; }
+    util::any_ptr get_metadata_ptr() const {
+        return std::visit([](const auto& x) -> util::any_ptr { return &x; }, metadata);
+    }
 };
 
 // Trans-membrane currents require special handling!

@@ -30,6 +30,9 @@ struct ARB_SYMBOL_VISIBLE lif_probe_metadata {};
 
 // Voltage estimate [mV].
 // Sample value type: `double`
-struct ARB_SYMBOL_VISIBLE lif_probe_voltage {};
+struct ARB_SYMBOL_VISIBLE lif_probe_voltage {
+    using value_type = const double;
+    using meta_type = const lif_probe_metadata;
+};
 
 } // namespace arb

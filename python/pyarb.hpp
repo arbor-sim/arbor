@@ -30,7 +30,7 @@ namespace pyarb {
 // Sample recorder object interface.
 
 struct sample_recorder {
-    virtual void record(arb::util::any_ptr meta, std::size_t n_sample, const arb::sample_record* records) = 0;
+    virtual void record(arb::util::any_ptr meta, const arb::sample_records& records) = 0;
     virtual pybind11::object samples() const = 0;
     virtual pybind11::object meta() const = 0;
     virtual void reset() = 0;

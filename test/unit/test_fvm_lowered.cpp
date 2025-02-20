@@ -464,9 +464,10 @@ TEST(fvm_lowered, derived_mechs) {
         std::vector<double> samples[3];
 
         sampler_function sampler =
-            [&](probe_metadata pm, std::size_t n, const sample_record* records) {
-                for (std::size_t i = 0; i<n; ++i) {
-                    double v = *records[i].values.first;
+            [&](probe_metadata pm, const sample_records& records) {
+                auto reader = make_sample_reader<cable_state_meta_type, cable_sample_type>(pm.meta, records);
+                for (std::size_t i = 0; i < reader.n_sample; ++i) {
+                    double v = reader.get_value(i);
                     samples[pm.id.gid].push_back(v);
                 }
             };

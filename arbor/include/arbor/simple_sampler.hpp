@@ -10,138 +10,41 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
+#include <arbor/arbexcept.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/util/any_ptr.hpp>
 
 namespace arb {
 
-template <typename V>
-struct trace_entry {
-    time_type t;
-    V v;
-};
+template<typename M, typename V>
+struct simple_sampler_result {
+    std::size_t n_sample = 0;
+    std::size_t width = 0;
+    std::vector<time_type> time;
+    std::vector<std::vector<std::remove_const_t<V>>> values;
+    std::vector<std::remove_const_t<M>> metadata;
 
-// `trace_data` wraps a std::vector of trace_entry with
-// a copy of the probe-specific metadata associated with a probe.
-//
-// If `Meta` is void, ignore any metadata.
-template <typename V, typename Meta = void>
-struct trace_data: private std::vector<trace_entry<V>> {
-    Meta meta;
-    explicit operator bool() const { return !this->empty(); }
-
-    using base = std::vector<trace_entry<V>>;
-    using base::size;
-    using base::empty;
-    using base::at;
-    using base::begin;
-    using base::end;
-    using base::clear;
-    using base::resize;
-    using base::push_back;
-    using base::emplace_back;
-    using base::operator[];
-};
-
-template <typename V>
-struct trace_data<V, void>: private std::vector<trace_entry<V>> {
-    explicit operator bool() const { return !this->empty(); }
-
-    using base = std::vector<trace_entry<V>>;
-    using base::size;
-    using base::empty;
-    using base::at;
-    using base::begin;
-    using base::end;
-    using base::clear;
-    using base::resize;
-    using base::push_back;
-    using base::emplace_back;
-    using base::operator[];
-};
-
-// `trace_vector` wraps a vector of `trace_data`.
-//
-// When there are multiple probes associated with a probe id,
-// the ith element will correspond to the sample data obtained
-// from the probe with index i.
-//
-// The method `get(i)` returns a const reference to the ith
-// element if it exists, or else to an empty trace_data value.
-template <typename V, typename Meta = void>
-struct trace_vector: private std::vector<trace_data<V, Meta>> {
-    const trace_data<V, Meta>& get(std::size_t i) const { return i < this->size() ? (*this)[i] : empty_trace; }
-
-    using base = std::vector<trace_data<V, Meta>>;
-    using base::size;
-    using base::empty;
-    using base::at;
-    using base::begin;
-    using base::end;
-    using base::clear;
-    using base::resize;
-    using base::push_back;
-    using base::emplace_back;
-    using base::operator[];
-
-private:
-    trace_data<V, Meta> empty_trace;
-};
-
-// Add a bit of smarts for collecting variable-length samples which are
-// passed back as a pair of pointers describing a range; these can
-// be used to populate a trace of vectors.
-template <typename V>
-struct trace_push_back {
-    template <typename Meta>
-    static bool push_back(trace_data<V, Meta>& trace, const sample_record& rec) {
-        const auto& [lo, hi] = rec.values;
-        if (lo == nullptr || hi == nullptr || hi <= lo) return false;
-        trace.push_back({rec.time, *lo});
-        return true;
-    }
-};
-
-template <typename V>
-struct trace_push_back<std::vector<V>> {
-    template <typename Meta>
-    static bool push_back(trace_data<std::vector<V>, Meta>& trace, const sample_record& rec) {
-        const auto& [lo, hi] = rec.values;
-        if (lo == nullptr || hi == nullptr || hi <= lo) return false;
-        trace.push_back({rec.time, std::vector<V>(lo, hi)});
-        return true;
-    }
-};
-
-template <typename V, typename Meta = void>
-struct simple_sampler {
-    explicit simple_sampler(trace_vector<V, Meta>& trace): trace_(trace) {}
-
-    void operator()(probe_metadata pm, std::size_t n, const sample_record* recs) {
-        auto idx = pm.index;
-        if (trace_.size() <= idx) trace_.resize(idx + 1);
-        if constexpr (!std::is_void_v<Meta>) {
-            if (trace_[idx].empty()) {
-                const Meta* m = util::any_cast<const Meta*>(pm.meta);
-                if (!m) throw std::runtime_error("unexpected metadata type in simple_sampler");
-                trace_[idx].meta = *m;
-            }
-        }
-
-        for (std::size_t i = 0; i < n; ++i) {
-            if (!trace_push_back<V>::push_back(trace_[idx], recs[i])) {
-                throw std::runtime_error("unexpected sample type in simple_sampler");
+    void from_reader(const sample_reader<M, V>& reader) {
+        n_sample = reader.n_sample;
+        width = reader.width;
+        values.resize(width);
+        for (std::size_t ix = 0ul; ix < reader.n_sample; ++ix) {
+            time.push_back(reader.get_time(ix));
+            metadata.push_back(reader.get_metadata(ix));
+            for (std::size_t iy = 0ul; iy < reader.n_sample; ++iy) {
+                auto v = reader.get_value(ix, iy);
+                values[iy].push_back(v);
             }
         }
     }
-
-private:
-    trace_vector<V, Meta>& trace_;
 };
 
-template <typename V, typename Meta>
-inline simple_sampler<V, Meta> make_simple_sampler(trace_vector<V, Meta>& trace) {
-    return simple_sampler<V, Meta>(trace);
+template <typename M, typename V>
+auto make_simple_sampler(simple_sampler_result<M, V>& trace) {
+    return [&trace](const probe_metadata& pm, const sample_records& recs) {
+        auto reader = make_sample_reader<M, V>(pm.meta, recs);
+        trace.from_reader(reader);
+    };
 }
 
 } // namespace arb

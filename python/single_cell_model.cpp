@@ -55,20 +55,20 @@ struct trace_callback {
 
     trace_callback(std::vector<trace>& ts, const std::unordered_map<arb::mlocation, size_t>& ls): traces_(ts), locmap_(ls) {}
 
-    void operator()(arb::probe_metadata md, std::size_t n, const arb::sample_record* recs) {
-        // Push each (time, value) pair from the last epoch into trace_.
-        auto* cables = any_cast<const arb::mcable_list*>(md.meta);
-        auto loc = arb::mlocation {.branch=cables->at(0).branch, .pos=cables->at(0).dist_pos};
-        if (locmap_.count(loc)) {
-            auto& trace = traces_[locmap_.at(loc)];
-            for (std::size_t i = 0; i < n; ++i) {
-                const auto& rec = recs[i];
-                const auto& [lo, hi] = rec.values;
-                if (lo == nullptr || hi == nullptr || hi <= lo) {
-                    throw std::runtime_error("empty samples");
+    void operator()(arb::probe_metadata pm, const arb::sample_records& recs) {
+        auto reader = arb::make_sample_reader<arb::cable_state_meta_type,
+                                              arb::cable_sample_type>(pm.meta, recs);
+
+        for (std::size_t j = 0; j < reader.width; ++j) {
+            const auto& loc = reader.get_metadata(j);
+            if (locmap_.count(loc)) {
+                auto& trace = traces_[locmap_.at(loc)];
+                for (std::size_t i = 0; i < reader.n_sample; ++i) {
+                    auto time = reader.get_time(i);
+                    auto value = reader.get_value(i, j);
+                    trace.t.push_back(time);
+                    trace.v.push_back(value);
                 }
-                trace.t.push_back(rec.time);
-                trace.v.push_back(*lo);
             }
         }
     }

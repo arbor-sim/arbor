@@ -58,15 +58,14 @@ protected:
 struct recorder_lif: recorder_base<arb::lif_probe_metadata> {
     using recorder_base<arb::lif_probe_metadata>::sample_raw_;
 
-    void record(any_ptr, std::size_t n_sample, const arb::sample_record* records) override {
-        for (std::size_t i = 0; i < n_sample; ++i) {
-            const auto& rec = records[i];
-            const auto& [lo, hi] = rec.values;
-            if (lo == nullptr || hi == nullptr || lo >= hi) {
-                throw arb::arbor_internal_error("LIF recorder: empty samples");
-            }
-            sample_raw_.push_back(rec.time);
-            sample_raw_.push_back(*rec.values.first);
+    void record(any_ptr pm, const arb::sample_records& records) override {
+        auto reader = arb::make_sample_reader<arb::lif_probe_voltage::meta_type,
+                                              arb::lif_probe_voltage::value_type>(pm, records);
+        for (std::size_t ix = 0; ix < reader.n_sample; ++ix) {
+            auto t = reader.get_time(ix);
+            sample_raw_.push_back(t);
+            auto v = reader.get_value(ix);
+            sample_raw_.push_back(v);
         }
     }
 
@@ -78,15 +77,15 @@ template <typename Meta>
 struct recorder_cable_vector: recorder_base<Meta> {
     using recorder_base<Meta>::sample_raw_;
 
-    void record(any_ptr, std::size_t n_sample, const arb::sample_record* records) override {
-        for (std::size_t i = 0; i < n_sample; ++i) {
-            const auto& rec = records[i];
-            const auto& [lo, hi] = rec.values;
-            if (lo == nullptr || hi == nullptr || lo >= hi) {
-                throw arb::arbor_internal_error("Cable recorder: empty samples");
+    void record(any_ptr pm, const arb::sample_records& records) override {
+        auto reader = arb::make_sample_reader<Meta, arb::cable_sample_type>(pm, records);
+        for (std::size_t ix = 0; ix < reader.n_sample; ++ix) {
+            auto t = reader.get_time(ix);
+            sample_raw_.push_back(t);
+            for (std::size_t iy = 0; iy < reader.width; ++iy) {
+                auto v = reader.get_value(ix, iy);
+                sample_raw_.push_back(v);
             }
-            sample_raw_.push_back(rec.time);
-            for (auto it = lo; it != hi; ++it) sample_raw_.push_back(*it);
         }
     }
 

@@ -687,14 +687,14 @@ void resolve_probe(const cable_probe_membrane_voltage& p, probe_resolution_data<
     std::vector<probe_handle> handles_p, handles_d;
     std::vector<double> coef_p;
     std::vector<double> coef_d;
-    mcable_list meta;
+    mlocation_list meta;
     for (const mlocation& loc: thingify(p.locations, res.cell.provider())) {
         const auto& in = fvm_interpolate_voltage(res.cell, res.D, res.cell_idx, loc);
         handles_p.push_back(data + in.proximal_cv);
         handles_d.push_back(data + in.distal_cv);
         coef_p.push_back(in.proximal_coef);
         coef_d.push_back(in.distal_coef);
-        meta.push_back(mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos});
+        meta.push_back(loc);
     }
     util::append(handles_p, handles_d);
     handles_p.shrink_to_fit();
@@ -712,7 +712,6 @@ template <typename B>
 void resolve_probe(const cable_probe_membrane_voltage_cell& p, probe_resolution_data<B>& R) {
     fvm_probe_multi r;
     mcable_list cables;
-
     for (auto cv: R.D.geometry.cell_cvs(R.cell_idx)) {
         const double* ptr = R.state->voltage.data()+cv;
         for (auto cable: R.D.geometry.cables(cv)) {
@@ -722,7 +721,6 @@ void resolve_probe(const cable_probe_membrane_voltage_cell& p, probe_resolution_
     }
     r.metadata = std::move(cables);
     r.shrink_to_fit();
-
     R.result.push_back(std::move(r));
 }
 
@@ -733,14 +731,14 @@ void resolve_probe(const cable_probe_axial_current& p, probe_resolution_data<B>&
     std::vector<probe_handle> handles_p, handles_d;
     std::vector<double> coef_p;
     std::vector<double> coef_d;
-    mcable_list meta;
+    mlocation_list meta;
     for (const mlocation& loc: thingify(p.locations, res.cell.provider())) {
         const auto& in = fvm_axial_current(res.cell, res.D, res.cell_idx, loc);
         handles_p.push_back(data + in.proximal_cv);
         handles_d.push_back(data + in.distal_cv);
         coef_p.push_back(in.proximal_coef);
         coef_d.push_back(in.distal_coef);
-        meta.push_back(mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos});
+        meta.push_back(loc);
     }
     util::append(handles_p, handles_d);
     handles_p.shrink_to_fit();
@@ -761,7 +759,7 @@ void resolve_probe(const cable_probe_total_ion_current_density& p, probe_resolut
     std::vector<probe_handle> handles_p, handles_d;
     std::vector<double> coef_p;
     std::vector<double> coef_d;
-    mcable_list meta;
+    mlocation_list meta;
     for (const mlocation& loc: thingify(p.locations, res.cell.provider())) {
         arb_index_type cv = res.D.geometry.location_cv(res.cell_idx, loc, cv_prefer::cv_nonempty);
         auto opt_i = util::binary_search_index(res.M.stimuli.cv_unique, cv);
@@ -769,7 +767,7 @@ void resolve_probe(const cable_probe_total_ion_current_density& p, probe_resolut
         handles_d.push_back(opt_i ? res.state->stim_data.accu_stim_.data()+ *opt_i: nullptr);
         coef_p.push_back( 1.0);
         coef_d.push_back(-1.0);
-        meta.push_back(mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos});
+        meta.push_back(loc);
     }
     util::append(handles_p, handles_d);
     handles_p.shrink_to_fit();
@@ -788,7 +786,7 @@ template <typename B>
 void resolve_probe(const cable_probe_total_ion_current_cell& p, probe_resolution_data<B>& R) {
     fvm_probe_interpolated_multi r;
     std::vector<const double*> stim_handles;
-
+    mcable_list meta;
     for (auto cv: R.D.geometry.cell_cvs(R.cell_idx)) {
         const double* current_cv_ptr = R.state->current_density.data()+cv;
         auto opt_i = util::binary_search_index(R.M.stimuli.cv_unique, cv);
@@ -801,14 +799,14 @@ void resolve_probe(const cable_probe_total_ion_current_cell& p, probe_resolution
                 stim_handles.push_back(stim_cv_ptr);
                 r.coef[0].push_back(0.001*area); // Scale from [µm²·A/m²] to [nA].
                 r.coef[1].push_back(-r.coef[0].back());
-                r.metadata.push_back(cable);
+                meta.push_back(cable);
             }
         }
     }
-
+    if (meta.empty()) return;
+    r.metadata = std::move(meta);
     util::append(r.raw_handles, stim_handles);
     r.shrink_to_fit();
-    if (r.metadata.empty()) return;
     R.result.push_back(std::move(r));
 }
 
@@ -887,7 +885,7 @@ void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>&
     if (!data) return;
 
     const auto& support = R.mechanism_support(mech);
-    mcable_list meta;
+    mlocation_list meta;
     std::vector<probe_handle> handles;
     for (const mlocation& loc: thingify(p.locations, R.cell.provider())) {
         if (!support.intersects(loc)) continue;
@@ -897,7 +895,7 @@ void resolve_probe(const cable_probe_density_state& p, probe_resolution_data<B>&
         if (!opt_i) continue;
 
         handles.push_back(data + *opt_i);
-        meta.push_back(mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos});
+        meta.push_back(loc);
     }
     handles.shrink_to_fit();
     meta.shrink_to_fit();
@@ -1051,14 +1049,14 @@ void resolve_probe(const cable_probe_point_state_cell& p, probe_resolution_data<
 template <typename B>
 void resolve_probe(const cable_probe_ion_current_density& p, probe_resolution_data<B>& R) {
     if(!R.state->ion_data.count(p.ion)) return;
-    mcable_list meta;
+    mlocation_list meta;
     std::vector<probe_handle> handles;
     const auto data = R.state->ion_data.at(p.ion).iX_.data();
     for (const auto& loc: thingify(p.locations, R.cell.provider())) {
         auto opt_i = R.ion_location_index(p.ion, loc);
         if (!opt_i) continue;
         handles.push_back(data + *opt_i);
-        meta.push_back(mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos});
+        meta.push_back(loc);
     }
     if (meta.empty()) return;
     meta.shrink_to_fit();
@@ -1101,13 +1099,13 @@ void resolve_ion_conc_common(const locset& ls,
                              const typename B::array& values,
                              probe_resolution_data<B>& R) {
     if (values.empty()) return;
-    mcable_list meta;
+    mlocation_list meta;
     std::vector<probe_handle> handles;
     for (const auto& loc: thingify(ls, R.cell.provider())) {
         auto opt_i = R.ion_location_index(ion, loc);
         if (!opt_i) continue;
         handles.push_back(values.data() + *opt_i);
-        meta.push_back(mcable{.branch=loc.branch, .prox_pos=loc.pos, .dist_pos=loc.pos});
+        meta.push_back(loc);
     }
     if (meta.empty()) return;
     meta.shrink_to_fit();

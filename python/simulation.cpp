@@ -42,9 +42,7 @@ class simulation_shim {
     struct sampler_callback {
         std::shared_ptr<sample_recorder_vec> recorders;
 
-        void operator()(arb::probe_metadata pm, std::size_t n_record, const arb::sample_record* records) {
-            recorders->at(pm.index)->record(pm.meta, n_record, records);
-        }
+        void operator()(arb::probe_metadata pm, const arb::sample_records& records) { recorders->at(pm.index)->record(pm.meta, records); }
 
         py::list samples() const {
             std::size_t size = recorders->size();
@@ -61,8 +59,7 @@ class simulation_shim {
 
 public:
     simulation_shim(std::shared_ptr<recipe>& rec, const context_shim& ctx, const arb::domain_decomposition& decomp, std::uint64_t seed, pyarb_global_ptr global_ptr):
-        global_ptr_(global_ptr)
-    {
+        global_ptr_(global_ptr) {
         try {
             sim_.reset(new arb::simulation(recipe_shim(rec), ctx.context, decomp, seed));
         }

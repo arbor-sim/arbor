@@ -847,38 +847,32 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
     std::vector<double> i_memb(n_cv), i_stim(n_cv);
 
     sim.add_sampler(all_probes, explicit_schedule(std::vector{20*tau}),
-        [&](probe_metadata pm,
-            std::size_t n_sample,
-            const sample_record* samples) {
+        [&](probe_metadata pm, const sample_records& recs) {
             // Expect exactly one sample.
-            ASSERT_EQ(1u, n_sample);
+            ASSERT_EQ(1u, recs.n_sample);
 
             if (pm.id.tag == "I-total") {
-                auto m = any_cast<const mcable_list*>(pm.meta);
-                ASSERT_NE(nullptr, m);
+                using probe_t = cable_probe_ion_current_cell;
+                auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, recs);
                 // Metadata should comprise one cable per CV.
-                ASSERT_EQ(n_cv, m->size());
-                const auto& [s_beg, s_end] = samples->values;
-                ASSERT_EQ(s_end - s_beg, n_cv);
-                for (unsigned ix = 0; ix < n_cv; ++ix) i_memb[ix] = s_beg[ix];
+                ASSERT_EQ(n_cv, reader.width);
+                for (unsigned iy = 0; iy < n_cv; ++iy) i_memb[iy] = reader.get_value(0, iy);
             }
             else if (pm.id.tag == "I-stimulus") {
-                auto m = any_cast<const mcable_list*>(pm.meta);
-                ASSERT_NE(nullptr, m);
+                using probe_t = cable_probe_stimulus_current_cell;
+                auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, recs);
                 // Metadata should comprise one cable per CV.
-                ASSERT_EQ(n_cv, m->size());
-                const auto& [s_beg, s_end] = samples->values;
-                ASSERT_EQ(s_end - s_beg, n_cv);
-                for (unsigned ix = 0; ix < n_cv; ++ix) i_stim[ix] = s_beg[ix];
+                ASSERT_EQ(n_cv, reader.width);
+                for (unsigned iy = 0; iy < n_cv; ++iy) i_stim[iy] = reader.get_value(0, iy);
             }
             else {
+                ASSERT_EQ(recs.width, 1u);
                 // Probe id tells us which axial current this is.
                 ASSERT_LT(indices.count(pm.id.tag), n_axial_probe);
                 auto idx = indices.at(pm.id.tag);
-                auto m = any_cast<const mcable_list*>(pm.meta);
-                ASSERT_NE(nullptr, m);
-                const auto& [s_beg, s_end] = samples->values;
-                i_axial.at(idx) = *s_beg;
+                using probe_t = cable_probe_axial_current;
+                auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, recs);
+                i_axial.at(idx) = reader.get_value(0, 0);
             }
         });
 
@@ -907,41 +901,28 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
 //
 // Use the default mechanism catalogue augmented by unit test specific mechanisms.
 // (Timestep fixed at 0.025 ms).
-
-template <typename SampleMeta = void>
-auto run_simple_samplers(const arb::context& ctx,
+template <typename P>
+auto run_simple_sampler(const arb::context& ctx,
                          U::quantity t_end,
                          const std::vector<cable_cell>& cells,
-                         const cell_address_type& probe,
-                         const std::vector<std::any>& probe_addrs,
+                         const cell_address_type& where,
+                         const P& probe,
                          const std::vector<U::quantity>& when) {
     cable1d_recipe rec(cells, false);
     rec.catalogue() = make_unit_test_catalogue(global_default_catalogue());
-    unsigned n_probe = probe_addrs.size();
-    for (auto& addr: probe_addrs) rec.add_probe(probe.gid, probe.tag, addr);
+
+    rec.add_probe(where.gid, where.tag, probe);
 
     partition_hint_map phints = {{cell_kind::cable, {partition_hint::max_size, partition_hint::max_size, true}}};
     simulation sim(rec, ctx, partition_load_balance(rec, ctx, phints));
 
-    std::vector<trace_vector<std::vector<double>, SampleMeta>> traces(n_probe);
-    for (unsigned i = 0; i<n_probe; ++i) {
-        sim.add_sampler(one_probe(probe),
-                        explicit_schedule(when),
-                        make_simple_sampler(traces[i]));
-    }
+    arb::simple_sampler_result<typename P::meta_type, typename P::value_type> trace;
+    sim.add_sampler(one_probe(where),
+                    explicit_schedule(when),
+                    make_simple_sampler(trace));
 
     sim.run(t_end, 0.025*U::ms);
-    return traces;
-}
-
-template <typename SampleMeta = void>
-auto run_simple_sampler(const arb::context& ctx,
-                        U::quantity t_end,
-                        const std::vector<cable_cell>& cells,
-                        const cell_address_type& probe,
-                        const std::any& probe_addr,
-                        const std::vector<U::quantity>& when) {
-    return run_simple_samplers<SampleMeta>(ctx, t_end, cells, probe, {probe_addr}, when).at(0);
+    return trace;
 }
 
 template <typename Backend>
@@ -951,36 +932,30 @@ void run_multi_probe_test(context ctx) {
 
     // m_mlt_b6 has terminal branches 1, 2, 4, and 5.
     auto m = common_morphology::m_mlt_b6;
-    decor d;
-
     // Paint mechanism on branches 1, 2, and 5, omitting branch 4.
-    d.paint(reg::branch(1), density("param_as_state", {{"p", 10.}}));
-    d.paint(reg::branch(2), density("param_as_state", {{"p", 20.}}));
-    d.paint(reg::branch(5), density("param_as_state", {{"p", 50.}}));
+    auto d =  decor{}
+        .paint(reg::branch(1), density("param_as_state", {{"p", 10.}}))
+        .paint(reg::branch(2), density("param_as_state", {{"p", 20.}}))
+        .paint(reg::branch(5), density("param_as_state", {{"p", 50.}}));
 
-    auto tracev = run_simple_sampler<mcable_list>(ctx, 0.1*U::ms, {cable_cell{m, d}},
-                                                  {0, "probe"}, cable_probe_density_state{ls::terminal(),
-                                                                                          "param_as_state",
-                                                                                          "s"},
-                                                  {0.0*U::ms});
-    ASSERT_EQ(1u, tracev.size());
-    ASSERT_EQ(3u, tracev[0].meta.size());
+    auto trace = run_simple_sampler(ctx, 0.1*U::ms, {cable_cell{m, d}},
+                                    {0, "probe"}, cable_probe_density_state{ ls::terminal(), "param_as_state", "s"},
+                                    {0.0*U::ms});
+    ASSERT_EQ(1u, trace.values.size());
+    ASSERT_EQ(3u, trace.metadata.size());
 
     // Expect to have received a sample on each of the terminals of branches 1, 2, and 5.
-    std::vector<std::pair<mcable, double>> vals;
-    for (auto& trace: tracev) {
-        ASSERT_EQ(3u, trace.meta.size());
-        for (size_t ix = 0; ix < trace.size(); ++ix) {
-            for (size_t iy = 0; iy < trace[ix].v.size(); ++iy) {
-                vals.emplace_back(trace.meta.at(iy), trace[ix].v[iy]);
-            }
+    std::vector<std::pair<mlocation, double>> vals;
+    for (size_t ix = 0; ix < trace.n_sample; ++ix) {
+        for (size_t iy = 0; iy < trace.width; ++iy) {
+            vals.emplace_back(trace.metadata.at(iy), trace.values[ix][iy]);
         }
     }
 
     util::sort(vals);
-    EXPECT_EQ((mcable{1, 1., 1.}), vals[0].first);
-    EXPECT_EQ((mcable{2, 1., 1.}), vals[1].first);
-    EXPECT_EQ((mcable{5, 1., 1.}), vals[2].first);
+    EXPECT_EQ((mlocation{1, 1.}), vals[0].first);
+    EXPECT_EQ((mlocation{2, 1.}), vals[1].first);
+    EXPECT_EQ((mlocation{5, 1.}), vals[2].first);
     EXPECT_EQ(10., vals[0].second);
     EXPECT_EQ(20., vals[1].second);
     EXPECT_EQ(50., vals[2].second);
@@ -1003,35 +978,28 @@ void run_v_sampled_probe_test(context ctx) {
 
     d0.place(mlocation{1, 1}, i_clamp::box(0*U::ms, 0.5*U::ms, 1.*U::nA), "clamp0");
     d1.place(mlocation{1, 1}, i_clamp::box(0*U::ms, 1.0*U::ms, 1.*U::nA), "clamp1");
-    mcable probe_loc{1, 0.2, 0.2};
+    mlocation probe_loc{1, 0.2};
 
     std::vector<cable_cell> cells = {{bs.morph, d0, bs.labels}, {bs.morph, d1, bs.labels}};
 
     const auto t_end = 1.*U::ms; // [ms]
     std::vector when = {0.3*U::ms, 0.6*U::ms}; // Sample at 0.3 and 0.6 ms.
 
-    auto probe = cable_probe_membrane_voltage{ls::location(probe_loc.branch,
-                                                           probe_loc.dist_pos)};
+    auto probe = cable_probe_membrane_voltage{ls::location(probe_loc)};
 
-    auto trace0 = run_simple_sampler<mcable_list>(ctx, t_end, cells,
-                                                  {0, "Um-loc"}, probe,
-                                                  when).at(0);
-    ASSERT_TRUE(trace0);
-    EXPECT_EQ(probe_loc, trace0.meta.at(0));
-    EXPECT_EQ(2u, trace0.size());
+    auto trace0 = run_simple_sampler(ctx, t_end, cells, {0, "Um-loc"}, probe, when);
+    EXPECT_EQ(probe_loc, trace0.metadata.at(0));
+    EXPECT_EQ(2u, trace0.values.size());
 
-    auto trace1 = run_simple_sampler<mcable_list>(ctx, t_end, cells,
-                                                  {1, "Um-loc"}, probe,
-                                                  when).at(0);
-    ASSERT_TRUE(trace1);
-    EXPECT_EQ(probe_loc, trace1.meta.at(0));
-    EXPECT_EQ(2u, trace1.size());
+    auto trace1 = run_simple_sampler(ctx, t_end, cells, {1, "Um-loc"}, probe, when);
+    EXPECT_EQ(probe_loc, trace1.metadata.at(0));
+    EXPECT_EQ(2u, trace1.values.size());
 
-    EXPECT_EQ(trace0[0].t, trace1[0].t);
-    EXPECT_EQ(trace0[0].v, trace1[0].v);
+    EXPECT_EQ(trace0.time[0], trace1.time[0]);
+    EXPECT_EQ(trace0.values[0], trace1.values[0]);
 
-    EXPECT_EQ(trace0[1].t, trace1[1].t);
-    EXPECT_NE(trace0[1].v, trace1[1].v);
+    EXPECT_EQ(trace0.time[1], trace1.time[1]);
+    EXPECT_NE(trace0.values[1], trace1.values[1]);
 }
 
 
@@ -1069,38 +1037,42 @@ void run_total_current_probe_test(context ctx) {
     // at the fork points, and once with a non-trivial CV centred on the fork
     // point.
 
-    trace_data<std::vector<double>, mcable_list> traces[2];
-    trace_data<std::vector<double>, mcable_list> ion_traces[2];
-    trace_data<std::vector<double>, mcable_list> stim_traces[2];
+    std::vector<simple_sampler_result<cable_state_cell_meta_type, cable_sample_type>> traces(2);
+    std::vector<simple_sampler_result<cable_state_cell_meta_type, cable_sample_type>> ion_traces(2);
+    std::vector<simple_sampler_result<cable_state_cell_meta_type, cable_sample_type>> stim_traces(2);
 
     // Run the cells sampling at τ and 20τ for both total membrane
     // current and total membrane ionic current.
-
     auto run_cells = [&](bool interior_forks) {
         auto flags = interior_forks? cv_policy_flag::interior_forks: cv_policy_flag::none;
         cv_policy policy = cv_policy_fixed_per_branch(n_cv_per_branch, flags);
         std::vector<cable_cell> cells = {{m, d0, {}, policy}, {m, d1, {}, policy}};
 
 
-        for (unsigned i = 0; i<2; ++i) {
+        for (unsigned i = 0; i < 2; ++i) {
             SCOPED_TRACE(i);
+
+            auto& trace      = traces[i];
+            auto& ion_trace  = ion_traces[i];
+            auto& stim_trace = stim_traces[i];
 
             auto t_end = 21*tau; // [ms]
 
-            traces[i] = run_simple_sampler<mcable_list>(ctx, t_end, cells,
-                                                        {i, "Itotal"}, cable_probe_total_current_cell{},
-                                                        {tau, 20*tau}).at(0);
+            trace = run_simple_sampler(ctx, t_end, cells,
+                                       {i, "Itotal"}, cable_probe_total_current_cell{},
+                                       {tau, 20*tau});
 
-            ion_traces[i] = run_simple_sampler<mcable_list>(ctx, t_end, cells,
-                                                            {i, "Iion"}, cable_probe_total_ion_current_cell{},
-                                                            {tau, 20*tau}).at(0);
+            ion_trace = run_simple_sampler(ctx, t_end, cells,
+                                           {i, "Iion"}, cable_probe_total_ion_current_cell{},
+                                           {tau, 20*tau});
 
-            stim_traces[i] = run_simple_sampler<mcable_list>(ctx, t_end, cells,
-                                                             {i, "Istim"}, cable_probe_stimulus_current_cell{},
-                                                             {tau, 20*tau}).at(0);
+            stim_trace = run_simple_sampler(ctx, t_end, cells,
+                                            {i, "Istim"}, cable_probe_stimulus_current_cell{},
+                                            {tau, 20*tau});
 
-            ASSERT_EQ(2u, traces[i].size());
-            ASSERT_EQ(2u, ion_traces[i].size());
+            ASSERT_EQ(2u, trace.n_sample);
+            ASSERT_EQ(2u, ion_trace.n_sample);
+            ASSERT_EQ(2u, stim_trace.n_sample);
 
             // Check metadata size:
             //  * With trivial forks, should have n_cv_per_branch*n_branch cables; zero-length cables
@@ -1110,23 +1082,24 @@ void run_total_current_probe_test(context ctx) {
             //
             // Total membrane current and total ionic mebrane current should have the
             // same support and same metadata.
+            ASSERT_EQ((n_cv_per_branch + (int)interior_forks)*n_branch, traces[i].width);
 
-            ASSERT_EQ((n_cv_per_branch+(int)interior_forks)*n_branch, traces[i].meta.size());
-            ASSERT_EQ(ion_traces[i].meta, traces[i].meta);
-            EXPECT_EQ(ion_traces[i][0].v.size(), traces[i][0].v.size());
-            EXPECT_EQ(ion_traces[i][1].v.size(), traces[i][1].v.size());
+            ASSERT_EQ(ion_trace.width, trace.width);
+            ASSERT_EQ(ion_trace.metadata, trace.metadata);
+            for (std::size_t ix = 0; ix < trace.width; ++ix) {
+                EXPECT_EQ(ion_trace.values[ix].size(), trace.values[ix].size());
+            }
 
             // Check total membrane currents + stimulus currents are individually non-zero, but sum is,
             // both at t=τ (j=0) and t=20τ (j=1).
 
-            ASSERT_EQ(ion_traces[i].meta, stim_traces[i].meta);
-
-            for (unsigned j: {0u, 1u}) {
+            ASSERT_EQ(ion_traces[i].metadata, stim_traces[i].metadata);
+            for (unsigned j: util::make_span(2)) {
                 double max_abs_current = 0;
                 double sum_current = 0;
-                for (auto k: util::count_along(traces[i].meta)) {
-                    double current = traces[i][j].v[k] + stim_traces[i][j].v[k];
-
+                
+                for (auto k: util::make_span(trace.width)) {
+                    double current = trace.values[j][k] + stim_trace.values[j][k];
                     EXPECT_NE(0.0, current);
                     max_abs_current = std::max(max_abs_current, std::abs(current));
                     sum_current += current;
@@ -1136,23 +1109,22 @@ void run_total_current_probe_test(context ctx) {
             }
 
             // Confirm that total (non-stim) and ion currents differ at τ but are close at 20τ.
-
-            for (unsigned k = 0; k<traces[i].size(); ++k) {
+            // TODO Check that we transcribed the width/length correctly
+            for (auto k: util::make_span(trace.n_sample)) {
                 const double rtol_large = 1e-3;
-                EXPECT_FALSE(testing::near_relative(traces[i][0].v.at(k), ion_traces[i][0].v.at(k), rtol_large));
+                EXPECT_FALSE(testing::near_relative(trace.values[0][k], ion_trace.values[0][k], rtol_large));
             }
 
-            for (unsigned k = 0; k<traces[i].size(); ++k) {
+            for (unsigned k = 0; k<trace.n_sample; ++k) {
                 const double rtol_small = 1e-6;
-                EXPECT_TRUE(testing::near_relative(traces[i][1].v.at(k), ion_traces[i][1].v.at(k), rtol_small));
+                EXPECT_TRUE( testing::near_relative(trace.values[1][k], ion_trace.values[1][k], rtol_small));
             }
 
         }
 
         // Total membrane currents should differ between the two cells at t=τ.
-
-        for (unsigned k = 0; k<traces[0][0].v.size(); ++k) {
-            EXPECT_NE(traces[0][0].v.at(k), traces[1][0].v.at(k));
+        for (unsigned k = 0; k < traces[0].n_sample; ++k) {
+            EXPECT_NE(traces[0].values[0][k], traces[1].values[0][k]);
         }
     };
 
@@ -1192,26 +1164,28 @@ void run_stimulus_probe_test(context ctx) {
 
     // Sample the cells during the stimulus, and after.
 
-    trace_data<std::vector<double>, mcable_list> traces[2];
+
+    using probe_t = cable_probe_stimulus_current_cell;
+
+    simple_sampler_result<probe_t::meta_type, probe_t::value_type> traces[2];
 
     for (unsigned i: {0u, 1u}) {
-        traces[i] = run_simple_sampler<mcable_list>(ctx, 2.5*stim_until, cells,
-                                                    {i, "Istim"}, cable_probe_stimulus_current_cell{},
-                                                    {0.5*stim_until, 2*stim_until}).at(0);
+        traces[i] = run_simple_sampler<probe_t>(ctx, 2.5*stim_until, cells,
+                                                {i, "Istim"}, probe_t{},
+                                                {0.5*stim_until, 2*stim_until});
 
-        ASSERT_EQ(3u, traces[i].meta.size());
+        ASSERT_EQ(3u, traces[i].width);
         for ([[maybe_unused]] unsigned cv: {0u, 1u, 2u}) {
-            ASSERT_EQ(2u, traces[i].size());
+            ASSERT_EQ(2u, traces[i].values[3].size());
         }
     }
 
     // Every sample in each trace should be zero _except_ the first sample for cell 0, cv 1
     // and the first sample for cell 1, cv 2.
-
-    EXPECT_EQ((std::vector<double>{0, expected_stim0, 0}), traces[0][0]);
-    EXPECT_EQ((std::vector<double>{0, 0, expected_stim1}), traces[1][0]);
-    EXPECT_EQ((std::vector<double>(3)), traces[0][1]);
-    EXPECT_EQ((std::vector<double>(3)), traces[1][1]);
+    EXPECT_EQ((std::vector<double>{0, expected_stim0, 0}), traces[0].values[0]);
+    EXPECT_EQ((std::vector<double>{0, 0, expected_stim1}), traces[1].values[0]);
+    EXPECT_EQ((std::vector<double>(3)), traces[0].values[1]);
+    EXPECT_EQ((std::vector<double>(3)), traces[1].values[1]);
 }
 
 /*
@@ -1405,10 +1379,10 @@ TEST(probe, get_probe_metadata) {
 
     EXPECT_EQ(0u, mm[0].index);
 
-    auto locs = *any_cast<const mcable_list*>(mm[0].meta);
+    auto locs = *any_cast<const mlocation_list*>(mm[0].meta);
 
     util::sort(locs);
-    EXPECT_EQ((mcable{1, 1., 1.}), locs[0]);
-    EXPECT_EQ((mcable{2, 1., 1.}), locs[1]);
-    EXPECT_EQ((mcable{5, 1., 1.}), locs[2]);
+    EXPECT_EQ((mlocation{1, 1.}), locs[0]);
+    EXPECT_EQ((mlocation{2, 1.}), locs[1]);
+    EXPECT_EQ((mlocation{5, 1.}), locs[2]);
 }

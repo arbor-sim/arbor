@@ -2,11 +2,8 @@
 
 #include <cstdlib>
 #include <memory>
-#include <set>
 #include <string>
-#include <unordered_map>
 #include <utility>
-#include <vector>
 
 #include <arbor/export.hpp>
 #include <arbor/morph/primitives.hpp>
@@ -118,6 +115,8 @@ namespace ls {
 
 // Explicit location on morphology.
 ARB_ARBOR_API locset location(msize_t branch, double pos);
+inline
+ARB_ARBOR_API locset location(mlocation loc) { return location(loc.branch, loc.pos); }
 
 // Set of terminal nodes on a morphology.
 ARB_ARBOR_API locset terminal();

@@ -179,15 +179,13 @@ struct serdes_recipe: public arb::recipe {
 static std::vector<arb_value_type>* output;
 
 void sampler(arb::probe_metadata pm,
-             std::size_t n,
-             const arb::sample_record* samples) {
-    auto* loc = arb::util::any_cast<const arb::mlocation*>(pm.meta);
-    auto* point_info = arb::util::any_cast<const arb::cable_probe_point_info*>(pm.meta);
-    loc = loc ? loc : &(point_info->loc);
-
-    for (std::size_t i = 0; i<n; ++i) {
-        auto* value = samples[i].values.first;
-        output->push_back(*value);
+             const arb::sample_records& samples) {
+    using probe_t = arb::cable_probe_membrane_voltage;
+    auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, samples);
+    assert(reader.width == 1);
+    for (std::size_t ix = 0; ix <reader.n_sample; ++ix) {
+        auto value = reader.get_value(ix);
+        output->push_back(value);
     }
 }
 

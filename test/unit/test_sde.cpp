@@ -426,7 +426,7 @@ TEST(sde, reproducibility) {
     // - 1 density processes with 1 random variable
     std::size_t n_rv_densities = ncells*ncvs;
     std::size_t n_rv_per_dt = n_rv_densities;
-    std::size_t n_rv = n_rv_per_dt*(nsteps);
+    std::size_t n_rv = n_rv_per_dt*nsteps;
 
     // setup storage
     std::vector<arb_value_type> data;
@@ -520,7 +520,7 @@ TEST(sde, normality) {
     std::size_t n_rv_synapses = ncells*nsynapses*(1+1+2+2);
     std::size_t n_rv_densities = ncells*ncvs*(1+1+2+2);
     std::size_t n_rv_per_dt = n_rv_synapses + n_rv_densities;
-    std::size_t n_rv = n_rv_per_dt*(nsteps);
+    std::size_t n_rv = n_rv_per_dt*nsteps;
 
     // setup storage
     std::vector<arb_value_type> data;
@@ -667,46 +667,45 @@ TEST(sde, solver) {
     dec.place(*labels.locset("locs"), synapse(m4), "m4");
 
     // a basic sampler: stores result in a vector
-    auto sampler_ = [nsteps] (std::vector<arb_value_type>& results, unsigned count,
-        probe_metadata pm, std::size_t n, sample_record const * samples) {
-
-        auto* point_info_ptr = arb::util::any_cast<const std::vector<arb::cable_probe_point_info>*>(pm.meta);
-        assert(point_info_ptr != nullptr);
-
-        unsigned n_entities = point_info_ptr->size();
-        assert(n_entities == count);
-
-        unsigned offset = pm.id.gid*(nsteps)*n_entities;
-        unsigned stride = n_entities;
+    auto sampler_ = [nsteps] (std::vector<arb_value_type>& results, const probe_metadata& pm, const sample_records& samples) {
+        std::size_t n_entities = samples.width;
+        std::size_t offset = pm.id.gid*nsteps*n_entities;
+        std::size_t stride = n_entities;
         assert(n == nsteps);
-        for (std::size_t i = 0; i<n; ++i) {
-            const auto& [lo, hi] = samples[i].values;
-            assert(n_entities==hi-lo);
-            for (unsigned j = 0; j<n_entities; ++j) {
-                results[offset + stride*i + j] = lo[j];
+
+        using probe_t = arb::cable_probe_point_state_cell;
+        auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, samples);
+        for (std::size_t ix = 0; ix <reader.n_sample; ++ix) {
+            for (std::size_t iy = 0; iy < reader.width; ++iy) {
+                auto value = reader.get_value(ix, iy);
+                results[offset + stride*ix + iy] = value;
             }
         }
     };
 
     // concrete sampler for process m1
-    std::vector<arb_value_type> results_m1(ncells*(nsteps)*(nsynapses));
-    auto sampler_m1 = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
-        sampler_(results_m1, nsynapses, pm, n, samples);
+    std::vector<arb_value_type> results_m1(ncells*nsteps*nsynapses);
+    auto sampler_m1 = [&] (const probe_metadata& pm, const sample_records& samples) {
+        ASSERT_EQ(nsynapses, samples.width);
+        sampler_(results_m1, pm, samples);
     };
     // concrete sampler for process m2
-    std::vector<arb_value_type> results_m2(ncells*(nsteps)*(nsynapses));
-    auto sampler_m2 = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
-        sampler_(results_m2, nsynapses, pm, n, samples);
+    std::vector<arb_value_type> results_m2(ncells*nsteps*nsynapses);
+    auto sampler_m2 = [&] (const probe_metadata& pm, const sample_records& samples) {
+        ASSERT_EQ(nsynapses, samples.width);
+        sampler_(results_m2, pm, samples);
     };
     // concrete sampler for process m3
-    std::vector<arb_value_type> results_m3(ncells*(nsteps)*(nsynapses));
-    auto sampler_m3 = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
-        sampler_(results_m3, nsynapses, pm, n, samples);
+    std::vector<arb_value_type> results_m3(ncells*nsteps*nsynapses);
+    auto sampler_m3 = [&] (const probe_metadata& pm, const sample_records& samples) {
+        ASSERT_EQ(nsynapses, samples.width);
+        sampler_(results_m3, pm, samples);
     };
     // concrete sampler for process m4
-    std::vector<arb_value_type> results_m4(ncells*(nsteps)*(nsynapses));
-    auto sampler_m4 = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
-        sampler_(results_m4, nsynapses, pm, n, samples);
+    std::vector<arb_value_type> results_m4(ncells*nsteps*nsynapses);
+    auto sampler_m4 = [&] (const probe_metadata& pm, const sample_records& samples) {
+        ASSERT_EQ(nsynapses, samples.width);
+        sampler_(results_m4, pm, samples);
     };
 
     // instantiate recipe
@@ -745,11 +744,11 @@ TEST(sde, solver) {
         // accumulate statistics for sampled data
         for (unsigned int k=0; k<ncells; ++k){
             for (unsigned int i=0; i<nsteps; ++i){
-                for (unsigned int j=0; j<(nsynapses); ++j){
-                    stats_m1[i](results_m1[k*(nsteps)*(nsynapses) + i*(nsynapses) + j ]);
-                    stats_m2[i](results_m2[k*(nsteps)*(nsynapses) + i*(nsynapses) + j ]);
-                    stats_m3[i](results_m3[k*(nsteps)*(nsynapses) + i*(nsynapses) + j ]);
-                    stats_m4[i](results_m4[k*(nsteps)*(nsynapses) + i*(nsynapses) + j ]);
+                for (unsigned int j=0; j<nsynapses; ++j){
+                    stats_m1[i](results_m1[k*nsteps*nsynapses + i*nsynapses + j ]);
+                    stats_m2[i](results_m2[k*nsteps*nsynapses + i*nsynapses + j ]);
+                    stats_m3[i](results_m3[k*nsteps*nsynapses + i*nsynapses + j ]);
+                    stats_m4[i](results_m4[k*nsteps*nsynapses + i*nsynapses + j ]);
                 }
             }
         }
@@ -813,36 +812,35 @@ TEST(sde, coupled) {
     dec.place(*labels.locset("locs"), synapse(m1), "m1");
 
     // a basic sampler: stores result in a vector
-    auto sampler_ = [nsteps] (std::vector<arb_value_type>& results, unsigned count,
-        probe_metadata pm, std::size_t n, sample_record const * samples) {
-
-        auto* point_info_ptr = arb::util::any_cast<const std::vector<arb::cable_probe_point_info>*>(pm.meta);
-        assert(point_info_ptr != nullptr);
-
-        unsigned n_entities = point_info_ptr->size();
-        assert(n_entities == count);
-
-        unsigned offset = pm.id.gid*(nsteps)*n_entities;
-        unsigned stride = n_entities;
+    auto sampler_ = [nsteps] (std::vector<arb_value_type>& results,
+                              const probe_metadata& pm,
+                              const sample_records& samples) {
+        std::size_t n_entities = samples.width;
+        std::size_t offset = pm.id.gid*nsteps*n_entities;
+        std::size_t stride = n_entities;
         assert(n == nsteps);
-        for (std::size_t i = 0; i<n; ++i) {
-            const auto& [lo, hi] = samples[i].values;
-            assert(n_entities==hi-lo);
-            for (unsigned j = 0; j<n_entities; ++j) {
-                results[offset + stride*i + j] = lo[j];
+
+        using probe_t = arb::cable_probe_point_state_cell;
+        auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, samples);
+        for (std::size_t ix = 0; ix <reader.n_sample; ++ix) {
+            for (std::size_t iy = 0; iy < reader.width; ++iy) {
+                auto value = reader.get_value(ix, iy);
+                results[offset + stride*ix + iy] = value;
             }
         }
     };
 
     // concrete sampler for P
-    std::vector<arb_value_type> results_P(ncells*(nsteps)*(nsynapses));
-    auto sampler_P = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
-        sampler_(results_P, nsynapses, pm, n, samples);
+    std::vector<arb_value_type> results_P(ncells*nsteps*nsynapses);
+    auto sampler_P = [&] (probe_metadata pm, const sample_records& samples) {
+        ASSERT_EQ(nsynapses, samples.width);
+        sampler_(results_P, pm, samples);
     };
     // concrete sampler for sigma
-    std::vector<arb_value_type> results_sigma(ncells*(nsteps)*(nsynapses));
-    auto sampler_sigma = [&] (probe_metadata pm, std::size_t n, sample_record const * samples) {
-        sampler_(results_sigma, nsynapses, pm, n, samples);
+    std::vector<arb_value_type> results_sigma(ncells*nsteps*nsynapses);
+    auto sampler_sigma = [&] (probe_metadata pm, const sample_records& samples) {
+        ASSERT_EQ(nsynapses, samples.width);
+        sampler_(results_sigma, pm, samples);
     };
 
     // instantiate recipe
@@ -877,9 +875,9 @@ TEST(sde, coupled) {
         // accumulate statistics for sampled data
         for (unsigned int k=0; k<ncells; ++k){
             for (unsigned int i=0; i<nsteps; ++i){
-                for (unsigned int j=0; j<(nsynapses); ++j){
-                    const double P = results_P[k*(nsteps)*(nsynapses) + i*(nsynapses) + j ];
-                    const double sigma = results_sigma[k*(nsteps)*(nsynapses) + i*(nsynapses) + j ];
+                for (unsigned int j=0; j<nsynapses; ++j){
+                    const double P = results_P[k*nsteps*nsynapses + i*nsynapses + j];
+                    const double sigma = results_sigma[k*nsteps*nsynapses + i*nsynapses + j];
                     stats_P[i](P);
                     stats_sigma[i](sigma);
                     stats_Psigma[i](P*sigma);
@@ -1040,7 +1038,7 @@ TEST(sde, gpu) {
     // calculate storage needs
     std::size_t n_rv_synapses = ncells*nsynapses;
     std::size_t n_rv_per_dt = n_rv_synapses;
-    std::size_t n_rv = n_rv_per_dt*(nsteps);
+    std::size_t n_rv = n_rv_per_dt*nsteps;
 
     // setup storage
     archive<arb_value_type> arch_cpu(n_rv);
