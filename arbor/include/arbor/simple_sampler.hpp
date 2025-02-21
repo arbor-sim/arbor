@@ -1,11 +1,5 @@
 #pragma once
 
-/*
- * Simple(st?) implementation of a recorder of scalar
- * trace data from a cell probe, with some metadata.
- */
-
-#include <stdexcept>
 #include <type_traits>
 #include <vector>
 
@@ -15,6 +9,9 @@
 #include <arbor/util/any_ptr.hpp>
 
 namespace arb {
+
+// Simple(st?) implementation of a recorder of scalar trace data from a cell
+// probe, with some metadata.
 
 template<typename M, typename V>
 struct simple_sampler_result {
@@ -30,11 +27,13 @@ struct simple_sampler_result {
         values.resize(width);
         for (std::size_t ix = 0ul; ix < reader.n_sample; ++ix) {
             time.push_back(reader.get_time(ix));
-            metadata.push_back(reader.get_metadata(ix));
-            for (std::size_t iy = 0ul; iy < reader.n_sample; ++iy) {
+            for (std::size_t iy = 0ul; iy < reader.width; ++iy) {
                 auto v = reader.get_value(ix, iy);
                 values[iy].push_back(v);
             }
+        }
+        for (std::size_t iy = 0ul; iy < reader.width; ++iy) {
+            metadata.push_back(reader.get_metadata(iy));
         }
     }
 };

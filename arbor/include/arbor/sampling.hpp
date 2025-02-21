@@ -4,6 +4,7 @@
 #include <format>
 #include <functional>
 
+#include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/util/any_ptr.hpp>
 
@@ -72,32 +73,46 @@ struct sample_reader {
     // Retrieve sample value corresponding to
     // - time=get_time(i)
     // - location=get_metadata(j)
-    value_type get_value(std::size_t i, std::size_t j = 0) const { return values[i*width + j]; }
+    value_type get_value(std::size_t i, std::size_t j = 0) const {
+        arb_assert(i < n_sample);
+        arb_assert(j < width);
+        return values[i*width + j];
+    }
 
-    time_type get_time(std::size_t i) const { return values[i]; }
+    time_type get_time(std::size_t i) const {
+        arb_assert(i < n_sample);
+        return values[i];
+    }
 
-    // meta_type get_metadata(std::size_t j, std::enable_if_t<!std::is_same_v<void, M>>) { return metadata[j]; }
-    meta_type get_metadata(std::size_t j) const { return metadata[j]; }
+    meta_type get_metadata(std::size_t j) const {
+        arb_assert(j < width);
+        return metadata[j];
+    }
 };
 
 // TODO M is enough to know V!
 template<typename M, typename V>
 auto make_sample_reader(util::any_ptr apm, const sample_records& sr) {
-    auto pm = util::any_cast<M*>(apm);
+    using util::any_cast;
+    auto pm = any_cast<M*>(apm);
     if (!pm) {
         throw std::runtime_error{std::format("Sample reader: could not cast to metadata type; expected {}, got {}.",
                                              typeid((M*)nullptr).name(), apm.type().name())};
     }
-    auto val = any_cast<V*>(sr.values);
-    if (!val) {
+    V* val = nullptr;
+    try {
+        val = any_cast<V*>(sr.values);
+    }
+    catch(const std::bad_any_cast& e) {
         throw std::runtime_error{std::format("Sample reader: could not cast to value type; expected {}, got {}.",
                                              typeid((V*)nullptr).name(), sr.values.type().name())};
     }
-    return sample_reader<M, V> { .width=sr.width,
+    return sample_reader<M, V> {
+                                 .width=sr.width,
                                  .n_sample=sr.n_sample,
                                  .time=sr.time,
                                  .values=val,
-                                 .metadata=pm };
+                                 .metadata=pm, };
 }
 
 using sampler_function = std::function<void(const probe_metadata&, const sample_records&)>;

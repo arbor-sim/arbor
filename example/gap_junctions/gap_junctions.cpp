@@ -184,6 +184,7 @@ int main(int argc, char** argv) {
 
         // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
         unsigned j = 0;
+
         for (const auto& g: decomp.groups()) {
             for (auto i: g.gids) {
                 sim.add_sampler(arb::one_probe({i, "Um"}), sched, arb::make_simple_sampler(voltage_traces[j++]));
@@ -255,7 +256,12 @@ void write_trace_json(const sample_results& traces, unsigned rank) {
         json["group"] = rank;
         json["probe"] = "0";
         json["data"]["time"] = traces[i].time;
-        json["data"]["voltage"] = traces[i].values[0];
+        for (std::size_t ix = 0; ix < traces[i].width; ++ix) {
+            std::stringstream ss;
+            ss << traces[i].metadata[ix];
+            json["data"]["meta"][ix] = ss.str();
+            json["data"]["voltage"][ix] = traces[i].values[ix];
+        }
 
         std::ofstream file(path);
         file << std::setw(1) << json << "\n";

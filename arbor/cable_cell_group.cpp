@@ -96,13 +96,15 @@ void do_run_sampler(const sampler_call_info& sc,
                     std::size_t width,
                     const P& probe,
                     const fvm_probe_scratch& scratch) {
+    arb_assert(scratch.values.size() == n_sample * width);
+    arb_assert(scratch.times.size() == n_sample);
     sc.sampler(probe_metadata { .id=sc.probeset_id,
                                 .index=sc.index,
                                 .meta=probe.get_metadata_ptr() },
                sample_records { .n_sample=n_sample,
                                 .width=width,
                                 .time=scratch.times.data(),
-                                .values=scratch.values.data() });
+                                .values=const_cast<const double*>(scratch.values.data()) });
 }
     
 void run_samples(const fvm_probe_multi& p,
@@ -123,11 +125,7 @@ void run_samples(const fvm_probe_multi& p,
         scratch.values.push_back(raw_samples[offset]);
     }
 
-    sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()},
-               sample_records{.n_sample=n_sample,
-                              .width=n_raw_per_sample,
-                              .time=scratch.times.data(),
-                              .values=scratch.values.data()});
+    do_run_sampler(sc, n_sample, n_raw_per_sample, p, scratch);
 }
 
 void run_samples(const fvm_probe_weighted_multi& p,
@@ -147,15 +145,12 @@ void run_samples(const fvm_probe_weighted_multi& p,
     for (sample_size_type j = 0; j < n_sample; ++j) {
         auto offset = j*n_raw_per_sample + sc.begin_offset;
         for (sample_size_type i = 0; i < n_raw_per_sample; ++i) {
-            scratch.values.push_back(raw_samples[offset+i]*p.weight[i]);
+            scratch.values.push_back(raw_samples[offset + i]*p.weight[i]);
         }
         scratch.times.push_back(raw_times[offset]);
     }
 
-    sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()},
-               sample_records{.n_sample=n_sample,
-                              .time=scratch.times.data(),
-                              .values=scratch.values.data()});
+    do_run_sampler(sc, n_sample, n_raw_per_sample, p, scratch);
 }
 
 void run_samples(const fvm_probe_interpolated_multi& p,
@@ -183,9 +178,7 @@ void run_samples(const fvm_probe_interpolated_multi& p,
         }
         scratch.times.push_back(raw_times[offset]);
     }
-
-    sc.sampler(probe_metadata{sc.probeset_id, sc.index, p.get_metadata_ptr()},
-               sample_records{.n_sample=n_sample,.time=scratch.times.data(), .values=scratch.values.data()});
+    do_run_sampler(sc, n_sample, n_interp_per_sample, p, scratch);
 }
 
 void run_samples(const fvm_probe_membrane_currents& p,
@@ -242,12 +235,9 @@ void run_samples(const fvm_probe_membrane_currents& p,
                 base[cable_i] -= cv_stim_I*p.weight[cable_i];
             }
         }
-
         scratch.times.push_back(raw_times[offset]);
     }
-
-    sc.sampler({sc.probeset_id, sc.index, p.get_metadata_ptr()},
-               sample_records{.n_sample=n_sample, .time=scratch.times.data(), .values=scratch.values.data()});
+    do_run_sampler(sc, n_sample, n_cable, p, scratch);
 }
 
 // Generic run_samples dispatches on probe info variant type.
