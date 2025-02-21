@@ -81,7 +81,7 @@ struct sample_reader {
 
     time_type get_time(std::size_t i) const {
         arb_assert(i < n_sample);
-        return values[i];
+        return time[i];
     }
 
     meta_type get_metadata(std::size_t j) const {

@@ -107,7 +107,7 @@ struct ARB_SYMBOL_VISIBLE cable_probe_density_state {
 // Value of state variable `state` in density mechanism `mechanism` across components of the cell.
 struct ARB_SYMBOL_VISIBLE cable_probe_density_state_cell {
     using value_type = cable_sample_type;
-    using meta_type = cable_state_meta_type;
+    using meta_type = cable_state_cell_meta_type;
     std::string mechanism;
     std::string state;
 };

@@ -671,7 +671,7 @@ TEST(sde, solver) {
         std::size_t n_entities = samples.width;
         std::size_t offset = pm.id.gid*nsteps*n_entities;
         std::size_t stride = n_entities;
-        assert(n == nsteps);
+        assert(samples.n_sample == nsteps);
 
         using probe_t = arb::cable_probe_point_state_cell;
         auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, samples);
@@ -818,7 +818,7 @@ TEST(sde, coupled) {
         std::size_t n_entities = samples.width;
         std::size_t offset = pm.id.gid*nsteps*n_entities;
         std::size_t stride = n_entities;
-        assert(n == nsteps);
+        assert(samples.n_sample == nsteps);
 
         using probe_t = arb::cable_probe_point_state_cell;
         auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, samples);

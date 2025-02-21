@@ -235,7 +235,10 @@ void lif_cell_group::advance_cell(time_type tfinal,
             const auto& fun = samplers_[k].sampler;
             for (auto& [id, us]: vs) {
                 auto meta = get_probe_metadata(id)[0];
-                fun(meta, sample_records{.n_sample=us.times.size(), .time=us.times.data(), .values=us.values.data()});
+                fun(meta, sample_records{.n_sample=us.times.size(),
+                                         .width=1,
+                                         .time=us.times.data(),
+                                         .values=const_cast<const double*>(us.values.data())});
             }
         }
     }

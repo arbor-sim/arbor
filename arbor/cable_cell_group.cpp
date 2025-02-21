@@ -118,11 +118,14 @@ void run_samples(const fvm_probe_multi& p,
 
     scratch.times.clear();
     scratch.values.clear();
+    scratch.values.reserve(n_raw_per_sample*n_sample);
 
     for (sample_size_type j = 0; j < n_sample; ++j) {
         auto offset = j*n_raw_per_sample + sc.begin_offset;
         scratch.times.push_back(raw_times[offset]);
-        scratch.values.push_back(raw_samples[offset]);
+        for (sample_size_type i = 0; i < n_raw_per_sample; ++i) {
+            scratch.values.push_back(raw_samples[offset + i]);
+        }
     }
 
     do_run_sampler(sc, n_sample, n_raw_per_sample, p, scratch);
@@ -144,10 +147,10 @@ void run_samples(const fvm_probe_weighted_multi& p,
 
     for (sample_size_type j = 0; j < n_sample; ++j) {
         auto offset = j*n_raw_per_sample + sc.begin_offset;
+        scratch.times.push_back(raw_times[offset]);
         for (sample_size_type i = 0; i < n_raw_per_sample; ++i) {
             scratch.values.push_back(raw_samples[offset + i]*p.weight[i]);
         }
-        scratch.times.push_back(raw_times[offset]);
     }
 
     do_run_sampler(sc, n_sample, n_raw_per_sample, p, scratch);
@@ -171,12 +174,12 @@ void run_samples(const fvm_probe_interpolated_multi& p,
 
     for (sample_size_type j = 0; j < n_sample; ++j) {
         auto offset = j*n_raw_per_sample + sc.begin_offset;
+        scratch.times.push_back(raw_times[offset]);
         const auto* raw_a = raw_samples + offset;
         const auto* raw_b = raw_a + n_interp_per_sample;
         for (sample_size_type i = 0; i < n_interp_per_sample; ++i) {
             scratch.values.push_back(raw_a[i]*p.coef[0][i] + raw_b[i]*p.coef[1][i]);
         }
-        scratch.times.push_back(raw_times[offset]);
     }
     do_run_sampler(sc, n_sample, n_interp_per_sample, p, scratch);
 }
@@ -202,6 +205,7 @@ void run_samples(const fvm_probe_membrane_currents& p,
 
     for (sample_size_type j = 0; j < n_sample; ++j) {
         auto offset = j*n_raw_per_sample + sc.begin_offset;
+        scratch.times.push_back(raw_times[offset]);
         auto base = scratch.values.data() + j*n_cable;
 
         // Each CV voltage contributes to the current sum of its parent's cables
@@ -235,7 +239,6 @@ void run_samples(const fvm_probe_membrane_currents& p,
                 base[cable_i] -= cv_stim_I*p.weight[cable_i];
             }
         }
-        scratch.times.push_back(raw_times[offset]);
     }
     do_run_sampler(sc, n_sample, n_cable, p, scratch);
 }

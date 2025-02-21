@@ -941,14 +941,15 @@ void run_multi_probe_test(context ctx) {
     auto trace = run_simple_sampler(ctx, 0.1*U::ms, {cable_cell{m, d}},
                                     {0, "probe"}, cable_probe_density_state{ ls::terminal(), "param_as_state", "s"},
                                     {0.0*U::ms});
-    ASSERT_EQ(1u, trace.values.size());
+    ASSERT_EQ(3u, trace.values.size());
     ASSERT_EQ(3u, trace.metadata.size());
+    for (const auto& val: trace.values) ASSERT_EQ(1u, val.size());
 
     // Expect to have received a sample on each of the terminals of branches 1, 2, and 5.
     std::vector<std::pair<mlocation, double>> vals;
     for (size_t ix = 0; ix < trace.n_sample; ++ix) {
         for (size_t iy = 0; iy < trace.width; ++iy) {
-            vals.emplace_back(trace.metadata.at(iy), trace.values[ix][iy]);
+            vals.emplace_back(trace.metadata.at(iy), trace.values[iy][ix]);
         }
     }
 
@@ -989,17 +990,19 @@ void run_v_sampled_probe_test(context ctx) {
 
     auto trace0 = run_simple_sampler(ctx, t_end, cells, {0, "Um-loc"}, probe, when);
     EXPECT_EQ(probe_loc, trace0.metadata.at(0));
-    EXPECT_EQ(2u, trace0.values.size());
+    EXPECT_EQ(1u, trace0.values.size());
+    EXPECT_EQ(2u, trace0.values[0].size());
 
     auto trace1 = run_simple_sampler(ctx, t_end, cells, {1, "Um-loc"}, probe, when);
     EXPECT_EQ(probe_loc, trace1.metadata.at(0));
-    EXPECT_EQ(2u, trace1.values.size());
+    EXPECT_EQ(1u, trace1.values.size());
+    EXPECT_EQ(2u, trace1.values[0].size());
 
     EXPECT_EQ(trace0.time[0], trace1.time[0]);
-    EXPECT_EQ(trace0.values[0], trace1.values[0]);
+    EXPECT_EQ(trace0.values[0][0], trace1.values[0][0]);
 
     EXPECT_EQ(trace0.time[1], trace1.time[1]);
-    EXPECT_NE(trace0.values[1], trace1.values[1]);
+    EXPECT_NE(trace0.values[0][1], trace1.values[0][1]);
 }
 
 
@@ -1099,7 +1102,7 @@ void run_total_current_probe_test(context ctx) {
                 double sum_current = 0;
                 
                 for (auto k: util::make_span(trace.width)) {
-                    double current = trace.values[j][k] + stim_trace.values[j][k];
+                    double current = trace.values[k][j] + stim_trace.values[k][j];
                     EXPECT_NE(0.0, current);
                     max_abs_current = std::max(max_abs_current, std::abs(current));
                     sum_current += current;
@@ -1112,19 +1115,19 @@ void run_total_current_probe_test(context ctx) {
             // TODO Check that we transcribed the width/length correctly
             for (auto k: util::make_span(trace.n_sample)) {
                 const double rtol_large = 1e-3;
-                EXPECT_FALSE(testing::near_relative(trace.values[0][k], ion_trace.values[0][k], rtol_large));
+                EXPECT_FALSE(testing::near_relative(trace.values[k][0], ion_trace.values[k][0], rtol_large));
             }
 
             for (unsigned k = 0; k<trace.n_sample; ++k) {
                 const double rtol_small = 1e-6;
-                EXPECT_TRUE( testing::near_relative(trace.values[1][k], ion_trace.values[1][k], rtol_small));
+                EXPECT_TRUE( testing::near_relative(trace.values[k][1], ion_trace.values[k][1], rtol_small));
             }
 
         }
 
         // Total membrane currents should differ between the two cells at t=τ.
-        for (unsigned k = 0; k < traces[0].n_sample; ++k) {
-            EXPECT_NE(traces[0].values[0][k], traces[1].values[0][k]);
+        for (unsigned k = 0; k < traces[0].width; ++k) {
+            EXPECT_NE(traces[0].values[k][0], traces[1].values[k][0]);
         }
     };
 
@@ -1350,7 +1353,6 @@ ARB_PP_FOREACH(RUN_GPU, PROBE_TESTS)
 
 // Test simulator `get_probe_metadata` interface.
 // (No need to run this on GPU back-end as well.)
-
 TEST(probe, get_probe_metadata) {
     // Reuse multiprobe test set-up to confirm simulator::get_probe_metadata returns
     // correct vector of metadata.
@@ -1379,8 +1381,9 @@ TEST(probe, get_probe_metadata) {
 
     EXPECT_EQ(0u, mm[0].index);
 
-    auto locs = *any_cast<const mlocation_list*>(mm[0].meta);
-
+    // TODO This isn't as nice as we'd like.
+    auto ptr = any_cast<const mlocation*>(mm[0].meta);
+    std::vector<mlocation> locs(ptr, ptr + 3);
     util::sort(locs);
     EXPECT_EQ((mlocation{1, 1.}), locs[0]);
     EXPECT_EQ((mlocation{2, 1.}), locs[1]);
