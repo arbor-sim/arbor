@@ -4,9 +4,10 @@
 #include <iostream>
 #include <string>
 #include <tuple>
-#include <utility>
+#include <format>
 #include <vector>
 
+#include <arbor/common_types.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphology.hpp>
@@ -71,6 +72,8 @@ const char* help_msg =
     "    all_hh_n    HH state variable n in each CV\n"
     "    all_expsyn_g expsyn state variable g for all synapses\n";
 
+enum probe_kind { invalid, state, point, cell };
+
 struct options {
     double sim_end = 100.0;   // [ms]
     double sim_dt = 0.025;    // [ms]
@@ -78,10 +81,49 @@ struct options {
     unsigned n_cv = 10;
     any probe_addr;
     std::string value_name;
+    probe_kind kind = probe_kind::invalid;
 };
 
 bool parse_options(options&, int& argc, char** argv);
-void sampler(arb::probe_metadata, std::size_t, const arb::sample_record*);
+
+template<typename M>
+std::string show_location(const M& where) {
+    if constexpr (std::is_same_v<std::remove_cv_t<M>, arb::mcable>) {
+        return std::format("(cable {:1d} {:3.1f} {:3.1f})", where.branch, where.prox_pos, where.dist_pos);
+    }
+    else if constexpr (std::is_same_v<std::remove_cv_t<M>, arb::mlocation>) {
+        return std::format("(location {:1d} {:3.1f})", where.branch, where.pos);
+    }
+    else if constexpr (std::is_same_v<std::remove_cv_t<M>, arb::cable_probe_point_info>) {
+        return where.target;
+    }
+    else {
+        throw std::runtime_error{"Unexpected metadata type"};
+    }
+}
+
+// Do this once
+static std::atomic<int> printed_header = 0;
+
+template<typename M, typename V>
+void sampler(arb::probe_metadata pm, const arb::sample_records& samples) {
+    auto reader = arb::make_sample_reader<M, V>(pm.meta, samples);
+    // Print CSV header for sample output
+    if (0 == printed_header.fetch_add(1)) {
+        std::cout << std::format("t", "");
+        for (std::size_t iy = 0; iy < reader.width; ++iy) std::cout << ", " << show_location(reader.get_metadata(iy));
+        std::cout << '\n';
+    }
+
+    for (std::size_t ix = 0; ix < reader.n_sample; ++ix) {
+        std::cout << std::format("{:7.3f}", reader.get_time(ix));
+        for (unsigned iy = 0; iy < reader.width; ++iy) {
+            std::cout << std::format(", {:-8.4f}", reader.get_value(ix, iy));
+        }
+        std::cout  << '\n';
+    }
+}
+
 
 struct cable_recipe: public arb::recipe {
     arb::cable_cell_global_properties gprop;
@@ -128,12 +170,29 @@ int main(int argc, char** argv) {
 
         arb::simulation sim(R);
 
-        sim.add_sampler(arb::all_probes,
-                        arb::regular_schedule(opt.sample_dt*U::ms),
-                        sampler);
-
-        // CSV header for sample output:
-        std::cout << "t, x0, x1, " << opt.value_name << '\n';
+        switch (opt.kind) {
+        case probe_kind::cell:
+            sim.add_sampler(arb::all_probes,
+                            arb::regular_schedule(opt.sample_dt*U::ms),
+                            sampler<arb::cable_state_cell_meta_type, arb::cable_sample_type>);
+            break;
+        case probe_kind::state:
+            sim.add_sampler(arb::all_probes,
+                            arb::regular_schedule(opt.sample_dt*U::ms),
+                            sampler<arb::cable_state_meta_type, arb::cable_sample_type>);
+            break;
+        case probe_kind::point:
+            sim.add_sampler(arb::all_probes,
+                            arb::regular_schedule(opt.sample_dt*U::ms),
+                            sampler<arb::cable_point_meta_type, arb::cable_sample_type>);
+            break;
+        default:
+            std::cerr << "Invalid probe kind\n";
+            return -1;
+        }
+        std::cout << "Samples for '" << opt.value_name << "'\n"
+                  << std::string(opt.value_name.size() + 14, '=')
+                  << "\n\n";
         sim.run(opt.sim_end*U::ms, opt.sim_dt*U::ms);
     }
     catch (to::option_error& e) {
@@ -146,44 +205,28 @@ int main(int argc, char** argv) {
     }
 }
 
-void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
-    auto* cables_ptr      = any_cast<const arb::mcable_list*>(pm.meta);
-    auto* point_infos_ptr = any_cast<const std::vector<arb::cable_probe_point_info>*>(pm.meta);
-    std::cout << std::fixed << std::setprecision(4);
-    if (cables_ptr) {
-        auto n_entities = cables_ptr->size();
-        for (std::size_t i = 0; i<n; ++i) {
-            const auto& [lo, hi] = samples[i].values;
-            assert(n_entities == hi - lo);
-            std::cout << samples[i].time << ", ";
-            for (unsigned j = 0; j < n_entities; ++j) {
-                const arb::mcable& where = cables_ptr->at(j);
-                std::cout << where.branch << ", "
-                          << where.prox_pos << ", " << where.dist_pos << ", "
-                          << lo[j] << ", ";
-            }
-            std::cout  << '\n';
-        }
+static auto any2loc(std::any a) -> arb::mlocation {
+    auto pos = 0.5;
+    try {
+        pos = std::any_cast<double>(a);
     }
-    else if (point_infos_ptr) {
-        auto n_entities = point_infos_ptr->size();
-        for (std::size_t i = 0; i<n; ++i) {
-            const auto& [lo, hi] = samples[i].values;
-            assert(n_entities == hi - lo);
-            std::cout << samples[i].time << ", ";
-            for (unsigned j = 0; j < n_entities; ++j) {
-                const arb::mlocation& loc = point_infos_ptr->at(j).loc;
-                std::cout << loc.pos << ", " << lo[j] << ", ";
-            }
-            std::cout  << '\n';
-        }
+    catch (const std::bad_any_cast& e) {
+        std::cerr << "Invalid position specification, using default\n";
     }
-    else {
-        throw std::runtime_error{"Expected cable cell probe, found " + std::string(pm.meta.type().name())};
-    }
+    return arb::mlocation { .branch=0, .pos=pos };
 }
 
-static auto any2loc(std::any a) -> arb::mlocation { return arb::mlocation { .branch=0, .pos=std::any_cast<double>(a) }; }
+static auto any2syn(std::any a) -> arb::cell_tag_type {
+    arb::cell_tag_type pos = "synapse1";
+    try {
+        pos = std::any_cast<arb::cell_tag_type>(a);
+    }
+    catch (const std::bad_any_cast& e) {
+        std::cerr << "Invalid synapse specification, using default\n";
+    }
+    return pos;
+}
+
 
 bool parse_options(options& opt, int& argc, char** argv) {
     using std::get;
@@ -192,32 +235,32 @@ bool parse_options(options& opt, int& argc, char** argv) {
     auto do_help = [&]() { usage(argv[0], help_msg); };
 
     // Map probe argument to output variable name and a lambda that makes specific probe address from a location.
-    using probe_spec_t = std::tuple<std::string, std::function<any(std::any)>>;
+    using probe_spec_t = std::tuple<std::string, probe_kind, std::function<any(std::any)>>;
     std::pair<const char*, probe_spec_t> probe_tbl[] {
         // located probes
-        {"v",            {"v",        [](std::any a) -> std::any { return arb::cable_probe_membrane_voltage{any2loc(a)}; }}},
-        {"i_axial",      {"i_axial",  [](std::any a) -> std::any { return arb::cable_probe_axial_current{any2loc(a)}; }}},
-        {"j_ion",        {"j_ion",    [](std::any a) -> std::any { return arb::cable_probe_total_ion_current_density{any2loc(a)}; }}},
-        {"j_na",         {"j_na",     [](std::any a) -> std::any { return arb::cable_probe_ion_current_density{any2loc(a), "na"}; }}},
-        {"j_k",          {"j_k",      [](std::any a) -> std::any { return arb::cable_probe_ion_current_density{any2loc(a), "k"}; }}},
-        {"c_na",         {"c_na",     [](std::any a) -> std::any { return arb::cable_probe_ion_int_concentration{any2loc(a), "na"}; }}},
-        {"c_k",          {"c_k",      [](std::any a) -> std::any { return arb::cable_probe_ion_int_concentration{any2loc(a), "k"}; }}},
-        {"hh_m",         {"hh_m",     [](std::any a) -> std::any { return arb::cable_probe_density_state{any2loc(a), "hh", "m"}; }}},
-        {"hh_h",         {"hh_h",     [](std::any a) -> std::any { return arb::cable_probe_density_state{any2loc(a), "hh", "h"}; }}},
-        {"hh_n",         {"hh_n",     [](std::any a) -> std::any { return arb::cable_probe_density_state{any2loc(a), "hh", "n"}; }}},
-        {"expsyn_g",     {"expsyn_g", [](std::any a) -> std::any { auto t = std::any_cast<arb::cell_tag_type>(a); return arb::cable_probe_point_state{t, "expsyn", "g"}; }}},
+        {"v",            {"v",        probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_membrane_voltage{any2loc(a)}; }}},
+        {"i_axial",      {"i_axial",  probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_axial_current{any2loc(a)}; }}},
+        {"j_ion",        {"j_ion",    probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_total_ion_current_density{any2loc(a)}; }}},
+        {"j_na",         {"j_na",     probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_ion_current_density{any2loc(a), "na"}; }}},
+        {"j_k",          {"j_k",      probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_ion_current_density{any2loc(a), "k"}; }}},
+        {"c_na",         {"c_na",     probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_ion_int_concentration{any2loc(a), "na"}; }}},
+        {"c_k",          {"c_k",      probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_ion_int_concentration{any2loc(a), "k"}; }}},
+        {"hh_m",         {"hh_m",     probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_density_state{any2loc(a), "hh", "m"}; }}},
+        {"hh_h",         {"hh_h",     probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_density_state{any2loc(a), "hh", "h"}; }}},
+        {"hh_n",         {"hh_n",     probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_density_state{any2loc(a), "hh", "n"}; }}},
+        {"expsyn_g",     {"expsyn_g", probe_kind::point, [](std::any a) -> std::any { return arb::cable_probe_point_state{any2syn(a), "expsyn", "g"}; }}},
         // all-of-cell probes
-        {"all_v",        {"v",        [](std::any) -> std::any { return arb::cable_probe_membrane_voltage_cell{}; }}},
-        {"all_i_ion",    {"i_ion",    [](std::any) -> std::any { return arb::cable_probe_total_ion_current_cell{}; }}},
-        {"all_i_na",     {"i_na",     [](std::any) -> std::any { return arb::cable_probe_ion_current_cell{"na"}; }}},
-        {"all_i_k",      {"i_k",      [](std::any) -> std::any { return arb::cable_probe_ion_current_cell{"k"}; }}},
-        {"all_i",        {"i",        [](std::any) -> std::any { return arb::cable_probe_total_current_cell{}; }}},
-        {"all_c_na",     {"c_na",     [](std::any) -> std::any { return arb::cable_probe_ion_int_concentration_cell{"na"}; }}},
-        {"all_c_k",      {"c_k",      [](std::any) -> std::any { return arb::cable_probe_ion_int_concentration_cell{"k"}; }}},
-        {"all_hh_m",     {"hh_m",     [](std::any) -> std::any { return arb::cable_probe_density_state_cell{"hh", "m"}; }}},
-        {"all_hh_h",     {"hh_h",     [](std::any) -> std::any { return arb::cable_probe_density_state_cell{"hh", "h"}; }}},
-        {"all_hh_n",     {"hh_n",     [](std::any) -> std::any { return arb::cable_probe_density_state_cell{"hh", "n"}; }}},
-        {"all_expsyn_g", {"expsyn_g", [](std::any) -> std::any { return arb::cable_probe_point_state_cell{"expsyn", "g"}; }}},
+        {"all_v",        {"v",        probe_kind::cell, [](std::any) -> std::any { return arb::cable_probe_membrane_voltage_cell{}; }}},
+        {"all_i_ion",    {"i_ion",    probe_kind::cell, [](std::any) -> std::any { return arb::cable_probe_total_ion_current_cell{}; }}},
+        {"all_i_na",     {"i_na",     probe_kind::cell, [](std::any) -> std::any { return arb::cable_probe_ion_current_cell{"na"}; }}},
+        {"all_i_k",      {"i_k",      probe_kind::cell, [](std::any) -> std::any { return arb::cable_probe_ion_current_cell{"k"}; }}},
+        {"all_i",        {"i",        probe_kind::cell, [](std::any) -> std::any { return arb::cable_probe_total_current_cell{}; }}},
+        {"all_c_na",     {"c_na",     probe_kind::cell, [](std::any) -> std::any { return arb::cable_probe_ion_int_concentration_cell{"na"}; }}},
+        {"all_c_k",      {"c_k",      probe_kind::cell, [](std::any) -> std::any { return arb::cable_probe_ion_int_concentration_cell{"k"}; }}},
+        {"all_hh_m",     {"hh_m",     probe_kind::cell, [](std::any) -> std::any { return arb::cable_probe_density_state_cell{"hh", "m"}; }}},
+        {"all_hh_h",     {"hh_h",     probe_kind::cell, [](std::any) -> std::any { return arb::cable_probe_density_state_cell{"hh", "h"}; }}},
+        {"all_hh_n",     {"hh_n",     probe_kind::cell, [](std::any) -> std::any { return arb::cable_probe_density_state_cell{"hh", "n"}; }}},
+        {"all_expsyn_g", {"expsyn_g", probe_kind::cell, [](std::any) -> std::any { return arb::cable_probe_point_state_cell{"expsyn", "g"}; }}},
     };
 
     auto double_or_string = [](const char* arg) -> to::maybe<std::any> {
@@ -241,19 +284,14 @@ bool parse_options(options& opt, int& argc, char** argv) {
         { {probe_spec, to::keywords(probe_tbl)}, to::single },
     };
 
-    const auto& [p_name, p_addr] = probe_spec;
-    if (!p_pos.has_value() && (p_name == "exp_syn_g")) {
-        p_pos = "synapse0";
-    }
-    else {
-        p_pos = 0.5;
-    }
+    const auto& [p_name, p_kind, p_addr] = probe_spec;
 
     if (!to::run(cli_opts, argc, argv+1)) return false;
     if (!p_addr) throw to::user_option_error("missing PROBE");
     if (argv[1]) throw to::user_option_error("unrecognized option");
     opt.value_name = p_name;
     opt.probe_addr = p_addr(p_pos);
+    opt.kind       = p_kind;
     return true;
 }
 

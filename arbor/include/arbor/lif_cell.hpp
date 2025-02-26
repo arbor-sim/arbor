@@ -28,10 +28,12 @@ struct ARB_SYMBOL_VISIBLE lif_cell {
 // LIF probe metadata, to be passed to sampler callbacks. Intentionally left blank.
 struct ARB_SYMBOL_VISIBLE lif_probe_metadata {};
 
+using lif_sample_type = const double;
+
 // Voltage estimate [mV].
 // Sample value type: `double`
 struct ARB_SYMBOL_VISIBLE lif_probe_voltage {
-    using value_type = const double;
+    using value_type = lif_sample_type;
     using meta_type = const lif_probe_metadata;
 };
 

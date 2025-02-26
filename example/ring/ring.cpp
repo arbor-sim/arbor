@@ -52,62 +52,46 @@ using arb::cell_size_type;
 using arb::cell_kind;
 using arb::time_type;
 
+// result of simple sampler for probe type
+using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type, arb::cable_sample_type>;
+
 // Writes voltage trace as a json file.
-void write_trace_json(const arb::trace_data<double>& trace);
+void write_trace_json(const sample_result&);
 
 // Generate a cell.
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params);
 
-class ring_recipe: public arb::recipe {
-public:
+struct ring_recipe: public arb::recipe {
     ring_recipe(unsigned num_cells, cell_parameters params, unsigned min_delay):
         num_cells_(num_cells),
         cell_params_(params),
-        min_delay_(min_delay)
-    {
+        min_delay_(min_delay) {
         gprop_.default_parameters = arb::neuron_parameter_defaults;
     }
 
-    cell_size_type num_cells() const override {
-        return num_cells_;
-    }
+    cell_size_type num_cells() const override { return num_cells_; }
 
-    arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return branch_cell(gid, cell_params_);
-    }
+    arb::util::unique_any get_cell_description(cell_gid_type gid) const override { return branch_cell(gid, cell_params_); }
 
-    cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::cable;
-    }
+    cell_kind get_cell_kind(cell_gid_type gid) const override { return cell_kind::cable; }
 
     // Each cell has one incoming connection, from cell with gid-1.
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
-        std::vector<arb::cell_connection> cons;
-        cell_gid_type src = gid? gid-1: num_cells_-1;
-        cons.push_back(arb::cell_connection({src, "detector"}, {"primary_syn"}, event_weight_, min_delay_*U::ms));
-        return cons;
+        cell_gid_type src = gid ? gid - 1: num_cells_ - 1;
+        return { arb::cell_connection({src, "detector"}, {"primary_syn"}, event_weight_, min_delay_*U::ms) };
     }
 
-    // Return one event generator on gid 0. This generates a single event that will
-    // kick start the spiking.
+    // Return one event generator on gid 0. This generates a single event that
+    // will kick start the spiking.
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
-        std::vector<arb::event_generator> gens;
-        if (!gid) {
-            gens.push_back(arb::explicit_generator_from_milliseconds({"primary_syn"}, event_weight_, std::vector{1.0}));
-        }
-        return gens;
+        if (!gid) return { arb::explicit_generator_from_milliseconds({"primary_syn"}, event_weight_, std::vector{1.0}) };
+        return {};
     }
 
-    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
-        // Measure membrane voltage at end of soma.
-        arb::mlocation loc{0, 0.0};
-        return {{arb::cable_probe_membrane_voltage{loc}, "Um"}};
-    }
+    // Measure membrane voltage at end of soma.
+    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override { return {{arb::cable_probe_membrane_voltage{arb::mlocation {0, 0.0}}, "Um"}}; }
 
-    std::any get_global_properties(arb::cell_kind) const override {
-        return gprop_;
-    }
-
+    std::any get_global_properties(arb::cell_kind) const override { return gprop_; }
 
 private:
     cell_size_type num_cells_;
@@ -159,13 +143,12 @@ int main(int argc, char** argv) {
         arb::simulation sim(recipe, context, decomposition);
 
         // Set up the probe that will measure voltage in the cell.
-
         // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
         auto probeset_id = arb::cell_address_type{0, "Um"};
         // The schedule for sampling every 1 ms.
         auto sched = arb::regular_schedule(1*arb::units::ms);
         // This is where the voltage samples will be stored as (time, value) pairs
-        arb::trace_vector<double> voltage;
+        sample_result voltage;
         // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
         sim.add_sampler(arb::one_probe(probeset_id), sched, arb::make_simple_sampler(voltage));
 
@@ -211,9 +194,7 @@ int main(int argc, char** argv) {
         }
 
         // Write the samples to a json file.
-        if (root) {
-            write_trace_json(voltage.at(0));
-        }
+        if (root) write_trace_json(voltage);
 
         auto profile = arb::profile::profiler_summary();
         std::cout << profile << "\n";
@@ -229,22 +210,19 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void write_trace_json(const arb::trace_data<double>& trace) {
+void write_trace_json(const sample_result& result) {
     std::string path = "./voltages.json";
 
     nlohmann::json json;
-    json["name"] = "ring demo";
+    json["name"] = "ring_demo";
     json["units"] = "mV";
-    json["cell"] = "0.0";
-    json["probe"] = "0";
-
-    auto& jt = json["data"]["time"];
-    auto& jy = json["data"]["voltage"];
-
-    for (const auto& sample: trace) {
-        jt.push_back(sample.t);
-        jy.push_back(sample.v);
-    }
+    json["cell"] = "0";
+    json["probe"] = "Um";
+    std::stringstream loc;
+    loc << result.metadata.at(0);
+    json["location"] = loc.str();
+    json["data"]["time"] = result.time;
+    json["data"]["voltage"] = result.values.at(0);
 
     std::ofstream file(path);
     file << std::setw(1) << json << "\n";

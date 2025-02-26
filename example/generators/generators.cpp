@@ -9,6 +9,7 @@
 #include <any>
 #include <cassert>
 #include <fstream>
+#include <sstream>
 #include <iomanip>
 
 #include <nlohmann/json.hpp>
@@ -33,8 +34,11 @@ using arb::time_type;
 
 using namespace arborio::literals;
 
+// result of simple sampler for probe type
+using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type, arb::cable_sample_type>;
+
 // Writes voltage trace as a json file.
-void write_trace_json(const arb::trace_data<double>& trace);
+void write_trace_json(const sample_result&);
 
 class generator_recipe: public arb::recipe {
 public:
@@ -62,7 +66,7 @@ public:
             // Add one synapse at the soma.
             // This synapse will be the target for all events, from both
             // event_generators.
-        .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "syn");
+            .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "syn");
 
         return arb::cable_cell(tree, decor, labels);
     }
@@ -136,7 +140,7 @@ int main() {
     // The schedule for sampling is 10 samples every 1 ms.
     auto sched = arb::regular_schedule(0.1*arb::units::ms);
     // This is where the voltage samples will be stored as (time, value) pairs
-    arb::trace_vector<double> voltage;
+    sample_result voltage;
     // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
     sim.add_sampler(arb::one_probe(probeset_id), sched, arb::make_simple_sampler(voltage));
 
@@ -144,25 +148,22 @@ int main() {
     sim.run(100*arb::units::ms, 0.01*arb::units::ms);
 
     // Write the samples to a json file.
-    write_trace_json(voltage.at(0));
+    write_trace_json(voltage);
 }
 
-void write_trace_json(const arb::trace_data<double>& trace) {
+void write_trace_json(const sample_result& result) {
     std::string path = "./voltages.json";
 
     nlohmann::json json;
     json["name"] = "event_gen_demo";
     json["units"] = "mV";
-    json["cell"] = "0.0";
-    json["probe"] = "0";
-
-    auto& jt = json["data"]["time"];
-    auto& jy = json["data"]["voltage"];
-
-    for (const auto& sample: trace) {
-        jt.push_back(sample.t);
-        jy.push_back(sample.v);
-    }
+    json["cell"] = "0";
+    json["probe"] = "Um";
+    std::stringstream loc;
+    loc << result.metadata.at(0);
+    json["location"] = loc.str();
+    json["data"]["time"] = result.time;
+    json["data"]["voltage"] = result.values.at(0);
 
     std::ofstream file(path);
     file << std::setw(1) << json << "\n";

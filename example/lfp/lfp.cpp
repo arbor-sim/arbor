@@ -3,6 +3,8 @@
 #include <vector>
 #include <iostream>
 
+#include <nlohmann/json.hpp>
+
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/place_pwlin.hpp>
@@ -117,7 +119,7 @@ struct lfp_sampler {
                     p.x -= e.x;
                     p.y -= e.y;
                     p.z -= e.z;
-                    double r = std::sqrt(p.x*p.x+p.y*p.y+p.z*p.z); // [μm]
+                    double r = std::sqrt(p.x*p.x + p.y*p.y + p.z*p.z); // [μm]
                     return coef/r; // [MΩ]
                 });
         }
@@ -125,16 +127,16 @@ struct lfp_sampler {
 
     // On receipt of a sequence of cell-wide current samples, apply response matrix and save results to lfp_voltage.
     arb::sampler_function callback() {
-        return [this](arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
+        return [this](arb::probe_metadata pm, const arb::sample_records& samples) {
             std::vector<double> currents;
+            auto data = std::any_cast<arb::cable_sample_type*>(samples.values);
             lfp_voltage.resize(response.size());
-
-            for (std::size_t i = 0; i<n; ++i) {
-                lfp_time.push_back(samples[i].time);
-
-                const auto& [lo, hi] = samples[i].values;
-                for (unsigned j = 0; j<response.size(); ++j) {
-                    lfp_voltage[j].push_back(std::inner_product(lo, hi, response[j].begin(), 0.));
+            for (std::size_t ix = 0; ix < samples.n_sample; ++ix) {
+                lfp_time.push_back(samples.time[ix]);
+                for (std::size_t j = 0; j < response.size(); ++j) {
+                    lfp_voltage[j].push_back(std::inner_product(data + ix*samples.width, data + (ix + 1)*samples.width,
+                                                                response[j].begin(),
+                                                                0.));
                 }
             }
         };
@@ -147,35 +149,7 @@ private:
     std::vector<std::vector<double>> response; // [MΩ]
 };
 
-// JSON output helpers:
-
-template <typename T, typename F>
-struct as_json_array_wrap {
-    const T& data;
-    F fn;
-    as_json_array_wrap(const T& data, const F& fn): data(data), fn(fn) {}
-
-    friend std::ostream& operator<<(std::ostream& out, const as_json_array_wrap& a) {
-        out << '[';
-        bool first = true;
-        for (auto& x: a.data) out << (!first? ", ": (first=false, "")) << a.fn(x);
-        return out << ']';
-    }
-};
-
-struct {
-    template <typename F>
-    auto operator()(const F& fn) const {
-        return [&fn](const auto& data) { return as_json_array_wrap<decltype(data), F>(data, fn); };
-    }
-
-    auto operator()() const {
-        return this->operator()([](const auto& x) { return x; });
-    }
-} as_json_array;
-
-// Run simulation.
-
+// Run simulation.1
 int main(int argc, char** argv) {
     // Configuration
     const double t_stop = 100;    // [ms]
@@ -195,41 +169,36 @@ int main(int argc, char** argv) {
     arb::morphology cell_morphology = any_cast<arb::cable_cell>(recipe.get_cell_description(0)).morphology();
     arb::place_pwlin placed_cell(cell_morphology);
 
-    auto probe0_metadata = sim.get_probe_metadata({0, "Itotal"});
-    assert(probe0_metadata.size()==1); // Should only be one probe associated with this id.
-    arb::mcable_list current_cables = *any_cast<const arb::mcable_list*>(probe0_metadata.at(0).meta);
+    auto probe_metadata = sim.get_probe_metadata({0, "Itotal"});
+    assert(probe_metadata.size() == 1); // Should only be one probe associated with this id.
+    auto probe0_metadata = probe_metadata.at(0);
+    auto ptr = any_cast<const arb::mcable*>(probe0_metadata.meta);
+    arb::mcable_list current_cables(ptr, ptr + 1);
 
     lfp_sampler lfp(placed_cell, current_cables, electrodes, 3.0);
 
     auto sample_schedule = arb::regular_schedule(sample_dt*U::ms);
     sim.add_sampler(arb::one_probe({0, "Itotal"}), sample_schedule, lfp.callback());
 
-    arb::trace_vector<double, std::vector<arb::mcable>> membrane_voltage;
-    sim.add_sampler(arb::one_probe({0, "Um"}), sample_schedule, make_simple_sampler(membrane_voltage));
+    arb::simple_sampler_result<arb::cable_probe_membrane_voltage::meta_type, arb::cable_probe_membrane_voltage::value_type> membrane_voltage;
+    sim.add_sampler(arb::one_probe({0, "Um"}), sample_schedule, arb::make_simple_sampler(membrane_voltage));
 
-    arb::trace_vector<double> ionic_current_density;
-    sim.add_sampler(arb::one_probe({0, "Iion"}), sample_schedule, make_simple_sampler(ionic_current_density));
+    arb::simple_sampler_result<arb::cable_probe_total_ion_current_density::meta_type, arb::cable_probe_total_ion_current_density::value_type> ionic_current_density;
+    sim.add_sampler(arb::one_probe({0, "Iion"}), sample_schedule, arb::make_simple_sampler(ionic_current_density));
 
-    arb::trace_vector<double> synapse_g;
-    sim.add_sampler(arb::one_probe({0, "expsyn-g"}), sample_schedule, make_simple_sampler(synapse_g));
+    arb::simple_sampler_result<arb::cable_probe_point_state::meta_type, arb::cable_probe_point_state::value_type> synapse_g;
+    sim.add_sampler(arb::one_probe({0, "expsyn-g"}), sample_schedule, arb::make_simple_sampler(synapse_g));
 
     sim.run(t_stop*U::ms, dt*U::ms);
 
-    // Output results in JSON format suitable for plotting by plot-lfp.py script.
-
-    auto get_t = [](const auto& x) { return x.t; };
-    auto get_v = [](const auto& x) { return x.v; };
-    auto scale = [](double s) { return [s](const auto& x) { return x*s; }; };
-    auto to_xz = [](const auto& p) { return std::array<double, 2>{p.x, p.z}; };
-
     // Compute synaptic current from synapse conductance and membrane potential.
+    // TODO(Sampling, TH) Check this...
     std::vector<double> syn_i;
-    assert(synapse_g.get(0).size()==membrane_voltage.get(0).size());
-    std::transform(synapse_g.get(0).begin(), synapse_g.get(0).end(), membrane_voltage.get(0).begin(), std::back_inserter(syn_i),
-        [](arb::trace_entry<double> g, arb::trace_entry<double> v) {
-            assert(g.t==v.t);
-            return g.v*v.v;
-        });
+    assert(synapse_g.n_sample == membrane_voltage.n_sample);
+    assert(synapse_g.width == membrane_voltage.width);
+    std::transform(synapse_g.values.at(0).begin(), synapse_g.values.at(0).end(),
+                   membrane_voltage.values.at(0).begin(), std::back_inserter(syn_i),
+                   [](double g, double v) { return g*v; });
 
     // Collect points from 2-d morphology in vectors of arrays (x, z, radius), one per branch.
     // (This process will be simplified with improvements to the place_pwlin API.)
@@ -241,39 +210,43 @@ int main(int argc, char** argv) {
             samples.back().push_back(std::array<double, 3>{seg.dist.x, seg.dist.z, seg.dist.radius});
         }
     }
-    auto cable = membrane_voltage.get(0).meta.at(0);
-    auto mloc = arb::mlocation{cable.branch, cable.dist_pos};
+    auto mloc = membrane_voltage.metadata.at(0);
+    auto to_xz = [](const auto& p) { return std::array<double, 2>{p.x, p.z}; };
     auto probe_xz = to_xz(placed_cell.at(mloc));
     std::vector<std::array<double, 2>> electrodes_xz;
-    std::transform(electrodes.begin(), electrodes.end(), std::back_inserter(electrodes_xz), to_xz);
+    std::transform(electrodes.begin(), electrodes.end(),
+                   std::back_inserter(electrodes_xz), to_xz);
 
-    std::cout <<
-        "{\n"
-        "\"morphology\": {\n"
-        "\"unit\": \"μm\",\n"
-        "\"samples\": " << as_json_array(as_json_array(as_json_array()))(samples) << ",\n"
-        "\"probe\": " << as_json_array()(probe_xz) << ",\n"
-        "\"electrodes\": " << as_json_array(as_json_array())(electrodes_xz) << "\n"
-        "},\n"
-        "\"extracellular potential\": {\n"
-        "\"unit\": \"μV\",\n"
-        "\"time\": " << as_json_array()(lfp.lfp_time) << ",\n"
-        "\"values\": " << as_json_array(as_json_array(scale(1e3)))(lfp.lfp_voltage) << "\n"
-        "},\n"
-        "\"synaptic current\": {\n"
-        "\"unit\": \"nA\",\n"
-        "\"time\": "  << as_json_array(get_t)(synapse_g.get(0)) << ",\n"
-        "\"value\": " << as_json_array()(syn_i) << "\n"
-        "},\n"
-        "\"membrane potential\": {\n"
-        "\"unit\": \"mV\",\n"
-        "\"time\": "  << as_json_array(get_t)(membrane_voltage.get(0)) << ",\n"
-        "\"value\": " << as_json_array(get_v)(membrane_voltage.get(0)) << "\n"
-        "},\n"
-        "\"ionic current density\": {\n"
-        "\"unit\": \"A/m²\",\n"
-        "\"time\": "  << as_json_array(get_t)(ionic_current_density.get(0)) << ",\n"
-        "\"value\": " << as_json_array(get_v)(ionic_current_density.get(0)) << "\n"
-        "}\n"
-        "}\n";
+    auto lfp_uV = lfp.lfp_voltage;
+    std::for_each(lfp_uV.begin(), lfp_uV.end(),
+                  [](auto& xs) {
+                      std::transform(xs.begin(), xs.end(),
+                                     xs.begin(),
+                                     [](auto x) { return x*1e3; });
+                          });
+
+    nlohmann::json json;
+    json["morphology"]["unit"]       = "μm";
+    json["morphology"]["samples"]    = samples;
+    json["morphology"]["probe"]      = probe_xz;
+    json["morphology"]["electrodes"] = electrodes_xz;
+
+    json["ionic current density"]["unit"]  = "A/m²";
+    json["ionic current density"]["time"]  = ionic_current_density.time;
+    json["ionic current density"]["value"] = ionic_current_density.values.at(0);
+
+    json["membrane potential"]["unit"]  = "mV";
+    json["membrane potential"]["time"]  = membrane_voltage.time;
+    json["membrane potential"]["value"] = membrane_voltage.values.at(0);
+
+    json["extracellular potential"]["unit"]  = "μV";
+    json["extracellular potential"]["time"]  = lfp.lfp_time;
+    json["extracellular potential"]["values"] = lfp_uV;
+
+    json["synaptic current"]["unit"]  = "nA";
+    json["synaptic current"]["time"]  = synapse_g.time;
+    json["synaptic current"]["value"] = syn_i;
+
+    std::cout << json << "\n";
+
 }

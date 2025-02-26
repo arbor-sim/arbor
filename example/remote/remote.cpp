@@ -62,7 +62,7 @@ struct mpi_handle {
 
 mpi_handle setup_mpi();
 
-void sampler(arb::probe_metadata, std::size_t, const arb::sample_record*);
+void sampler(arb::probe_metadata, const arb::sample_records&);
 
 std::vector<std::pair<double, double>> trace;
 
@@ -147,13 +147,13 @@ mpi_handle setup_mpi() {
     return result;
 }
 
-void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
-    for (std::size_t ix = 0; ix < n; ++ix) {
-        if (pm.id.gid != 0) continue;
-        if (pm.id.tag != "Um") continue;
-        const auto& sample = samples[ix];
-        const auto& [lo, hi]  = sample.values;
-        auto time  = sample.time;
-        trace.emplace_back(time, *lo);
+void sampler(arb::probe_metadata pm, const arb::sample_records& samples) {
+    if (pm.id.gid != 0) return;
+    if (pm.id.tag != "Um") return;
+    auto reader = arb::make_sample_reader<arb::lif_probe_metadata, arb::lif_sample_type>(pm.meta, samples);
+    for (std::size_t ix = 0; ix < reader.n_sample; ++ix) {
+        double time = reader.get_time(ix);
+        double value = reader.get_value(ix);
+        trace.emplace_back(time, value);
     }
 }

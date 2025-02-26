@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <format>
 #include <functional>
+#include <iostream>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -107,8 +108,7 @@ auto make_sample_reader(util::any_ptr apm, const sample_records& sr) {
         throw std::runtime_error{std::format("Sample reader: could not cast to value type; expected {}, got {}.",
                                              typeid((V*)nullptr).name(), sr.values.type().name())};
     }
-    return sample_reader<M, V> {
-                                 .width=sr.width,
+    return sample_reader<M, V> { .width=sr.width,
                                  .n_sample=sr.n_sample,
                                  .time=sr.time,
                                  .values=val,

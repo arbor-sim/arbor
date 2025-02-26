@@ -77,14 +77,15 @@ struct recipe: public arb::recipe {
 // NEVER do this in HPC!!!
 std::mutex mtx;
 
-void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
-    const auto& loc = *arb::util::any_cast<const arb::mcable_list*>(pm.meta);
-
-    for (std::size_t i = 0; i<n; ++i) {
-        std::lock_guard<std::mutex> lock{mtx};
-        const auto& [lo, hi] = samples[i].values;
-        std::cout << std::fixed << std::setprecision(4)
-                  << "|  " << samples[i].time << " |      " << loc[i] << " | " << *lo << " |\n";
+void sampler(arb::probe_metadata pm, const arb::sample_records& samples) {
+    using probe_t = arb::cable_probe_membrane_voltage;
+    auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, samples);
+    std::lock_guard<std::mutex> lock{mtx};
+    for (std::size_t ix = 0; ix < reader.n_sample; ++ix) {
+        auto time = reader.get_time(ix);
+        auto value = reader.get_value(ix);
+        arb::mlocation meta = reader.get_metadata(0);
+        std::cout << std::format("| {:7.4f} | {:11.1f} | {:9.2f} |\n", time, meta.pos, value);
     }
 }
 
