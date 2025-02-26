@@ -8,12 +8,12 @@ on:
 jobs:
   build:
     name: "Benchmarks"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
     env:
-        CC:  gcc-13
-        CXX: g++-13
+        CC:  gcc-14
+        CXX: g++-14
     steps:
       - name: Get build dependencies
         run: |
