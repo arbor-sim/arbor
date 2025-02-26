@@ -154,7 +154,7 @@ public:
     py::list get_probe_metadata(const arb::cell_address_type& probeset_id) const {
         py::list result;
         for (auto&& pm: sim_->get_probe_metadata(probeset_id)) {
-             result.append(global_ptr_->probe_meta_converters.convert(pm.meta));
+             result.append(global_ptr_->probe_meta_converters.convert(pm.meta, pm.width));
         }
         return result;
     }
@@ -163,7 +163,7 @@ public:
         std::shared_ptr<sample_recorder_vec> recorders{new sample_recorder_vec};
 
         for (const arb::probe_metadata& pm: sim_->get_probe_metadata(probeset_id)) {
-            recorders->push_back(global_ptr_->recorder_factories.make_recorder(pm.meta));
+            recorders->push_back(global_ptr_->recorder_factories.make_recorder(pm.meta, pm.width));
         }
 
         // Constructed callbacks are passed to the underlying simulator object, _and_ a copy

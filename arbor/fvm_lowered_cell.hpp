@@ -46,6 +46,11 @@ struct fvm_probe_multi {
     util::any_ptr get_metadata_ptr() const {
         return std::visit([](const auto& x) -> util::any_ptr { return x.data(); }, metadata);
     }
+
+    std::size_t get_width() const {
+        return std::visit([](const auto& x) -> std::size_t { return x.size(); }, metadata);
+    }
+
 };
 
 struct fvm_probe_weighted_multi {
@@ -58,7 +63,7 @@ struct fvm_probe_weighted_multi {
         weight.shrink_to_fit();
         metadata.shrink_to_fit();
     }
-
+    std::size_t get_width() const { return metadata.size(); }
     util::any_ptr get_metadata_ptr() const { return metadata.data(); }
 };
 
@@ -77,6 +82,11 @@ struct fvm_probe_interpolated_multi {
     util::any_ptr get_metadata_ptr() const {
         return std::visit([](const auto& x) -> util::any_ptr { return x.data(); }, metadata);
     }
+
+    std::size_t get_width() const {
+        return std::visit([](const auto& x) -> std::size_t { return x.size(); }, metadata);
+    }
+
 };
 
 // Trans-membrane currents require special handling!
@@ -103,6 +113,7 @@ struct fvm_probe_membrane_currents {
         stim_cv.shrink_to_fit();
     }
 
+    std::size_t get_width() const { return metadata.size(); }
     util::any_ptr get_metadata_ptr() const { return metadata.data(); }
 };
 
@@ -111,6 +122,7 @@ struct missing_probe_info {
     std::array<probe_handle, 0> raw_handles;
     void* metadata = nullptr;
 
+    std::size_t get_width() const { return 0; }
     util::any_ptr get_metadata_ptr() const { return nullptr; }
 };
 
@@ -140,6 +152,10 @@ struct fvm_probe_data {
 
     util::any_ptr get_metadata_ptr() const {
         return std::visit([](const auto& i) -> util::any_ptr { return i.get_metadata_ptr(); }, info);
+    }
+
+    std::size_t get_width() const {
+        return std::visit([](const auto& i) -> std::size_t { return i.get_width(); }, info);
     }
 
     sample_size_type n_raw() const { return raw_handle_range().size(); }

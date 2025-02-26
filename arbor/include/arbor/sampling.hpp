@@ -41,6 +41,7 @@ struct one_tag {
 struct probe_metadata {
     cell_address_type id;  // probe id
     unsigned index;        // index of probe source within those supplied by probe id
+    std::size_t width;     // width ie count of meta items
     util::any_ptr meta;    // probe-specific metadata
 };
 

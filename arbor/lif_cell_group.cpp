@@ -256,7 +256,7 @@ std::vector<probe_metadata> lif_cell_group::get_probe_metadata(const cell_addres
     // SAFETY: Probe associations are fixed after construction, so we do not
     //         need to grab the mutex.
     if (probes_.count(key)) {
-        return {probe_metadata{key, 0, &probes_.at(key).metadata}};
+        return {probe_metadata{key, 0, 1, &probes_.at(key).metadata}};
     } else {
         return {};
     }

@@ -557,9 +557,7 @@ std::vector<probe_metadata> simulation_state::get_probe_metadata(const cell_addr
     if (auto linfo = util::value_by_key(gid_to_local_, probeset_id.gid)) {
         return cell_groups_.at(linfo->group_index)->get_probe_metadata(probeset_id);
     }
-    else {
-        return {};
-    }
+    return {};
 }
 
 // Simulation class implementations forward to implementation class.

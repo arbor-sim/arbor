@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
     assert(probe_metadata.size() == 1); // Should only be one probe associated with this id.
     auto probe0_metadata = probe_metadata.at(0);
     auto ptr = any_cast<const arb::mcable*>(probe0_metadata.meta);
-    arb::mcable_list current_cables(ptr, ptr + 1);
+    arb::mcable_list current_cables(ptr, ptr + probe0_metadata.width);
 
     lfp_sampler lfp(placed_cell, current_cables, electrodes, 3.0);
 

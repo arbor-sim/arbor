@@ -40,7 +40,7 @@ struct sample_recorder {
 // Recorder 'factory' type: given an any_ptr to probe metadata of a specific subset of types,
 // return a corresponding sample_recorder instance.
 
-using sample_recorder_factory = std::function<std::unique_ptr<sample_recorder> (arb::util::any_ptr)>;
+using sample_recorder_factory = std::function<std::unique_ptr<sample_recorder> (arb::util::any_ptr, std::size_t)>;
 
 // Holds map: probe metadata pointer type → recorder object factory.
 
@@ -52,9 +52,9 @@ struct recorder_factory_map {
         map_[typeid(const Meta*)] = std::move(rf);
     }
 
-    std::unique_ptr<sample_recorder> make_recorder(arb::util::any_ptr meta) const {
+    std::unique_ptr<sample_recorder> make_recorder(arb::util::any_ptr meta, std::size_t n) const {
         try {
-            return map_.at(meta.type())(meta);
+            return map_.at(meta.type())(meta, n);
         }
         catch (std::out_of_range&) {
             std::string ty = meta.type().name();
@@ -64,24 +64,19 @@ struct recorder_factory_map {
 };
 
 // Probe metadata to Python object converter.
-
-using probe_meta_converter = std::function<pybind11::object (arb::util::any_ptr)>;
+using probe_meta_converter = std::function<pybind11::object (arb::util::any_ptr, std::size_t n)>;
 
 struct probe_meta_cvt_map {
     std::unordered_map<std::type_index, probe_meta_converter> map_;
 
     template <typename Meta>
-    void assign(probe_meta_converter cvt) {
-        map_[typeid(const Meta*)] = std::move(cvt);
-    }
+    void assign(probe_meta_converter cvt) { map_[typeid(const Meta*)] = std::move(cvt); }
 
-    pybind11::object convert(arb::util::any_ptr meta) const {
+    pybind11::object convert(arb::util::any_ptr meta, std::size_t n) const {
         if (auto iter = map_.find(meta.type()); iter!=map_.end()) {
-            return iter->second(meta);
+            return iter->second(meta, n);
         }
-        else {
-            return pybind11::none();
-        }
+        return pybind11::none();
     }
 };
 

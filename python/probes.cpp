@@ -41,17 +41,15 @@ struct recorder_base: sample_recorder {
         return py::cast(meta_);
     }
 
-    void reset() override {
-        sample_raw_.clear();
-    }
+    void reset() override { sample_raw_.clear(); }
 
 protected:
-    Meta meta_;
+    Meta* meta_;
     std::vector<double> sample_raw_;
     std::ptrdiff_t stride_;
 
-    recorder_base(const Meta* meta_ptr, std::ptrdiff_t width):
-        meta_(*meta_ptr), stride_(1 + width)
+    recorder_base(const Meta* meta_ptr, std::size_t width):
+        meta_(const_cast<Meta*>(meta_ptr)), stride_(1 + width)
     {}
 };
 
@@ -69,7 +67,7 @@ struct recorder_lif: recorder_base<arb::lif_probe_metadata> {
         }
     }
 
-    recorder_lif(const arb::lif_probe_metadata* meta_ptr): recorder_base<arb::lif_probe_metadata>(meta_ptr, 1) {}
+    recorder_lif(const arb::lif_probe_metadata* meta_ptr, std::size_t): recorder_base<arb::lif_probe_metadata>(meta_ptr, 1) {}
 };
 
 
@@ -78,7 +76,7 @@ struct recorder_cable_vector: recorder_base<Meta> {
     using recorder_base<Meta>::sample_raw_;
 
     void record(any_ptr pm, const arb::sample_records& records) override {
-        auto reader = arb::make_sample_reader<Meta, arb::cable_sample_type>(pm, records);
+        auto reader = arb::make_sample_reader<const Meta, arb::cable_sample_type>(pm, records);
         for (std::size_t ix = 0; ix < reader.n_sample; ++ix) {
             auto t = reader.get_time(ix);
             sample_raw_.push_back(t);
@@ -95,28 +93,35 @@ protected:
 };
 
 // Specific recorder classes:
-struct recorder_cable_vector_mcable: recorder_cable_vector<arb::mcable_list> {
-    explicit recorder_cable_vector_mcable(const arb::mcable_list* meta_ptr):
-        recorder_cable_vector(meta_ptr, std::ptrdiff_t(meta_ptr->size())) {}
+struct recorder_cable_vector_mcable: recorder_cable_vector<arb::mcable> {
+    explicit recorder_cable_vector_mcable(const arb::mcable* ptr, std::size_t n):
+        recorder_cable_vector(ptr, n) {}
 };
 
-struct recorder_cable_vector_point_info: recorder_cable_vector<std::vector<arb::cable_probe_point_info>> {
-    explicit recorder_cable_vector_point_info(const std::vector<arb::cable_probe_point_info>* meta_ptr):
-        recorder_cable_vector(meta_ptr, std::ptrdiff_t(meta_ptr->size())) {}
+struct recorder_cable_vector_mlocation: recorder_cable_vector<arb::mlocation> {
+    explicit recorder_cable_vector_mlocation(const arb::mlocation* ptr, std::size_t n):
+        recorder_cable_vector(ptr, n) {}
+};
+
+
+struct recorder_cable_vector_point_info: recorder_cable_vector<arb::cable_probe_point_info> {
+    explicit recorder_cable_vector_point_info(const arb::cable_probe_point_info* ptr, std::size_t n):
+        recorder_cable_vector(ptr, n) {}
 };
 
 // Helper for registering sample recorder factories and (trivial) metadata conversions.
-
 template <typename Meta, typename Recorder>
 void register_probe_meta_maps(pyarb_global_ptr g) {
     g->recorder_factories.assign<Meta>(
-        [](any_ptr meta_ptr) -> std::unique_ptr<sample_recorder> {
-            return std::unique_ptr<Recorder>(new Recorder(any_cast<const Meta*>(meta_ptr)));
+        [](any_ptr meta_ptr, std::size_t n) -> std::unique_ptr<sample_recorder> {
+            return std::make_unique<Recorder>(any_cast<const Meta*>(meta_ptr), n);
         });
 
     g->probe_meta_converters.assign<Meta>(
-        [](any_ptr meta_ptr) -> py::object {
-            return py::cast(*any_cast<const Meta*>(meta_ptr));
+        [](any_ptr ptr, std::size_t n) -> py::object {
+            auto raw = any_cast<const Meta*>(ptr);
+            std::vector result(raw, raw + n);
+            return py::cast(result);
         });
 }
 
@@ -314,9 +319,9 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
           "ion"_a, "tag"_a);
 
     // Add probe metadata to maps for converters and recorders.
-
-    register_probe_meta_maps<arb::mcable_list, recorder_cable_vector_mcable>(global_ptr);
-    register_probe_meta_maps<std::vector<arb::cable_probe_point_info>, recorder_cable_vector_point_info>(global_ptr);
+    register_probe_meta_maps<arb::mcable, recorder_cable_vector_mcable>(global_ptr);
+    register_probe_meta_maps<arb::mlocation, recorder_cable_vector_mlocation>(global_ptr);
+    register_probe_meta_maps<arb::cable_probe_point_info, recorder_cable_vector_point_info>(global_ptr);
     register_probe_meta_maps<arb::lif_probe_metadata, recorder_lif>(global_ptr);
 }
 
