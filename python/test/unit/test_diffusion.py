@@ -354,8 +354,8 @@ class TestDiffusion(unittest.TestCase):
             r_3 = l_3 = 0  # set radius and length of third segment to zero
             r_4 = l_4 = 0  # set radius and length of fourth segment to zero
             morph, dec, labels = self.get_morph_and_decor_2_seg(l_1, l_2, r_1, r_2)
-            length_soma_cv = (
-                (l_1 + l_2) / (2 * num_cvs_per_seg)
+            length_soma_cv = (l_1 + l_2) / (
+                2 * num_cvs_per_seg
             )  # consider 'fixed-per-branch' policy for two segments, which only form one branch
             # use 'fixed-per-branch' policy to obtain exact number of CVs; there's one branch here
             cvp = A.cv_policy(f"(fixed-per-branch {2 * num_cvs_per_seg})")
