@@ -4,9 +4,11 @@ import unittest
 import arbor as A
 from arbor import units as U
 import numpy as np
+
 try:
     from scipy.sparse import diags
     from scipy.sparse.linalg import spsolve
+
     scipy_found = True
 except ModuleNotFoundError:
     scipy_found = False
