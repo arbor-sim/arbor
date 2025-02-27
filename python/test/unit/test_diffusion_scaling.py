@@ -98,29 +98,18 @@ class TestDiffusionScaling(unittest.TestCase):
     def simulate_arbor(self, mech_name):
         # set up the morphology
         tree = A.segment_tree()
-        # x = self.dx*np.arange(self.Nx+1)
-        labels = A.label_dict({})
+        labels = A.label_dict()
+        # the first segment: the root
+        parent = A.mnpos
         for i in range(self.Nx):
-            # the first segment: the root
-            if i == 0:
-                locals()["dendrite_0"] = tree.append(
-                    A.mnpos,
-                    A.mpoint(-self.L / 2, 0, 0, self.dendrite_radius),
-                    A.mpoint(-self.L / 2 + self.dx, 0, 0, self.dendrite_radius),
-                    tag=0,
-                )
-                labels["dendrite_0"] = "(tag 0)"
-            # all following segments
-            else:
-                locals()[f"dendrite_{i}"] = tree.append(
-                    locals()[f"dendrite_{i - 1}"],
-                    A.mpoint(-self.L / 2 + i * self.dx, 0, 0, self.dendrite_radius),
-                    A.mpoint(
-                        -self.L / 2 + (i + 1) * self.dx, 0, 0, self.dendrite_radius
-                    ),
-                    tag=i,
-                )
-                labels[f"dendrite_{i}"] = f"(tag {i})"
+            x = -self.L / 2 + i * self.dx
+            parent = tree.append(
+                parent,
+                A.mpoint(x, 0, 0, self.dendrite_radius),
+                A.mpoint(x + self.dx, 0, 0, self.dendrite_radius),
+                tag=i,
+            )
+            labels[f"dendrite_{i}"] = f"(tag {i})"
         morph = A.morphology(tree)
 
         # set up decor
@@ -208,8 +197,7 @@ class TestDiffusionScaling(unittest.TestCase):
     # test_diffusion_scaling_amount
     # Test: compare the amount of diffusive particles in Arbor and independent implementation
     @unittest.skipIf(not scipy_found, "SciPy not found")
-    @fixtures.single_context()
-    def test_diffusion_scaling_amount(self, single_context):
+    def test_diffusion_scaling_amount(self):
         # perform the simulations
         data_arbor = self.simulate_arbor("inject_norm_amount")
         data_ind = self.simulate_independent(concentration=False)
@@ -241,8 +229,7 @@ class TestDiffusionScaling(unittest.TestCase):
     # test_diffusion_scaling_concentration
     # Test: compare the concentration of diffusive particles in Arbor and independent implementation
     @unittest.skipIf(not scipy_found, "SciPy not found")
-    @fixtures.single_context()
-    def test_diffusion_scaling_concentration(self, single_context):
+    def test_diffusion_scaling_concentration(self):
         # perform the simulations
         data_arbor = self.simulate_arbor("inject_norm_concentration")
         data_ind = self.simulate_independent(concentration=True)
