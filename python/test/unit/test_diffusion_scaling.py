@@ -53,9 +53,10 @@ class recipe(A.recipe):
         return self.the_props
 
     def event_generators(self, gid):
+        scale = 2 * np.pi * 0.0001
         return [
             A.event_generator(
-                f"syn_{i}", 1.0, A.explicit_schedule(np.array([0]) * U.ms)
+                f"syn_{i}", 1.0/scale, A.explicit_schedule(np.array([0]) * U.ms)
             )
             for i in self.stim
         ]
@@ -74,6 +75,7 @@ class TestDiffusionScaling(unittest.TestCase):
         self.dendrite_radius = 1  # in µm
         # self.cv_area = 2 * np.pi * self.dendrite_radius * self.dx # in µm^2
         self.cv_volume = np.pi * self.dendrite_radius**2 * self.dx  # in µm^3
+        print(self.cv_volume, 1/self.cv_volume)
 
         # temporal parameters
         self.T = 50.1  # runtime of the whole simulation in ms
@@ -82,12 +84,10 @@ class TestDiffusionScaling(unittest.TestCase):
 
         # diffusion constant
         self.D = 1e-9  # diffusion constant in m^2/s
-
-        # other parameters
-        self.stim = range(int(0.4 * self.Nx), int(0.6 * self.Nx))  # stimulated points
-        self.inject_max_amount = (
-            1.0  # maximum (initially injected) particle amount in µmol/l / 1e-21 mol
-        )
+        # stimulated points
+        self.stim = range(int(0.4 * self.Nx), int(0.6 * self.Nx))
+        # maximum (initially injected) particle amount in µmol/l / 1e-21 mol
+        self.inject_max_amount = 1.0
         self.dev_dyn = 0.20  # accepted relative deviation from maximum particle amount / concentration (in dynamic regime)
         self.dev_ss = 0.05  # accepted relative deviation from maximum particle amount/concentration (in steady state)
 
@@ -119,12 +119,9 @@ class TestDiffusionScaling(unittest.TestCase):
         # set up particle/ion injection
         # NOTE 'inject_norm_concentration' mechanism will automatically normalize by the volume
         for i in self.stim:
-            mech_inject = A.mechanism(
-                f"{mech_name}/x=my_ion", {"alpha": self.inject_max_amount}
-            )
             decor.place(
                 f'(on-components 0.5 (region "dendrite_{i}"))',
-                A.synapse(mech_inject),
+                A.synapse(f"{mech_name}/x=my_ion", alpha=self.inject_max_amount),
                 f"syn_{i}",
             )
 
