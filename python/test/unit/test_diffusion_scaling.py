@@ -107,7 +107,7 @@ class TestDiffusionScaling(unittest.TestCase):
             # all following segments
             else:
                 locals()[f"dendrite_{i}"] = tree.append(
-                    locals()[f"dendrite_{i-1}"],
+                    locals()[f"dendrite_{i - 1}"],
                     A.mpoint(-self.L / 2 + i * self.dx, 0, 0, self.dendrite_radius),
                     A.mpoint(
                         -self.L / 2 + (i + 1) * self.dx, 0, 0, self.dendrite_radius
