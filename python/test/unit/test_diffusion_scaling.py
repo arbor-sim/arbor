@@ -72,7 +72,7 @@ class TestDiffusionScaling(unittest.TestCase):
         self.Nx = 100  # number of spatial points
         self.dx = self.L / self.Nx  # spatial step size, in µm
         self.dendrite_radius = 1  # in µm
-        self.cv_area = 2 * np.pi * self.dendrite_radius * self.dx # in µm^2
+        self.cv_area = 2 * np.pi * self.dendrite_radius * self.dx  # in µm^2
         self.cv_volume = np.pi * self.dendrite_radius**2 * self.dx  # in µm^3
 
         # temporal parameters
@@ -142,7 +142,6 @@ class TestDiffusionScaling(unittest.TestCase):
 
         # strip off time column and FIXME scale
         return data[:, 1:] / self.cv_area * 1000.0
-
 
     # simulate_independent
     # Method that sets up and simulates the diffusion of particles with an independent SciPy implementation that
