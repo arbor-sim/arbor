@@ -53,10 +53,9 @@ class recipe(A.recipe):
         return self.the_props
 
     def event_generators(self, gid):
-        scale = 2 * np.pi * 0.0001
         return [
             A.event_generator(
-                f"syn_{i}", 1.0/scale, A.explicit_schedule(np.array([0]) * U.ms)
+                f"syn_{i}", 1.0, A.explicit_schedule(np.array([0]) * U.ms)
             )
             for i in self.stim
         ]
@@ -73,9 +72,8 @@ class TestDiffusionScaling(unittest.TestCase):
         self.Nx = 100  # number of spatial points
         self.dx = self.L / self.Nx  # spatial step size, in µm
         self.dendrite_radius = 1  # in µm
-        # self.cv_area = 2 * np.pi * self.dendrite_radius * self.dx # in µm^2
+        self.cv_area = 2 * np.pi * self.dendrite_radius * self.dx # in µm^2
         self.cv_volume = np.pi * self.dendrite_radius**2 * self.dx  # in µm^3
-        print(self.cv_volume, 1/self.cv_volume)
 
         # temporal parameters
         self.T = 50.1  # runtime of the whole simulation in ms
@@ -142,9 +140,9 @@ class TestDiffusionScaling(unittest.TestCase):
         sim.run(tfinal=self.T * U.ms, dt=self.dt * U.ms)
         data, _ = sim.samples(ion_probe_handle)[0]
 
-        return data[
-            :, 1:
-        ]  # FIXME for some reason there is an additional entry at the start of the sampled array
+        # strip off time column and FIXME scale
+        return data[:, 1:] / self.cv_area * 1000.0
+
 
     # simulate_independent
     # Method that sets up and simulates the diffusion of particles with an independent SciPy implementation that
@@ -198,6 +196,8 @@ class TestDiffusionScaling(unittest.TestCase):
         # perform the simulations
         data_arbor = self.simulate_arbor("inject_norm_amount")
         data_ind = self.simulate_independent(concentration=False)
+
+        scale = self.cv_area * 0.001
 
         # test initial state
         self.assertTrue(

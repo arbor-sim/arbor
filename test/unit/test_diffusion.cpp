@@ -69,7 +69,7 @@ struct linear: public recipe {
     arb::decor decor;
 
     linear& add_decay()  { decor.paint("(all)"_reg, arb::density("decay/x=na")); return *this; }
-    linear& add_inject() { decor.place("(location 0 0.5)"_ls, arb::synapse("inject/x=na", {{"alpha", 200.0*cv_length}}), "Zap"); return *this; }
+    linear& add_inject() { decor.place("(location 0 0.5)"_ls, arb::synapse("inject/x=na", {{"alpha", 10610.329633427253}}), "Zap"); return *this; }
     linear& add_event(double t, float w) { inject_at.push_back({t, w}); return *this; }
     linear& set_diffusivity(double d, std::optional<region> rg = {}) {
         if (rg) decor.paint(*rg, ion_diffusivity{"na", d*U::m2/U::s});

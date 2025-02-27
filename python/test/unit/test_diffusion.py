@@ -419,12 +419,9 @@ class TestDiffusion(unittest.TestCase):
         data_s = sim.samples(hdl_s)[0][0]
         data_sV = sim.samples(hdl_sV)[0][0]
         tmp_data = sim.samples(hdl_sV_all)[0][0]
-        data_sV_total = np.zeros_like(tmp_data[:, 0])
-        num_cvs = len(tmp_data[0, :]) - 1
-        for i in range(
-            len(tmp_data[0, :]) - 1
-        ):  # compute the total amount of particles by summing over all CVs of the whole neuron
-            data_sV_total += tmp_data[:, i + 1]
+        num_cvs = tmp_data.shape[1] - 1
+        # compute the total amount of particles by summing over all CVs of the whole neuron
+        data_sV_total = np.sum(tmp_data[:, 1:], axis=1)
 
         # final value of the total particle amount of s
         sV_tot_lim_expected = 0
