@@ -4,14 +4,18 @@ import unittest
 import arbor as A
 from arbor import units as U
 import numpy as np
-from scipy.sparse import diags
-from scipy.sparse.linalg import spsolve
+try:
+    from scipy.sparse import diags
+    from scipy.sparse.linalg import spsolve
+    scipy_found = True
+except ModuleNotFoundError:
+    scipy_found = False
 from .. import fixtures
 
 """
-Tests for the correct scaling of the amount _and_ concentration of diffusive particles in Arbor, as
-compared to an independent SciPy implementation that solves the diffusion equation via the Crank-Nicolson
-method.
+Tests for the correct scaling of the amount _and_ concentration of diffusive
+particles in Arbor, as compared to an independent SciPy implementation that
+solves the diffusion equation via the Crank-Nicolson method.
 """
 
 
@@ -201,6 +205,7 @@ class TestDiffusionScaling(unittest.TestCase):
 
     # test_diffusion_scaling_amount
     # Test: compare the amount of diffusive particles in Arbor and independent implementation
+    @unittest.skipIf(not scipy_found, "SciPy not found")
     @fixtures.single_context()
     def test_diffusion_scaling_amount(self, single_context):
         # perform the simulations
@@ -233,6 +238,7 @@ class TestDiffusionScaling(unittest.TestCase):
 
     # test_diffusion_scaling_concentration
     # Test: compare the concentration of diffusive particles in Arbor and independent implementation
+    @unittest.skipIf(not scipy_found, "SciPy not found")
     @fixtures.single_context()
     def test_diffusion_scaling_concentration(self, single_context):
         # perform the simulations
