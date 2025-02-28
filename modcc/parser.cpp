@@ -2,7 +2,6 @@
 #include <string>
 
 #include "parser.hpp"
-#include "perfvisitor.hpp"
 #include "token.hpp"
 #include "util.hpp"
 
@@ -10,26 +9,18 @@
 
 // specialize on const char* for lazy evaluation of compile time strings
 bool Parser::expect(tok tok, const char* str) {
-    if (tok == token_.type) {
-        return true;
-    }
-
+    if (tok == token_.type) return true;
     error(
         strlen(str) > 0 ? str
                         : std::string("unexpected token ") + yellow(token_.spelling));
-
     return false;
 }
 
 bool Parser::expect(tok tok, std::string const& str) {
-    if (tok == token_.type) {
-        return true;
-    }
-
+    if (tok == token_.type) return true;
     error(
         str.size() > 0 ? str
                        : std::string("unexpected token ") + yellow(token_.spelling));
-
     return false;
 }
 
@@ -1389,21 +1380,16 @@ expression_ptr Parser::parse_conserve_expression() {
 expression_ptr Parser::parse_expression(int prec, tok stop_token) {
     auto lhs = parse_unaryop();
     if (lhs == nullptr) return nullptr;
-
     // Combine all sub-expressions with precedence greater than prec.
     for (;;) {
         if (token_.type == stop_token) return lhs;
-
         auto op = token_;
         auto p_op = binop_precedence(op.type);
-
         // Note: all tokens that are not infix binary operators have
         // precedence of -1, so expressions like function calls will short
         // circuit this loop here.
         if (p_op <= prec) return lhs;
-
         get_token(); // consume the infix binary operator
-
         lhs = parse_binop(std::move(lhs), op);
         if (!lhs) return nullptr;
     }
@@ -1427,15 +1413,29 @@ expression_ptr Parser::parse_expression(tok t) {
 expression_ptr Parser::parse_unaryop() {
     expression_ptr e;
     Token op = token_;
-    switch (token_.type) {
+    switch (op.type) {
     case tok::plus:
         // plus sign is simply ignored
         get_token(); // consume '+'
         return parse_unaryop();
     case tok::minus:
-        get_token();         // consume '-'
-        e = parse_unaryop(); // handle recursive unary
+        // consume '-'
+        get_token();
+        // recurse, if needed
+        e = parse_unaryop();
         if (!e) return nullptr;
+        // Handle precedence of pow over negation: -X^2 is -(X^2); _not_ (-X)^2
+        // NOTE This is _not_ the proper way of doing things. Usually, we'd want
+        //      to thread the precedence through parse_unary, too. Neg and Mul
+        //      have the same precedence. However, this is a) a fix, b) coming
+        //      quite late in modcc's design and I fear introducing more issues
+        //      by a proper design now than I'll actually be fixing.
+        if (token_.type == tok::pow) {
+            auto op = token_;
+            // consume '^'
+            get_token();
+            e = parse_binop(std::move(e), op);
+        }
         return unary_expression(token_.location, op.type, std::move(e));
     case tok::exp:
     case tok::sin:
@@ -1525,22 +1525,16 @@ expression_ptr Parser::parse_primary() {
 
 expression_ptr Parser::parse_parenthesis_expression() {
     // never call unless at start of parenthesis
-
     if (token_.type != tok::lparen) {
         throw compiler_exception(
             "attempt to parse a parenthesis_expression() without opening parenthesis",
             location_);
     }
-
     get_token(); // consume '('
-
     auto e = parse_expression();
-
     // check for closing parenthesis ')'
     if (!e || !expect(tok::rparen)) return nullptr;
-
     get_token(); // consume ')'
-
     return e;
 }
 

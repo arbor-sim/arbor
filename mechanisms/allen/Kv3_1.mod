@@ -21,7 +21,9 @@ STATE { m }
 
 BREAKPOINT {
     SOLVE states METHOD cnexp
-    ik = gbar*m*(v - ek)
+    LOCAL g
+    g = gbar*m
+    ik = g*(v - ek)
 }
 
 DERIVATIVE states {

@@ -206,7 +206,7 @@ namespace {
                 decor.place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "tgt");
                 return arb::cable_cell(arb::morphology(tree), decor, {}, arb::cv_policy_fixed_per_branch(10));
             }
-            return arb::lif_cell("src", "tgt");
+            return arb::lif_cell{.source="src", .target="tgt"};
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {

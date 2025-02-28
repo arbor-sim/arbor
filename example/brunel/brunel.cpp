@@ -14,12 +14,14 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/cable_cell.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
+#include <arbor/morph/segment_tree.hpp>
 
 #include <arborenv/default_env.hpp>
 #include <arborenv/gpu_env.hpp>
@@ -46,19 +48,15 @@ struct cl_options {
     float delay = 0.1;
     float rel_inh_strength = 1;
     double poiss_lambda = 1;
-
+    // use cable cells instead of LIF
+    bool use_cc = false;
     // Simulation running parameters:
     double tfinal = 100.;
     double dt = 1;
     uint32_t group_size = 10;
     uint32_t seed = 42;
-
     // Parameters for spike output.
     std::string spike_file_output = "";
-
-    // Turn on/off profiling output for all ranks.
-    bool profile_only_zero = false;
-
     // Be more verbose with informational messages.
     bool verbose = false;
 };
@@ -70,8 +68,6 @@ std::optional<cl_options> read_options(int argc, char** argv);
 void banner(context ctx);
 
 // Add m unique connection from gids in interval [start, end) - gid.
-// We exclude gid because we don't want self-loops. Returns number of
-// actually _added_ connections.
 void add_subset(cell_gid_type gid,
                 cell_gid_type start, cell_gid_type end,
                 unsigned m,
@@ -80,20 +76,30 @@ void add_subset(cell_gid_type gid,
                 std::vector<cell_connection>& conns);
 
 /*
-   A Brunel network consists of nexc excitatory LIF neurons and ninh inhibitory LIF neurons.
-   Each neuron in the network receives in_degree_prop * nexc excitatory connections
-   chosen randomly, in_degree_prop * ninh inhibitory connections and next (external) Poisson connections.
-   All the connections have the same delay. The strenght of excitatory and Poisson connections is given by
-   parameter weight, whereas the strength of inhibitory connections is rel_inh_strength * weight.
-   Poisson neurons all spike independently with expected number of spikes given by parameter poiss_lambda.
-   Because of the refractory period, the activity is mostly driven by Poisson neurons and
+   A Brunel network consists of nexc excitatory LIF neurons and ninh inhibitory
+   LIF neurons. Each neuron in the network receives in_degree_prop * nexc
+   excitatory connections chosen randomly, in_degree_prop * ninh inhibitory
+   connections and next (external) Poisson connections. All the connections have
+   the same delay. The strenght of excitatory and Poisson connections is given
+   by parameter weight, whereas the strength of inhibitory connections is
+   rel_inh_strength * weight. Poisson neurons all spike independently with
+   expected number of spikes given by parameter poiss_lambda. Because of the
+   refractory period, the activity is mostly driven by Poisson neurons and
    recurrent connections have a small effect.
  */
 class brunel_recipe: public recipe {
 public:
-    brunel_recipe(cell_size_type nexc, cell_size_type ninh, cell_size_type next, double in_degree_prop,
-                  float weight, float delay, float rel_inh_strength, double poiss_lambda, int seed = 42):
-        ncells_exc_(nexc), ncells_inh_(ninh), delay_(delay), seed_(seed) {
+    brunel_recipe(cell_size_type nexc,
+                  cell_size_type ninh,
+                  cell_size_type next,
+                  double in_degree_prop,
+                  float weight,
+                  float delay,
+                  float rel_inh_strength,
+                  double poiss_lambda,
+                  int seed=42,
+                  bool use_cc=false):
+        ncells_exc_(nexc), ncells_inh_(ninh), delay_(delay), seed_(seed), use_cable_cells(use_cc) {
         // Make sure that in_degree_prop in the interval (0, 1]
         if (in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
             throw std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
@@ -108,6 +114,19 @@ public:
         // each cell receives next incoming Poisson sources with mean rate poiss_lambda, which is equivalent
         // to a single Poisson source with mean rate next*poiss_lambda
         lambda_ = next * poiss_lambda;
+        // construct cable cell prototype
+        {
+            arb::segment_tree tree;
+            tree.append(arb::mnpos, {-1.0, 0, 0, 1.0}, {1, 0, 0, 1.0}, 1);
+
+            auto dec = arb::decor{}
+                .paint(arb::reg::tagged(1), arb::density("hh"))
+                .place(arb::ls::location(0, 0.5), arb::synapse("expsyn"), "tgt")
+                .place(arb::ls::location(0, 0.5), arb::threshold_detector(-10 * U::mV), "src");
+
+            cable = arb::cable_cell(tree, dec, {});
+        }
+        prop.default_parameters = arb::neuron_parameter_defaults;
     }
 
     cell_size_type num_cells() const override {
@@ -115,7 +134,12 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::lif;
+        if (use_cable_cells) {
+            return cell_kind::cable;
+        }
+        else {
+            return cell_kind::lif;
+        }
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
@@ -127,15 +151,15 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto cell = lif_cell("src", "tgt");
-        cell.tau_m = 10*U::ms;
-        cell.V_th = 10*U::mV;
-        cell.C_m = 20*U::pF;
-        cell.E_L = 0*U::mV;
-        cell.V_m = 0*U::mV;
-        cell.t_ref = 2*U::ms;
-        return cell;
+        if (use_cable_cells) {
+            return cable;
+        }
+        else {
+            return lif;
+        }
     }
+
+    std::any get_global_properties(cell_kind) const override { return prop; }
 
     std::vector<event_generator> event_generators(cell_gid_type gid) const override {
         return {poisson_generator({"tgt"}, weight_ext_, 0*arb::units::ms, lambda_*arb::units::kHz, gid + seed_)};
@@ -144,33 +168,40 @@ public:
 private:
     // Number of excitatory cells.
     cell_size_type ncells_exc_;
-
     // Number of inhibitory cells.
     cell_size_type ncells_inh_;
-
     // Weight of excitatory synapses.
     float weight_exc_;
-
     // Weight of inhibitory synapses.
     float weight_inh_;
-
     // Weight of external Poisson cell synapses.
     float weight_ext_;
-
     // Delay of all synapses.
     float delay_;
-
     // Number of connections that each neuron receives from excitatory population.
     int in_degree_exc_;
-
     // Number of connections that each neuron receives from inhibitory population.
     int in_degree_inh_;
-
     // Expected number of poisson spikes.
     double lambda_;
-
     // Seed used for the Poisson spikes generation.
     int seed_;
+
+    // LIF cell prototype
+    arb::lif_cell lif = {
+        .source="src",
+        .target="tgt",
+        .tau_m = 10*U::ms,
+        .V_th = 10*U::mV,
+        .C_m = 20*U::pF,
+        .E_L = 0*U::mV,
+        .V_m = 0*U::mV,
+        .t_ref = 2*U::ms,
+    };
+    // Cable cell prototype
+    arb::cable_cell cable;
+    arb::cable_cell_global_properties prop;
+    bool use_cable_cells = true;
 };
 
 int main(int argc, char** argv) {
@@ -239,14 +270,18 @@ int main(int argc, char** argv) {
 
         unsigned seed = options.seed;
 
-        brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda, seed);
+        brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda, seed, options.use_cc);
 
         partition_hint_map hints;
         hints[cell_kind::lif].cpu_group_size = group_size;
+        hints[cell_kind::cable].cpu_group_size = group_size;
+        hints[cell_kind::lif].gpu_group_size = group_size;
+        hints[cell_kind::cable].gpu_group_size = group_size;
+        auto dec = partition_load_balance(recipe, context, hints);
 
         simulation sim(recipe,
                        context,
-                       [&hints](auto& r, auto c) { return partition_load_balance(r, c, hints); });
+                       dec);
 
         // Set up spike recording.
         std::vector<arb::spike> recorded_spikes;
@@ -267,13 +302,14 @@ int main(int argc, char** argv) {
         if (spike_out) {
             spike_out << std::fixed << std::setprecision(4);
             for (auto& s: recorded_spikes) {
-                spike_out << s.source.gid << ' ' << s.time << '\n';
+                spike_out << s.source.gid << ' '
+                          << s.time << '\n';
             }
         }
 
         // output profile and diagnostic feedback
-        std::cout << profile::profiler_summary() << "\n";
-        std::cout << "\nThere were " << sim.num_spikes() << " spikes\n";
+        std::cout << profile::profiler_summary() << "\n"
+                  << "\nThere were " << sim.num_spikes() << " spikes\n";
 
         auto report = profile::make_meter_report(meters, context);
         std::cout << report;
@@ -286,8 +322,8 @@ int main(int argc, char** argv) {
     }
     catch (std::exception& e) {
         // only print errors on master
-        std::cerr << sup::mask_stream(root);
-        std::cerr << e.what() << "\n";
+        std::cerr << sup::mask_stream(root)
+                  << e.what() << "\n";
         return 1;
     }
     return 0;
@@ -310,9 +346,9 @@ void add_subset(cell_gid_type gid,
                 float weight, float delay,
                 std::vector<cell_connection>& conns) {
     // We can only add this many connections!
-    auto gid_in_range = int(gid >= start && gid < end); //
+    auto gid_in_range = int(gid >= start && gid < end);
     if (m + start + gid_in_range >= end) throw std::runtime_error("Requested too many connections from the given range of gids.");
-
+    // Exclude ourself
     std::set<cell_gid_type> seen{gid};
     std::mt19937 gen(gid + 42);
     std::uniform_int_distribution<cell_gid_type> dis(start, end - 1);
@@ -345,7 +381,7 @@ std::optional<cl_options> read_options(int argc, char** argv) {
                      "-G|--group-size        [Number of cells per cell group]\n"
                      "-S|--seed              [Seed for poisson spike generators]\n"
                      "-f|--write-spikes      [Save spikes to file]\n"
-                     "-z|--profile-rank-zero [Only output profile information for rank 0]\n"
+                     "-c|--use-cable-cells   [Use a cable cell model]\n"
                      "-v|--verbose           [Print more verbose information to stdout]\n";
 
     cl_options opt;
@@ -354,22 +390,22 @@ std::optional<cl_options> read_options(int argc, char** argv) {
     };
 
     to::option options[] = {
-            { opt.nexc,              "-n", "--n-excitatory" },
-            { opt.ninh,              "-m", "--n-inhibitory" },
-            { opt.next,              "-e", "--n-external" },
-            { opt.syn_per_cell_prop, "-p", "--in-degree-prop" },
-            { opt.weight,            "-w", "--weight" },
-            { opt.delay,             "-d", "--delay" },
-            { opt.rel_inh_strength,  "-g", "--rel-inh-w" },
-            { opt.poiss_lambda,      "-l", "--lambda" },
-            { opt.tfinal,            "-t", "--tfinal" },
-            { opt.dt,                "-s", "--dt" },
-            { opt.group_size,        "-G", "--group-size" },
-            { opt.seed,              "-S", "--seed" },
-            { opt.spike_file_output, "-f", "--write-spikes" },
-            // { to::set(opt.profile_only_zero), to::flag, "-z", "--profile-rank-zero" },
-            { to::set(opt.verbose),           to::flag, "-v", "--verbose" },
-            { to::action(help),               to::flag, to::exit, "-h", "--help" }
+            { opt.nexc,                        "-n", "--n-excitatory" },
+            { opt.ninh,                        "-m", "--n-inhibitory" },
+            { opt.next,                        "-e", "--n-external" },
+            { opt.syn_per_cell_prop,           "-p", "--in-degree-prop" },
+            { opt.weight,                      "-w", "--weight" },
+            { opt.delay,                       "-d", "--delay" },
+            { opt.rel_inh_strength,            "-g", "--rel-inh-w" },
+            { opt.poiss_lambda,                "-l", "--lambda" },
+            { opt.tfinal,                      "-t", "--tfinal" },
+            { opt.dt,                          "-s", "--dt" },
+            { opt.group_size,                  "-G", "--group-size" },
+            { opt.seed,                        "-S", "--seed" },
+            { opt.spike_file_output,           "-f", "--write-spikes" },
+            { to::set(opt.use_cc),   to::flag, "-c", "--use-cable-cells" },
+            { to::set(opt.verbose),  to::flag, "-v", "--verbose" },
+            { to::action(help),      to::flag, to::exit, "-h", "--help" }
     };
 
     if (!to::run(options, argc, argv+1)) return {};
@@ -392,20 +428,20 @@ std::optional<cl_options> read_options(int argc, char** argv) {
 }
 
 std::ostream& operator<<(std::ostream& o, const cl_options& options) {
-    o << "Simulation options:\n";
-    o << "  Excitatory cells                                           : " << options.nexc << "\n";
-    o << "  Inhibitory cells                                           : " << options.ninh << "\n";
-    o << "  Poisson connections per cell                               : " << options.next << "\n";
-    o << "  Proportion of synapses/cell from each population           : " << options.syn_per_cell_prop << "\n";
-    o << "  Weight of excitatory synapses                              : " << options.weight << "\n";
-    o << "  Relative strength of inhibitory synapses                   : " << options.rel_inh_strength << "\n";
-    o << "  Delay of all synapses                                      : " << options.delay << "\n";
-    o << "  Expected number of spikes from a single poisson cell per ms: " << options.poiss_lambda << "\n";
-    o << "\n";
-    o << "  Simulation time                                            : " << options.tfinal << "\n";
-    o << "  dt                                                         : " << options.dt << "\n";
-    o << "  Group size                                                 : " << options.group_size << "\n";
-    o << "  Seed                                                       : " << options.seed << "\n";
-    o << "  Spike file output                                          : " << options.spike_file_output << "\n";
+    o << "Simulation options:\n"
+      << "  Excitatory cells                                           : " << options.nexc << "\n"
+      << "  Inhibitory cells                                           : " << options.ninh << "\n"
+      << "  Poisson connections per cell                               : " << options.next << "\n"
+      << "  Proportion of synapses/cell from each population           : " << options.syn_per_cell_prop << "\n"
+      << "  Weight of excitatory synapses                              : " << options.weight << "\n"
+      << "  Relative strength of inhibitory synapses                   : " << options.rel_inh_strength << "\n"
+      << "  Delay of all synapses                                      : " << options.delay << "\n"
+      << "  Expected number of spikes from a single poisson cell per ms: " << options.poiss_lambda << "\n"
+      << "\n"
+      << "  Simulation time                                            : " << options.tfinal << "\n"
+      << "  dt                                                         : " << options.dt << "\n"
+      << "  Group size                                                 : " << options.group_size << "\n"
+      << "  Seed                                                       : " << options.seed << "\n"
+      << "  Spike file output                                          : " << options.spike_file_output << "\n";
     return o;
 }

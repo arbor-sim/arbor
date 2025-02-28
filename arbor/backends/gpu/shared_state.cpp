@@ -74,7 +74,6 @@ void ion_state::init_concentration() {
 }
 
 void ion_state::zero_current() {
-    memory::fill(gX_, 0);
     memory::fill(iX_, 0);
 }
 
@@ -261,7 +260,6 @@ void shared_state::instantiate(mechanism& m,
         ion_state.external_concentration  = oion->Xo_.data();
         ion_state.diffusive_concentration = oion->Xd_.data();
         ion_state.ionic_charge            = oion->charge.data();
-        ion_state.conductivity            = oion->gX_.data();
     }
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.

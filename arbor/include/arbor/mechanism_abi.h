@@ -54,7 +54,6 @@ inline const char* arb_mechanism_kind_str(const arb_mechanism_kind& mech) {
 // Ion state variables; view into shared_state
 typedef struct arb_ion_state {
     arb_value_type* current_density;
-    arb_value_type* conductivity;
     arb_value_type* reversal_potential;
     arb_value_type* internal_concentration;
     arb_value_type* external_concentration;

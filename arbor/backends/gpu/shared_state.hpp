@@ -9,10 +9,7 @@
 #include <arbor/fvm_types.hpp>
 
 #include "fvm_layout.hpp"
-#include "timestep_range.hpp"
-
 #include "threading/threading.hpp"
-
 #include "backends/common_types.hpp"
 #include "backends/shared_state_base.hpp"
 #include "backends/gpu/rand.hpp"
@@ -244,7 +241,7 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s);
 
 } // namespace gpu
 
-ARB_SERDES_ENABLE_EXT(gpu::ion_state, Xd_, gX_);
+ARB_SERDES_ENABLE_EXT(gpu::ion_state, Xd_);
 ARB_SERDES_ENABLE_EXT(gpu::mech_storage,
                       data_,
                       // NOTE(serdes) ion_states_, this is just a bunch of pointers

@@ -4,11 +4,7 @@ import functools
 from functools import lru_cache as cache
 from pathlib import Path
 import subprocess
-import atexit
 import inspect
-
-_mpi_enabled = A.__config__["mpi"]
-_mpi4py_enabled = A.__config__["mpi4py"]
 
 # The API of `functools`'s caches went through a bunch of breaking changes from
 # 3.6 to 3.9. Patch them up in a local `cache` function.
@@ -72,14 +68,23 @@ def repo_path():
     return Path(__file__).parent.parent.parent
 
 
-def _finalize_mpi():
-    print("Context fixture finalizing mpi")
-    if _mpi4py_enabled:
-        from mpi4py import MPI
+def get_mpi_comm_world():
+    """
+    Obtain MPI_COMM_WORLD as --- in order ---
+    1. MPI4PY.MPI.COMM_WORLD
+    2. Arbor MPI
+    3. None
+    """
+    if A.config()["mpi"]:
+        if A.config()["mpi4py"]:
+            from mpi4py import MPI
 
-        MPI.Finalize()
-    else:
-        A.mpi_finalize()
+            return MPI.COMM_WORLD
+        else:
+            if not A.mpi_is_initialized():
+                A.mpi_init()
+            return A.mpi_comm()
+    return None
 
 
 @_fixture
@@ -87,21 +92,20 @@ def context():
     """
     Fixture that produces an MPI sensitive `A.context`
     """
-    if _mpi_enabled:
-        if _mpi4py_enabled:
-            from mpi4py import MPI
+    return A.context(mpi=get_mpi_comm_world())
 
-            if not MPI.Is_initialized():
-                print("Context fixture initializing mpi4py", flush=True)
-                MPI.Initialize()
-                atexit.register(_finalize_mpi)
-            return A.context(A.proc_allocation(), mpi=MPI.COMM_WORLD)
-        elif not A.mpi_is_initialized():
-            print("Context fixture initializing mpi", flush=True)
-            A.mpi_init()
-            atexit.register(_finalize_mpi)
-        return A.context(A.proc_allocation(), mpi=A.mpi_comm())
-    return A.context(A.proc_allocation())
+
+@_fixture
+def single_context():
+    """
+    Fixture that produces an non-MPI `A.context`, which includes
+    a GPU, if enabled.
+    """
+    mpi = None
+    gpu = None
+    if A.config()["gpu"]:
+        gpu = 0
+    return A.context(mpi=mpi, gpu_id=gpu)
 
 
 class _BuildCatError(Exception):
@@ -171,6 +175,19 @@ def dummy_catalogue(repo_path):
     """
     path = repo_path / "test" / "unit" / "dummy"
     cat_path = _build_cat("dummy", path)
+    return A.load_catalogue(str(cat_path))
+
+
+@_singleton_fixture
+@repo_path()
+def diffusion_catalogue(repo_path):
+    """
+    Fixture that returns an `arbor.catalogue`
+    which contains mechanisms `neuron_with_diffusion`
+    and `synapse_with_diffusion`.
+    """
+    path = repo_path / "test" / "unit" / "diffusion"
+    cat_path = _build_cat("diffusion", path)
     return A.load_catalogue(str(cat_path))
 
 

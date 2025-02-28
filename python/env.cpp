@@ -1,6 +1,8 @@
 #include <pybind11/pybind11.h>
 #include "conversion.hpp"
 
+#include <arbor/version.hpp>
+
 #include <arborenv/gpu_env.hpp>
 #include <arborenv/concurrency.hpp>
 #include <arborenv/default_env.hpp>
@@ -23,7 +25,7 @@ namespace pyarb {
 #else
                   auto err = "Private GPU: Invalid MPI Communicator.";
                   if (can_convert_to_mpi_comm(mpi)) {
-                      return arbenv::find_private_gpu(can_convert_to_mpi_comm(mpi));
+                      return arbenv::find_private_gpu<MPI_Comm>(convert_to_mpi_comm(mpi));
                   }
                   else if (auto c = py2optional<mpi_comm_shim>(mpi, err)) {
                       return arbenv::find_private_gpu(c->comm);
