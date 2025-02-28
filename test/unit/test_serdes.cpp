@@ -181,7 +181,7 @@ static std::vector<arb_value_type>* output;
 void sampler(arb::probe_metadata pm,
              const arb::sample_records& samples) {
     using probe_t = arb::cable_probe_membrane_voltage;
-    auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, samples);
+    auto reader = arb::make_sample_reader<probe_t::meta_type>(pm.meta, samples);
     assert(reader.width == 1);
     for (std::size_t ix = 0; ix <reader.n_sample; ++ix) {
         auto value = reader.get_value(ix);

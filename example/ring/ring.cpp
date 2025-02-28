@@ -53,7 +53,7 @@ using arb::cell_kind;
 using arb::time_type;
 
 // result of simple sampler for probe type
-using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type, arb::cable_sample_type>;
+using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type>;
 
 // Writes voltage trace as a json file.
 void write_trace_json(const sample_result&);

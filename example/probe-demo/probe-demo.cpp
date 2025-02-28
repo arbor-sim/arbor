@@ -1,6 +1,5 @@
 #include <any>
 #include <functional>
-#include <iomanip>
 #include <iostream>
 #include <string>
 #include <tuple>
@@ -20,9 +19,6 @@
 
 // Simulate a cell modelled as a simple cable with HH dynamics,
 // emitting the results of a user specified probe over time.
-
-using std::any;
-using arb::util::any_cast;
 namespace U = arb::units;
 using namespace arb::units::literals;
 
@@ -79,7 +75,7 @@ struct options {
     double sim_dt = 0.025;    // [ms]
     double sample_dt = 1.0;   // [ms]
     unsigned n_cv = 10;
-    any probe_addr;
+    std::any probe_addr;
     std::string value_name;
     probe_kind kind = probe_kind::invalid;
 };
@@ -105,9 +101,9 @@ std::string show_location(const M& where) {
 // Do this once
 static std::atomic<int> printed_header = 0;
 
-template<typename M, typename V>
+template<typename M>
 void sampler(arb::probe_metadata pm, const arb::sample_records& samples) {
-    auto reader = arb::make_sample_reader<M, V>(pm.meta, samples);
+    auto reader = arb::make_sample_reader<M>(pm.meta, samples);
     // Print CSV header for sample output
     if (0 == printed_header.fetch_add(1)) {
         std::cout << std::format("t", "");
@@ -127,9 +123,9 @@ void sampler(arb::probe_metadata pm, const arb::sample_records& samples) {
 
 struct cable_recipe: public arb::recipe {
     arb::cable_cell_global_properties gprop;
-    any probe_addr;
+    std::any probe_addr;
 
-    explicit cable_recipe(any probe_addr, unsigned n_cv):
+    explicit cable_recipe(std::any probe_addr, unsigned n_cv):
         probe_addr(std::move(probe_addr)) {
         gprop.default_parameters = arb::neuron_parameter_defaults;
         gprop.default_parameters.discretization = arb::cv_policy_fixed_per_branch(n_cv);
@@ -138,7 +134,7 @@ struct cable_recipe: public arb::recipe {
     arb::cell_size_type num_cells() const override { return 1; }
     std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override { return {{probe_addr, "probe"}}; }
     arb::cell_kind get_cell_kind(arb::cell_gid_type) const override { return arb::cell_kind::cable; }
-    any get_global_properties(arb::cell_kind) const override { return gprop; }
+    std::any get_global_properties(arb::cell_kind) const override { return gprop; }
 
     arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
         const double length = 1000; // [µm]
@@ -174,17 +170,17 @@ int main(int argc, char** argv) {
         case probe_kind::cell:
             sim.add_sampler(arb::all_probes,
                             arb::regular_schedule(opt.sample_dt*U::ms),
-                            sampler<arb::cable_state_cell_meta_type, arb::cable_sample_type>);
+                            sampler<arb::cable_state_cell_meta_type>);
             break;
         case probe_kind::state:
             sim.add_sampler(arb::all_probes,
                             arb::regular_schedule(opt.sample_dt*U::ms),
-                            sampler<arb::cable_state_meta_type, arb::cable_sample_type>);
+                            sampler<arb::cable_state_meta_type>);
             break;
         case probe_kind::point:
             sim.add_sampler(arb::all_probes,
                             arb::regular_schedule(opt.sample_dt*U::ms),
-                            sampler<arb::cable_point_meta_type, arb::cable_sample_type>);
+                            sampler<arb::cable_point_meta_type>);
             break;
         default:
             std::cerr << "Invalid probe kind\n";
@@ -235,7 +231,7 @@ bool parse_options(options& opt, int& argc, char** argv) {
     auto do_help = [&]() { usage(argv[0], help_msg); };
 
     // Map probe argument to output variable name and a lambda that makes specific probe address from a location.
-    using probe_spec_t = std::tuple<std::string, probe_kind, std::function<any(std::any)>>;
+    using probe_spec_t = std::tuple<std::string, probe_kind, std::function<std::any(std::any)>>;
     std::pair<const char*, probe_spec_t> probe_tbl[] {
         // located probes
         {"v",            {"v",        probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_membrane_voltage{any2loc(a)}; }}},

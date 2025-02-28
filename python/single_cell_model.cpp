@@ -13,14 +13,11 @@
 #include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
-#include <arbor/util/any_cast.hpp>
 
 #include "event_generator.hpp"
 #include "error.hpp"
 #include "strprintf.hpp"
 #include "label_dict.hpp"
-
-using arb::util::any_cast;
 
 namespace pyarb {
 
@@ -56,8 +53,7 @@ struct trace_callback {
     trace_callback(std::vector<trace>& ts, const std::unordered_map<arb::mlocation, size_t>& ls): traces_(ts), locmap_(ls) {}
 
     void operator()(arb::probe_metadata pm, const arb::sample_records& recs) {
-        auto reader = arb::make_sample_reader<arb::cable_state_meta_type,
-                                              arb::cable_sample_type>(pm.meta, recs);
+        auto reader = arb::make_sample_reader<arb::cable_state_meta_type>(pm.meta, recs);
 
         for (std::size_t j = 0; j < reader.width; ++j) {
             const auto& loc = reader.get_metadata(j);

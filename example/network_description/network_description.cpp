@@ -58,12 +58,11 @@ ring_params read_options(int argc, char** argv);
 using arb::cell_gid_type;
 using arb::cell_kind;
 using arb::cell_lid_type;
-using arb::cell_member_type;
 using arb::cell_size_type;
 using arb::time_type;
 
 // result of simple sampler for probe type
-using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type, arb::cable_sample_type>;
+using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type>;
 
 // Writes voltage trace as a json file.
 void write_trace_json(const sample_result&);

@@ -41,7 +41,7 @@ using namespace arborio::literals;
 namespace U = arb::units;
 
 // result of simple sampler for probe type
-using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type, arb::cable_sample_type>;
+using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type>;
 
 // Writes voltage trace as a json file.
 void write_trace_json(const std::string& path, const sample_result&);

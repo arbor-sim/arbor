@@ -13,15 +13,16 @@ namespace arb {
 // Simple(st?) implementation of a recorder of scalar trace data from a cell
 // probe, with some metadata.
 
-template<typename M, typename V>
+template<typename M>
 struct simple_sampler_result {
+    using value_type = probe_value_type_of_t<M>;
     std::size_t n_sample = 0;
     std::size_t width = 0;
     std::vector<time_type> time;
-    std::vector<std::vector<std::remove_const_t<V>>> values;
+    std::vector<std::vector<std::remove_const_t<value_type>>> values;
     std::vector<std::remove_const_t<M>> metadata;
 
-    void from_reader(const sample_reader<M, V>& reader) {
+    void from_reader(const sample_reader<M>& reader) {
         n_sample = reader.n_sample;
         width = reader.width;
         values.resize(width);
@@ -38,10 +39,10 @@ struct simple_sampler_result {
     }
 };
 
-template <typename M, typename V>
-auto make_simple_sampler(simple_sampler_result<M, V>& trace) {
+template <typename M>
+auto make_simple_sampler(simple_sampler_result<M>& trace) {
     return [&trace](const probe_metadata& pm, const sample_records& recs) {
-        auto reader = make_sample_reader<M, V>(pm.meta, recs);
+        auto reader = make_sample_reader<M>(pm.meta, recs);
         trace.from_reader(reader);
     };
 }

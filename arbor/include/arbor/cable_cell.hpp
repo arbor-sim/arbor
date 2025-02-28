@@ -21,6 +21,7 @@
 #include <arbor/morph/primitives.hpp>
 #include <arbor/util/hash_def.hpp>
 #include <arbor/util/typed_map.hpp>
+#include <arbor/util/extra_traits.hpp>
 
 namespace arb {
 
@@ -34,11 +35,25 @@ struct ARB_SYMBOL_VISIBLE cable_probe_point_info {
 
 // Cable cell type definitions
 using cable_sample_type = const double;
-using cable_sample_range = std::pair<cable_sample_type*, cable_sample_type*>;
 
 using cable_state_meta_type = const mlocation;
 using cable_state_cell_meta_type = const mcable;
 using cable_point_meta_type = const cable_probe_point_info;
+
+template <>
+struct probe_value_type_of<cable_state_meta_type> {
+    using type = cable_sample_type;
+};
+
+template <>
+struct probe_value_type_of<cable_state_cell_meta_type> {
+    using type = cable_sample_type;
+};
+
+template <>
+struct probe_value_type_of<cable_point_meta_type> {
+    using type = cable_sample_type;
+};
 
 // Each kind of probe has its own type for representing its address, as below.
 // The metadata associated with a probe is also passed to a sampler via an `any_ptr`;

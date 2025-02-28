@@ -674,7 +674,7 @@ TEST(sde, solver) {
         assert(samples.n_sample == nsteps);
 
         using probe_t = arb::cable_probe_point_state_cell;
-        auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, samples);
+        auto reader = arb::make_sample_reader<probe_t::meta_type>(pm.meta, samples);
         for (std::size_t ix = 0; ix <reader.n_sample; ++ix) {
             for (std::size_t iy = 0; iy < reader.width; ++iy) {
                 auto value = reader.get_value(ix, iy);
@@ -821,7 +821,7 @@ TEST(sde, coupled) {
         assert(samples.n_sample == nsteps);
 
         using probe_t = arb::cable_probe_point_state_cell;
-        auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, samples);
+        auto reader = arb::make_sample_reader<probe_t::meta_type>(pm.meta, samples);
         for (std::size_t ix = 0; ix <reader.n_sample; ++ix) {
             for (std::size_t iy = 0; iy < reader.width; ++iy) {
                 auto value = reader.get_value(ix, iy);

@@ -57,8 +57,7 @@ struct recorder_lif: recorder_base<arb::lif_probe_metadata> {
     using recorder_base<arb::lif_probe_metadata>::sample_raw_;
 
     void record(any_ptr pm, const arb::sample_records& records) override {
-        auto reader = arb::make_sample_reader<arb::lif_probe_voltage::meta_type,
-                                              arb::lif_probe_voltage::value_type>(pm, records);
+        auto reader = arb::make_sample_reader<arb::lif_probe_voltage::meta_type>(pm, records);
         for (std::size_t ix = 0; ix < reader.n_sample; ++ix) {
             auto t = reader.get_time(ix);
             sample_raw_.push_back(t);
@@ -76,7 +75,7 @@ struct recorder_cable_vector: recorder_base<Meta> {
     using recorder_base<Meta>::sample_raw_;
 
     void record(any_ptr pm, const arb::sample_records& records) override {
-        auto reader = arb::make_sample_reader<const Meta, arb::cable_sample_type>(pm, records);
+        auto reader = arb::make_sample_reader<const Meta>(pm, records);
         for (std::size_t ix = 0; ix < reader.n_sample; ++ix) {
             auto t = reader.get_time(ix);
             sample_raw_.push_back(t);

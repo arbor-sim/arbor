@@ -59,7 +59,7 @@ using arb::cell_kind;
 using arb::time_type;
 
 using probe_t = arb::cable_probe_membrane_voltage;
-using sample_results = std::vector<arb::simple_sampler_result<probe_t::meta_type, probe_t::value_type>>;
+using sample_results = std::vector<arb::simple_sampler_result<probe_t::meta_type>>;
 
 // Writes voltage trace as a json file.
 void write_trace_json(const sample_results& traces, unsigned rank);

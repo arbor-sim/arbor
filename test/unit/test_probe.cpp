@@ -853,14 +853,14 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
 
             if (pm.id.tag == "I-total") {
                 using probe_t = cable_probe_ion_current_cell;
-                auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, recs);
+                auto reader = arb::make_sample_reader<probe_t::meta_type>(pm.meta, recs);
                 // Metadata should comprise one cable per CV.
                 ASSERT_EQ(n_cv, reader.width);
                 for (unsigned iy = 0; iy < n_cv; ++iy) i_memb[iy] = reader.get_value(0, iy);
             }
             else if (pm.id.tag == "I-stimulus") {
                 using probe_t = cable_probe_stimulus_current_cell;
-                auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, recs);
+                auto reader = arb::make_sample_reader<probe_t::meta_type>(pm.meta, recs);
                 // Metadata should comprise one cable per CV.
                 ASSERT_EQ(n_cv, reader.width);
                 for (unsigned iy = 0; iy < n_cv; ++iy) i_stim[iy] = reader.get_value(0, iy);
@@ -871,7 +871,7 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
                 ASSERT_LT(indices.count(pm.id.tag), n_axial_probe);
                 auto idx = indices.at(pm.id.tag);
                 using probe_t = cable_probe_axial_current;
-                auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, recs);
+                auto reader = arb::make_sample_reader<probe_t::meta_type>(pm.meta, recs);
                 i_axial.at(idx) = reader.get_value(0, 0);
             }
         });
@@ -916,7 +916,7 @@ auto run_simple_sampler(const arb::context& ctx,
     partition_hint_map phints = {{cell_kind::cable, {partition_hint::max_size, partition_hint::max_size, true}}};
     simulation sim(rec, ctx, partition_load_balance(rec, ctx, phints));
 
-    arb::simple_sampler_result<typename P::meta_type, typename P::value_type> trace;
+    arb::simple_sampler_result<typename P::meta_type> trace;
     sim.add_sampler(one_probe(where),
                     explicit_schedule(when),
                     make_simple_sampler(trace));
@@ -1040,9 +1040,9 @@ void run_total_current_probe_test(context ctx) {
     // at the fork points, and once with a non-trivial CV centred on the fork
     // point.
 
-    std::vector<simple_sampler_result<cable_state_cell_meta_type, cable_sample_type>> traces(2);
-    std::vector<simple_sampler_result<cable_state_cell_meta_type, cable_sample_type>> ion_traces(2);
-    std::vector<simple_sampler_result<cable_state_cell_meta_type, cable_sample_type>> stim_traces(2);
+    std::vector<simple_sampler_result<cable_state_cell_meta_type>> traces(2);
+    std::vector<simple_sampler_result<cable_state_cell_meta_type>> ion_traces(2);
+    std::vector<simple_sampler_result<cable_state_cell_meta_type>> stim_traces(2);
 
     // Run the cells sampling at τ and 20τ for both total membrane
     // current and total membrane ionic current.
@@ -1169,8 +1169,7 @@ void run_stimulus_probe_test(context ctx) {
 
 
     using probe_t = cable_probe_stimulus_current_cell;
-
-    simple_sampler_result<probe_t::meta_type, probe_t::value_type> traces[2];
+    simple_sampler_result<probe_t::meta_type> traces[2];
 
     for (unsigned i: {0u, 1u}) {
         traces[i] = run_simple_sampler<probe_t>(ctx, 2.5*stim_until, cells,

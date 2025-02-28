@@ -1,7 +1,5 @@
 #include <any>
-#include <fstream>
 #include <iostream>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -21,7 +19,7 @@
 using namespace arborio::literals;
 
 // result of simple sampler for probe type
-using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type, arb::cable_sample_type>;
+using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type>;
 
 struct options {
     std::string swc_file;

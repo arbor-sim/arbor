@@ -150,7 +150,7 @@ mpi_handle setup_mpi() {
 void sampler(arb::probe_metadata pm, const arb::sample_records& samples) {
     if (pm.id.gid != 0) return;
     if (pm.id.tag != "Um") return;
-    auto reader = arb::make_sample_reader<arb::lif_probe_metadata, arb::lif_sample_type>(pm.meta, samples);
+    auto reader = arb::make_sample_reader<arb::lif_meta_type>(pm.meta, samples);
     for (std::size_t ix = 0; ix < reader.n_sample; ++ix) {
         double time = reader.get_time(ix);
         double value = reader.get_value(ix);

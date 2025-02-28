@@ -249,7 +249,7 @@ TEST(lif_cell_group, probe) {
     auto fun = [&ums](const probe_metadata& pm,
                       const sample_records& samples) {
         using probe_t = arb::lif_probe_voltage;
-        auto reader = arb::make_sample_reader<probe_t::meta_type, probe_t::value_type>(pm.meta, samples);
+        auto reader = arb::make_sample_reader<probe_t::meta_type>(pm.meta, samples);
         for (std::size_t ix = 0ul; ix < reader.n_sample; ++ix) {
             auto t = reader.get_time(ix);
             auto v = reader.get_value(ix);
@@ -686,8 +686,7 @@ TEST(lif_cell_group, probe_with_connections) {
     auto fun = [&ums](probe_metadata pm,
                       const sample_records& recs) {
         using meta_t = lif_probe_voltage::meta_type;
-        using value_t = lif_probe_voltage::value_type;
-        auto reader = arb::make_sample_reader<meta_t, value_t>(pm.meta, recs);
+        auto reader = arb::make_sample_reader<meta_t>(pm.meta, recs);
         for (std::size_t ix = 0; ix < recs.n_sample; ++ix) {
             auto time = reader.get_time(ix);
             auto value = reader.get_value(ix);

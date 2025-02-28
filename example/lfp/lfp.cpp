@@ -180,13 +180,13 @@ int main(int argc, char** argv) {
     auto sample_schedule = arb::regular_schedule(sample_dt*U::ms);
     sim.add_sampler(arb::one_probe({0, "Itotal"}), sample_schedule, lfp.callback());
 
-    arb::simple_sampler_result<arb::cable_probe_membrane_voltage::meta_type, arb::cable_probe_membrane_voltage::value_type> membrane_voltage;
+    arb::simple_sampler_result<arb::cable_probe_membrane_voltage::meta_type> membrane_voltage;
     sim.add_sampler(arb::one_probe({0, "Um"}), sample_schedule, arb::make_simple_sampler(membrane_voltage));
 
-    arb::simple_sampler_result<arb::cable_probe_total_ion_current_density::meta_type, arb::cable_probe_total_ion_current_density::value_type> ionic_current_density;
+    arb::simple_sampler_result<arb::cable_probe_total_ion_current_density::meta_type> ionic_current_density;
     sim.add_sampler(arb::one_probe({0, "Iion"}), sample_schedule, arb::make_simple_sampler(ionic_current_density));
 
-    arb::simple_sampler_result<arb::cable_probe_point_state::meta_type, arb::cable_probe_point_state::value_type> synapse_g;
+    arb::simple_sampler_result<arb::cable_probe_point_state::meta_type> synapse_g;
     sim.add_sampler(arb::one_probe({0, "expsyn-g"}), sample_schedule, arb::make_simple_sampler(synapse_g));
 
     sim.run(t_stop*U::ms, dt*U::ms);
