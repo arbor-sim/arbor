@@ -5,6 +5,7 @@
 #include <tuple>
 #include <format>
 #include <vector>
+#include <atomic>
 
 #include <arbor/common_types.hpp>
 #include <arbor/load_balance.hpp>
