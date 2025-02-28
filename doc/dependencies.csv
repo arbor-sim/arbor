@@ -2,7 +2,7 @@ Build option/target,Tool name,Minimum version,Notes,Update criteria
 --,CMake,3.19,,"* Is available as a module on HPC systems
 * When arbitrary changes in more recently released versions make supported"
 --,C++ compiler,,C++17 support. See below,
---,GCC,13.0.0,,"* it is supported by the minimum version of CUDA.
+--,GCC,12.0.0,,"* it is supported by the minimum version of CUDA.
 * it is available either by default or can be installed using standard package manager on the supported Linux versions."
 --,Clang,13.0,,
 --,Apple Clang,15,Apple LLVM version 15.0.0 (clang-1500.x.y.z),
