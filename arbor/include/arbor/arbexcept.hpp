@@ -1,5 +1,6 @@
 #pragma once
 
+#include "arbor/util/any_ptr.hpp"
 #include <any>
 #include <stdexcept>
 #include <string>
@@ -105,6 +106,32 @@ struct ARB_SYMBOL_VISIBLE zero_thread_requested_error: arbor_exception {
     zero_thread_requested_error(unsigned nbt);
     unsigned nbt;
 };
+
+// Sampling errors
+template<typename E>
+struct ARB_SYMBOL_VISIBLE sample_reader_metadata_error: arbor_exception {
+    sample_reader_metadata_error(util::any_ptr have_):
+        arbor_exception{"Sample reader: could not cast to metadata type; expected " + expect + " got " + have},
+        have{have_.type().name()},
+        expect{typeid((E*)nullptr).name()}
+        {}
+
+    std::string have;
+    std::string expect;
+};
+
+template<typename E>
+struct ARB_SYMBOL_VISIBLE sample_reader_value_error: arbor_exception {
+    sample_reader_value_error(std::any have_):
+        arbor_exception{"Sample reader: could not cast to value type; expected " + expect + " got " + have},
+        have{have_.type().name()},
+        expect{typeid((E*)nullptr).name()}
+        {}
+
+    std::string have;
+    std::string expect;
+};
+
 
 // Domain decomposition errors:
 

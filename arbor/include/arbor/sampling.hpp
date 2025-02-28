@@ -3,12 +3,11 @@
 #include <cstddef>
 #include <functional>
 
-#include <fmt/format.h>
-
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/util/any_ptr.hpp>
 #include <arbor/util/extra_traits.hpp>
+#include <arbor/arbexcept.hpp>
 
 namespace arb {
 
@@ -88,18 +87,14 @@ template<typename M>
 auto make_sample_reader(util::any_ptr apm, const sample_records& sr) {
     using util::any_cast;
     auto pm = any_cast<M*>(apm);
-    if (!pm) {
-        throw std::runtime_error{fmt::format("Sample reader: could not cast to metadata type; expected {}, got {}.",
-                                             typeid((M*)nullptr).name(), apm.type().name())};
-    }
+    if (!pm) throw sample_reader_metadata_error<M>{apm};
     using V = sample_reader<M>::value_type;
     V* val = nullptr;
     try {
         val = any_cast<V*>(sr.values);
     }
     catch(const std::bad_any_cast& e) {
-        throw std::runtime_error{fmt::format("Sample reader: could not cast to value type; expected {}, got {}.",
-                                             typeid((V*)nullptr).name(), sr.values.type().name())};
+         throw sample_reader_value_error<V>{sr.values};
     }
     return sample_reader<M> { .width=sr.width,
                               .n_sample=sr.n_sample,
