@@ -2,10 +2,10 @@
 
 #include <any>
 #include <fstream>
-#include <format>
 #include <iomanip>
 #include <iostream>
 
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
 #include <arborio/label_parse.hpp>
@@ -156,7 +156,7 @@ int main(int argc, char** argv) {
         auto b2a = [](bool c) { return c ; };
 
         // Print a banner with information about hardware configuration
-        std::cout << std::format("gpu:      {}\n"
+        std::cout << fmt::format("gpu:      {}\n"
                                  "threads:  {}\n"
                                  "mpi:      {}\n"
                                  "ranks:    {}\n",
@@ -247,10 +247,10 @@ int main(int argc, char** argv) {
 
 void write_trace_json(const sample_results& traces, unsigned rank) {
     for (unsigned i = 0; i < traces.size(); i++) {
-        std::string path = std::format("./voltages_{}_{}.json", rank, i);
+        std::string path = fmt::format("./voltages_{}_{}.json", rank, i);
 
         nlohmann::json json;
-        json["name"] = std::format("gj demo: cell {}", i);
+        json["name"] = fmt::format("gj demo: cell {}", i);
         json["units"] = "mV";
         json["cell"] = i;
         json["group"] = rank;

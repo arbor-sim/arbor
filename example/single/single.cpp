@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <arborio/label_parse.hpp>
+#include <arborio/swcio.hpp>
 
 #include <arbor/load_balance.hpp>
 #include <arbor/cable_cell.hpp>
@@ -12,8 +13,7 @@
 #include <arbor/simulation.hpp>
 #include <arbor/simple_sampler.hpp>
 
-#include <arborio/swcio.hpp>
-
+#include <fmt/format.h>
 #include <tinyopt/tinyopt.h>
 
 using namespace arborio::literals;
@@ -108,13 +108,13 @@ int main(int argc, char** argv) {
                      "      t";
         for (std::size_t iy = 0; iy < traces.width; ++iy) {
             arb::mlocation loc = traces.metadata.at(iy);
-            std::cout << std::format(", Um@(location {} {})\n", loc.branch, loc.pos);
+            std::cout << fmt::format(", Um@(location {} {})\n", loc.branch, loc.pos);
         }
 
         for (std::size_t ix = 0; ix < traces.n_sample; ++ix) {{}
-            std::cout << std::format("{:7.3f}", traces.time.at(ix));
+            std::cout << fmt::format("{:7.3f}", traces.time.at(ix));
             for (std::size_t iy = 0; iy < traces.width; ++iy) {
-                std::cout << std::format(", {:-8.4f}", traces.values[iy][ix]);
+                std::cout << fmt::format(", {:-8.4f}", traces.values[iy][ix]);
             }
             std::cout  << '\n';
         }

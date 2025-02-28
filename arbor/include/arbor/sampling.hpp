@@ -1,8 +1,9 @@
 #pragma once
 
 #include <cstddef>
-#include <format>
 #include <functional>
+
+#include <fmt/format.h>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -88,7 +89,7 @@ auto make_sample_reader(util::any_ptr apm, const sample_records& sr) {
     using util::any_cast;
     auto pm = any_cast<M*>(apm);
     if (!pm) {
-        throw std::runtime_error{std::format("Sample reader: could not cast to metadata type; expected {}, got {}.",
+        throw std::runtime_error{fmt::format("Sample reader: could not cast to metadata type; expected {}, got {}.",
                                              typeid((M*)nullptr).name(), apm.type().name())};
     }
     using V = sample_reader<M>::value_type;
@@ -97,7 +98,7 @@ auto make_sample_reader(util::any_ptr apm, const sample_records& sr) {
         val = any_cast<V*>(sr.values);
     }
     catch(const std::bad_any_cast& e) {
-        throw std::runtime_error{std::format("Sample reader: could not cast to value type; expected {}, got {}.",
+        throw std::runtime_error{fmt::format("Sample reader: could not cast to value type; expected {}, got {}.",
                                              typeid((V*)nullptr).name(), sr.values.type().name())};
     }
     return sample_reader<M> { .width=sr.width,

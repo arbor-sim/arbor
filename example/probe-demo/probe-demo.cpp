@@ -3,9 +3,10 @@
 #include <iostream>
 #include <string>
 #include <tuple>
-#include <format>
 #include <vector>
 #include <atomic>
+
+#include <fmt/format.h>
 
 #include <arbor/common_types.hpp>
 #include <arbor/load_balance.hpp>
@@ -86,10 +87,10 @@ bool parse_options(options&, int& argc, char** argv);
 template<typename M>
 std::string show_location(const M& where) {
     if constexpr (std::is_same_v<std::remove_cv_t<M>, arb::mcable>) {
-        return std::format("(cable {:1d} {:3.1f} {:3.1f})", where.branch, where.prox_pos, where.dist_pos);
+        return fmt::format("(cable {:1d} {:3.1f} {:3.1f})", where.branch, where.prox_pos, where.dist_pos);
     }
     else if constexpr (std::is_same_v<std::remove_cv_t<M>, arb::mlocation>) {
-        return std::format("(location {:1d} {:3.1f})", where.branch, where.pos);
+        return fmt::format("(location {:1d} {:3.1f})", where.branch, where.pos);
     }
     else if constexpr (std::is_same_v<std::remove_cv_t<M>, arb::cable_probe_point_info>) {
         return where.target;
@@ -107,15 +108,15 @@ void sampler(arb::probe_metadata pm, const arb::sample_records& samples) {
     auto reader = arb::make_sample_reader<M>(pm.meta, samples);
     // Print CSV header for sample output
     if (0 == printed_header.fetch_add(1)) {
-        std::cout << std::format("t", "");
+        std::cout << fmt::format("t", "");
         for (std::size_t iy = 0; iy < reader.width; ++iy) std::cout << ", " << show_location(reader.get_metadata(iy));
         std::cout << '\n';
     }
 
     for (std::size_t ix = 0; ix < reader.n_sample; ++ix) {
-        std::cout << std::format("{:7.3f}", reader.get_time(ix));
+        std::cout << fmt::format("{:7.3f}", reader.get_time(ix));
         for (unsigned iy = 0; iy < reader.width; ++iy) {
-            std::cout << std::format(", {:-8.4f}", reader.get_value(ix, iy));
+            std::cout << fmt::format(", {:-8.4f}", reader.get_value(ix, iy));
         }
         std::cout  << '\n';
     }

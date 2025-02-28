@@ -10,6 +10,8 @@
 #include <arbor/util/any_cast.hpp>
 #include <arbor/util/any_ptr.hpp>
 
+#include <fmt/format.h>
+
 using namespace arborio::literals;
 
 namespace U = arb::units;
@@ -84,7 +86,7 @@ void sampler(arb::probe_metadata pm, const arb::sample_records& samples) {
         auto time = reader.get_time(ix);
         auto value = reader.get_value(ix);
         arb::mlocation meta = reader.get_metadata(0);
-        std::cout << std::format("| {:7.4f} | {:11.1f} | {:9.2f} |\n", time, meta.pos, value);
+        std::cout << fmt::format("| {:7.4f} | {:11.1f} | {:9.2f} |\n", time, meta.pos, value);
     }
 }
 
