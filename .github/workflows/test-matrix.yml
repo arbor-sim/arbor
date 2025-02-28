@@ -19,8 +19,8 @@ jobs:
         - {
             name:  "Linux Min GCC",
             os:    "ubuntu-22.04",
-            cc:    "gcc-12",
-            cxx:   "g++-12",
+            cc:    "gcc-13",
+            cxx:   "g++-13",
             py:    "3.9",
             cmake: "3.19.x",
             mpi:   "ON",
