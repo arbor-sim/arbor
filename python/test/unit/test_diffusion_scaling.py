@@ -12,7 +12,6 @@ try:
     scipy_found = True
 except ModuleNotFoundError:
     scipy_found = False
-from .. import fixtures
 
 """
 Tests for the correct scaling of the amount _and_ concentration of diffusive
@@ -195,8 +194,6 @@ class TestDiffusionScaling(unittest.TestCase):
         # perform the simulations
         data_arbor = self.simulate_arbor("inject_norm_amount")
         data_ind = self.simulate_independent(concentration=False)
-
-        scale = self.cv_area * 0.001
 
         # test initial state
         self.assertTrue(
