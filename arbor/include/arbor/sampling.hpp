@@ -57,51 +57,53 @@ struct sample_reader {
     using value_type = probe_value_type_of_t<M>;
     using meta_type = M;
 
-    std::size_t width = 0;
-    std::size_t n_sample = 0;
-    const time_type* time = nullptr;
-    value_type* values = nullptr;
-    meta_type* metadata = nullptr;
+    std::size_t n_row() const { return n_sample_; }
+    std::size_t n_column() const { return width_; }
 
     // Retrieve sample value corresponding to
     // - time=get_time(i)
     // - location=get_metadata(j)
-    value_type get_value(std::size_t i, std::size_t j = 0) const {
-        arb_assert(i < n_sample);
-        arb_assert(j < width);
-        return values[i*width + j];
+    value_type value(std::size_t i, std::size_t j = 0) const {
+        arb_assert(i < n_sample_);
+        arb_assert(j < width_);
+        return values_[i*width_ + j];
     }
 
-    time_type get_time(std::size_t i) const {
-        arb_assert(i < n_sample);
-        return time[i];
+    time_type time(std::size_t i) const {
+        arb_assert(i < n_sample_);
+        return time_[i];
     }
 
-    meta_type get_metadata(std::size_t j) const {
-        arb_assert(j < width);
-        return metadata[j];
+    meta_type metadata(std::size_t j) const {
+        arb_assert(j < width_);
+        return metadata_[j];
     }
+
+    sample_reader(util::any_ptr apm,
+                  const sample_records& sr):
+        width_(sr.width),
+        n_sample_(sr.n_sample),
+        time_(sr.time)
+    {
+        using util::any_cast;
+        metadata_ = any_cast<M*>(apm);
+        if (!metadata_) throw sample_reader_metadata_error<M>{apm};
+        using V = sample_reader<M>::value_type;
+        try {
+            values_ = any_cast<V*>(sr.values);
+        }
+        catch(const std::bad_any_cast& e) {
+            throw sample_reader_value_error<V>{sr.values};
+        }
+    }
+
+    private:
+    std::size_t width_ = 0;
+    std::size_t n_sample_ = 0;
+    const time_type* time_ = nullptr;
+    value_type* values_ = nullptr;
+    meta_type* metadata_ = nullptr;        
 };
-
-template<typename M>
-auto make_sample_reader(util::any_ptr apm, const sample_records& sr) {
-    using util::any_cast;
-    auto pm = any_cast<M*>(apm);
-    if (!pm) throw sample_reader_metadata_error<M>{apm};
-    using V = sample_reader<M>::value_type;
-    V* val = nullptr;
-    try {
-        val = any_cast<V*>(sr.values);
-    }
-    catch(const std::bad_any_cast& e) {
-         throw sample_reader_value_error<V>{sr.values};
-    }
-    return sample_reader<M> { .width=sr.width,
-                              .n_sample=sr.n_sample,
-                              .time=sr.time,
-                              .values=val,
-                              .metadata=pm, };
-}
 
 using sampler_function = std::function<void(const probe_metadata&, const sample_records&)>;
 

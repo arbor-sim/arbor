@@ -8,42 +8,22 @@ Cable cell probing and sampling
 Cable cell probes
 -----------------
 
-Various properties of a cable cell can be sampled. They fall into two classes:
-scalar probes are associated with a single real value, such as a membrane
-voltage or mechanism state value at a particular location; vector probes return
-multiple values corresponding to a quantity sampled at a set of points on the
-cell.
-
-The sample data associated with a cable cell probe will either be a ``double``
-for scalar probes, or a ``cable_sample_range`` describing a half-open range of
-``double`` values:
-
-.. code::
-
-   using cable_sample_range = std::pair<const double*, const double*>
-
 The probe metadata passed to the sampler will be a const pointer to:
 
+* ``cable_probe_point_info`` for point mechanism state queries,
+* ``mcable`` for cell-wide probes,
+* ``mlocation`` for probes on locsets;
 
-*   ``std::vector<cable_probe_point_info>`` for point mechanism state queries;
-
-*   ``mcable_list`` for all other queries;
-
-Probes on a point will produce a single item ``vector`` with an ``mcable`` where
-the proximal and distal positions are identical.
-
-The type ``cable_probe_point_info`` holds metadata for a single target on a
-cell:
+where the type ``cable_probe_point_info`` holds metadata for a point process
+state variable
 
 .. code::
 
     struct cable_probe_point_info {
         // Target number of point process instance on cell.
         cell_lid_type target;
-
         // Number of combined instances at this site.
         unsigned multiplicity;
-
         // Point on cell morphology where instance is placed.
         mlocation loc;
     };
@@ -51,17 +31,13 @@ cell:
 Note that the ``multiplicity`` will always be 1 if synapse coalescing is
 disabled.
 
+Value types will always be conforming to ``const double*``.
+
 Cable cell probes that contingently do not correspond to a valid measurable
 quantity are ignored: samplers attached to them will receive no values.
 Mechanism state queries, however will throw a ``cable_cell_error`` exception at
 simulation initialization if the requested state variable does not exist on the
 mechanism.
-
-Cable cell probeset addresses that are described by a ``locset`` may generate
-more than one concrete probe: there will be one per location in the locset that
-is satisfiable. Sampler callback functions can distinguish between different
-probes with the same address and id by examining their index and/or
-probe-specific metadata found in the ``probe_metadata`` parameter.
 
 Membrane voltage
 ^^^^^^^^^^^^^^^^
@@ -75,9 +51,7 @@ Membrane voltage
 Queries cell membrane potential at each site in ``locations``.
 
 *  Sample value: ``double``. Membrane potential in millivolts.
-
-*  Metadata: ``mcable_list``. Location of probe.
-
+*  Metadata: ``mlocation``. Location of probe.
 
 .. code::
 
@@ -85,12 +59,10 @@ Queries cell membrane potential at each site in ``locations``.
 
 Queries cell membrane potential across the whole cell.
 
-*  Sample value: ``cable_sample_range``. Each value is the
-   average membrane potential in millivolts across an unbranched
-   component of the cell, as determined by the discretisation.
-
-*  Metadata: ``mcable_list``. Each cable in the cable list describes
-   the unbranched component for the corresponding sample value.
+* Sample value: the average membrane potential in millivolts across an
+   unbranched component of the cell, as determined by the discretisation.
+* Metadata: ``mcable``. Each cable in the cable list describes the unbranched
+   component for the corresponding sample value.
 
 Axial current
 ^^^^^^^^^^^^^
@@ -104,10 +76,8 @@ Axial current
 Estimate intracellular current at each site in ``locations``,
 in the distal direction.
 
-*  Sample value: ``double``. Current in nanoamperes.
-
-*  Metadata: ``mcable_list``. Location as of probe.
-
+*  Sample value: Current in nanoamperes.
+*  Metadata: ``mlocation``. Location as of probe.
 
 Transmembrane current
 ^^^^^^^^^^^^^^^^^^^^^
@@ -122,10 +92,8 @@ Transmembrane current
 Membrane current density attributed to a particular ion at
 each site in ``locations``.
 
-*  Sample value: ``double``. Current density in amperes per square metre.
-
-*  Metadata: ``mcable_list``. Location of probe.
-
+*  Sample value: Current density in amperes per square metre.
+*  Metadata: ``mlocation``. Location of probe.
 
 .. code::
 
@@ -135,13 +103,10 @@ each site in ``locations``.
 
 Membrane current attributed to a particular ion across components of the cell.
 
-*  Sample value: ``cable_sample_range``. Each value is the current in
-   nanoamperes across an unbranched component of the cell, as determined
-   by the discretisation.
-
-*  Metadata: ``mcable_list``. Each cable in the cable list describes
-   the unbranched component for the corresponding sample value.
-
+* Sample value: the current in nanoamperes across an unbranched component of the
+   cell, as determined by the discretisation.
+* Metadata: ``mcable``. Each cable in the cable list describes the unbranched
+   component for the corresponding sample value.
 
 .. code::
 
@@ -151,10 +116,8 @@ Membrane current attributed to a particular ion across components of the cell.
 
 Membrane current density at given locations _excluding_ capacitive currents.
 
-*  Sample value: ``double``. Current density in amperes per square metre.
-
-*  Metadata: ``mcable_list``. Location of probe.
-
+*  Sample value: Current density in amperes per square metre.
+*  Metadata: ``mlocation``. Location of probe.
 
 .. code::
 
@@ -162,13 +125,11 @@ Membrane current density at given locations _excluding_ capacitive currents.
 
 Membrane current _excluding_ capacitive currents and stimuli across components of the cell.
 
-*  Sample value: ``cable_sample_range``. Each value is the current in
+*  Sample value: the current in
    nanoamperes across an unbranched component of the cell, as determined
    by the discretisation.
-
-*  Metadata: ``mcable_list``. Each cable in the cable list describes
+*  Metadata: ``mcable``. Each cable in the cable list describes
    the unbranched component for the corresponding sample value.
-
 
 .. code::
 
@@ -176,12 +137,10 @@ Membrane current _excluding_ capacitive currents and stimuli across components o
 
 Total membrane current excluding current stimuli across components of the cell.
 
-*  Sample value: ``cable_sample_range``. Each value is the current in
-   nanoamperes across an unbranched component of the cell, as determined
-   by the discretisation.
-
-*  Metadata: ``mcable_list``. Each cable in the cable list describes
-   the unbranched component for the corresponding sample value.
+* Sample value: Each value is the current in nanoamperes across an unbranched
+   component of the cell, as determined by the discretisation.
+* Metadata: ``mcable``. Each cable in the cable list describes the unbranched
+   component for the corresponding sample value.
 
 .. code::
 
@@ -189,13 +148,12 @@ Total membrane current excluding current stimuli across components of the cell.
 
 Total stimulus currents applied across components of the cell.
 
-*  Sample value: ``cable_sample_range``. Each value is the current in
-   nanoamperes across an unbranched component of the cell, as determined
-   by the discretisation. Components of CVs where no stimulus is present
-   will report a corresponding stimulus value of zero.
-
-*  Metadata: ``mcable_list``. Each cable in the cable list describes
-   the unbranched component for the corresponding sample value.
+* Sample value: Each value is the current in nanoamperes across an unbranched
+   component of the cell, as determined by the discretisation. Components of CVs
+   where no stimulus is present will report a corresponding stimulus value of
+   zero.
+* Metadata: ``mcable``. Each cable in the cable list describes the unbranched
+   component for the corresponding sample value.
 
 Ion concentration
 ^^^^^^^^^^^^^^^^^
@@ -209,10 +167,8 @@ Ion concentration
 
 Ionic internal concentration of ion at each site in ``locations``.
 
-*  Sample value: ``double``. Ion concentration in millimoles per litre.
-
-*  Metadata: ``mcable_list``. Location of probe.
-
+* Sample value: Ion concentration in millimoles per litre.
+* Metadata: ``mlocation``. Location of probe.
 
 .. code::
 
@@ -222,27 +178,22 @@ Ionic internal concentration of ion at each site in ``locations``.
 
 Ionic external concentration of ion across components of the cell.
 
-*  Sample value: ``cable_sample_range``. Each value is the concentration in
-   millimoles per lire across an unbranched component of the cell, as determined
-   by the discretisation.
-
-*  Metadata: ``mcable_list``. Each cable in the cable list describes
-   the unbranched component for the corresponding sample value.
-
+* Sample value: the concentration in millimoles per lire across an unbranched
+   component of the cell, as determined by the discretisation.
+* Metadata: ``mcable``. Each cable in the cable list describes the unbranched
+   component for the corresponding sample value.
 
 .. code::
 
     struct cable_probe_ion_ext_concentration {
-        mcable_list location;
+        locset location;
         std::string ion;
     };
 
 Ionic external concentration of ion at each site in ``locations``.
 
-*  Sample value: ``double``. Ion concentration in millimoles per litre.
-
-*  Metadata: ``mcable_list``. Location of probe.
-
+*  Sample value: Ion concentration in millimoles per litre.
+*  Metadata: ``mlocation``. Location of probe.
 
 .. code::
 
@@ -252,13 +203,10 @@ Ionic external concentration of ion at each site in ``locations``.
 
 Ionic external concentration of ion across components of the cell.
 
-*  Sample value: ``cable_sample_range``. Each value is the concentration in
-   millimoles per lire across an unbranched component of the cell, as determined
-   by the discretisation.
-
-*  Metadata: ``mcable_list``. Each cable in the cable list describes
+* Sample value: the concentration in millimoles per litre across an unbranched
+   component of the cell, as determined by the discretisation.
+*  Metadata: ``mcable``. Each cable in the cable list describes
    the unbranched component for the corresponding sample value.
-
 
 Ionic diffusion concrentration.
 
@@ -269,8 +217,13 @@ Ionic diffusion concrentration.
         std::string ion;
     };
 
-Diffusive ionic concentration of the given ``ion`` at the
-sites specified by ``locations``.
+Diffusive ionic concentration of the given ``ion`` at the sites specified by
+``locations``.
+
+* Sample value: the concentration in millimoles per litre across an unbranched
+   component of the cell, as determined by the discretisation.
+*  Metadata: ``mlocation``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
 
 .. code::
 
@@ -278,8 +231,13 @@ sites specified by ``locations``.
         std::string ion;
     };
 
-Ionic diffusion concrentration attributed to a particular ``ion`` across CVs of the cell.
+Ionic diffusion concrentration attributed to a particular ``ion`` across CVs of
+the cell.
 
+* Sample value: the concentration in millimoles per litre across an unbranched
+   component of the cell, as determined by the discretisation.
+*  Metadata: ``mcable``. Each cable in the cable list describes
+   the unbranched component for the corresponding sample value.
 
 Mechanism state
 ^^^^^^^^^^^^^^^
@@ -292,14 +250,11 @@ Mechanism state
         std::string state;
     };
 
+Value of state variable in a density mechanism in each site in ``locations``. If
+the mechanism is not defined at a particular site, that site is ignored.
 
-Value of state variable in a density mechanism in each site in ``locations``.
-If the mechanism is not defined at a particular site, that site is ignored.
-
-*  Sample value: ``double``. State variable value.
-
-*  Metadata: ``mcable_list``. Location as given in the probeset address.
-
+*  Sample value: State variable value.
+* Metadata: ``mlocation``. Location as given in the probeset address.
 
 .. code::
 
@@ -310,13 +265,11 @@ If the mechanism is not defined at a particular site, that site is ignored.
 
 Value of state variable in a density mechanism across components of the cell.
 
-*  Sample value: ``cable_sample_range``. State variable values from the
-   mechanism across unbranched components of the cell, as determined
-   by the discretisation and mechanism extent.
-
-*  Metadata: ``mcable_list``. Each cable in the cable list describes
+* Sample value: State variable values from the mechanism across unbranched
+   components of the cell, as determined by the discretisation and mechanism
+   extent.
+*  Metadata: ``mcable``. Each cable in the cable list describes
    the unbranched component for the corresponding sample value.
-
 
 .. code::
 
@@ -329,10 +282,8 @@ Value of state variable in a density mechanism across components of the cell.
 Value of state variable in a point mechanism associated with the given target.
 If the mechanism is not associated with this target, the probe is ignored.
 
-*  Sample value: ``double``. State variable value.
-
-*  Metadata: ``std::vector<cable_probe_point_info>``. Target number, multiplicity and location.
-
+*  Sample value: State variable value.
+*  Metadata: ``cable_probe_point_info``. Target number, multiplicity and location.
 
 .. code::
 
@@ -344,12 +295,9 @@ If the mechanism is not associated with this target, the probe is ignored.
 Value of state variable in a point mechanism for each of the targets in the cell
 with which it is associated.
 
-*  Sample value: ``cable_sample_range``. State variable values at each associated
+* Sample value: State variable values at each associated target.
+* Metadata: ``cable_probe_point_info``. Target metadata for each associated
    target.
-
-*  Metadata: ``std::vector<cable_probe_point_info>``. Target metadata for each
-   associated target.
-
 
 .. _sampling_api:
 
@@ -359,7 +307,6 @@ Sampling API
 The new API replaces the flexible but irreducibly inefficient scheme
 where the next sample time for a sampling was determined by the
 return value of the sampler callback.
-
 
 Definitions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -376,10 +323,8 @@ sampler
 schedule
     A function or function object that, given a time interval, returns a list of sample times within that interval.
 
-
-
 Probes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^
 
 Probes are specified in the recipe objects that are used to initialize a
 simulation; the specification of the item or value that is subjected to a
@@ -430,13 +375,20 @@ will be passed to a sampler function or function object:
     .. code-block:: cpp
 
             struct probe_metadata {
-                cell_address_type id; // probeset id
-                unsigned index;       // index of probe source within those supplied by probeset id
-                util::any_ptr meta;   // probe-specific metadata
+                cell_address_type id;  // probeset id
+                unsigned index;        // index of probe source within those supplied by probeset id
+                std::size_t width = 0; // count of sample _columns_
+                util::any_ptr meta;    // probe-specific metadata
             };
 
-            using sampler_function =
-                std::function<void (probe_metadata, size_t, const sample_record*)>;
+            struct sample_records {
+                std::size_t n_sample;  // count of sample _rows_
+                std::size_t width;     // count of sample _columns_
+                const time_type* time; // pointer to time data
+                std::any values;       // resolves to pointer of probe-specific data D[n_sample][width]
+            };
+
+            using sampler_function = std::function<void(const probe_metadata&, const sample_records&)>;
 
 where the parameters are respectively the probe metadata, the number of
 samples, and finally a pointer to the sequence of sample records.
@@ -450,49 +402,78 @@ The ``any_ptr`` value in the metadata points to const probe-specific metadata;
 the type of the metadata will depend upon the probeset address specified in the
 ``probe_info`` provided by the recipe.
 
-One ``sample_record`` struct contains one sample of the probe data at a
-given simulation time point:
+The raw data in ``values`` can --- given knowledge of the correct type
+information --- be cast to the correct type ``const T*`` and read traversing in
+order ``T[n_sample][width]``. Likewise, ``meta`` can be cast to the metadata
+type ``const M*`` and yields an array ``M[width]``.
 
-.. container:: api-code
-
-    .. code-block:: cpp
-
-            struct sample_record {
-                time_type time;                     // simulation time of sample
-                std::pair<double*, double*> values; // sample range
-            };
-
-The ``values = [lo, hi]`` field is a range of sample data, with ``lo`` being the
-first valid value and ``hi`` one past the last valid value. The API guarantees
-that the range described is of the same length as the list contained in the meta
-data. The data pointed to by ``values``, and the sample records themselves, are
-only guaranteed to be valid for the duration of the call to the sampler
-function. A simple sampler implementation, assuming one probe per probeset id,
-might be as follows:
+Each probe type has type definitions for the associated value and metadata
+types, e.g.
 
 .. container:: example-code
 
     .. code-block:: cpp
 
-            using sample_data = std::map<cell_address_type, std::vector<std::pair<double, double>>>;
+        struct cable_probe_membrane_voltage {
+            using value_type = cable_sample_type;
+            using meta_type = cable_state_meta_type;
+            locset locations;
+        };
 
-            struct sampler {
-                sample_data& samples;
+Access is made much more convenient through ``sample_reader``, see next section.
 
-                explicit sampler(sample_data& samples): samples(samples) {}
+Sample Data Access
+^^^^^^^^^^^^^^^^^^
 
-                void operator()(probe_metadata pm, size_t n, const sample_record* records) {
-                    for (size_t i=0; i<n; ++i) {
-                        const auto& rec = records[i];
-                        const auto& [lo, hi] = rec.values;
-                        for (auto it = lo; it != hi; ++it) samples[pm.id].emplace_back(rec.time, *it);
-                    }
+The ``sample_reader`` provides a convenient way of accessing data retrieved in a
+sampler callback, taking care of casting and the data layout. It can be used as
+follows, provided the probe is known
+
+.. container:: example-code
+
+    .. code-block:: cpp
+
+        // This is the probe type we will attach to
+        using probe_type = cable_probe_membrane_voltage_cell;
+
+        // This is the callback to attach
+        void callback(const probe_metadata& pm, const sample_records& recs) {
+            auto reader = sample_reader<probe_type::meta_type>(pm.meta, recs);
+
+            for (std::size_t ix = 0ul; ix < reader.n_row(); ++ix) {
+                auto time = reader.time(ix);
+                for (std::size_t iy = 0ul; iy < reader.n_column(); ++iy) {
+                    auto value = reader.value(ix, iy);
+                    auto cable = reader.metadata(iy);
+                    // ... use time, cable, value ...
                 }
-            };
+            }
 
-The use of ``any_ptr`` allows type-checked access to the sample data, which
-may differ in type from probe to probe.
+In general, it provides safe access to the raw samples, time, and metadata and allows
+treating ``sample_records`` like tabular data with ``width`` columns containing the
+``metadata`` and ``n_sample`` rows containing ``time`` and ``values``.
 
+.. container:: example-code
+
+    .. code-block:: cpp
+
+        template<typename M>
+        struct sample_reader {
+            using meta_type = M;
+            using value_type = probe_value_type_of_t<M>;
+
+            std::size_t n_row() const { return n_sample_; }
+            std::size_t n_column() const { return width_; }
+
+            // Retrieve sample value corresponding to
+            // - time=time(i)
+            // - location=metadata(j)
+            value_type value(std::size_t i, std::size_t j = 0) const;
+            // Retrieve i'th time
+            time_type time(std::size_t i) const;
+            // Retrieve metadata at j
+            meta_type metadata(std::size_t j) const;
+        };
 
 Model and cell group interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -507,10 +488,9 @@ Polling rates and sampler functions are set through the
             using sampler_association_handle = std::size_t;
             using cell_member_predicate = std::function<bool (cell_member_type)>;
 
-            sampler_association_handle simulation::add_sampler(
-                cell_member_predicate probeset_ids,
-                schedule sched,
-                sampler_function fn)
+            sampler_association_handle simulation::add_sampler(cell_member_predicate probeset_ids,
+                                                               schedule sched,
+                                                               sampler_function fn)
 
             void simulation::remove_sampler(sampler_association_handle);
 
@@ -569,13 +549,12 @@ corresponding to the current state of the cell group. It should be expected that
 this difference in time should be no greater the the duration of the integration
 period (i.e. ``mindelay/2``).
 
-
 Schedules
 ^^^^^^^^^
 
-Schedules represent a non-negative, monotonically increasing sequence
-of time points, and are used to specify the sampling schedule in any
-given association of a sampler function to a set of probes.
+Schedules represent a non-negative, monotonically increasing sequence of time
+points, and are used to specify the sampling schedule in any given association
+of a sampler function to a set of probes.
 
 A ``schedule`` object has two methods:
 
@@ -588,17 +567,17 @@ A ``schedule`` object has two methods:
        time_event_span events(time_type t0, time_type t1)
 
 A ``time_event_span`` is a ``std::pair`` of pointers `const time_type*`,
-representing a view into an internally maintained collection of generated
-time values.
+representing a view into an internally maintained collection of generated time
+values.
 
-The ``events(t0, t1)`` method returns a view of monotonically
-increasing time values in the half-open interval ``[t0, t1)``.
-Successive calls to ``events`` — without an intervening call to ``reset()``
-—  must request strictly subsequent intervals.
+The ``events(t0, t1)`` method returns a view of monotonically increasing time
+values in the half-open interval ``[t0, t1)``. Successive calls to ``events`` —
+without an intervening call to ``reset()`` — must request strictly subsequent
+intervals.
 
-The data represented by the returned ``time_event_span`` view is valid
-for the lifetime of the ``schedule`` object, and is invalidated by any
-subsequent call to ``reset()`` or ``events()``.
+The data represented by the returned ``time_event_span`` view is valid for the
+lifetime of the ``schedule`` object, and is invalidated by any subsequent call
+to ``reset()`` or ``events()``.
 
 The ``reset()`` method resets the state such that events can be retrieved
 from again from time zero. A schedule that is reset must then produce
@@ -606,9 +585,9 @@ the same sequence of time points, that is, it must exhibit repeatable
 and deterministic behaviour.
 
 The ``schedule`` object itself uses type-erasure to wrap any schedule
-implementation class, which can be any copy--constructible class that
-provides the methods ``reset()`` and ``events(t0, t1)`` above. Three
-schedule implementations are provided by the engine:
+implementation class, which can be any copy--constructible class that provides
+the methods ``reset()`` and ``events(t0, t1)`` above. Three schedule
+implementations are provided by the engine:
 
 .. container:: api-code
 
@@ -635,37 +614,39 @@ The ``simulation`` and ``cable_cell_group`` classes use classes defined in
 ``scheduler_map.hpp`` to simplify the management of sampler--probe associations
 and probe metadata.
 
-``sampler_association_map`` wraps an ``unordered_map`` between sampler association
-handles and tuples (*schedule*, *sampler*, *probe set*), with thread-safe
-accessors.
-
+``sampler_association_map`` wraps an ``unordered_map`` between sampler
+association handles and tuples (*schedule*, *sampler*, *probe set*), with
+thread-safe accessors.
 
 Batched sampling in ``cable_cell_group``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``fvm_multicell`` implementations for CPU and GPU simulation of multi-compartment
-cable neurons perform sampling in a batched manner: when their integration is
-initialized, they take a sequence of ``sample_event`` objects which are used to
-populate an implementation-specific ``event_stream`` that describes for each
-cell the sample times and what to sample over the integration interval.
+The ``fvm_multicell`` implementations for CPU and GPU simulation of
+multi-compartment cable neurons perform sampling in a batched manner: when their
+integration is initialized, they take a sequence of ``sample_event`` objects
+which are used to populate an implementation-specific ``event_stream`` that
+describes for each cell the sample times and what to sample over the integration
+interval.
 
-When an integration step for a cell covers a sample event on that cell, the sample
-is satisfied with the value from the cell state at the beginning of the time step,
-after any postsynaptic spike events have been delivered.
+When an integration step for a cell covers a sample event on that cell, the
+sample is satisfied with the value from the cell state at the beginning of the
+time step, after any postsynaptic spike events have been delivered.
 
-It is the responsibility of the ``cable_cell_group::advance()`` method to create the sample
-events from the entries of its ``sampler_association_map``, and to dispatch the
-sampled values to the sampler callbacks after the integration is complete.
-Given an association tuple (*schedule*, *sampler*, *probe set*) where the *schedule*
-has (non-zero) *n* sample times in the current integration interval, the ``cable_cell_group`` will
-call the *sampler* callback once for probe in *probe set*, with *n* sample values.
+It is the responsibility of the ``cable_cell_group::advance()`` method to create
+the sample events from the entries of its ``sampler_association_map``, and to
+dispatch the sampled values to the sampler callbacks after the integration is
+complete. Given an association tuple (*schedule*, *sampler*, *probe set*) where
+the *schedule* has (non-zero) *n* sample times in the current integration
+interval, the ``cable_cell_group`` will call the *sampler* callback once for
+probe in *probe set*, with *n* sample values.
 
 .. note::
 
-   When the time values returned by a call to a schedule's ``events(t0, t1)`` method do not
-   perfectly coincide with the boundaries of the numerical time step grid, :math:`[t_0, t_0 + dt,
-   t_0 + 2\, dt, \, \cdots \, , t_1)`, the samples will be taken at the closest possible point in
-   time. In particular, any sample times :math:`t_s \in \left( t_i - dt/2,~ t_i + dt/2\right]` are
+   When the time values returned by a call to a schedule's ``events(t0, t1)``
+   method do not perfectly coincide with the boundaries of the numerical time
+   step grid, :math:`[t_0, t_0 + dt, t_0 + 2\, dt, \, \cdots \, , t_1)`, the
+   samples will be taken at the closest possible point in time. In particular,
+   any sample times :math:`t_s \in \left( t_i - dt/2,~ t_i + dt/2\right]` are
    attributed to simulation time step :math:`t_i = t_0 + i\,dt`.
 
 
@@ -682,5 +663,4 @@ Membrane voltage
 Queries cell membrane potential.
 
 * Sample value: ``double``. Membrane potential (mV).
-
 * Metadata: none
