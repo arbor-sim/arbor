@@ -197,7 +197,7 @@ struct ARB_SYMBOL_VISIBLE ion_diffusivity {
     ion_diffusivity() = default;
     ion_diffusivity(const std::string& ion, const U::quantity& m, iexpr scale=1):
       ion{ion}, value(m.value_as(U::m2/U::s)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [m²/s]."};
+        if (std::isnan(value)) throw std::domain_error{"Diffusivity " + ion + ": Value must be finite and in [m²/s]."};
     }
 };
 

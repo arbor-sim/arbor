@@ -557,9 +557,7 @@ std::vector<probe_metadata> simulation_state::get_probe_metadata(const cell_addr
     if (auto linfo = util::value_by_key(gid_to_local_, probeset_id.gid)) {
         return cell_groups_.at(linfo->group_index)->get_probe_metadata(probeset_id);
     }
-    else {
-        return {};
-    }
+    return {};
 }
 
 // Simulation class implementations forward to implementation class.
@@ -589,11 +587,9 @@ time_type simulation::run(const units::quantity& tfinal, const units::quantity& 
     return impl_->run(tfinal_ms, dt_ms);
 }
 
-sampler_association_handle simulation::add_sampler(
-    cell_member_predicate probeset_ids,
-    schedule sched,
-    sampler_function f)
-{
+sampler_association_handle simulation::add_sampler(cell_member_predicate probeset_ids,
+                                                   schedule sched,
+                                                   sampler_function f) {
     return impl_->add_sampler(std::move(probeset_ids), std::move(sched), std::move(f));
 }
 

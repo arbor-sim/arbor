@@ -99,6 +99,11 @@ lif_decay(const lif_lowered_cell& cell, double t0, double t1) {
     return (cell.V_m - cell.E_L)*exp((t0 - t1)/cell.tau_m) + cell.E_L;
 }
 
+struct lif_samples {
+    std::vector<double> times;
+    std::vector<double> values;
+};
+
 // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
 // Parameter dt is ignored, since we make jumps between two consecutive spikes.
 void lif_cell_group::advance_cell(time_type tfinal,
@@ -115,7 +120,7 @@ void lif_cell_group::advance_cell(time_type tfinal,
     // collected sampling data
     std::unordered_map<sampler_association_handle,
                        std::unordered_map<cell_address_type,
-                                          std::vector<sample_record>>> sampled;
+                                          lif_samples>> sampled;
     // samples to process
     std::size_t n_values = 0;
     std::vector<std::pair<time_type, sampler_association_handle>> samples;
@@ -135,7 +140,8 @@ void lif_cell_group::advance_cell(time_type tfinal,
             for (const auto& pid: assoc.probeset_ids) {
                 if (pid.gid != gid) continue;
                 arb_assert (0 == sampled[hdl].count(pid));
-                sampled[hdl][pid].reserve(n_times);
+                sampled[hdl][pid].times.reserve(n_times);
+                sampled[hdl][pid].values.reserve(n_times);
                 delta += n_times;
             }
             if (delta == 0) continue;
@@ -146,10 +152,7 @@ void lif_cell_group::advance_cell(time_type tfinal,
     std::sort(samples.begin(), samples.end());
     int n_samples = samples.size();
     int sample_idx = 0;
-    // Now allocate some scratch space for the probed values, if we don't,
-    // re-alloc might move our data
-    std::vector<double> sampled_voltages;
-    sampled_voltages.reserve(n_values);
+
     // integrate until tfinal using the exact solution of membrane voltage differential equation.
     for (;;) {
         const auto event_time = event_idx < n_events ? event_lanes[lid][event_idx].time : tfinal;
@@ -208,10 +211,9 @@ void lif_cell_group::advance_cell(time_type tfinal,
                                 // we are not in the refractory period, apply decay
                                 U = lif_decay(cell, t, time);
                             }
-                            // Store U for later use.
-                            sampled_voltages.push_back(U);
                             // Set up reference to sampled value
-                            sampled[hdl][key].push_back(sample_record{time, {&sampled_voltages.back()}});
+                            sampled[hdl][key].times.push_back(time);
+                            sampled[hdl][key].values.push_back(U);
                             break;
                         }
                         default:
@@ -226,7 +228,6 @@ void lif_cell_group::advance_cell(time_type tfinal,
         }
         last_time_updated_[lid] = t;
     }
-    arb_assert (sampled_voltages.size() <= n_values);
     // Now we need to call all sampler callbacks with the data we have collected
     {
         std::lock_guard<std::mutex> guard(sampler_mex_);
@@ -234,8 +235,10 @@ void lif_cell_group::advance_cell(time_type tfinal,
             const auto& fun = samplers_[k].sampler;
             for (auto& [id, us]: vs) {
                 auto meta = get_probe_metadata(id)[0];
-                fun(meta, us.size(), us.data());
-                us.clear();
+                fun(meta, sample_records{.n_sample=us.times.size(),
+                                         .width=1,
+                                         .time=us.times.data(),
+                                         .values=const_cast<const double*>(us.values.data())});
             }
         }
     }
@@ -253,7 +256,7 @@ std::vector<probe_metadata> lif_cell_group::get_probe_metadata(const cell_addres
     // SAFETY: Probe associations are fixed after construction, so we do not
     //         need to grab the mutex.
     if (probes_.count(key)) {
-        return {probe_metadata{key, 0, &probes_.at(key).metadata}};
+        return {probe_metadata{key, 0, 1, &probes_.at(key).metadata}};
     } else {
         return {};
     }
