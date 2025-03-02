@@ -53,15 +53,15 @@ struct trace_callback {
     trace_callback(std::vector<trace>& ts, const std::unordered_map<arb::mlocation, size_t>& ls): traces_(ts), locmap_(ls) {}
 
     void operator()(arb::probe_metadata pm, const arb::sample_records& recs) {
-        auto reader = arb::make_sample_reader<arb::cable_state_meta_type>(pm.meta, recs);
+        auto reader = arb::sample_reader<arb::cable_state_meta_type>(pm.meta, recs);
 
-        for (std::size_t j = 0; j < reader.width; ++j) {
-            const auto& loc = reader.get_metadata(j);
+        for (std::size_t j = 0; j < reader.n_column(); ++j) {
+            const auto& loc = reader.metadata(j);
             if (locmap_.count(loc)) {
                 auto& trace = traces_[locmap_.at(loc)];
-                for (std::size_t i = 0; i < reader.n_sample; ++i) {
-                    auto time = reader.get_time(i);
-                    auto value = reader.get_value(i, j);
+                for (std::size_t i = 0; i < reader.n_row(); ++i) {
+                    auto time = reader.time(i);
+                    auto value = reader.value(i, j);
                     trace.t.push_back(time);
                     trace.v.push_back(value);
                 }

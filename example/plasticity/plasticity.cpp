@@ -80,12 +80,12 @@ std::mutex mtx;
 
 void sampler(arb::probe_metadata pm, const arb::sample_records& samples) {
     using probe_t = arb::cable_probe_membrane_voltage;
-    auto reader = arb::make_sample_reader<probe_t::meta_type>(pm.meta, samples);
+    auto reader = arb::sample_reader<probe_t::meta_type>(pm.meta, samples);
     std::lock_guard<std::mutex> lock{mtx};
-    for (std::size_t ix = 0; ix < reader.n_sample; ++ix) {
-        auto time = reader.get_time(ix);
-        auto value = reader.get_value(ix);
-        arb::mlocation meta = reader.get_metadata(0);
+    for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+        auto time = reader.time(ix);
+        auto value = reader.value(ix);
+        arb::mlocation meta = reader.metadata(0);
         std::cout << fmt::format("| {:7.4f} | {:11.1f} | {:9.2f} |\n", time, meta.pos, value);
     }
 }

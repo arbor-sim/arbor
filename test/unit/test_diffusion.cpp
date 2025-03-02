@@ -106,12 +106,12 @@ testing::AssertionResult run(const linear& rec, const result_t exp) {
     result_t sample_values;
     auto sampler = [&sample_values](arb::probe_metadata pm, const arb::sample_records& recs) {
         sample_values.clear();
-        auto reader = arb::make_sample_reader<arb::cable_state_cell_meta_type>(pm.meta, recs);
-        for (std::size_t ix = 0; ix < reader.n_sample; ++ix) {
-            auto time = reader.get_time(ix);
-            for (std::size_t iy = 0; iy < reader.width; ++iy) {
-                auto cable = reader.get_metadata(iy);
-                auto value = reader.get_value(ix, iy);
+        auto reader = arb::sample_reader<arb::cable_state_cell_meta_type>(pm.meta, recs);
+        for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+            auto time = reader.time(ix);
+            for (std::size_t iy = 0; iy < reader.n_column(); ++iy) {
+                auto cable = reader.metadata(iy);
+                auto value = reader.value(ix, iy);
                 sample_values.push_back({time, cable.prox_pos, value});
             }
         }

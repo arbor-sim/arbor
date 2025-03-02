@@ -61,10 +61,11 @@ struct sampler {
     }
 
     void operator()(arb::probe_metadata pm, const arb::sample_records& samples) {
-        auto reader = arb::make_sample_reader<arb::cable_state_cell_meta_type>(pm.meta, samples);
-        for (std::size_t ix = 0; ix < reader.n_sample; ++ix) {
-            for (std::size_t iy = 0; iy < reader.width; ++iy) {
-                data_[ix*reader.width + iy] = reader.get_value(ix, iy);
+        auto reader = arb::sample_reader<arb::cable_state_cell_meta_type>(pm.meta, samples);
+        auto width = reader.n_column();
+        for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+            for (std::size_t iy = 0; iy < reader.n_column(); ++iy) {
+                data_[ix*width + iy] = reader.value(ix, iy);
             }
         }
     }

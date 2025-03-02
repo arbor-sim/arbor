@@ -23,18 +23,18 @@ struct simple_sampler_result {
     std::vector<std::remove_const_t<M>> metadata;
 
     void from_reader(const sample_reader<M>& reader) {
-        n_sample = reader.n_sample;
-        width = reader.width;
+        n_sample = reader.n_row();
+        width = reader.n_column();
         values.resize(width);
-        for (std::size_t ix = 0ul; ix < reader.n_sample; ++ix) {
-            time.push_back(reader.get_time(ix));
-            for (std::size_t iy = 0ul; iy < reader.width; ++iy) {
-                auto v = reader.get_value(ix, iy);
+        for (std::size_t ix = 0ul; ix < reader.n_row(); ++ix) {
+            time.push_back(reader.time(ix));
+            for (std::size_t iy = 0ul; iy < reader.n_column(); ++iy) {
+                auto v = reader.value(ix, iy);
                 values[iy].push_back(v);
             }
         }
-        for (std::size_t iy = 0ul; iy < reader.width; ++iy) {
-            metadata.push_back(reader.get_metadata(iy));
+        for (std::size_t iy = 0ul; iy < reader.n_column(); ++iy) {
+            metadata.push_back(reader.metadata(iy));
         }
     }
 };
@@ -42,7 +42,7 @@ struct simple_sampler_result {
 template <typename M>
 auto make_simple_sampler(simple_sampler_result<M>& trace) {
     return [&trace](const probe_metadata& pm, const sample_records& recs) {
-        auto reader = make_sample_reader<M>(pm.meta, recs);
+        auto reader = sample_reader<M>(pm.meta, recs);
         trace.from_reader(reader);
     };
 }

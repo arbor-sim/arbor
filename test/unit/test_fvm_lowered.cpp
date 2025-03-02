@@ -465,9 +465,9 @@ TEST(fvm_lowered, derived_mechs) {
 
         sampler_function sampler =
             [&](probe_metadata pm, const sample_records& records) {
-                auto reader = make_sample_reader<cable_state_meta_type>(pm.meta, records);
-                for (std::size_t i = 0; i < reader.n_sample; ++i) {
-                    double v = reader.get_value(i);
+                auto reader = sample_reader<cable_state_meta_type>(pm.meta, records);
+                for (std::size_t i = 0; i < reader.n_row(); ++i) {
+                    double v = reader.value(i);
                     samples[pm.id.gid].push_back(v);
                 }
             };

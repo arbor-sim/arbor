@@ -105,18 +105,18 @@ static std::atomic<int> printed_header = 0;
 
 template<typename M>
 void sampler(arb::probe_metadata pm, const arb::sample_records& samples) {
-    auto reader = arb::make_sample_reader<M>(pm.meta, samples);
+    auto reader = arb::sample_reader<M>(pm.meta, samples);
     // Print CSV header for sample output
     if (0 == printed_header.fetch_add(1)) {
         std::cout << fmt::format("t", "");
-        for (std::size_t iy = 0; iy < reader.width; ++iy) std::cout << ", " << show_location(reader.get_metadata(iy));
+        for (std::size_t iy = 0; iy < reader.n_column(); ++iy) std::cout << ", " << show_location(reader.metadata(iy));
         std::cout << '\n';
     }
 
-    for (std::size_t ix = 0; ix < reader.n_sample; ++ix) {
-        std::cout << fmt::format("{:7.3f}", reader.get_time(ix));
-        for (unsigned iy = 0; iy < reader.width; ++iy) {
-            std::cout << fmt::format(", {:-8.4f}", reader.get_value(ix, iy));
+    for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+        std::cout << fmt::format("{:7.3f}", reader.time(ix));
+        for (unsigned iy = 0; iy < reader.n_column(); ++iy) {
+            std::cout << fmt::format(", {:-8.4f}", reader.value(ix, iy));
         }
         std::cout  << '\n';
     }

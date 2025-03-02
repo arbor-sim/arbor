@@ -853,17 +853,17 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
 
             if (pm.id.tag == "I-total") {
                 using probe_t = cable_probe_ion_current_cell;
-                auto reader = arb::make_sample_reader<probe_t::meta_type>(pm.meta, recs);
+                auto reader = arb::sample_reader<probe_t::meta_type>(pm.meta, recs);
                 // Metadata should comprise one cable per CV.
-                ASSERT_EQ(n_cv, reader.width);
-                for (unsigned iy = 0; iy < n_cv; ++iy) i_memb[iy] = reader.get_value(0, iy);
+                ASSERT_EQ(n_cv, reader.n_column());
+                for (unsigned iy = 0; iy < n_cv; ++iy) i_memb[iy] = reader.value(0, iy);
             }
             else if (pm.id.tag == "I-stimulus") {
                 using probe_t = cable_probe_stimulus_current_cell;
-                auto reader = arb::make_sample_reader<probe_t::meta_type>(pm.meta, recs);
+                auto reader = arb::sample_reader<probe_t::meta_type>(pm.meta, recs);
                 // Metadata should comprise one cable per CV.
-                ASSERT_EQ(n_cv, reader.width);
-                for (unsigned iy = 0; iy < n_cv; ++iy) i_stim[iy] = reader.get_value(0, iy);
+                ASSERT_EQ(n_cv, reader.n_column());
+                for (unsigned iy = 0; iy < n_cv; ++iy) i_stim[iy] = reader.value(0, iy);
             }
             else {
                 ASSERT_EQ(recs.width, 1u);
@@ -871,8 +871,8 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
                 ASSERT_LT(indices.count(pm.id.tag), n_axial_probe);
                 auto idx = indices.at(pm.id.tag);
                 using probe_t = cable_probe_axial_current;
-                auto reader = arb::make_sample_reader<probe_t::meta_type>(pm.meta, recs);
-                i_axial.at(idx) = reader.get_value(0, 0);
+                auto reader = arb::sample_reader<probe_t::meta_type>(pm.meta, recs);
+                i_axial.at(idx) = reader.value(0, 0);
             }
         });
 

@@ -59,12 +59,12 @@ std::ofstream out;
 
 void sampler(probe_metadata pm, const sample_records& samples) {
     out << "time,prox,dist,Xd\n" << std::fixed << std::setprecision(4);
-    auto reader = arb::make_sample_reader<arb::cable_state_cell_meta_type>(pm.meta, samples);
-    for (std::size_t ix= 0; ix < reader.n_sample; ++ix) {
-        auto time = reader.get_time(ix);
-        for (std::size_t iy = 0; iy < reader.width; ++iy) {
-            auto loc = reader.get_metadata(iy);
-            auto val = reader.get_value(ix, iy);
+    auto reader = arb::sample_reader<arb::cable_state_cell_meta_type>(pm.meta, samples);
+    for (std::size_t ix= 0; ix < reader.n_row(); ++ix) {
+        auto time = reader.time(ix);
+        for (std::size_t iy = 0; iy < reader.n_column(); ++iy) {
+            auto loc = reader.metadata(iy);
+            auto val = reader.value(ix, iy);
             out << time << ',' << loc.prox_pos << ',' << loc.dist_pos << ',' << val << '\n';
         }
     }

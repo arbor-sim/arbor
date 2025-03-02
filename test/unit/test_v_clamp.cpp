@@ -75,10 +75,10 @@ TEST(v_process, clamp) {
     auto fun = [&u_soma, &u_dend](const arb::probe_metadata& pm,
                                   const arb::sample_records& samples) {
         using probe_t = arb::cable_probe_membrane_voltage;
-        auto reader = arb::make_sample_reader<probe_t::meta_type>(pm.meta, samples);
-        for (std::size_t ix = 0ul; ix < reader.n_sample; ++ix) {
-            auto t = reader.get_time(ix);
-            auto v = reader.get_value(ix);
+        auto reader = arb::sample_reader<probe_t::meta_type>(pm.meta, samples);
+        for (std::size_t ix = 0ul; ix < reader.n_row(); ++ix) {
+            auto t = reader.time(ix);
+            auto v = reader.value(ix);
             if (pm.id.tag == "Um-(0, 0.125)") {
                 u_soma.push_back({t, v});
             }
@@ -144,10 +144,10 @@ TEST(v_process, limit) {
     auto fun = [&u_soma, &u_dend](const arb::probe_metadata& pm,
                                   const arb::sample_records& samples) {
         using probe_t = arb::cable_probe_membrane_voltage;
-        auto reader = arb::make_sample_reader<probe_t::meta_type>(pm.meta, samples);
-        for (std::size_t ix = 0ul; ix < reader.n_sample; ++ix) {
-            auto t = reader.get_time(ix);
-            auto v = reader.get_value(ix);
+        auto reader = arb::sample_reader<probe_t::meta_type>(pm.meta, samples);
+        for (std::size_t ix = 0ul; ix < reader.n_row(); ++ix) {
+            auto t = reader.time(ix);
+            auto v = reader.value(ix);
             if (pm.id.tag == "Um-(0, 0.125)") {
                 u_soma.push_back({t, v});
             }
@@ -213,10 +213,10 @@ TEST(v_process, clamp_fine) {
     auto fun = [&u_soma, &u_dend](const arb::probe_metadata& pm,
                                   const arb::sample_records& samples) {
         using probe_t = arb::cable_probe_membrane_voltage;
-        auto reader = arb::make_sample_reader<probe_t::meta_type>(pm.meta, samples);
-        for (std::size_t ix = 0ul; ix < reader.n_sample; ++ix) {
-            auto t = reader.get_time(ix);
-            auto v = reader.get_value(ix);
+        auto reader = arb::sample_reader<probe_t::meta_type>(pm.meta, samples);
+        for (std::size_t ix = 0ul; ix < reader.n_row(); ++ix) {
+            auto t = reader.time(ix);
+            auto v = reader.value(ix);
             if (pm.id.tag == "Um-(0, 0.125)") {
                 u_soma.push_back({t, v});
             }
