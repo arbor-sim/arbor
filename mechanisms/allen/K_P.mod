@@ -46,8 +46,7 @@ DERIVATIVE states {
     }
 
     m_rho = qt/(tauF*(1.25 + m_z))
-    h_rho = qt/((24*vs + 2690)*exp(-((vs + 75)/48)^2))
-
+    h_rho = qt/(360 + (24*vs + 2330)*exp(-((vs + 75)/48)^2))
     m' = (m_inf(vs) - m)*m_rho
     h' = (h_inf(vs) - h)*h_rho
 }
