@@ -5,10 +5,18 @@ NEURON {
 
 PARAMETER {
 	diam : CV diameter (in µm, internal variable)
+    area : CV lateral surface (µm2)
 }
 
-BREAKPOINT {}
+STATE { alpha }
 
-NET_RECEIVE(weight) {
-	sd = sd + 4 * 0.001 * weight / diam
+INITIAL { alpha = 0 }
+
+BREAKPOINT {
+	LOCAL volume
+    volume = 0.25*area*diam
+	sd = sd + alpha / volume
+	alpha = 0
 }
+
+NET_RECEIVE(weight) { alpha = alpha + weight }
