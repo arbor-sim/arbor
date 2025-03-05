@@ -1,7 +1,5 @@
-#include <cmath>
 #include <iostream>
 #include <string>
-#include <set>
 #include <regex>
 
 #include <fmt/core.h>
@@ -10,14 +8,12 @@
 
 #include "gpuprinter.hpp"
 #include "expression.hpp"
-#include "io/ostream_wrappers.hpp"
 #include "io/prefixbuf.hpp"
 #include "printer/cexpr_emit.hpp"
 #include "printer/printerutil.hpp"
 
 using io::indent;
 using io::popindent;
-using io::quote;
 
 static std::string scaled(double coeff) {
     std::stringstream ss;
@@ -221,18 +217,22 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                        "}}\n\n"),
                            pp_var_pfx);
     }
-    emit_api_kernel(state_api);
+    // TODO This needs additive?
+    emit_api_kernel(state_api, true);
     emit_api_kernel(current_api, true);
     emit_api_kernel(write_ions_api);
 
     // event delivery
     if (net_receive_api) {
+        ApiFlags flags = {false, false, true}; // No CV loop, no PPACK, use additive
+        flags.point(is_point_proc);
         out << fmt::format(FMT_COMPILE("__global__\n"
                                        "void apply_events(arb_mechanism_ppack params_, const arb_deliverable_event_data* begin_,\n"
                                        "                  const arb_deliverable_event_data* end_) {{\n"
                                        "    PPACK_IFACE_BLOCK;\n"
                                        "    const auto ii_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
-                                       "    if (ii_ < (end_ - begin_)) {{\n"
+                                       "    auto n_ = end_ - begin_;\n"
+                                       "    if (ii_ < n_) {{\n"
                                        "        const auto tid_ = (begin_ + ii_)->mech_index;\n"
                                        "        if ((ii_ > 0) && ((begin_ + (ii_ - 1))->mech_index == tid_)) return;\n"
                                        "        for (auto i_ = begin_ + ii_; i_ < end_; ++i_) {{\n"
@@ -240,7 +240,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                        "            [[maybe_unused]] auto {0} = i_->weight;\n"),
                            net_receive_api->args().empty() ? "weight" : net_receive_api->args().front()->is_argument()->name());
         out << indent << indent << indent;
-        emit_api_body_cu(out, net_receive_api, ApiFlags{}.point(is_point_proc).loop(false).iface(false));
+        emit_api_body_cu(out, net_receive_api, flags);
         out << popindent << "}\n" << popindent << "}\n" << popindent << "}\n\n";
     }
 
@@ -313,20 +313,15 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
     } else {
         emit_empty_wrapper("post_event");
     }
-    if (net_receive_api) {
-        auto api_name = "apply_events";
-        out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack* p, arb_deliverable_event_stream* stream_ptr) {{"), class_name, api_name);
-        if(!net_receive_api->body()->statements().empty()) {
-            out << fmt::format(FMT_COMPILE("\n"
-                                           "    const arb_deliverable_event_data* const begin = stream_ptr->begin;\n"
-                                           "    const arb_deliverable_event_data* const end = stream_ptr->end;\n"
-                                           "    ::arb::gpu::launch_1d(end - begin, 128, {}, *p, begin, end);\n"),
-                               api_name);
-        }
-        out << "}\n\n";
+    if (net_receive_api && !net_receive_api->body()->statements().empty()) {
+        out << fmt::format(FMT_COMPILE("void {}_apply_events_(arb_mechanism_ppack* p, arb_deliverable_event_stream* stream_ptr) {{\n"
+                                       "    const arb_deliverable_event_data* const begin = stream_ptr->begin;\n"
+                                       "    const arb_deliverable_event_data* const end = stream_ptr->end;\n"
+                                       "    ::arb::gpu::launch_1d(end - begin, 128, apply_events, *p, begin, end);\n"
+                                       "}}\n\n"), class_name);
     } else {
-        auto api_name = "apply_events";
-        out << fmt::format(FMT_COMPILE("void {}_{}_(arb_mechanism_ppack* p, arb_deliverable_event_stream* events) {{}}\n\n"), class_name, api_name);
+        out << fmt::format(FMT_COMPILE("void {}_apply_events_(arb_mechanism_ppack* p, arb_deliverable_event_stream* events) {{}}\n\n"),
+                           class_name);
     }
     out << namespace_declaration_close(ns_components);
     return out.str();
@@ -394,8 +389,8 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, const ApiFlags& flags) {
             // update an indexed variable, like current or conductance.
             // This is the case if one of the external variables "is_write".
             auto it = std::find_if(indexed_vars.begin(), indexed_vars.end(),
-                      [](auto& sym){return sym->external_variable()->is_write();});
-            if (it!=indexed_vars.end()) {
+                                   [](auto& sym){return sym->external_variable()->is_write();});
+            if (it != indexed_vars.end()) {
                 out << "unsigned lane_mask_ = arb::gpu::ballot(0xffffffff, tid_<n_);\n";
             }
         }
@@ -472,11 +467,12 @@ void emit_state_update_cu(std::ostream& out,
     auto var    = deref(d);
     auto use_weight = d.always_use_weight || !flags.is_point;
     std::string weight = scale + (use_weight ? pp_var_pfx + "weight[tid_]" : "1.0");
-
     if (d.additive && flags.use_additive) {
+        // NOTE additive means we are treating a diffusive concentration, so we
+        // can do a lot of specialised stuff here.
         out << name << " -= " << var << ";\n";
         if (flags.is_point) {
-            out << fmt::format("::arb::gpu::reduce_by_key({}*{}, {}, {}, lane_mask_);\n", weight, name, data, index);
+            out << fmt::format("::arb::gpu::gpu_atomic_add({} + {}, {}*{});\n", data, index, weight, name);
         }
         else {
             out << var << " = fma(" << weight << ", " << name << ", " << var << ");\n";

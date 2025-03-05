@@ -97,7 +97,7 @@ the function that will return the cable cell from the model as an
 .. literalinclude:: ../../python/example/single_cell_allen.py
    :language: python
    :dedent:
-   :lines: 79-138
+   :lines: 78-138
 
 Step **(4)** creates an empty :class:`arbor.decor`.
 

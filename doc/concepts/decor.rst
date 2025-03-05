@@ -231,11 +231,11 @@ can't be overridden at cell or region level.
 
 Each ion species has the following properties:
 
-1. *internal concentration*: concentration on interior of the membrane [mM].
-2. *external concentration*: concentration on exterior of the membrane [mM].
+1. *internal concentration*: concentration on interior of the membrane :math:`[mM]`.
+2. *external concentration*: concentration on exterior of the membrane :math:`[mM]`.
 3. *reversal potential*: reversal potential [mV].
 4. *reversal potential mechanism*:  method for calculating reversal potential.
-5. *diffusivity*: diffusion coefficient for marker concentration, defaults to zero [m^2/s].
+5. *diffusivity*: diffusion coefficient for marker concentration, defaults to zero :math:`[m^2/s]`.
 
 Properties 1, 2 and 3 must be defined, and are used as the initial values for
 each quantity at the start of the simulation. They are specified globally,

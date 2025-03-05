@@ -14,16 +14,12 @@
 #include <arbor/simd/simd.hpp>
 
 #include "fvm_layout.hpp"
-
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
-
 #include "threading/threading.hpp"
-
 #include "backends/common_types.hpp"
 #include "backends/rand_fwd.hpp"
 #include "backends/shared_state_base.hpp"
-
 #include "backends/multicore/threshold_watcher.hpp"
 #include "backends/multicore/multicore_common.hpp"
 #include "backends/multicore/partition_by_constraint.hpp"
@@ -250,7 +246,7 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const shared_state& s);
 } // namespace multicore
 
 // Xd and gX are the only things that persist
-ARB_SERDES_ENABLE_EXT(multicore::ion_state, Xd_, gX_);
+ARB_SERDES_ENABLE_EXT(multicore::ion_state, Xd_);
 ARB_SERDES_ENABLE_EXT(multicore::mech_storage,
                       data_,
                       // NOTE(serdes) ion_states_, this is just a bunch of pointers

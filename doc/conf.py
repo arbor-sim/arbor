@@ -35,7 +35,7 @@ intersphinx_mapping = {
 }
 
 project = "Arbor"
-copyright = "2017-2023, ETHZ & FZJ"
+copyright = "2017-2025, ETHZ & FZJ"
 author = "ETHZ & FZJ"
 todo_include_todos = True
 
