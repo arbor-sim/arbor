@@ -341,7 +341,7 @@ void banner(context ctx) {
 
 // simple, compiler independent int in range
 template<typename T, typename G>
-T rand_range(G gen, T lo, T hi) { return lo + gen() * double(hi - lo) / double(G::max() - G::min()); }
+T rand_range(G& gen, T lo, T hi) { return lo + gen() * double(hi - lo) / double(G::max() - G::min()); }
 
 void add_subset(cell_gid_type gid,
                 cell_gid_type start, cell_gid_type end,
@@ -355,7 +355,7 @@ void add_subset(cell_gid_type gid,
     // Exclude ourself
     std::set<cell_gid_type> seen{gid};
     std::mt19937 gen(gid + 42);
-    while(m) {
+    while(m > 0) {
         cell_gid_type val = rand_range(gen, start, end);
         if (!seen.count(val)) {
             conns.push_back({{val, src}, {tgt}, weight, delay*U::ms});
