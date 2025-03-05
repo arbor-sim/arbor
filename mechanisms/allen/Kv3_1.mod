@@ -17,9 +17,7 @@ PARAMETER {
     vshift = 0       (mV)
 }
 
-STATE { 
-    m
-}
+STATE { m }
 
 BREAKPOINT {
     SOLVE states METHOD cnexp
@@ -29,13 +27,14 @@ BREAKPOINT {
 }
 
 DERIVATIVE states {
-    LOCAL mInf, mRat
-    mInf =    1/(1 + exp(-(v - 18.700 - vshift)/9.700))
-    mRat = 0.25*(1 + exp(-(v + 46.560 - vshift)/44.140))
-    
-    m' = (mInf - m)*mRat
+    LOCAL mInf, mRat, vs
+    vs = v - vshift
+    mRat = 0.25*(1 + exp(-(vs + 46.560)/44.140))
+    m' = (m_inf(vs) - m)*mRat
 }
 
 INITIAL {
-    m = 1/(1 + exp(-(v - 18.700 - vshift)/9.700))
+    m = m_inf(v - vshift)
 }
+
+FUNCTION m_inf(v) { m_inf = 1/(1 + exp(-(v - 18.700)/9.700)) }
