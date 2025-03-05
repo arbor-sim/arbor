@@ -82,7 +82,6 @@ void ion_state::init_concentration() {
 }
 
 void ion_state::zero_current() {
-    util::zero(gX_);
     util::zero(iX_);
 }
 
@@ -425,7 +424,6 @@ void shared_state::instantiate(arb::mechanism& m,
         ion_state.external_concentration  = oion->Xo_.data();
         ion_state.diffusive_concentration = oion->Xd_.data();
         ion_state.ionic_charge            = oion->charge.data();
-        ion_state.conductivity            = oion->gX_.data();
     }
 
     // Initialize state and parameter vectors with default values.
