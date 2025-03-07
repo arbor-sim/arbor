@@ -14,9 +14,13 @@ all tests for the simulator wrapper
 
 class TestSpikes(unittest.TestCase):
     # test that all spikes are sorted by time then by gid
-    @fixtures.art_spiking_sim()
-    def test_spikes_sorted(self, art_spiking_sim):
-        sim = art_spiking_sim
+    @fixtures.single_context()
+    def test_spikes_sorted(self, single_context):
+        if A.config()["profiling"]:
+            A.profiler_clear()
+        rec = fixtures.art_spiker_recipe()
+        dd = A.partition_load_balance(rec, single_context)
+        sim = A.simulation(rec, single_context, dd)
         sim.record(A.spike_recording.all)
         # run simulation in 5 steps, forcing 5 epochs
         sim.run(1 * U.ms, 0.01 * U.ms)
@@ -33,3 +37,5 @@ class TestSpikes(unittest.TestCase):
         self.assertEqual(
             [0.2, 0.4, 0.8, 2.0, 2.0, 2.0, 2.1, 2.2, 2.8, 3.0, 3.0, 3.1, 4.5], times
         )
+        if A.config()["profiling"]:
+            A.profiler_clear()
