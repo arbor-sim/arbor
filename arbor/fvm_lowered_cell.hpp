@@ -173,35 +173,48 @@ struct fvm_probe_data {
 // map to multiple probe representations within the cable_cell_group.
 
 struct probe_association_map {
-    std::vector<cell_address_type> keys(cell_member_predicate pred=all_probes) const {
-        std::unordered_set<cell_address_type> res;
-        for (const auto& [k, v]: data) {
-            if (pred(k)) res.push_back(k);
+    std::vector<cell_address_type> keys(cell_member_predicate pred=cell_member_predicate_all_probes{}) const {
+        std::vector<cell_address_type> res;
+        if (std::holds_alternative<cell_member_predicate_function>(pred)) {
+            auto fun = std::get<cell_member_predicate_function>(pred);
+            for (const auto& [k, v]: data_) {
+                if (fun(k)) res.push_back(k);
+            }
         }
-        return std::vector(res.begin(), res.end())>;
-    }
-
-    auto count(const cell_address_type& k) const { return data.count(k); }
-
-    // Return range of fvm_probe_data values associated with probeset_id.
-    std::vector<const fvm_probe_data*> data_on(const cell_address_type& probeset_id) const {
-        std::vector<const fvm_probe_data*> res;
-        const auto& [beg, end] = data.equal_range(probeset_id);
-        for (auto it = beg; it != end; ++it) {
-            res.push_back(&it->second);
+        else if (std::holds_alternative<cell_member_predicate_one_probe>(pred)) {
+            auto pid = std::get<cell_member_predicate_one_probe>(pred).pid;
+            if (data_.contains(pid)) res.push_back(pid);
+        }
+        else if (std::holds_alternative<cell_member_predicate_all_probes>(pred)) {
+            for (const auto& [k, v]: data_) {
+                res.push_back(k);
+            }
         }
         return res;
     }
 
-    probe_association_map& insert(const cell_address_type& k, fvm_probe_data v) {
-        data.insert({k, std::move(v)});
+    auto count(const cell_address_type& key) const {
+        return data_.contains(key) ? data_.at(key).size() : 0;
+    }
+
+    // Return range of fvm_probe_data values associated with probeset_id.
+    const std::vector<fvm_probe_data>& data_on(const cell_address_type& key) const {
+        if (!data_.contains(key)) return nil;
+        return data_.at(key);
+    }
+
+    probe_association_map& insert(const cell_address_type& key, fvm_probe_data val) {
+        data_[key].emplace_back(std::move(val));
+        size_ += 1;
         return *this;
     }
 
-    std::size_t size() const { return data.size(); }
+    std::size_t size() const { return size_; }
 
 private:
-    std::unordered_multimap<cell_address_type, fvm_probe_data> data;
+    std::unordered_map<cell_address_type, std::vector<fvm_probe_data>> data_;
+    constexpr static std::vector<fvm_probe_data> nil = {};
+    std::size_t size_ = 0;
 };
 
 struct fvm_initialization_data {

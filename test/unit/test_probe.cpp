@@ -131,7 +131,7 @@ void run_v_i_probe_test(context ctx) {
     EXPECT_EQ(3u, probe_map.size());
 
     auto get_probe_raw_handle = [&](const cell_address_type& addr, unsigned ix = 0) {
-        return probe_map.data_on(addr).front()->raw_handle_range()[ix];
+        return probe_map.data_on(addr).front().raw_handle_range()[ix];
     };
 
     // Voltage probes are interpolated, so expect fvm_probe_info
@@ -139,9 +139,9 @@ void run_v_i_probe_test(context ctx) {
     // implemented as an interpolated probe too, in order to account
     // for stimulus contributions.
 
-    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Um-l0"}).front()->info));
-    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Um-l1"}).front()->info));
-    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Ii-l2"}).front()->info));
+    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Um-l0"}).front().info));
+    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Um-l1"}).front().info));
+    ASSERT_TRUE(std::get_if<fvm_probe_interpolated>(&probe_map.data_on({0, "Ii-l2"}).front().info));
 
     probe_handle p0a = get_probe_raw_handle({0, "Um-l0"}, 0);
     probe_handle p0b = get_probe_raw_handle({0, "Um-l0"}, 1);
@@ -223,7 +223,7 @@ void run_v_cell_probe_test(context ctx) {
 
         ASSERT_EQ(1u, fvm_info.probe_map.size());
 
-        const fvm_probe_multi* h_ptr = std::get_if<fvm_probe_multi>(&fvm_info.probe_map.data_on({0, "U_m"}).front()->info);
+        const fvm_probe_multi* h_ptr = std::get_if<fvm_probe_multi>(&fvm_info.probe_map.data_on({0, "U_m"}).front().info);
         ASSERT_TRUE(h_ptr);
         auto& h = *h_ptr;
 
@@ -288,7 +288,7 @@ void run_expsyn_g_probe_test(context ctx) {
         ASSERT_EQ(1u, probe_map.count({0, "expsyn-g-2"}));
 
         auto get_probe_raw_handle = [&](const cell_address_type& x, unsigned i = 0) {
-            return probe_map.data_on(x).front()->raw_handle_range()[i];
+            return probe_map.data_on(x).front().raw_handle_range()[i];
         };
 
         probe_handle p0 = get_probe_raw_handle({0, "expsyn-g-1"});
@@ -409,7 +409,7 @@ void run_expsyn_g_cell_probe_test(context ctx) {
 
         ASSERT_EQ(2u, probe_map.size());
         for (auto gid: gids) {
-            const auto* h_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({gid, "expsyn-g"}).front()->info);
+            const auto* h_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({gid, "expsyn-g"}).front().info);
             ASSERT_TRUE(h_ptr);
 
             const auto* m_ptr = std::get_if<std::vector<cable_probe_point_info>>(&h_ptr->metadata);
@@ -585,7 +585,7 @@ void run_ion_density_probe_test(context ctx) {
     EXPECT_EQ(11u, probe_map.size());
 
     auto get_probe_raw_handle = [&](const cell_address_type& x, unsigned i = 0) {
-        return probe_map.data_on(x).front()->raw_handle_range()[i];
+        return probe_map.data_on(x).front().raw_handle_range()[i];
     };
 
     probe_handle ca_int_cv0 = get_probe_raw_handle({0, "cai-l0"});
@@ -630,7 +630,7 @@ void run_ion_density_probe_test(context ctx) {
     // sorted by CV in the fvm_probe_weighted_multi object; this is assumed
     // below.
 
-    auto* p_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, "cai-all"}).front()->info);
+    auto* p_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, "cai-all"}).front().info);
     ASSERT_TRUE(p_ptr);
     const fvm_probe_multi& na_int_all_info = *p_ptr;
 
@@ -648,7 +648,7 @@ void run_ion_density_probe_test(context ctx) {
     EXPECT_EQ(na_int_cv2,   na_int_all_info.raw_handles[1]);
     EXPECT_EQ(na_int_cv2-1, na_int_all_info.raw_handles[0]);
 
-    p_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, "cao-all"}).front()->info);
+    p_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, "cao-all"}).front().info);
     ASSERT_TRUE(p_ptr);
     const fvm_probe_multi& ca_ext_all_info = *p_ptr;
 
@@ -760,7 +760,7 @@ void run_partial_density_probe_test(context ctx) {
     EXPECT_EQ(10u, probe_map.size());
 
     auto get_probe_raw_handle = [&](const cell_address_type& x, unsigned i = 0) {
-        return probe_map.data_on(x).front()->raw_handle_range()[i];
+        return probe_map.data_on(x).front().raw_handle_range()[i];
     };
 
     // Check probe values against expected values.

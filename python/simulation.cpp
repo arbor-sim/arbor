@@ -163,19 +163,19 @@ public:
     }
 
     arb::sampler_association_handle sample(const arb::cell_address_type& probeset_id, const pyarb::schedule_shim_base& sched) {
-        std::shared_ptr<sample_recorder_vec> recorders{new sample_recorder_vec};
+        auto recorders = std::make_shared<sample_recorder_vec>();
 
-        for (const arb::probe_metadata& pm: sim_->get_probe_metadata(probeset_id)) {
+        for (const auto& pm: sim_->get_probe_metadata(probeset_id)) {
             recorders->push_back(global_ptr_->recorder_factories.make_recorder(pm.meta));
         }
 
         // Constructed callbacks are passed to the underlying simulator object, _and_ a copy
         // is kept in sampler_map_; the two copies share the same recorder data.
-
         sampler_callback cb{std::move(recorders)};
-        auto sah = sim_->add_sampler(arb::one_probe(probeset_id), sched.schedule(), cb);
+        auto sah = sim_->add_sampler(arb::cell_member_predicate_one_probe(probeset_id),
+                                     sched.schedule(),
+                                     cb);
         sampler_map_.insert({sah, cb});
-
         return sah;
     }
 

@@ -399,18 +399,20 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
             for (const auto& pid: sa.probeset_ids) {
                 unsigned index = 0;
                 for (const auto& pdata: probe_map_.data_on(pid)) {
-                    call_info.push_back({sa.sampler,
-                                         pid,
-                                         index,
-                                         pdata,
-                                         n_samples,
-                                         n_samples + n_times*pdata->n_raw()});
+                    call_info.push_back({.sampler=sa.sampler,
+                                         .probeset_id=pid,
+                                         .index=index,
+                                         // SAFETY: this is ok as no additions to the probe map can happen during
+                                         //         advance.
+                                         .pdata_ptr=&pdata,
+                                         .begin_offset=n_samples,
+                                         .end_offset=n_samples + n_times*pdata.n_raw()});
                     index++;
                     for (auto t: sample_times) {
                         auto it = timesteps_.find(t);
                         arb_assert(it != timesteps_.end());
                         const auto timestep_index = it - timesteps_.begin();
-                        for (probe_handle h: pdata->raw_handle_range()) {
+                        for (const auto& h: pdata.raw_handle_range()) {
                             sample_event ev{t, {h, n_samples++}};
                             sample_events_[timestep_index].push_back(ev);
                         }
@@ -445,7 +447,6 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     // generate spikes with global spike source ids. The threshold crossings
     // record the local spike source index, which must be converted to a
     // global index for spike communication.
-
     for (auto c: result.crossings) {
         spikes_.emplace_back(spike_sources_[c.index], time_type(c.time));
     }
@@ -457,9 +458,9 @@ void cable_cell_group::add_sampler(sampler_association_handle h,
                                    sampler_function fn) {
     auto probeset = probe_map_.keys(probeset_ids);
     if (!probeset.empty()) {
-        auto result = sampler_map_.insert({h, sampler_association{std::move(sched),
+        auto result = sampler_map_.emplace(h, sampler_association{std::move(sched),
                                                                   std::move(fn),
-                                                                  std::move(probeset)}});
+                                                                  std::move(probeset)});
         arb_assert(result.second);
     }
 }
@@ -475,13 +476,14 @@ void cable_cell_group::remove_all_samplers() {
 std::vector<probe_metadata> cable_cell_group::get_probe_metadata(const cell_address_type& probeset_id) const {
     // SAFETY: Probe associations are fixed after construction, so we do not
     //         need to grab the mutex.
-    auto data = probe_map_.data_on(probeset_id);
+    const auto& data = probe_map_.data_on(probeset_id);
 
     std::vector<probe_metadata> result;
     result.reserve(data.size());
     unsigned index = 0;
     for (const auto& info: data) {
-        result.push_back({probeset_id, index++, info->get_metadata_ptr()});
+        result.emplace_back(probeset_id, index, info.get_metadata_ptr());
+        index++;
     }
     return result;
 }
