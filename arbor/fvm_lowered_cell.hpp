@@ -173,17 +173,12 @@ struct fvm_probe_data {
 // map to multiple probe representations within the cable_cell_group.
 
 struct probe_association_map {
-    // unique keys from multimap
     std::vector<cell_address_type> keys(cell_member_predicate pred=all_probes) const {
-        std::vector<cell_address_type> res;
-        std::unordered_set<cell_address_type> seen;
+        std::unordered_set<cell_address_type> res;
         for (const auto& [k, v]: data) {
-            if (!seen.count(k)) {
-                if (pred(k)) res.push_back(k);
-                seen.insert(k);
-            }
+            if (pred(k)) res.push_back(k);
         }
-        return res;
+        return std::vector(res.begin(), res.end())>;
     }
 
     auto count(const cell_address_type& k) const { return data.count(k); }
