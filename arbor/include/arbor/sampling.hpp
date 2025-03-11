@@ -9,20 +9,20 @@
 
 namespace arb {
 
-struct cell_member_predicate_all_probes {};
+struct all_probes_t {};
 
-struct cell_member_predicate_one_probe {
-    cell_member_predicate_one_probe(cell_address_type p): pid{std::move(p)} {}
+struct one_probe {
+    one_probe(cell_address_type p): pid{std::move(p)} {}
     cell_address_type pid;
 };
 
-using cell_member_predicate_function = std::function<bool (const cell_address_type&)>;
+using predicate_function = std::function<bool (const cell_address_type&)>;
 
-using cell_member_predicate = std::variant<cell_member_predicate_all_probes,
-                                           cell_member_predicate_one_probe,
-                                           cell_member_predicate_function>;
+using cell_member_predicate = std::variant<all_probes_t,
+                                           one_probe,
+                                           predicate_function>;
 
-static cell_member_predicate all_probes = cell_member_predicate_all_probes{};
+static cell_member_predicate all_probes = all_probes_t{};
 
 
 struct one_gid {
@@ -30,6 +30,7 @@ struct one_gid {
     cell_gid_type gid;
     bool operator()(const cell_address_type& x) { return x.gid == gid; }
 };
+
 struct one_tag {
     one_tag(cell_tag_type p): tag{std::move(p)} {}
     cell_tag_type tag;

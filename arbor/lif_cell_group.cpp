@@ -67,17 +67,17 @@ void lif_cell_group::add_sampler(sampler_association_handle h,
                                  schedule sched,
                                  sampler_function fn) {
     std::vector<cell_address_type> probeset;
-    if (std::holds_alternative<cell_member_predicate_function>(pred)) {
-        auto p = std::get<cell_member_predicate_function>(pred);
+    if (std::holds_alternative<predicate_function>(pred)) {
+        auto fun = std::get<predicate_function>(pred);
         for (const auto& [k, v]: probes_) {
-            if (p(k)) probeset.push_back(k);
+            if (fun(k)) probeset.push_back(k);
         }
     }
-    else if (std::holds_alternative<cell_member_predicate_one_probe>(pred)) {
-        auto pid = std::get<cell_member_predicate_one_probe>(pred).pid;
+    else if (std::holds_alternative<one_probe>(pred)) {
+        auto pid = std::get<one_probe>(pred).pid;
         if (probes_.contains(pid)) probeset.push_back(pid);
     }
-    else if (std::holds_alternative<cell_member_predicate_all_probes>(pred)) {
+    else if (std::holds_alternative<all_probes_t>(pred)) {
         for (const auto& [k, v]: probes_) {
             probeset.push_back(k);
         }

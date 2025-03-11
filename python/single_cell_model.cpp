@@ -195,7 +195,7 @@ public:
                 locmap_.insert({site, traces_.size()});
                 traces_.push_back({"voltage", site, {}, {}});
             }
-            sim_->add_sampler(arb::cell_member_predicate_one_probe({0, p.tag}), sched, trace_callback(traces_, locmap_));
+            sim_->add_sampler(arb::one_probe({0, p.tag}), sched, trace_callback(traces_, locmap_));
         }
 
         // Set callback that records spike times.

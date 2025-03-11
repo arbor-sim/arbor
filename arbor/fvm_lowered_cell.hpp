@@ -173,19 +173,19 @@ struct fvm_probe_data {
 // map to multiple probe representations within the cable_cell_group.
 
 struct probe_association_map {
-    std::vector<cell_address_type> keys(cell_member_predicate pred=cell_member_predicate_all_probes{}) const {
+    std::vector<cell_address_type> keys(cell_member_predicate pred=all_probes) const {
         std::vector<cell_address_type> res;
-        if (std::holds_alternative<cell_member_predicate_function>(pred)) {
-            auto fun = std::get<cell_member_predicate_function>(pred);
+        if (std::holds_alternative<predicate_function>(pred)) {
+            auto fun = std::get<predicate_function>(pred);
             for (const auto& [k, v]: data_) {
                 if (fun(k)) res.push_back(k);
             }
         }
-        else if (std::holds_alternative<cell_member_predicate_one_probe>(pred)) {
-            auto pid = std::get<cell_member_predicate_one_probe>(pred).pid;
+        else if (std::holds_alternative<one_probe>(pred)) {
+            auto pid = std::get<one_probe>(pred).pid;
             if (data_.contains(pid)) res.push_back(pid);
         }
-        else if (std::holds_alternative<cell_member_predicate_all_probes>(pred)) {
+        else if (std::holds_alternative<all_probes_t>(pred)) {
             for (const auto& [k, v]: data_) {
                 res.push_back(k);
             }
