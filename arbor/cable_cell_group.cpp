@@ -482,7 +482,7 @@ std::vector<probe_metadata> cable_cell_group::get_probe_metadata(const cell_addr
     result.reserve(data.size());
     unsigned index = 0;
     for (const auto& info: data) {
-        result.emplace_back(probeset_id, index, info.get_metadata_ptr());
+        result.push_back({probeset_id, index, info.get_metadata_ptr()});
         index++;
     }
     return result;
