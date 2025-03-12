@@ -246,13 +246,14 @@ struct Um_type {
 
 TEST(lif_cell_group, probe) {
     auto ums = std::unordered_map<cell_address_type, std::vector<Um_type>>{};
-    auto fun = [&ums](probe_metadata pm,
-                      std::size_t n,
-                      const sample_record* samples) {
-        for (std::size_t ix = 0; ix < n; ++ix) {
-            const auto& [t, v] = samples[ix];
-            double u = *util::any_cast<double*>(v);
-            ums[pm.id].push_back({t, u});
+    auto fun = [&ums](const probe_metadata& pm,
+                      const sample_records& samples) {
+        using probe_t = arb::lif_probe_voltage;
+        auto reader = arb::sample_reader<probe_t::meta_type>(pm.meta, samples);
+        for (std::size_t ix = 0ul; ix < reader.n_row(); ++ix) {
+            auto t = reader.time(ix);
+            auto v = reader.value(ix);
+            ums[pm.id].push_back({t, v});
         }
     };
     auto rec = probe_recipe{};
@@ -683,12 +684,13 @@ TEST(lif_cell_group, probe) {
 TEST(lif_cell_group, probe_with_connections) {
     auto ums = std::unordered_map<cell_address_type, std::vector<Um_type>>{};
     auto fun = [&ums](probe_metadata pm,
-                      std::size_t n,
-                      const sample_record* samples) {
-        for (std::size_t ix = 0; ix < n; ++ix) {
-            const auto& [t, v] = samples[ix];
-            double u = *util::any_cast<double*>(v);
-            ums[pm.id].push_back({t, u});
+                      const sample_records& recs) {
+        using meta_t = lif_probe_voltage::meta_type;
+        auto reader = arb::sample_reader<meta_t>(pm.meta, recs);
+        for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+            auto time = reader.time(ix);
+            auto value = reader.value(ix);
+            ums[pm.id].push_back({time, value});
         }
     };
     auto rec = probe_recipe{5};

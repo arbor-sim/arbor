@@ -96,7 +96,7 @@ class TestCableProbes(unittest.TestCase):
 
         m = sim.probe_metadata((0, "Um"))
         self.assertEqual(1, len(m))
-        self.assertEqual(A.location(0, 0.0), m[0])
+        self.assertEqual([A.location(0, 0.0)], m[0])
 
         m = sim.probe_metadata((0, "Um-all"))
         self.assertEqual(1, len(m))
@@ -104,11 +104,11 @@ class TestCableProbes(unittest.TestCase):
 
         m = sim.probe_metadata((0, "Iax"))
         self.assertEqual(1, len(m))
-        self.assertEqual(A.location(0, 0.02), m[0])
+        self.assertEqual([A.location(0, 0.02)], m[0])
 
         m = sim.probe_metadata((0, "Iion"))
         self.assertEqual(1, len(m))
-        self.assertEqual(A.location(0, 0.03), m[0])
+        self.assertEqual([A.location(0, 0.03)], m[0])
 
         m = sim.probe_metadata((0, "Iion-all"))
         self.assertEqual(1, len(m))
@@ -120,7 +120,7 @@ class TestCableProbes(unittest.TestCase):
 
         m = sim.probe_metadata((0, "hh-m"))
         self.assertEqual(1, len(m))
-        self.assertEqual(A.location(0, 0.06), m[0])
+        self.assertEqual([A.location(0, 0.06)], m[0])
 
         m = sim.probe_metadata((0, "hh-n-all"))
         self.assertEqual(1, len(m))
@@ -128,9 +128,9 @@ class TestCableProbes(unittest.TestCase):
 
         m = sim.probe_metadata((0, "expsyn-g"))
         self.assertEqual(1, len(m))
-        self.assertEqual(A.location(0, 0.08), m[0].location)
-        self.assertEqual(1, m[0].multiplicity)
-        self.assertEqual("syn0", m[0].target)
+        self.assertEqual(A.location(0, 0.08), m[0][0].location)
+        self.assertEqual(1, m[0][0].multiplicity)
+        self.assertEqual("syn0", m[0][0].target)
 
         m = sim.probe_metadata((0, "expsyn-B-all"))
         self.assertEqual(1, len(m))
@@ -141,7 +141,7 @@ class TestCableProbes(unittest.TestCase):
 
         m = sim.probe_metadata((0, "ina"))
         self.assertEqual(1, len(m))
-        self.assertEqual(A.location(0, 0.10), m[0])
+        self.assertEqual([A.location(0, 0.10)], m[0])
 
         m = sim.probe_metadata((0, "ina-all"))
         self.assertEqual(1, len(m))
@@ -149,7 +149,7 @@ class TestCableProbes(unittest.TestCase):
 
         m = sim.probe_metadata((0, "nai"))
         self.assertEqual(1, len(m))
-        self.assertEqual(A.location(0, 0.12), m[0])
+        self.assertEqual([A.location(0, 0.12)], m[0])
 
         m = sim.probe_metadata((0, "nai-all"))
         self.assertEqual(1, len(m))
@@ -157,7 +157,7 @@ class TestCableProbes(unittest.TestCase):
 
         m = sim.probe_metadata(0, "nao")
         self.assertEqual(1, len(m))
-        self.assertEqual(A.location(0, 0.14), m[0])
+        self.assertEqual([A.location(0, 0.14)], m[0])
 
         m = sim.probe_metadata((0, "nao-all"))
         self.assertEqual(1, len(m))
@@ -198,10 +198,9 @@ class TestLifProbes(unittest.TestCase):
     def test_probe_addr_metadata(self):
         rec = lif_recipe()
         sim = A.simulation(rec)
-
-        m = sim.probe_metadata((0, "Um"))
-        self.assertEqual(1, len(m))
-        self.assertTrue(all(isinstance(i, A.lif_probe_metadata) for i in m))
+        ms = sim.probe_metadata((0, "Um"))
+        self.assertEqual(1, len(ms))
+        self.assertTrue(all(isinstance(i, A.lif_probe_metadata) for m in ms for i in m))
 
     def test_probe_result(self):
         rec = lif_recipe()

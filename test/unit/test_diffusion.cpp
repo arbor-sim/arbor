@@ -105,16 +105,15 @@ testing::AssertionResult all_near(const result_t& a, const result_t& b, double e
 
 testing::AssertionResult run(const linear& rec, const result_t exp) {
     result_t sample_values;
-    auto sampler = [&sample_values](arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
+    auto sampler = [&sample_values](arb::probe_metadata pm, const arb::sample_records& recs) {
         sample_values.clear();
-        auto ptr = arb::util::any_cast<const arb::mcable_list*>(pm.meta);
-        ASSERT_NE(ptr, nullptr);
-        auto n_cable = ptr->size();
-        for (std::size_t i = 0; i<n; ++i) {
-            const auto& [val, _ig] = *arb::util::any_cast<const arb::cable_sample_range*>(samples[i].data);
-            for (unsigned j = 0; j<n_cable; ++j) {
-                arb::mcable loc = (*ptr)[j];
-                sample_values.push_back({samples[i].time, loc.prox_pos, val[j]});
+        auto reader = arb::sample_reader<arb::cable_state_cell_meta_type>(pm.meta, recs);
+        for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+            auto time = reader.time(ix);
+            for (std::size_t iy = 0; iy < reader.n_column(); ++iy) {
+                auto cable = reader.metadata(iy);
+                auto value = reader.value(ix, iy);
+                sample_values.push_back({time, cable.prox_pos, value});
             }
         }
     };
