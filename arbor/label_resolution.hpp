@@ -83,41 +83,35 @@ private:
 
 struct ARB_ARBOR_API round_robin_state {
     cell_lid_type state = 0;
-    round_robin_state() : state(0) {};
-    round_robin_state(cell_lid_type state) : state(state) {};
-    cell_lid_type get();
     lid_hopefully update(const label_resolution_map::range_set& range);
 };
 
 struct ARB_ARBOR_API round_robin_halt_state {
     cell_lid_type state = 0;
-    round_robin_halt_state() : state(0) {};
-    round_robin_halt_state(cell_lid_type state) : state(state) {};
-    cell_lid_type get();
     lid_hopefully update(const label_resolution_map::range_set& range);
 };
 
-struct ARB_ARBOR_API assert_univalent_state {
-    cell_lid_type get();
-    lid_hopefully update(const label_resolution_map::range_set& range);
-};
+struct ARB_ARBOR_API assert_univalent_state {};
 
 // Struct used for resolving the lid of a (gid, label, lid_selection_policy) input.
 // Requires a `label_resolution_map` which stores the constant mapping of (gid, label) pairs to lid sets.
 struct ARB_ARBOR_API resolver {
+    resolver() = default;
     resolver(const label_resolution_map* label_map): label_map_(label_map) {}
     cell_lid_type resolve(const cell_global_label_type& iden);
     cell_lid_type resolve(cell_gid_type gid, const cell_local_label_type& lid);
 
-    using state_variant = std::variant<round_robin_state, round_robin_halt_state, assert_univalent_state>;
+    void clear() {
+        rr_state_map_.clear();
+        rrh_state_map_.clear();
+    }
 
 private:
     template<typename K, typename V>
     using map = std::unordered_map<K, V>;
-    state_variant construct_state(lid_selection_policy pol);
-    state_variant construct_state(lid_selection_policy pol, cell_lid_type state);
 
-    const label_resolution_map* label_map_;
-    map<cell_gid_type, map<hash_type, map<lid_selection_policy, state_variant>>> state_map_;
+    const label_resolution_map* label_map_ = nullptr;
+    map<cell_gid_type, map<hash_type, round_robin_state>> rr_state_map_;
+    map<cell_gid_type, map<hash_type, round_robin_halt_state>> rrh_state_map_;
 };
 } // namespace arb
