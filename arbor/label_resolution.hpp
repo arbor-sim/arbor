@@ -12,8 +12,6 @@
 
 namespace arb {
 
-using lid_hopefully = arb::util::expected<cell_lid_type, std::string>;
-
 // class containing the data required for {cell, label} to lid resolution.
 // `sizes` is a partitioning vector for associating a cell with a set of
 // (label, range) pairs in `labels`, `ranges`.
@@ -68,35 +66,24 @@ public:
         std::vector<lid_range> ranges;
         std::vector<unsigned> ranges_partition = {0};
         cell_size_type size() const;
-        lid_hopefully at(unsigned idx) const;
+        cell_lid_type at(unsigned idx) const;
     };
 
     label_resolution_map() = default;
     explicit label_resolution_map(const cell_labels_and_gids&);
 
     const range_set& at(cell_gid_type gid, const cell_tag_type& tag) const;
+    const range_set& at(cell_gid_type gid, hash_type hash) const;
     std::size_t count(cell_gid_type gid, const cell_tag_type& tag) const;
 
 private:
     std::unordered_map<cell_gid_type, std::unordered_map<hash_type, range_set>> map;
 };
 
-struct ARB_ARBOR_API round_robin_state {
-    cell_lid_type state = 0;
-    lid_hopefully update(const label_resolution_map::range_set& range);
-};
-
-struct ARB_ARBOR_API round_robin_halt_state {
-    cell_lid_type state = 0;
-    lid_hopefully update(const label_resolution_map::range_set& range);
-};
-
-struct ARB_ARBOR_API assert_univalent_state {};
-
 // Struct used for resolving the lid of a (gid, label, lid_selection_policy) input.
 // Requires a `label_resolution_map` which stores the constant mapping of (gid, label) pairs to lid sets.
 struct ARB_ARBOR_API resolver {
-    resolver() = default;
+    resolver() = delete;
     resolver(const label_resolution_map* label_map): label_map_(label_map) {}
     cell_lid_type resolve(const cell_global_label_type& iden);
     cell_lid_type resolve(cell_gid_type gid, const cell_local_label_type& lid);
@@ -111,7 +98,7 @@ private:
     using map = std::unordered_map<K, V>;
 
     const label_resolution_map* label_map_ = nullptr;
-    map<cell_gid_type, map<hash_type, round_robin_state>> rr_state_map_;
-    map<cell_gid_type, map<hash_type, round_robin_halt_state>> rrh_state_map_;
+    map<cell_gid_type, map<hash_type, cell_lid_type>> rr_state_map_;
+    map<cell_gid_type, map<hash_type, cell_lid_type>> rrh_state_map_;
 };
 } // namespace arb

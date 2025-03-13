@@ -77,8 +77,7 @@ cell_size_type label_resolution_map::range_set::size() const {
     return ranges_partition.back();
 }
 
-lid_hopefully label_resolution_map::range_set::at(unsigned idx) const {
-    if (size() < 1) return util::unexpected("no valid lids");
+cell_lid_type label_resolution_map::range_set::at(unsigned idx) const {
     auto part = util::partition_view(ranges_partition);
     // Index of the range containing idx.
     auto ridx = part.index(idx);
@@ -90,6 +89,10 @@ lid_hopefully label_resolution_map::range_set::at(unsigned idx) const {
     const auto& range_part = part.at(ridx);
     auto offset = idx - range_part.first;
     return start + offset;
+}
+
+const label_resolution_map::range_set& label_resolution_map::at(cell_gid_type gid, hash_type hash) const {
+    return map.at(gid).at(hash);
 }
 
 const label_resolution_map::range_set& label_resolution_map::at(cell_gid_type gid, const cell_tag_type& tag) const {
@@ -112,6 +115,7 @@ label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
     auto partn = util::make_partition(label_divs, sizes);
     for (auto i: util::count_along(partn)) {
         auto gid = gids[i];
+        if (map.contains(gid)) throw arb::arbor_internal_error("label_resolution_map: duplicate gid");
 
         std::unordered_map<hash_type, range_set> m;
         for (auto label_idx: util::make_span(partn[i])) {
@@ -125,20 +129,8 @@ label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
             range_set.ranges.push_back(range);
             range_set.ranges_partition.push_back(range_set.ranges_partition.back() + size);
         }
-        if (!map.insert({gid, std::move(m)}).second) {
-            throw arb::arbor_internal_error("label_resolution_map: duplicate gid");
-        }
+        map.emplace(gid, std::move(m));
     }
-}
-// variant state methods
-lid_hopefully round_robin_state::update(const label_resolution_map::range_set& range_set) {
-    auto lid = range_set.at(state);
-    if (lid) state = (state+1) % range_set.size();
-    return lid;
-}
-
-lid_hopefully round_robin_halt_state::update(const label_resolution_map::range_set& range_set) {
-    return range_set.at(state);
 }
 
 cell_lid_type resolver::resolve(const cell_global_label_type& iden) { return resolve(iden.gid, iden.label); }
@@ -147,31 +139,28 @@ cell_lid_type resolver::resolve(cell_gid_type gid, const cell_local_label_type& 
     const auto& [tag, pol] = label;
     auto hash = hash_value(tag);
     if (!label_map_->count(gid, tag)) throw arb::bad_connection_label(gid, tag, "label does not exist");
-    const auto& range_set = label_map_->at(gid, tag);
-
+    const auto& range_set = label_map_->at(gid, hash);
+    if (range_set.size() < 1) throw arb::bad_connection_label(gid, tag, "no valid lids");
     // Construct state if it doesn't exist, then update
     if (pol == lid_selection_policy::assert_univalent) {
         if (range_set.size() != 1) throw arb::bad_connection_label(gid, tag, "range is not univalent");
-        auto lid = range_set.at(0);
-        if (!lid) throw arb::bad_connection_label(gid, tag, lid.error());
-        return *lid;
+        return range_set.at(0);
     }
     else if (pol == lid_selection_policy::round_robin) {
-        auto lid = rr_state_map_[gid][hash].update(range_set);
-        if (!lid) throw arb::bad_connection_label(gid, tag, lid.error());
-        return *lid;
+        auto& idx = rr_state_map_[gid][hash];
+        auto lid = range_set.at(idx);
+        idx = (idx + 1) % range_set.size();
+        return lid;
     }
     else if (pol == lid_selection_policy::round_robin_halt) {
         // Policy round_robin_halt: use previous state of round_robin policy, if existent
-        rrh_state_map_[gid][hash].state = rr_state_map_[gid][hash].state;
-        auto lid = rrh_state_map_[gid][hash].update(range_set);
-        if (!lid) throw arb::bad_connection_label(gid, tag, lid.error());
-        return *lid;
+        rrh_state_map_[gid][hash] = rr_state_map_[gid][hash];
+        auto idx = rrh_state_map_[gid][hash];
+        return range_set.at(idx);
     }
-    else {
-        throw std::runtime_error("impossible");
-    }
+    throw std::runtime_error("impossible");
 }
+
 
 } // namespace arb
 
