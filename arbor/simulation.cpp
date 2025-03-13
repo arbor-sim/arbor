@@ -206,7 +206,7 @@ private:
     std::array<thread_private_spike_store, 2> local_spikes_;
 
     // Sampler associations handles are managed by a helper class.
-    util::handle_set<sampler_association_handle> sassoc_handles_;
+    util::handle_set sassoc_handles_;
 
     // Accessors to events
     std::vector<pse_vector>& event_lanes(std::ptrdiff_t epoch_id) { return event_lanes_[epoch_id&1]; }
