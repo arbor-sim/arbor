@@ -69,7 +69,7 @@ struct linear: public recipe {
     arb::decor decor;
 
     linear& add_decay()  { decor.paint("(all)"_reg, arb::density("decay/x=na")); return *this; }
-    linear& add_inject() { decor.place("(location 0 0.5)"_ls, arb::synapse("inject/x=na", {{"alpha", 200.0*cv_length}}), "Zap"); return *this; }
+    linear& add_inject() { decor.place("(location 0 0.5)"_ls, arb::synapse("inject/x=na", {{"alpha", 10610.329633427253}}), "Zap"); return *this; }
     linear& add_event(double t, float w) { inject_at.push_back({t, w}); return *this; }
     linear& set_diffusivity(double d, std::optional<region> rg = {}) {
         if (rg) decor.paint(*rg, ion_diffusivity{"na", d*U::m2/U::s});
@@ -150,7 +150,7 @@ TEST(diffusion, errors) {
 
 TEST(diffusion, by_initial_concentration) {
     auto rec = linear{30, 3, 6}
-        .set_diffusivity(0.005)
+        .set_diffusivity(5e-10)
         .set_concentration(0.0)
         .set_concentration(0.1, "(cable 0 0.5 0.6)"_reg);
     result_t exp = {{0.000000, 0.000000, 0.000000},
@@ -178,7 +178,7 @@ TEST(diffusion, by_initial_concentration) {
 
 TEST(diffusion, by_event) {
     auto rec = linear{30, 3, 6}
-        .set_diffusivity(0.005)
+        .set_diffusivity(5e-10)
         .set_concentration(0.0)
         .add_inject()
         .add_event(0, 0.005);
@@ -235,7 +235,7 @@ TEST(diffusion, decay) {
 
 TEST(diffusion, decay_by_initial_concentration) {
     auto rec = linear{30, 3, 6}
-        .set_diffusivity(0.005)
+        .set_diffusivity(5e-10)
         .set_concentration(0.0)
         .set_concentration(0.1, "(cable 0 0.5 0.6)"_reg)
         .add_decay();
@@ -264,7 +264,7 @@ TEST(diffusion, decay_by_initial_concentration) {
 
 TEST(diffusion, decay_by_event) {
     auto rec = linear{30, 3, 6}
-        .set_diffusivity(0.005)
+        .set_diffusivity(5e-10)
         .set_concentration(0.0)
         .add_decay()
         .add_inject()

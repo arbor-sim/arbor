@@ -339,6 +339,10 @@ void banner(context ctx) {
     std::cout << "==========================================\n";
 }
 
+// simple, compiler independent int in range
+template<typename T, typename G>
+T rand_range(G& gen, T lo, T hi) { return lo + gen() * double(hi - lo) / double(G::max() - G::min()); }
+
 void add_subset(cell_gid_type gid,
                 cell_gid_type start, cell_gid_type end,
                 unsigned m,
@@ -352,14 +356,13 @@ void add_subset(cell_gid_type gid,
     std::vector<bool> seen(end - start + 1, false);
     if (gid >= start && gid < end) seen[gid - start] = true;
     std::mt19937 gen(gid + 42);
-    std::uniform_int_distribution<cell_gid_type> dis(start, end - 1);
-
     while(m) {
-        cell_gid_type val = dis(gen);
+        cell_gid_type val = rand_range(gen, start, end);
         if (seen[val - start]) continue;
         conns.push_back({{val, src}, {tgt}, weight, delay*U::ms});
         seen[val - start] = true;
         m--;
+        }
     }
 }
 
