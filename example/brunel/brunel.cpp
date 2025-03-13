@@ -4,7 +4,6 @@
 #include <iomanip>
 #include <iostream>
 #include <optional>
-#include <unordered_set>
 #include <vector>
 
 #include <tinyopt/tinyopt.h>
