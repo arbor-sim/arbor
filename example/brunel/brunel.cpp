@@ -362,10 +362,8 @@ void add_subset(cell_gid_type gid,
         conns.push_back({{val, src}, {tgt}, weight, delay*U::ms});
         seen[val - start] = true;
         m--;
-        }
     }
 }
-
 
 // Read options from (optional) json file and command line arguments.
 std::optional<cl_options> read_options(int argc, char** argv) {
