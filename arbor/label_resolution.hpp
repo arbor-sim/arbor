@@ -90,7 +90,6 @@ struct ARB_ARBOR_API resolver {
 
     void clear() {
         rr_state_map_.clear();
-        rrh_state_map_.clear();
     }
 
 private:
@@ -98,7 +97,7 @@ private:
     using map = std::unordered_map<K, V>;
 
     const label_resolution_map* label_map_ = nullptr;
+    // save index for round-robin and round-robin-halt policies
     map<cell_gid_type, map<hash_type, cell_lid_type>> rr_state_map_;
-    map<cell_gid_type, map<hash_type, cell_lid_type>> rrh_state_map_;
 };
 } // namespace arb

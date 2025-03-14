@@ -154,8 +154,7 @@ cell_lid_type resolver::resolve(cell_gid_type gid, const cell_local_label_type& 
     }
     else if (pol == lid_selection_policy::round_robin_halt) {
         // Policy round_robin_halt: use previous state of round_robin policy, if existent
-        rrh_state_map_[gid][hash] = rr_state_map_[gid][hash];
-        auto idx = rrh_state_map_[gid][hash];
+        auto idx = rr_state_map_[gid][hash];
         return range_set.at(idx);
     }
     throw std::runtime_error("impossible");
