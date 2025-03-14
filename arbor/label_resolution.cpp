@@ -1,6 +1,7 @@
 #include <iterator>
 #include <vector>
 #include <numeric>
+#include <unordered_set>
 
 #include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
@@ -58,8 +59,7 @@ bool cell_label_range::check_invariant() const {
 
 // cell_labels_and_gids methods
 cell_labels_and_gids::cell_labels_and_gids(cell_label_range lr, std::vector<cell_gid_type> gid):
-    label_range(std::move(lr)), gids(std::move(gid))
-{
+    label_range(std::move(lr)), gids(std::move(gid)) {
     if (label_range.sizes.size()!=gids.size()) throw arbor_internal_error("cell_label_range and gid count mismatch");
 }
 
@@ -72,36 +72,38 @@ bool cell_labels_and_gids::check_invariant() const {
     return label_range.check_invariant() && label_range.sizes.size()==gids.size();
 }
 
-// label_resolution_map methods
-cell_size_type label_resolution_map::range_set::size() const {
-    return ranges_partition.back();
-}
+/* The n-th local item (by index) to its identifier (lid). The lids are organised
+   in potentially discontiguous ranges.
 
+   idx --------
+                \
+                 v
+   | [s0, e0) [s1, e1), ... [sk, ek), ... |
+*/
 cell_lid_type label_resolution_map::range_set::at(unsigned idx) const {
-    auto part = util::partition_view(ranges_partition);
-    // Index of the range containing idx.
-    auto ridx = part.index(idx);
-
-    // First element of the range containing idx.
-    const auto& start = ranges.at(ridx).begin;
-
-    // Offset into the range containing idx.
-    const auto& range_part = part.at(ridx);
-    auto offset = idx - range_part.first;
-    return start + offset;
+    if (0 == size) throw arbor_internal_error("no valid lids");
+    for (const auto& [beg, end]: ranges) {
+        auto len = end - beg;
+        if (idx < len) return idx + beg;
+        idx -= len;
+    }
+    throw arbor_internal_error("invalid lid");
 }
 
 const label_resolution_map::range_set& label_resolution_map::at(cell_gid_type gid, hash_type hash) const {
-    return map.at(gid).at(hash);
+    return map.at(std::make_pair(gid, hash));
 }
 
 const label_resolution_map::range_set& label_resolution_map::at(cell_gid_type gid, const cell_tag_type& tag) const {
-    return map.at(gid).at(hash_value(tag));
+    return map.at(std::make_pair(gid, hash_value(tag)));
 }
 
 std::size_t label_resolution_map::count(cell_gid_type gid, const cell_tag_type& tag) const {
-    if (!map.count(gid)) return 0u;
-    return map.at(gid).count(hash_value(tag));
+    return map.count(std::make_pair(gid, hash_value(tag)));
+}
+
+std::size_t label_resolution_map::count(cell_gid_type gid, hash_type hash) const {
+    return map.count(std::make_pair(gid, hash));
 }
 
 label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
@@ -112,24 +114,21 @@ label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
     const auto& sizes = clg.label_range.sizes;
 
     std::vector<cell_size_type> label_divs;
+    std::unordered_set<cell_gid_type> seen;
     auto partn = util::make_partition(label_divs, sizes);
     for (auto i: util::count_along(partn)) {
         auto gid = gids[i];
-        if (map.contains(gid)) throw arb::arbor_internal_error("label_resolution_map: duplicate gid");
-
-        std::unordered_map<hash_type, range_set> m;
+        if (seen.contains(gid)) throw arb::arbor_internal_error("label_resolution_map: duplicate gid");
+        seen.insert(gid);
         for (auto label_idx: util::make_span(partn[i])) {
             const auto range = ranges[label_idx];
             auto size = int(range.end - range.begin);
-            if (size < 0) {
-                throw arb::arbor_internal_error("label_resolution_map: invalid lid_range");
-            }
+            if (size < 0) throw arb::arbor_internal_error("label_resolution_map: invalid lid_range");
             auto& label = labels[label_idx];
-            auto& range_set = m[label];
+            auto& range_set = map[std::make_pair(gid, label)];
             range_set.ranges.push_back(range);
-            range_set.ranges_partition.push_back(range_set.ranges_partition.back() + size);
+            range_set.size += size;
         }
-        map.emplace(gid, std::move(m));
     }
 }
 
@@ -138,28 +137,23 @@ cell_lid_type resolver::resolve(const cell_global_label_type& iden) { return res
 cell_lid_type resolver::resolve(cell_gid_type gid, const cell_local_label_type& label) {
     const auto& [tag, pol] = label;
     auto hash = hash_value(tag);
-    if (!label_map_->count(gid, tag)) throw arb::bad_connection_label(gid, tag, "label does not exist");
+    if (!label_map_->count(gid, hash)) throw arb::bad_connection_label(gid, tag, "label does not exist");
     const auto& range_set = label_map_->at(gid, hash);
-    if (range_set.size() < 1) throw arb::bad_connection_label(gid, tag, "no valid lids");
-    // Construct state if it doesn't exist, then update
+    if (range_set.size < 1) throw arb::bad_connection_label(gid, tag, "no valid lids");
+    auto idx = 0ul;
     if (pol == lid_selection_policy::assert_univalent) {
-        if (range_set.size() != 1) throw arb::bad_connection_label(gid, tag, "range is not univalent");
-        return range_set.at(0);
+        // must have single-entry range_set
+        if (range_set.size != 1) throw arb::bad_connection_label(gid, tag, "range is not univalent");
     }
     else if (pol == lid_selection_policy::round_robin) {
-        auto& idx = rr_state_map_[gid][hash];
-        auto lid = range_set.at(idx);
-        idx = (idx + 1) % range_set.size();
-        return lid;
+        // cycle through range_set
+        idx = rr_state_map_[gid][hash];
+        rr_state_map_[gid][hash] = (idx + 1) % range_set.size;
     }
     else if (pol == lid_selection_policy::round_robin_halt) {
-        // Policy round_robin_halt: use previous state of round_robin policy, if existent
-        auto idx = rr_state_map_[gid][hash];
-        return range_set.at(idx);
+        // use previous state of round_robin policy
+        idx = rr_state_map_[gid][hash];
     }
-    throw std::runtime_error("impossible");
+    return range_set.at(idx);
 }
-
-
 } // namespace arb
-

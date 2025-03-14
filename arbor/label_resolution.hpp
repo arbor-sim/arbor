@@ -64,8 +64,7 @@ class ARB_ARBOR_API label_resolution_map {
 public:
     struct range_set {
         std::vector<lid_range> ranges;
-        std::vector<unsigned> ranges_partition = {0};
-        cell_size_type size() const;
+        std::size_t size = 0;
         cell_lid_type at(unsigned idx) const;
     };
 
@@ -75,9 +74,15 @@ public:
     const range_set& at(cell_gid_type gid, const cell_tag_type& tag) const;
     const range_set& at(cell_gid_type gid, hash_type hash) const;
     std::size_t count(cell_gid_type gid, const cell_tag_type& tag) const;
+    std::size_t count(cell_gid_type gid, hash_type hash) const;
 
 private:
-    std::unordered_map<cell_gid_type, std::unordered_map<hash_type, range_set>> map;
+    using Key = std::pair<cell_gid_type, hash_type>;
+
+    struct Hasher {
+        std::size_t operator()(const Key& key) const { return hash_value(key.first, key.second); }
+    };
+    std::unordered_map<Key, range_set, Hasher> map;
 };
 
 // Struct used for resolving the lid of a (gid, label, lid_selection_policy) input.
@@ -88,9 +93,7 @@ struct ARB_ARBOR_API resolver {
     cell_lid_type resolve(const cell_global_label_type& iden);
     cell_lid_type resolve(cell_gid_type gid, const cell_local_label_type& lid);
 
-    void clear() {
-        rr_state_map_.clear();
-    }
+    void clear() { rr_state_map_.clear(); }
 
 private:
     template<typename K, typename V>
