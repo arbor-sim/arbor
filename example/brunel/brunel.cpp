@@ -354,7 +354,7 @@ void add_subset(cell_gid_type gid,
     if (m + start + gid_in_range >= end) throw std::runtime_error("Requested too many connections from the given range of gids.");
     // Exclude ourself
     std::vector<bool> seen(end - start, false);
-    
+    if (gid >= start && gid < end) seen[gid - start] = true;
     std::mt19937 gen(gid + 42);
     while(m > 0) {
         cell_gid_type val = rand_range(gen, start, end);
