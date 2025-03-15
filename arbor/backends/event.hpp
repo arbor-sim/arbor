@@ -51,6 +51,9 @@ struct deliverable_event {
 struct deliverable_event_data {
     cell_local_size_type mech_index = 0; // same as target_handle::mech_index
     float weight = 0;
+
+    auto operator<=>(deliverable_event_data const&) const noexcept = default;
+
     deliverable_event_data(cell_local_size_type idx, float w) noexcept:
         mech_index(idx),
         weight(w) {}
