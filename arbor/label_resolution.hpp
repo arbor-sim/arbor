@@ -23,8 +23,12 @@ struct ARB_ARBOR_API cell_label_range {
     cell_label_range& operator=(const cell_label_range&) = default;
     cell_label_range& operator=(cell_label_range&&) = default;
 
-    cell_label_range(std::vector<cell_size_type> size_vec, std::vector<cell_tag_type> label_vec, std::vector<lid_range> rapfnge_vec);
-    cell_label_range(std::vector<cell_size_type> size_vec, std::vector<hash_type> label_vec, std::vector<lid_range> range_vec);
+    cell_label_range(std::vector<cell_size_type> size_vec,
+                     const std::vector<cell_tag_type>& label_vec,
+                     std::vector<lid_range> range_vec);
+    cell_label_range(std::vector<cell_size_type> size_vec,
+                     std::vector<hash_type> label_vec,
+                     std::vector<lid_range> range_vec);
 
     void add_cell();
 
@@ -36,10 +40,8 @@ struct ARB_ARBOR_API cell_label_range {
 
     // The number of labels associated with each cell.
     std::vector<cell_size_type> sizes;
-
     // The labels corresponding to each cell, partitioned according to sizes_.
     std::vector<hash_type> labels;
-
     // The lid_range corresponding to each label.
     std::vector<lid_range> ranges;
 };
@@ -60,20 +62,17 @@ struct ARB_ARBOR_API cell_labels_and_gids {
 // Class constructed from `cell_labels_and_ranges`:
 // Represents the information in the object in a more
 // structured manner for lid resolution in `resolver`
-class ARB_ARBOR_API label_resolution_map {
-public:
+struct ARB_ARBOR_API label_resolution_map {
     struct range_set {
-        std::vector<lid_range> ranges;
         std::size_t size = 0;
+        std::vector<lid_range> ranges;
         cell_lid_type at(unsigned idx) const;
     };
 
     label_resolution_map() = default;
     explicit label_resolution_map(const cell_labels_and_gids&);
 
-    const range_set& at(cell_gid_type gid, const cell_tag_type& tag) const;
     const range_set& at(cell_gid_type gid, hash_type hash) const;
-    std::size_t count(cell_gid_type gid, const cell_tag_type& tag) const;
     std::size_t count(cell_gid_type gid, hash_type hash) const;
 
 private:

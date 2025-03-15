@@ -17,10 +17,9 @@ namespace arb {
 
 // cell_label_range methods
 cell_label_range::cell_label_range(std::vector<cell_size_type> size_vec,
-                                   std::vector<cell_tag_type> label_vec,
+                                   const std::vector<cell_tag_type>& label_vec,
                                    std::vector<lid_range> range_vec):
-    sizes(std::move(size_vec)), ranges(std::move(range_vec))
-{
+    sizes(std::move(size_vec)), ranges(std::move(range_vec)) {
     std::transform(label_vec.begin(), label_vec.end(),
                    std::back_inserter(labels),
                    hash_value<const std::string&>);
@@ -30,8 +29,7 @@ cell_label_range::cell_label_range(std::vector<cell_size_type> size_vec,
 cell_label_range::cell_label_range(std::vector<cell_size_type> size_vec,
                                    std::vector<hash_type> label_vec,
                                    std::vector<lid_range> range_vec):
-    sizes(std::move(size_vec)), labels(std::move(label_vec)), ranges(std::move(range_vec))
-{
+    sizes(std::move(size_vec)), labels(std::move(label_vec)), ranges(std::move(range_vec)) {
     arb_assert(check_invariant());
 };
 
@@ -75,10 +73,11 @@ bool cell_labels_and_gids::check_invariant() const {
 /* The n-th local item (by index) to its identifier (lid). The lids are organised
    in potentially discontiguous ranges.
 
-   idx --------
+   idx --------           len0 <= idx < len0 + len1
                 \
                  v
    | [s0, e0) [s1, e1), ... [sk, ek), ... |
+       len0     len1
 */
 cell_lid_type label_resolution_map::range_set::at(unsigned idx) const {
     if (0 == size) throw arbor_internal_error("no valid lids");
@@ -92,14 +91,6 @@ cell_lid_type label_resolution_map::range_set::at(unsigned idx) const {
 
 const label_resolution_map::range_set& label_resolution_map::at(cell_gid_type gid, hash_type hash) const {
     return map.at(std::make_pair(gid, hash));
-}
-
-const label_resolution_map::range_set& label_resolution_map::at(cell_gid_type gid, const cell_tag_type& tag) const {
-    return map.at(std::make_pair(gid, hash_value(tag)));
-}
-
-std::size_t label_resolution_map::count(cell_gid_type gid, const cell_tag_type& tag) const {
-    return map.count(std::make_pair(gid, hash_value(tag)));
 }
 
 std::size_t label_resolution_map::count(cell_gid_type gid, hash_type hash) const {
@@ -139,7 +130,7 @@ cell_lid_type resolver::resolve(cell_gid_type gid, const cell_local_label_type& 
     auto hash = hash_value(tag);
     if (!label_map_->count(gid, hash)) throw arb::bad_connection_label(gid, tag, "label does not exist");
     const auto& range_set = label_map_->at(gid, hash);
-    if (range_set.size < 1) throw arb::bad_connection_label(gid, tag, "no valid lids");
+    if (range_set.size <= 0) throw arb::bad_connection_label(gid, tag, "no valid lids");
     auto idx = 0ul;
     if (pol == lid_selection_policy::assert_univalent) {
         // must have single-entry range_set

@@ -213,7 +213,7 @@ int main(int argc, char** argv) {
         unsigned num_threads = arbenv::default_concurrency();
         int gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(arb::proc_allocation{num_threads, gpu_id}, MPI_COMM_WORLD);
-        root = arb::rank(context)==0;
+        root = arb::rank(context) == 0;
 #else
         auto context = arb::make_context(arbenv::default_allocation());
 #endif
@@ -230,7 +230,10 @@ int main(int argc, char** argv) {
 
         // read parameters
         auto o = read_options(argc, argv);
-        if (!o) {return 0; }
+        if (!o) {
+            std::cerr << "Couldm't read options.\n";
+            return -1;
+        }
         cl_options options = o.value();
 
         std::fstream spike_out;
@@ -279,9 +282,7 @@ int main(int argc, char** argv) {
         hints[cell_kind::cable].gpu_group_size = group_size;
         auto dec = partition_load_balance(recipe, context, hints);
 
-        simulation sim(recipe,
-                       context,
-                       dec);
+        simulation sim(recipe, context, dec);
 
         // Set up spike recording.
         std::vector<arb::spike> recorded_spikes;
@@ -356,10 +357,12 @@ void add_subset(cell_gid_type gid,
     std::vector<bool> seen(end - start, false);
     if (gid >= start && gid < end) seen[gid - start] = true;
     std::mt19937 gen(gid + 42);
+    auto conn = arb::cell_connection{{0, src}, {tgt}, weight, delay*U::ms};
     while(m > 0) {
         cell_gid_type val = rand_range(gen, start, end);
         if (seen[val - start]) continue;
-        conns.push_back({{val, src}, {tgt}, weight, delay*U::ms});
+        conn.source.gid = val;
+        conns.push_back(conn);
         seen[val - start] = true;
         m--;
     }
