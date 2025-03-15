@@ -108,11 +108,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
             auto div = divs[cell];
             arb_size_type step = 0;
             for (const auto& evt: lane) {
-                step = std::lower_bound(steps.begin() + step,
-                                        steps.end(),
-                                        evt.time,
-                                        [](const auto& bucket, time_type time) { return bucket.t_end() <= time; })
-                     - steps.begin();
+                step = steps.find(evt.time) - steps.begin();
                 // Events coinciding with epoch's upper boundary belong to next epoch
                 if (step >= n_steps) break;
                 arb_assert(div + evt.target < handles.size());
