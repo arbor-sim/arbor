@@ -74,6 +74,8 @@ struct ARB_ARBOR_API label_resolution_map {
 
     const range_set& at(cell_gid_type gid, hash_type hash) const;
     std::size_t count(cell_gid_type gid, hash_type hash) const;
+    const range_set& at(cell_gid_type gid, const cell_tag_type&) const;
+    std::size_t count(cell_gid_type gid, const cell_tag_type&) const;
 
 private:
     using Key = std::pair<cell_gid_type, hash_type>;

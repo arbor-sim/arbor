@@ -97,6 +97,15 @@ std::size_t label_resolution_map::count(cell_gid_type gid, hash_type hash) const
     return map.count(std::make_pair(gid, hash));
 }
 
+const label_resolution_map::range_set& label_resolution_map::at(cell_gid_type gid, const cell_tag_type& tag) const {
+    return at(gid, hash_value(tag));
+}
+
+std::size_t label_resolution_map::count(cell_gid_type gid, const cell_tag_type& tag) const {
+    return count(gid, hash_value(tag));
+}
+
+
 label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
     arb_assert(clg.label_range.check_invariant());
     const auto& gids = clg.gids;
