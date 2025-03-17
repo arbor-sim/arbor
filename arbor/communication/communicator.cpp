@@ -156,8 +156,15 @@ void communicator::update_connections(const recipe& rec,
             auto src_dom = dom_dec.gid_domain(src_gid);
             auto src_lid = source_resolver.resolve(conn.source);
             auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
-            // NOTE old compilers
-            connections_by_src_domain[src_dom].emplace_back(connection{cell_member_type(src_gid, src_lid), tgt_lid, conn.weight, conn.delay, iod});
+            // NOTE old compilers stumble over emplace_back here
+            connections_by_src_domain[src_dom].emplace_back(
+                connection{
+                .source={.gid=src_gid, .index=src_lid},
+                .target=tgt_lid,
+                .weight=conn.weight,
+                .delay=conn.delay,
+                .index_on_domain=iod
+            });
             ++n_con;
         }
     }
