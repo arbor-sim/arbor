@@ -125,7 +125,6 @@ TEST(test_cell_labels_and_gids, build) {
 }
 
 TEST(test_label_resolution, policies) {
-    using vec = std::vector<cell_lid_type>;
     {
         std::vector<cell_gid_type> gids = {0, 1, 2, 3, 4};
         std::vector<cell_size_type> sizes = {1, 0, 1, 2, 3};
