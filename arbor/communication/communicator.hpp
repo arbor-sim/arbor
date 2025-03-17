@@ -93,8 +93,7 @@ public:
         std::vector<float> weights;
         std::vector<float> delays;
 
-        void make(const std::vector<connection>& cons) {
-            clear();
+        void make(std::vector<connection>& cons) {
             for (const auto& con: cons) {
                 idx_on_domain.push_back(con.index_on_domain);
                 srcs.push_back(con.source);
@@ -104,16 +103,12 @@ public:
             }
         }
 
-        void make(const std::vector<std::vector<connection>>& conss) {
-            clear();
-            for (const auto& cons: conss) {
-                for (const auto& con: cons) {
-                    idx_on_domain.push_back(con.index_on_domain);
-                    srcs.push_back(con.source);
-                    dests.push_back(con.target);
-                    weights.push_back(con.weight);
-                    delays.push_back(con.delay);
-                }
+        void make(std::vector<std::vector<connection>>& conss) {
+            for (auto& cons: conss) {
+                make(cons);
+                // NOTE: For memory capacity reasons, we might want to try to
+                //       destroy the sub-vectors here, once we are done.
+                // cons = {};
             }
         }
 
@@ -139,11 +134,6 @@ public:
     const connection_list& connections() const;
 
 private:
-
-    // helper for setting up the connection table
-    void reset_index(const domain_decomposition&);
-    void reset_partition(const std::vector<std::vector<connection>>&);
-
     cell_size_type num_total_cells_ = 0;
     cell_size_type num_local_cells_ = 0;
     cell_size_type num_local_groups_ = 0;

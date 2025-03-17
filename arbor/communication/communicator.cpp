@@ -54,89 +54,32 @@ cell_member_type global_cell_of(const cell_member_type& c) {
     return {c.gid | msb, c.index};
 }
 
-void communicator::reset_index(const domain_decomposition& dom_dec) {
-    index_divisions_.clear();
-    index_part_ = util::make_partition(index_divisions_,
-                                       util::transform_view(dom_dec.groups(),
-                                                            [](const group_description& g){
-                                                                return g.gids.size();
-                                                            }));
+inline
+void reset_index(const domain_decomposition& dom_dec,
+                 std::vector<cell_size_type>& divs,
+                 util::partition_view_type<std::vector<cell_size_type>>& part) {
+    divs.clear();
+    part = util::make_partition(divs,
+                                util::transform_view(dom_dec.groups(),
+                                                     [](const group_description& g){
+                                                         return g.gids.size();
+                                                     }));
 }
 
-void communicator::reset_partition(const std::vector<std::vector<connection>>& connss) {
-    connection_part_.clear();
-    connection_part_.push_back(0);
-    for (const auto& conns: connss) {
-        connection_part_.push_back(connection_part_.back() + conns.size());
-    }
+inline
+void reset_partition(const std::vector<std::vector<connection>>& connss,
+                     std::vector<cell_size_type>& part) {
+    part.clear();
+    part.push_back(0);
+    for (const auto& conns: connss) part.push_back(part.back() + conns.size());
 }
 
-void communicator::update_connections(const recipe& rec,
-                                      const domain_decomposition& dom_dec,
-                                      const label_resolution_map& source_resolution_map,
-                                      const label_resolution_map& target_resolution_map) {
-    // Record all the gids in a flat vector.
-    PE(init:communicator:update:collect_gids);
-    std::vector<cell_gid_type> gids;
-    gids.reserve(num_local_cells_);
-    for (const auto& g: dom_dec.groups()) util::append(gids, g.gids);
-    PL();
-
-    // Build cell partition by group for passing events to cell groups
-    PE(init:communicator:update:index);
-    reset_index(dom_dec);
-    PL();
-
-    // Construct connections from recipe callback
-    PE(init:communicator:update:connections:local);
-    std::size_t n_con = 0;
-    std::vector<std::vector<connection>> connections_by_src_domain(num_domains_);
-    auto target_resolver = resolver(&target_resolution_map);
-    auto source_resolver = resolver(&source_resolution_map);
-    for (const auto tgt_gid: gids) {
-        auto iod = dom_dec.index_on_domain(tgt_gid);
-        source_resolver.clear();
-        for (const auto& conn: rec.connections_on(tgt_gid)) {
-            auto src_gid = conn.source.gid;
-            if(src_gid >= num_total_cells_) throw arb::bad_connection_source_gid(tgt_gid, src_gid, num_total_cells_);
-            auto src_dom = dom_dec.gid_domain(src_gid);
-            auto src_lid = source_resolver.resolve(conn.source);
-            auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
-            connections_by_src_domain[src_dom].push_back({{src_gid, src_lid}, tgt_lid, conn.weight, conn.delay, iod});
-            ++n_con;
-        }
-    }
-    PL();
-
-    // Construct connections from high-level specification
-    PE(init:communicator:update:connections:generated);
-    for (const auto& conn: generate_connections(rec, ctx_, dom_dec)) {
-        auto src_gid = conn.source.gid;
-        if (src_gid >= num_total_cells_) throw arb::bad_connection_source_gid(-1, src_gid, num_total_cells_);
-        auto src_dom = dom_dec.gid_domain(src_gid);
-        connections_by_src_domain[src_dom].push_back(conn);
-        ++n_con;
-    }
-    PL();
-
-    PE(init:communicator:update:connections:partition);
-    reset_partition(connections_by_src_domain);
-    PL();
-
-    // Sort the connections for each domain; num_domains_ independent sorts
-    // parallelized trivially.
-    PE(init:communicator:update:sort:local);
-    threading::parallel_for::apply(0, num_domains_, ctx_->thread_pool.get(),
-                                   [&](auto i) { util::sort(connections_by_src_domain[i]); });
-    PL();
-
-    PE(init:communicator:update:destructure:local);
-    connections_.reserve(n_con);
-    connections_.make(connections_by_src_domain);
-    PL();
-
-
-    // process remote connections
+void make_remote_connections(const std::vector<cell_gid_type>& gids,
+                             const recipe& rec,
+                             const domain_decomposition& dom_dec,
+                             resolver& target_resolver,
+                             resolver& source_resolver,
+                             communicator::connection_list& out) {
     PE(init:communicator:update:connections:remote);
     std::vector<connection> ext_connections;
     std::size_t n_ext = 0;
@@ -160,8 +103,92 @@ void communicator::update_connections(const recipe& rec,
     PL();
 
     PE(init:communicator:update:destructure:remote);
-    ext_connections_.reserve(n_ext);
-    ext_connections_.make(ext_connections);
+    out.clear();
+    out.reserve(n_ext);
+    out.make(ext_connections);
+    PL();
+}
+
+void communicator::update_connections(const recipe& rec,
+                                      const domain_decomposition& dom_dec,
+                                      const label_resolution_map& source_resolution_map,
+                                      const label_resolution_map& target_resolution_map) {
+    // Record all the gids in a flat vector.
+    PE(init:communicator:update:collect_gids);
+    std::vector<cell_gid_type> gids;
+    gids.reserve(num_local_cells_);
+    for (const auto& g: dom_dec.groups()) util::append(gids, g.gids);
+    PL();
+
+    // Prepare resolvers
+    auto target_resolver = resolver(&target_resolution_map);
+    auto source_resolver = resolver(&source_resolution_map);
+
+    // Build cell partition by group for passing events to cell groups
+    PE(init:communicator:update:index);
+    reset_index(dom_dec, index_divisions_, index_part_);
+    PL();
+
+    // Construct connection from external
+    make_remote_connections(gids, rec, dom_dec, target_resolver, source_resolver, ext_connections_);
+
+    // Construct connections from recipe callback
+    // NOTE: It'd great to parallelize here, however, as we write to different
+    //       src_domains *and* use the same resolvers, that's not feasible.
+    //       The only way to speed this up w/ more HW is to use more MPI tasks,
+    //       for now. The alternative is
+    //       - make coarsegrained parallel chunks,
+    //       - copy the resolvers into each
+    //       - generate one resultant vector each
+    //       - merge those serially
+    //       The word coarsegrained is load-bearing, as many small task will result
+    //       in many, many allocations.
+    PE(init:communicator:update:connections:local);
+    std::size_t n_con = 0;
+    std::vector<std::vector<connection>> connections_by_src_domain(num_domains_);
+    target_resolver.clear();
+    for (const auto tgt_gid: gids) {
+        auto iod = dom_dec.index_on_domain(tgt_gid);
+        source_resolver.clear();
+        for (const auto& conn: rec.connections_on(tgt_gid)) {
+            auto src_gid = conn.source.gid;
+            if(src_gid >= num_total_cells_) throw arb::bad_connection_source_gid(tgt_gid, src_gid, num_total_cells_);
+            auto src_dom = dom_dec.gid_domain(src_gid);
+            auto src_lid = source_resolver.resolve(conn.source);
+            auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
+            connections_by_src_domain[src_dom].emplace_back(cell_member_type(src_gid, src_lid), tgt_lid, conn.weight, conn.delay, iod);
+            ++n_con;
+        }
+    }
+    PL();
+
+    // Construct connections from high-level specification.
+    PE(init:communicator:update:connections:generated);
+    for (const auto& conn: generate_connections(rec, ctx_, dom_dec)) {
+        auto src_gid = conn.source.gid;
+        // NOTE: a bit awkward, as we don't have the tgt_gid.
+        if (src_gid >= num_total_cells_) throw arb::bad_connection_source_gid(-1, src_gid, num_total_cells_);
+        auto src_dom = dom_dec.gid_domain(src_gid);
+        connections_by_src_domain[src_dom].push_back(conn);
+        ++n_con;
+    }
+    PL();
+
+    // Sort the connections for each domain; num_domains_ independent sorts
+    // parallelized trivially.
+    PE(init:communicator:update:sort:local);
+    threading::parallel_for::apply(0, num_domains_, ctx_->thread_pool.get(),
+                                   [&](auto i) { util::sort(connections_by_src_domain[i]); });
+    PL();
+
+    PE(init:communicator:update:connections:partition);
+    reset_partition(connections_by_src_domain, connection_part_);
+    PL();
+
+    PE(init:communicator:update:destructure:local);
+    connections_.clear();
+    connections_.reserve(n_con);
+    connections_.make(connections_by_src_domain);
     PL();
 }
 
