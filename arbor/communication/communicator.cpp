@@ -23,6 +23,8 @@
 
 #include "communication/communicator.hpp"
 
+#include "../ska-sort.hpp"
+
 namespace arb {
 
 communicator::communicator(const recipe& rec, const domain_decomposition& dom_dec, context ctx):
@@ -142,7 +144,7 @@ void communicator::update_connections(const recipe& rec,
     //       - generate one resultant vector each
     //       - merge those serially
     //       The word coarsegrained is load-bearing, as many small task will result
-    //       in many, many allocations.
+    //       in many, many allocations and we don't have the proper primitives.
     PE(init:communicator:update:connections:local);
     std::size_t n_con = 0;
     std::vector<std::vector<connection>> connections_by_src_domain(num_domains_);
