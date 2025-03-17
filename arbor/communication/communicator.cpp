@@ -23,8 +23,6 @@
 
 #include "communication/communicator.hpp"
 
-#include "../ska-sort.hpp"
-
 namespace arb {
 
 communicator::communicator(const recipe& rec, const domain_decomposition& dom_dec, context ctx):
