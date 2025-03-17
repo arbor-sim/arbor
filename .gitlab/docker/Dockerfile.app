@@ -23,6 +23,7 @@ RUN mkdir -p /arbor.src/build \
      -DARB_WITH_PROFILING=ON \
      -DARB_VECTORIZE=ON \
      -DARB_WITH_PYTHON=ON \
+     -DARB_BUILD_PYTHON_STUBS=OFF \
      -DARB_USE_HWLOC=ON \
      -DARB_WITH_MPI=ON \
      -DARB_GPU=$GPU\
