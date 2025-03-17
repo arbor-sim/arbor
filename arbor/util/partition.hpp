@@ -4,6 +4,7 @@
 #include <iterator>
 #include <stdexcept>
 #include <type_traits>
+#include <string>
 
 #include <arbor/util/expected.hpp>
 
