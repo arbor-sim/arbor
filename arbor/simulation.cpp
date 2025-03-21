@@ -403,6 +403,18 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
     if (!std::isfinite(dt) || dt <= 0) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
     if (!std::isfinite(tfinal) || tfinal < 0) throw std::domain_error("simulation: tfinal must be finite, positive, and in [ms]");
+    // NOTE It would be preferable to have the cell groups to make smart
+    //      decisions instead. However, since there is a tradeoff since silently
+    //      installing a smaller timestep might result in inacceptable runtimes.
+    // NOTE we are using tau/2 since that is the actual integration time due to
+    //      the double buffering
+    // NOTE we are _also_ using float epsilon and some fudging as connections store
+    //      delay as float. This shakes out be roughly 1e-6, equivalent to 1ps.
+    if (dt - t_interval_ > 10*std::numeric_limits<float>::epsilon()) {
+        throw arbor_exception(
+            util::pprintf("simulation: Timestep {}ms is too large, must be less than half the minimum network delay ({}ms)",
+                          dt, t_interval_));
+    }
 
     // Compute following epoch, with max time tfinal.
     auto next_epoch = [tfinal](epoch e, time_type interval) -> epoch {
