@@ -10,7 +10,10 @@
 
 namespace arborio {
 
-struct ARB_ARBORIO_API swc_metadata {};
+struct ARB_ARBORIO_API swc_metadata {
+    std::vector<int> segment_prox_id;
+    std::vector<int> segment_dist_id;
+};
 
 struct ARB_ARBORIO_API asc_color {
     uint8_t r = 0;

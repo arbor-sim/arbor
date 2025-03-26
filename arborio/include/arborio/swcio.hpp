@@ -52,48 +52,35 @@ struct ARB_SYMBOL_VISIBLE swc_unsupported_tag: swc_error {
 };
 
 struct ARB_ARBORIO_API swc_record {
-    int id = 0;          // sample number
-    int tag = 0;         // structure identifier (tag)
-    double x = 0;        // sample coordinates
-    double y = 0;
-    double z = 0;
-    double r = 0;        // sample adius
-    int parent_id= -1;   // record parent's sample number
+    int id = 0;                 // sample number
+    int tag = 0;                // structure identifier (tag)
+    double x = 0, y = 0, z = 0; // sample coordinates
+    double r = 0;               // sample radius
+    int parent_id= -1;          // record parent's sample number
 
     swc_record() = default;
     swc_record(int id, int tag, double x, double y, double z, double r, int parent_id):
         id(id), tag(tag), x(x), y(y), z(z), r(r), parent_id(parent_id)
     {}
 
-    bool operator==(const swc_record& other) const {
-        return id == other.id &&
-            x == other.x &&
-            y == other.y &&
-            z == other.z &&
-            r == other.r &&
-            parent_id == other.parent_id;
-    }
-
-    bool operator!=(const swc_record& other) const {
-        return !(*this == other);
-    }
+    bool operator==(const swc_record& other) const = default;
+    bool operator!=(const swc_record& other) const = default;
 
     friend std::ostream& operator<<(std::ostream&, const swc_record&);
     friend std::istream& operator>>(std::istream&, swc_record&);
 };
 
 struct ARB_ARBORIO_API swc_data {
-private:
-    std::string metadata_;
-    std::vector<swc_record> records_;
-
-public:
     swc_data() = delete;
     swc_data(std::vector<arborio::swc_record>);
     swc_data(std::string, std::vector<arborio::swc_record>);
 
     const std::vector<swc_record>& records() const {return records_;};
     std::string metadata() const {return metadata_;};
+
+private:
+    std::string metadata_;
+    std::vector<swc_record> records_;
 };
 
 // Read SWC records from stream, collecting any initial metadata represented
