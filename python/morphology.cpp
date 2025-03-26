@@ -117,9 +117,12 @@ void register_morphology(py::module& m) {
 
     // arb::msegment
     msegment
-        .def_readonly("prox", &arb::msegment::prox, "the location and radius of the proximal end.")
-        .def_readonly("dist", &arb::msegment::dist, "the location and radius of the distal end.")
-        .def_readonly("tag", &arb::msegment::tag, "tag meta-data.");
+        .def_readonly("prox", &arb::msegment::id, "segment id.")
+        .def_readonly("prox", &arb::msegment::prox, "location and radius of the proximal end.")
+        .def_readonly("dist", &arb::msegment::dist, "location and radius of the distal end.")
+        .def_readonly("tag", &arb::msegment::tag, "tag meta-data.")
+        .def("__str__", [](const arb::msegment& c) { return util::pprintf("(segment {} {} {} {} {})", c.id, c.prox, c.dist, c.tag); })
+        .def("__repr__", [](const arb::msegment& c) { return util::pprintf("(segment {} {} {} {} {})", c.id, c.prox, c.dist, c.tag); });
 
     // arb::mcable
     cable
@@ -463,6 +466,11 @@ void register_morphology(py::module& m) {
         .def_readonly("group_segments",
             &arborio::nml_metadata::group_segments,
             "Map from segmentGroup ids to their corresponding segment ids.");
+
+    swc_meta
+        .def_readonly("segment_prox_id", &arborio::swc_metadata::segment_prox_id, "Map segment to SWC id of the distal sample as recorded in the data file. Can be mnpos if sample was synthesized.")
+        .def_readonly("segment_dist_id", &arborio::swc_metadata::segment_dist_id, "Map segment to SWC id of the proximal sample as recorded in the data file. Can be mnpos if sample was synthesized.")
+        ;
 
     // arborio::neuroml
     neuroml

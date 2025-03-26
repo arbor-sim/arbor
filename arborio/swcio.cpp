@@ -159,8 +159,12 @@ ARB_ARBORIO_API swc_data parse_swc(const std::string& text) {
     return parse_swc(is);
 }
 
-arb::segment_tree load_swc_arbor_raw(const swc_data& data) {
+std::tuple<arb::segment_tree, std::vector<int>, std::vector<int>>
+load_swc_arbor_raw(const swc_data& data) {
     const auto& records = data.records();
+
+    std::vector<int> seg_to_prox_id;
+    std::vector<int> seg_to_dist_id;
 
     if (records.empty())  return {};
     if (records.size()<2) throw swc_spherical_soma(records[0].tag);
@@ -178,40 +182,38 @@ arb::segment_tree load_swc_arbor_raw(const swc_data& data) {
     int first_tag = records[0].tag;
 
     // ith segment is built from i+1th SWC record and its parent.
-    for (std::size_t i = 1; i<n_seg+1; ++i) {
+    for (std::size_t i = 1; i < n_seg + 1; ++i) {
         const auto& dist = records[i];
-        first_tag_match |= dist.parent_id==first_id && dist.tag==first_tag;
+        first_tag_match |= dist.parent_id == first_id && dist.tag == first_tag;
 
         auto iter = id_to_index.find(dist.parent_id);
-        if (iter==id_to_index.end()) throw swc_no_such_parent{dist.id};
+        if (iter == id_to_index.end()) throw swc_no_such_parent{dist.id};
         auto parent_idx = iter->second;
 
         const auto& prox = records[parent_idx];
-        arb::msize_t seg_parent = parent_idx? parent_idx-1: arb::mnpos;
+        arb::msize_t seg_parent = parent_idx ? parent_idx - 1: arb::mnpos;
 
         tree.append(seg_parent,
-            arb::mpoint{prox.x, prox.y, prox.z, prox.r},
-            arb::mpoint{dist.x, dist.y, dist.z, dist.r},
-            dist.tag);
-
+                    arb::mpoint{prox.x, prox.y, prox.z, prox.r},
+                    arb::mpoint{dist.x, dist.y, dist.z, dist.r},
+                    dist.tag);
+        seg_to_prox_id.push_back(prox.id);
+        seg_to_dist_id.push_back(dist.id);
         id_to_index[dist.id] = i;
     }
 
-    if (!first_tag_match) {
-        throw swc_spherical_soma(first_id);
-    }
+    if (!first_tag_match) throw swc_spherical_soma(first_id);
 
-    return tree;
+    return {tree, seg_to_prox_id, seg_to_dist_id};
 }
 
-arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
+std::tuple<arb::segment_tree, std::vector<int>, std::vector<int>>
+load_swc_neuron_raw(const swc_data& data) {
     constexpr int soma_tag = 1;
 
     const auto n_samples = data.records().size();
 
-    if (n_samples==0) {
-        return {};
-    }
+    if (n_samples==0) return {};
 
     // The NEURON interpretation is only applied when the cell has a soma.
     if (data.records()[0].tag != soma_tag) {
@@ -237,9 +239,7 @@ arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
         record_index[r.id] = i;
         old_record_index[i] = r.id;
         r.id = i;
-        if (!record_index.count(r.parent_id)) {
-            throw swc_no_such_parent(r.parent_id);
-        }
+        if (!record_index.count(r.parent_id)) throw swc_no_such_parent(r.parent_id);
         r.parent_id = record_index[r.parent_id];
     }
 
@@ -250,20 +250,16 @@ arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
     for (std::size_t i=0; i<n_samples; ++i) {
         auto& r = records[i];
         // Only accept soma, axon, dend and apic samples.
-        if (!(r.tag>=0 && r.tag<=4)) {
-            throw swc_unsupported_tag(old_record_index[i]);
-        }
-        if (r.tag==soma_tag) {
-            ++n_soma_samples;
-        }
+        if (!(r.tag>=0 && r.tag<=4)) throw swc_unsupported_tag(old_record_index[i]);
+
+        if (r.tag==soma_tag) ++n_soma_samples;
+
         int pid = r.parent_id;
-        if (pid!=-1) {
+        if (pid != -1) {
             ++child_count[pid];
             const int ptag = records[pid].tag;
             // Assert that sample has the same tag as its parent, or the parent is tagged soma.
-            if (r.tag!=ptag && ptag!=soma_tag) {
-                throw swc_mismatched_tags(old_record_index[i]);
-            }
+            if (r.tag!=ptag && ptag!=soma_tag) throw swc_mismatched_tags(old_record_index[i]);
         }
     }
 
@@ -271,11 +267,13 @@ arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
 
     // Construct the segment tree.
     arb::segment_tree tree;
-
+    std::vector<int> seg_to_prox_id;
+    std::vector<int> seg_to_dist_id;
+    
     // It isn't possible to a-priori calculate the exact number of segments
     // without more meta-data, but this will be accurate in the absence of
     // single-sample sub-trees, which should be rare.
-    tree.reserve(n_samples+spherical_soma);
+    tree.reserve(n_samples + spherical_soma);
 
     std::unordered_map<int, arb::msize_t> segmap;
 
@@ -285,10 +283,14 @@ arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
         arb::msize_t pid = arb::mnpos;
         pid = tree.append(pid, {sr.x-sr.r, sr.y, sr.z, sr.r},
                                {sr.x,      sr.y, sr.z, sr.r}, soma_tag);
+        seg_to_prox_id.push_back(arb::mnpos);
+        seg_to_dist_id.push_back(old_record_index[sr.id]);
         // Children of the soma sample attach to the distal end of the first segment in the soma.
         segmap[0] = pid;
         pid = tree.append(pid, {sr.x,      sr.y, sr.z, sr.r},
                                {sr.x+sr.r, sr.y, sr.z, sr.r}, soma_tag);
+        seg_to_prox_id.push_back(old_record_index[sr.id]);
+        seg_to_dist_id.push_back(arb::mnpos);
     }
     else {
         segmap[0] = arb::mnpos;
@@ -304,6 +306,8 @@ arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
         // Constructing a segment inside the soma or a sub-tree.
         if (tag==p.tag) {
             segmap[i] = tree.append(segmap.at(pid), {p.x, p.y, p.z, p.r}, {r.x, r.y, r.z, r.r}, tag);
+            seg_to_prox_id.push_back(old_record_index[p.id]);
+            seg_to_dist_id.push_back(old_record_index[r.id]);
         }
         // The start of a sub-tree.
         else if (child_count[i]) {
@@ -317,22 +321,24 @@ arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
             // The sub-tree is composed of a single segment connecting the soma
             // to the sample, with constant radius defined by the sample.
             segmap[i] = tree.append(segmap.at(pid), {p.x, p.y, p.z, r.r}, {r.x, r.y, r.z, r.r}, tag);
+            seg_to_prox_id.push_back(old_record_index[p.id]);
+            seg_to_dist_id.push_back(old_record_index[r.id]);
         }
     }
 
-    return tree;
+    return {tree, seg_to_prox_id, seg_to_dist_id};
 }
 
 ARB_ARBORIO_API loaded_morphology load_swc_neuron(const swc_data& data) {
-    auto raw = load_swc_neuron_raw(data);
+    const auto& [raw, pmap, dmap] = load_swc_neuron_raw(data);
     arb::label_dict ld; ld.add_swc_tags();
-    return {raw, {raw}, ld, swc_metadata{}};
+    return {raw, {raw}, ld, swc_metadata{std::move(pmap), std::move(dmap)}};
 }
 
 ARB_ARBORIO_API loaded_morphology load_swc_arbor(const swc_data& data) {
-    auto raw = load_swc_arbor_raw(data);
+    const auto [raw, pmap, dmap] = load_swc_arbor_raw(data);
     arb::label_dict ld; ld.add_swc_tags();
-    return {raw, {raw}, ld, swc_metadata{}};
+    return {raw, {raw}, ld, swc_metadata{std::move(pmap), std::move(dmap)}};
 }
 
 ARB_ARBORIO_API loaded_morphology load_swc_arbor(const std::filesystem::path& path) {
