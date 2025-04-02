@@ -296,7 +296,7 @@ else()
 endif()
 install(TARGETS ext-hwloc EXPORT arbor-targets)
 
-set(CMAKE_POLICY_MINIMUM_VERSION 3.5 CACHE STRING "Allow JSON to slip through" FORCE)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "Allow JSON to slip through" FORCE)
 CPMAddPackage(NAME json
               GITHUB_REPOSITORY nlohmann/json
               VERSION 3.11.2
