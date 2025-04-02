@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <optional>
 #include <unordered_map>
 
@@ -29,7 +28,7 @@ public:
     label_dict& set(const std::string& name, locset ls);
     label_dict& set(const std::string& name, region reg);
     label_dict& set(const std::string& name, iexpr e);
-
+    
     std::optional<arb::region> region(const std::string& name) const;
     std::optional<arb::locset> locset(const std::string& name) const;
     std::optional<arb::iexpr> iexpr(const std::string& name) const;

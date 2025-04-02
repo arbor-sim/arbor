@@ -1,62 +1,70 @@
 #pragma once
 
 #include <string>
-#include <algorithm>
 #include <unordered_map>
 
 #include <arborio/label_parse.hpp>
-
 #include <arbor/morph/label_dict.hpp>
+
+#include <pybind11/pybind11.h>
 
 #include "strprintf.hpp"
 
 namespace pyarb {
 
-struct iexpr_proxy {
-    ::arb::iexpr iexpr;
-    std::string label;
-};
-
-struct label_dict_proxy {
+struct label_dict {
     using str_map = std::unordered_map<std::string, std::string>;
-    arb::label_dict dict;
-    str_map cache;
-    std::vector<std::string> locsets;
-    std::vector<std::string> regions;
-    std::vector<std::string> iexpressions;
+    ::arb::label_dict dict;
+    str_map locsets;
+    str_map regions;
+    str_map iexpressions;
 
-    label_dict_proxy() = default;
+    label_dict() = default;
 
-    label_dict_proxy(const str_map& in) {
-        for (auto& [k, v]: in) set(k, v);
+    label_dict(const str_map& in) {
+        for (auto& [k, v]: in) setitem(k, v);
     }
 
-    label_dict_proxy& add_swc_tags() {
-        set("soma", "(tag 1)");
-        set("axon", "(tag 2)");
-        set("dend", "(tag 3)");
-        set("apic", "(tag 4)");
+    label_dict& add_swc_tags() {
+        setitem("soma", "(tag 1)");
+        setitem("axon", "(tag 2)");
+        setitem("dend", "(tag 3)");
+        setitem("apic", "(tag 4)");
         return *this;
     }
-
-    label_dict_proxy(const arb::label_dict& label_dict): dict(label_dict) {
-        update_cache();
+    
+    label_dict(const ::arb::label_dict& ld): dict(ld) {
+        for (const auto& [k, v]: ld.locsets()) {
+            std::stringstream os;
+            os << v;
+            locsets[k] = os.str();
+        }
+        for (const auto& [k, v]: ld.regions()) {
+            std::stringstream os;
+            os << v;
+            regions[k] = os.str();
+        }
+        for (const auto& [k, v]: ld.iexpressions()) {
+            std::stringstream os;
+            os << v;
+            iexpressions[k] = os.str();
+        }
     }
 
-    label_dict_proxy(const label_dict_proxy&) = default;
+    label_dict(label_dict&&) = default;
+    label_dict(const label_dict&) = default;
 
-    std::size_t size() const  {
-        return locsets.size() + regions.size() + iexpressions.size();
-    }
+    std::size_t size() const  { return dict.size(); }
 
-    auto& extend(const label_dict_proxy& other, std::string prefix = "") {
+    auto& extend(const label_dict& other, std::string prefix = "") {
         dict.extend(other.dict, prefix);
-        clear_cache();
-        update_cache();
+        for (const auto& [k, v]: other.locsets) locsets[prefix + k] = v;
+        for (const auto& [k, v]: other.regions) regions[prefix + k] = v;
+        for (const auto& [k, v]: other.iexpressions) iexpressions[prefix + k] = v;
         return *this;
     }
 
-    void set(const std::string& name, const std::string& desc) {
+    void setitem(const std::string& name, const std::string& desc) {
         using namespace std::string_literals;
         // The following code takes an input name and a region or locset or iexpr
         // description, e.g.:
@@ -76,31 +84,25 @@ struct label_dict_proxy {
             if (!result) { // an error parsing / evaluating description.
                 throw result.error();
             }
-            else if (result->type()==typeid(arb::region)) { // describes a region.
+            else if (result->type() == typeid(arb::region)) { // describes a region.
                 dict.set(name, std::move(std::any_cast<arb::region&>(*result)));
-                auto it = std::lower_bound(regions.begin(), regions.end(), name);
-                if (it==regions.end() || *it!=name) regions.insert(it, name);
+                regions[name] = desc;
             }
-            else if (result->type()==typeid(arb::locset)) { // describes a locset.
+            else if (result->type() == typeid(arb::locset)) { // describes a locset.
                 dict.set(name, std::move(std::any_cast<arb::locset&>(*result)));
-                auto it = std::lower_bound(locsets.begin(), locsets.end(), name);
-                if (it==locsets.end() || *it!=name) locsets.insert(it, name);
+                locsets[name] = desc;
             }
-            else if (result->type()==typeid(arb::iexpr)) { // describes a iexpr.
+            else if (result->type() == typeid(arb::iexpr)) { // describes a iexpr.
                 dict.set(name, std::move(std::any_cast<arb::iexpr&>(*result)));
-                auto it = std::lower_bound(iexpressions.begin(), iexpressions.end(), name);
-                if (it==iexpressions.end() || *it!=name) iexpressions.insert(it, name);
+                iexpressions[name] = desc;
             }
             else {
                 // Successfully parsed an expression that is neither region nor locset.
                 throw util::pprintf("The definition of '{} = {}' does not define a valid region or locset.", name, desc);
             }
-            // The entry was added succesfully: store it in the cache.
-            cache[name] = desc;
         }
         catch (std::string msg) {
             const char* base = "\nError adding the label '{}' = '{}'\n{}\n";
-
             throw std::runtime_error(util::pprintf(base, name, desc, msg));
         }
         // Exceptions are thrown in parse or eval if an unexpected error occured.
@@ -121,68 +123,22 @@ struct label_dict_proxy {
     std::string to_string() const {
         std::string s;
         s += "(label_dict";
-        for (auto& x: dict.regions()) {
-            s += util::pprintf(" (region  \"{}\" {})", x.first, x.second);
-        }
-        for (auto& x: dict.locsets()) {
-            s += util::pprintf(" (locset \"{}\" {})", x.first, x.second);
-        }
-        for (auto& x: dict.iexpressions()) {
-            s += util::pprintf(" (iexpr \"{}\" {})", x.first, x.second);
-        }
+        for (const auto& [k, v]: regions) s += util::pprintf(" (region  \"{}\" {})", k, v);
+        for (const auto& [k, v]: locsets) s += util::pprintf(" (locset \"{}\" {})", k, v);
+        for (const auto& [k, v]: iexpressions) s += util::pprintf(" (iexpr \"{}\" {})", k, v);
         s += ")";
         return s;
     }
 
     bool contains(const std::string& name) const {
-        return cache.find(name) != cache.end();
+        return regions.contains(name) || locsets.contains(name) || iexpressions.contains(name);
     }
 
-    std::optional<std::string> getitem(const std::string& name) const {
-        if (auto kv = cache.find(name); kv != cache.end()) {
-            return kv->second;
-        }
-        return {};
+    std::string getitem(const std::string& name) const {
+        if (locsets.contains(name)) return locsets.at(name);
+        if (regions.contains(name)) return regions.at(name);
+        if (iexpressions.contains(name)) return iexpressions.at(name);
+        throw pybind11::key_error(name);
     }
-
-    private:
-
-    void clear_cache() {
-        regions.clear();
-        locsets.clear();
-        iexpressions.clear();
-        cache.clear();
-    }
-
-    void update_cache() {
-        for (const auto& [lab, reg]: dict.regions()) {
-            if (!cache.count(lab)) {
-                std::stringstream s;
-                s << reg;
-                regions.push_back(lab);
-                cache[lab] = s.str();
-            }
-        }
-        for (const auto& [lab, ls]: dict.locsets()) {
-            if (!cache.count(lab)) {
-                std::stringstream s;
-                s << ls;
-                locsets.push_back(lab);
-                cache[lab] = s.str();
-            }
-        }
-        for (const auto& [lab, ls]: dict.iexpressions()) {
-            if (!cache.count(lab)) {
-                std::stringstream s;
-                s << ls;
-                iexpressions.push_back(lab);
-                cache[lab] = s.str();
-            }
-        }
-        // Sort the region and locset names
-        std::sort(regions.begin(), regions.end());
-        std::sort(locsets.begin(), locsets.end());
-        std::sort(iexpressions.begin(), iexpressions.end());
-    }
-};
+};    
 }

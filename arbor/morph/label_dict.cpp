@@ -17,44 +17,30 @@ label_dict& label_dict::add_swc_tags() {
     return *this;
 }
 
-size_t label_dict::size() const {
-    return locsets_.size() + regions_.size();
-}
+size_t label_dict::size() const { return locsets_.size() + regions_.size() + iexpressions_.size(); }
 
 label_dict& label_dict::set(const std::string& name, arb::locset ls) {
-    if (regions_.count(name) || iexpressions_.count(name)) {
-        throw label_type_mismatch(name);
-    }
+    if (regions_.contains(name) || iexpressions_.contains(name)) throw label_type_mismatch(name);
     locsets_[name] = std::move(ls);
     return *this;
 }
 
 label_dict& label_dict::set(const std::string& name, arb::region reg) {
-    if (locsets_.count(name) || iexpressions_.count(name)) {
-        throw label_type_mismatch(name);
-    }
+    if (locsets_.contains(name) || iexpressions_.contains(name)) throw label_type_mismatch(name);
     regions_[name] = std::move(reg);
     return *this;
 }
 
-label_dict& label_dict::set(const std::string& name, arb::iexpr e) {
-    if (locsets_.count(name) || regions_.count(name)) {
-        throw label_type_mismatch(name);
-    }
-    iexpressions_.insert_or_assign(name, std::move(e));
+label_dict& label_dict::set(const std::string& name, arb::iexpr expr) {
+    if (locsets_.contains(name) || regions_.contains(name)) throw label_type_mismatch(name);
+    iexpressions_[name] = std::move(expr);
     return *this;
 }
 
 label_dict& label_dict::extend(const label_dict& other, const std::string& prefix) {
-    for (const auto& entry: other.locsets()) {
-        set(prefix+entry.first, entry.second);
-    }
-    for (const auto& entry: other.regions()) {
-        set(prefix+entry.first, entry.second);
-    }
-    for (const auto& entry: other.iexpressions()) {
-        set(prefix+entry.first, entry.second);
-    }
+    for (const auto& [k, v]: other.locsets()) set(prefix + k, v);
+    for (const auto& [k, v]: other.regions()) set(prefix + k, v);
+    for (const auto& [k, v]: other.iexpressions()) set(prefix + k, v);
     return *this;
 }
 
@@ -76,16 +62,8 @@ std::optional<iexpr> label_dict::iexpr(const std::string& name) const {
     return it->second;
 }
 
-const std::unordered_map<std::string, locset>& label_dict::locsets() const {
-    return locsets_;
-}
-
-const std::unordered_map<std::string, region>& label_dict::regions() const {
-    return regions_;
-}
-
-const std::unordered_map<std::string, iexpr>& label_dict::iexpressions() const {
-    return iexpressions_;
-}
+const std::unordered_map<std::string, locset>& label_dict::locsets() const { return locsets_; }
+const std::unordered_map<std::string, region>& label_dict::regions() const { return regions_; }
+const std::unordered_map<std::string, iexpr>& label_dict::iexpressions() const { return iexpressions_; }
 
 } // namespace arb
