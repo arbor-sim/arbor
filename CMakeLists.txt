@@ -1,3 +1,6 @@
+# For nlohmann JSON
+set(CMAKE_POLICY_MINIMUM_VERSION 3.5 CACHE)
+
 cmake_minimum_required(VERSION 3.19)
 include(CMakeDependentOption)
 include(CheckIPOSupported)

@@ -33,7 +33,7 @@ Cable cell labels
       .. code-block:: python
 
          labels = arbor.label_dict(soma='(tag 1)',              # region
-                                   midpoint=(location 0 0.5)'}) # locset
+                                   midpoint='(location 0 0.5)') # locset
 
 
    .. method:: extend(other, prefix="")
