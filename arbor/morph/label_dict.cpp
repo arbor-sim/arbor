@@ -37,6 +37,8 @@ label_dict& label_dict::set(const std::string& name, arb::iexpr expr) {
     return *this;
 }
 
+std::size_t label_dict::erase(const std::string& name) { return locsets_.erase(name) + regions_.erase(name) + iexpressions_.erase(name); }
+
 label_dict& label_dict::extend(const label_dict& other, const std::string& prefix) {
     for (const auto& [k, v]: other.locsets()) set(prefix + k, v);
     for (const auto& [k, v]: other.regions()) set(prefix + k, v);
