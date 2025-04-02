@@ -108,7 +108,7 @@ void register_label_dict(py::module& m) {
              "key"_a, "default"_a=py::none(),
              "Set with optional default.")
         .def("__iter__",
-            [](const label_dict& ld) { return py_label_dict_item_iterator(ld); },
+            [](const label_dict& ld) { return py_label_dict_key_iterator(ld); },
             py::keep_alive<0, 1>())
         .def("keys",
             [](const label_dict &ld) { return py_label_dict_key_iterator(ld); },
