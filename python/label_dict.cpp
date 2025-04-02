@@ -64,6 +64,12 @@ void register_label_dict(py::module& m) {
             " and corresponding definitions as strings.")
         .def(py::init<const label_dict&>(),
             "Initialize a label dictionary from another one")
+        .def(py::init([](const py::kwargs& kwargs) {
+                label_dict ld;
+                for (const auto& [k, v]: kwargs) ld.setitem(std::string(py::str(k)), std::string(py::str(v)));
+                return ld;
+            }),
+            "Initialize a label dictionary from an iterable of key, definition pairs")
         .def(py::init([](py::iterator& it) {
                 label_dict ld;
                 for (; it != py::iterator::sentinel(); ++it) {
