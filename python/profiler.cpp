@@ -54,17 +54,21 @@ void register_profiler(pybind11::module& m) {
         .def("__repr__", [](arb::profile::meter_report& r){return "<arbor.meter_report>";});
 
 #ifdef ARB_PROFILE_ENABLED
-    m.def("profiler_initialize", [](context_shim& ctx) {
-        arb::profile::profiler_initialize(ctx.context);
-    });
-    m.def("profiler_summary",
-          [](double limit){
-              std::stringstream stream;
-              arb::profile::print_profiler_summary(stream, limit);
-              return stream.str();
-          },
-          "limit"_a=0.0,
-          "Show summary of the profile; printing contributions above `limit` percent. Defaults to showing all.");
+    m
+        .def("profiler_initialize", [](context_shim& ctx) {
+            arb::profile::profiler_initialize(ctx.context);
+        })
+        .def("profiler_summary",
+            [](double limit){
+                std::stringstream stream;
+                arb::profile::print_profiler_summary(stream, limit);
+                return stream.str();
+            },
+            "limit"_a=0.0,
+            "Show summary of the profile; printing contributions above `limit` percent. Defaults to showing all.")
+        .def("profiler_clear",
+             [] { arb::profile::profiler_clear(); },
+             "Reset the profiler.");
 #endif
 }
 
