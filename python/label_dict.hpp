@@ -64,6 +64,13 @@ struct label_dict {
         return *this;
     }
 
+    void delitem(const std::string& name) {
+        dict.erase(name);
+        locsets.erase(name);
+        regions.erase(name);
+        iexpressions.erase(name);
+    }
+    
     void setitem(const std::string& name, const std::string& desc) {
         using namespace std::string_literals;
         // The following code takes an input name and a region or locset or iexpr

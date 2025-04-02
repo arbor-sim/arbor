@@ -89,8 +89,24 @@ void register_label_dict(py::module& m) {
              " - apic: (tag 4)")
         .def("__setitem__", &label_dict::setitem)
         .def("__getitem__", &label_dict::getitem)
+        .def("__delitem__", &label_dict::delitem)
         .def("__len__", &label_dict::size)
         .def("__contains__", &label_dict::contains)
+        .def("get",
+             [](label_dict& ld, const std::string& key, std::optional<std::string> def) -> std::optional<std::string> {
+                     if (ld.contains(key)) return ld.getitem(key);
+                     return def;
+             },
+             "key"_a, "default"_a=py::none(),
+             "Get with optional default.")
+        .def("setdefault",
+             [](label_dict& ld, const std::string& key, std::optional<std::string> def) -> std::optional<std::string> {
+                     if (ld.contains(key)) return ld.getitem(key);
+                     if (def) ld.setitem(key, *def);
+                     return def;
+             },
+             "key"_a, "default"_a=py::none(),
+             "Set with optional default.")
         .def("__iter__",
             [](const label_dict& ld) { return py_label_dict_item_iterator(ld); },
             py::keep_alive<0, 1>())
