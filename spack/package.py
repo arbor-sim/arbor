@@ -119,6 +119,7 @@ class Arbor(CMakePackage, CudaPackage):
         extends("python")
         depends_on("python@3.7:", type=("build", "run"))
         depends_on("python@3.9:", when="@0.9.1:", type=("build", "run"))
+        depends_on("python@3.10:", when="@0.10.0:", type=("build", "run"))
         depends_on("py-numpy", type=("build", "run"))
         depends_on("py-pybind11@2.6:", type="build")
         depends_on("py-pybind11@2.8.1:", when="@0.5.3:", type="build")
@@ -154,7 +155,7 @@ class Arbor(CMakePackage, CudaPackage):
         # query spack for the architecture-specific compiler flags set by its wrapper
         args.append("-DARB_ARCH=none")
         opt_flags = self.spec.target.optimization_flags(
-            self.spec.compiler.name, str(self.spec.compiler.version)
+            self.spec.compiler, str(self.spec.compiler.version)
         )
         # Might return nothing
         if opt_flags:
