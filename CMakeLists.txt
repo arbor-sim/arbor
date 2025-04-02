@@ -1,5 +1,4 @@
-# For nlohmann JSON
-set(CMAKE_POLICY_MINIMUM_VERSION 3.5 CACHE)
+set(CMAKE_POLICY_MINIMUM_VERSION 3.5 CACHE STRING "Allow JSON to slip through" FORCE)
 
 cmake_minimum_required(VERSION 3.19)
 include(CMakeDependentOption)
