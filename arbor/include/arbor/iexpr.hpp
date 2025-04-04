@@ -39,7 +39,7 @@ enum class iexpr_type {
 
 struct ARB_SYMBOL_VISIBLE iexpr {
     // Convert to scalar expr type
-    iexpr(double value);
+    iexpr(double value=1.0);
 
     iexpr_type type() const { return type_; }
 

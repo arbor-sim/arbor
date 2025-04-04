@@ -2,11 +2,8 @@
 
 #include <cstdlib>
 #include <memory>
-#include <set>
 #include <string>
-#include <unordered_map>
 #include <utility>
-#include <vector>
 
 #include <arbor/export.hpp>
 #include <arbor/morph/primitives.hpp>
@@ -16,11 +13,9 @@ namespace arb {
 
 struct mprovider;
 
-class locset;
 class locset_tag {};
 
-class ARB_SYMBOL_VISIBLE locset {
-public:
+struct ARB_SYMBOL_VISIBLE locset {
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<locset_tag, std::decay_t<Impl>>::value>>
     explicit locset(Impl&& impl):
@@ -60,7 +55,7 @@ public:
     friend mlocation_list thingify(const locset& p, const mprovider& m) {
         return p.impl_->thingify(m);
     }
-
+    
     friend std::ostream& operator<<(std::ostream& o, const locset& p) {
         return p.impl_->print(o);
     }
