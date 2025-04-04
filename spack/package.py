@@ -139,27 +139,24 @@ class Arbor(CMakePackage, CudaPackage):
         return ["all", "html"] if "+doc" in self.spec else ["all"]
 
     def cmake_args(self):
+        spec = self.spec
         args = [
             self.define_from_variant("ARB_WITH_ASSERTIONS", "assertions"),
             self.define_from_variant("ARB_WITH_MPI", "mpi"),
             self.define_from_variant("ARB_WITH_PYTHON", "python"),
             self.define_from_variant("ARB_VECTORIZE", "vectorize"),
-            self.define_from_variant("ARB_USE_HWLOC", "hwloc"),
-            self.define_from_variant("ARB_BUILD_PYTHON_STUBS", "pystubs"),
+            self.define("ARB_ARCH", "none"),
+            self.define("ARB_CXX_FLAGS_TARGET", optimization_flags(self.compiler, spec.target)),
         ]
 
-        if "+cuda" in self.spec:
-            args.append("-DARB_GPU=cuda")
-            args.append(self.define_from_variant("ARB_USE_GPU_RNG", "gpu_rng"))
+        if self.spec.satisfies("+cuda"):
+            args.extend(
+                [
+                    self.define("ARB_GPU", "cuda"),
+                    self.define_from_variant("ARB_USE_GPU_RNG", "gpu_rng"),
+                ]
+            )
 
-        # query spack for the architecture-specific compiler flags set by its wrapper
-        args.append("-DARB_ARCH=none")
-        opt_flags = self.spec.target.optimization_flags(
-            self.spec.compiler, str(self.spec.compiler.version)
-        )
-        # Might return nothing
-        if opt_flags:
-            args.append("-DARB_CXX_FLAGS_TARGET=" + opt_flags)
         return args
 
     @run_after("install", when="+python")
