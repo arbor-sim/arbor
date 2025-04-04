@@ -89,6 +89,8 @@ class Arbor(CMakePackage, CudaPackage):
     conflicts("%intel")
 
     depends_on("cmake@3.19:", type="build")
+    depends_on("c", type="build")  # generated 
+    depends_on("cxx", type="build")  # generated
 
     # misc dependencies
     depends_on("fmt@7.1:", when="@0.5.3:")  # required by the modcc compiler
