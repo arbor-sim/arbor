@@ -111,17 +111,17 @@ struct ring_recipe: public arb::recipe {
     arb::cable_cell_global_properties gprop;
 };
 
-struct tile: arb::tile {
-    tile(ring_params ps, std::size_t nt): recipe_{std::move(ps)}, num_tiles_{nt} {}
+struct tiled_recipe: arb::recipe {
+    tiled_recipe(ring_params ps, std::size_t nt): recipe_{std::move(ps)}, num_tiles_{nt} {}
 
-    cell_size_type num_cells() const override { return recipe_.num_cells(); }
-    cell_size_type num_tiles() const override { return num_tiles_; }
+    cell_size_type num_cells() const override { return recipe_.num_cells() * num_tiles_; }
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override { return recipe_.get_cell_description(gid % recipe_.num_cells()); }
     arb::cell_kind get_cell_kind(cell_gid_type gid) const override { return recipe_.get_cell_kind(gid % recipe_.num_cells()); }
     std::any get_global_properties(arb::cell_kind k) const override { return recipe_.get_global_properties(k); }
 
     //
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
+        if (gid >= recipe_.num_cells_) throw std::runtime_error{"Up"};
         // tile internal
         auto conns = recipe_.connections_on(gid % recipe_.num_cells());
         auto ncons = recipe_.params_.cell.synapses;
@@ -174,7 +174,7 @@ int main(int argc, char** argv) {
         meters.start(ctx);
 
         // Create an instance of our recipe.
-        arb::symmetric_recipe recipe(std::make_unique<tile>(params, params.num_tiles));
+        tiled_recipe recipe(params, params.num_tiles);
         auto decomp = arb::partition_load_balance(recipe, ctx, {{arb::cell_kind::cable, params.hint}});
         // Construct the model.
         arb::simulation sim(recipe, ctx, decomp);
@@ -197,8 +197,7 @@ int main(int argc, char** argv) {
             std::cout << "\n" << ns << " spikes generated at rate of "
                       << params.duration/ns << " ms between spikes\n"
                       << report << '\n';
-            arb::profile::print_profiler_summary(std::cout, 5);
-
+            arb::profile::print_profiler_summary(std::cout, 0);
         }
     }
     catch (std::exception& e) {
