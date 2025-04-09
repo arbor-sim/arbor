@@ -15,7 +15,7 @@ namespace{
 
 TEST(event_generators, assign_and_copy) {
     event_generator gen = regular_generator({"l2"}, 5., 0.5*arb::units::ms, 0.75*arb::units::ms);
-    gen.resolve_label([](const cell_local_label_type&) {return 2;});
+    gen.set_target_lid(2);
     spike_event expected{2, 0.75, 5.};
 
     auto first = [](const event_seq& seq) {
@@ -54,7 +54,7 @@ TEST(event_generators, regular) {
     float weight = 3.14;
 
     event_generator gen = regular_generator(label, weight, t0*arb::units::ms, dt*arb::units::ms);
-    gen.resolve_label([lid](const cell_local_label_type&) {return lid;});
+    gen.set_target_lid(lid);
 
     // Helper for building a set of expected events.
     auto expected = [&] (std::vector<time_type> times) {
@@ -90,7 +90,7 @@ TEST(event_generators, seq) {
     }
 
     event_generator gen = explicit_generator_from_milliseconds(l0, weight, times);
-    gen.resolve_label([](const cell_local_label_type&) {return 0;});
+    gen.set_target_lid(0);
 
     EXPECT_EQ(expected, as_vector(gen.events(0, 100.))); gen.reset();
     EXPECT_EQ(expected, as_vector(gen.events(0, 100.))); gen.reset();
@@ -130,7 +130,7 @@ TEST(event_generators, poisson) {
     float weight = 42;
 
     event_generator gen = poisson_generator(label, weight, t0*arb::units::ms, lambda*arb::units::kHz);
-    gen.resolve_label([lid](const cell_local_label_type&) {return lid;});
+    gen.set_target_lid(lid);
 
     pse_vector int1 = as_vector(gen.events(0, t1));
     // Test that the output is sorted
