@@ -1,6 +1,6 @@
 {
     "name": "run_n=128_d=10-complex=true",
-    "num-cells": 2048,
+    "num-cells": 128,
     "synapses": 1000,
     "min-delay": 5,
     "duration": 25,
