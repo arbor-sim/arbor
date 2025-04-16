@@ -17,14 +17,13 @@ class Arbor(CMakePackage, CudaPackage):
     submodules = True
 
     version("master", branch="master", submodules=True)
-    version("develop", branch="master", submodules=True)
+    version("develop")
     version(
         "0.10.0",
         sha256="6b6cc900b85fbf833fae94817b9406a0d690dc28",
         url="https://github.com/arbor-sim/arbor/releases/download/v0.10.1/arbor-v0.10.0-full.tar.gz",
         submodules=True,
     )
-
     version(
         "0.9.0",
         sha256="5f9740955c821aca81e23298c17ad64f33f635756ad9b4a0c1444710f564306a",
@@ -94,7 +93,7 @@ class Arbor(CMakePackage, CudaPackage):
     depends_on("pugixml@1.11:", when="@0.7.1:")
     depends_on("pugixml@1.13:", when="@0.9.1:")
     depends_on("pugixml@1.14:", when="@0.10.0:")
-    depends_on("nlohmann-json@3.11.3:")
+    depends_on("nlohmann-json@3.12.0:")
     depends_on("random123@1.14.0:")
     with when("+cuda"):
         depends_on("cuda@10:")
@@ -110,22 +109,22 @@ class Arbor(CMakePackage, CudaPackage):
     depends_on("hwloc@2:", when="+hwloc", type=("build", "run"))
 
     # python (bindings)
+    extends("python", when="+python")
+    depends_on("py-numpy", type=("build", "run"))
+    depends_on("python@3.7:", type=("build", "run"))
+    depends_on("python@3.9:", when="@0.9.1:", type=("build", "run"))
     with when("+python"):
-        extends("python")
-        depends_on("python@3.7:", type=("build", "run"))
-        depends_on("python@3.9:", when="@0.9.1:", type=("build", "run"))
-        depends_on("py-numpy", type=("build", "run"))
         depends_on("py-pybind11@2.6:", type="build")
         depends_on("py-pybind11@2.8.1:", when="@0.5.3:", type="build")
         depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
         depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
-        depends_on("py-pybind11@2.10.1:", when="@2.11.1:", type="build")
+        depends_on("py-pybind11@2.10.1:", when="@0.10.0:", type="build")
         depends_on("py-pybind11-stubgen@2.5:", when="+pystubs", type="build")
 
     # sphinx based documentation
-    depends_on("python@3.10:", when("+doc"), type="build")
-    depends_on("py-sphinx", when("+doc"), type="build")
-    depends_on("py-svgwrite", when("+doc"), type="build")
+    depends_on("python@3.10:", when="+doc", type="build")
+    depends_on("py-sphinx", when="+doc", type="build")
+    depends_on("py-svgwrite", when="+doc", type="build")
 
     @property
     def build_targets(self):
