@@ -1,8 +1,7 @@
-# Copyright 2013-2023 Lawrence Livermore National Security, LLC and other
-# Spack Project Developers. See the top-level COPYRIGHT file for details.
+# Copyright Spack Project Developers. See COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
-
+from spack.build_environment import optimization_flags
 from spack.package import *
 
 
@@ -12,8 +11,9 @@ class Arbor(CMakePackage, CudaPackage):
 
     homepage = "https://arbor-sim.org"
     git = "https://github.com/arbor-sim/arbor.git"
-    url = "https://github.com/arbor-sim/arbor/releases/download/v0.8.1/arbor-v0.9.0-full.tar.gz"
+    url = "https://github.com/arbor-sim/arbor/releases/download/v0.10.1/arbor-v0.10.0-full.tar.gz"
     maintainers = ("thorstenhater", "haampie")
+    license("BSD-3-Clause")
     submodules = True
 
     version("master", branch="master", submodules=True)
@@ -57,21 +57,13 @@ class Arbor(CMakePackage, CudaPackage):
         url="https://github.com/arbor-sim/arbor/releases/download/v0.5.2/arbor-v0.5.2-full.tar.gz",
     )
 
-    variant(
-        "assertions",
-        default=False,
-        description="Enable arb_assert() assertions in code.",
-    )
+    variant("assertions", default=False, description="Enable arb_assert() assertions in code.")
     variant("doc", default=False, description="Build documentation.")
     variant("mpi", default=False, description="Enable MPI support")
     variant("python", default=True, description="Enable Python frontend support")
+    variant("pystubs", default=True, when="@0.11:", description="Python stub generation")
     variant(
-        "pystubs", default=True, when="@0.11:", description="Python stub generation"
-    )
-    variant(
-        "vectorize",
-        default=False,
-        description="Enable vectorization of computational kernels",
+        "vectorize", default=False, description="Enable vectorization of computational kernels"
     )
     variant("hwloc", default=False, description="support for thread pinning via HWLOC")
     variant(
@@ -87,6 +79,9 @@ class Arbor(CMakePackage, CudaPackage):
     # Cray compiler v9.2 and later is Clang-based.
     conflicts("%cce@:9.1")
     conflicts("%intel")
+
+    depends_on("c", type="build")  # generated
+    depends_on("cxx", type="build")  # generated
 
     depends_on("cmake@3.19:", type="build")
 
@@ -128,10 +123,9 @@ class Arbor(CMakePackage, CudaPackage):
         depends_on("py-pybind11-stubgen@2.5:", when="+pystubs", type="build")
 
     # sphinx based documentation
-    with when("+doc"):
-        depends_on("python@3.10:", type="build")
-        depends_on("py-sphinx", type="build")
-        depends_on("py-svgwrite", type="build")
+    depends_on("python@3.10:", when("+doc"), type="build")
+    depends_on("py-sphinx", when("+doc"), type="build")
+    depends_on("py-svgwrite", when("+doc"), type="build")
 
     @property
     def build_targets(self):
@@ -145,20 +139,18 @@ class Arbor(CMakePackage, CudaPackage):
             self.define_from_variant("ARB_VECTORIZE", "vectorize"),
             self.define_from_variant("ARB_USE_HWLOC", "hwloc"),
             self.define_from_variant("ARB_BUILD_PYTHON_STUBS", "pystubs"),
+            self.define("ARB_ARCH", "none"),
+            self.define("ARB_CXX_FLAGS_TARGET", optimization_flags(self.compiler, self.spec.target)),
         ]
 
-        if "+cuda" in self.spec:
-            args.append("-DARB_GPU=cuda")
-            args.append(self.define_from_variant("ARB_USE_GPU_RNG", "gpu_rng"))
+        if self.spec.satisfies("+cuda"):
+            args.extend(
+                [
+                    self.define("ARB_GPU", "cuda"),
+                    self.define_from_variant("ARB_USE_GPU_RNG", "gpu_rng"),
+                ]
+            )
 
-        # query spack for the architecture-specific compiler flags set by its wrapper
-        args.append("-DARB_ARCH=none")
-        opt_flags = self.spec.target.optimization_flags(
-            self.spec.compiler.name, str(self.spec.compiler.version)
-        )
-        # Might return nothing
-        if opt_flags:
-            args.append("-DARB_CXX_FLAGS_TARGET=" + opt_flags)
         return args
 
     @run_after("install", when="+python")
