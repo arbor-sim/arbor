@@ -141,10 +141,11 @@ void communicator::update_connections(const recipe& rec,
     std::size_t ext = 0;
     auto src_domain = src_domains.begin();
     auto target_resolver = resolver(&target_resolution_map);
+    auto source_resolver = resolver(&source_resolution_map);
     for (const auto index: util::make_span(num_local_cells_)) {
         const auto tgt_gid = gids[index];
         const auto iod = dom_dec.index_on_domain(tgt_gid);
-        auto source_resolver = resolver(&source_resolution_map);
+        source_resolver.clear();
         for (const auto cidx: util::make_span(part_connections[index], part_connections[index+1])) {
             const auto& conn = gid_connections[cidx];
             auto src_gid = conn.source.gid;
