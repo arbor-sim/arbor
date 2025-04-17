@@ -298,7 +298,7 @@ install(TARGETS ext-hwloc EXPORT arbor-targets)
 
 CPMAddPackage(NAME json
               GITHUB_REPOSITORY nlohmann/json
-              VERSION 3.11.2
+              VERSION 3.12.0
               OPTIONS "CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON")
 install(TARGETS nlohmann_json EXPORT arbor-targets)
 
