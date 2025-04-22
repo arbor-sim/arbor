@@ -274,9 +274,14 @@ install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 
 # Add all dependencies.
 
+# Keep track of packages we need to add to the generated CMake config
+# file for arbor.
+set(arbor_export_dependencies)
+
+
 # First make ourselves less chatty
-set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
-set(CMAKE_MESSAGE_LOG_LEVEL STATUS)
+# set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
+# set(CMAKE_MESSAGE_LOG_LEVEL STATUS)
 
 # in the event we can find hwloc, just add it
 find_package(hwloc QUIET)
@@ -334,6 +339,7 @@ if(pugixml_ADDED)
 else()
     target_link_libraries(ext-pugixml INTERFACE pugixml::pugixml)
 endif()
+list(APPEND arbor_export_dependencies pugixml)
 install(TARGETS ext-pugixml EXPORT arbor-targets)
 
 CPMFindPackage(NAME fmt
@@ -365,20 +371,28 @@ if (BUILD_TESTING)
     endif()
 endif()
 
+# This is highly annoying...
+set(skbuild_original ${SKBUILD})
+unset(SKBUILD CACHE)
 CPMFindPackage(NAME units
-              GITHUB_REPOSITORY llnl/units
-              VERSION 0.13.1
-              OPTIONS "UNITS_INSTALL ON"
-                      "UNITS_BUILD_STATIC_LIBRARY ON"
-                      "UNITS_BUILD_SHARED_LIBRARY OFF"
-                      "UNITS_BUILD_OBJECT_LIBRARY OFF"
-                      "UNITS_ENABLE_TESTS OFF"
-                      "UNITS_BUILD_CONVERTER_APP OFF"
-                      "UNITS_BUILD_WEBSERVER OFF")
+               GITHUB_REPOSITORY llnl/units
+               VERSION 0.13.1
+               OPTIONS "UNITS_CMAKE_PROJECT_NAME units"
+                       "UNITS_INSTALL ON"
+                       "UNITS_BUILD_STATIC_LIBRARY ON"
+                       "UNITS_BUILD_SHARED_LIBRARY OFF"
+                       "UNITS_BUILD_OBJECT_LIBRARY OFF"
+                       "UNITS_ENABLE_TESTS OFF"
+                       "UNITS_BUILD_CONVERTER_APP OFF"
+                       "UNITS_BUILD_WEBSERVER OFF")
 target_link_libraries(arbor-public-deps INTERFACE units::units)
 if(units_ADDED)
+    message("ADDED UNITS")
     install(TARGETS units compile_flags_target EXPORT arbor-targets)
 endif()
+list(APPEND arbor_export_dependencies units)
+set(SKBUILD ${skbuild_original} CACHE INTERNAL "" FORCE)
+
 
 CPMFindPackage(NAME tinyopt
               GITHUB_REPOSITORY halfflat/tinyopt
@@ -409,11 +423,6 @@ mark_as_advanced(FORCE FETCHCONTENT_BASE_DIR FETCHCONTENT_FULLY_DISCONNECTED FET
 
 # Restore chattyness
 set(CMAKE_MESSAGE_LOG_LEVEL ${_saved_CMAKE_MESSAGE_LOG_LEVEL})
-
-# Keep track of packages we need to add to the generated CMake config
-# file for arbor.
-
-set(arbor_export_dependencies)
 
 # Keep track of which 'components' of arbor are included (this is
 # currently just 'MPI' support and 'neuroml' for NeuroML support in

@@ -27,6 +27,9 @@ dependencies = [
     "numpy"
 ]
 
+[project.entry-points."cmake.root"]
+arbor = "arbor"
+
 [project.scripts]
 modcc = "arbor:modcc"
 arbor-build-catalogue = "arbor:build_catalogue"
