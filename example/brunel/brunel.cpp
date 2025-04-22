@@ -52,7 +52,7 @@ struct cl_options {
     bool use_cc = false;
     // Simulation running parameters:
     double tfinal = 100.;
-    double dt = 1;
+    double dt = 0.05;
     uint32_t group_size = 10;
     uint32_t seed = 42;
     // Parameters for spike output.
@@ -102,7 +102,7 @@ public:
         ncells_exc_(nexc), ncells_inh_(ninh), delay_(delay), seed_(seed), use_cable_cells(use_cc) {
         // Make sure that in_degree_prop in the interval (0, 1]
         if (in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
-            throw std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
+            throw std::domain_error("The proportion of incoming connections should be in the interval (0, 1].");
         }
 
         // Set up the parameters.
