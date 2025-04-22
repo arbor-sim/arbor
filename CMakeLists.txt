@@ -371,7 +371,7 @@ endif()
 
 CPMAddPackage(NAME units
               GITHUB_REPOSITORY llnl/units
-              VERSION 0.9.1
+              VERSION 0.13.1
               OPTIONS "CMAKE_PROJECT_NAME UNITS"
                       "UNITS_INSTALL ON"
                       "UNITS_BUILD_STATIC_LIBRARY ON"
