@@ -310,7 +310,6 @@ CPMAddPackage(NAME random123
 if(random123_ADDED)
     target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${random123_SOURCE_DIR}/include>)
 else()
-    find_package(Random123 REQUIRED)
     target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
 endif()
 install(TARGETS ext-random123 EXPORT arbor-targets)
@@ -333,7 +332,6 @@ if(pugixml_ADDED)
     target_compile_definitions(ext-pugixml INTERFACE PUGIXML_HEADER_ONLY)
     target_include_directories(ext-pugixml INTERFACE $<BUILD_INTERFACE:${pugixml_SOURCE_DIR}/src>)
 else()
-    find_package(pugixml REQUIRED)
     target_link_libraries(ext-pugixml INTERFACE pugixml::pugixml)
 endif()
 install(TARGETS ext-pugixml EXPORT arbor-targets)
@@ -358,13 +356,11 @@ if (BUILD_TESTING)
     if(benchmark_ADDED)
         target_link_libraries(ext-bench INTERFACE benchmark)
     else()
-        find_package(benchmark REQUIRED)
         target_link_libraries(ext-bench INTERFACE benchmark::benchmark)
     endif()
     if(googletest_ADDED)
         target_link_libraries(ext-gtest INTERFACE )
     else()
-        find_package(googletest REQUIRED)
         target_link_libraries(ext-gtest INTERFACE gtest gtest_main)
     endif()
 endif()
@@ -372,21 +368,17 @@ endif()
 CPMAddPackage(NAME units
               GITHUB_REPOSITORY llnl/units
               VERSION 0.13.1
-              OPTIONS "CMAKE_PROJECT_NAME UNITS"
-                      "UNITS_INSTALL ON"
+              OPTIONS "UNITS_INSTALL ON"
                       "UNITS_BUILD_STATIC_LIBRARY ON"
+                      "UNITS_BUILD_SHARED_LIBRARY OFF"
+                      "UNITS_BUILD_OBJECT_LIBRARY OFF"
                       "UNITS_ENABLE_TESTS OFF"
                       "UNITS_BUILD_CONVERTER_APP OFF"
                       "UNITS_BUILD_WEBSERVER OFF")
 add_library(ext-units INTERFACE)
-if(units_ADDED)
-    target_link_libraries(ext-units INTERFACE units::units)
-else()
-    find_package(units REQUIRED)
-    target_link_libraries(ext-units INTERFACE units::units)
-endif()
-target_link_libraries(arbor-public-deps INTERFACE ext-units)
+target_link_libraries(ext-units INTERFACE units::units)
 install(TARGETS ext-units EXPORT arbor-targets)
+target_link_libraries(arbor-public-deps INTERFACE ext-units)
 
 CPMAddPackage(NAME tinyopt
               GITHUB_REPOSITORY halfflat/tinyopt
