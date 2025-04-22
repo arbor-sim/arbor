@@ -296,14 +296,14 @@ else()
 endif()
 install(TARGETS ext-hwloc EXPORT arbor-targets)
 
-CPMAddPackage(NAME json
+CPMFindPackage(NAME json
               GITHUB_REPOSITORY nlohmann/json
               VERSION 3.12.0
               OPTIONS "CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON")
 install(TARGETS nlohmann_json EXPORT arbor-targets)
 
 add_library(ext-random123 INTERFACE)
-CPMAddPackage(NAME random123
+CPMFindPackage(NAME random123
               DOWNLOAD_ONLY YES
               GITHUB_REPOSITORY DEShawResearch/random123
               VERSION 1.14.0)
@@ -315,7 +315,7 @@ endif()
 install(TARGETS ext-random123 EXPORT arbor-targets)
 
 if (ARB_WITH_PYTHON)
-    CPMAddPackage(NAME pybind11
+    CPMFindPackage(NAME pybind11
                   GITHUB_REPOSITORY pybind/pybind11
                   VERSION 2.13.6
                   OPTIONS "PYBIND11_CPP_STANDARD -std=c++20")
@@ -323,7 +323,7 @@ if (ARB_WITH_PYTHON)
     include(FindPythonModule)
 endif()
 
-CPMAddPackage(NAME pugixml
+CPMFindPackage(NAME pugixml
               GITHUB_REPOSITORY zeux/pugixml
               VERSION 1.13
               DOWNLOAD_ONLY YES)
@@ -336,7 +336,7 @@ else()
 endif()
 install(TARGETS ext-pugixml EXPORT arbor-targets)
 
-CPMAddPackage(NAME fmt
+CPMFindPackage(NAME fmt
               GITHUB_REPOSITORY fmtlib/fmt
               VERSION 10.0.0
               GIT_TAG 10.0.0)
@@ -344,11 +344,11 @@ CPMAddPackage(NAME fmt
 add_library(ext-gtest INTERFACE)
 add_library(ext-bench INTERFACE)
 if (BUILD_TESTING)
-    CPMAddPackage(NAME benchmark
+    CPMFindPackage(NAME benchmark
                   GITHUB_REPOSITORY google/benchmark
                   VERSION 1.8.3
                   OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "CMAKE_BUILD_TYPE release" "BUILD_SHARED_LIBS OFF")
-    CPMAddPackage(NAME googletest
+    CPMFindPackage(NAME googletest
                   GITHUB_REPOSITORY google/googletest
                   GIT_TAG release-1.12.1
                   VERSION 1.12.1
@@ -365,7 +365,7 @@ if (BUILD_TESTING)
     endif()
 endif()
 
-CPMAddPackage(NAME units
+CPMFindPackage(NAME units
               GITHUB_REPOSITORY llnl/units
               VERSION 0.13.1
               OPTIONS "UNITS_INSTALL ON"
@@ -375,12 +375,12 @@ CPMAddPackage(NAME units
                       "UNITS_ENABLE_TESTS OFF"
                       "UNITS_BUILD_CONVERTER_APP OFF"
                       "UNITS_BUILD_WEBSERVER OFF")
-add_library(ext-units INTERFACE)
-target_link_libraries(ext-units INTERFACE units::units)
-install(TARGETS ext-units EXPORT arbor-targets)
-target_link_libraries(arbor-public-deps INTERFACE ext-units)
+target_link_libraries(arbor-public-deps INTERFACE units::units)
+if(units_ADDED)
+    install(TARGETS units compile_flags_target EXPORT arbor-targets)
+endif()
 
-CPMAddPackage(NAME tinyopt
+CPMFindPackage(NAME tinyopt
               GITHUB_REPOSITORY halfflat/tinyopt
               GIT_TAG 7e6d707d49c6cb4be27ebd253856be65293288df
               DOWNLOAD_ONLY YES)
