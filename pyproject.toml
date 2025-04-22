@@ -119,6 +119,7 @@ build-backend = "scikit_build_core.build"
 build-frontend = "build"
 build = ["*linux*","*macosx*"]
 manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
 skip = ["cp36*", "cp37*", "cp38*", "cp39*", "*musllinux*"]
 test-command = "python -m unittest discover -v -s {project}/python"
 dependency-versions = "latest"
