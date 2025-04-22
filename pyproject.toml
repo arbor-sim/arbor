@@ -17,10 +17,10 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: BSD License",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: C++"
 ]
 dependencies = [
@@ -118,18 +118,17 @@ build-backend = "scikit_build_core.build"
 [tool.cibuildwheel]
 build-frontend = "build"
 build = ["*linux*","*macosx*"]
-skip = ["cp36*", "cp37*", "cp38*", "*musllinux*"]
+manylinux-x86_64-image = "manylinux_2_28"
+skip = ["cp36*", "cp37*", "cp38*", "cp39*", "*musllinux*"]
 test-command = "python -m unittest discover -v -s {project}/python"
 dependency-versions = "latest"
 
 [tool.cibuildwheel.macos]
-#archs = ["universal2"]
 archs = ["arm64", "x86_64"]
-environment = { MACOSX_DEPLOYMENT_TARGET = "12.0.1" }
+environment = { MACOSX_DEPLOYMENT_TARGET = "14.0" }
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
-#TBD
