@@ -318,7 +318,7 @@ install(TARGETS ext-random123 EXPORT arbor-targets)
 if (ARB_WITH_PYTHON)
     CPMAddPackage(NAME pybind11
                   GITHUB_REPOSITORY pybind/pybind11
-                  VERSION 2.10.1
+                  VERSION 2.13.6
                   OPTIONS "PYBIND11_CPP_STANDARD -std=c++20")
     # required for find_python_module
     include(FindPythonModule)
