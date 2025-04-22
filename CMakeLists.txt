@@ -280,8 +280,8 @@ set(arbor_export_dependencies)
 
 
 # First make ourselves less chatty
-# set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
-# set(CMAKE_MESSAGE_LOG_LEVEL STATUS)
+set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
+set(CMAKE_MESSAGE_LOG_LEVEL STATUS)
 
 # in the event we can find hwloc, just add it
 find_package(hwloc QUIET)
@@ -387,7 +387,6 @@ CPMFindPackage(NAME units
                        "UNITS_BUILD_WEBSERVER OFF")
 target_link_libraries(arbor-public-deps INTERFACE units::units)
 if(units_ADDED)
-    message("ADDED UNITS")
     install(TARGETS units compile_flags_target EXPORT arbor-targets)
 endif()
 list(APPEND arbor_export_dependencies units)
