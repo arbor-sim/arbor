@@ -338,9 +338,9 @@ if(pugixml_ADDED)
     target_compile_definitions(ext-pugixml INTERFACE PUGIXML_HEADER_ONLY)
     target_include_directories(ext-pugixml INTERFACE $<BUILD_INTERFACE:${pugixml_SOURCE_DIR}/src>)
 else()
+    list(APPEND arbor_export_dependencies pugixml)
     target_link_libraries(ext-pugixml INTERFACE pugixml::pugixml)
 endif()
-list(APPEND arbor_export_dependencies pugixml)
 install(TARGETS ext-pugixml EXPORT arbor-targets)
 
 CPMFindPackage(NAME fmt
@@ -372,13 +372,16 @@ if (BUILD_TESTING)
     endif()
 endif()
 
-# This is highly annoying...
-set(skbuild_original ${SKBUILD})
-unset(SKBUILD CACHE)
 CPMFindPackage(NAME units
                GITHUB_REPOSITORY llnl/units
                VERSION 0.13.1
-               OPTIONS "UNITS_INSTALL ON"
+               OPTIONS "UNITS_PROJECT_NAME units"
+                       "SKBUILD OFF"
+                       "UNITS_INSTALL ON"
+                       "BUILD_SHARED_LIBS OFF"
+                       "UNITS_BUILD_STATIC_LIBRARY ON"
+                       "UNITS_BUILD_SHARED_LIBRARY OFF"
+                       "UNITS_BUILD_OBJECT_LIBRARY OFF"
                        "UNITS_ENABLE_TESTS OFF"
                        "UNITS_BUILD_CONVERTER_APP OFF"
                        "UNITS_BUILD_WEBSERVER OFF")
@@ -387,8 +390,6 @@ if(units_ADDED)
     install(TARGETS units compile_flags_target EXPORT arbor-targets)
 endif()
 list(APPEND arbor_export_dependencies units)
-set(SKBUILD ${skbuild_original} CACHE INTERNAL "" FORCE)
-
 
 CPMFindPackage(NAME tinyopt
               GITHUB_REPOSITORY halfflat/tinyopt
