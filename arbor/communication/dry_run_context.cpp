@@ -18,6 +18,30 @@ struct dry_run_context_impl {
     remote_gather_spikes(const std::vector<spike>& local_spikes) const {
         return {};
     }
+    
+    gathered_vector<spike> 
+    all_to_all_spikes(const std::vector<std::vector<spike>>& local_spike) const {
+    	using count_type = gathered_vector<spike>::count_type;
+
+		std::vector<spike> gathered_spikes;
+		std::vector<count_type> partition;
+		partition.push_back(0);
+
+		for (count_type sender = 0; sender < num_ranks_; ++sender) {
+		    const auto& incoming = local_spike[sender];
+
+		    for (spike s : incoming) {
+		        s.source.gid += num_cells_per_tile_ * sender;
+		        gathered_spikes.push_back(s);
+		    }
+
+		    partition.push_back(static_cast<count_type>(gathered_spikes.size()));
+		}
+
+		return gathered_vector<spike>(std::move(gathered_spikes), std::move(partition));
+    
+    }
+    
     gathered_vector<spike>
     gather_spikes(const std::vector<spike>& local_spikes) const {
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <unordered_set>
 
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
@@ -77,7 +78,6 @@ public:
     // used for commmunicate to coupled simulations
     void remote_ctrl_send_continue(const epoch&);
     void remote_ctrl_send_done();
-
     void update_connections(const recipe& rec,
                             const domain_decomposition& dom_dec,
                             const label_resolution_map& source_resolution_map,
@@ -144,6 +144,8 @@ private:
     std::vector<cell_size_type> connection_part_;
     std::vector<cell_size_type> index_divisions_;
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
+    // sources with connections to other rank
+    std::unordered_map<cell_size_type, std::unordered_set<cell_gid_type>> outgoing_remote_targets_;
 
     spike_predicate remote_spike_filter_;
 

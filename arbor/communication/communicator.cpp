@@ -2,6 +2,8 @@
 #include <utility>
 #include <vector>
 #include <limits>
+#include <iostream>
+#include <unordered_set>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -147,6 +149,7 @@ void communicator::update_connections(const recipe& rec,
     std::size_t n_con = 0;
     std::vector<std::vector<connection>> connections_by_src_domain(num_domains_);
     target_resolver.clear();
+
     for (const auto tgt_gid: gids) {
         auto iod = dom_dec.index_on_domain(tgt_gid);
         source_resolver.clear();
@@ -168,6 +171,32 @@ void communicator::update_connections(const recipe& rec,
             ++n_con;
         }
     }
+    
+    std::unordered_map<cell_size_type, std::unordered_set<cell_gid_type>> outgoing_remote_targets;
+	cell_size_type my_rank = ctx_->distributed->id();
+	outgoing_remote_targets[my_rank] = std::unordered_set<cell_gid_type> (gids.begin(), gids.end());
+	cell_gid_type target_gid = 0;
+	for (; dom_dec.gid_domain(target_gid) != static_cast<int>(my_rank) ; ++target_gid) {
+		for (const auto& conn : rec.connections_on(target_gid)) {
+			cell_gid_type source_gid = conn.source.gid;
+			cell_size_type target_rank = dom_dec.gid_domain(target_gid);
+			cell_size_type source_rank = dom_dec.gid_domain(source_gid);
+			if ( target_rank != my_rank && source_rank == my_rank ) {
+			    outgoing_remote_targets[target_rank].insert(source_gid);
+			}
+		}
+	}
+	for (target_gid += gids.size(); target_gid < num_total_cells_ ; ++target_gid) {
+		for (const auto& conn : rec.connections_on(target_gid)) {
+			cell_gid_type source_gid = conn.source.gid;
+			cell_size_type target_rank = dom_dec.gid_domain(target_gid);
+			cell_size_type source_rank = dom_dec.gid_domain(source_gid);
+			if ( target_rank != my_rank && source_rank == my_rank ) {
+			    outgoing_remote_targets[target_rank].insert(source_gid);
+			}
+		}
+	}
+	
     PL();
 
     // Construct connections from high-level specification.
@@ -197,7 +226,9 @@ void communicator::update_connections(const recipe& rec,
     connections_.clear();
     connections_.reserve(n_con);
     connections_.make(connections_by_src_domain);
-    PL();
+    outgoing_remote_targets_ = outgoing_remote_targets;
+    
+	PL();
 }
 
 std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_size_type i) {
@@ -217,6 +248,19 @@ time_type communicator::min_delay() {
     return res;
 }
 
+void generate_values_all_to_all(std::unordered_map<cell_size_type, std::unordered_set<cell_gid_type>> outgoing_remote_targets,
+                               std::vector<spike> spks, std::vector<std::vector<spike>>& values,
+                               cell_size_type my_rank) {
+    
+    for (const auto& [rb, gid_set] : outgoing_remote_targets) {
+		for (const auto& sp : spks) {
+			if (gid_set.count(sp.source.gid) || rb == my_rank) {
+			    values[rb].push_back(sp);
+			}
+		}
+	}
+}
+
 communicator::spikes
 communicator::exchange(std::vector<spike> local_spikes) {
     PE(communication:exchange:sort);
@@ -226,7 +270,13 @@ communicator::exchange(std::vector<spike> local_spikes) {
 
     PE(communication:exchange:gather);
     // global all-to-all to gather a local copy of the global spike list on each node.
-    auto global_spikes = ctx_->distributed->gather_spikes(local_spikes);
+    std::vector<unsigned> counts(num_domains_, 0);
+    std::vector<unsigned> displ(num_domains_, 0);
+    std::vector<std::vector<spike>> values(num_domains_);
+    generate_values_all_to_all(outgoing_remote_targets_, local_spikes, values, ctx_->distributed->id());
+	
+	auto global_spikes = ctx_->distributed->all_to_all_spikes(values);
+    
     num_spikes_ += global_spikes.size();
     PL();
 
@@ -237,6 +287,7 @@ communicator::exchange(std::vector<spike> local_spikes) {
                                           local_spikes.end(),
                                           [this] (const auto& s) { return !remote_spike_filter_(s); }));
     }
+	
     auto remote_spikes = ctx_->distributed->remote_gather_spikes(local_spikes);
     PL();
 
@@ -247,6 +298,7 @@ communicator::exchange(std::vector<spike> local_spikes) {
     // sort, since we cannot trust our peers
     std::sort(remote_spikes.begin(), remote_spikes.end());
     PL();
+    
     return {global_spikes, remote_spikes};
 }
 

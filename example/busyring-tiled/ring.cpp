@@ -147,6 +147,7 @@ struct tile: arb::tile {
 
 int main(int argc, char** argv) {
     try {
+    	MPI_Init(&argc, &argv);
         bool root = true;
 
         auto params = read_options(argc, argv);
@@ -155,8 +156,9 @@ int main(int argc, char** argv) {
         resources.num_threads = arbenv::default_concurrency();
         resources.bind_threads = params.bind_threads;
 
-        auto ctx = arb::make_context(resources, arb::dry_run_info(params.num_tiles, params.num_cells));
-
+        //auto ctx = arb::make_context(resources, arb::dry_run_info(params.num_tiles, params.num_cells));
+	auto ctx = arb::make_context(resources, MPI_COMM_WORLD);
+	
 #ifdef ARB_PROFILE_ENABLED
         arb::profile::profiler_initialize(ctx);
 #endif
@@ -205,7 +207,7 @@ int main(int argc, char** argv) {
         std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";
         return 1;
     }
-
+    MPI_Finalize();
     return 0;
 }
 
