@@ -3,6 +3,7 @@ name = "arbor"
 dynamic = ["version"]
 readme = {file = "README.md", content-type = "text/markdown"}
 license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 description = "High performance simulation of networks of multicompartment neurons."
 requires-python = ">=3.10"
 keywords = ["simulator", "neuroscience", "morphological detail", "HPC", "GPU", "C++"]
