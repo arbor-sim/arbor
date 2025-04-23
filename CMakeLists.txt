@@ -67,8 +67,9 @@ else()
 endif()
 set(ARB_ARCH ${ARB_DEFAULT_ARCH} CACHE STRING "Target architecture for arbor libraries")
 
-# Perform explicit vectorization?
+option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
+# Perform explicit vectorization?
 option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 
 # Support for Thread pinning
@@ -377,11 +378,7 @@ unset(SKBUILD CACHE)
 CPMFindPackage(NAME units
                GITHUB_REPOSITORY llnl/units
                VERSION 0.13.1
-               OPTIONS "UNITS_CMAKE_PROJECT_NAME units"
-                       "UNITS_INSTALL ON"
-                       "UNITS_BUILD_STATIC_LIBRARY ON"
-                       "UNITS_BUILD_SHARED_LIBRARY OFF"
-                       "UNITS_BUILD_OBJECT_LIBRARY OFF"
+               OPTIONS "UNITS_INSTALL ON"
                        "UNITS_ENABLE_TESTS OFF"
                        "UNITS_BUILD_CONVERTER_APP OFF"
                        "UNITS_BUILD_WEBSERVER OFF")
