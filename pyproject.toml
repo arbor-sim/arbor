@@ -2,7 +2,7 @@
 name = "arbor"
 dynamic = ["version"]
 readme = {file = "README.md", content-type = "text/markdown"}
-license = {file = "LICENSE"}
+license = "BSD-3-Clause"
 description = "High performance simulation of networks of multicompartment neurons."
 requires-python = ">=3.10"
 keywords = ["simulator", "neuroscience", "morphological detail", "HPC", "GPU", "C++"]
@@ -15,7 +15,6 @@ maintainers = [
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -26,6 +25,7 @@ classifiers = [
 dependencies = [
     "numpy"
 ]
+
 
 [project.entry-points."cmake.root"]
 arbor = "arbor"
