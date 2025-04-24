@@ -1,6 +1,6 @@
 # v0.11.0 (*22.04.2025* Happy Easter)
 
-Focssing on bug fixes, modernisation and performance improvements.
+Focussing on bug fixes, modernisation and performance improvements.
 The memory footprint has been reduced substantially
 
 ## Major changes since v0.10
