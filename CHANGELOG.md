@@ -1,3 +1,47 @@
+# v0.11.0 (*22.04.2025* Happy Easter)
+
+Focussing on bug fixes, modernisation and performance improvements.
+The memory footprint has been reduced substantially
+
+## Major changes since v0.10
+* Modernising the code base and infrastructure:
+  * Begin adopting C++20
+  * Use the `ruff` linter / formatter 
+  * Use CPM and simplify CMake.
+* Fixing problems with diffusion
+  * Update units and scaling
+  * Correct solver matrix coefficients
+* :warning: Modcc used to mis-compile `-K^n` into `(-K)^n` due to a parser error 
+* Allow probing of point mechanism state variables by tag.
+
+## Breaking changes
+* Stricter checks on network construction / simulation parameters.
+  * connections will now throw errors when given negative / zero delays
+  * simulation will throw when given a network with minimum delay less than the
+    timestep
+* Discretisation now is a property of the `cable_cell` object, no longer the
+  `decor`
+
+## New tutorials and documentation 
+* Plasticity tutorial
+* Add connectivity tutorial
+  
+## Internal changes
+* Auto-generate type stubs
+* Remove clock for std::chrono
+* added E_R to lif cell model
+* Performance
+  * Fix embarrassingly quadratic bug in fvm-layout
+  * Faster sort spikes
+  * Faster event dispatch
+* Memory footprint
+  * Create less intermediate data from events
+  * Elide GPU allocations for unused arrays (`Xd`, `Xi`, ...)
+* Clean-up catalogue extension. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2409
+* Refactor discretization. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2415
+
+**Full Changelog**: https://github.com/arbor-sim/arbor/compare/v0.10.1...v0.11.0-rc
+
 # v0.10.0 (*08.08.2024*)
 
 ## Major Changes since v0.9.0
