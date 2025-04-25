@@ -163,4 +163,7 @@ configure_file(
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/simd/sve_bits.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arbor/simd)
 
-install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS arbor
+        EXPORT arbor-targets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

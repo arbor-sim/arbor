@@ -200,7 +200,7 @@ for path in paths:
 else:
     raise FileNotFoundError("Could not find required tools. Please check your installation.")
 
-bindir, datdir, pakdir = prefix / args['bin'], path / args["data"] / "arbor", path / args["lib"] / "cmake" / "arbor"
+bindir, datdir, pakdir = prefix / args['bin'], path / args["data"] / "arbor", path / args["lib"] / "cmake"
 
 cmake = f"""
 cmake_minimum_required(VERSION 3.9)
@@ -209,7 +209,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(arbor_DIR {pakdir})
+list(APPEND CMAKE_PREFIX_PATH {pakdir}/arbor)
+list(APPEND CMAKE_PREFIX_PATH {pakdir}/units)
 find_package(arbor REQUIRED)
 {gpu_support}
 set(CMAKE_BUILD_TYPE release)

@@ -87,15 +87,14 @@ file(COPY "${PROJECT_SOURCE_DIR}/VERSION" DESTINATION "${python_mod_path}")
 # Ask Python where it keeps its system (platform) packages.
 file(WRITE "${CMAKE_BINARY_DIR}/install-prefix" "${CMAKE_INSTALL_PREFIX}")
 
-execute_process(
-    COMMAND ${PYTHON_EXECUTABLE} "${PROJECT_SOURCE_DIR}/scripts/where.py"
-    INPUT_FILE "${CMAKE_BINARY_DIR}/install-prefix"
-    OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT_REL
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND ${PYTHON_EXECUTABLE} "${PROJECT_SOURCE_DIR}/scripts/where.py"
+                INPUT_FILE "${CMAKE_BINARY_DIR}/install-prefix"
+                OUTPUT_VARIABLE ARB_PYTHON_LIB_PATH_DEFAULT_REL
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 # convert to absolute path if needed (could be a relative path if ccmake was used)
 get_filename_component(ARB_PYTHON_LIB_PATH_DEFAULT "${ARB_PYTHON_LIB_PATH_DEFAULT_REL}"
-    REALPATH  BASE_DIR "${CMAKE_BINARY_DIR}")
+                       REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
 
 # Default to installing in that path, override with user specified ARB_PYTHON_LIB_PATH
 set(ARB_PYTHON_LIB_PATH ${ARB_PYTHON_LIB_PATH_DEFAULT} CACHE PATH "path for installing Python module for Arbor.")

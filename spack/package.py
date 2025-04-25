@@ -119,6 +119,7 @@ class Arbor(CMakePackage, CudaPackage):
         extends("python")
         depends_on("python@3.7:", type=("build", "run"))
         depends_on("python@3.9:", when="@0.9.1:", type=("build", "run"))
+        depends_on("python@3.10:", when="@0.11.0:", type=("build", "run"))
         depends_on("py-numpy", type=("build", "run"))
         depends_on("py-pybind11@2.6:", type="build")
         depends_on("py-pybind11@2.8.1:", when="@0.5.3:", type="build")
