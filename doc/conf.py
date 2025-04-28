@@ -10,13 +10,12 @@ sys.path.append(script_path)
 
 html_static_path = ["static"]
 html_css_files = ["htmldiag.css"]
-html_js_files = ["domarrow.js"]
+html_js_files = ["domarrow.js", "latest-warning.js"]
 
 
 def setup(app):
     app.add_object_type("generic", "gen", "pair: %s; generic")
     app.add_object_type("label", "lab", "pair: %s; label")
-    app.add_js_file("latest-warning.js")
 
 
 extensions = [
