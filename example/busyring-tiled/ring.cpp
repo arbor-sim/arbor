@@ -197,8 +197,10 @@ int main(int argc, char** argv) {
             std::cout << "\n" << ns << " spikes generated at rate of "
                       << params.duration/ns << " ms between spikes\n"
                       << report << '\n';
-            arb::profile::print_profiler_summary(std::cout, 0);
         }
+#ifdef ARB_PROFILE_ENABLED
+        if (root) arb::profile::print_profiler_summary(std::cout, 0);
+#endif
     }
     catch (std::exception& e) {
         std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";
