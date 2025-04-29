@@ -148,31 +148,33 @@ void communicator::update_connections(const recipe& rec,
     std::size_t n_con = 0;
     std::vector<std::vector<connection>> connections_by_src_domain(num_domains_);
     target_resolver.clear();
-	auto my_rank = ctx_->distributed->id();
-	std::vector<std::unordered_set<cell_gid_type>> gids_domains(num_domains_);
-	for (const auto tgt_gid: gids) {
-        gids_domains[my_rank].insert(tgt_gid);
+    auto my_rank = ctx_->distributed->id();
+    std::vector<std::vector<cell_gid_type>> gids_domains(num_domains_);
+    
+    for (const auto tgt_gid: gids) {
+        gids_domains[my_rank].push_back(tgt_gid);
+        outgoing_remote_targets_[tgt_gid].insert(my_rank);
         auto iod = dom_dec.index_on_domain(tgt_gid);
-	    source_resolver.clear();
+        source_resolver.clear();
         for (const auto& conn: rec.connections_on(tgt_gid)) {
             auto src_gid = conn.source.gid;
-	        if(src_gid >= num_total_cells_) throw arb::bad_connection_source_gid(tgt_gid, src_gid, num_total_cells_);
-	        auto src_dom = dom_dec.gid_domain(src_gid);
-	        auto src_lid = source_resolver.resolve(conn.source);
-	        auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
-	        // NOTE old compilers stumble over emplace_back here
-	        connections_by_src_domain[src_dom].emplace_back(
-	            connection{
-	            .source={.gid=src_gid, .index=src_lid},
-	            .target=tgt_lid,
-	            .weight=conn.weight,
-	            .delay=conn.delay,
-	            .index_on_domain=iod
-	        });
-	        gids_domains[src_dom].insert(src_gid);
-	        ++n_con;
-	    }
-	}
+            if(src_gid >= num_total_cells_) throw arb::bad_connection_source_gid(tgt_gid, src_gid, num_total_cells_);
+            auto src_dom = dom_dec.gid_domain(src_gid);
+            auto src_lid = source_resolver.resolve(conn.source);
+            auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
+            // NOTE old compilers stumble over emplace_back here
+            connections_by_src_domain[src_dom].emplace_back(
+                connection{
+                .source={.gid=src_gid, .index=src_lid},
+                .target=tgt_lid,
+                .weight=conn.weight,
+                .delay=conn.delay,
+                .index_on_domain=iod
+            });
+            gids_domains[src_dom].push_back(src_gid);
+            ++n_con;
+        }
+    }
     PL();
 
     // Construct connections from high-level specification.
@@ -183,35 +185,25 @@ void communicator::update_connections(const recipe& rec,
         if (src_gid >= num_total_cells_) throw arb::bad_connection_source_gid(-1, src_gid, num_total_cells_);
         auto src_dom = dom_dec.gid_domain(src_gid);
         connections_by_src_domain[src_dom].push_back(conn);
-        gids_domains[src_dom].insert(conn.source.gid);
+        gids_domains[src_dom].push_back(src_gid);
         ++n_con;
     }
     PL();
-
+    
     PE(init:communicator:update:connections:gids);
-    std::vector<std::vector<cell_gid_type>> gids_domains_vector;
-    gids_domains_vector.reserve(gids_domains.size());
-    for (auto& domain : gids_domains) {
-        gids_domains_vector.emplace_back(domain.begin(), domain.end());
-        domain.clear();
-    }
-    gids_domains.clear();
-    gids_domains.shrink_to_fit();
-
-    auto global_gids_domains = ctx_->distributed->all_to_all_gids_domains(gids_domains_vector);
+    
+    auto global_gids_domains = ctx_->distributed->all_to_all_gids_domains(gids_domains);
     const auto& vals = global_gids_domains.values();
     const auto& parts = global_gids_domains.partition();
-
     for (std::size_t domain = 0; domain < parts.size() - 1; ++domain) {
         auto start = parts[domain];
         auto end = parts[domain + 1];
 
         for (auto i = start; i < end; ++i) {
-            outgoing_remote_targets_[vals[i]].insert(domain);
+           outgoing_remote_targets_[vals[i]].insert(domain);
         }
     }
-
-	PL();
+    PL();
     // Sort the connections for each domain; num_domains_ independent sorts
     // parallelized trivially.
     PE(init:communicator:update:sort:local);
@@ -227,7 +219,7 @@ void communicator::update_connections(const recipe& rec,
     connections_.clear();
     connections_.reserve(n_con);
     connections_.make(connections_by_src_domain);
-	PL();
+    PL();
 }
 
 std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_size_type i) {
@@ -247,17 +239,17 @@ time_type communicator::min_delay() {
     return res;
 }
 
-void generate_values_all_to_all(std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> outgoing_remote_targets,
-                               std::vector<spike> spks, std::vector<std::vector<spike>>& values) {
+void generate_values_all_to_all(const std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> outgoing_remote_targets,
+                               const std::vector<spike> spks, std::vector<std::vector<spike>>& values) {
     
-	for (const auto& sp : spks) {
-		auto it = outgoing_remote_targets.find(sp.source.gid);
-		if (it != outgoing_remote_targets.end()) {
-		    for (cell_size_type rank : it->second) {
-				values[rank].push_back(sp);
-		    }
-		}
-	}
+    for (const auto& sp : spks) {
+        auto it = outgoing_remote_targets.find(sp.source.gid);
+        if (it != outgoing_remote_targets.end()) {
+            for (cell_size_type rank : it->second) {
+                values[rank].emplace_back(sp);
+            }
+        }
+    }
 }
 
 communicator::spikes
@@ -267,11 +259,13 @@ communicator::exchange(std::vector<spike> local_spikes) {
     util::sort_by(local_spikes, [](spike s){return s.source;});
     PL();
 
-	
-    PE(communication:exchange:all2all);
+    
+    PE(communication:exchange:gen_spikes);
     std::vector<std::vector<spike>> spike_ranks(num_domains_);
     generate_values_all_to_all(outgoing_remote_targets_, local_spikes, spike_ranks);
-	auto global_spikes = ctx_->distributed->all_to_all_spikes(spike_ranks);
+    PL();
+    PE(communication:exchange:all2all);
+    auto global_spikes = ctx_->distributed->all_to_all_spikes(spike_ranks);
     num_spikes_ += global_spikes.size();
     PL();
 
@@ -282,7 +276,7 @@ communicator::exchange(std::vector<spike> local_spikes) {
                                           local_spikes.end(),
                                           [this] (const auto& s) { return !remote_spike_filter_(s); }));
     }
-	
+    
     auto remote_spikes = ctx_->distributed->remote_gather_spikes(local_spikes);
     PL();
     PE(communication:exchange:gather:remote:post_process);

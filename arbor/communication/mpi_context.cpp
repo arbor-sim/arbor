@@ -199,7 +199,7 @@ struct remote_context_impl {
     gathered_vector<spike>
     gather_spikes(const std::vector<spike>& local_spikes) const { return mpi_.gather_spikes(local_spikes); }
 
-	gathered_vector<spike>
+    gathered_vector<spike>
     all_to_all_spikes(const std::vector<std::vector<spike>>& local_spikes) const {
         return mpi_.all_to_all_spikes(local_spikes);
     }

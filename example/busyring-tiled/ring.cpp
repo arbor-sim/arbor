@@ -149,7 +149,8 @@ int main(int argc, char** argv) {
     try {
     	MPI_Init(&argc, &argv);
         bool root = true;
-
+        int rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
         auto params = read_options(argc, argv);
 
         arb::proc_allocation resources;
@@ -195,7 +196,7 @@ int main(int argc, char** argv) {
         auto report = arb::profile::make_meter_report(meters, ctx);
 
         // Write spikes to file
-        if (root) {
+        if (root ) {
             std::cout << "\n" << ns << " spikes generated at rate of "
                       << params.duration/ns << " ms between spikes\n"
                       << report << '\n';

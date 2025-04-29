@@ -260,29 +260,29 @@ gathered_vector<T> all_to_all_with_partition(const std::vector<std::vector<T>>& 
     using gathered_type = gathered_vector<T>;
     using count_type = typename gathered_vector<T>::count_type;
     using traits = mpi_traits<T>;
-	int num_ranks = values.size();
+    int num_ranks = values.size();
     
     std::vector<int> send_counts(num_ranks, 0);
     std::vector<int> send_displs(num_ranks, 0);
     std::vector<T> send_buffer;
     
     for (int i = 0; i < num_ranks; ++i) {
-	    send_counts[i] = values[i].size() * traits::count();
-	    send_displs[i] = send_buffer.size() * traits::count();
-	    send_buffer.insert(send_buffer.end(), values[i].begin(), values[i].end());
-	}
-	
-    std::vector<int> recv_counts(num_ranks, 0);
-	std::vector<int> recv_displs(num_ranks, 0);
+        send_counts[i] = values[i].size() * traits::count();
+        send_displs[i] = send_buffer.size() * traits::count();
+        send_buffer.insert(send_buffer.end(), values[i].begin(), values[i].end());
+    }
 
-	MPI_OR_THROW(MPI_Alltoall, send_counts.data(), 1, MPI_INT,
-		         recv_counts.data(), 1, MPI_INT,
-		         comm);
-		         
-	util::make_partition(recv_displs, recv_counts);
+    std::vector<int> recv_counts(num_ranks, 0);
+    std::vector<int> recv_displs(num_ranks, 0);
+
+    MPI_OR_THROW(MPI_Alltoall, send_counts.data(), 1, MPI_INT,
+                 recv_counts.data(), 1, MPI_INT,
+                 comm);
+
+    util::make_partition(recv_displs, recv_counts);
     std::vector<T> recv_buffer(recv_displs.back() / traits::count());
     
-	MPI_OR_THROW(MPI_Alltoallv,
+    MPI_OR_THROW(MPI_Alltoallv,
         const_cast<T*>(send_buffer.data()), send_counts.data(), send_displs.data(), traits::mpi_type(), // send
         recv_buffer.data(), recv_counts.data(), recv_displs.data(), traits::mpi_type(),                // recv
         comm);
