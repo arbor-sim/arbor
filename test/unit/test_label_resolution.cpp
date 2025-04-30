@@ -125,7 +125,6 @@ TEST(test_cell_labels_and_gids, build) {
 }
 
 TEST(test_label_resolution, policies) {
-    using vec = std::vector<cell_lid_type>;
     {
         std::vector<cell_gid_type> gids = {0, 1, 2, 3, 4};
         std::vector<cell_size_type> sizes = {1, 0, 1, 2, 3};
@@ -140,7 +139,6 @@ TEST(test_label_resolution, policies) {
         auto rset = res_map.at(0, "l0_0");
         EXPECT_EQ(1u, rset.ranges.size());
         EXPECT_EQ(lid_range(0, 1), rset.ranges.front());
-        EXPECT_EQ((vec{0u, 1u}), rset.ranges_partition);
 
         // gid 1
         EXPECT_EQ(0u, res_map.count(1, "l0_0"));
@@ -150,34 +148,29 @@ TEST(test_label_resolution, policies) {
         rset = res_map.at(2, "l2_0");
         EXPECT_EQ(1u, rset.ranges.size());
         EXPECT_EQ(lid_range(0, 3), rset.ranges.front());
-        EXPECT_EQ((vec{0u, 3u}), rset.ranges_partition);
 
         // gid 3
         EXPECT_EQ(1u, res_map.count(3, "l3_0"));
         rset = res_map.at(3, "l3_0");
         EXPECT_EQ(1u, rset.ranges.size());
         EXPECT_EQ(lid_range(1, 2), rset.ranges.front());
-        EXPECT_EQ((vec{0u, 1u}), rset.ranges_partition);
 
         EXPECT_EQ(1u, res_map.count(3, "l3_1"));
         rset = res_map.at(3, "l3_1");
         EXPECT_EQ(1u, rset.ranges.size());
         EXPECT_EQ(lid_range(4, 10), rset.ranges.front());
-        EXPECT_EQ((vec{0u, 6u}), rset.ranges_partition);
 
         // gid 4
         EXPECT_EQ(1u, res_map.count(4, "l4_0"));
         rset = res_map.at(4, "l4_0");
         EXPECT_EQ(1u, rset.ranges.size());
         EXPECT_EQ(lid_range(5, 6), rset.ranges.front());
-        EXPECT_EQ((vec{0u, 1u}), rset.ranges_partition);
 
         EXPECT_EQ(1u, res_map.count(4, "l4_1"));
         rset = res_map.at(4, "l4_1");
         EXPECT_EQ(2u, rset.ranges.size());
         EXPECT_EQ(lid_range(8, 11), rset.ranges.at(0));
         EXPECT_EQ(lid_range(12, 14), rset.ranges.at(1));
-        EXPECT_EQ((vec{0u, 3u, 5u}), rset.ranges_partition);
 
         // Check lid resolution
         auto lid_resolver = arb::resolver(&res_map);
@@ -254,14 +247,12 @@ TEST(test_label_resolution, policies) {
         auto rset = res_map.at(0, "l0_1");
         EXPECT_EQ(1u, rset.ranges.size());
         EXPECT_EQ(lid_range(0, 3), rset.ranges.front());
-        EXPECT_EQ((vec{0u, 3u}), rset.ranges_partition);
 
         EXPECT_EQ(1u, res_map.count(0, "l0_0"));
         rset = res_map.at(0, "l0_0");
         EXPECT_EQ(2u, rset.ranges.size());
         EXPECT_EQ(lid_range(0, 1), rset.ranges.at(0));
         EXPECT_EQ(lid_range(1, 3), rset.ranges.at(1));
-        EXPECT_EQ((vec{0u, 1u, 3u}), rset.ranges_partition);
 
         // gid 1
         EXPECT_EQ(0u, res_map.count(1, "l0_1"));
@@ -272,21 +263,18 @@ TEST(test_label_resolution, policies) {
         EXPECT_EQ(2u, rset.ranges.size());
         EXPECT_EQ(lid_range(4, 6), rset.ranges.at(0));
         EXPECT_EQ(lid_range(9, 12), rset.ranges.at(1));
-        EXPECT_EQ((vec{0u, 2u, 5u}), rset.ranges_partition);
 
         EXPECT_EQ(1u, res_map.count(2, "l2_1"));
         rset = res_map.at(2, "l2_1");
         EXPECT_EQ(2u, rset.ranges.size());
         EXPECT_EQ(lid_range(1, 2), rset.ranges.at(0));
         EXPECT_EQ(lid_range(0, 1), rset.ranges.at(1));
-        EXPECT_EQ((vec{0u, 1u, 2u}), rset.ranges_partition);
 
         EXPECT_EQ(1u, res_map.count(2, "l2_2"));
         rset = res_map.at(2, "l2_2");
         EXPECT_EQ(2u, rset.ranges.size());
         EXPECT_EQ(lid_range(5, 5), rset.ranges.at(0));
         EXPECT_EQ(lid_range(22, 23), rset.ranges.at(1));
-        EXPECT_EQ((vec{0u, 0u, 1u}), rset.ranges_partition);
 
         // Check lid resolution
         auto lid_resolver = arb::resolver(&res_map);

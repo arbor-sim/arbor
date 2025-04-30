@@ -270,19 +270,15 @@ simulation_state::simulation_state(
         });
 
     PE(init:simulation:sources);
-    cell_labels_and_gids local_sources, local_targets;
-    for(const auto& i: util::make_span(num_groups)) {
-        local_sources.append(cg_sources.at(i));
-        local_targets.append(cg_targets.at(i));
-    }
-    PL();
-
-    PE(init:simulation:source:MPI);
+    cell_labels_and_gids local_sources;
+    for(auto gidx: util::make_span(num_groups)) local_sources.append(std::move(cg_sources[gidx]));
     auto global_sources = ctx->distributed->gather_cell_labels_and_gids(local_sources);
+    source_resolution_map_ = label_resolution_map(std::move(global_sources));
     PL();
 
-    PE(init:simulation:resolvers);
-    source_resolution_map_ = label_resolution_map(std::move(global_sources));
+    PE(init:simulation:targets);
+    cell_labels_and_gids local_targets;
+    for(auto gidx: util::make_span(num_groups)) local_targets.append(std::move(cg_targets[gidx]));
     target_resolution_map_ = label_resolution_map(std::move(local_targets));
     PL();
 
@@ -307,22 +303,19 @@ void simulation_state::update(const recipe& rec) {
     cell_size_type lidx = 0;
     cell_size_type grpidx = 0;
     PE(init:simulation:update:generators);
-    auto target_resolution_map_ptr = std::make_shared<label_resolution_map>(target_resolution_map_);
+    auto target_resolver = resolver(&target_resolution_map_);
     for (const auto& group_info: ddc_.groups()) {
         for (auto gid: group_info.gids) {
             // Store mapping of gid to local cell index.
             gid_to_local_[gid] = {lidx, grpidx};
-            // Resolve event_generator targets; each event generator gets their own resolver state.
-            auto event_gens = rec.event_generators(gid);
-            for (auto& g: event_gens) {
-                g.resolve_label([target_resolution_map_ptr,
-                                 event_resolver=resolver(target_resolution_map_ptr.get()),
-                                 gid] (const cell_local_label_type& label) mutable {
-                        return event_resolver.resolve({gid, label});
-                    });
-            }
             // Set up the event generators for cell gid.
-            event_generators_[lidx] = event_gens;
+            event_generators_[lidx] = rec.event_generators(gid);
+            // Resolve event_generator targets; each event generator gets their own resolver state.
+            for (auto& gen: event_generators_[lidx]) {
+                target_resolver.clear();
+                auto lid = target_resolver.resolve(gid, gen.target());
+                gen.set_target_lid(lid);
+            }
             ++lidx;
         }
         ++grpidx;
