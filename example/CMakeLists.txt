@@ -3,6 +3,7 @@
 add_custom_target(examples DEPENDS)
 
 add_subdirectory(busyring)
+add_subdirectory(busyring-tiled)
 add_subdirectory(drybench)
 add_subdirectory(dryrun)
 add_subdirectory(generators)

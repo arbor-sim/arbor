@@ -1,26 +1,28 @@
 {
     "name": "run_n=128_d=10-complex=true",
-    "num-cells": 128,
+    "num-cells": 8192,
+    "num-tiles": 1024,
     "synapses": 1000,
     "min-delay": 5,
-    "duration": 25,
+    "duration": 250,
     "ring-size": 4,
     "event-weight": 0.2,
     "record": false,
     "spikes": false,
-    "dt": 0.025,
-    "depth": 10,
-    "complex": true,
+    "dt": 0.1,
+    "depth": 2,
+    "complex": false,
+    "cpu-group-size": 1024,
     "branch-probs": [
         1,
-        0.5
+        0.1
     ],
     "compartments": [
-        20,
-        2
+        2,
+        1
     ],
     "lengths": [
-        200,
-        20
+        2,
+        1
     ]
 }
