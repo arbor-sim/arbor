@@ -3,14 +3,14 @@
 #include <unordered_map>
 #include <vector>
 
+#include <ankerl/unordered_dense.h>
+
 #include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/util/expected.hpp>
-
 #include <arbor/util/hash_def.hpp>
 
-#include <ankerl/unordered_dense.h>
+#include "util/smallvec.hpp"
 
 namespace arb {
 
@@ -66,14 +66,14 @@ struct ARB_ARBOR_API cell_labels_and_gids {
 // structured manner for lid resolution in `resolver`
 struct ARB_ARBOR_API label_resolution_map {
     struct Key {
-        uint64_t gid;
-        uint64_t label;
-        auto operator<=>(const Key&) const = default;
+        uint64_t gid = 0;
+        uint64_t label = 0;
+        bool operator==(const Key&) const noexcept = default;
     };
 
-    struct Hasher {
+    struct hasher {
         using is_avalanching = void;
-        std::size_t operator()(const Key& key) const {
+        auto operator()(const Key& key) const noexcept {
             static_assert(std::has_unique_object_representations_v<Key>);
             return ankerl::unordered_dense::detail::wyhash::hash(&key, sizeof(key));
         }
@@ -81,12 +81,13 @@ struct ARB_ARBOR_API label_resolution_map {
 
     struct range_set {
         std::size_t size = 0;
-        std::vector<lid_range> ranges;
+        // Most have one element only
+        util::smallvec<lid_range, 1> ranges;
         cell_lid_type at(unsigned idx) const;
     };
 
     template<typename V>
-    using map_type = ankerl::unordered_dense::map<Key, V, Hasher>;
+    using map_type = ankerl::unordered_dense::map<Key, V, hasher>;
 
     label_resolution_map() = default;
     explicit label_resolution_map(const cell_labels_and_gids&);
@@ -115,9 +116,6 @@ struct ARB_ARBOR_API resolver {
     void clear() { rr_state_map_.clear(); }
 
 private:
-    template<typename K, typename V>
-    using map = std::unordered_map<K, V>;
-
     const label_resolution_map* label_map_ = nullptr;
     // save index for round-robin and round-robin-halt policies
     label_resolution_map::map_type<cell_lid_type> rr_state_map_;

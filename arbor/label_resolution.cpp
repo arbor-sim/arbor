@@ -1,7 +1,5 @@
-#include <iterator>
 #include <vector>
 #include <numeric>
-#include <unordered_set>
 
 #include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
@@ -9,9 +7,8 @@
 #include <arbor/util/expected.hpp>
 #include <arbor/util/hash_def.hpp>
 
-#include "label_resolution.hpp"
-#include "util/partition.hpp"
 #include "util/span.hpp"
+#include "label_resolution.hpp"
 
 namespace arb {
 
@@ -32,7 +29,6 @@ cell_label_range::cell_label_range(std::vector<cell_size_type> size_vec,
     sizes(std::move(size_vec)), labels(std::move(label_vec)), ranges(std::move(range_vec)) {
     arb_assert(check_invariant());
 };
-
 
 void cell_label_range::add_cell() { sizes.push_back(0); }
 
@@ -80,13 +76,13 @@ bool cell_labels_and_gids::check_invariant() const {
        len0     len1
 */
 cell_lid_type label_resolution_map::range_set::at(unsigned idx) const {
-    if (0 == size) throw arbor_internal_error("no valid lids");
+    if (idx >= size) throw arbor_internal_error("invalid lid");
     for (const auto& [beg, end]: ranges) {
         auto len = end - beg;
         if (idx < len) return idx + beg;
         idx -= len;
     }
-    throw arbor_internal_error("invalid lid");
+    ARB_UNREACHABLE
 }
 
 label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
@@ -96,21 +92,23 @@ label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
     const auto& ranges = clg.label_range.ranges;
     const auto& sizes = clg.label_range.sizes;
 
+    map.reserve(labels.size());
     auto div = 0;
+    auto key = Key{};
     for (auto gidx: util::count_along(gids)) {
-        auto gid = gids[gidx];
-        auto size = sizes[gidx];
-        for (auto lidx: util::make_span(div, div + size)) {
+        key.gid = gids[gidx];
+        auto len = sizes[gidx];
+        for (auto lidx = div; lidx < div + len; ++lidx) {
             const auto& range = ranges[lidx];
             auto size = int(range.end - range.begin);
             if (size < 0) throw arb::arbor_internal_error("label_resolution_map: invalid lid_range");
             if (size == 0) continue;
-            auto label = labels[lidx];
-            auto& range_set = map[Key(gid, label)];
+            key.label = labels[lidx];
+            auto& range_set = map[key];
             range_set.ranges.push_back(range);
             range_set.size += size;
         }
-        div += size;
+        div += len;
     }
 }
 
@@ -119,24 +117,26 @@ cell_lid_type resolver::resolve(const cell_global_label_type& iden) { return res
 cell_lid_type resolver::resolve(cell_gid_type gid, const cell_local_label_type& label) {
     const auto& [tag, pol] = label;
     auto key = label_resolution_map::Key(gid, hash_value(tag));
-    auto it = label_map_->find(key);
+    const auto& it = label_map_->find(key);
     if (it == label_map_->end()) throw arb::bad_connection_label(gid, tag, "label does not exist");
     const auto& range_set = it->second;
     if (range_set.size <= 0) throw arb::bad_connection_label(gid, tag, "no valid lids");
-    auto idx = 0;
     if (pol == lid_selection_policy::assert_univalent) {
         // must have single-entry range_set
         if (range_set.size != 1) throw arb::bad_connection_label(gid, tag, "range is not univalent");
+        return range_set.at(0);
     }
     else if (pol == lid_selection_policy::round_robin) {
         // cycle through range_set
-        idx = rr_state_map_[key];
+        auto idx = rr_state_map_[key];
         rr_state_map_[key] = (idx + 1) % range_set.size;
+        return range_set.at(idx);
     }
     else if (pol == lid_selection_policy::round_robin_halt) {
         // use previous state of round_robin policy
-        idx = rr_state_map_[key];
+        auto idx = rr_state_map_[key];
+        return range_set.at(idx);
     }
-    return range_set.at(idx);
+    ARB_UNREACHABLE
 }
 } // namespace arb
