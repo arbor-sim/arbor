@@ -19,9 +19,8 @@ using namespace U::literals;
 
 // Simple ring network of LIF neurons.
 // with one regularly spiking cell (fake cell) connected to the first cell in the ring.
-class ring_recipe: public arb::recipe {
-public:
-    ring_recipe(cell_size_type n_lif_cells, float weight, float delay):
+struct ring_recipe: public arb::recipe {
+    ring_recipe(cell_size_type n_lif_cells, float weight, time_type delay):
         n_lif_cells_(n_lif_cells), weight_(weight), delay_(delay)
     {}
 
@@ -72,7 +71,8 @@ public:
 
 private:
     cell_size_type n_lif_cells_;
-    float weight_, delay_;
+    float weight_;
+    time_type delay_;
 };
 
 // LIF cells connected in the manner of a path 0->1->...->n-1.
@@ -702,7 +702,7 @@ TEST(lif_cell_group, probe_with_connections) {
         [&spikes](const std::vector<spike>& spk) { for (const auto& s: spk) spikes.push_back(s.time); }
     );
 
-    sim.run(10*U::ms, 0.005*U::ms);
+    sim.run(10*U::ms, 0.0025*U::ms);
     std::vector<Um_type> exp = {{ 0, -18 },
                                 { 0.025, -17.9750624 },
                                 { 0.05, -17.9502492 },

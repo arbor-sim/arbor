@@ -42,9 +42,6 @@ git submodule update
 # remove main .git
 rm -vrf .git
 
-# wipe .git submodule files
-find -type f -name .git | xargs truncate -s 0
-
 # create tar ball
 cd ..
 tar vcfz "$OUT_TARBALL" $REPO_NAME

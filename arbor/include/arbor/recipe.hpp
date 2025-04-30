@@ -58,8 +58,8 @@ struct cell_connection_base {
 
     cell_connection_base(L src, cell_local_label_type dst, float w, const U::quantity& d):
         source(std::move(src)), target(std::move(dst)), weight(w), delay(d.value_as(U::ms)) {
-        if (std::isnan(weight)) throw std::out_of_range("Connection weight must be finite.");
-        if (std::isnan(delay) || delay < 0)  throw std::out_of_range("Connection delay must be non-negative and infinite in units of [ms].");
+        if (!std::isfinite(weight)) throw std::domain_error("Connection weight must be finite.");
+        if (!std::isfinite(delay) || delay <= 0)  throw std::domain_error("Connection delay must be positive, finite, and given in units of [ms].");
     }
 };
 
@@ -73,7 +73,7 @@ struct gap_junction_connection {
 
     gap_junction_connection(cell_global_label_type peer, cell_local_label_type local, double g):
         peer(std::move(peer)), local(std::move(local)), weight(g) {
-        if (std::isnan(weight)) throw std::out_of_range("Gap junction weight must be finite.");
+        if (!std::isfinite(weight)) throw std::domain_error("Gap junction weight must be finite.");
     }
 };
 
