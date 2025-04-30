@@ -81,9 +81,9 @@ struct ARB_ARBOR_API label_resolution_map {
 
     struct range_set {
         std::size_t size = 0;
-        std::size_t index = 0;
-        std::size_t offset = 0;
-        cell_lid_type at(unsigned idx, const std::vector<lid_range>& ranges) const;
+        // Most have one element only
+        util::smallvec<lid_range, 1> ranges;
+        cell_lid_type at(unsigned idx) const;
     };
 
     template<typename V>
@@ -92,17 +92,17 @@ struct ARB_ARBOR_API label_resolution_map {
     label_resolution_map() = default;
     explicit label_resolution_map(const cell_labels_and_gids&);
 
-    const auto find(const Key& key) const { return map_.find(key); }
-    const auto end() const { return map_.end(); }
-    const range_set& at(const Key& key) const { return map_.at(key); }
-    std::size_t count(const Key& key) const { return map_.count(key); }
+    const auto find(const Key& key) const { return map.find(key); }
+    const auto end() const { return map.end(); }
+    const range_set& at(const Key& key) const { return map.at(key); }
+    std::size_t count(const Key& key) const { return map.count(key); }
     const range_set& at(cell_gid_type gid, hash_type hash) const { return at(Key(gid, hash)); }
     std::size_t count(cell_gid_type gid, hash_type hash) const { return count(Key(gid, hash)); }
     const range_set& at(cell_gid_type gid, const cell_tag_type& tag) const { return at(gid, hash_value(tag)); }
     std::size_t count(cell_gid_type gid, const cell_tag_type& tag) const { return count(gid, hash_value(tag)); }
 
-    map_type<range_set> map_;
-    std::vector<lid_range> ranges_;
+private:
+    map_type<range_set> map;
 };
 
 // Struct used for resolving the lid of a (gid, label, lid_selection_policy) input.
