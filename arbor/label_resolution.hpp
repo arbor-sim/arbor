@@ -10,6 +10,8 @@
 
 #include <arbor/util/hash_def.hpp>
 
+#include <ankerl/unordered_dense.h>
+
 namespace arb {
 
 // class containing the data required for {cell, label} to lid resolution.
@@ -63,6 +65,12 @@ struct ARB_ARBOR_API cell_labels_and_gids {
 // Represents the information in the object in a more
 // structured manner for lid resolution in `resolver`
 struct ARB_ARBOR_API label_resolution_map {
+    struct Key {
+        uint64_t gid;
+        uint64_t label;
+        auto operator<=>(const Key&) const = default;
+    };
+
     struct range_set {
         std::size_t size = 0;
         std::vector<lid_range> ranges;
@@ -72,18 +80,25 @@ struct ARB_ARBOR_API label_resolution_map {
     label_resolution_map() = default;
     explicit label_resolution_map(const cell_labels_and_gids&);
 
-    const range_set& at(cell_gid_type gid, hash_type hash) const;
-    std::size_t count(cell_gid_type gid, hash_type hash) const;
+    const auto find(const Key& key) const { return map.find(key); }
+    const auto end() const { return map.end(); }
+    const range_set& at(const Key& key) const { return map.at(key); }
+    std::size_t count(const Key& key) const { return map.count(key); }
+    const range_set& at(cell_gid_type gid, hash_type hash) const { return at(Key(gid, hash)); }
+    std::size_t count(cell_gid_type gid, hash_type hash) const { return count(Key(gid, hash)); }
     const range_set& at(cell_gid_type gid, const cell_tag_type& tag) const { return at(gid, hash_value(tag)); }
     std::size_t count(cell_gid_type gid, const cell_tag_type& tag) const { return count(gid, hash_value(tag)); }
 
 private:
-    using Key = std::pair<cell_gid_type, hash_type>;
-
     struct Hasher {
-        std::size_t operator()(const Key& key) const { return hash_value(key.first, key.second); }
+        using is_avalanching = void;
+        std::size_t operator()(const Key& key) const {
+            static_assert(std::has_unique_object_representations_v<Key>);
+            return ankerl::unordered_dense::detail::wyhash::hash(&key, sizeof(key));
+        }
     };
-    std::unordered_map<Key, range_set, Hasher> map;
+
+    ankerl::unordered_dense::map<Key, range_set, Hasher> map;
 };
 
 // Struct used for resolving the lid of a (gid, label, lid_selection_policy) input.

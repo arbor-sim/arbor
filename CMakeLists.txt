@@ -391,6 +391,11 @@ if(units_ADDED)
 endif()
 list(APPEND arbor_export_dependencies units)
 
+CPMFindPackage(NAME unordered_dense
+               GITHUB_REPOSITORY martinus/unordered_dense
+               VERSION 4.5.0)
+target_link_libraries(arbor-private-deps INTERFACE unordered_dense::unordered_dense)
+
 CPMFindPackage(NAME tinyopt
               GITHUB_REPOSITORY halfflat/tinyopt
               GIT_TAG 7e6d707d49c6cb4be27ebd253856be65293288df

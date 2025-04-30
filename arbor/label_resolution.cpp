@@ -89,14 +89,6 @@ cell_lid_type label_resolution_map::range_set::at(unsigned idx) const {
     throw arbor_internal_error("invalid lid");
 }
 
-const label_resolution_map::range_set& label_resolution_map::at(cell_gid_type gid, hash_type hash) const {
-    return map.at(std::make_pair(gid, hash));
-}
-
-std::size_t label_resolution_map::count(cell_gid_type gid, hash_type hash) const {
-    return map.count(std::make_pair(gid, hash));
-}
-
 label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
     arb_assert(clg.label_range.check_invariant());
     const auto& gids = clg.gids;
@@ -116,7 +108,7 @@ label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
             auto size = int(range.end - range.begin);
             if (size < 0) throw arb::arbor_internal_error("label_resolution_map: invalid lid_range");
             auto& label = labels[label_idx];
-            auto& range_set = map[std::make_pair(gid, label)];
+            auto& range_set = map[Key(gid, label)];
             range_set.ranges.push_back(range);
             range_set.size += size;
         }
@@ -128,8 +120,10 @@ cell_lid_type resolver::resolve(const cell_global_label_type& iden) { return res
 cell_lid_type resolver::resolve(cell_gid_type gid, const cell_local_label_type& label) {
     const auto& [tag, pol] = label;
     auto hash = hash_value(tag);
-    if (!label_map_->count(gid, hash)) throw arb::bad_connection_label(gid, tag, "label does not exist");
-    const auto& range_set = label_map_->at(gid, hash);
+    auto key = label_resolution_map::Key(gid, hash);
+    auto it = label_map_->find(key);
+    if (it == label_map_->end()) throw arb::bad_connection_label(gid, tag, "label does not exist");
+    const auto& range_set = it->second;
     if (range_set.size <= 0) throw arb::bad_connection_label(gid, tag, "no valid lids");
     auto idx = 0ul;
     if (pol == lid_selection_policy::assert_univalent) {
