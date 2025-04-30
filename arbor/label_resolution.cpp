@@ -96,22 +96,21 @@ label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
     const auto& ranges = clg.label_range.ranges;
     const auto& sizes = clg.label_range.sizes;
 
-    std::vector<cell_size_type> label_divs;
-    std::unordered_set<cell_gid_type> seen;
-    auto partn = util::make_partition(label_divs, sizes);
-    for (auto i: util::count_along(partn)) {
-        auto gid = gids[i];
-        if (seen.contains(gid)) throw arb::arbor_internal_error("label_resolution_map: duplicate gid");
-        seen.insert(gid);
-        for (auto label_idx: util::make_span(partn[i])) {
-            const auto range = ranges[label_idx];
+    auto div = 0;
+    for (auto gidx: util::count_along(gids)) {
+        auto gid = gids[gidx];
+        auto size = sizes[gidx];
+        for (auto lidx: util::make_span(div, div + size)) {
+            const auto& range = ranges[lidx];
             auto size = int(range.end - range.begin);
             if (size < 0) throw arb::arbor_internal_error("label_resolution_map: invalid lid_range");
-            auto& label = labels[label_idx];
+            if (size == 0) continue;
+            auto label = labels[lidx];
             auto& range_set = map[Key(gid, label)];
             range_set.ranges.push_back(range);
             range_set.size += size;
         }
+        div += size;
     }
 }
 
@@ -119,25 +118,24 @@ cell_lid_type resolver::resolve(const cell_global_label_type& iden) { return res
 
 cell_lid_type resolver::resolve(cell_gid_type gid, const cell_local_label_type& label) {
     const auto& [tag, pol] = label;
-    auto hash = hash_value(tag);
-    auto key = label_resolution_map::Key(gid, hash);
+    auto key = label_resolution_map::Key(gid, hash_value(tag));
     auto it = label_map_->find(key);
     if (it == label_map_->end()) throw arb::bad_connection_label(gid, tag, "label does not exist");
     const auto& range_set = it->second;
     if (range_set.size <= 0) throw arb::bad_connection_label(gid, tag, "no valid lids");
-    auto idx = 0ul;
+    auto idx = 0;
     if (pol == lid_selection_policy::assert_univalent) {
         // must have single-entry range_set
         if (range_set.size != 1) throw arb::bad_connection_label(gid, tag, "range is not univalent");
     }
     else if (pol == lid_selection_policy::round_robin) {
         // cycle through range_set
-        idx = rr_state_map_[gid][hash];
-        rr_state_map_[gid][hash] = (idx + 1) % range_set.size;
+        idx = rr_state_map_[key];
+        rr_state_map_[key] = (idx + 1) % range_set.size;
     }
     else if (pol == lid_selection_policy::round_robin_halt) {
         // use previous state of round_robin policy
-        idx = rr_state_map_[gid][hash];
+        idx = rr_state_map_[key];
     }
     return range_set.at(idx);
 }

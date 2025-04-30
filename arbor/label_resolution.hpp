@@ -71,11 +71,22 @@ struct ARB_ARBOR_API label_resolution_map {
         auto operator<=>(const Key&) const = default;
     };
 
+    struct Hasher {
+        using is_avalanching = void;
+        std::size_t operator()(const Key& key) const {
+            static_assert(std::has_unique_object_representations_v<Key>);
+            return ankerl::unordered_dense::detail::wyhash::hash(&key, sizeof(key));
+        }
+    };
+
     struct range_set {
         std::size_t size = 0;
         std::vector<lid_range> ranges;
         cell_lid_type at(unsigned idx) const;
     };
+
+    template<typename V>
+    using map_type = ankerl::unordered_dense::map<Key, V, Hasher>;
 
     label_resolution_map() = default;
     explicit label_resolution_map(const cell_labels_and_gids&);
@@ -90,15 +101,7 @@ struct ARB_ARBOR_API label_resolution_map {
     std::size_t count(cell_gid_type gid, const cell_tag_type& tag) const { return count(gid, hash_value(tag)); }
 
 private:
-    struct Hasher {
-        using is_avalanching = void;
-        std::size_t operator()(const Key& key) const {
-            static_assert(std::has_unique_object_representations_v<Key>);
-            return ankerl::unordered_dense::detail::wyhash::hash(&key, sizeof(key));
-        }
-    };
-
-    ankerl::unordered_dense::map<Key, range_set, Hasher> map;
+    map_type<range_set> map;
 };
 
 // Struct used for resolving the lid of a (gid, label, lid_selection_policy) input.
@@ -117,6 +120,6 @@ private:
 
     const label_resolution_map* label_map_ = nullptr;
     // save index for round-robin and round-robin-halt policies
-    map<cell_gid_type, map<hash_type, cell_lid_type>> rr_state_map_;
+    label_resolution_map::map_type<cell_lid_type> rr_state_map_;
 };
 } // namespace arb
