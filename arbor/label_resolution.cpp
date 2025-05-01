@@ -1,5 +1,6 @@
 #include <vector>
 #include <numeric>
+#include <algorithm>
 
 #include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
