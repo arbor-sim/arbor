@@ -13,7 +13,7 @@ PREFIX="${1:-} `pwd`/build/bin"
 cxx=/usr/local/opt/llvm/bin/clang++
 cc=/usr/local/opt/llvm/bin/clang
 
-for tag in v0.4 v0.5.2 v0.6 v0.7 v0.8 v0.8.1 v0.9.0 v0.10.0
+for tag in v0.4 v0.5.2 v0.6 v0.7 v0.8 v0.8.1 v0.9.0 v0.10.0 v0.11.0
 do
     echo "Version=$tag"
     rm -rf ext/*

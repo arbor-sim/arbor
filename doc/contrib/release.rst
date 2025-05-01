@@ -118,20 +118,7 @@ Post Release
      - Make sure that `Notebooks <https://www.v2.opensourcebrain.org/repositories/38>`_ work on the version that their image is built with.
 
 #. Announce on our website
-#. Announce on HBP newsletter newsletter@humanbrainproject.eu, communications@ebrains.eu, HBP Twitter/socials evan.hancock@ebrains.eu
 #. [AUTOMATED] Add tagged version of docs on ReadTheDocs
-#. HBP internal admin
-
-   - Plus: https://plus.humanbrainproject.eu/components/2691/
-   - TC Wiki: https://wiki.ebrains.eu/bin/view/Collabs/technical-coordination/EBRAINS%20components/Arbor/
-   - KG: https://search.kg.ebrains.eu/instances/5cf4e24b-b0eb-4d05-96e5-a7751134a061
- 
-     - Update howto: https://wiki.ebrains.eu/bin/view/Collabs/swc-guide#HHowtoupdateexistingSoftwareinstances
-     - tldr: shoot your ticket here: curation-support@humanbrainproject.eu
-     - Supported file formats
- 
-       - ContentTypes: https://humanbrainproject.github.io/openMINDS/v3/core/v4/data/contentType.html
-       - details: https://github.com/HumanBrainProject/openMINDS_core/tree/v3/instances/data/contentTypes
 
 #. FZJ admin
 
@@ -144,7 +131,6 @@ Release automation is a bit more advanced for Arbor GUI: the act of pushing a ne
 The post-release steps mentioned above are largely the same. A list of the places where an update must be entered:
 
 #. https://doi.org/10.5281/zenodo.7415129
-#. https://plus.humanbrainproject.eu/components/3178
 
 .. _GH tags: https://github.com/arbor-sim/arbor/tags
 .. _AUTOMATED: https://github.com/arbor-sim/arbor/blob/master/.github/workflows/ebrains.yml 

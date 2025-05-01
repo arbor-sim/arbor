@@ -40,7 +40,7 @@ The memory footprint has been reduced substantially
 * Clean-up catalogue extension. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2409
 * Refactor discretization. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2415
 
-**Full Changelog**: https://github.com/arbor-sim/arbor/compare/v0.10.1...v0.11.0-rc
+**Full Changelog**: https://github.com/arbor-sim/arbor/compare/v0.10.1...v0.11.0
 
 # v0.10.0 (*08.08.2024*)
 

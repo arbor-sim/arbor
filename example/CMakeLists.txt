@@ -3,6 +3,7 @@
 add_custom_target(examples DEPENDS)
 
 add_subdirectory(busyring)
+add_subdirectory(busyring-tiled)
 add_subdirectory(drybench)
 add_subdirectory(dryrun)
 add_subdirectory(generators)
@@ -18,7 +19,6 @@ add_subdirectory(diffusion)
 add_subdirectory(v_clamp)
 add_subdirectory(ornstein_uhlenbeck)
 add_subdirectory(network_description)
-add_subdirectory(busyring-tiled)
 
 if(ARB_WITH_MPI)
   add_subdirectory(remote)
