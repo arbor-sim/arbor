@@ -272,9 +272,9 @@ TEST(test_label_resolution, policies) {
 
         EXPECT_EQ(1u, res_map.count(2, "l2_2"));
         rset = res_map.at(2, "l2_2");
-        EXPECT_EQ(2u, rset.ranges.size());
-        EXPECT_EQ(lid_range(5, 5), rset.ranges.at(0));
-        EXPECT_EQ(lid_range(22, 23), rset.ranges.at(1));
+        // empty ranges will be dropped! so (5, 5) is gone
+        EXPECT_EQ(1u, rset.ranges.size());
+        EXPECT_EQ(lid_range(22, 23), rset.ranges.at(0));
 
         // Check lid resolution
         auto lid_resolver = arb::resolver(&res_map);

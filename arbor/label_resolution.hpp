@@ -1,6 +1,5 @@
 #pragma once
 
-#include <unordered_map>
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
@@ -61,48 +60,37 @@ struct ARB_ARBOR_API cell_labels_and_gids {
     std::vector<cell_gid_type> gids;
 };
 
+struct range_set {
+    std::size_t size = 0;
+    // Most have one element only
+    util::smallvec<lid_range, 1> ranges;
+    cell_lid_type at(unsigned idx) const;
+};
+
+struct gid_label_pair {
+    uint64_t gid = 0;
+    uint64_t label = 0;
+    bool operator==(const gid_label_pair&) const noexcept = default;
+};
+
+struct gid_label_hasher {
+    using is_avalanching = void;
+    auto operator()(const gid_label_pair& key) const noexcept -> uint64_t {
+        static_assert(std::has_unique_object_representations_v<gid_label_pair>);
+        return ankerl::unordered_dense::detail::wyhash::hash(&key, sizeof(key));
+    }
+};
+
+template<typename V>
+using gid_label_map = ankerl::unordered_dense::map<gid_label_pair, V, gid_label_hasher>;
+
 // Class constructed from `cell_labels_and_ranges`:
 // Represents the information in the object in a more
 // structured manner for lid resolution in `resolver`
 struct ARB_ARBOR_API label_resolution_map {
-    struct Key {
-        uint64_t gid = 0;
-        uint64_t label = 0;
-        bool operator==(const Key&) const noexcept = default;
-    };
-
-    struct hasher {
-        using is_avalanching = void;
-        auto operator()(const Key& key) const noexcept {
-            static_assert(std::has_unique_object_representations_v<Key>);
-            return ankerl::unordered_dense::detail::wyhash::hash(&key, sizeof(key));
-        }
-    };
-
-    struct range_set {
-        std::size_t size = 0;
-        // Most have one element only
-        util::smallvec<lid_range, 1> ranges;
-        cell_lid_type at(unsigned idx) const;
-    };
-
-    template<typename V>
-    using map_type = ankerl::unordered_dense::map<Key, V, hasher>;
-
     label_resolution_map() = default;
     explicit label_resolution_map(const cell_labels_and_gids&);
-
-    const auto find(const Key& key) const { return map.find(key); }
-    const auto end() const { return map.end(); }
-    const range_set& at(const Key& key) const { return map.at(key); }
-    std::size_t count(const Key& key) const { return map.count(key); }
-    const range_set& at(cell_gid_type gid, hash_type hash) const { return at(Key(gid, hash)); }
-    std::size_t count(cell_gid_type gid, hash_type hash) const { return count(Key(gid, hash)); }
-    const range_set& at(cell_gid_type gid, const cell_tag_type& tag) const { return at(gid, hash_value(tag)); }
-    std::size_t count(cell_gid_type gid, const cell_tag_type& tag) const { return count(gid, hash_value(tag)); }
-
-private:
-    map_type<range_set> map;
+    gid_label_map<range_set> map;
 };
 
 // Struct used for resolving the lid of a (gid, label, lid_selection_policy) input.
@@ -118,6 +106,6 @@ struct ARB_ARBOR_API resolver {
 private:
     const label_resolution_map* label_map_ = nullptr;
     // save index for round-robin and round-robin-halt policies
-    label_resolution_map::map_type<cell_lid_type> rr_state_map_;
+    gid_label_map<cell_lid_type> rr_state_map_;
 };
 } // namespace arb
