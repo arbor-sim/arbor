@@ -394,9 +394,11 @@ list(APPEND arbor_export_dependencies units)
 CPMFindPackage(NAME unordered_dense
                GITHUB_REPOSITORY martinus/unordered_dense
                VERSION 4.5.0)
-target_link_libraries(arbor-private-deps INTERFACE unordered_dense::unordered_dense)
 if(unordered_dense_ADDED)
     install(TARGETS unordered_dense EXPORT arbor-targets)
+    target_link_libraries(arbor-private-deps INTERFACE unordered_dense::unordered_dense)
+else()
+    target_link_libraries(arbor-private-deps INTERFACE unordered_dense::unordered_dense)
 endif()
 
 

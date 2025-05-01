@@ -95,16 +95,14 @@ label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
 
     map.reserve(labels.size());
     auto div = 0;
-    auto key = gid_label_pair{};
     for (auto gidx: util::count_along(gids)) {
-        key.gid = gids[gidx];
         auto len = sizes[gidx];
+        auto gid = gids[gidx];
         for (auto lidx: util::make_span(div, div + len)) {
             const auto& range = ranges[lidx];
             if (range.end  < range.begin) throw arb::arbor_internal_error("label_resolution_map: invalid lid_range");
             if (range.end == range.begin) continue;
-            key.label = labels[lidx];
-            auto& range_set = map[key];
+            auto& range_set = map[gid_label_pair{.gid=gid, .label=labels[lidx]}];
             range_set.ranges.push_back(range);
             range_set.size += range.end - range.begin;
         }
@@ -116,7 +114,7 @@ cell_lid_type resolver::resolve(const cell_global_label_type& iden) { return res
 
 cell_lid_type resolver::resolve(cell_gid_type gid, const cell_local_label_type& label) {
     const auto& [tag, pol] = label;
-    auto key = gid_label_pair(gid, hash_value(tag));
+    auto key = gid_label_pair{.gid=gid, .label=hash_value(tag)};
     const auto& it = label_map_->map.find(key);
     if (it == label_map_->map.end()) throw arb::bad_connection_label(gid, tag, "label does not exist");
     const auto& range_set = it->second;
