@@ -110,7 +110,8 @@ void make_remote_connections(const std::vector<cell_gid_type>& gids,
     PL();
 }
 
-void communicator::update_connections(const recipe& rec,
+std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>>
+communicator::update_connections(const recipe& rec,
                                       const domain_decomposition& dom_dec,
                                       const label_resolution_map& source_resolution_map,
                                       const label_resolution_map& target_resolution_map) {
@@ -149,11 +150,12 @@ void communicator::update_connections(const recipe& rec,
     std::vector<std::vector<connection>> connections_by_src_domain(num_domains_);
     target_resolver.clear();
     auto my_rank = ctx_->distributed->id();
+    std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> outgoing_remote_targets;
     std::vector<std::vector<cell_gid_type>> gids_domains(num_domains_);
     
     for (const auto tgt_gid: gids) {
         gids_domains[my_rank].push_back(tgt_gid);
-        outgoing_remote_targets_[tgt_gid].insert(my_rank);
+        outgoing_remote_targets[tgt_gid].insert(my_rank);
         auto iod = dom_dec.index_on_domain(tgt_gid);
         source_resolver.clear();
         for (const auto& conn: rec.connections_on(tgt_gid)) {
@@ -191,7 +193,6 @@ void communicator::update_connections(const recipe& rec,
     PL();
     
     PE(init:communicator:update:connections:gids);
-    
     auto global_gids_domains = ctx_->distributed->all_to_all_gids_domains(gids_domains);
     const auto& vals = global_gids_domains.values();
     const auto& parts = global_gids_domains.partition();
@@ -200,7 +201,7 @@ void communicator::update_connections(const recipe& rec,
         auto end = parts[domain + 1];
 
         for (auto i = start; i < end; ++i) {
-           outgoing_remote_targets_[vals[i]].insert(domain);
+           outgoing_remote_targets[vals[i]].insert(domain);
         }
     }
     PL();
@@ -220,6 +221,7 @@ void communicator::update_connections(const recipe& rec,
     connections_.reserve(n_con);
     connections_.make(connections_by_src_domain);
     PL();
+    return outgoing_remote_targets;
 }
 
 std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_size_type i) {
@@ -239,13 +241,14 @@ time_type communicator::min_delay() {
     return res;
 }
 
-void generate_values_all_to_all(const std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> outgoing_remote_targets,
-                               const std::vector<spike> spks, std::vector<std::vector<spike>>& values) {
+void generate_values_all_to_all(const std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> &outgoing_remote_targets,
+                               const std::vector<spike> &spks, std::vector<std::vector<spike>>& values) {
     
     for (const auto& sp : spks) {
         auto it = outgoing_remote_targets.find(sp.source.gid);
         if (it != outgoing_remote_targets.end()) {
-            for (cell_size_type rank : it->second) {
+            const auto& ranks = it->second;
+            for (cell_size_type rank : ranks) {
                 values[rank].emplace_back(sp);
             }
         }
@@ -253,31 +256,66 @@ void generate_values_all_to_all(const std::unordered_map<cell_gid_type, std::uno
 }
 
 communicator::spikes
-communicator::exchange(std::vector<spike> local_spikes) {
+communicator::exchange(std::vector<std::vector<spike>> local_spikes) {
     PE(communication:exchange:sort);
     // sort the spikes in ascending order of source gid
-    util::sort_by(local_spikes, [](spike s){return s.source;});
+    int size = 0;
+    for (auto& rank : local_spikes) {
+        size += rank.size();
+        util::sort_by(rank, [](const spike& s) { return s.source; });
+    }
     PL();
 
     
     PE(communication:exchange:gen_spikes);
-    std::vector<std::vector<spike>> spike_ranks(num_domains_);
-    generate_values_all_to_all(outgoing_remote_targets_, local_spikes, spike_ranks);
+    //generate_values_all_to_all(outgoing_remote_targets_, local_spikes, spike_ranks);
     PL();
     PE(communication:exchange:all2all);
-    auto global_spikes = ctx_->distributed->all_to_all_spikes(spike_ranks);
+    
+    auto global_spikes = ctx_->distributed->all_to_all_spikes(local_spikes);
     num_spikes_ += global_spikes.size();
+    const auto& values = global_spikes.values();
+    const auto& partitions = global_spikes.partition();
+
+    for (std::size_t rank = 0; rank < partitions.size() - 1; ++rank) {
+        std::size_t start = partitions[rank];
+        std::size_t end = partitions[rank + 1];
+
+        printf("Rank %zu:\n", rank);
+        for (std::size_t i = start; i < end; ++i) {
+            printf("AAAAAAAAAAAAA %lu \n", i);
+            const auto& s = values[i];
+            printf("  gid: %u, index: %u, time: %g\n", s.source.gid, s.source.index, s.time);
+        }
+    }
+    exit(0);
     PL();
 
     // Get remote spikes
     PE(communication:exchange:gather:remote);
     if (remote_spike_filter_) {
-        local_spikes.erase(std::remove_if(local_spikes.begin(),
-                                          local_spikes.end(),
-                                          [this] (const auto& s) { return !remote_spike_filter_(s); }));
+        for (auto& buffer : local_spikes) {
+            buffer.erase(std::remove_if(buffer.begin(), buffer.end(),
+                                        [this](const spike& s) {
+                                            return !remote_spike_filter_(s);
+                                        }),
+                         buffer.end());
+        }
     }
     
-    auto remote_spikes = ctx_->distributed->remote_gather_spikes(local_spikes);
+    std::vector<spike> flat_spikes;
+    flat_spikes.reserve(
+        std::accumulate(local_spikes.begin(), local_spikes.end(), 0u,
+            [](std::size_t acc, const auto& v) { return acc + v.size(); }));
+
+    for (const auto& subvec : local_spikes) {
+        flat_spikes.insert(flat_spikes.end(), subvec.begin(), subvec.end());
+    }
+
+    std::sort(flat_spikes.begin(), flat_spikes.end()); // requiere operador <
+    flat_spikes.erase(std::unique(flat_spikes.begin(), flat_spikes.end()), flat_spikes.end());
+    
+    auto remote_spikes = ctx_->distributed->remote_gather_spikes(flat_spikes);
     PL();
     PE(communication:exchange:gather:remote:post_process);
     // set the remote bit on all incoming spikes

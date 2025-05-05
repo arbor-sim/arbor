@@ -11,7 +11,7 @@
 namespace arb {
 
 struct local_spike_store_type {
-    threading::enumerable_thread_specific<std::vector<spike>> buffers_;
+    threading::enumerable_thread_specific<std::vector<std::vector<spike>>> buffers_;
 
     local_spike_store_type(const task_system_handle& ts): buffers_(ts) {};
 };
@@ -26,16 +26,17 @@ thread_private_spike_store::thread_private_spike_store(const task_system_handle&
 
 thread_private_spike_store::~thread_private_spike_store() = default;
 
-std::vector<spike> thread_private_spike_store::gather() const {
+std::vector<std::vector<spike>> thread_private_spike_store::gather() const {
     const auto& bs = impl_->buffers_;
-    auto len = std::accumulate(bs.begin(), bs.end(), 0u, [](auto acc, const auto& b) { return acc + b.size(); });
-    std::vector<spike> spikes;
-    spikes.reserve(len);
-    std::for_each(bs.begin(), bs.end(), [&spikes] (const auto& b) { spikes.insert(spikes.end(), b.begin(), b.end()); });
-    return spikes;
+    std::vector<std::vector<spike>> result;
+    result.reserve(bs.size());
+    for (const auto& thread_buffers : bs) {
+        result.insert(result.end(), thread_buffers.begin(), thread_buffers.end());
+    }
+    return result;
 }
 
-std::vector<spike>& thread_private_spike_store::get() {
+std::vector<std::vector<spike>>& thread_private_spike_store::get() {
     return impl_->buffers_.local();
 }
 

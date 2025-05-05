@@ -31,9 +31,11 @@ struct ARB_ARBOR_API cable_cell_group: public cell_group {
 
     void reset() override;
 
-    void advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) override;
+    void advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes,
+                 std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> src_ranks,
+                 int num_domains) override;
 
-    const std::vector<spike>& spikes() const override { return spikes_; }
+    const std::vector<std::vector<spike>>& spikes() const override { return spikes_; }
 
     void clear_spikes() override { spikes_.clear(); }
 
@@ -61,7 +63,7 @@ private:
     std::vector<cell_member_type> spike_sources_;
 
     // Spikes that are generated.
-    std::vector<spike> spikes_;
+    std::vector<std::vector<spike>> spikes_;
 
     // Range of timesteps within current epoch
     timestep_range timesteps_;

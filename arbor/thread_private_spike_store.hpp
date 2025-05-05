@@ -29,17 +29,17 @@ public :
 
     /// Collate all of the individual buffers into a single vector of spikes.
     /// Does not modify the buffer contents.
-    std::vector<spike> gather() const;
+    std::vector<std::vector<spike>> gather() const;
 
     /// Return a reference to the thread private buffer of the calling thread
-    std::vector<spike>& get();
+    std::vector<std::vector<spike>>& get();
 
     /// Clear all of the thread private buffers
     void clear();
 
     /// Append the passed spikes to the end of the thread private buffer of the
     /// calling thread
-    void insert(const std::vector<spike>& spikes) {
+    void insert(const std::vector<std::vector<spike>>& spikes) {
         auto& buff = get();
         buff.insert(buff.end(), spikes.begin(), spikes.end());
     }

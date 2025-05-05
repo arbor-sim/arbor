@@ -45,16 +45,18 @@ cell_kind lif_cell_group::get_cell_kind() const {
     return cell_kind::lif;
 }
 
-void lif_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
+void lif_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes,
+                             std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> src_ranks,
+                             int num_domains) {
     PE(advance:lif);
     for (auto lid: util::make_span(gids_.size())) {
         // Advance each cell independently.
-        advance_cell(ep.t1, dt, lid, event_lanes);
+        advance_cell(ep.t1, dt, lid, event_lanes, src_ranks);
     }
     PL();
 }
 
-const std::vector<spike>& lif_cell_group::spikes() const {
+const std::vector<std::vector<spike>>& lif_cell_group::spikes() const {
     return spikes_;
 }
 
@@ -104,7 +106,8 @@ lif_decay(const lif_lowered_cell& cell, double t0, double t1) {
 void lif_cell_group::advance_cell(time_type tfinal,
                                   time_type dt,
                                   cell_gid_type lid,
-                                  const event_lane_subrange& event_lanes) {
+                                  const event_lane_subrange& event_lanes,
+                                  std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> src_ranks) {
     const auto gid = gids_[lid];
     auto& cell = cells_[lid];
     // time of last update.
@@ -181,7 +184,13 @@ void lif_cell_group::advance_cell(time_type tfinal,
                 // If crossing threshold occurred
                 if (cell.V_m >= cell.V_th) {
                     // save spike
-                    spikes_.push_back({{gid, 0}, time});
+                    auto it = src_ranks.find(gid);
+                    if (it != src_ranks.end()) {
+                        const auto& ranks = it->second;
+                        for (cell_size_type rank : ranks) {
+                            spikes_[rank].push_back({{gid, 0}, time});
+                        }
+                    }
                     // Advance to account for the refractory period.
                     // This means decay will also start at t + t_ref
                     t += cell.t_ref;

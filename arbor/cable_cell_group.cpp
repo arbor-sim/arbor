@@ -358,7 +358,9 @@ void run_samples(
     std::visit([&](auto& x) {run_samples(x, sc, raw_times, raw_samples, sample_records, scratch); }, sc.pdata_ptr->info);
 }
 
-void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
+void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes, 
+                               std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> src_ranks,
+                               int num_domains) {
     time_type tstart = lowered_->time();
 
     // Bin and collate deliverable events from event lanes.
@@ -447,10 +449,48 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     // generate spikes with global spike source ids. The threshold crossings
     // record the local spike source index, which must be converted to a
     // global index for spike communication.
-
-    for (auto c: result.crossings) {
-        spikes_.emplace_back(spike_sources_[c.index], time_type(c.time));
+    /*printf("Dentro\n");
+    printf("spike_sources_:\n");
+    for (std::size_t i = 0; i < spike_sources_.size(); ++i) {
+        auto& src = spike_sources_[i];
+        printf("  [%zu]: gid = %u, index = %u\n", i, src.gid, src.index);
     }
+    printf("src_ranks:\n");
+    for (const auto& pair : src_ranks) {
+        unsigned gid = pair.first;
+        const auto& ranks = pair.second;
+
+        printf("  gid = %u → ranks = {", gid);
+        for (unsigned r : ranks) {
+            printf("%u ", r);
+        }
+        printf("}\n");
+    }
+    for (const auto& c : result.crossings) {
+printf("gid: %d, index: %u, time: %g\n", spike_sources_[c.index].gid, c.index, c.time);
+    }*/
+    spikes_.resize(num_domains);
+    for (auto c: result.crossings) {
+        auto src = spike_sources_[c.index];
+        auto it = src_ranks.find(src.gid);
+        if (it != src_ranks.end()) {
+            const auto& ranks = it->second;
+            for (cell_size_type rank : ranks) {
+                spikes_[rank].emplace_back(src, time_type(c.time));
+            }
+        }
+    }/*
+    printf("spikes_:\n");
+    for (std::size_t rank = 0; rank < spikes_.size(); ++rank) {
+        printf("  Rank %zu:\n", rank);
+        const auto& vec = spikes_[rank];
+        for (std::size_t i = 0; i < vec.size(); ++i) {
+            const auto& s = vec[i];
+            printf("    [%zu] source = (gid=%u, index=%u), time = %g\n",
+                   i, s.source.gid, s.source.index, static_cast<double>(s.time));
+        }
+    }
+    exit(0);*/
 }
 
 void cable_cell_group::add_sampler(sampler_association_handle h,

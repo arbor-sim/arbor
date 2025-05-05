@@ -64,9 +64,11 @@ struct ARB_ARBOR_API lif_cell_group: public cell_group {
 
     cell_kind get_cell_kind() const override;
     void reset() override;
-    void advance(epoch epoch, time_type dt, const event_lane_subrange& events) override;
+    void advance(epoch epoch, time_type dt, const event_lane_subrange& events,
+                 std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> src_ranks,
+                 int num_domains) override;
 
-    virtual const std::vector<spike>& spikes() const override;
+    virtual const std::vector<std::vector<spike>>& spikes() const override;
     void clear_spikes() override;
 
     // Sampler association methods below should be thread-safe, as they might be invoked
@@ -93,7 +95,8 @@ private:
 
     // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
     // Parameter dt is ignored, since we make jumps between two consecutive spikes.
-    void advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, const event_lane_subrange& event_lane);
+    void advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, const event_lane_subrange& event_lane,
+                      std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> src_ranks);
 
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
@@ -102,7 +105,7 @@ private:
     std::vector<lif_lowered_cell> cells_;
 
     // Spikes that are generated (not necessarily sorted).
-    std::vector<spike> spikes_;
+    std::vector<std::vector<spike>> spikes_;
 
     // Time when the cell was last updated.
     std::vector<time_type> last_time_updated_;

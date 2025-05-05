@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <unordered_set>
 
 #include <arbor/common_types.hpp>
 #include <arbor/sampling.hpp>
@@ -27,9 +28,11 @@ public:
     virtual cell_kind get_cell_kind() const = 0;
 
     virtual void reset() = 0;
-    virtual void advance(epoch epoch, time_type dt, const event_lane_subrange& events) = 0;
+    virtual void advance(epoch epoch, time_type dt, const event_lane_subrange& events,
+                         std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> src_ranks,
+                         int num_domains) = 0;
 
-    virtual const std::vector<spike>& spikes() const = 0;
+    virtual const std::vector<std::vector<spike>>& spikes() const = 0;
     virtual void clear_spikes() = 0;
 
     // Sampler association methods below should be thread-safe, as they might be invoked

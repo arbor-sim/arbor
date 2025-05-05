@@ -43,7 +43,9 @@ cell_kind spike_source_cell_group::get_cell_kind() const {
     return cell_kind::spike_source;
 }
 
-void spike_source_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
+void spike_source_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes,
+                                      std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> src_ranks,
+                                      int num_domains) {
     PE(advance:sscell);
 
     for (auto i: util::count_along(gids_)) {
@@ -51,7 +53,13 @@ void spike_source_cell_group::advance(epoch ep, time_type dt, const event_lane_s
 
         for (auto& ts: time_sequences_[i]) {
             for (auto &t: util::make_range(ts.events(ep.t0, ep.t1))) {
-                spikes_.push_back({{gid, 0u}, t});
+                auto it = src_ranks.find(gid);
+                if (it != src_ranks.end()) {
+                    const auto& ranks = it->second;
+                    for (cell_size_type rank : ranks) {
+                        spikes_[rank].push_back({{gid, 0u}, t});
+                    }
+                }
             }
         }
     }
@@ -68,7 +76,7 @@ void spike_source_cell_group::reset() {
     clear_spikes();
 }
 
-const std::vector<spike>& spike_source_cell_group::spikes() const {
+const std::vector<std::vector<spike>>& spike_source_cell_group::spikes() const {
     return spikes_;
 }
 
