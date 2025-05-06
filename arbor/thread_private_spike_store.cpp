@@ -26,13 +26,22 @@ thread_private_spike_store::thread_private_spike_store(const task_system_handle&
 
 thread_private_spike_store::~thread_private_spike_store() = default;
 
-std::vector<std::vector<spike>> thread_private_spike_store::gather() const {
+std::vector<std::vector<spike>> thread_private_spike_store::gather(int num_domains) const {
     const auto& bs = impl_->buffers_;
     std::vector<std::vector<spike>> result;
-    result.reserve(bs.size());
-    for (const auto& thread_buffers : bs) {
-        result.insert(result.end(), thread_buffers.begin(), thread_buffers.end());
-    }
+    result.resize(num_domains);
+
+	for (const auto& thread_vec : bs) {
+		int rank = 0;
+		for (const auto& subvec : thread_vec) {
+		    result[rank].insert(result[rank].end(), subvec.begin(), subvec.end());
+		    rank++;
+		    if (rank == num_domains){
+		        rank = 0;
+		    }
+		}
+	}
+
     return result;
 }
 

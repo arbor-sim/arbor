@@ -266,29 +266,9 @@ communicator::exchange(std::vector<std::vector<spike>> local_spikes) {
     }
     PL();
 
-    
-    PE(communication:exchange:gen_spikes);
-    //generate_values_all_to_all(outgoing_remote_targets_, local_spikes, spike_ranks);
-    PL();
     PE(communication:exchange:all2all);
-    
     auto global_spikes = ctx_->distributed->all_to_all_spikes(local_spikes);
     num_spikes_ += global_spikes.size();
-    const auto& values = global_spikes.values();
-    const auto& partitions = global_spikes.partition();
-
-    for (std::size_t rank = 0; rank < partitions.size() - 1; ++rank) {
-        std::size_t start = partitions[rank];
-        std::size_t end = partitions[rank + 1];
-
-        printf("Rank %zu:\n", rank);
-        for (std::size_t i = start; i < end; ++i) {
-            printf("AAAAAAAAAAAAA %lu \n", i);
-            const auto& s = values[i];
-            printf("  gid: %u, index: %u, time: %g\n", s.source.gid, s.source.index, s.time);
-        }
-    }
-    exit(0);
     PL();
 
     // Get remote spikes

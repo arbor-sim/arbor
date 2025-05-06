@@ -29,7 +29,7 @@ public :
 
     /// Collate all of the individual buffers into a single vector of spikes.
     /// Does not modify the buffer contents.
-    std::vector<std::vector<spike>> gather() const;
+    std::vector<std::vector<spike>> gather(int num_domains) const;
 
     /// Return a reference to the thread private buffer of the calling thread
     std::vector<std::vector<spike>>& get();
