@@ -34,11 +34,9 @@ std::vector<std::vector<spike>> thread_private_spike_store::gather(int num_domai
 	for (const auto& thread_vec : bs) {
 		int rank = 0;
 		for (const auto& subvec : thread_vec) {
-		    result[rank].insert(result[rank].end(), subvec.begin(), subvec.end());
+		    result[rank % num_domains].insert(result[rank % num_domains].end(), std::make_move_iterator(subvec.begin()),
+		                        std::make_move_iterator(subvec.end()));
 		    rank++;
-		    if (rank == num_domains){
-		        rank = 0;
-		    }
 		}
 	}
 

@@ -259,9 +259,7 @@ communicator::spikes
 communicator::exchange(std::vector<std::vector<spike>> local_spikes) {
     PE(communication:exchange:sort);
     // sort the spikes in ascending order of source gid
-    int size = 0;
     for (auto& rank : local_spikes) {
-        size += rank.size();
         util::sort_by(rank, [](const spike& s) { return s.source; });
     }
     PL();
