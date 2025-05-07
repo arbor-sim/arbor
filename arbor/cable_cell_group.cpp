@@ -449,6 +449,7 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     // generate spikes with global spike source ids. The threshold crossings
     // record the local spike source index, which must be converted to a
     // global index for spike communication.
+    PE(advance:spike_gen);
     spikes_.resize(num_domains);
     for (auto c: result.crossings) {
         auto src = spike_sources_[c.index];
@@ -460,6 +461,7 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
             }
         }
     }
+    PL();
 }
 
 void cable_cell_group::add_sampler(sampler_association_handle h,

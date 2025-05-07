@@ -290,7 +290,7 @@ communicator::exchange(std::vector<std::vector<spike>> local_spikes) {
         flat_spikes.insert(flat_spikes.end(), subvec.begin(), subvec.end());
     }
 
-    std::sort(flat_spikes.begin(), flat_spikes.end()); // requiere operador <
+    std::sort(flat_spikes.begin(), flat_spikes.end()); 
     flat_spikes.erase(std::unique(flat_spikes.begin(), flat_spikes.end()), flat_spikes.end());
     
     auto remote_spikes = ctx_->distributed->remote_gather_spikes(flat_spikes);
