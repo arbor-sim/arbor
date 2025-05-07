@@ -359,7 +359,7 @@ void run_samples(
 }
 
 void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes, 
-                               std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> src_ranks,
+                               const std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> & src_ranks,
                                int num_domains) {
     time_type tstart = lowered_->time();
 
@@ -451,13 +451,17 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     // global index for spike communication.
     PE(advance:spike_gen);
     spikes_.resize(num_domains);
-    for (auto c: result.crossings) {
-        auto src = spike_sources_[c.index];
-        auto it = src_ranks.find(src.gid);
+    for (auto& rank : spikes_) {
+        rank.reserve(result.crossings.size());
+    }
+    for (const auto& c: result.crossings) {
+        const auto& src = spike_sources_[c.index];
+        const auto& it = src_ranks.find(src.gid);
         if (it != src_ranks.end()) {
             const auto& ranks = it->second;
+            const spike s{src, time_type(c.time)};
             for (cell_size_type rank : ranks) {
-                spikes_[rank].emplace_back(src, time_type(c.time));
+                spikes_[rank].push_back(s);
             }
         }
     }

@@ -29,7 +29,7 @@ public:
 
     virtual void reset() = 0;
     virtual void advance(epoch epoch, time_type dt, const event_lane_subrange& events,
-                         std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> src_ranks,
+                         const std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>>& src_ranks,
                          int num_domains) = 0;
 
     virtual const std::vector<std::vector<spike>>& spikes() const = 0;

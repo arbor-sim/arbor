@@ -46,9 +46,10 @@ cell_kind lif_cell_group::get_cell_kind() const {
 }
 
 void lif_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes,
-                             std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> src_ranks,
+                             const std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>>& src_ranks,
                              int num_domains) {
     PE(advance:lif);
+    spikes_.resize(num_domains);
     for (auto lid: util::make_span(gids_.size())) {
         // Advance each cell independently.
         advance_cell(ep.t1, dt, lid, event_lanes, src_ranks);
@@ -107,7 +108,7 @@ void lif_cell_group::advance_cell(time_type tfinal,
                                   time_type dt,
                                   cell_gid_type lid,
                                   const event_lane_subrange& event_lanes,
-                                  std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> src_ranks) {
+                                  const std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>>& src_ranks) {
     const auto gid = gids_[lid];
     auto& cell = cells_[lid];
     // time of last update.

@@ -68,7 +68,7 @@ cell_kind benchmark_cell_group::get_cell_kind() const {
 void benchmark_cell_group::advance(epoch ep,
                                    time_type dt,
                                    const event_lane_subrange& event_lanes,
-                                   std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> src_ranks,
+                                   const std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>>& src_ranks,
                                    int num_domains)
 {
     using std::chrono::high_resolution_clock;
@@ -85,6 +85,7 @@ void benchmark_cell_group::advance(epoch ep,
         // Start timer.
         auto start = high_resolution_clock::now();
 
+	spikes_.resize(num_domains);
         auto spike_times = util::make_range(cells_[i].time_sequence.events(ep.t0, ep.t1));
         for (auto t: spike_times) {
             auto it = src_ranks.find(gid);

@@ -426,6 +426,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
             [&](cell_group_ptr& group, int i) {
                 auto queues = util::subrange_view(event_lanes(current.id), communicator_.group_queue_range(i));
                 group->advance(current, dt, queues, outgoing_remote_targets_, ddc_.num_domains());
+
                 PE(advance:spikes);
                 local_spikes(current.id).insert(group->spikes());
                 group->clear_spikes();
@@ -437,7 +438,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     // post-synaptic spike events to per-cell pending event vectors.
     auto exchange = [this](epoch prev) {
         // Collate locally generated spikes.
-        PE(communication:exchange:gatherlocal);
+        PE(communication:exchange:local_gather);
         auto all_local_spikes = local_spikes(prev.id).gather(ddc_.num_domains());
         PL();
         communicator_.remote_ctrl_send_continue(prev);

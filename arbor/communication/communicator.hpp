@@ -55,7 +55,7 @@ public:
     /// Returns
     /// * full global set of vectors, along with meta data about their partition
     /// * a list of spikes received from remote simulations
-    spikes exchange(std::vector<std::vector<spike>> local_spikes);
+    spikes exchange(std::vector<std::vector<spike>>& local_spikes);
 
     /// Check each global spike in turn to see it generates local events.
     /// If so, make the events and insert them into the appropriate event list.

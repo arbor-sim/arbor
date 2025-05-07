@@ -155,7 +155,6 @@ communicator::update_connections(const recipe& rec,
     
     for (const auto tgt_gid: gids) {
         gids_domains[my_rank].push_back(tgt_gid);
-        outgoing_remote_targets[tgt_gid].insert(my_rank);
         auto iod = dom_dec.index_on_domain(tgt_gid);
         source_resolver.clear();
         for (const auto& conn: rec.connections_on(tgt_gid)) {
@@ -241,22 +240,8 @@ time_type communicator::min_delay() {
     return res;
 }
 
-void generate_values_all_to_all(const std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> &outgoing_remote_targets,
-                               const std::vector<spike> &spks, std::vector<std::vector<spike>>& values) {
-    
-    for (const auto& sp : spks) {
-        auto it = outgoing_remote_targets.find(sp.source.gid);
-        if (it != outgoing_remote_targets.end()) {
-            const auto& ranks = it->second;
-            for (cell_size_type rank : ranks) {
-                values[rank].emplace_back(sp);
-            }
-        }
-    }
-}
-
 communicator::spikes
-communicator::exchange(std::vector<std::vector<spike>> local_spikes) {
+communicator::exchange(std::vector<std::vector<spike>>& local_spikes) {
     PE(communication:exchange:sort);
     // sort the spikes in ascending order of source gid
     for (auto& rank : local_spikes) {

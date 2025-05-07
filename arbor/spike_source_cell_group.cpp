@@ -44,10 +44,10 @@ cell_kind spike_source_cell_group::get_cell_kind() const {
 }
 
 void spike_source_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes,
-                                      std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> src_ranks,
+                                      const std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>>& src_ranks,
                                       int num_domains) {
     PE(advance:sscell);
-
+    spikes_.resize(num_domains);
     for (auto i: util::count_along(gids_)) {
         const auto gid = gids_[i];
 
