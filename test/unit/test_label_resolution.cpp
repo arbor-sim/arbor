@@ -234,47 +234,54 @@ TEST(test_label_resolution, policies) {
     }
     // multivalent labels
     {
-        std::vector<cell_gid_type> gids = {0, 1, 2};
+        std::vector<cell_gid_type> gids   = {0, 1, 2};
         std::vector<cell_size_type> sizes = {3, 0, 6};
         std::vector<cell_tag_type> labels = {"l0_0", "l0_1", "l0_0", "l2_0", "l2_0", "l2_2", "l2_1", "l2_1", "l2_2"};
-        std::vector<lid_range> ranges = {{0, 1}, {0, 3}, {1, 3}, {4, 6}, {9, 12}, {5, 5}, {1, 2}, {0, 1}, {22, 23}};
+        std::vector<lid_range> ranges     = {{0, 1}, {0, 3}, {1, 3}, {4, 6}, {9, 12}, {5, 5}, {1, 2}, {0, 1}, {22, 23}};
 
         auto res_map = label_resolution_map(cell_labels_and_gids({sizes, labels, ranges}, gids));
 
         // Check resolver map correctness
         // gid 0
-        EXPECT_EQ(1u, res_map.count(0, "l0_1"));
-        auto rset = res_map.at(0, "l0_1");
-        EXPECT_EQ(1u, rset.ranges.size());
-        EXPECT_EQ(lid_range(0, 3), rset.ranges.front());
-
-        EXPECT_EQ(1u, res_map.count(0, "l0_0"));
-        rset = res_map.at(0, "l0_0");
-        EXPECT_EQ(2u, rset.ranges.size());
-        EXPECT_EQ(lid_range(0, 1), rset.ranges.at(0));
-        EXPECT_EQ(lid_range(1, 3), rset.ranges.at(1));
-
+        {
+            EXPECT_EQ(1u, res_map.count(0, "l0_1"));
+            auto rset = res_map.at(0, "l0_1");
+            EXPECT_EQ(1u, rset.ranges.size());
+            EXPECT_EQ(3u, rset.size);
+            EXPECT_EQ(lid_range(0, 3), rset.ranges.front());
+        }
+        {
+            EXPECT_EQ(1u, res_map.count(0, "l0_0"));
+            auto rset = res_map.at(0, "l0_0");
+            EXPECT_EQ(2u, rset.ranges.size());
+            EXPECT_EQ(lid_range(0, 1), rset.ranges.at(0));
+            EXPECT_EQ(lid_range(1, 3), rset.ranges.at(1));
+        }
         // gid 1
         EXPECT_EQ(0u, res_map.count(1, "l0_1"));
 
         // gid 2
-        EXPECT_EQ(1u, res_map.count(2, "l2_0"));
-        rset = res_map.at(2, "l2_0");
-        EXPECT_EQ(2u, rset.ranges.size());
-        EXPECT_EQ(lid_range(4, 6), rset.ranges.at(0));
-        EXPECT_EQ(lid_range(9, 12), rset.ranges.at(1));
-
-        EXPECT_EQ(1u, res_map.count(2, "l2_1"));
-        rset = res_map.at(2, "l2_1");
-        EXPECT_EQ(2u, rset.ranges.size());
-        EXPECT_EQ(lid_range(1, 2), rset.ranges.at(0));
-        EXPECT_EQ(lid_range(0, 1), rset.ranges.at(1));
-
-        EXPECT_EQ(1u, res_map.count(2, "l2_2"));
-        rset = res_map.at(2, "l2_2");
-        // empty ranges will be dropped! so (5, 5) is gone
-        EXPECT_EQ(1u, rset.ranges.size());
-        EXPECT_EQ(lid_range(22, 23), rset.ranges.at(0));
+        {
+            EXPECT_EQ(1u, res_map.count(2, "l2_0"));
+            auto rset = res_map.at(2, "l2_0");
+            EXPECT_EQ(2u, rset.ranges.size());
+            EXPECT_EQ(lid_range(4, 6), rset.ranges.at(0));
+            EXPECT_EQ(lid_range(9, 12), rset.ranges.at(1));
+        }
+        {
+            EXPECT_EQ(1u, res_map.count(2, "l2_1"));
+            auto rset = res_map.at(2, "l2_1");
+            EXPECT_EQ(2u, rset.ranges.size());
+            EXPECT_EQ(lid_range(1, 2), rset.ranges.at(0));
+            EXPECT_EQ(lid_range(0, 1), rset.ranges.at(1));
+        }
+        {
+            EXPECT_EQ(1u, res_map.count(2, "l2_2"));
+            auto rset = res_map.at(2, "l2_2");
+            // empty ranges will be dropped! so (5, 5) is gone
+            EXPECT_EQ(1u, rset.ranges.size());
+            EXPECT_EQ(lid_range(22, 23), rset.ranges.at(0));
+        }
 
         // Check lid resolution
         auto lid_resolver = arb::resolver(&res_map);

@@ -105,8 +105,16 @@ label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
             if (range.end  < range.begin) throw arb::arbor_internal_error("label_resolution_map: invalid lid_range");
             if (range.end == range.begin) continue;
             auto size = range.end - range.begin;
+            // key was already in singletons, so move to 'normal' rangesets and append
+            if (singletons.contains(key)) {
+                auto off = singletons.extract(key)->second;
+                auto& rset = rangesets[key];
+                rset.ranges.push_back({off, off + 1});
+                rset.ranges.push_back(range);
+                rset.size = 1 + size; // remember to add the singleton's length
+            }
             // is a 'proper' range
-            if (size > 1) {
+            else if (size > 1) {
                 auto& rset = rangesets[key];
                 rset.ranges.push_back(range);
                 rset.size += size;
@@ -117,17 +125,9 @@ label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
                 rset.ranges.push_back(range);
                 rset.size += size;
             }
-            // key was already in singletons, so move to 'normal' rangesets and append
-            else if (singletons.contains(key)) {
-                auto& rset = rangesets[key];
-                auto off = singletons[key];
-                rset.ranges.push_back({off, off + 1});
-                rset.ranges.push_back(range);
-                rset.size = 1 + size; // remember to add the singleton's length
-                singletons.erase(key);
-            }
             // must be a pristine singleton
             else {
+                arb_assert(size == 1);
                 singletons[key] = range.begin;
             }
         }
