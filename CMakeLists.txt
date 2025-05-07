@@ -394,12 +394,16 @@ list(APPEND arbor_export_dependencies units)
 CPMFindPackage(NAME unordered_dense
                GITHUB_REPOSITORY martinus/unordered_dense
                VERSION 4.5.0)
+
 if(unordered_dense_ADDED)
+    message("ADDED uod")
     install(TARGETS unordered_dense EXPORT arbor-targets)
     target_link_libraries(arbor-private-deps INTERFACE unordered_dense::unordered_dense)
 else()
+    message("FOUND uod")
     target_link_libraries(arbor-private-deps INTERFACE unordered_dense::unordered_dense)
 endif()
+message("uod ${unordered_dense_SOURCE_DIR}")
 
 
 CPMFindPackage(NAME tinyopt
