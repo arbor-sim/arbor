@@ -90,7 +90,15 @@ using gid_label_map = ankerl::unordered_dense::map<gid_label_pair, V, gid_label_
 struct ARB_ARBOR_API label_resolution_map {
     label_resolution_map() = default;
     explicit label_resolution_map(const cell_labels_and_gids&);
-    gid_label_map<range_set> map;
+    gid_label_map<range_set> rangesets;
+    gid_label_map<cell_lid_type> singletons;
+
+
+    std::size_t count(const cell_global_label_type& iden);
+    std::size_t count(cell_gid_type gid, const cell_tag_type& label);
+
+    range_set at(const cell_global_label_type& iden);
+    range_set at(cell_gid_type gid, const cell_tag_type& label);
 };
 
 // Struct used for resolving the lid of a (gid, label, lid_selection_policy) input.
