@@ -1,14 +1,15 @@
 #pragma once
 
-#include <unordered_map>
 #include <vector>
+
+#include <ankerl/unordered_dense.h>
 
 #include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/util/expected.hpp>
-
 #include <arbor/util/hash_def.hpp>
+
+#include "util/smallvec.hpp"
 
 namespace arb {
 
@@ -59,31 +60,45 @@ struct ARB_ARBOR_API cell_labels_and_gids {
     std::vector<cell_gid_type> gids;
 };
 
+struct range_set {
+    std::size_t size = 0;
+    // Most have one element only
+    util::smallvec<lid_range, 1> ranges;
+    cell_lid_type at(unsigned idx) const;
+};
+
+struct gid_label_pair {
+    uint64_t gid = 0;
+    uint64_t label = 0;
+    bool operator==(const gid_label_pair&) const noexcept = default;
+};
+
+struct gid_label_hasher {
+    using is_avalanching = void;
+    auto operator()(const gid_label_pair& key) const noexcept -> uint64_t {
+        static_assert(std::has_unique_object_representations_v<gid_label_pair>);
+        return ankerl::unordered_dense::detail::wyhash::hash(&key, sizeof(key));
+    }
+};
+
+template<typename V>
+using gid_label_map = ankerl::unordered_dense::map<gid_label_pair, V, gid_label_hasher>;
+
 // Class constructed from `cell_labels_and_ranges`:
 // Represents the information in the object in a more
 // structured manner for lid resolution in `resolver`
 struct ARB_ARBOR_API label_resolution_map {
-    struct range_set {
-        std::size_t size = 0;
-        std::vector<lid_range> ranges;
-        cell_lid_type at(unsigned idx) const;
-    };
-
     label_resolution_map() = default;
     explicit label_resolution_map(const cell_labels_and_gids&);
+    gid_label_map<range_set> rangesets;
+    gid_label_map<cell_lid_type> singletons;
 
-    const range_set& at(cell_gid_type gid, hash_type hash) const;
-    std::size_t count(cell_gid_type gid, hash_type hash) const;
-    const range_set& at(cell_gid_type gid, const cell_tag_type& tag) const { return at(gid, hash_value(tag)); }
-    std::size_t count(cell_gid_type gid, const cell_tag_type& tag) const { return count(gid, hash_value(tag)); }
 
-private:
-    using Key = std::pair<cell_gid_type, hash_type>;
+    std::size_t count(const cell_global_label_type& iden);
+    std::size_t count(cell_gid_type gid, const cell_tag_type& label);
 
-    struct Hasher {
-        std::size_t operator()(const Key& key) const { return hash_value(key.first, key.second); }
-    };
-    std::unordered_map<Key, range_set, Hasher> map;
+    range_set at(const cell_global_label_type& iden);
+    range_set at(cell_gid_type gid, const cell_tag_type& label);
 };
 
 // Struct used for resolving the lid of a (gid, label, lid_selection_policy) input.
@@ -97,11 +112,8 @@ struct ARB_ARBOR_API resolver {
     void clear() { rr_state_map_.clear(); }
 
 private:
-    template<typename K, typename V>
-    using map = std::unordered_map<K, V>;
-
     const label_resolution_map* label_map_ = nullptr;
     // save index for round-robin and round-robin-halt policies
-    map<cell_gid_type, map<hash_type, cell_lid_type>> rr_state_map_;
+    gid_label_map<cell_lid_type> rr_state_map_;
 };
 } // namespace arb

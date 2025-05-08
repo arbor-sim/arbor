@@ -196,3 +196,4 @@ target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\""
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/testing")
 target_link_libraries(unit PRIVATE gtest gtest_main ext-random123 arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)
+target_include_directories(unit PRIVATE $<BUILD_INTERFACE:${unordered_dense_SOURCE_DIR}/include>)

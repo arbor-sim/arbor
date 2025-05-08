@@ -49,3 +49,4 @@
 #   define ARB_SYMBOL_VISIBLE
 #endif
 
+#define ARB_UNREACHABLE __builtin_unreachable();
