@@ -490,7 +490,7 @@ by Arbor.
 We package these messages as a C++ ``std::variant`` called ``ctrl_message`` in
 ``arbor/communication/remote.hpp`` alongside the ``exchange_ctrl`` method. This
 will handle setting up the buffers, performing the actual transfer, and returning
-the result as a ``ctrl_messge``. Handling the message is left to the
+the result as a ``ctrl_message``. Handling the message is left to the
 participating package.
 
 **Important** This is a synchronous protocol, which means an unannounced
@@ -509,6 +509,68 @@ or other languages, if needed, as the infrastructure relies on byte-buffers and
 numeric tags; the use of C++ types and variants on top is just an attempt to
 make the interaction a bit safer and nicer. Refer to the ``remote.cpp`` example
 on how they are used and the inline comments in ``remote.hpp``.
+
+Opting Out Of Source Resolution
+-------------------------------
+
+.. attention::
+
+   This is a way to opt out of convenience and safety when performance during
+   initialisation is more important. We neither expect nor advise most users
+   to interact with it.
+
+   As an example, using ``raw_connections_on`` became relevant in our
+   experiments at 16,384 processes presenting 8,192 cells with one source each.
+   If you run simulations at this scale, we would love to hear from you.
+
+It is possible, in circumstances where the performance impact is too drastic, to
+opt out of labelled connections. This entails not using string labels as in
+
+.. code-block:: python
+
+    A.connection((gid, 'source'), 'target', ...)
+
+but manually resolving the label ``'source'`` to a numeric offset, like this
+
+.. code-block:: python
+
+    A.raw_connection((gid, 0), 'target', ...)
+
+Note that this is only required for the remote or source part of the connection,
+as the local labels can be resolved much more cheaply.
+
+**How to obtain the index?** The numeric offset to be used here is the offset
+*into the list of targets in the order of declaration* on the source, where each
+kind of item (current clamps, spike detectors, ...) maintains their own list.
+That is, if the source (cable) cell has a decor like this
+
+.. code-block:: python
+
+    decor = (
+        A.decor()
+        # ...
+        # Place stimuli and detectors.
+        .place('"root"', A.iclamp(10 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp0")
+        .place('"axon_terminal"', A.threshold_detector(-10 * U.mV), "detector-1")
+        .place('"root"', A.iclamp(30 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp1")
+        .place('"root"', A.iclamp(50 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp2")
+        .place('"root"', A.threshold_detector(-10 * U.mV), "detector-2")
+    )
+
+the list of sources is ``[0, 1]`` corresponding to ``detector-1`` and
+``detector-2``. Manually resolved connections must be returned from the
+``raw_connections_on`` method on ``recipe`` not from ``connections_on``, both in
+Python and C++.
+
+.. caution::
+
+   Manually resolved connections will not be checked, instead, if the source's
+   ``index`` is invalid no events will ever arrive at the target.
+
+If the recipe uses no automatically resolved connections, the
+``resolve_sources`` method can be overloaded to return ``false``. This will opt
+out of label resolutions completely and make returning any connections from
+``connections_on`` an error.
 
 Terms and Definitions
 ---------------------

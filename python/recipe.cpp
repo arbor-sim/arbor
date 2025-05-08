@@ -126,6 +126,12 @@ std::string con_to_string(const arb::cell_connection& c) {
          c.source.gid, c.source.label.tag, c.source.label.policy, c.target.tag, c.target.policy, c.delay, c.weight);
 }
 
+std::string raw_to_string(const arb::raw_cell_connection& c) {
+    return util::pprintf("<arbor.raw_connection: source ({}, {}), destination (\"{}\", {}), delay {}, weight {}>",
+         c.source.gid, c.source.index, c.target.tag, c.target.policy, c.delay, c.weight);
+}
+
+
 std::string gj_to_string(const arb::gap_junction_connection& gc) {
     return util::pprintf("<arbor.gap_junction_connection: peer ({}, \"{}\", {}), local (\"{}\", {}), weight {}>",
          gc.peer.gid, gc.peer.label.tag, gc.peer.label.policy, gc.local.tag, gc.local.policy, gc.weight);
@@ -153,6 +159,28 @@ void register_recipe(pybind11::module& m) {
         .def_readwrite("weight", &arb::cell_connection::weight,
             "The weight of the connection.")
         .def_readwrite("delay", &arb::cell_connection::delay,
+            "The delay time of the connection [ms].")
+        .def("__str__",  &con_to_string)
+        .def("__repr__", &con_to_string);
+
+    pybind11::class_<arb::raw_cell_connection> raw_cell_connection(m, "connection",
+        "Describes a manually resolved connection between two cells:\n"
+        "  Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively), a connection weight and a delay time.");
+    raw_cell_connection
+        .def(pybind11::init<arb::cell_member_type, arb::cell_local_label_type, float, const U::quantity&>(),
+            "source"_a, "dest"_a, "weight"_a, "delay"_a,
+            "Construct a connection with arguments:\n"
+            "  source:      The source end point of the connection.\n"
+            "  dest:        The destination end point of the connection.\n"
+            "  weight:      The weight delivered to the target synapse (unit defined by the type of synapse target).\n"
+            "  delay:       The delay of the connection [ms].")
+        .def_readwrite("source", &arb::raw_cell_connection::source,
+            "The source gid and index of the connection.")
+        .def_readwrite("dest", &arb::raw_cell_connection::target,
+            "The destination label of the connection.")
+        .def_readwrite("weight", &arb::raw_cell_connection::weight,
+            "The weight of the connection.")
+        .def_readwrite("delay", &arb::raw_cell_connection::delay,
             "The delay time of the connection [ms].")
         .def("__str__",  &con_to_string)
         .def("__repr__", &con_to_string);
@@ -222,6 +250,8 @@ void register_recipe(pybind11::module& m) {
              pybind11::call_guard<pybind11::gil_scoped_release>(),
             "gid"_a,
             "A list of all the incoming connections to gid, [] by default.")
+        .def("resolve_sources", &recipe::resolve_sources,
+            "Global string label resolution enabled?.")
         .def("external_connections_on", &recipe::external_connections_on,
             "gid"_a,
             "A list of all the incoming connections from _remote_ locations to gid, [] by default.")
@@ -238,7 +268,6 @@ void register_recipe(pybind11::module& m) {
         .def("global_properties", &recipe::global_properties,
             "kind"_a,
             "The default properties applied to all cells of type 'kind' in the model.")
-        // TODO: recipe::global_properties
         .def("__str__",  [](const ::pyarb::recipe&){return "<arbor.recipe>";})
         .def("__repr__", [](const ::pyarb::recipe&){return "<arbor.recipe>";});
 }
