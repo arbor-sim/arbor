@@ -394,7 +394,6 @@ list(APPEND arbor_export_dependencies units)
 CPMFindPackage(NAME unordered_dense
                GITHUB_REPOSITORY martinus/unordered_dense
                VERSION 4.5.0)
-target_include_directories(arbor-private-deps SYSTEM INTERFACE $<BUILD_INTERFACE:${unordered_dense_SOURCE_DIR}/include>)
 
 CPMFindPackage(NAME tinyopt
               GITHUB_REPOSITORY halfflat/tinyopt
