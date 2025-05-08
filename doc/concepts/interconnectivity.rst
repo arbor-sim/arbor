@@ -115,7 +115,7 @@ Network Selection Expressions
 
     Cell kind expression for spike source cells.
 
-.. label:: (all)
+.. label:: (all) :no-index:
 
     A selection of all possible connections.
 
@@ -217,7 +217,7 @@ Network Selection Expressions
 Network Value Expressions
 -------------------------
 
-.. label:: (scalar value:real)
+.. label:: (scalar value:real) :no-index:
 
     A scalar of given value.
 
