@@ -163,7 +163,7 @@ void register_recipe(pybind11::module& m) {
         .def("__str__",  &con_to_string)
         .def("__repr__", &con_to_string);
 
-    pybind11::class_<arb::raw_cell_connection> raw_cell_connection(m, "connection",
+    pybind11::class_<arb::raw_cell_connection> raw_cell_connection(m, "raw_connection",
         "Describes a manually resolved connection between two cells:\n"
         "  Defined by source and destination end points (that is pre-synaptic and post-synaptic respectively), a connection weight and a delay time.");
     raw_cell_connection
