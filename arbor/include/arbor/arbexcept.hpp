@@ -35,12 +35,18 @@ struct ARB_SYMBOL_VISIBLE domain_error: arbor_exception {
 };
 
 // Recipe errors:
-
 struct ARB_SYMBOL_VISIBLE bad_cell_probe: arbor_exception {
     bad_cell_probe(cell_kind kind, cell_gid_type gid);
     cell_gid_type gid;
     cell_kind kind;
 };
+
+struct ARB_SYMBOL_VISIBLE resolution_disabled: arbor_exception {
+    resolution_disabled(cell_gid_type gid):
+        arbor_exception("Recipe has disabled source resolution, but asked for resolution on gid=" + std::to_string(gid))
+    {}
+};
+
 
 struct ARB_SYMBOL_VISIBLE dup_cell_probe: arbor_exception {
     dup_cell_probe(cell_kind kind, cell_gid_type gid, cell_tag_type tag);

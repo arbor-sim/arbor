@@ -3,7 +3,9 @@
 Brunel network
 ==============
 
-In this tutorial, we will build a classic Brunel network using LIF cells in Arbor, and you can compare it with the simulation using LIF cells in the NEST simulator.
+In this tutorial, we will build a classic Brunel network [#1]_ using LIF cells in
+Arbor, and you can compare it with the simulation using LIF cells in the NEST
+simulator.
 
 .. admonition:: Concepts covered in this example
    :class: note
@@ -30,7 +32,7 @@ We can find all the parameters listed in a separate parameter file:
 .. literalinclude:: ../../python/example/brunel/parameters.py
    :language: python
    :dedent:
-   :lines: 1-53
+   :lines: 1-49
 
 
 We define the network size with ``num_cells`` and cell type with ``cell_kind``. Then load all the neuron parameters to the LIF cells with ``cell_description`` function.
@@ -40,8 +42,13 @@ We define the network size with ``num_cells`` and cell type with ``cell_kind``. 
    :dedent:
    :lines: 64-81
 
-
-The Brunel network is randomly sparsely connected with a fixed in-degree regulated by a connection probability (:math:`\epsilon`). We, therefore, define a function to enable random connectivity. This funciton draws random connections from the pre-selected pool of source neruons defined by the `gid` defined within `start` and `end`. The total number of random connections are regulated by the fix-indegree value, which is `m` here in the function and `CE` and `CI` in the parameters file.
+The Brunel network is randomly sparsely connected with a fixed in-degree
+regulated by a connection probability (:math:`\epsilon`). We, therefore, define
+a function to enable random connectivity. This funciton draws random connections
+from the pre-selected pool of source neruons defined by the `gid` defined within
+`start` and `end`. The total number of random connections are regulated by the
+fix-indegree value, which is `m` here in the function and `CE` and `CI` in the
+parameters file.
 
 .. literalinclude:: ../../python/example/brunel/arbor_brunel.py
    :language: python
@@ -49,7 +56,9 @@ The Brunel network is randomly sparsely connected with a fixed in-degree regulat
    :lines: 83-112
 
 
-To enable the network activity, we apply Poissonian input via ``event_generators`` to to each neuron in the network. It aims to achieve a similar effect as the ``Poisson_generator`` in the NEST simulator.
+To enable the network activity, we apply Poissonian input via
+``event_generators`` to to each neuron in the network. It aims to achieve a
+similar effect as the ``Poisson_generator`` in the NEST simulator.
 
 .. literalinclude:: ../../python/example/brunel/arbor_brunel.py
    :language: python
@@ -62,9 +71,12 @@ In the end, we build the network, run the simulation, and record the spikes.
 .. literalinclude:: ../../python/example/brunel/arbor_brunel.py
    :language: python
    :dedent:
-   :lines: 128-172
+   :lines: 128-171
 
-One can also use the code below to visualize the raster plot of the entire nework and a few selected cells, and the peristimulus time histogram (PSTH) of the entire network. The parameters used here are supposed to achieve asynchronous irregular dynamics.
+One can also use the code below to visualize the raster plot of the entire
+nework and a few selected cells, and the peristimulus time histogram (PSTH) of
+the entire network. The parameters used here are supposed to achieve
+asynchronous irregular dynamics.
 
 .. literalinclude:: ../../python/example/brunel/analysis.py
    :language: python
@@ -87,9 +99,10 @@ One can also use the code below to visualize the raster plot of the entire newor
     Firing rate distribution of all neurons in the Brunel network simulated in Arbor.
     
 
-The full code
--------------
-You can find the same network architecture simulated in the NEST simulator in the same repo ``python/examples/brunel/nest_brunel.py``. The average firing rate of neurons and network dynamics look similar in both cases.
+The full code ------------- You can find the same network architecture simulated
+in the NEST simulator in the same repo
+``python/examples/brunel/nest_brunel.py``. The average firing rate of neurons
+and network dynamics look similar in both cases.
 
 
 .. figure:: ../images/brunel_nest_dynamics.svg
@@ -110,4 +123,4 @@ You can find the same network architecture simulated in the NEST simulator in th
 
 References
 ----------
-.. [1] Brunel, Journal of Computational Neuroscience 8: 183-208 (2000); `<https://link.springer.com/article/10.1023/A:1008925309027>`_.
+.. [#1] Brunel, Journal of Computational Neuroscience 8: 183-208 (2000); `<https://link.springer.com/article/10.1023/A:1008925309027>`_.

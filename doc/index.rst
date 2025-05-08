@@ -182,6 +182,7 @@ A full list of our software attributions can be found `here <https://github.com/
    :caption: File formats:
    :maxdepth: 1
 
+   fileformat/index
    fileformat/swc
    fileformat/neuroml
    fileformat/asc

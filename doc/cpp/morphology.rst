@@ -3,9 +3,9 @@
 Cable cell morphology
 =====================
 
-Cell morphologies are required to describe a :ref:`cppcablecell`.
-Morphologies can be constructed from :cpp:type:`segment_trees`, or read from a number of
-file formats; see :ref:`cppcablecell-morphology-construction` for details.
+Cell morphologies are required to describe a :ref:`cppcablecell`. Morphologies
+can be constructed from :cpp:type:`segment_trees`, or read from a number of file
+formats; see :ref:`cppcablecell-morphology-construction` for details.
 
 Segment tree
 ------------
@@ -665,7 +665,7 @@ The :cpp:func:`parse_asc()` function is used to parse the SWC file and generate 
 
    A list of spines annotated in the ``.asc`` file.
 
-   .. cpp:member:: std::vector<asc_marker_set> spines
+   .. cpp:member:: std::vector<asc_marker_set> markers
 
    A list of marker set annotated in the ``.asc`` file.
 
@@ -676,6 +676,7 @@ The :cpp:func:`parse_asc()` function is used to parse the SWC file and generate 
     .. cpp:member:: arb::mpoint location
 
 .. cpp:class:: asc_marker_set
+
     .. cpp:member:: asc_color color
 
     .. cpp:member:: asc_marker marker = asc_marker::none

@@ -1,7 +1,7 @@
 {
     "name": "run_n=128_d=10-complex=true",
     "num-cells": 8192,
-    "num-tiles": 1024,
+    "num-tiles": 4096,
     "synapses": 1000,
     "min-delay": 5,
     "duration": 250,
@@ -12,6 +12,7 @@
     "dt": 0.1,
     "depth": 2,
     "complex": false,
+    "resolve-sources": false,
     "cpu-group-size": 1024,
     "branch-probs": [
         1,
