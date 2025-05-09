@@ -24,3 +24,4 @@ A :cpp:type:`arb::recipe` describes a model, and a :cpp:type:`arb::simulation` i
    profiler
    cable_cell
    lif_cell
+   labels
