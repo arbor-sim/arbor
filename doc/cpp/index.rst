@@ -21,6 +21,7 @@ A :cpp:type:`arb::recipe` describes a model, and a :cpp:type:`arb::simulation` i
    event_generators
    hardware
    domdec
+   mechanisms
    simulation
    profiler
    cable_cell
