@@ -96,9 +96,17 @@ public:
     gathered_vector<spike> gather_spikes(const spike_vector& local_spikes) const {
         return impl_->gather_spikes(local_spikes);
     }
+    
+    gathered_vector<spike> all_to_all_spikes(const std::vector<std::vector<spike>>& local_spikes) const {
+        return impl_->all_to_all_spikes(local_spikes);
+    }
 
     gathered_vector<cell_gid_type> gather_gids(const gid_vector& local_gids) const {
         return impl_->gather_gids(local_gids);
+    }
+
+    gathered_vector<cell_gid_type> all_to_all_gids_domains(const std::vector<std::vector<cell_size_type>>& local_spikes) const {
+        return impl_->all_to_all_gids_domains(local_spikes);
     }
 
     cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
@@ -159,10 +167,14 @@ private:
     struct interface {
         virtual gathered_vector<spike>
         gather_spikes(const spike_vector& local_spikes) const = 0;
+        virtual gathered_vector<spike> 
+        all_to_all_spikes(const std::vector<std::vector<spike>>& local_spikes) const = 0;
         virtual spike_vector
         remote_gather_spikes(const spike_vector& local_spikes) const = 0;
         virtual gathered_vector<cell_gid_type>
         gather_gids(const gid_vector& local_gids) const = 0;
+        virtual gathered_vector<cell_size_type>
+        all_to_all_gids_domains(const std::vector<std::vector<cell_gid_type>>& local_spikes) const = 0;
         virtual cell_label_range
         gather_cell_label_range(const cell_label_range& local_ranges) const = 0;
         virtual cell_labels_and_gids
@@ -201,9 +213,17 @@ private:
         gather_spikes(const spike_vector& local_spikes) const override {
             return wrapped.gather_spikes(local_spikes);
         }
+        gathered_vector<spike>
+        all_to_all_spikes(const std::vector<std::vector<spike>>& local_spikes) const override {
+            return wrapped.all_to_all_spikes(local_spikes);
+        }
         gathered_vector<cell_gid_type>
         gather_gids(const gid_vector& local_gids) const override {
             return wrapped.gather_gids(local_gids);
+        }
+        gathered_vector<cell_gid_type>
+        all_to_all_gids_domains(const std::vector<std::vector<cell_gid_type>>& gids_domains) const {
+            return wrapped.all_to_all_gids_domains(gids_domains);
         }
         cell_label_range
         gather_cell_label_range(const cell_label_range& local_ranges) const override {
@@ -260,6 +280,20 @@ struct local_context {
             {0u, static_cast<count_type>(local_spikes.size())}
         );
     }
+    gathered_vector<spike> all_to_all_spikes(const std::vector<std::vector<spike>>& local_spikes) const {
+        using count_type = typename gathered_vector<spike>::count_type;
+
+        std::vector<spike> gathered;
+        std::vector<count_type> partition;
+        partition.push_back(0);
+
+        for (const auto& s : local_spikes[0]) {
+            gathered.push_back(s);
+        }
+
+        partition.push_back(static_cast<count_type>(gathered.size()));
+        return gathered_vector<spike>(std::move(gathered), std::move(partition));
+    }
     std::vector<spike>
     remote_gather_spikes(const std::vector<spike>& local_spikes) const {
         return {};
@@ -271,6 +305,20 @@ struct local_context {
                 std::vector<cell_gid_type>(local_gids),
                 {0u, static_cast<count_type>(local_gids.size())}
         );
+    }
+    gathered_vector<cell_gid_type> all_to_all_gids_domains(const std::vector<std::vector<cell_gid_type>>& gids_domains) const {
+        using count_type = typename gathered_vector<cell_gid_type>::count_type;
+
+        std::vector<cell_gid_type> gathered;
+        std::vector<count_type> partition;
+        partition.push_back(0);
+
+        for (const auto& s : gids_domains[0]) {
+            gathered.push_back(s);
+        }
+
+        partition.push_back(static_cast<count_type>(gathered.size()));
+        return gathered_vector<cell_gid_type>(std::move(gathered), std::move(partition));
     }
     void remote_ctrl_send_continue(const epoch&) const {}
     void remote_ctrl_send_done() const {}
