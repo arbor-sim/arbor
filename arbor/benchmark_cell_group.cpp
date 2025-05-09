@@ -67,9 +67,7 @@ cell_kind benchmark_cell_group::get_cell_kind() const {
 
 void benchmark_cell_group::advance(epoch ep,
                                    time_type dt,
-                                   const event_lane_subrange& event_lanes,
-                                   const std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>>& src_ranks,
-                                   int num_domains)
+                                   const event_lane_subrange& event_lanes)
 {
     using std::chrono::high_resolution_clock;
     using duration_type = std::chrono::duration<double, std::micro>;
@@ -85,16 +83,9 @@ void benchmark_cell_group::advance(epoch ep,
         // Start timer.
         auto start = high_resolution_clock::now();
 
-	spikes_.resize(num_domains);
         auto spike_times = util::make_range(cells_[i].time_sequence.events(ep.t0, ep.t1));
         for (auto t: spike_times) {
-            auto it = src_ranks.find(gid);
-            if (it != src_ranks.end()) {
-                const auto& ranks = it->second;
-                for (cell_size_type rank : ranks) {
-                    spikes_[rank].push_back({{gid, 0u}, t});
-                }
-            }
+            spikes_.push_back({{gid, 0u}, t});
         }
 
         // Wait until the expected time to advance has elapsed. Use a busy-wait
@@ -106,7 +97,7 @@ void benchmark_cell_group::advance(epoch ep,
     PL();
 };
 
-const std::vector<std::vector<spike>>& benchmark_cell_group::spikes() const {
+const std::vector<spike>& benchmark_cell_group::spikes() const {
     return spikes_;
 }
 

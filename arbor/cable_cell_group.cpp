@@ -358,9 +358,7 @@ void run_samples(
     std::visit([&](auto& x) {run_samples(x, sc, raw_times, raw_samples, sample_records, scratch); }, sc.pdata_ptr->info);
 }
 
-void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes, 
-                               const std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> & src_ranks,
-                               int num_domains) {
+void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
     time_type tstart = lowered_->time();
 
     // Bin and collate deliverable events from event lanes.
@@ -449,23 +447,10 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     // generate spikes with global spike source ids. The threshold crossings
     // record the local spike source index, which must be converted to a
     // global index for spike communication.
-    PE(advance:spike_gen);
-    spikes_.resize(num_domains);
-    for (auto& rank : spikes_) {
-        rank.reserve(result.crossings.size());
-    }
+
     for (const auto& c: result.crossings) {
-        const auto& src = spike_sources_[c.index];
-        const auto& it = src_ranks.find(src.gid);
-        if (it != src_ranks.end()) {
-            const auto& ranks = it->second;
-            const spike s{src, time_type(c.time)};
-            for (cell_size_type rank : ranks) {
-                spikes_[rank].push_back(s);
-            }
-        }
+        spikes_.emplace_back(spike_sources_[c.index], time_type(c.time));
     }
-    PL();
 }
 
 void cable_cell_group::add_sampler(sampler_association_handle h,

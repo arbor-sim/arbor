@@ -55,7 +55,7 @@ public:
     /// Returns
     /// * full global set of vectors, along with meta data about their partition
     /// * a list of spikes received from remote simulations
-    spikes exchange(std::vector<std::vector<spike>>& local_spikes);
+    spikes exchange(std::vector<spike>& local_spikes);
 
     /// Check each global spike in turn to see it generates local events.
     /// If so, make the events and insert them into the appropriate event list.
@@ -79,8 +79,8 @@ public:
     void remote_ctrl_send_continue(const epoch&);
     void remote_ctrl_send_done();
     
-    std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>>
-    update_connections(const recipe& rec,
+    
+    void update_connections(const recipe& rec,
                             const domain_decomposition& dom_dec,
                             const label_resolution_map& source_resolution_map,
                             const label_resolution_map& target_resolution_map);
@@ -148,6 +148,9 @@ private:
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
 
     spike_predicate remote_spike_filter_;
+
+    // sources with connections to other ranks
+    std::unordered_map<cell_gid_type, std::vector<cell_size_type>> src_ranks_;
 
     // Connections from external simulators into Arbor.
     // Currently we have no partitions/indices/acceleration structures

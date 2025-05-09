@@ -120,7 +120,7 @@ public:
     }
 
     spike_export_function global_export_callback_;
-    rank_spike_export_function local_export_callback_;
+    spike_export_function local_export_callback_;
     epoch_function epoch_callback_;
     label_resolution_map source_resolution_map_;
     label_resolution_map target_resolution_map_;
@@ -155,8 +155,8 @@ public:
         ARB_SERDES_WRITE(event_lanes_);
         ARB_SERDES_WRITE(cell_groups_);
         ser.begin_write_array("local_spikes_");
-        serialize(ser, "0", t.local_spikes_[0].gather(t.ddc_.num_domains()));
-        serialize(ser, "1", t.local_spikes_[1].gather(t.ddc_.num_domains()));
+        serialize(ser, "0", t.local_spikes_[0].gather());
+        serialize(ser, "1", t.local_spikes_[1].gather());
         ser.end_write_array();
     }
 
@@ -169,7 +169,7 @@ public:
         // custom deserialization to avoid ill-defined copy construction.
         // TODO check whether is OK in actually multi-threaded environments.
         ser.begin_read_array("local_spikes_");
-        std::vector<std::vector<spike>> tmp;
+        std::vector<spike> tmp;
         deserialize(ser, "0", tmp);
         t.local_spikes_[0].insert(tmp);
         tmp.clear();
@@ -213,9 +213,6 @@ private:
     // Sampler associations handles are managed by a helper class.
     util::handle_set<sampler_association_handle> sassoc_handles_;
     
-    // sources with connections to other ranks
-    std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>> outgoing_remote_targets_;
-
     // Accessors to events
     std::vector<pse_vector>& event_lanes(std::ptrdiff_t epoch_id) { return event_lanes_[epoch_id&1]; }
     thread_private_spike_store& local_spikes(std::ptrdiff_t epoch_id) { return local_spikes_[epoch_id&1]; }
@@ -293,7 +290,7 @@ simulation_state::simulation_state(
 }
 
 void simulation_state::update(const recipe& rec) {
-    outgoing_remote_targets_ = communicator_.update_connections(rec, ddc_, source_resolution_map_, target_resolution_map_);
+    communicator_.update_connections(rec, ddc_, source_resolution_map_, target_resolution_map_);
     // Use half minimum delay of the network for max integration interval.
     t_interval_ = min_delay()/2;
 
@@ -425,7 +422,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         foreach_group_index(
             [&](cell_group_ptr& group, int i) {
                 auto queues = util::subrange_view(event_lanes(current.id), communicator_.group_queue_range(i));
-                group->advance(current, dt, queues, outgoing_remote_targets_, ddc_.num_domains());
+                group->advance(current, dt, queues);
 
                 PE(advance:spikes);
                 local_spikes(current.id).insert(group->spikes());
@@ -439,7 +436,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     auto exchange = [this](epoch prev) {
         // Collate locally generated spikes.
         PE(communication:exchange:local_gather);
-        auto all_local_spikes = local_spikes(prev.id).gather(ddc_.num_domains());
+        auto all_local_spikes = local_spikes(prev.id).gather();
         PL();
         communicator_.remote_ctrl_send_continue(prev);
         // Gather generated spikes across all ranks.
@@ -628,7 +625,7 @@ void simulation::set_global_spike_callback(spike_export_function export_callback
     impl_->global_export_callback_ = std::move(export_callback);
 }
 
-void simulation::set_local_spike_callback(rank_spike_export_function export_callback) {
+void simulation::set_local_spike_callback(spike_export_function export_callback) {
     impl_->local_export_callback_ = std::move(export_callback);
 }
 

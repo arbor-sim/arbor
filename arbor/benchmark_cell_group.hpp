@@ -18,13 +18,11 @@ public:
 
     cell_kind get_cell_kind() const override;
 
-    void advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes,
-                 const std::unordered_map<cell_gid_type, std::unordered_set<cell_size_type>>& src_ranks,
-                 int num_domains) override;
+    void advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) override;
 
     void reset() override;
 
-    const std::vector<std::vector<spike>>& spikes() const override;
+    const std::vector<spike>& spikes() const override;
 
     void clear_spikes() override;
 
@@ -41,7 +39,7 @@ public:
 
 private:
     std::vector<benchmark_cell> cells_;
-    std::vector<std::vector<spike>> spikes_;
+    std::vector<spike> spikes_;
     std::vector<cell_gid_type> gids_;
 };
 
