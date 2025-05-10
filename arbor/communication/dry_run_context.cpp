@@ -19,26 +19,29 @@ struct dry_run_context_impl {
         return {};
     }
     gathered_vector<spike>
-    all_to_all_spikes(const std::vector<std::vector<spike>>& local_spike) const {
+    all_to_all_spikes(const std::vector<std::vector<spike>>& local_spikes) const {
         using count_type = gathered_vector<spike>::count_type;
+        std::size_t local_size = local_spikes[0].size();
 
         std::vector<spike> gathered_spikes;
-        std::vector<count_type> partition;
-        partition.push_back(0);
+        gathered_spikes.reserve(local_size*num_ranks_);
 
-        for (count_type sender = 0; sender < num_ranks_; ++sender) {
-            const auto& incoming = local_spike[sender];
-
-            for (spike s : incoming) {
-                s.source.gid += num_cells_per_tile_ * sender;
-                gathered_spikes.push_back(s);
+        for (count_type i = 0; i < num_ranks_; i++) {
+            util::append(gathered_spikes, local_spikes[0]);
         }
 
-        partition.push_back(static_cast<count_type>(gathered_spikes.size()));
-    }
+        for (count_type i = 0; i < num_ranks_; i++) {
+            for (count_type j = i*local_size; j < (i+1)*local_size; j++){
+                gathered_spikes[j].source.gid += num_cells_per_tile_*i;
+            }
+        }
 
-    return gathered_vector<spike>(std::move(gathered_spikes), std::move(partition));
+        std::vector<count_type> partition;
+        for (count_type i = 0; i <= num_ranks_; i++) {
+            partition.push_back(static_cast<count_type>(i*local_size));
+        }
 
+        return gathered_vector<spike>(std::move(gathered_spikes), std::move(partition));
     }
     gathered_vector<spike>
     gather_spikes(const std::vector<spike>& local_spikes) const {
@@ -95,19 +98,17 @@ struct dry_run_context_impl {
     gathered_vector<cell_gid_type>
     all_to_all_gids_domains(const std::vector<std::vector<cell_gid_type>>& gids_domains) const {
         using count_type = gathered_vector<cell_gid_type>::count_type;
+        std::size_t local_size = gids_domains[0].size();
 
         std::vector<cell_gid_type> gathered_gids;
+        gathered_gids.reserve(local_size);
+	util::append(gathered_gids, gids_domains[0]);
+	
         std::vector<count_type> partition;
-        partition.push_back(0);
-
-        for (count_type sender = 0; sender < num_ranks_; ++sender) {
-            const auto& incoming = gids_domains[sender];
-
-            for (cell_gid_type gid : incoming) {
-                gathered_gids.push_back(gid);
-            }
-
-            partition.push_back(static_cast<count_type>(gathered_gids.size()));
+	partition.push_back(0);
+	partition.push_back(local_size);
+        for (count_type i = 2; i <= num_ranks_; i++) {
+            partition.push_back(local_size);
         }
 
         return gathered_vector<cell_gid_type>(std::move(gathered_gids), std::move(partition));
