@@ -76,19 +76,41 @@ struct ring_recipe: public arb::recipe {
 
     // Each cell has one incoming connection, from cell with gid-1,
     // and fan_in-1 random connections with very low weight.
-    std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
-        std::vector<arb::cell_connection> cons;
-        const auto ncons = params_.cell.synapses;
-        cons.reserve(ncons);
+    arb::connection_list connections_on(cell_gid_type gid) const override {
+        arb::connection_list cons;
+        if (params_.resolve_sources) {
+            const auto ncons = params_.cell.synapses;
+            cons.reserve(ncons);
 
-        const auto s = params_.ring_size;
-        const auto group = gid/s;
-        const auto group_start = s*group;
-        const auto group_end = std::min(group_start+s, num_cells_);
-        cell_gid_type src = gid==group_start? group_end-1: gid-1;
-        cons.push_back(arb::cell_connection({src, "d"}, {"p"}, event_weight_, min_delay_*U::ms));
+            const auto s = params_.ring_size;
+            const auto group = gid/s;
+            const auto group_start = s*group;
+            const auto group_end = std::min(group_start+s, num_cells_);
+            cell_gid_type src = gid==group_start? group_end-1: gid-1;
+            cons.push_back({{src, "d"}, {"p"}, event_weight_, min_delay_*U::ms});
+        }
         return cons;
     }
+
+    // Each cell has one incoming connection, from cell with gid-1,
+    // and fan_in-1 random connections with very low weight.
+    arb::raw_connection_list raw_connections_on(cell_gid_type gid) const override {
+        arb::raw_connection_list cons;
+        if (!params_.resolve_sources) {
+            const auto ncons = params_.cell.synapses;
+            cons.reserve(ncons);
+
+            const auto s = params_.ring_size;
+            const auto group = gid/s;
+            const auto group_start = s*group;
+            const auto group_end = std::min(group_start+s, num_cells_);
+            cell_gid_type src = gid==group_start? group_end-1: gid-1;
+            cons.push_back({{src, 0}, {"p"}, event_weight_, min_delay_*U::ms});
+        }
+        return cons;
+    }
+
+    bool resolve_sources () const override { return params_.resolve_sources; }
 
     // Return one event generator on the first cell of each ring.
     // This generates a single event that will kick start the spiking on the sub-ring.
@@ -119,9 +141,8 @@ struct tiled_recipe: arb::recipe {
     arb::cell_kind get_cell_kind(cell_gid_type gid) const override { return recipe_.get_cell_kind(gid % recipe_.num_cells()); }
     std::any get_global_properties(arb::cell_kind k) const override { return recipe_.get_global_properties(k); }
 
-    //
-    std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
-        if (gid >= recipe_.num_cells_) throw std::runtime_error{"Up"};
+    arb::connection_list connections_on(cell_gid_type gid) const override {
+        if (!recipe_.resolve_sources()) return {};
         // tile internal
         auto conns = recipe_.connections_on(gid % recipe_.num_cells());
         auto ncons = recipe_.params_.cell.synapses;
@@ -138,6 +159,28 @@ struct tiled_recipe: arb::recipe {
         }
         return conns;
     }
+
+    arb::raw_connection_list raw_connections_on(cell_gid_type gid) const override {
+        if (recipe_.resolve_sources()) return {};
+        // tile internal
+        auto conns = recipe_.raw_connections_on(gid % recipe_.num_cells());
+        auto ncons = recipe_.params_.cell.synapses;
+        // Used to pick source cell for a connection.
+        std::uniform_int_distribution<cell_gid_type> dist(0, num_tiles_*recipe_.num_cells_ - 2);
+        // Used to pick delay for a connection.
+        std::uniform_real_distribution<float> delay_dist(0, 2*recipe_.min_delay_);
+        auto src_gen = std::mt19937(gid);
+        for (unsigned i = 1; i < ncons; ++i) {
+            auto src = dist(src_gen);
+            if (src==gid) ++src;
+            const float delay = recipe_.min_delay_ + delay_dist(src_gen);
+            conns.push_back({{src, 0}, {"p"}, 0.f, delay*U::ms});
+        }
+        return conns;
+    }
+
+    bool resolve_sources() const override { return recipe_.resolve_sources(); }
+
 
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override { return recipe_.event_generators(gid % recipe_.num_cells()); }
 

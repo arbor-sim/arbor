@@ -17,7 +17,7 @@ Cable cells are constructed from four components:
 * :ref:`Decor <cablecell-decoration>`: a description of the dynamics on the
   cell, placed according to the named rules in the dictionary. It can reference
   :ref:`mechanisms` from mechanism catalogues.
-* :ref:`Discretization <cablecell-discretization` a prescription of how to split
+* :ref:`Discretization <cablecell-discretization>` a prescription of how to split
   the cell into control volumes (CV) also known as compartments.
 
 When a cable cell is constructed the following steps are performed using the inputs:

@@ -341,7 +341,7 @@ two simulators.
 
 1. In Arbor, the reversal potential of an ion remains equal to its initial value (which
 has to be set by the user) over the entire course of the simulation, unless another
-mechanism that alters that reversal potential (such as ``nernst ``) is explicitly selected
+mechanism that alters that reversal potential (such as ``nernst``) is explicitly selected
 for the entire cell. (see :ref:`cppcablecell-revpot` for details).
 
 .. NOTE:

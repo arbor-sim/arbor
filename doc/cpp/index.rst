@@ -18,6 +18,7 @@ A :cpp:type:`arb::recipe` describes a model, and a :cpp:type:`arb::simulation` i
    recipe
    cell
    interconnectivity
+   remote
    event_generators
    hardware
    domdec
@@ -26,4 +27,5 @@ A :cpp:type:`arb::recipe` describes a model, and a :cpp:type:`arb::simulation` i
    profiler
    cable_cell
    lif_cell
+   spike_source_cell
    labels

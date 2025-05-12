@@ -270,10 +270,12 @@ simulation_state::simulation_state(
         });
 
     PE(init:simulation:sources);
-    cell_labels_and_gids local_sources;
-    for(auto gidx: util::make_span(num_groups)) local_sources.append(std::move(cg_sources[gidx]));
-    auto global_sources = ctx->distributed->gather_cell_labels_and_gids(local_sources);
-    source_resolution_map_ = label_resolution_map(std::move(global_sources));
+    if (rec.resolve_sources()) {
+        cell_labels_and_gids local_sources;
+        for(auto gidx: util::make_span(num_groups)) local_sources.append(std::move(cg_sources[gidx]));
+        auto global_sources = ctx->distributed->gather_cell_labels_and_gids(local_sources);
+        source_resolution_map_ = label_resolution_map(std::move(global_sources));
+    }
     PL();
 
     PE(init:simulation:targets);
