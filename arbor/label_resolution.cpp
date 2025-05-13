@@ -1,7 +1,6 @@
-#include <iterator>
 #include <vector>
 #include <numeric>
-#include <unordered_set>
+#include <algorithm>
 
 #include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
@@ -9,9 +8,9 @@
 #include <arbor/util/expected.hpp>
 #include <arbor/util/hash_def.hpp>
 
-#include "label_resolution.hpp"
-#include "util/partition.hpp"
 #include "util/span.hpp"
+#include "label_resolution.hpp"
+#include "util/strprintf.hpp"
 
 namespace arb {
 
@@ -32,7 +31,6 @@ cell_label_range::cell_label_range(std::vector<cell_size_type> size_vec,
     sizes(std::move(size_vec)), labels(std::move(label_vec)), ranges(std::move(range_vec)) {
     arb_assert(check_invariant());
 };
-
 
 void cell_label_range::add_cell() { sizes.push_back(0); }
 
@@ -79,22 +77,14 @@ bool cell_labels_and_gids::check_invariant() const {
    | [s0, e0) [s1, e1), ... [sk, ek), ... |
        len0     len1
 */
-cell_lid_type label_resolution_map::range_set::at(unsigned idx) const {
-    if (0 == size) throw arbor_internal_error("no valid lids");
+cell_lid_type range_set::at(unsigned idx) const {
+    arb_assert(idx < size);
     for (const auto& [beg, end]: ranges) {
         auto len = end - beg;
         if (idx < len) return idx + beg;
         idx -= len;
     }
-    throw arbor_internal_error("invalid lid");
-}
-
-const label_resolution_map::range_set& label_resolution_map::at(cell_gid_type gid, hash_type hash) const {
-    return map.at(std::make_pair(gid, hash));
-}
-
-std::size_t label_resolution_map::count(cell_gid_type gid, hash_type hash) const {
-    return map.count(std::make_pair(gid, hash));
+    ARB_UNREACHABLE
 }
 
 label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
@@ -104,47 +94,93 @@ label_resolution_map::label_resolution_map(const cell_labels_and_gids& clg) {
     const auto& ranges = clg.label_range.ranges;
     const auto& sizes = clg.label_range.sizes;
 
-    std::vector<cell_size_type> label_divs;
-    std::unordered_set<cell_gid_type> seen;
-    auto partn = util::make_partition(label_divs, sizes);
-    for (auto i: util::count_along(partn)) {
-        auto gid = gids[i];
-        if (seen.contains(gid)) throw arb::arbor_internal_error("label_resolution_map: duplicate gid");
-        seen.insert(gid);
-        for (auto label_idx: util::make_span(partn[i])) {
-            const auto range = ranges[label_idx];
-            auto size = int(range.end - range.begin);
-            if (size < 0) throw arb::arbor_internal_error("label_resolution_map: invalid lid_range");
-            auto& label = labels[label_idx];
-            auto& range_set = map[std::make_pair(gid, label)];
-            range_set.ranges.push_back(range);
-            range_set.size += size;
+    singletons.reserve(labels.size());
+    auto div = 0;
+    for (auto gidx: util::count_along(gids)) {
+        auto len = sizes[gidx];
+        auto gid = gids[gidx];
+        for (auto lidx: util::make_span(div, div + len)) {
+            const auto& range = ranges[lidx];
+            auto key = gid_label_pair{.gid=gid, .label=labels[lidx]};
+            if (range.end  < range.begin) throw arb::arbor_internal_error("label_resolution_map: invalid lid_range");
+            if (range.end == range.begin) continue;
+            auto size = range.end - range.begin;
+            // key was already in singletons, so move to 'normal' rangesets and append
+            if (singletons.contains(key)) {
+                auto off = singletons.extract(key)->second;
+                auto& rset = rangesets[key];
+                rset.ranges.push_back({off, off + 1});
+                rset.ranges.push_back(range);
+                rset.size = 1 + size; // remember to add the singleton's length
+            }
+            // is a 'proper' range
+            else if (size > 1) {
+                auto& rset = rangesets[key];
+                rset.ranges.push_back(range);
+                rset.size += size;
+            }
+            // already in rangesets
+            else if (rangesets.contains(key)) {
+                auto& rset = rangesets[key];
+                rset.ranges.push_back(range);
+                rset.size += size;
+            }
+            // must be a pristine singleton
+            else {
+                arb_assert(size == 1);
+                singletons[key] = range.begin;
+            }
         }
+        div += len;
     }
 }
 
-cell_lid_type resolver::resolve(const cell_global_label_type& iden) { return resolve(iden.gid, iden.label); }
+std::size_t label_resolution_map::count(const cell_global_label_type& iden) { return count(iden.gid, iden.label.tag); }
 
+std::size_t label_resolution_map::count(cell_gid_type gid, const cell_tag_type& label) {
+    auto key = gid_label_pair{.gid=gid, .label=hash_value(label)};
+    return singletons.count(key) + rangesets.count(key);
+}
+
+range_set label_resolution_map::at(const cell_global_label_type& iden) { return at(iden.gid, iden.label.tag); }
+
+range_set label_resolution_map::at(cell_gid_type gid, const cell_tag_type& label) {
+    auto key = gid_label_pair{.gid=gid, .label=hash_value(label)};
+    if (auto it = singletons.find(key); it != singletons.end()) {
+        return range_set{.size=1, .ranges={{it->second, it->second + 1}}};
+    }
+    if (auto it = rangesets.find(key); it != rangesets.end()) {
+        return it->second;
+    }
+    throw std::range_error{util::pprintf("Key ({}, {}) not found.", gid, label)};
+}
+
+cell_lid_type resolver::resolve(const cell_global_label_type& iden) { return resolve(iden.gid, iden.label); }
 cell_lid_type resolver::resolve(cell_gid_type gid, const cell_local_label_type& label) {
+    // policy
+    // 1) univalent        :: assert there's one target and return it
+    // 2) round robin      :: return targets cyclically
+    // 3) round robin halt :: return last target from 2), do not update counter
     const auto& [tag, pol] = label;
-    auto hash = hash_value(tag);
-    if (!label_map_->count(gid, hash)) throw arb::bad_connection_label(gid, tag, "label does not exist");
-    const auto& range_set = label_map_->at(gid, hash);
-    if (range_set.size <= 0) throw arb::bad_connection_label(gid, tag, "no valid lids");
-    auto idx = 0ul;
-    if (pol == lid_selection_policy::assert_univalent) {
-        // must have single-entry range_set
-        if (range_set.size != 1) throw arb::bad_connection_label(gid, tag, "range is not univalent");
+    // set up the key
+    auto key = gid_label_pair{.gid=gid, .label=hash_value(tag)};
+    // check whether our key points to a singleton (=range of length 1)
+    // if so, the answer is always that one lid regardless of policy
+    {
+        const auto& it = label_map_->singletons.find(key);
+        if (it != label_map_->singletons.end()) return it->second;
     }
-    else if (pol == lid_selection_policy::round_robin) {
-        // cycle through range_set
-        idx = rr_state_map_[gid][hash];
-        rr_state_map_[gid][hash] = (idx + 1) % range_set.size;
-    }
-    else if (pol == lid_selection_policy::round_robin_halt) {
-        // use previous state of round_robin policy
-        idx = rr_state_map_[gid][hash];
-    }
+    // was not a singleton, so look in the 'proper' ranges
+    const auto& it = label_map_->rangesets.find(key);
+    // fail, was neither in singletons nor here
+    if (it == label_map_->rangesets.end()) throw arb::bad_connection_label(gid, tag, "label does not exist");
+    // if it's not a singleton, univalent is invalid!
+    if (pol == lid_selection_policy::assert_univalent) throw arb::bad_connection_label(gid, tag, "range is not univalent");
+    // now policy must be rr or rr halt
+    const auto& range_set = it->second;
+    auto idx = rr_state_map_[key];
+    // if rr, update counter, if rr halt don't.
+    if (pol == lid_selection_policy::round_robin) rr_state_map_[key] = (idx + 1) % range_set.size;
     return range_set.at(idx);
 }
 } // namespace arb
