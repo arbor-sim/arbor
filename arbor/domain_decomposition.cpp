@@ -1,7 +1,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <utility>
 
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
@@ -18,24 +17,6 @@ namespace arb {
 domain_decomposition::domain_decomposition(const recipe& rec,
                                            context ctx,
                                            const std::vector<group_description>& groups) {
-    struct partition_gid_domain {
-        partition_gid_domain(const gathered_vector<cell_gid_type>& divs, unsigned domains) {
-            auto rank_part = util::partition_view(divs.partition());
-            for (auto rank: count_along(rank_part)) {
-                cell_size_type index_on_domain = 0;
-                for (auto gid: util::subrange_view(divs.values(), rank_part[rank])) {
-                    gid_map[gid] = {rank, index_on_domain};
-                    ++index_on_domain;
-                }
-            }
-        }
-        std::pair<int,cell_size_type> operator()(cell_gid_type gid) const {
-            return gid_map.at(gid);
-        }
-        // Maps gid to domain index and cell index on domain
-        std::unordered_map<cell_gid_type, std::pair<int, cell_size_type>> gid_map;
-    };
-
     const auto* dist = ctx->distributed.get();
     unsigned num_domains = dist->size();
     int domain_id = dist->id();
@@ -72,40 +53,27 @@ domain_decomposition::domain_decomposition(const recipe& rec,
     num_local_cells_ = num_local_cells;
     num_global_cells_ = num_global_cells;
     groups_ = groups;
-    gid_domain_ = partition_gid_domain(global_gids, num_domains);
+
+    // write tables gid -> (rank, offset)
+    gid_domain_.resize(global_gids.size());
+    gid_index_.resize(global_gids.size());
+    auto rank_part = util::partition_view(global_gids.partition());
+    for (auto rank: count_along(rank_part)) {
+        cell_size_type index_on_domain = 0;
+        for (auto gid: util::subrange_view(global_gids.values(), rank_part[rank])) {
+            gid_domain_[gid] = rank;
+            gid_index_[gid] = index_on_domain;
+            ++index_on_domain;
+        }
+    }
 }
 
-int domain_decomposition::gid_domain(cell_gid_type gid) const {
-    return gid_domain_(gid).first;
-}
-
-cell_size_type domain_decomposition::index_on_domain(cell_gid_type gid) const {
-    return gid_domain_(gid).second;
-}
-
-int domain_decomposition::num_domains() const {
-    return num_domains_;
-}
-
-int domain_decomposition::domain_id() const {
-    return domain_id_;
-}
-
-cell_size_type domain_decomposition::num_local_cells() const {
-    return num_local_cells_;
-}
-
-cell_size_type domain_decomposition::num_global_cells() const {
-    return num_global_cells_;
-}
-
-cell_size_type domain_decomposition::num_groups() const {
-    return groups_.size();
-}
-
-const std::vector<group_description>& domain_decomposition::groups() const {
-    return groups_;
-}
+int domain_decomposition::num_domains() const { return num_domains_; }
+int domain_decomposition::domain_id() const { return domain_id_; }
+cell_size_type domain_decomposition::num_local_cells() const { return num_local_cells_; }
+cell_size_type domain_decomposition::num_global_cells() const { return num_global_cells_; }
+cell_size_type domain_decomposition::num_groups() const { return groups_.size(); }
+const std::vector<group_description>& domain_decomposition::groups() const { return groups_; }
 
 const group_description& domain_decomposition::group(unsigned idx) const {
     arb_assert(idx<num_groups());
