@@ -150,9 +150,10 @@ void communicator::update_connections(const recipe& rec,
     target_resolver.clear();
     auto my_rank = ctx_->distributed->id();
     std::vector<std::vector<cell_gid_type>> gids_domains(num_domains_);
+    std::unordered_map<cell_gid_type, std::vector<cell_size_type>> src_ranks;
     
     for (const auto tgt_gid: gids) {
-        gids_domains[my_rank].push_back(tgt_gid);
+        src_ranks[tgt_gid].push_back(my_rank);
         auto iod = dom_dec.index_on_domain(tgt_gid);
         source_resolver.clear();
         for (const auto& conn: rec.connections_on(tgt_gid)) {
@@ -199,7 +200,6 @@ void communicator::update_connections(const recipe& rec,
     }
     PL();
     
-    std::unordered_map<cell_gid_type, std::vector<cell_size_type>> src_ranks;
     PE(init:communicator:update:connections:gids);
     
     auto global_gids_domains = ctx_->distributed->all_to_all_gids_domains(gids_domains);
