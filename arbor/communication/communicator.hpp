@@ -150,7 +150,7 @@ private:
     spike_predicate remote_spike_filter_;
 
     // sources with connections to other ranks
-    gathered_vector<cell_gid_type> src_ranks_{ {}, {} };
+    gathered_vector<cell_gid_type> src_ranks_{ {}, {0} };
 
     // Connections from external simulators into Arbor.
     // Currently we have no partitions/indices/acceleration structures

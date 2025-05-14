@@ -31,7 +31,7 @@ communicator::communicator(const recipe& rec, const domain_decomposition& dom_de
     num_local_cells_{dom_dec.num_local_cells()},
     num_local_groups_{dom_dec.num_groups()},
     num_domains_{(cell_size_type)ctx->distributed->size()},
-    src_ranks_{{},{}},
+    src_ranks_{{},{0}},
     ctx_(std::move(ctx)) {}
 
 constexpr inline
