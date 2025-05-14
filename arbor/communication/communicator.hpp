@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include <unordered_set>
 
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
@@ -150,7 +149,7 @@ private:
     spike_predicate remote_spike_filter_;
 
     // sources with connections to other ranks
-    std::unordered_map<cell_gid_type, std::vector<cell_size_type>> src_ranks_;
+    gathered_vector<cell_gid_type> src_ranks_{ {}, {} };
 
     // Connections from external simulators into Arbor.
     // Currently we have no partitions/indices/acceleration structures
