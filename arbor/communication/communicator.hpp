@@ -69,6 +69,7 @@ public:
     /// Returns the total number of global spikes over the duration of the simulation
     std::uint64_t num_spikes() const;
     void set_num_spikes(std::uint64_t n);
+    std::uint64_t num_local_spikes() const;
 
     cell_size_type num_local_cells() const;
 
@@ -156,6 +157,7 @@ private:
     connection_list ext_connections_;
 
     std::uint64_t num_spikes_ = 0u;
+    std::uint64_t num_local_spikes_ = 0u;
     std::uint64_t num_local_events_ = 0u;
     context ctx_;
 };

@@ -445,7 +445,7 @@ test_ring(const domain_decomposition& D, communicator& C, F&& f) {
 
     // gather the global set of spikes
     auto spikes = C.exchange(local_spikes);
-    if (spikes.from_local.size()!=g_context->distributed->sum(local_spikes.size())) {
+    if (C.num_local_spikes()!=g_context->distributed->sum(local_spikes.size())) {
         return ::testing::AssertionFailure() << "the number of gathered spikes "
             << spikes.from_local.size() << " doesn't match the expected "
             << g_context->distributed->sum(local_spikes.size());
@@ -568,7 +568,7 @@ test_all2all(const domain_decomposition& D, communicator& C, F&& f) {
 
     // generate the events
     std::vector<arb::pse_vector> queues(C.num_local_cells());
-    auto spikes = communicator::spikes{global_spikes, {}};
+    auto spikes = communicator::spikes{std::move(global_spikes), {}};
     C.make_event_queues(spikes, queues);
     if (queues.size() != D.num_groups()) { // one queue for each cell group
         return ::testing::AssertionFailure()
