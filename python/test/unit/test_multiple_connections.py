@@ -9,6 +9,7 @@ import numpy as np
 import arbor as A
 from arbor import units as U
 from .. import fixtures
+from mpi4py import MPI
 
 """
 Tests for multiple connections onto the same postsynaptic label and for one
@@ -50,6 +51,16 @@ class TestMultipleConnections(unittest.TestCase):
 
         return syn_mechanism
 
+    def gather_all_spikes(self, spikes):
+        local = list(zip(spikes["source"]["gid"].tolist(), spikes["time"].tolist()))
+        all_spikes = MPI.COMM_WORLD.allgather(local)
+        flat = [x for sublist in all_spikes for x in sublist]
+        flat = list(set(flat))
+        flat.sort(key=lambda x: x[1])
+        gids = np.array([g for g, _ in flat])
+        times = np.array([t for _, t in flat])
+        return gids, times
+
     # Method that does the final evaluation for all tests
     def evaluate_outcome(self, sim, handle_mem):
         # membrane potential should temporarily be above the spiking threshold at around 1.0 ms (only testing this if the current node keeps the data, cf. GitHub issue #1892)
@@ -60,8 +71,7 @@ class TestMultipleConnections(unittest.TestCase):
             self.assertLess(data_mem[(np.round(data_mem[:, 0], 2) == 1.05), 1], -10)
 
         # neuron 3 should spike at around 1.0 ms, when the added input from all connections will cause threshold crossing
-        spike_times = sim.spikes()["time"]
-        spike_gids = sim.spikes()["source"]["gid"]
+        spike_gids, spike_times = self.gather_all_spikes(sim.spikes())
         # print(list(zip(*[spike_times, spike_gids])))
         self.assertGreater(sum(spike_gids == 3), 0)
         self.assertAlmostEqual(spike_times[(spike_gids == 3)][0], 1.00, delta=0.04)
@@ -69,17 +79,16 @@ class TestMultipleConnections(unittest.TestCase):
     # Method that does additional evaluation for Test #1
     def evaluate_additional_outcome_1(self, sim, handle_mem):
         # order of spiking neurons (also cf. 'test_spikes.py')
-        spike_gids = sim.spikes()["source"]["gid"]
+        spike_gids, spike_times = self.gather_all_spikes(sim.spikes())
         self.assertEqual([2, 1, 0, 3, 3], spike_gids.tolist())
 
         # neuron 3 should spike again at around 1.8 ms, when the added input from all connections will cause threshold crossing
-        spike_times = sim.spikes()["time"]
         self.assertAlmostEqual(spike_times[(spike_gids == 3)][1], 1.80, delta=0.04)
 
     # Method that does additional evaluation for Test #2 and Test #3
     def evaluate_additional_outcome_2_3(self, sim, handle_mem):
         # order of spiking neurons (also cf. 'test_spikes.py')
-        spike_gids = sim.spikes()["source"]["gid"]
+        spike_gids, spike_times = self.gather_all_spikes(sim.spikes())
         self.assertEqual([2, 1, 0, 3], spike_gids.tolist())
 
     # Method that runs the main part of Test #1 and Test #2
@@ -362,3 +371,4 @@ class TestMultipleConnections(unittest.TestCase):
         # evaluate the outcome
         self.evaluate_outcome(sim, handle_mem)
         self.evaluate_additional_outcome_2_3(sim, handle_mem)
+        MPI.Finalize()
