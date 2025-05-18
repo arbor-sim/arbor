@@ -23,7 +23,7 @@ struct dry_run_context_impl {
         auto local_size = local_spikes.count(0);
         const auto& local = local_spikes.values();
         std::vector<spike> gathered_spikes;
-        gathered_spikes.reserve(local_size*num_ranks_);
+        gathered_spikes.reserve(static_cast<size_t>(local_size) * static_cast<size_t>(num_ranks_));
         std::vector<count_type> partition;
         partition.reserve(num_ranks_ + 1);
         partition.push_back(0);
@@ -95,7 +95,7 @@ struct dry_run_context_impl {
         std::size_t local_size = gids_domains[0].size();
 
         std::vector<cell_gid_type> gathered_gids;
-        gathered_gids.reserve(local_size*num_ranks_);
+        gathered_gids.reserve(static_cast<size_t>(local_size) * static_cast<size_t>(num_ranks_));
         for (count_type i = 0; i < num_ranks_; i++) {
             util::append(gathered_gids, gids_domains[0]);
         }
