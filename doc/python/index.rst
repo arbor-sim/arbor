@@ -43,6 +43,7 @@ These details are described and examples are given in the next sections :ref:`py
    recipe
    cell
    interconnectivity
+   event_generators
    hardware
    domdec
    simulation

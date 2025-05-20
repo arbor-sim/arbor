@@ -18,9 +18,12 @@ A :cpp:type:`arb::recipe` describes a model, and a :cpp:type:`arb::simulation` i
    recipe
    cell
    interconnectivity
+   event_generators
    hardware
    domdec
+   mechanisms
    simulation
    profiler
    cable_cell
    lif_cell
+   labels
