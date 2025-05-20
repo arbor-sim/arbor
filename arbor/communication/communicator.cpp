@@ -146,17 +146,23 @@ void communicator::update_connections(const recipe& rec,
     PE(init:communicator:update:connections:local);
     std::size_t n_con = 0;
     std::vector<std::vector<connection>> connections_by_src_domain(num_domains_);
-    target_resolver.clear();
-    bool resolution_enabled = rec.resolve_sources();
-    for (const auto tgt_gid: gids) {
-        auto iod = dom_dec.index_on_domain(tgt_gid);
-        source_resolver.clear();
-        for (const auto& conn: rec.connections_on(tgt_gid)) {
-            if (!resolution_enabled) throw resolution_disabled{tgt_gid};
+
+    // helper for adding a connection
+    auto push_connection = [&] (const auto& conn, cell_gid_type tgt_gid, cell_size_type tgt_iod) {
             auto src_gid = conn.source.gid;
             if(src_gid >= num_total_cells_) throw arb::bad_connection_source_gid(tgt_gid, src_gid, num_total_cells_);
             auto src_dom = dom_dec.gid_domain(src_gid);
-            auto src_lid = source_resolver.resolve(conn.source);
+            auto src_lid = cell_lid_type(-1);
+            if constexpr (std::is_same_v<cell_connection, decltype(conn)>) {
+                src_lid = source_resolver.resolve(conn.source);
+            }
+            else if constexpr (std::is_same_v<cell_connection, decltype(conn)>) {
+                src_lid = source_resolver.resolve(conn.source);
+            }
+            else {
+                ARB_UNREACHABLE;
+            }
+
             auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
             // NOTE old compilers stumble over emplace_back here
             connections_by_src_domain[src_dom].emplace_back(
@@ -165,8 +171,18 @@ void communicator::update_connections(const recipe& rec,
                 .target=tgt_lid,
                 .weight=conn.weight,
                 .delay=conn.delay,
-                .index_on_domain=iod
+                .index_on_domain=tgt_iod
             });
+    };
+
+    target_resolver.clear();
+    bool resolution_enabled = rec.resolve_sources();
+    for (const auto tgt_gid: gids) {
+        auto tgt_iod = dom_dec.index_on_domain(tgt_gid);
+        source_resolver.clear();
+        for (const auto& conn: rec.connections_on(tgt_gid)) {
+            if (!resolution_enabled) throw resolution_disabled{tgt_gid};
+            push_connection(conn, tgt_gid, tgt_iod);
             ++n_con;
         }
     }
@@ -174,22 +190,9 @@ void communicator::update_connections(const recipe& rec,
 
     PE(init:communicator:update:connections:raw);
     for (const auto tgt_gid: gids) {
-        auto iod = dom_dec.index_on_domain(tgt_gid);
+        auto tgt_iod = dom_dec.index_on_domain(tgt_gid);
         for (const auto& conn: rec.raw_connections_on(tgt_gid)) {
-            auto src_gid = conn.source.gid;
-            if(src_gid >= num_total_cells_) throw arb::bad_connection_source_gid(tgt_gid, src_gid, num_total_cells_);
-            auto src_dom = dom_dec.gid_domain(src_gid);
-            auto src_lid = conn.source.index;
-            auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
-            // NOTE old compilers stumble over emplace_back here
-            connections_by_src_domain[src_dom].emplace_back(
-                connection{
-                .source={.gid=src_gid, .index=src_lid},
-                .target=tgt_lid,
-                .weight=conn.weight,
-                .delay=conn.delay,
-                .index_on_domain=iod
-            });
+            push_connection(conn, tgt_gid, tgt_iod);
             ++n_con;
         }
     }
