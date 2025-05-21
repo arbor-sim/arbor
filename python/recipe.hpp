@@ -25,7 +25,8 @@ namespace pyarb {
 // of util::unique_any used by the C++ recipe interface.
 // The recipe_shim unwraps the python objects, and forwards them
 // to the C++ back end.
-struct recipe {    recipe() = default;
+struct recipe {
+    recipe() = default;
     virtual ~recipe() {}
 
     virtual arb::cell_size_type num_cells() const = 0;
@@ -44,8 +45,7 @@ struct recipe {    recipe() = default;
     virtual arb::isometry cell_isometry(arb::cell_gid_type gid) const { return arb::isometry(); };
 };
 
-class recipe_trampoline: public recipe {
-public:
+struct recipe_trampoline: public recipe {
     arb::cell_size_type num_cells() const override {
         PYBIND11_OVERRIDE_PURE(arb::cell_size_type, recipe, num_cells);
     }
