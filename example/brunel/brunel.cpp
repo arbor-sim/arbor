@@ -1,11 +1,8 @@
 #include <cmath>
 #include <exception>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <optional>
-#include <set>
-#include <vector>
 
 #include <tinyopt/tinyopt.h>
 
@@ -50,6 +47,8 @@ struct cl_options {
     double poiss_lambda = 1;
     // use cable cells instead of LIF
     bool use_cc = false;
+    // disable connection resolution
+    bool use_raw = false;
     // Simulation running parameters:
     double tfinal = 100.;
     double dt = 0.05;
@@ -67,13 +66,36 @@ std::optional<cl_options> read_options(int argc, char** argv);
 
 void banner(context ctx);
 
+// simple, compiler independent int in range
+template<typename T, typename G>
+T rand_range(G& gen, T lo, T hi) { return lo + gen() * double(hi - lo) / double(G::max() - G::min()); }
+
 // Add m unique connection from gids in interval [start, end) - gid.
+template <typename C, typename S>
 void add_subset(cell_gid_type gid,
                 cell_gid_type start, cell_gid_type end,
                 unsigned m,
-                const std::string& src, const std::string& tgt,
+                const S& src, const std::string& tgt,
                 float weight, float delay,
-                std::vector<cell_connection>& conns);
+                std::vector<C>& conns) {
+    // We can only add this many connections!
+    auto gid_in_range = int(gid >= start && gid < end);
+    if (m + start + gid_in_range >= end) throw std::runtime_error("Requested too many connections from the given range of gids.");
+    // Exclude ourself
+    std::vector<bool> seen(end - start, false);
+    if (gid >= start && gid < end) seen[gid - start] = true;
+    std::mt19937 gen(gid + 42);
+    auto conn = C{{0, src}, {tgt}, weight, delay*U::ms};
+    while(m > 0) {
+        cell_gid_type val = rand_range(gen, start, end);
+        if (seen[val - start]) continue;
+        conn.source.gid = val;
+        conns.push_back(conn);
+        seen[val - start] = true;
+        m--;
+    }
+}
+
 
 /*
    A Brunel network consists of nexc excitatory LIF neurons and ninh inhibitory
@@ -87,8 +109,7 @@ void add_subset(cell_gid_type gid,
    refractory period, the activity is mostly driven by Poisson neurons and
    recurrent connections have a small effect.
  */
-class brunel_recipe: public recipe {
-public:
+struct brunel_recipe: public recipe {
     brunel_recipe(cell_size_type nexc,
                   cell_size_type ninh,
                   cell_size_type next,
@@ -98,8 +119,9 @@ public:
                   float rel_inh_strength,
                   double poiss_lambda,
                   int seed=42,
-                  bool use_cc=false):
-        ncells_exc_(nexc), ncells_inh_(ninh), delay_(delay), seed_(seed), use_cable_cells(use_cc) {
+                  bool use_cc=false,
+                  bool use_raw=false):
+        ncells_exc_(nexc), ncells_inh_(ninh), delay_(delay), seed_(seed), use_cable_cells(use_cc), use_raw_connections(use_raw) {
         // Make sure that in_degree_prop in the interval (0, 1]
         if (in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
             throw std::domain_error("The proportion of incoming connections should be in the interval (0, 1].");
@@ -142,13 +164,26 @@ public:
         }
     }
 
-    std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
-        std::vector<cell_connection> connections;
+    arb::connection_list connections_on(cell_gid_type gid) const override {
+        arb::connection_list connections;
         // Add incoming excitatory and inhibitory connections.
-        add_subset(gid, 0,           ncells_exc_,               in_degree_exc_, "src", "tgt", weight_exc_, delay_, connections);
-        add_subset(gid, ncells_exc_, ncells_inh_ + ncells_exc_, in_degree_inh_, "src", "tgt", weight_inh_, delay_, connections);
+        if (!use_raw_connections) {
+            add_subset(gid, 0,           ncells_exc_,               in_degree_exc_, "src", "tgt", weight_exc_, delay_, connections);
+            add_subset(gid, ncells_exc_, ncells_inh_ + ncells_exc_, in_degree_inh_, "src", "tgt", weight_inh_, delay_, connections);
+        }
         return connections;
     }
+
+    arb::raw_connection_list raw_connections_on(cell_gid_type gid) const override {
+        arb::raw_connection_list connections;
+        // Add incoming excitatory and inhibitory connections.
+        if (use_raw_connections) {
+            add_subset(gid, 0,           ncells_exc_,               in_degree_exc_, cell_lid_type(0), "tgt", weight_exc_, delay_, connections);
+            add_subset(gid, ncells_exc_, ncells_inh_ + ncells_exc_, in_degree_inh_, cell_lid_type(0), "tgt", weight_inh_, delay_, connections);
+        }
+        return connections;
+    }
+
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
         if (use_cable_cells) {
@@ -201,7 +236,8 @@ private:
     // Cable cell prototype
     arb::cable_cell cable;
     arb::cable_cell_global_properties prop;
-    bool use_cable_cells = true;
+    bool use_cable_cells = false;
+    bool use_raw_connections = false;
 };
 
 int main(int argc, char** argv) {
@@ -273,7 +309,7 @@ int main(int argc, char** argv) {
 
         unsigned seed = options.seed;
 
-        brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda, seed, options.use_cc);
+        brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda, seed, options.use_cc, options.use_raw);
 
         partition_hint_map hints;
         hints[cell_kind::lif].cpu_group_size = group_size;
@@ -340,54 +376,26 @@ void banner(context ctx) {
     std::cout << "==========================================\n";
 }
 
-// simple, compiler independent int in range
-template<typename T, typename G>
-T rand_range(G& gen, T lo, T hi) { return lo + gen() * double(hi - lo) / double(G::max() - G::min()); }
-
-void add_subset(cell_gid_type gid,
-                cell_gid_type start, cell_gid_type end,
-                unsigned m,
-                const std::string& src, const std::string& tgt,
-                float weight, float delay,
-                std::vector<cell_connection>& conns) {
-    // We can only add this many connections!
-    auto gid_in_range = int(gid >= start && gid < end);
-    if (m + start + gid_in_range >= end) throw std::runtime_error("Requested too many connections from the given range of gids.");
-    // Exclude ourself
-    std::vector<bool> seen(end - start, false);
-    if (gid >= start && gid < end) seen[gid - start] = true;
-    std::mt19937 gen(gid + 42);
-    auto conn = arb::cell_connection{{0, src}, {tgt}, weight, delay*U::ms};
-    while(m > 0) {
-        cell_gid_type val = rand_range(gen, start, end);
-        if (seen[val - start]) continue;
-        conn.source.gid = val;
-        conns.push_back(conn);
-        seen[val - start] = true;
-        m--;
-    }
-}
-
-
 // Read options from (optional) json file and command line arguments.
 std::optional<cl_options> read_options(int argc, char** argv) {
     using namespace to;
     auto usage_str = "\n"
-                     "-n|--n-excitatory      [Number of cells in the excitatory population]\n"
-                     "-m|--n-inhibitory      [Number of cells in the inhibitory population]\n"
-                     "-e|--n-external        [Number of incoming Poisson (external) connections per cell]\n"
-                     "-p|--in-degree-prop    [Proportion of the connections received per cell]\n"
-                     "-w|--weight            [Weight of excitatory connections]\n"
-                     "-d|--delay             [Delay of all connections]\n"
-                     "-g|--rel-inh-w         [Relative strength of inhibitory synapses with respect to the excitatory ones]\n"
-                     "-l|--lambda            [Mean firing rate from a single poisson cell (kHz)]\n"
-                     "-t|--tfinal            [Length of the simulation period (ms)]\n"
-                     "-s|--dt                [Simulation time step (ms)]\n"
-                     "-G|--group-size        [Number of cells per cell group]\n"
-                     "-S|--seed              [Seed for poisson spike generators]\n"
-                     "-f|--write-spikes      [Save spikes to file]\n"
-                     "-c|--use-cable-cells   [Use a cable cell model]\n"
-                     "-v|--verbose           [Print more verbose information to stdout]\n";
+                     "-n|--n-excitatory        [Number of cells in the excitatory population]\n"
+                     "-m|--n-inhibitory        [Number of cells in the inhibitory population]\n"
+                     "-e|--n-external          [Number of incoming Poisson (external) connections per cell]\n"
+                     "-p|--in-degree-prop      [Proportion of the connections received per cell]\n"
+                     "-w|--weight              [Weight of excitatory connections]\n"
+                     "-d|--delay               [Delay of all connections]\n"
+                     "-g|--rel-inh-w           [Relative strength of inhibitory synapses with respect to the excitatory ones]\n"
+                     "-l|--lambda              [Mean firing rate from a single poisson cell (kHz)]\n"
+                     "-t|--tfinal              [Length of the simulation period (ms)]\n"
+                     "-s|--dt                  [Simulation time step (ms)]\n"
+                     "-G|--group-size          [Number of cells per cell group]\n"
+                     "-S|--seed                [Seed for poisson spike generators]\n"
+                     "-f|--write-spikes        [Save spikes to file]\n"
+                     "-c|--use-cable-cells     [Use a cable cell model]\n"
+                     "-r|--use-raw-connections [Disable connection resolution]\n"
+                     "-v|--verbose             [Print more verbose information to stdout]\n";
 
     cl_options opt;
     auto help = [argv0 = argv[0], &usage_str] {
@@ -409,6 +417,7 @@ std::optional<cl_options> read_options(int argc, char** argv) {
             { opt.seed,                        "-S", "--seed" },
             { opt.spike_file_output,           "-f", "--write-spikes" },
             { to::set(opt.use_cc),   to::flag, "-c", "--use-cable-cells" },
+            { to::set(opt.use_raw),  to::flag, "-r", "--use-raw-connections" },
             { to::set(opt.verbose),  to::flag, "-v", "--verbose" },
             { to::action(help),      to::flag, to::exit, "-h", "--help" }
     };
@@ -434,9 +443,11 @@ std::optional<cl_options> read_options(int argc, char** argv) {
 
 std::ostream& operator<<(std::ostream& o, const cl_options& options) {
     o << "Simulation options:\n"
+      << "  Cell kind                                                  : " << (options.use_cc ? "cable" : "lif") << "\n"
       << "  Excitatory cells                                           : " << options.nexc << "\n"
       << "  Inhibitory cells                                           : " << options.ninh << "\n"
       << "  Poisson connections per cell                               : " << options.next << "\n"
+      << "  Connection resolution                                      : " << (options.use_raw ? "no" : "yes") <<  "\n"
       << "  Proportion of synapses/cell from each population           : " << options.syn_per_cell_prop << "\n"
       << "  Weight of excitatory synapses                              : " << options.weight << "\n"
       << "  Relative strength of inhibitory synapses                   : " << options.rel_inh_strength << "\n"

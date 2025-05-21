@@ -143,32 +143,63 @@ void communicator::update_connections(const recipe& rec,
     //       - merge those serially
     //       The word coarsegrained is load-bearing, as many small task will result
     //       in many, many allocations and we don't have the proper primitives.
-    PE(init:communicator:update:connections:local);
     std::size_t n_con = 0;
     std::vector<std::vector<connection>> connections_by_src_domain(num_domains_);
-    target_resolver.clear();
-    for (const auto tgt_gid: gids) {
-        auto iod = dom_dec.index_on_domain(tgt_gid);
-        source_resolver.clear();
-        for (const auto& conn: rec.connections_on(tgt_gid)) {
-            auto src_gid = conn.source.gid;
-            if(src_gid >= num_total_cells_) throw arb::bad_connection_source_gid(tgt_gid, src_gid, num_total_cells_);
-            auto src_dom = dom_dec.gid_domain(src_gid);
-            auto src_lid = source_resolver.resolve(conn.source);
+
+    // helper for adding a connection
+    auto push_connection = [&] (const auto& conn, cell_gid_type tgt_gid, cell_size_type tgt_iod) {
+        auto src_gid = conn.source.gid;
+        if(src_gid >= num_total_cells_) throw arb::bad_connection_source_gid(tgt_gid, src_gid, num_total_cells_);
+            // strip off qualifiers and match on type to find the actual lid of source
+            auto src_lid = cell_lid_type(-1);
+            using C = std::decay_t<decltype(conn)>;
+            if constexpr (std::is_same_v<cell_connection, C>) {
+                src_lid = source_resolver.resolve(conn.source);
+            }
+            else if constexpr (std::is_same_v<raw_cell_connection, C>) {
+                src_lid = conn.source.index;
+            }
+            else {
+                ARB_UNREACHABLE;
+            }
+            // targets always get resolution
             auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
             // NOTE old compilers stumble over emplace_back here
+            auto src_dom = dom_dec.gid_domain(src_gid);
             connections_by_src_domain[src_dom].emplace_back(
                 connection{
                 .source={.gid=src_gid, .index=src_lid},
                 .target=tgt_lid,
                 .weight=conn.weight,
                 .delay=conn.delay,
-                .index_on_domain=iod
+                .index_on_domain=tgt_iod
             });
+    };
+
+    PE(init:communicator:update:connections:local);
+    target_resolver.clear();
+    bool resolution_enabled = rec.resolve_sources();
+    for (const auto tgt_gid: gids) {
+        auto tgt_iod = dom_dec.index_on_domain(tgt_gid);
+        source_resolver.clear();
+        for (const auto& conn: rec.connections_on(tgt_gid)) {
+            if (!resolution_enabled) throw resolution_disabled{tgt_gid};
+            push_connection(conn, tgt_gid, tgt_iod);
             ++n_con;
         }
     }
     PL();
+
+    PE(init:communicator:update:connections:raw);
+    for (const auto tgt_gid: gids) {
+        auto tgt_iod = dom_dec.index_on_domain(tgt_gid);
+        for (const auto& conn: rec.raw_connections_on(tgt_gid)) {
+            push_connection(conn, tgt_gid, tgt_iod);
+            ++n_con;
+        }
+    }
+    PL();
+
 
     // Construct connections from high-level specification.
     PE(init:communicator:update:connections:generated);
