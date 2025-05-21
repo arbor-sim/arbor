@@ -254,6 +254,88 @@ gathered_vector<T> gather_all_with_partition(const std::vector<T>& values, MPI_C
 }
 
 template <typename T>
+inline gathered_vector<T> all_to_all_impl(const std::vector<T>& send_buffer, const std::vector<int>& send_counts,
+                                          const std::vector<int>& send_displs, int num_ranks, MPI_Comm comm){
+    using gathered_type = gathered_vector<T>;
+    using count_type = typename gathered_vector<T>::count_type;
+    using traits = mpi_traits<T>;
+    
+    std::vector<int> recv_counts(num_ranks, 0);
+    std::vector<int> recv_displs(num_ranks, 0);
+
+    MPI_OR_THROW(MPI_Alltoall, send_counts.data(), 1, MPI_INT,
+                 recv_counts.data(), 1, MPI_INT,
+                 comm);
+
+    util::make_partition(recv_displs, recv_counts);
+    std::vector<T> recv_buffer(recv_displs.back() / traits::count());
+    
+    MPI_OR_THROW(MPI_Alltoallv,
+        const_cast<T*>(send_buffer.data()), send_counts.data(), send_displs.data(), traits::mpi_type(), // send
+        recv_buffer.data(), recv_counts.data(), recv_displs.data(), traits::mpi_type(),                // recv
+        comm);
+
+    for (auto& d : recv_displs) {
+        d /= traits::count();
+    }
+
+    return gathered_type(
+        std::move(recv_buffer),
+        std::vector<count_type>(recv_displs.begin(), recv_displs.end())
+    );
+}
+
+/// AlltoAll of a gathered vector
+/// Retains the meta data (i.e. vector partition)
+template <typename T>
+gathered_vector<T> all_to_all_with_partition(const gathered_vector<T>& values, MPI_Comm comm) {
+    using traits = mpi_traits<T>;
+
+    int num_ranks = values.partition().size() - 1;
+
+    std::vector<int> send_counts(num_ranks);
+    std::vector<int> send_displs(num_ranks);
+
+    const auto& send_buffer = values.values();
+    const auto& partition = values.partition();
+
+    for (int i = 0; i < num_ranks; ++i) {
+        int count = values.count(i) * traits::count();
+        send_counts[i] = count;
+        send_displs[i] = partition[i] * traits::count();
+    }
+
+    return all_to_all_impl(send_buffer,
+                           send_counts,
+                           send_displs,
+                           num_ranks,
+                           comm);
+}
+
+/// AlltoAll of a distributed vector
+/// Retains the meta data (i.e. vector partition)
+template <typename T>
+gathered_vector<T> all_to_all_with_partition(const std::vector<std::vector<T>>& values, MPI_Comm comm) {
+    using traits = mpi_traits<T>;
+    int num_ranks = values.size();
+
+    std::vector<int> send_counts(num_ranks, 0);
+    std::vector<int> send_displs(num_ranks, 0);
+    std::vector<T> send_buffer;
+
+    for (int i = 0; i < num_ranks; ++i) {
+        send_counts[i] = values[i].size() * traits::count();
+        send_displs[i] = send_buffer.size() * traits::count();
+        send_buffer.insert(send_buffer.end(), values[i].begin(), values[i].end());
+    }
+    return all_to_all_impl(send_buffer,
+                           send_counts,
+                           send_displs,
+                           num_ranks,
+                           comm);
+}
+
+template <typename T>
 T reduce(T value, MPI_Op op, int root, MPI_Comm comm) {
     using traits = mpi_traits<T>;
     static_assert(traits::is_mpi_native_type(),
