@@ -133,6 +133,7 @@ endif()
 # Library target:
 add_library(arbor ${arbor_sources} ${arbor-builtin-mechanisms})
 target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
+target_include_directories(arbor PRIVATE $<BUILD_INTERFACE:${unordered_dense_SOURCE_DIR}/include>)
 target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
 
 if(ARB_WITH_CUDA_CLANG)
