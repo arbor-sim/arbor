@@ -147,6 +147,8 @@ void communicator::update_connections(const recipe& rec,
     //       in many, many allocations and we don't have the proper primitives.
     std::size_t n_con = 0;
     std::vector<std::vector<connection>> connections_by_src_domain(num_domains_);
+    auto my_rank = ctx_->distributed->id();
+    std::vector<std::vector<cell_gid_type>> gids_domains(num_domains_);
 
     // helper for adding a connection
     auto push_connection = [&] (const auto& conn, cell_gid_type tgt_gid, cell_size_type tgt_iod) {
@@ -182,8 +184,6 @@ void communicator::update_connections(const recipe& rec,
     PE(init:communicator:update:connections:local);
     target_resolver.clear();
     bool resolution_enabled = rec.resolve_sources();
-    auto my_rank = ctx_->distributed->id();
-    std::vector<std::vector<cell_gid_type>> gids_domains(num_domains_);
     for (auto& v : gids_domains) {
         v.reserve(gids.size());
     }
