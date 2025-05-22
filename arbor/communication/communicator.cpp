@@ -223,13 +223,15 @@ void communicator::update_connections(const recipe& rec,
     PL();
     
     PE(init:communicator:update:connections:sort_unique);
-    for (auto& domain_gids : gids_domains) {
+    arb::threading::parallel_for::apply(0, gids_domains.size(), ctx_->thread_pool.get(),
+    [&](int i) {
+        auto& domain_gids = gids_domains[i];
         std::sort(domain_gids.begin(), domain_gids.end());
         domain_gids.erase(
             std::unique(domain_gids.begin(), domain_gids.end()),
             domain_gids.end()
         );
-    }
+    });
     PL();
     
     PE(init:communicator:update:connections:gids);
@@ -334,8 +336,8 @@ communicator::exchange(std::vector<spike>& local_spikes) {
     PL();
 
     PE(communication:exchange:sum_spikes);
-    num_local_spikes_ = ctx_->distributed->sum(local_spikes.size());
-    num_spikes_ += num_local_spikes_;
+    //num_local_spikes_ = ctx_->distributed->sum(local_spikes.size());
+    //num_spikes_ += num_local_spikes_;
     PL();
 
     auto spikes_per_rank = generate_all_to_all_vector(local_spikes, src_ranks_, ctx_);

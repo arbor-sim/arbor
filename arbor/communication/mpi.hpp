@@ -257,32 +257,37 @@ template <typename T>
 inline gathered_vector<T> all_to_all_impl(const std::vector<T>& send_buffer, const std::vector<int>& send_counts,
                                           const std::vector<int>& send_displs, int num_ranks, MPI_Comm comm){
     using gathered_type = gathered_vector<T>;
-    using count_type = typename gathered_vector<T>::count_type;
+    using count_type = typename gathered_type::count_type;
     using traits = mpi_traits<T>;
-    
+
     std::vector<int> recv_counts(num_ranks, 0);
     std::vector<int> recv_displs(num_ranks, 0);
 
-    MPI_OR_THROW(MPI_Alltoall, send_counts.data(), 1, MPI_INT,
+    MPI_OR_THROW(MPI_Alltoall,
+                 send_counts.data(), 1, MPI_INT,
                  recv_counts.data(), 1, MPI_INT,
                  comm);
 
     util::make_partition(recv_displs, recv_counts);
-    std::vector<T> recv_buffer(recv_displs.back() / traits::count());
-    
+
+    auto count_per_element = traits::count();
+    std::vector<T> recv_buffer(recv_displs.back() / count_per_element);
+
     MPI_OR_THROW(MPI_Alltoallv,
-        const_cast<T*>(send_buffer.data()), send_counts.data(), send_displs.data(), traits::mpi_type(), // send
-        recv_buffer.data(), recv_counts.data(), recv_displs.data(), traits::mpi_type(),                // recv
-        comm);
+                 const_cast<T*>(send_buffer.data()), send_counts.data(), send_displs.data(), traits::mpi_type(),
+                 recv_buffer.data(), recv_counts.data(), recv_displs.data(), traits::mpi_type(),
+                 comm);
 
     for (auto& d : recv_displs) {
-        d /= traits::count();
+        d /= count_per_element;
     }
 
-    return gathered_type(
-        std::move(recv_buffer),
-        std::vector<count_type>(recv_displs.begin(), recv_displs.end())
-    );
+    std::vector<count_type> partition;
+    partition.reserve(recv_displs.size());
+    std::transform(recv_displs.begin(), recv_displs.end(), std::back_inserter(partition),
+                   [](int v) { return static_cast<count_type>(v); });
+
+    return gathered_type(std::move(recv_buffer), std::move(partition));
 }
 
 /// AlltoAll of a gathered vector
