@@ -210,10 +210,6 @@ void shared_state::instantiate(mechanism& m,
                                const mechanism_layout& pos_data,
                                const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
     assert(m.iface_.backend == arb_backend_kind_gpu);
-    using util::make_range;
-    using util::make_span;
-    using util::ptr_by_key;
-    using util::value_by_key;
 
     bool mult_in_place = !pos_data.multiplicity.empty();
     bool peer_indices = !pos_data.peer_cv.empty();
@@ -249,8 +245,8 @@ void shared_state::instantiate(mechanism& m,
     // Set ion views
     for (auto idx: make_span(m.mech_.n_ions)) {
         auto ion = m.mech_.ions[idx].name;
-        auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
-        ion_state* oion = ptr_by_key(ion_data, ion_binding);
+        auto ion_binding = util::value_by_key(overrides.ion_rebind, ion).value_or(ion);
+        ion_state* oion = util::ptr_by_key(ion_data, ion_binding);
         if (!oion) throw arbor_internal_error("gpu/mechanism: mechanism holds ion with no corresponding shared state");
         auto& ion_state = store.ion_states_[idx];
         ion_state = {0};
@@ -275,7 +271,7 @@ void shared_state::instantiate(mechanism& m,
         // First sub-array of data_ is used for weight_
         m.ppack_.weight = writer.append_with_padding(pos_data.weight, 0);
         // Set parameters to either default or explicit setting
-        for (auto idx: make_span(m.mech_.n_parameters)) {
+        for (auto idx: util::make_span(m.mech_.n_parameters)) {
             const auto& param = m.mech_.parameters[idx];
             const auto& it = std::find_if(params.begin(), params.end(),
                                           [&](const auto& k) { return k.first == param.name; });
@@ -288,14 +284,14 @@ void shared_state::instantiate(mechanism& m,
             }
         }
         // Make STATE var the default
-        for (auto idx: make_span(m.mech_.n_state_vars)) {
+        for (auto idx: util::make_span(m.mech_.n_state_vars)) {
             store.state_vars_[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
         // Assign global scalar parameters. NB: Last chunk, since it breaks the width striding.
-        for (auto idx: make_span(m.mech_.n_globals)) store.globals_[idx] = m.mech_.globals[idx].default_value;
+        for (auto idx: util::make_span(m.mech_.n_globals)) store.globals_[idx] = m.mech_.globals[idx].default_value;
         for (auto& [k, v]: overrides.globals) {
             auto found = false;
-            for (auto idx: make_span(m.mech_.n_globals)) {
+            for (auto idx: util::make_span(m.mech_.n_globals)) {
                 if (m.mech_.globals[idx].name == k) {
                     store.globals_[idx] = v;
                     found = true;
@@ -317,11 +313,11 @@ void shared_state::instantiate(mechanism& m,
         // Setup node indices
         m.ppack_.node_index = writer.append_with_padding(pos_data.cv, 0);
         // Create ion indices
-        for (auto idx: make_span(m.mech_.n_ions)) {
+        for (auto idx: util::make_span(m.mech_.n_ions)) {
             auto  ion = m.mech_.ions[idx].name;
             // Index into shared_state respecting ion rebindings
-            auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
-            ion_state* oion = ptr_by_key(ion_data, ion_binding);
+            auto ion_binding = util::value_by_key(overrides.ion_rebind, ion).value_or(ion);
+            ion_state* oion = util::ptr_by_key(ion_data, ion_binding);
             if (!oion) throw arbor_internal_error("gpu/mechanism: mechanism holds ion with no corresponding shared state");
             // Obtain index and move data
             auto ni = memory::on_host(oion->node_index_);
