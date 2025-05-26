@@ -1,6 +1,7 @@
 #include <cmath>
 #include <string>
 #include <vector>
+#include <ranges>
 
 #include <gtest/gtest.h>
 
@@ -208,12 +209,11 @@ TEST(fvm_lowered, matrix_init)
 
     auto n = J.size();
 
-    EXPECT_FALSE(arb::util::any_of(util::subrange_view(J.u, 1, n), isnan));
-    EXPECT_FALSE(arb::util::any_of(J.d, isnan));
-    EXPECT_FALSE(arb::util::any_of(S->voltage, isnan));
-
-    EXPECT_FALSE(arb::util::any_of(util::subrange_view(J.u, 1, n), ispos));
-    EXPECT_FALSE(arb::util::any_of(J.d, isneg));
+    EXPECT_FALSE(std::ranges::any_of(util::subrange_view(J.u, 1, n), isnan));
+    EXPECT_FALSE(std::ranges::any_of(J.d, isnan));
+    EXPECT_FALSE(std::ranges::any_of(S->voltage, isnan));
+    EXPECT_FALSE(std::ranges::any_of(util::subrange_view(J.u, 1, n), ispos));
+    EXPECT_FALSE(std::ranges::any_of(J.d, isneg));
 }
 
 TEST(fvm_lowered, target_handles) {

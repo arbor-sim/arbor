@@ -36,9 +36,9 @@ void take_samples_impl(
 void add_scalar(std::size_t n, arb_value_type* data, arb_value_type v);
 
 // GPU-side minmax: consider CUDA kernel replacement.
-std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, const arb_value_type* v) {
+std::ranges::minmax_result<double> minmax_value_impl(arb_size_type n, const arb_value_type* v) {
     auto v_copy = memory::on_host(memory::const_device_view<arb_value_type>(v, n));
-    return util::minmax_value(v_copy);
+    return std::ranges::minmax(v_copy);
 }
 
 // Ion state methods:
@@ -369,7 +369,7 @@ void shared_state::zero_currents() {
     stim_data.zero_current();
 }
 
-std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
+std::ranges::min_max_result<double> shared_state::voltage_bounds() const {
     return minmax_value_impl(n_cv, voltage.data());
 }
 

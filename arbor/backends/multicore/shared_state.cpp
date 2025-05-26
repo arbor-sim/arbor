@@ -241,8 +241,8 @@ void shared_state::zero_currents() {
     stim_data.zero_current();
 }
 
-std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
-    return util::minmax_value(voltage);
+std::ranges::min_max_result<double> shared_state::voltage_bounds() const {
+    return std::ranges::minmax(voltage);
 }
 
 void shared_state::take_samples() {

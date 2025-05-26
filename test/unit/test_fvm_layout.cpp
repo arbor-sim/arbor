@@ -1564,7 +1564,7 @@ TEST(fvm_layout, ion_weights) {
 
         EXPECT_TRUE(testing::seq_almost_eq<arb_value_type>(expected_init_iconc[run], ca.init_iconc));
 
-        EXPECT_TRUE(util::all_of(ca.init_econc, [cao](arb_value_type v) { return v==cao; }));
+        EXPECT_TRUE(std::ranges::all_of(ca.init_econc, [cao](arb_value_type v) { return v==cao; }));
     }
 }
 

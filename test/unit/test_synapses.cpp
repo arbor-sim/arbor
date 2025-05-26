@@ -56,9 +56,7 @@ TEST(synapses, add_to_cell) {
 
 template <typename Seq>
 static bool all_equal_to(const Seq& s, double v) {
-    return util::all_of(s, [v](double x) {
-        return (std::isnan(v) && std::isnan(x)) || v==x;
-    });
+    return std::ranges::all_of(s, [v](double x) { return (std::isnan(v) && std::isnan(x)) || v==x; });
 }
 
 template <typename A, typename B>

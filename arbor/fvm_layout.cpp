@@ -293,13 +293,12 @@ fvm_cv_discretize(const cable_cell& cell,
     }
     for (const auto& [ion, data]: diffusivity) {
          // 'Finite' diffusivity iff not NAN or 0.0 or a complex expression.
-        auto diffusive = std::any_of(data.begin(),
-                                     data.end(),
-                                     [](const auto& kv) {
-                                         const auto& [k, v] = kv;
-                                         auto s = v.scale.get_scalar();
-                                         return !s || *s*v.value != 0.0;
-                                     });
+        auto diffusive = std::ranges::any_of(data,
+                                             [](const auto& kv) {
+                                                 const auto& [k, v] = kv;
+                                                 auto s = v.scale.get_scalar();
+                                                 return !s || *s*v.value != 0.0;
+                                             });
         if (diffusive) {
             // Provide a (non-sensical) default.
             if (!diffusive_ions.count(ion)) diffusive_ions[ion] = {};
@@ -523,17 +522,8 @@ std::vector<mlocation> coincident_locations(const morphology& m, const mlocation
 // Test if location intersects (sorted) sequence of cables.
 template <typename Seq>
 bool cables_intersect_location(Seq&& cables, const mlocation& x) {
-    struct cmp_branch {
-        bool operator()(const mcable& c, msize_t bid) const { return c.branch<bid; }
-        bool operator()(msize_t bid, const mcable& c) const { return bid<c.branch; }
-    };
-
-    using std::begin;
-    using std::end;
-    auto eqr = std::equal_range(begin(cables), end(cables), x.branch, cmp_branch{});
-
-    return util::any_of(util::make_range(eqr),
-                        [&x](const mcable& c) { return c.prox_pos<=x.pos && x.pos<=c.dist_pos; });
+    return std::ranges::any_of(std::ranges::equal_range(cables, x.branch, std::ranges::less{}, [](const mcable& c) { return c.branch; }),
+                               [&x](const mcable& c) { return c.prox_pos<=x.pos && x.pos<=c.dist_pos; });
 }
 
 voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, const cv_geometry& geom, arb_size_type cell_idx, const mlocation& site) {
@@ -550,14 +540,16 @@ voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, con
         return mlocation{c.branch, (c.prox_pos+c.dist_pos)/2};
     };
 
-    auto cv_contains_fork = [&](auto cv, const mlocation& x) {
+    auto cv_contains_fork = [&](const auto cv, const mlocation& x) {
         // CV contains fork if it intersects any location coincident with x
-        // other than x itselfv.
-
+        // other than x itself.
         if (cv_simple(cv)) return false;
-        auto locs = coincident_locations(morph, x);
-
-        return util::any_of(locs, [&](mlocation y) { return cables_intersect_location(geom.cables(cv), y); });
+        const auto& cables = geom.cables(cv);
+        mlocation_list locs = coincident_locations(morph, x);
+        return std::ranges::any_of(locs,
+                                   [&](const auto& y) {
+                                       return cables_intersect_location(cables, y);
+                                   });
     };
 
     site_ref.cv = geom.location_cv(cell_idx, site, cv_prefer::cv_empty);

@@ -227,7 +227,7 @@ struct ARB_ARBOR_API shared_state:
 
     // Return minimum and maximum voltage value [mV] across cells.
     // (Used for solution bounds checking.)
-    std::pair<arb_value_type, arb_value_type> voltage_bounds() const;
+    std::ranges::min_max_result<double> voltage_bounds() const;
 
     // Take samples according to marked events in a sample_event_stream.
     void take_samples();

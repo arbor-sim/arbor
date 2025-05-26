@@ -1,5 +1,6 @@
 #include <forward_list>
 #include <random>
+#include <ranges>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -59,7 +60,6 @@ TEST(util, index_into)
     using arb::util::index_into;
     using arb::util::assign_from;
     using arb::util::make_range;
-    using arb::util::all_of;
 
     std::vector<std::pair<std::vector<int>, std::vector<int>>> vector_tests = {
         // Empty sequences:
@@ -109,7 +109,7 @@ TEST(util, index_into)
     int suparr2[] = {8};
 
     auto z_indices = index_into(subarr2, suparr2);
-    EXPECT_TRUE(all_of(z_indices, [](std::ptrdiff_t n) { return n==0; }));
+    EXPECT_TRUE(std::ranges::all_of(z_indices, [](std::ptrdiff_t n) { return n == 0; }));
     EXPECT_EQ(0, z_indices.back());
 
     // Test: strictly forward sequences; heterogenous sequences; sentinel-terminated ranges.

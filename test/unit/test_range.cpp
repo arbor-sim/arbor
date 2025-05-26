@@ -251,46 +251,6 @@ TEST(range, subrange) {
 }
 
 
-TEST(range, max_element_by) {
-    const char *cstr = "helloworld";
-    auto cstr_range = util::make_range(cstr, null_terminated);
-
-    auto i = util::max_element_by(cstr_range,
-        [](char c) -> int { return -c; });
-
-    EXPECT_TRUE((std::is_same_v<const char *, decltype(i)>));
-    EXPECT_EQ('d', *i);
-    EXPECT_EQ(cstr+9, i);
-
-    // with mutable container
-    std::vector<int> v = { 1, 3, -5, 2 };
-    auto j  = util::max_element_by(v, [](int x) { return x*x; });
-    EXPECT_EQ(-5, *j);
-    *j = 1;
-    j  = util::max_element_by(v, [](int x) { return x*x; });
-    EXPECT_EQ(3, *j);
-}
-
-TEST(range, minmax_value) {
-    auto cstr_empty_range = util::make_range((const char*)"", null_terminated);
-    auto p1 = util::minmax_value(cstr_empty_range);
-    EXPECT_EQ('\0', p1.first);
-    EXPECT_EQ('\0', p1.second);
-
-    const char *cstr = "hello world";
-    auto cstr_range = util::make_range(cstr, null_terminated);
-    auto p2 = util::minmax_value(cstr_range);
-    EXPECT_EQ(' ', p2.first);
-    EXPECT_EQ('w', p2.second);
-
-    auto p3 = util::minmax_value(
-        util::transform_view(cstr_range, [](char c) { return -(int)c; }));
-
-    EXPECT_EQ('w', -p3.first);
-    EXPECT_EQ(' ', -p3.second);
-}
-
-
 template <typename V>
 class counter_range: public ::testing::Test {};
 
@@ -496,37 +456,6 @@ TEST(range, is_sequence) {
     EXPECT_TRUE(arb::util::is_sequence<std::vector<int>>::value);
     EXPECT_TRUE(arb::util::is_sequence<std::string>::value);
     EXPECT_TRUE(arb::util::is_sequence<int (&)[8]>::value);
-}
-
-TEST(range, all_of_any_of) {
-    // make a C string into a sentinel-terminated range
-    auto cstr = [](const char* s) { return util::make_range(s, null_terminated); };
-
-    // predicate throws on finding 'x' in order to check
-    // early stop criterion.
-    auto pred = [](char c) { return c=='x'? throw c:c<'5'; };
-
-    // all
-    EXPECT_TRUE(util::all_of(""s, pred));
-    EXPECT_TRUE(util::all_of("1234"s, pred));
-    EXPECT_FALSE(util::all_of("12345"s, pred));
-    EXPECT_FALSE(util::all_of("12345x"s, pred));
-
-    EXPECT_TRUE(util::all_of(cstr(""), pred));
-    EXPECT_TRUE(util::all_of(cstr("1234"), pred));
-    EXPECT_FALSE(util::all_of(cstr("12345"), pred));
-    EXPECT_FALSE(util::all_of(cstr("12345x"), pred));
-
-    // any
-    EXPECT_FALSE(util::any_of(""s, pred));
-    EXPECT_FALSE(util::any_of("8765"s, pred));
-    EXPECT_TRUE(util::any_of("87654"s, pred));
-    EXPECT_TRUE(util::any_of("87654x"s, pred));
-
-    EXPECT_FALSE(util::any_of(cstr(""), pred));
-    EXPECT_FALSE(util::any_of(cstr("8765"), pred));
-    EXPECT_TRUE(util::any_of(cstr("87654"), pred));
-    EXPECT_TRUE(util::any_of(cstr("87654x"), pred));
 }
 
 TEST(range, is_sorted) {

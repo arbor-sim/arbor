@@ -198,20 +198,6 @@ stable_sort_by(Seq&& seq, const Proj& proj) {
         });
 }
 
-// Range-interface for `all_of`, `any_of`
-
-template <typename Seq, typename Predicate>
-bool all_of(const Seq& seq, const Predicate& pred) {
-    auto canon = canonical_view(seq);
-    return std::all_of(canon.begin(), canon.end(), pred);
-}
-
-template <typename Seq, typename Predicate>
-bool any_of(const Seq& seq, const Predicate& pred) {
-    auto canon = canonical_view(seq);
-    return std::any_of(canon.begin(), canon.end(), pred);
-}
-
 // Accumulate over range
 
 template <
@@ -235,89 +221,7 @@ Value sum_by(const Seq& seq, const Proj& proj, Value base = Value{}) {
     return std::accumulate(canon.begin(), canon.end(), base);
 }
 
-// Maximum element by projection `proj`
-// - returns an iterator `i` into supplied sequence which has the maximum
-//   value of `proj(*i)`.
-
-template <typename Seq, typename Proj>
-typename sequence_traits<Seq&&>::iterator
-max_element_by(Seq&& seq, const Proj& proj) {
-    using value_type = typename sequence_traits<Seq&&>::value_type;
-    auto canon = canonical_view(seq);
-
-    return std::max_element(canon.begin(), canon.end(),
-        [&proj](const value_type& a, const value_type& b) {
-            return proj(a) < proj(b);
-        });
-}
-
-// Maximum value.
-//
-// Value semantics instead of iterator semantics means it will operate
-// with input iterators.  Will return default-constructed value if sequence
-// is empty.
-//
-// (Consider making generic associative reduction with TBB implementation
-// for random-access iterators?)
-
-template <
-    typename Seq,
-    typename Value = typename sequence_traits<const Seq&>::value_type,
-    typename Compare = std::less<Value>
->
-Value max_value(const Seq& seq, Compare cmp = Compare{}) {
-    using std::begin;
-    using std::end;
-
-    if (std::empty(seq)) {
-        return Value{};
-    }
-
-    auto i = begin(seq);
-    auto e = end(seq);
-    Value m = *i;
-    while (++i!=e) {
-        Value x = *i;
-        if (cmp(m, x)) {
-            m = std::move(x);
-        }
-    }
-    return m;
-}
-
-// Minimum and maximum value.
-
-template <
-    typename Seq,
-    typename Value = typename sequence_traits<const Seq&>::value_type,
-    typename Compare = std::less<Value>
->
-std::pair<Value, Value> minmax_value(const Seq& seq, Compare cmp = Compare{}) {
-    using std::begin;
-    using std::end;
-
-    if (std::empty(seq)) {
-        return {Value{}, Value{}};
-    }
-
-    auto i = begin(seq);
-    auto e = end(seq);
-    Value lower = *i;
-    Value upper = *i;
-    while (++i!=e) {
-        Value x = *i;
-        if (cmp(upper, x)) {
-            upper = std::move(x);
-        }
-        else if (cmp(x, lower)) {
-            lower = std::move(x);
-        }
-    }
-    return {lower, upper};
-}
-
 // Range-wrapper for std::is_sorted.
-
 template <typename Seq, typename = util::enable_if_sequence_t<const Seq&>>
 bool is_sorted(const Seq& seq) {
     auto canon = canonical_view(seq);

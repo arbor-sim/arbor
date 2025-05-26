@@ -434,8 +434,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     post_events_ = mech_data.post_events;
     auto max_detector = 0;
     if (post_events_) {
-        auto it = util::max_element_by(fvm_info.num_sources, [](auto elem) {return util::second(elem);});
-        max_detector = it->second;
+        max_detector = std::ranges::max(fvm_info.num_sources | std::ranges::views::transform([](auto elem) {return util::second(elem);}));
     }
     std::vector<arb_index_type> src_to_spike, cv_to_cell;
 
