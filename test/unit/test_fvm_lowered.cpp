@@ -872,7 +872,7 @@ TEST(fvm_lowered, post_events_shared_state) {
 
         auto& S = fvcell.*private_state_ptr;
 
-        auto expected_detectors = util::max_value(detectors_per_cell);
+        auto expected_detectors = std::ranges::max(detectors_per_cell);
 
         EXPECT_EQ(expected_detectors, S->n_detector);
         EXPECT_EQ(util::sum(detectors_per_cell), S->src_to_spike.size());

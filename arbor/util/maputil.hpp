@@ -213,7 +213,6 @@ std::optional<typename sequence_traits<C>::difference_type> binary_search_index(
 
 
 // Key equality helper for NUL-terminated strings.
-
 struct cstr_equal {
     bool operator()(const char* u, const char* v) {
         return !std::strcmp(u, v);

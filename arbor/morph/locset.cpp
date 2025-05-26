@@ -106,11 +106,9 @@ ARB_ARBOR_API locset terminal() {
 }
 
 mlocation_list thingify_(const terminal_&, const mprovider& p) {
-    mlocation_list locs;
-    util::assign(locs, util::transform_view(p.morphology().terminal_branches(),
-        [](msize_t bid) { return mlocation{bid, 1.}; }));
-
-    return locs;
+     return p.morphology().terminal_branches()
+          | std::ranges::views::transform([](msize_t bid) { return mlocation{bid, 1.}; })
+          | util::to<mlocation_list>();
 }
 
 std::ostream& operator<<(std::ostream& o, const terminal_& x) {
@@ -399,11 +397,12 @@ mlocation_list thingify_(const boundary_& n, const mprovider& p) {
         arb_assert(!comp.empty());
         arb_assert(thingify_(most_proximal_{region{comp}}, p).size()==1u);
 
-        mlocation_list distal_set;
-        util::assign(distal_set, util::transform_view(comp, [](auto c) { return dist_loc(c); }));
+        auto dist_set = comp
+                      | std::ranges::views::transform([](const auto& c) { return dist_loc(c); })
+                      | util::to<mlocation_list>();
 
         L = sum(L, {prox_loc(comp.front())});
-        L = sum(L, maxset(p.morphology(), distal_set));
+        L = sum(L, maxset(p.morphology(), dist_set));
     }
     return support(std::move(L));
 }
@@ -434,17 +433,18 @@ mlocation_list thingify_(const cboundary_& n, const mprovider& p) {
     for (const mextent& comp: comps) {
         mextent ccomp = thingify(reg::complete(comp), p);
 
-        // Note: if component contains the head of a top-level cable,
-        // the completion might not be connected (!).
+        // Note: if component contains the head of a top-level cable, the
+        // completion might not be connected (!).
+        auto prox_set = ccomp
+                      | std::ranges::views::transform([](const auto& c) { return prox_loc(c); })
+                      | util::to<mlocation_list>();
+        auto dist_set = ccomp
+                      | std::ranges::views::transform([](const auto& c) { return dist_loc(c); })
+                      | util::to<mlocation_list>();
 
-        mlocation_list proximal_set;
-        util::assign(proximal_set, util::transform_view(ccomp, [](auto c) { return prox_loc(c); }));
 
-        mlocation_list distal_set;
-        util::assign(distal_set, util::transform_view(ccomp, [](auto c) { return dist_loc(c); }));
-
-        L = sum(L, minset(p.morphology(), proximal_set));
-        L = sum(L, maxset(p.morphology(), distal_set));
+        L = sum(L, minset(p.morphology(), prox_set));
+        L = sum(L, maxset(p.morphology(), dist_set));
     }
     return support(std::move(L));
 }
@@ -504,8 +504,8 @@ mlocation_list thingify_(const on_components_& n, const mprovider& p) {
             util::append(L, maxset(p.morphology(), support(most_distal)));
         }
         else {
-            double diameter = util::max_value(util::transform_view(comp,
-                [&](auto c) { return d_from_prox(dist_loc(c)); }));
+            double diameter = std::ranges::max(comp
+                                             | std::ranges::views::transform([&](const auto& c) { return d_from_prox(dist_loc(c)); }));
 
             double d = n.relpos*diameter;
             for (mcable c: comp) {
@@ -559,17 +559,15 @@ mlocation_list thingify_(const uniform_& u, const mprovider& p) {
 
     std::vector<double> lengths_bounds;
     auto lengths_part = util::make_partition(lengths_bounds,
-                                       util::transform_view(reg_cables, [&embed](const auto& c) {
-                                           return embed.integrate_length(c);
-                                       }));
+                                             reg_cables | std::ranges::views::transform([&embed](const auto& c) { return embed.integrate_length(c); }));
 
     auto region_length = lengths_part.bounds().second;
 
     // Generate uniform random positions along the extent of the full region
     auto random_pos = util::uniform(u.seed, u.left, u.right);
     std::transform(random_pos.begin(), random_pos.end(), random_pos.begin(),
-            [&region_length](auto& c){return c*region_length;});
-    util::sort(random_pos);
+                   [&region_length](auto& c){ return c*region_length; });
+    std::ranges::sort(random_pos);
 
     // Match random_extents to cables and find position on the associated branch
     unsigned cable_idx = 0;
@@ -672,11 +670,11 @@ mlocation_list thingify_(const lrestrict_& P, const mprovider& p) {
     mlocation_list L;
 
     auto cables = thingify(P.reg, p).cables();
-    auto ends = util::transform_view(cables, [](const auto& c){return mlocation{c.branch, c.dist_pos};});
+    auto ends = cables | std::ranges::views::transform([](const auto& c){return mlocation{c.branch, c.dist_pos};});
 
     for (auto l: thingify(P.ls, p)) {
         auto it = std::lower_bound(ends.begin(), ends.end(), l);
-        if (it==ends.end()) continue;
+        if (it == ends.end()) continue;
         const auto& c = cables[std::distance(ends.begin(), it)];
         if (c.branch==l.branch && c.prox_pos<=l.pos) {
             L.push_back(l);

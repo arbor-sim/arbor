@@ -191,11 +191,11 @@ struct cvp_cv_policy_fixed_per_branch {
 
         for (auto& comp: comps) {
             for (mcable c: comp) {
-                double scale = (c.dist_pos-c.prox_pos)*ooncv;
+                double scale = (c.dist_pos - c.prox_pos)*ooncv;
 
                 if (has_flag(flags_, cv_policy_flag::interior_forks)) {
                     for (unsigned i = 0; i<cv_per_branch_; ++i) {
-                        points.push_back({c.branch, c.prox_pos+(1+2*i)*scale/2});
+                        points.push_back({c.branch, c.prox_pos+(1 + 2*i)*scale/2});
                     }
                 }
                 else {
@@ -207,7 +207,7 @@ struct cvp_cv_policy_fixed_per_branch {
             }
         }
 
-        util::sort(points);
+        std::ranges::sort(points);
         return unique_sum(locset(std::move(points)), ls::cboundary(domain_));
     }
 

@@ -271,19 +271,6 @@ TEST(range, max_element_by) {
     EXPECT_EQ(3, *j);
 }
 
-TEST(range, max_value) {
-    const char *cstr = "hello world";
-    auto cstr_range = util::make_range(cstr, null_terminated);
-
-    // use a lambda to get a range over non-assignable iterators
-    // (at least until we specialize `transform_iterator` for
-    // non-copyable functors passed by const reference).
-    auto i = util::max_value(
-        util::transform_view(cstr_range, [](char c) { return c+1; }));
-
-    EXPECT_EQ('x', i);
-}
-
 TEST(range, minmax_value) {
     auto cstr_empty_range = util::make_range((const char*)"", null_terminated);
     auto p1 = util::minmax_value(cstr_empty_range);

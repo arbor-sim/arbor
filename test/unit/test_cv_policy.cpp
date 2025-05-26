@@ -34,14 +34,11 @@ TEST(cv_policy, single) {
     // In all instances, expect the boundary points to correspond to
     // the extremal points of the completions of the components of the
     // supplied region.
-
-
     cable_cell cell(m_mlt_b6, {});
     for (region reg:
             {reg::all(), reg::branch(2), reg::cable(3, 0.25, 1.),
              join(reg::cable(1, 0.75, 1), reg::branch(3), reg::cable(2, 0, 0.5)),
              join(reg::cable(2, 0, 0.5), reg::branch(3), reg::cable(4, 0, 0.5))}) {
-        locset expected = ls::cboundary(reg);
         EXPECT_TRUE(locset_eq(cell.provider(), ls::cboundary(reg), cv_policy_single(reg).cv_boundary_points(cell)));
     }
 
@@ -244,18 +241,19 @@ TEST(cv_policy, max_extent) {
         {
             // Max extent of 0.6 should give two CVs on branches of length 1,
             // four CVs on branches of length 2, and seven CVs on the branch of length 4.
-            cv_policy pol = cv_policy_max_extent(0.6);
-            mlocation_list points = thingify(pol.cv_boundary_points(cell), cell.provider());
-
-            mlocation_list points_b012 = util::assign_from(util::filter(points, [](mlocation l) { return l.branch<3; }));
-            mlocation_list expected_b012 = {
-                {0, 0},  {0, 0.5},  {0, 1},
-                {1, 0},  {1, 0.5},  {1, 1},
-                {2, 0},  {2, 0.25}, {2, 0.5}, {2, 0.75}, {2, 1}
-            };
+            auto pol = cv_policy_max_extent(0.6);
+            auto points = thingify(pol.cv_boundary_points(cell), cell.provider());
+            auto points_b012 = points
+                             | std::ranges::views::filter([](mlocation l) { return l.branch < 3; })
+                             | util::to<mlocation_list>();
+            mlocation_list expected_b012 = {{0, 0},  {0, 0.5},  {0, 1},
+                                            {1, 0},  {1, 0.5},  {1, 1},
+                                            {2, 0},  {2, 0.25}, {2, 0.5}, {2, 0.75}, {2, 1}};
             EXPECT_TRUE(mlocationlist_eq(expected_b012, points_b012));
 
-            mlocation_list points_b3 = util::assign_from(util::filter(points, [](mlocation l) { return l.branch==3; }));
+            auto points_b3 = points
+                           | std::ranges::views::filter([](mlocation l) { return l.branch == 3; })
+                           | util::to<mlocation_list>();
             EXPECT_EQ(8u, points_b3.size());
         }
     }
