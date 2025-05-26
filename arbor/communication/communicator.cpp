@@ -238,7 +238,6 @@ void communicator::update_connections(const recipe& rec,
     
     auto global_gids_domains = ctx_->distributed->all_to_all_gids_domains(gids_domains);
     src_ranks_ = std::move(global_gids_domains);
-    
     PL();
     // Sort the connections for each domain; num_domains_ independent sorts
     // parallelized trivially.
@@ -282,7 +281,7 @@ generate_all_to_all_vector(const std::vector<spike>& spikes,
     const auto& vals = src_ranks_.values();
     const auto& parts = src_ranks_.partition();
 
-    std::vector<count_type> offsets(parts.size() + 1, 0);
+    std::vector<count_type> offsets(parts.size(), 0);
     arb::threading::parallel_for::apply(0, parts.size() - 1,ctx->thread_pool.get(),
                                    [&](auto domain){
         auto start = parts[domain];
@@ -292,7 +291,7 @@ generate_all_to_all_vector(const std::vector<spike>& spikes,
         while (sp < se && start < end){
             while (sp < se && sp->source.gid < vals[start]) sp++;
             while (start < end && vals[start] < sp->source.gid) start++;
-            if(vals[start] == sp->source.gid){
+            if(sp < se && start < end && vals[start] == sp->source.gid){
                 ++offsets[domain + 1];
                 sp++;
             }
@@ -318,7 +317,7 @@ generate_all_to_all_vector(const std::vector<spike>& spikes,
         while (sp < se && start < end){
             while (sp < se && sp->source.gid < vals[start]) sp++;
             while (start < end && vals[start] < sp->source.gid) start++;
-            if(vals[start] == sp->source.gid){
+            if(sp < se && start < end && vals[start] == sp->source.gid){
                 spikes_per_rank[index] = *sp;
                 index++;
                 sp++;
@@ -336,8 +335,8 @@ communicator::exchange(std::vector<spike>& local_spikes) {
     PL();
 
     PE(communication:exchange:sum_spikes);
-    //num_local_spikes_ = ctx_->distributed->sum(local_spikes.size());
-    //num_spikes_ += num_local_spikes_;
+    num_local_spikes_ = ctx_->distributed->sum(local_spikes.size());
+    num_spikes_ += num_local_spikes_;
     PL();
 
     auto spikes_per_rank = generate_all_to_all_vector(local_spikes, src_ranks_, ctx_);
