@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <cmath>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -27,10 +26,6 @@
 
 namespace arb {
 namespace multicore {
-
-using util::make_span;
-using util::ptr_by_key;
-using util::value_by_key;
 
 constexpr unsigned vector_length = (unsigned) simd::simd_abi::native_width<arb_value_type>::value;
 using simd_value_type = simd::simd<arb_value_type, vector_length, simd::simd_abi::default_abi>;
@@ -410,10 +405,10 @@ void shared_state::instantiate(arb::mechanism& m,
     store.ion_states_.resize(m.mech_.n_ions);       m.ppack_.ion_states = store.ion_states_.data();
 
     // Set ion views
-    for (auto idx: make_span(m.mech_.n_ions)) {
+    for (auto idx: util::make_span(m.mech_.n_ions)) {
         auto ion = m.mech_.ions[idx].name;
-        auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
-        auto* oion = ptr_by_key(ion_data, ion_binding);
+        auto ion_binding = util::value_by_key(overrides.ion_rebind, ion).value_or(ion);
+        auto* oion = util::ptr_by_key(ion_data, ion_binding);
         if (!oion) throw arbor_internal_error(util::pprintf("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state", ion));
 
         auto& ion_state = m.ppack_.ion_states[idx];
@@ -445,7 +440,7 @@ void shared_state::instantiate(arb::mechanism& m,
         // First sub-array of data_ is used for weight_
         m.ppack_.weight = writer.append(pos_data.weight, 0);
         // Set parameters: either default, or explicit override
-        for (auto idx: make_span(m.mech_.n_parameters)) {
+        for (auto idx: util::make_span(m.mech_.n_parameters)) {
             const auto& param = m.mech_.parameters[idx];
             const auto& it = std::find_if(params.begin(), params.end(),
                                           [&](const auto& k) { return k.first == param.name; });
@@ -458,22 +453,22 @@ void shared_state::instantiate(arb::mechanism& m,
             }
         }
         // Set initial state values
-        for (auto idx: make_span(m.mech_.n_state_vars)) {
+        for (auto idx: util::make_span(m.mech_.n_state_vars)) {
             m.ppack_.state_vars[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
         // Set random numbers
-        for (auto idx_v: make_span(num_random_numbers_per_cv))
-            for (auto idx_c: make_span(cbprng::cache_size()))
+        for (auto idx_v: util::make_span(num_random_numbers_per_cv))
+            for (auto idx_c: util::make_span(cbprng::cache_size()))
                 store.random_numbers_[idx_c][idx_v] = writer.fill(0);
 
         // Assign global scalar parameters
         m.ppack_.globals = writer.end;
-        for (auto idx: make_span(m.mech_.n_globals)) {
+        for (auto idx: util::make_span(m.mech_.n_globals)) {
             m.ppack_.globals[idx] = m.mech_.globals[idx].default_value;
         }
         for (auto& [k, v]: overrides.globals) {
             auto found = false;
-            for (auto idx: make_span(m.mech_.n_globals)) {
+            for (auto idx: util::make_span(m.mech_.n_globals)) {
                 if (m.mech_.globals[idx].name == k) {
                     m.ppack_.globals[idx] = v;
                     found = true;
@@ -510,11 +505,11 @@ void shared_state::instantiate(arb::mechanism& m,
         m.ppack_.index_constraints.n_independent = store.constraints_.independent.size();
         m.ppack_.index_constraints.n_none        = store.constraints_.none.size();
         // Create ion indices
-        for (auto idx: make_span(m.mech_.n_ions)) {
+        for (auto idx: util::make_span(m.mech_.n_ions)) {
             auto  ion = m.mech_.ions[idx].name;
             // Index into shared_state respecting ion rebindings
-            auto ion_binding = value_by_key(overrides.ion_rebind, ion).value_or(ion);
-            ion_state* oion = ptr_by_key(ion_data, ion_binding);
+            auto ion_binding = util::value_by_key(overrides.ion_rebind, ion).value_or(ion);
+            ion_state* oion = util::ptr_by_key(ion_data, ion_binding);
             if (!oion) throw arbor_internal_error(util::pprintf("multicore/mechanism: mechanism holds ion '{}' with no corresponding shared state ", ion));
             // Obtain index and move data
             auto indices = util::index_into(node_index, oion->node_index_);
