@@ -1,3 +1,5 @@
+#include <ranges>
+
 #include <arbor/schedule.hpp>
 #include <arbor/common_types.hpp>
 
@@ -110,9 +112,7 @@ void explicit_schedule_shim::set_times_ms(std::vector<arb::time_type> t) {
     times = std::move(t);
 
     // Sort the times in ascending order if necessary
-    if (!std::is_sorted(times.begin(), times.end())) {
-        std::sort(times.begin(), times.end());
-    }
+    if (!std::ranges::is_sorted(times)) std::ranges::sort(times);
 
     // Assert that there are no negative times
     if (times.size()) {

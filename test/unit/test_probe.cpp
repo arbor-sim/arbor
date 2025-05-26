@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <vector>
+#include <ranges>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/common_types.hpp>
@@ -983,7 +984,7 @@ void run_multi_probe_test(context ctx) {
         vals.push_back({trace.meta, trace[0].v});
     }
 
-    util::sort(vals);
+    std::ranges::sort(vals);
     EXPECT_EQ((mlocation{1, 1.}), vals[0].first);
     EXPECT_EQ((mlocation{2, 1.}), vals[1].first);
     EXPECT_EQ((mlocation{5, 1.}), vals[2].first);
@@ -1427,7 +1428,7 @@ TEST(probe, get_probe_metadata) {
     ASSERT_TRUE(l2);
 
     std::vector<mlocation> locs = {*l0, *l1, *l2};
-    util::sort(locs);
+    std::ranges::sort(locs);
     EXPECT_EQ((mlocation{1, 1.}), locs[0]);
     EXPECT_EQ((mlocation{2, 1.}), locs[1]);
     EXPECT_EQ((mlocation{5, 1.}), locs[2]);

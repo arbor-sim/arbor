@@ -3,6 +3,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <ranges>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -115,7 +116,7 @@ istim_state::istim_state(const fvm_stimulus_config& stim, unsigned align):
 
     for (auto i: util::make_span(n)) {
         arb_assert(stim.envelope_time[i].size()==stim.envelope_amplitude[i].size());
-        arb_assert(util::is_sorted(stim.envelope_time[i]));
+        arb_assert(std::ranges::is_sorted(stim.envelope_time[i]));
 
         util::append(envl_a, stim.envelope_amplitude[i]);
         util::append(envl_t, stim.envelope_time[i]);
@@ -213,7 +214,7 @@ shared_state::shared_state(task_system_handle,    // ignored in mc backend
         std::fill(cv_to_cell.begin() + n_cv, cv_to_cell.end(), cv_to_cell_vec.back());
     }
 
-    util::fill(time_since_spike, -1.0);
+    std::ranges::fill(time_since_spike, -1.0);
     std::transform(temperature_K.begin(), temperature_K.end(),
                    temperature_degC.begin(),
                    [](auto T) { return T - 273.15; });
@@ -225,7 +226,7 @@ void shared_state::reset() {
     util::zero(current_density);
     util::zero(conductivity);
     time = 0;
-    util::fill(time_since_spike, -1.0);
+    std::ranges::fill(time_since_spike, -1.0);
 
     for (auto& i: ion_data) {
         i.second.reset();

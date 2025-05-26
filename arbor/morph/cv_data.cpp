@@ -1,4 +1,5 @@
 #include <vector>
+#include <ranges>
 
 #include <arbor/common_types.hpp>
 #include <arbor/morph/cv_data.hpp>
@@ -34,7 +35,7 @@ cell_cv_data_impl::cell_cv_data_impl(const cable_cell& cell, const locset& lset)
              && !(x.pos==1 && m.branch_children(x.branch).empty()); // terminal?
     };
     locs.erase(std::partition(locs.begin(), locs.end(), neither_root_nor_terminal), locs.end());
-    util::sort(locs);
+    std::ranges::sort(locs);
     util::unique_in_place(locs);
 
     // Collect cables constituting each CV, maintaining a stack of CV

@@ -157,7 +157,7 @@ auto build_group_parameters(context ctx,
         const auto& [backend, group_size] = get_backend(ctx, kind, hint_map);
         res.push_back({kind, backend, group_size});
     }
-    util::sort_by(res, [](const auto& p) { return p.kind; });
+    std::ranges::sort(res, std::ranges::less{}, [](const auto& p) { return p.kind; });
     return res;
 }
 

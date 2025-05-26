@@ -65,7 +65,6 @@ auto unique_cast(std::unique_ptr<B> p) {
 }
 
 TEST(synapses, syn_basic_state) {
-    using util::fill;
     using value_type = arb_value_type;
     using index_type = arb_index_type;
 
@@ -98,7 +97,7 @@ TEST(synapses, syn_basic_state) {
                        align);
 
     state.reset();
-    fill(state.current_density, 1.0);
+    std::ranges::fill(state.current_density, 1.0);
     const auto dts = timestep_range(0.1, 0.1);
     state.update_time_to(dts[0]);
 

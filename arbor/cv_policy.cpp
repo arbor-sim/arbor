@@ -113,7 +113,7 @@ struct cvp_cv_policy_max_extent {
             }
         }
 
-        util::sort(points);
+        std::ranges::sort(points);
         return unique_sum(locset(std::move(points)), ls::cboundary(domain_));
     }
 

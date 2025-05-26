@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <vector>
+#include <ranges>
 
 #include <arbor/common_types.hpp>
 
@@ -215,7 +216,7 @@ struct diffusion_state {
             // take advantage of the fact that the first branch in a partition is
             // the longest, to determine how to pack all the branches in a block.
             for (auto& branches: branch_map) {
-                util::sort(branches);
+                std::ranges::sort(branches);
             }
         }
 

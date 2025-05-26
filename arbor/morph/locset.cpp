@@ -2,6 +2,7 @@
 #include <numeric>
 #include <ostream>
 #include <stack>
+#include <ranges>
 
 #include <arbor/math.hpp>
 #include <arbor/morph/locset.hpp>
@@ -521,7 +522,7 @@ mlocation_list thingify_(const on_components_& n, const mprovider& p) {
         }
     }
 
-    util::sort(L);
+    std::ranges::sort(L);
     return L;
 }
 

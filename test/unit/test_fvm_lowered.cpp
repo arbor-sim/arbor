@@ -452,7 +452,7 @@ TEST(fvm_lowered, derived_mechs) {
 
             tau_values.push_back(mechanism_global(mech, "tau"));
         }
-        util::sort(tau_values);
+        std::ranges::sort(tau_values);
         EXPECT_EQ(fvec({10., 20.}), tau_values);
     }
     {
@@ -1010,8 +1010,8 @@ TEST(fvm_lowered, label_data) {
         std::vector<cell_size_type> size_partition;
         auto part = util::make_partition(size_partition, expected_sizes);
         for (const auto& r: part) {
-            util::sort(util::subrange_view(actual_labeled_ranges, r));
-            util::sort(util::subrange_view(expected_labeled_ranges, r));
+            std::ranges::sort(util::subrange_view(actual_labeled_ranges, r));
+            std::ranges::sort(util::subrange_view(expected_labeled_ranges, r));
         }
         EXPECT_EQ(actual_labeled_ranges, expected_labeled_ranges);
 
@@ -1054,8 +1054,8 @@ TEST(fvm_lowered, label_data) {
         std::vector<cell_size_type> size_partition;
         auto part = util::make_partition(size_partition, expected_sizes);
         for (const auto& r: part) {
-            util::sort(util::subrange_view(actual_labeled_ranges, r));
-            util::sort(util::subrange_view(expected_labeled_ranges, r));
+            std::ranges::sort(util::subrange_view(actual_labeled_ranges, r));
+            std::ranges::sort(util::subrange_view(expected_labeled_ranges, r));
         }
         EXPECT_EQ(actual_labeled_ranges, expected_labeled_ranges);
 
@@ -1094,8 +1094,8 @@ TEST(fvm_lowered, label_data) {
         std::vector<cell_size_type> size_partition;
         auto part = util::make_partition(size_partition, expected_sizes);
         for (const auto& r: part) {
-            util::sort(util::subrange_view(actual_labeled_ranges, r));
-            util::sort(util::subrange_view(expected_labeled_ranges, r));
+            std::ranges::sort(util::subrange_view(actual_labeled_ranges, r));
+            std::ranges::sort(util::subrange_view(expected_labeled_ranges, r));
         }
         EXPECT_EQ(actual_labeled_ranges, expected_labeled_ranges);
 

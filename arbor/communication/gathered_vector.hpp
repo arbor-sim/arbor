@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <algorithm>
 #include <vector>
+#include <ranges>
 
 #include <arbor/assert.hpp>
 
@@ -18,7 +19,7 @@ public:
         values_(std::move(v)),
         partition_(std::move(p))
     {
-        arb_assert(std::is_sorted(partition_.begin(), partition_.end()));
+        arb_assert(std::ranges::is_sorted(partition_));
         arb_assert(partition_.back() == values_.size());
     }
 

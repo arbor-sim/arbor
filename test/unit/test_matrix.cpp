@@ -1,5 +1,6 @@
 #include <numeric>
 #include <vector>
+#include <ranges>
 
 #include <gtest/gtest.h>
 
@@ -35,14 +36,11 @@ TEST(matrix, construct_from_parent_only) {
 }
 
 TEST(matrix, solve_host) {
-    using util::make_span;
-    using util::fill;
-
     // trivial case : 1x1 matrix
     {
         solver_type m({0}, {0,1}, vvec(1), vvec(1));
-        fill(m.d,  2);
-        fill(m.u, -1);
+        std::ranges::fill(m.d,  2);
+        std::ranges::fill(m.u, -1);
         array x({1});
         m.solve(x);
 
@@ -51,7 +49,7 @@ TEST(matrix, solve_host) {
 
     // matrices in the range of 2x2 to 1000x1000
     {
-        for(auto n : make_span(2, 1001)) {
+        for(auto n : util::make_span(2, 1001)) {
             auto p = std::vector<index_type>(n);
             std::iota(p.begin()+1, p.end(), 0);
             solver_type m(p, {0, n}, vvec(n), vvec(n));
@@ -59,14 +57,14 @@ TEST(matrix, solve_host) {
             EXPECT_EQ(m.size(), (unsigned)n);
             EXPECT_EQ(m.num_cells(), 1u);
 
-            fill(m.d,  2);
-            fill(m.u, -1);
+            std::ranges::fill(m.d,  2);
+            std::ranges::fill(m.u, -1);
             auto x = array(n, 1);
 
             m.solve(x);
 
             auto err = math::square(std::fabs(2.*x[0] - x[1] - 1.));
-            for(auto i : make_span(1,n-1)) {
+            for(auto i : util::make_span(1,n-1)) {
                 err += math::square(std::fabs(2.*x[i] - x[i-1] - x[i+1] - 1.));
             }
             err += math::square(std::fabs(2.*x[n-1] - x[n-2] - 1.));

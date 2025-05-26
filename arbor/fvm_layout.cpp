@@ -33,7 +33,6 @@ using util::count_along;
 using util::make_span;
 using util::pw_elements;
 using util::pw_over_cable;
-using util::sort;
 using util::sort_by;
 
 namespace {
@@ -802,7 +801,7 @@ ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> f
             local_conns.push_back({local_idx, local_cv, peer_cv, conn.weight});
         }
         // Sort local_conns by local_cv.
-        util::sort(local_conns);
+        std::ranges::sort(local_conns);
         gj_conns[gid] = std::move(local_conns);
     }
     return gj_conns;
@@ -822,7 +821,7 @@ struct fvm_ion_build_data {
     std::vector<arb_index_type> support;
 
     auto& add_to_support(const std::vector<arb_index_type>& cvs) {
-        arb_assert(util::is_sorted(cvs));
+        arb_assert(std::ranges::is_sorted(cvs));
         support = unique_union(support, cvs);
         return *this;
     }
@@ -1105,7 +1104,7 @@ apply_parameters_on_cv(fvm_mechanism_config& config,
     const auto& geometry = data.D.geometry;
     for (auto cv: geometry.cell_cvs(data.cell_idx)) {
         double area = 0;
-        util::fill(param_on_cv, 0.);
+        std::ranges::fill(param_on_cv, 0.);
         for (const mcable& cable: geometry.cables(cv)) {
             double area_on_cable = data.embedding.integrate_area(cable, pw_over_cable(support, cable, 0.));
             if (!area_on_cable) continue;
@@ -1151,7 +1150,7 @@ auto ordered_parameters(const mechanism_info& info) {
     for (const auto& [name, val]: info.parameters) {
         result.emplace_back(name, val.default_value);
     }
-    util::sort(result);
+    std::ranges::sort(result);
     return result;
 }
 
@@ -1485,18 +1484,18 @@ make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<
         };
 
         assign(cv_order, count_along(inst_list));
-        sort(cv_order,
-             [&](arb_size_type i, arb_size_type j) {
-                 const synapse_instance& a = inst_list[i];
-                 const synapse_instance& b = inst_list[j];
-                 if (a.cv<b.cv) return true;
-                 if (b.cv<a.cv) return false;
-                 auto cmp_param = cmp_inst_param(a, b);
-                 if (cmp_param<0) return true;
-                 if (cmp_param>0) return false;
-                 // CV and all parameters are equal, so finally sort on target index.
-                 return a.target_index<b.target_index;
-             });
+        std::ranges::sort(cv_order,
+                          [&](arb_size_type i, arb_size_type j) {
+                              const synapse_instance& a = inst_list[i];
+                              const synapse_instance& b = inst_list[j];
+                              if (a.cv<b.cv) return true;
+                              if (b.cv<a.cv) return false;
+                              auto cmp_param = cmp_inst_param(a, b);
+                              if (cmp_param<0) return true;
+                              if (cmp_param>0) return false;
+                              // CV and all parameters are equal, so finally sort on target index.
+                              return a.target_index<b.target_index;
+                          });
 
         auto config = make_mechanism_config(info, arb_mechanism_kind_point);
         // Do coalesce?

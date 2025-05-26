@@ -82,12 +82,10 @@ set(unit_sources
     test_gathered_vector.cpp
     test_diffusion.cpp
     test_iexpr.cpp
-    # test_index.cpp
     test_kinetic_linear.cpp
     test_label_resolution.cpp
     test_lif_cell_group.cpp
     test_local_context.cpp
-    # test_maputil.cpp
     test_mask_stream.cpp
     test_math.cpp
     test_matrix.cpp
@@ -114,7 +112,6 @@ set(unit_sources
     test_pp_util.cpp
     test_probe.cpp
     test_rand.cpp
-    test_range.cpp
     test_recipe.cpp
     test_ratelem.cpp
     test_serdes.cpp

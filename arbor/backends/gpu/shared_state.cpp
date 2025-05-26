@@ -110,7 +110,7 @@ istim_state::istim_state(const fvm_stimulus_config& stim, unsigned) {
 
     for (auto i: util::make_span(n)) {
         arb_assert(stim.envelope_time[i].size()==stim.envelope_amplitude[i].size());
-        arb_assert(util::is_sorted(stim.envelope_time[i]));
+        arb_assert(std::ranges::is_sorted(stim.envelope_time[i]));
 
         util::append(envl_a, stim.envelope_amplitude[i]);
         util::append(envl_t, stim.envelope_time[i]);

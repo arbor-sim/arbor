@@ -80,15 +80,6 @@ subrange_view(Seq&& seq, std::pair<Offset1, Offset2> index) {
 template <typename Seq>
 using subrange_view_type = decltype(subrange_view(std::declval<Seq&>(), 0, 0));
 
-
-// Fill container or range.
-
-template <typename Seq, typename V>
-void fill(Seq&& seq, const V& value) {
-    auto canon = canonical_view(seq);
-    std::fill(canon.begin(), canon.end(), value);
-}
-
 // Zero a container, specialised for contiguous sequences
 // i.e.: Array, Vector, String.
 
@@ -153,25 +144,7 @@ AssignableContainer& assign_by(AssignableContainer& c, const Seq& seq, const Pro
     return c;
 }
 
-// Sort in-place
-// Note that a const range reference may wrap non-const iterators.
-
-template <typename Seq>
-std::enable_if_t<!std::is_const<typename sequence_traits<Seq&&>::reference>::value>
-sort(Seq&& seq) {
-    auto canon = canonical_view(seq);
-    std::sort(canon.begin(), canon.end());
-}
-
-template <typename Seq, typename Less>
-std::enable_if_t<!std::is_const<typename sequence_traits<Seq&&>::reference>::value>
-sort(Seq&& seq, const Less& less) {
-    auto canon = canonical_view(seq);
-    std::sort(canon.begin(), canon.end(), less);
-}
-
 // Sort in-place by projection `proj`
-
 template <typename Seq, typename Proj>
 std::enable_if_t<!std::is_const<typename sequence_traits<Seq&&>::reference>::value>
 sort_by(Seq&& seq, const Proj& proj) {
@@ -221,15 +194,7 @@ Value sum_by(const Seq& seq, const Proj& proj, Value base = Value{}) {
     return std::accumulate(canon.begin(), canon.end(), base);
 }
 
-// Range-wrapper for std::is_sorted.
-template <typename Seq, typename = util::enable_if_sequence_t<const Seq&>>
-bool is_sorted(const Seq& seq) {
-    auto canon = canonical_view(seq);
-    return std::is_sorted(canon.begin(), canon.end());
-}
-
 // Range version of std::equal.
-
 template <
     typename Seq1, typename Seq2,
     typename Eq = std::equal_to<void>,
@@ -252,72 +217,6 @@ bool equal(const Seq1& seq1, const Seq2& seq2, Eq p = Eq{}) {
         ++i2;
     }
     return i1==e1 && i2==e2;
-}
-
-// Test if sequence is sorted after apply projection `proj` to elements.
-// (TODO: this will perform unnecessary copies if `proj` returns a reference;
-// specialize on this if it becomes an issue.)
-
-template <typename Seq,
-          typename Proj,
-          typename Compare = std::less<std::invoke_result_t<Proj, typename sequence_traits<const Seq&>::value_type>>>
-bool is_sorted_by(const Seq& seq, const Proj& proj, Compare cmp = Compare{}) {
-    using std::begin;
-    using std::end;
-
-    auto i = begin(seq);
-    auto e = end(seq);
-
-    if (i==e) {
-        return true;
-    }
-
-    // Special one-element case for forward iterators.
-    if (is_forward_iterator<decltype(i)>::value) {
-        auto j = i;
-        if (++j==e) {
-            return true;
-        }
-    }
-
-    auto v = proj(*i++);
-
-    for (;;) {
-        if (i==e) {
-            return true;
-        }
-        auto u = proj(*i++);
-
-        if (cmp(u, v)) {
-            return false;
-        }
-
-        if (i==e) {
-            return true;
-        }
-        v = proj(*i++);
-
-        if (cmp(v, u)) {
-            return false;
-        }
-    }
-}
-
-template <typename C, typename Seq>
-C make_copy(Seq const& seq) {
-    return C{std::begin(seq), std::end(seq)};
-}
-
-// Present a view of a finite sequence in reverse order, provided
-// the sequence iterator is bidirectional.
-template <
-    typename Seq,
-    typename It = typename sequence_traits<Seq&&>::iterator,
-    typename Rev = std::reverse_iterator<It>
->
-range<Rev, Rev> reverse_view(Seq&& seq) {
-    auto strict = strict_view(seq);
-    return range<Rev, Rev>(Rev(strict.right), Rev(strict.left));
 }
 
 // Left fold (accumulate) over sequence.

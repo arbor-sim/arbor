@@ -483,7 +483,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
                 //   state = state + 42
                 // }
                 PE(communication:enqueue:sort);
-                util::sort(pending_events_[i]);
+                std::ranges::sort(pending_events_[i]);
                 PL();
 
                 event_span pending = util::range_pointer_view(pending_events_[i]);

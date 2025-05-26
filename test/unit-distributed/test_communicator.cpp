@@ -686,7 +686,6 @@ TEST(communicator, mini_network)
     // sort connections by source then target
     auto srcs = C.connections().srcs;
     auto dsts = C.connections().dests;
-    // util::sort(connections);
 
     // Expect one set of 22 connections from every rank: these have been sorted.
     std::vector<cell_lid_type> ex_source_lids =  {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3};

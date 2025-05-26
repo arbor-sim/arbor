@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include <ranges>
 
 #include <arbor/morph/locset.hpp>
 #include <arbor/morph/primitives.hpp>
@@ -156,7 +157,7 @@ mextent thingify_(const tagged_& reg, const mprovider& p) {
         }
     }
     // NOTE: this should always be true since we traverse things in order.
-    arb_assert(util::is_sorted(cables));
+    arb_assert(std::ranges::is_sorted(cables));
     return mextent(cables);
 }
 
@@ -278,7 +279,7 @@ mextent thingify_(const distal_interval_& reg, const mprovider& p) {
         }
     }
 
-    util::sort(L);
+    std::ranges::sort(L);
     return mextent(L);
 }
 
@@ -335,7 +336,7 @@ mextent thingify_(const proximal_interval_& reg, const mprovider& p) {
         }
     }
 
-    util::sort(L);
+    std::ranges::sort(L);
     return mextent(L);
 }
 
@@ -608,7 +609,7 @@ mextent thingify_(const super_& r, const mprovider& p) {
                 fork_covers.push_back(mcable{b_child, 0., 0.});
             }
         }
-        util::sort(fork_covers);
+        std::ranges::sort(fork_covers);
 
         // Merge cables in cs with 0-length cables corresponding to fork covers.
         mcable_list a;

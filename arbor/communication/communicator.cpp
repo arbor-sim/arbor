@@ -99,7 +99,7 @@ void make_remote_connections(const std::vector<cell_gid_type>& gids,
     PL();
 
     PE(init:communicator:update:sort:remote);
-    util::sort(ext_connections);
+    std::ranges::sort(ext_connections);
     PL();
 
     PE(init:communicator:update:destructure:remote);
@@ -217,7 +217,7 @@ void communicator::update_connections(const recipe& rec,
     // parallelized trivially.
     PE(init:communicator:update:sort:local);
     threading::parallel_for::apply(0, num_domains_, ctx_->thread_pool.get(),
-                                   [&](auto i) { util::sort(connections_by_src_domain[i]); });
+                                   [&](auto i) { std::ranges::sort(connections_by_src_domain[i]); });
     PL();
 
     PE(init:communicator:update:connections:partition);

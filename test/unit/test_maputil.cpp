@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <vector>
 #include <utility>
+#include <ranges>
 
 #include <util/maputil.hpp>
 #include <util/rangeutil.hpp>
@@ -53,7 +54,7 @@ TEST(maputil, keys) {
         std::unordered_multimap<int, double> map = {{3, 0.1}, {5, 0.4}, {11, 0.8}, {5, 0.2}};
         std::vector<int> expected = {3, 5, 5, 11};
         std::vector<int> keys = util::assign_from(util::keys(map));
-        util::sort(keys);
+        std::ranges::sort(keys);
         EXPECT_EQ(expected, keys);
     }
 }
