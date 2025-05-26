@@ -1,7 +1,6 @@
-#include <memory>
-#include <optional>
 #include <unordered_map>
 #include <vector>
+#include <ranges>
 
 #include <arbor/morph/stitch.hpp>
 #include <arbor/morph/morphexcept.hpp>
@@ -203,10 +202,13 @@ region stitched_morphology::stitch(const std::string& id) const {
 }
 
 std::vector<msize_t> stitched_morphology::segments(const std::string& id) const {
-    auto seg_ids = util::transform_view(util::make_range(impl_->id_to_segs.equal_range(id)), util::second);
-    if (seg_ids.empty()) throw no_such_stitch(id);
-
-    return std::vector<msize_t>(begin(seg_ids), end(seg_ids));
+    // auto seg_ids = util::transform_view(util::make_range(impl_->id_to_segs.equal_range(id)), );
+    // return std::vector<msize_t>(begin(seg_ids), end(seg_ids));
+    const auto& [beg, end] = impl_->id_to_segs.equal_range(id);
+    if (beg == end) throw no_such_stitch(id);
+    const auto segs = std::ranges::subrange(beg, end)
+                    | std::ranges::views::transform(util::second);
+    return {std::begin(segs), std::end(segs)};
 }
 
 stitched_morphology::~stitched_morphology() = default;

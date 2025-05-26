@@ -10,6 +10,7 @@
 #include <numeric>
 #include <cstring>
 #include <type_traits>
+#include <ranges>
 
 #include "util/meta.hpp"
 #include "util/range.hpp"
@@ -17,6 +18,26 @@
 
 namespace arb {
 namespace util {
+
+namespace detail {
+    // Type acts as a tag to find the correct operator| overload
+    template <typename C>
+    struct to_helper {
+    };
+
+    // This actually does the work
+    template <typename Container, std::ranges::range R>
+    requires std::convertible_to<std::ranges::range_value_t<R>, typename Container::value_type>
+    Container operator|(R&& r, to_helper<Container>) {
+        return Container{r.begin(), r.end()};
+    }
+}
+
+template <typename Container>
+auto to() {
+    return detail::to_helper<Container>{};
+}
+
 
 // Non-owning views and subviews
 

@@ -7,6 +7,7 @@
 #include <utility>
 #include <memory>
 #include <string>
+#include <ranges>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell.hpp>
@@ -1591,8 +1592,8 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
         const auto& info = data.catalogue[name];
         auto config = make_mechanism_config(info, arb_mechanism_kind_gap_junction);
 
-        std::vector<std::string> param_names;
-        assign(param_names, util::keys(info.parameters));
+        auto param_names = std::ranges::views::keys(info.parameters)
+                         | util::to<std::vector<std::string>>();
         std::size_t n_param = param_names.size();
 
         std::vector<double> param_dflt;
@@ -1652,7 +1653,7 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_des
     std::unordered_map<std::string, mechanism_desc> revpot_tbl;
     std::unordered_map<std::string, revpot_ion_config> ex_config;
 
-    for (const auto& ion: util::keys(data.ion_species)) {
+    for (const auto& ion: std::ranges::views::keys(data.ion_species)) {
         if (!method.count(ion)) continue;
         const auto& revpot = method.at(ion);
         const auto& name = revpot.name();

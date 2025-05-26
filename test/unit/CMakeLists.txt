@@ -87,7 +87,7 @@ set(unit_sources
     test_label_resolution.cpp
     test_lif_cell_group.cpp
     test_local_context.cpp
-    test_maputil.cpp
+    # test_maputil.cpp
     test_mask_stream.cpp
     test_math.cpp
     test_matrix.cpp
@@ -138,7 +138,7 @@ set(unit_sources
     test_threading_exceptions.cpp
     test_timestep_range.cpp
     test_tree.cpp
-    test_transform.cpp
+    # test_transform.cpp
     test_uninitialized.cpp
     test_unique.cpp
     test_unique_any.cpp

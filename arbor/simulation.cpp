@@ -1,4 +1,3 @@
-#include <memory>
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
@@ -17,7 +16,6 @@
 #include "merge_events.hpp"
 #include "thread_private_spike_store.hpp"
 #include "threading/threading.hpp"
-#include "util/maputil.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 #include "profile/profiler_macro.hpp"
@@ -564,12 +562,10 @@ void simulation_state::remove_all_samplers() {
 }
 
 std::vector<probe_metadata> simulation_state::get_probe_metadata(const cell_address_type& probeset_id) const {
-    if (auto linfo = util::value_by_key(gid_to_local_, probeset_id.gid)) {
-        return cell_groups_.at(linfo->group_index)->get_probe_metadata(probeset_id);
+    if (auto it = gid_to_local_.find(probeset_id.gid); it != gid_to_local_.end()) {
+        return cell_groups_.at(it->second.group_index)->get_probe_metadata(probeset_id);
     }
-    else {
-        return {};
-    }
+    return {};
 }
 
 // Simulation class implementations forward to implementation class.

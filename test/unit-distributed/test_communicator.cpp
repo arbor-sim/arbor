@@ -2,6 +2,7 @@
 #include "test.hpp"
 
 #include <vector>
+#include <ranges>
 
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/lif_cell.hpp>
@@ -13,9 +14,8 @@
 #include "fvm_lowered_cell.hpp"
 #include "lif_cell_group.hpp"
 #include "cable_cell_group.hpp"
-#include "util/filter.hpp"
-#include "util/rangeutil.hpp"
 #include "util/span.hpp"
+#include "util/rangeutil.hpp"
 
 #ifdef TEST_MPI
 #include <mpi.h>
@@ -431,17 +431,16 @@ namespace {
 template <typename F>
 ::testing::AssertionResult
 test_ring(const domain_decomposition& D, communicator& C, F&& f) {
-    using util::transform_view;
-    using util::assign_from;
-    using util::filter;
-
     auto gids = get_gids(D);
     auto group_map = get_group_map(D);
 
-    std::vector<spike> local_spikes = assign_from(transform_view(filter(gids, f), make_spike));
     // Reverse the order of spikes so that they are "unsorted" in terms
     // of source gid.
-    std::reverse(local_spikes.begin(), local_spikes.end());
+    auto local_spikes = gids
+                      | std::ranges::views::reverse
+                      | std::ranges::views::filter(f)
+                      | std::ranges::views::transform(make_spike)
+                      | util::to<std::vector<spike>>();
 
     // gather the global set of spikes
     auto spikes = C.exchange(local_spikes);
@@ -542,21 +541,20 @@ TEST(communicator, ring)
 template <typename F>
 ::testing::AssertionResult
 test_all2all(const domain_decomposition& D, communicator& C, F&& f) {
-    using util::transform_view;
-    using util::assign_from;
-    using util::filter;
-    using util::make_span;
-
     auto gids = get_gids(D);
     auto group_map = get_group_map(D);
 
-    std::vector<spike> local_spikes = assign_from(transform_view(filter(gids, f), make_spike));
-    // Reverse the order of spikes so that they are "unsorted" in terms
-    // of source gid.
-    std::reverse(local_spikes.begin(), local_spikes.end());
+    // Reverse the order of spikes so that they are "unsorted" in terms of
+    // source gid.
+    auto local_spikes = gids
+                      | std::ranges::views::reverse
+                      | std::ranges::views::filter(f)
+                      | std::ranges::views::transform(make_spike)
+                      | util::to<std::vector<spike>>();
 
-    std::vector<cell_gid_type> spike_gids = assign_from(
-        filter(make_span(0, D.num_global_cells()), f));
+    auto spike_gids = std::ranges::views::iota(cell_gid_type(0), cell_gid_type(D.num_global_cells()))
+                    | std::ranges::views::filter(f)
+                    | util::to<std::vector<cell_gid_type>>();
 
     // gather the global set of spikes
     auto [global_spikes, remote_spikes] = C.exchange(local_spikes);

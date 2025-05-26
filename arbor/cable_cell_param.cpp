@@ -1,14 +1,12 @@
 #include <cmath>
 #include <vector>
-#include <variant>
-#include <tuple>
+#include <ranges>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/s_expr.hpp>
 
 #include <arbor/util/hash_def.hpp>
-#include "util/maputil.hpp"
 #include "util/strprintf.hpp"
 
 namespace arb {
@@ -16,35 +14,19 @@ namespace arb {
 ARB_ARBOR_API void check_global_properties(const cable_cell_global_properties& G) {
     auto& param = G.default_parameters;
 
-    if (!param.init_membrane_potential) {
-        throw cable_cell_error("missing global default parameter value: init_membrane_potential");
-    }
+    if (!param.init_membrane_potential) throw cable_cell_error("missing global default parameter value: init_membrane_potential");
+    if (!param.temperature_K)           throw cable_cell_error("missing global default parameter value: temperature");
+    if (!param.axial_resistivity)       throw cable_cell_error("missing global default parameter value: axial_resistivity");
+    if (!param.membrane_capacitance)    throw cable_cell_error("missing global default parameter value: membrane_capacitance");
 
-    if (!param.temperature_K) {
-        throw cable_cell_error("missing global default parameter value: temperature");
-    }
-
-    if (!param.axial_resistivity) {
-        throw cable_cell_error("missing global default parameter value: axial_resistivity");
-    }
-
-    if (!param.membrane_capacitance) {
-        throw cable_cell_error("missing global default parameter value: membrane_capacitance");
-    }
-
-    for (const auto& ion: util::keys(G.ion_species)) {
-        if (!param.ion_data.count(ion)) {
-            throw cable_cell_error("missing ion defaults for ion "+ion);
-        }
+    for (const auto& ion: std::ranges::views::keys(G.ion_species)) {
+        if (!param.ion_data.count(ion)) throw cable_cell_error("missing ion defaults for ion "+ion);
     }
 
     for (const auto& [ion, data]: param.ion_data) {
-        if (!data.init_int_concentration) {
-            throw cable_cell_error("missing init_int_concentration for ion "+ion);
-        }
-        if (!data.init_ext_concentration) {
-            throw cable_cell_error("missing init_ext_concentration for ion "+ion);
-        }
+        if (!data.init_int_concentration) throw cable_cell_error("missing init_int_concentration for ion "+ion);
+        if (!data.init_ext_concentration) throw cable_cell_error("missing init_ext_concentration for ion "+ion);
+
         if (data.diffusivity && *data.diffusivity < 0.0) {
             throw cable_cell_error("negative diffusivity for ion "+ion);
         }
@@ -74,32 +56,17 @@ cable_cell_parameter_set neuron_parameter_defaults = {
 
 std::vector<defaultable> cable_cell_parameter_set::serialize() const {
     std::vector<defaultable> D;
-    if (init_membrane_potential) {
-        D.push_back(arb::init_membrane_potential{*this->init_membrane_potential*units::mV});
-    }
-    if (temperature_K) {
-        D.push_back(arb::temperature{*this->temperature_K*units::Kelvin});
-    }
-    if (axial_resistivity) {
-        D.push_back(arb::axial_resistivity{*this->axial_resistivity*units::Ohm*units::cm});
-    }
-    if (membrane_capacitance) {
-        D.push_back(arb::membrane_capacitance{*this->membrane_capacitance*units::F/units::m2});
-    }
+
+    if (init_membrane_potential) D.push_back(arb::init_membrane_potential{*this->init_membrane_potential*units::mV});
+    if (temperature_K)           D.push_back(arb::temperature{*this->temperature_K*units::Kelvin});
+    if (axial_resistivity)       D.push_back(arb::axial_resistivity{*this->axial_resistivity*units::Ohm*units::cm});
+    if (membrane_capacitance)    D.push_back(arb::membrane_capacitance{*this->membrane_capacitance*units::F/units::m2});
 
     for (const auto& [name, data]: ion_data) {
-        if (data.init_int_concentration) {
-            D.push_back(init_int_concentration{name, *data.init_int_concentration*units::mM});
-        }
-        if (data.init_ext_concentration) {
-            D.push_back(init_ext_concentration{name, *data.init_ext_concentration*units::mM});
-        }
-        if (data.init_reversal_potential) {
-            D.push_back(init_reversal_potential{name, *data.init_reversal_potential*units::mV});
-        }
-        if (data.diffusivity) {
-            D.push_back(ion_diffusivity{name, *data.diffusivity*units::m2/units::s});
-        }
+        if (data.init_int_concentration)  D.push_back(init_int_concentration{name, *data.init_int_concentration*units::mM});
+        if (data.init_ext_concentration)  D.push_back(init_ext_concentration{name, *data.init_ext_concentration*units::mM});
+        if (data.init_reversal_potential) D.push_back(init_reversal_potential{name, *data.init_reversal_potential*units::mV});
+        if (data.diffusivity)             D.push_back(ion_diffusivity{name, *data.diffusivity*units::m2/units::s});
     }
 
     for (const auto& [name, mech]: reversal_potential_method) {
