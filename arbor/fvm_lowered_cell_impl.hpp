@@ -11,6 +11,7 @@
 #include <optional>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -358,10 +359,7 @@ template <typename Backend> fvm_initialization_data
 fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gids,
                                            const recipe& rec) {
     using std::any_cast;
-    using util::count_along;
-    using util::make_span;
     using util::value_by_key;
-    using util::keys;
 
     fvm_initialization_data fvm_info;
 
@@ -442,8 +440,8 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     std::vector<arb_index_type> src_to_spike, cv_to_cell;
 
     if (post_events_) {
-        for (auto cell_idx: make_span(ncell)) {
-            for (auto lid: make_span(fvm_info.num_sources[gids[cell_idx]])) {
+        for (auto cell_idx: util::make_span(ncell)) {
+            for (auto lid: util::make_span(fvm_info.num_sources[gids[cell_idx]])) {
                 src_to_spike.push_back(cell_idx * max_detector + lid);
             }
         }
@@ -458,11 +456,12 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                    [&gids](auto i){return gids[i]; });
 
     // Create shared cell state.
-    // Shared state vectors should accommodate each mechanism's data alignment requests.
 
-    unsigned data_alignment = util::max_value(
-        util::transform_view(keys(mech_data.mechanisms),
-            [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
+    // Shared state vectors should accommodate each mechanism's data alignment requests.
+    auto alignments = std::ranges::views::keys(mech_data.mechanisms)
+                    | std::ranges::views::transform([&](const std::string& name) { return mech_instance(name).mech->data_alignment(); });
+    unsigned data_alignment = 0;
+    if (auto it = std::ranges::max_element(alignments); it != alignments.end()) data_alignment = *it;
 
     auto d_info = get_detector_info(max_detector, ncell, cells, D, context_);
     state_ = std::make_unique<shared_state>(context_.thread_pool,
@@ -503,7 +502,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
 
             layout.gid.resize(config.cv.size());
             layout.idx.resize(layout.gid.size());
-            for (auto i: count_along(config.cv)) {
+            for (auto i: util::count_along(config.cv)) {
                 auto cv = layout.cv[i];
                 layout.weight[i] = 1000/D.cv_area[cv];
                 layout.gid[i] = cv_to_gid[cv];
@@ -517,7 +516,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                     target_handles_[config.target[i]] = handle;
                 }
                 else {
-                    for (auto j: make_span(multiplicity_part[i])) {
+                    for (auto j: util::make_span(multiplicity_part[i])) {
                         target_handles_[config.target[j]] = handle;
                     }
                 }
@@ -528,7 +527,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
             // Junction mechanism contributions are in [nA] (µS * mV); CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
 
-            for (auto i: count_along(layout.cv)) {
+            for (auto i: util::count_along(layout.cv)) {
                 auto cv = layout.cv[i];
                 layout.weight[i] = config.local_weight[i] * 1000/D.cv_area[cv];
             }
@@ -539,7 +538,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
 
             layout.gid.resize(layout.cv.size());
             layout.idx.resize(layout.gid.size());
-            for (auto i: count_along(layout.cv)) {
+            for (auto i: util::count_along(layout.cv)) {
                 layout.weight[i] = config.norm_area[i];
                 layout.gid[i] = cv_to_gid[i];
                 if (i>0 && (layout.gid[i-1] != layout.gid[i])) idx_offset = i;
