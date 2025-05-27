@@ -49,8 +49,8 @@ jobs:
         - {
             name:  "Linux Max GCC",
             os:    "ubuntu-24.04",
-            cc:    "gcc-15",
-            cxx:   "g++-15",
+            cc:    "gcc-14",
+            cxx:   "g++-14",
             py:    "3.13",
             cmake: "3.22.x",
             mpi:   "ON",
@@ -59,8 +59,8 @@ jobs:
         - {
             name:  "Linux SIMD",
             os:    "ubuntu-24.04",
-            cc:    "gcc-15",
-            cxx:   "g++-15",
+            cc:    "gcc-14",
+            cxx:   "g++-14",
             py:    "3.13",
             cmake: "3.22.x",
             mpi:   "OFF",
