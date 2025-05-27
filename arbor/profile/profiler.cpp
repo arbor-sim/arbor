@@ -2,6 +2,7 @@
 #include <mutex>
 #include <ostream>
 #include <ranges>
+#include <string_view>
 
 #include <arbor/context.hpp>
 #include <arbor/profile/profiler.hpp>
@@ -19,32 +20,6 @@ namespace profile {
 using util::make_span;
 
 #ifdef ARB_HAVE_PROFILING
-namespace {
-    // Check whether a string describes a valid profiler region name.
-    bool is_valid_region_string(const std::string& s) {
-        return (s.size()!=0u) && (s.front()!=':') && (s.back()!=':');
-    }
-
-    //
-    // Return a list of the words in the string, using ':' as the delimiter
-    // string, e.g.:
-    //      "communicator"             -> {"communicator"}
-    //      "communicator_events"      -> {"communicator", "events"}
-    //      "communicator_events_sort" -> {"communicator", "events", "sort"}
-    std::vector<std::string> split(const std::string& str) {
-        std::vector<std::string> cont;
-        std::size_t first = 0;
-        std::size_t last = str.find(':');
-        while (last != std::string::npos) {
-            cont.push_back(str.substr(first, last - first));
-            first = last + 1;
-            last = str.find(':', first);
-        }
-        cont.push_back(str.substr(first, last - first));
-        return cont;
-    }
-}
-
 // Holds the accumulated number of calls and time spent in a region.
 struct profile_accumulator {
     std::size_t count=0;
@@ -275,8 +250,16 @@ profile profiler::results() const {
 
 profile_node make_profile_tree(const profile& p) {
     // Take the name of each region, and split into a sequence of sub-region-strings.
-    // e.g. "advance_integrate_state" -> "advance", "integrate", "state"
-    auto names = std::ranges::transform_view(p.names, split) | util::to<std::vector<std::vector<std::string>>>;
+    // e.g. "advance:integrate:state" -> "advance", "integrate", "state"
+    auto split = [](const auto& name) {
+        return name
+             | std::ranges::views::split(':')
+             | std::ranges::views::transform([](auto p) { return std::string(p.data(), p.size()); })
+             | util::to<std::vector<std::string>>();
+    };
+    auto names = p.names
+               | std::ranges::views::transform(split)
+               | util::to<std::vector<std::vector<std::string>>>();
 
     // Build a tree description of the regions and sub-regions in the profile.
     profile_node tree("root");
@@ -393,7 +376,7 @@ ARB_ARBOR_API void profiler_clear() {
 
 
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string& name) {
-    if (!is_valid_region_string(name)) {
+    if ((name.size() == 0u) || (name.front() == ':') || (name.back() == ':')) {
         throw std::runtime_error(std::string("'")+name+"' is not a valid profiler region name.");
     }
     return profiler::get_global_profiler().region_index(name);
