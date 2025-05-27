@@ -59,8 +59,8 @@ struct mpi_context_impl {
         return mpi::gather_all_with_partition(local_gids, comm_);
     }
 
-    gathered_vector<cell_gid_type>
-    all_to_all_gids_domains(const std::vector<std::vector<cell_gid_type>>& gids_domains) const {
+    gathered_vector<cell_member_type>
+    all_to_all_gids_domains(const std::vector<std::vector<cell_member_type>>& gids_domains) const {
         return mpi::all_to_all_with_partition(gids_domains, comm_);
     }
 
@@ -215,8 +215,8 @@ struct remote_context_impl {
         return mpi_.gather_cell_labels_and_gids(local_labels_and_gids);
     }
 
-    gathered_vector<cell_gid_type>
-    all_to_all_gids_domains(const std::vector<std::vector<cell_gid_type>>& gids_domains) const {
+    gathered_vector<cell_member_type>
+    all_to_all_gids_domains(const std::vector<std::vector<cell_member_type>>& gids_domains) const {
         return mpi_.all_to_all_gids_domains(gids_domains);
     }
 

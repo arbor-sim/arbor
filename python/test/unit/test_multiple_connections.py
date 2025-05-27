@@ -149,7 +149,7 @@ class TestMultipleConnections(unittest.TestCase):
 
         # construct domain_decomposition and simulation object
         sim = A.simulation(art_spiker_recipe, context)
-        sim.record(A.spike_recording.all)
+        sim.record(A.spike_recording.local)
 
         # create schedule and handle to record the membrane potential of neuron 3
         reg_sched = A.regular_schedule(0 * U.ms, self.dt * U.ms, self.runtime * U.ms)
@@ -359,7 +359,7 @@ class TestMultipleConnections(unittest.TestCase):
 
         # construct simulation object
         sim = A.simulation(rec, context)
-        sim.record(A.spike_recording.all)
+        sim.record(A.spike_recording.local)
 
         # create schedule and handle to record the membrane potential of neuron 3
         reg_sched = A.regular_schedule(0 * U.ms, self.dt * U.ms, self.runtime * U.ms)
