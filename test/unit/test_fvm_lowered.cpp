@@ -772,11 +772,11 @@ TEST(fvm_lowered, weighted_write_ion) {
     auto& ion = state.ion_data.at("ca"s);
     ion.init_concentration();
 
-    std::vector<unsigned> ion_nodes = util::assign_from(ion.node_index_);
+    auto ion_nodes = ion.node_index_ | util::to<std::vector<unsigned>>();
     std::vector<unsigned> expected_ion_nodes = {2, 3, 4};
     EXPECT_EQ(expected_ion_nodes, ion_nodes);
 
-    std::vector<double> ion_init_iconc = util::assign_from(ion.init_Xi_);
+    auto ion_init_iconc = ion.init_Xi_ | util::to<std::vector<double>>();
     std::vector<double> expected_init_iconc = {0.75*con_int, 1.*con_int, 0};
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_init_iconc, ion_init_iconc));
 
@@ -799,7 +799,7 @@ TEST(fvm_lowered, weighted_write_ion) {
 
     ion.init_concentration();
     test_ca->update_ions();
-    std::vector<double> ion_iconc = util::assign_from(ion.Xi_);
+    auto ion_iconc = ion.Xi_ | util::to<std::vector<double>>();
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_iconc, ion_iconc));
 }
 

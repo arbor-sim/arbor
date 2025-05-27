@@ -32,9 +32,7 @@ namespace detail {
 template <typename Container>
 auto to() { return detail::to_helper<Container>{}; }
 
-
 // Non-owning views and subviews
-
 template <typename Seq>
 range<typename sequence_traits<Seq&&>::iterator, typename sequence_traits<Seq&&>::sentinel>
 range_view(Seq&& seq) { return make_range(std::begin(seq), std::end(seq)); }
@@ -68,7 +66,6 @@ using subrange_view_type = decltype(subrange_view(std::declval<Seq&>(), 0, 0));
 
 // Zero a container, specialised for contiguous sequences
 // i.e.: Array, Vector, String.
-
 template <typename Seq,
           typename = std::enable_if_t<std::is_trivially_copyable_v<typename sequence_traits<Seq&&>::value_type>
                                    && sequence_traits<Seq&&>::is_contiguous>>
@@ -87,36 +84,12 @@ Container& append(Container &c, const Seq& seq) {
 }
 
 // Assign sequence to a container
-
 template <typename AssignableContainer, typename Seq>
 AssignableContainer& assign(AssignableContainer& c, const Seq& seq) {
     auto canon = canonical_view(seq);
     c.assign(canon.begin(), canon.end());
     return c;
 }
-
-namespace impl {
-    template <typename Seq>
-    struct assign_proxy {
-        assign_proxy(const Seq& seq):
-            ref{seq}
-        {}
-
-        // Convert the sequence to a container of type C.
-        // This requires that C supports construction from a pair of iterators
-        template <typename C>
-        operator C() const {
-            auto canon = canonical_view(ref);
-            return C(canon.begin(), canon.end());
-        }
-
-        const Seq& ref;
-    };
-}
-
-// Copy-assign sequence to a container
-template <typename Seq>
-impl::assign_proxy<Seq> assign_from(const Seq& seq) { return impl::assign_proxy<Seq>(seq); }
 
 // Assign sequence to a container with transform `proj`
 template <typename AssignableContainer, typename Seq, typename Proj>

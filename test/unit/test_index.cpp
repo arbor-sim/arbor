@@ -57,9 +57,6 @@ TEST(util, index_into)
 {
     using ivector = std::vector<std::ptrdiff_t>;
     using std::size;
-    using arb::util::index_into;
-    using arb::util::assign_from;
-    using arb::util::make_range;
 
     std::vector<std::pair<std::vector<int>, std::vector<int>>> vector_tests = {
         // Empty sequences:
@@ -93,13 +90,9 @@ TEST(util, index_into)
 
     // Test bidirectionality.
 
-    auto arr_indices = index_into(subarr1, suparr1);
-    ivector arridx = assign_from(arr_indices);
-
-    ivector revidx;
-    for (auto i = arr_indices.end(); i!=arr_indices.begin(); ) {
-        revidx.push_back(*--i);
-    }
+    auto arr_indices = util::index_into(subarr1, suparr1);
+    atuo arridx = arr_indices | util::to<ivector>();
+    auto revidx = arr_indices | std::ranges::views::reverse | util::to<ivector>();
 
     std::vector<std::ptrdiff_t> expected(arridx);
     std::reverse(expected.begin(), expected.end());
@@ -118,7 +111,7 @@ TEST(util, index_into)
     std::forward_list<int> sub_flist = {8, 4, 4, 1};
 
     auto flist_indices = index_into(sub_flist, sup_flist);
-    ivector idx_flist = assign_from(flist_indices);
+    auto idx_flist = flist_indices | util::to<ivector>();
     EXPECT_EQ((ivector{2, 4, 4, 7}), idx_flist);
 
     const char* hello_world = "hello world";
@@ -126,6 +119,6 @@ TEST(util, index_into)
     auto sup_cstr = make_range(hello_world, testing::null_terminated);
     auto sub_cstr = make_range(lol, testing::null_terminated);
     auto cstr_indices = index_into(sub_cstr, sup_cstr);
-    ivector idx_cstr = assign_from(cstr_indices);
+    auto idx_cstr = cstr_indices | util::to<ivector>();
     EXPECT_EQ((ivector{2, 4, 9}), idx_cstr);
 }

@@ -88,6 +88,7 @@ set(unit_sources
     test_mask_stream.cpp
     test_math.cpp
     test_matrix.cpp
+    test_maputil.cpp
     test_mcable_map.cpp
     test_cable_cell_group.cpp
     test_mech_temp_diam.cpp

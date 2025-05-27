@@ -42,9 +42,7 @@ forest::forest(const std::vector<size_type>& p, const std::vector<size_type>& ce
 
         // find the parent index of branches
         // we need to convert to cell_lid_type, required to construct a tree.
-        std::vector<cell_lid_type> branch_p =
-            util::assign_from(
-                tree_reduce(fine_tree.parents(), branch_starts));
+        auto branch_p = tree_reduce(fine_tree.parents(), branch_starts) | util::to<std::vector<cell_lid_type>>;
         // build tree structure that describes the branch topology
         auto cell_tree = tree(branch_p);
 
