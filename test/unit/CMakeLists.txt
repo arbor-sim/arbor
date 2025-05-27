@@ -74,7 +74,6 @@ set(unit_sources
     test_event_generators.cpp
     test_event_stream.cpp
     test_expected.cpp
-    test_filter.cpp
     test_forest.cpp
     test_fvm_layout.cpp
     test_fvm_lowered.cpp
@@ -135,7 +134,6 @@ set(unit_sources
     test_threading_exceptions.cpp
     test_timestep_range.cpp
     test_tree.cpp
-    # test_transform.cpp
     test_uninitialized.cpp
     test_unique.cpp
     test_unique_any.cpp

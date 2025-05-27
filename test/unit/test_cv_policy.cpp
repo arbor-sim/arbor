@@ -7,7 +7,6 @@
 #include <arbor/morph/mprovider.hpp>
 #include <arbor/morph/region.hpp>
 
-#include "util/filter.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
 
@@ -66,7 +65,6 @@ TEST(cv_policy, explicit_policy) {
     pol = cv_policy_explicit(lset, b12);
     for (auto& m: {m_reg_b6, m_mlt_b6}) {
         cable_cell cell(m, {});
-
         locset result = pol.cv_boundary_points(cell);
         locset expected = as_locset(L{1, 0}, L{1, 0.5}, L{1, 1}, L{2, 0}, L{2, 1});
         EXPECT_TRUE(locset_eq(cell.provider(), expected, result));

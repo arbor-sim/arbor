@@ -29,7 +29,6 @@
 #endif
 #include "fvm_lowered_cell_impl.hpp"
 #include "memory/gpu_wrappers.hpp"
-#include "util/filter.hpp"
 #include "util/rangeutil.hpp"
 
 #include "common.hpp"
@@ -384,7 +383,7 @@ void run_expsyn_g_cell_probe_test(context ctx) {
     // Set up one stream per cell.
     std::vector events(gids.size(), pse_vector{});
     for (auto gid: gids) {
-        for (auto target_id: util::keys(expsyn_target_loc_map)) {
+        for (auto target_id: std::ranges::views::keys(expsyn_target_loc_map)) {
             events[gid].emplace_back(target_id, 0., weight(gid, target_id));
         }
     }
@@ -819,10 +818,10 @@ void run_axial_and_ion_current_sampled_probe_test(context ctx) {
     // Place axial current probes at CV boundaries and make cell-wide probes for
     // total ionic membrane current and stimulus currents.
 
-    mlocation_list cv_boundaries;
-    util::assign(cv_boundaries,
-        util::filter(thingify(policy.cv_boundary_points(cell), cell.provider()),
-            [](mlocation loc) { return loc.pos!=0 && loc.pos!=1; }));
+    auto cv_boundaries = thingify(policy.cv_boundary_points(cell), cell.provider())
+                       | std::ranges::views::filter([](const auto& loc) { return loc.pos!=0 && loc.pos!=1; })
+                       | util::to<mlocation_list>();
+
 
     ASSERT_EQ(n_cv-1, cv_boundaries.size());
     const unsigned n_axial_probe = n_cv-1;

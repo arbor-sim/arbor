@@ -24,9 +24,7 @@ using cell_group_factory = std::function<
 ARB_ARBOR_API cell_group_factory cell_kind_implementation(
         cell_kind, backend_kind, const execution_context&, std::uint64_t = 0);
 
-inline bool cell_kind_supported(
-        cell_kind c, backend_kind b, const execution_context& ctx)
-{
+inline bool cell_kind_supported(cell_kind c, backend_kind b, const execution_context& ctx) {
     return static_cast<bool>(cell_kind_implementation(c, b, ctx));
 }
 

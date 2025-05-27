@@ -6,12 +6,9 @@
 // Classes here are exposed in a header only so that
 // implementation details may be tested in the unit tests.
 // It should otherwise only be used in `fvm_lowered_cell.cpp`.
-
-#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
-#include <iostream>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -30,7 +27,6 @@
 #include "util/meta.hpp"
 #include "util/rangeutil.hpp"
 #include "util/strprintf.hpp"
-#include "util/transform.hpp"
 
 namespace arb {
 template <class Backend>
@@ -579,8 +575,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
 
     // Create lookup structure for target ids.
     util::make_partition(target_handle_divisions_,
-        util::transform_view(gids,
-                             [&](cell_gid_type i) { return fvm_info.num_targets[i]; }));
+                         std::ranges::transform_view(gids, [&](cell_gid_type i) { return fvm_info.num_targets[i]; }));
 
     
     reset();
@@ -773,9 +768,10 @@ void resolve_probe(const cable_probe_total_current_cell& p, probe_resolution_dat
     auto cell_cv_ival = R.D.geometry.cell_cv_interval(R.cell_idx);
     auto cv0 = cell_cv_ival.first;
 
-    util::assign(r.cv_parent, util::transform_view(util::subrange_view(R.D.geometry.cv_parent, cell_cv_ival),
-        [cv0](auto cv) { return cv+1==0? cv: cv-cv0; }));
-    util::assign(r.cv_parent_cond, util::subrange_view(R.D.face_conductance, cell_cv_ival));
+    r.cv_parent = util::subrange_view(R.D.geometry.cv_parent, cell_cv_ival)
+                | std::ranges::views::transform([cv0](auto cv) { return cv+1==0? cv: cv-cv0; })
+                | util::to<std::vector<msize_t>>();
+    r.cv_parent_cond = util::subrange_view(R.D.face_conductance, cell_cv_ival) | util::to<std::vector<double>>();
 
     const auto& stim_cvs = R.M.stimuli.cv_unique;
     const arb_value_type* stim_src = R.state->stim_data.accu_stim_.data();

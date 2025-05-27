@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <mutex>
 #include <ostream>
+#include <ranges>
 
 #include <arbor/context.hpp>
 #include <arbor/profile/profiler.hpp>
@@ -275,11 +276,10 @@ profile profiler::results() const {
 profile_node make_profile_tree(const profile& p) {
     using std::vector;
     using util::assign_from;
-    using util::transform_view;
 
     // Take the name of each region, and split into a sequence of sub-region-strings.
     // e.g. "advance_integrate_state" -> "advance", "integrate", "state"
-    vector<vector<std::string>> names = assign_from(transform_view(p.names, split));
+    vector<vector<std::string>> names = assign_from(std::ranges::transform_view(p.names, split));
 
     // Build a tree description of the regions and sub-regions in the profile.
     profile_node tree("root");

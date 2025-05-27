@@ -140,9 +140,7 @@ struct cvp_cv_policy_explicit {
     locset cv_boundary_points(const cable_cell& cell) const {
         return ls::support(
             util::foldl(
-                [this](locset l, const auto& comp) {
-                    return sum(std::move(l), ls::restrict_to(locs_, comp));
-                },
+                [this](locset l, const auto& comp) { return sum(std::move(l), ls::restrict_to(locs_, comp)); },
                 ls::boundary(domain_),
                 components(cell.morphology(), thingify(domain_, cell.provider()))));
     }

@@ -8,10 +8,8 @@
 #include <arbor/morph/region.hpp>
 
 #include "util/ordered_forest.hpp"
-#include "util/maputil.hpp"
 #include "util/meta.hpp"
 #include "util/rangeutil.hpp"
-#include "util/transform.hpp"
 
 namespace arb {
 
@@ -180,10 +178,9 @@ label_dict stitched_morphology::labels(const std::string& prefix) const {
         auto i1 = i0;
         while (i1 != end && i1->first==i0->first) ++i1;
 
-        region r  = util::foldl(
-            [&](region r, const auto& elem) { return join(std::move(r), reg::segment(elem.second)); },
-            reg::nil(),
-            util::make_range(i0, i1));
+        region r = util::foldl([&](region r, const auto& elem) { return join(std::move(r), reg::segment(elem.second)); },
+                               reg::nil(),
+                               util::make_range(i0, i1));
 
         dict.set(prefix+i0->first, std::move(r));
         i0 = i1;
@@ -202,8 +199,6 @@ region stitched_morphology::stitch(const std::string& id) const {
 }
 
 std::vector<msize_t> stitched_morphology::segments(const std::string& id) const {
-    // auto seg_ids = util::transform_view(util::make_range(impl_->id_to_segs.equal_range(id)), );
-    // return std::vector<msize_t>(begin(seg_ids), end(seg_ids));
     const auto& [beg, end] = impl_->id_to_segs.equal_range(id);
     if (beg == end) throw no_such_stitch(id);
     const auto segs = std::ranges::subrange(beg, end)

@@ -1,6 +1,10 @@
+#include <fstream>
+#include <ranges>
+
+
 #include "backends/gpu/forest.hpp"
 #include "util/span.hpp"
-#include <fstream>
+#include "util/rangeutil.hpp"
 
 namespace arb {
 namespace gpu {
@@ -15,12 +19,9 @@ forest::forest(const std::vector<size_type>& p, const std::vector<size_type>& ce
     for (auto c: make_span(0u, num_cells)) {
         // build the parent index for cell c
         auto cell_start = cell_cv_divs[c];
-        std::vector<unsigned> cell_p =
-            util::assign_from(
-                util::transform_view(
-                    util::subrange_view(p, cell_cv_divs[c], cell_cv_divs[c+1]),
-                    [cell_start](size_type i) -> unsigned {return i == size_type(-1) ? i : i - cell_start;}));
-
+        auto cell_p = util::subrange_view(p, cell_cv_divs[c], cell_cv_divs[c+1]),
+                    | std::ranges::views::transform([cell_start](size_type i) -> unsigned {return i == size_type(-1) ? i : i - cell_start;})
+                    | util::to<std::vector<unsigned>>();
         auto fine_tree = tree(cell_p);
 
         // select a root node and merge branches with discontinuous compartment

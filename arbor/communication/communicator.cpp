@@ -60,10 +60,8 @@ void reset_index(const domain_decomposition& dom_dec,
                  util::partition_view_type<std::vector<cell_size_type>>& part) {
     divs.clear();
     part = util::make_partition(divs,
-                                util::transform_view(dom_dec.groups(),
-                                                     [](const group_description& g){
-                                                         return g.gids.size();
-                                                     }));
+                                std::ranges::transform_view(dom_dec.groups(),
+                                                            [](const group_description& g) { return g.gids.size(); }));
 }
 
 inline
@@ -368,7 +366,8 @@ void communicator::make_event_queues(communicator::spikes& spikes,
                                   util::subrange_view(spikes.from_local.values(), sp[dom], sp[dom+1]),
                                   queues);
     }
-    num_local_events_ = util::sum_by(queues, [](const auto& q) {return q.size();}, num_local_events_);
+    num_local_events_ = util::sum(queues | std::ranges::views::transform([](const auto& q) {return q.size();}),
+                                  num_local_events_);
     // Now that all local spikes have been processed; consume the remote events coming in.
     // - turn all gids into externals
     std::for_each(spikes.from_remote.begin(), spikes.from_remote.end(),

@@ -1,5 +1,4 @@
 #pragma once
-
 // Create/manipulate 1-d piecewise defined objects.
 //
 // A `pw_element<A>` describes a _value_ of type `A` and an _extent_ of
@@ -97,11 +96,12 @@
 #include <iterator>
 #include <type_traits>
 #include <vector>
+#include <ranges>
 
 #include <arbor/assert.hpp>
 
 #include "util/iterutil.hpp"
-#include "util/transform.hpp"
+#include "util/rangeutil.hpp"
 #include "util/partition.hpp"
 
 namespace arb {
@@ -217,24 +217,31 @@ std::pair<std::ptrdiff_t, std::ptrdiff_t> equal_range_indices(const std::vector<
 template <typename X>
 struct pw_elements {
     using size_type = pw_size_type;
-    using difference_type = std::make_signed_t<pw_size_type>;
+    using difference_type = std::ptrdiff_t;
     static constexpr size_type npos = pw_npos;
 
     using value_type = pw_element<X>;
     using codomain = X;
 
     struct iterator: iterator_adaptor<iterator, counter<pw_size_type>> {
-        using typename iterator_adaptor<iterator, counter<pw_size_type>>::difference_type;
         iterator(pw_elements<X>& pw, pw_size_type index): pw_(&pw), c_(index) {}
         iterator(): pw_(nullptr) {}
+
+        iterator(iterator&&) = default;
+        iterator(const iterator&) = default;
+
+        iterator& operator=(iterator&&) = default;
+        iterator& operator=(const iterator&) = default;
 
         using value_type = pw_element<X>;
         using pointer = pointer_proxy<pw_element_proxy<X>>;
         using reference = pw_element_proxy<X>;
+        using iterator_category = std::forward_iterator_tag;
+        using difference_type = std::ptrdiff_t;
 
         reference operator[](difference_type j) { return reference{*pw_, j+*c_}; }
         reference operator*() { return reference{*pw_, *c_}; }
-        value_type operator*() const { return (*pw_)[*c_]; }
+        reference operator*() const { return reference{*pw_, *c_}; }
         pointer operator->() { return pointer{*pw_, *c_}; }
 
         // (required for iterator_adaptor)
@@ -247,17 +254,25 @@ struct pw_elements {
     };
 
     struct const_iterator: iterator_adaptor<const_iterator, counter<pw_size_type>> {
-        using typename iterator_adaptor<const_iterator, counter<pw_size_type>>::difference_type;
         const_iterator(const pw_elements<X>& pw, pw_size_type index): pw_(&pw), c_(index) {}
         const_iterator(): pw_(nullptr) {}
 
         using value_type = pw_element<X>;
-        using pointer = const pointer_proxy<pw_element_proxy<const X>>;
-        using reference = pw_element_proxy<const X>;
+        using pointer = const pointer_proxy<pw_element_proxy<X>>;
+        using reference = pw_element_proxy<X>;
+        using iterator_category = std::forward_iterator_tag;
+        using difference_type = std::ptrdiff_t;
 
-        reference operator[](difference_type j) const { return {*pw_, j + *c_}; }
-        reference operator*() const { return {*pw_, *c_}; }
-        pointer operator->() const { return pointer{reference{*pw_, *c_}}; }
+        const_iterator(const_iterator&&) = default;
+        const_iterator(const const_iterator&) = default;
+
+        const_iterator& operator=(const_iterator&&) = default;
+        const_iterator& operator=(const const_iterator&) = default;
+
+
+        reference operator[](difference_type j) const { return {const_cast<pw_elements&>(*pw_), j + *c_}; }
+        reference operator*() const { return {const_cast<pw_elements&>(*pw_), *c_}; }
+        pointer operator->() const { return pointer{reference{const_cast<pw_elements&>(*pw_), *c_}}; }
 
         // (required for iterator_adaptor)
         counter<pw_size_type>& inner() { return c_; }
@@ -465,19 +480,26 @@ template <>
 struct pw_elements<void> {
     using size_type = pw_size_type;
     static constexpr size_type npos = pw_npos;
-    using difference_type = std::make_signed_t<pw_size_type>;
+    using difference_type = std::ptrdiff_t;
 
     using value_type = pw_element<void>;
     using codomain = void;
 
     struct const_iterator: iterator_adaptor<const_iterator, counter<pw_size_type>> {
-        using typename iterator_adaptor<const_iterator, counter<pw_size_type>>::difference_type;
         const_iterator(const pw_elements<void>& pw, pw_size_type index): pw_(&pw), c_(index) {}
         const_iterator(): pw_(nullptr) {}
 
+        using iterator_category = std::forward_iterator_tag;
         using value_type = pw_element<void>;
         using pointer = const pointer_proxy<pw_element<void>>;
         using reference = pw_element<void>;
+        using difference_type = std::ptrdiff_t;
+
+        const_iterator(const_iterator&&) = default;
+        const_iterator(const const_iterator&) = default;
+
+        const_iterator& operator=(const_iterator&&) = default;
+        const_iterator& operator=(const const_iterator&) = default;
 
         reference operator[](difference_type j) const { return (*pw_)[j+*c_]; }
         reference operator*() const { return (*pw_)[*c_]; }
@@ -573,13 +595,9 @@ struct pw_elements<void> {
 
     // mutating operations:
 
-    void reserve(size_type n) {
-        vertex_.reserve(n+1);
-    }
+    void reserve(size_type n) { vertex_.reserve(n+1); }
 
-    void clear() {
-        vertex_.clear();
-    }
+    void clear() { vertex_.clear(); }
 
     void push_back(const pw_element<void>& elem) {
         double left = elem.lower_bound();
@@ -588,13 +606,8 @@ struct pw_elements<void> {
     }
 
     void push_back(double left, double right) {
-        if (!empty() && left!=vertex_.back()) {
-            throw std::runtime_error("noncontiguous element");
-        }
-
-        if (right<left) {
-            throw std::runtime_error("inverted element");
-        }
+        if (!empty() && left != vertex_.back()) throw std::runtime_error("noncontiguous element");
+        if (right < left) throw std::runtime_error("inverted element");
 
         if (vertex_.empty()) vertex_.push_back(left);
         vertex_.push_back(right);
@@ -661,8 +674,10 @@ auto pw_map(const pw_elements<X>& pw, Fn&& fn) {
             return pw;
         }
         else {
-            auto mapped = util::transform_view(pw, [&fn](auto&&) { return fn(); });
-            return pw_elements<Out>(pw.vertices(), std::vector<Out>(mapped.begin(), mapped.end()));
+            auto mapped = pw
+                        | std::ranges::views::transform([&fn](auto&&) { return fn(); })
+                        | util::to<std::vector<Out>>();
+            return pw_elements<Out>(pw.vertices(), std::move(mapped));
         }
     }
     else {
@@ -673,8 +688,10 @@ auto pw_map(const pw_elements<X>& pw, Fn&& fn) {
             return pw_elements<void>(pw);
         }
         else {
-            auto mapped = util::transform_view(pw, [&fn](auto&& elem) { return fn(elem.value); });
-            return pw_elements<Out>(pw.vertices(), std::vector<Out>(mapped.begin(), mapped.end()));
+            auto mapped = pw
+                        | std::ranges::views::transform([&fn](auto&& elem) { return fn(elem.value); })
+                        | util::to<std::vector<Out>>();
+            return pw_elements<Out>(pw.vertices(), std::move(mapped));
         }
     }
 }

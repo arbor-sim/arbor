@@ -708,12 +708,10 @@ TEST(fvm_lowered, gj_example_0) {
     };
     std::ranges::sort(expected_gj_values);
 
-    std::vector<int> expected_gj_cv, expected_gj_peer_cv;
-    std::vector<double> expected_gj_weight, expected_gj_g;
-    util::assign(expected_gj_cv,      util::transform_view(expected_gj_values, [](const auto& x){return std::get<0>(x);}));
-    util::assign(expected_gj_peer_cv, util::transform_view(expected_gj_values, [](const auto& x){return std::get<1>(x);}));
-    util::assign(expected_gj_weight,  util::transform_view(expected_gj_values, [](const auto& x){return std::get<2>(x);}));
-    util::assign(expected_gj_g,       util::transform_view(expected_gj_values, [](const auto& x){return std::get<3>(x);}));
+    auto expected_gj_cv      = expected_gj_values | std::ranges::views::transform([](const auto& x){return std::get<0>(x);}) | util::to<std::vector<int>>();
+    auto expected_gj_peer_cv = expected_gj_values | std::ranges::views::transform([](const auto& x){return std::get<1>(x);}) | util::to<std::vector<int>>();
+    auto expected_gj_weight  = expected_gj_values | std::ranges::views::transform([](const auto& x){return std::get<2>(x);}) | util::to<std::vector<double>>();
+    auto expected_gj_g       = expected_gj_values | std::ranges::views::transform([](const auto& x){return std::get<3>(x);}) | util::to<std::vector<double>>();
 
     EXPECT_EQ(2u, gj_data.cv.size());
     EXPECT_EQ(expected_gj_cv,      gj_data.cv);
@@ -887,12 +885,10 @@ TEST(fvm_lowered, gj_example_1) {
     };
     std::ranges::sort(expected_gj_values);
 
-    std::vector<int> expected_gj_cv, expected_gj_peer_cv;
-    std::vector<double> expected_gj_weight, expected_gj_g;
-    util::assign(expected_gj_cv,      util::transform_view(expected_gj_values, [](const auto& x){return std::get<0>(x);}));
-    util::assign(expected_gj_peer_cv, util::transform_view(expected_gj_values, [](const auto& x){return std::get<1>(x);}));
-    util::assign(expected_gj_weight,  util::transform_view(expected_gj_values, [](const auto& x){return std::get<2>(x);}));
-    util::assign(expected_gj_g,       util::transform_view(expected_gj_values, [](const auto& x){return std::get<3>(x);}));
+    auto expected_gj_cv      = expected_gj_values | std::ranges::views::transform([](const auto& x){return std::get<0>(x);}) | util::to<std::vector<int>>();
+    auto expected_gj_peer_cv = expected_gj_values | std::ranges::views::transform([](const auto& x){return std::get<1>(x);}) | util::to<std::vector<int>>();
+    auto expected_gj_weight  = expected_gj_values | std::ranges::views::transform([](const auto& x){return std::get<2>(x);}) | util::to<std::vector<double>>();
+    auto expected_gj_g       = expected_gj_values | std::ranges::views::transform([](const auto& x){return std::get<3>(x);}) | util::to<std::vector<double>>();
 
     EXPECT_EQ(10u, gj_data.cv.size());
     EXPECT_EQ(expected_gj_cv,      gj_data.cv);
@@ -1099,13 +1095,10 @@ TEST(fvm_layout, gj_example_2) {
         {cvs_5[1], cvs_2[1], 0.02, 1.6}
     };
     std::ranges::sort(expected_gj0_values);
-
-    std::vector<int> expected_gj0_cv, expected_gj0_peer_cv;
-    std::vector<double> expected_gj0_weight, expected_gj0_g;
-    util::assign(expected_gj0_cv,      util::transform_view(expected_gj0_values, [](const auto& x){return std::get<0>(x);}));
-    util::assign(expected_gj0_peer_cv, util::transform_view(expected_gj0_values, [](const auto& x){return std::get<1>(x);}));
-    util::assign(expected_gj0_weight,  util::transform_view(expected_gj0_values, [](const auto& x){return std::get<2>(x);}));
-    util::assign(expected_gj0_g,       util::transform_view(expected_gj0_values, [](const auto& x){return std::get<3>(x);}));
+    auto expected_gj0_cv      = std::ranges::transform_view(expected_gj0_values, [](const auto& x){ return std::get<0>(x);}) | util::to<std::vector<int>>();
+    auto expected_gj0_peer_cv = std::ranges::transform_view(expected_gj0_values, [](const auto& x){ return std::get<1>(x);}) | util::to<std::vector<int>>();
+    auto expected_gj0_weight  = std::ranges::transform_view(expected_gj0_values, [](const auto& x){ return std::get<2>(x);}) | util::to<std::vector<double>>();
+    auto expected_gj0_g       = std::ranges::transform_view(expected_gj0_values, [](const auto& x){ return std::get<3>(x);}) | util::to<std::vector<double>>();
 
     EXPECT_EQ(8u, gj0_data.cv.size());
     EXPECT_EQ(expected_gj0_cv,      gj0_data.cv);
@@ -1124,14 +1117,11 @@ TEST(fvm_layout, gj_example_2) {
         {cvs_5[0], cvs_3[0], 0.01, 1.0, 0.}
     };
     std::ranges::sort(expected_gj1_values);
-
-    std::vector<int> expected_gj1_cv, expected_gj1_peer_cv;
-    std::vector<double> expected_gj1_weight, expected_gj1_g, expected_gj1_e;
-    util::assign(expected_gj1_cv,      util::transform_view(expected_gj1_values, [](const auto& x){return std::get<0>(x);}));
-    util::assign(expected_gj1_peer_cv, util::transform_view(expected_gj1_values, [](const auto& x){return std::get<1>(x);}));
-    util::assign(expected_gj1_weight,  util::transform_view(expected_gj1_values, [](const auto& x){return std::get<2>(x);}));
-    util::assign(expected_gj1_g,       util::transform_view(expected_gj1_values, [](const auto& x){return std::get<3>(x);}));
-    util::assign(expected_gj1_e,       util::transform_view(expected_gj1_values, [](const auto& x){return std::get<4>(x);}));
+    auto expected_gj1_cv      = std::ranges::transform_view(expected_gj1_values, [](const auto& x){ return std::get<0>(x);}) | util::to<std::vector<int>>();
+    auto expected_gj1_peer_cv = std::ranges::transform_view(expected_gj1_values, [](const auto& x){ return std::get<1>(x);}) | util::to<std::vector<int>>();
+    auto expected_gj1_weight  = std::ranges::transform_view(expected_gj1_values, [](const auto& x){ return std::get<2>(x);}) | util::to<std::vector<double>>();
+    auto expected_gj1_g       = std::ranges::transform_view(expected_gj1_values, [](const auto& x){ return std::get<3>(x);}) | util::to<std::vector<double>>();
+    auto expected_gj1_e       = std::ranges::transform_view(expected_gj1_values, [](const auto& x){ return std::get<4>(x);}) | util::to<std::vector<double>>();
 
     EXPECT_EQ(8u, gj1_data.cv.size());
     EXPECT_EQ(expected_gj1_cv,      gj1_data.cv);

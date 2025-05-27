@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <vector>
+#include <ranges>
 #include <any>
 
 #include <arbor/cable_cell.hpp>
@@ -14,7 +15,6 @@
 #include <arbor/spike_source_cell.hpp>
 
 #include "util/rangeutil.hpp"
-#include "util/transform.hpp"
 
 using namespace arb;
 namespace U = arb::units;
@@ -87,8 +87,10 @@ TEST(simulation, spike_global_callback) {
 
     std::vector<spike> expected_spikes;
     for (unsigned i = 0; i<n; ++i) {
-        util::append(expected_spikes, util::transform_view(util::make_range(spike_times.at(i).events(0, t_max)),
-            [i](double time) { return spike({i, 0}, time); }));
+        const auto& [beg, end] = spike_times.at(i).events(0, t_max);
+        util::append(expected_spikes,
+                     std::ranges::transform_view(std::ranges::subrange(beg, end),
+                                                 [i](double time) { return spike({i, 0}, time); }));
         spike_times.at(i).reset();
     }
 

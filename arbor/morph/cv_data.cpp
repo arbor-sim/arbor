@@ -102,7 +102,7 @@ cell_cv_data_impl::cell_cv_data_impl(const cable_cell& cell, const locset& lset)
 
     // Construct CV children mapping by sorting CV indices by parent.
     assign(cv_children, util::make_span(1, n_cv));
-    util::stable_sort_by(cv_children, [this](auto cv) { return cv_parent[cv]; });
+    std::ranges::stable_sort(cv_children, std::ranges::less{}, [this](auto cv) { return cv_parent[cv]; });
 
     cv_children_divs.reserve(n_cv+1);
     cv_children_divs.push_back(0);

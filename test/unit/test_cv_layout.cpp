@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <utility>
+#include <ranges>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/math.hpp>
@@ -156,8 +157,8 @@ TEST(cv_layout, zero_size_cv) {
     fvm_cv_discretization D = fvm_cv_discretize(cell, params);
 
     unsigned cv_a = 0, cv_x = 1;
-    ASSERT_TRUE(util::equal(mcable_list{mcable{0, 0, 1}}, D.geometry.cables(cv_a)));
-    ASSERT_TRUE(util::equal(mcable_list{mcable{0, 1, 1}, mcable{1, 0, 0}, mcable{2, 0, 0}},
+    ASSERT_TRUE(std::ranges::equal(mcable_list{mcable{0, 0, 1}}, D.geometry.cables(cv_a)));
+    ASSERT_TRUE(std::ranges::equal(mcable_list{mcable{0, 1, 1}, mcable{1, 0, 0}, mcable{2, 0, 0}},
                     D.geometry.cables(cv_x)));
 
     // Find the two CV children of CV x.
@@ -176,8 +177,8 @@ TEST(cv_layout, zero_size_cv) {
         std::swap(cv_b, cv_c);
     }
 
-    ASSERT_TRUE(util::equal(mcable_list{mcable{1, 0, 1}}, D.geometry.cables(cv_b)));
-    ASSERT_TRUE(util::equal(mcable_list{mcable{2, 0, 1}}, D.geometry.cables(cv_c)));
+    ASSERT_TRUE(std::ranges::equal(mcable_list{mcable{1, 0, 1}}, D.geometry.cables(cv_b)));
+    ASSERT_TRUE(std::ranges::equal(mcable_list{mcable{2, 0, 1}}, D.geometry.cables(cv_c)));
 
     // All non-conductance values for zero-size cv_x should be zero, or value of parent.
     EXPECT_EQ(0., D.cv_area[cv_x]);

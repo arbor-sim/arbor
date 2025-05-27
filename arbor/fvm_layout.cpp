@@ -735,7 +735,7 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
             append(L.local_weight, R.local_weight);
             append_offset(L.target, target_offset, R.target);
 
-            arb_assert(util::equal(L.param_values, R.param_values,
+            arb_assert(std::ranges::equal(L.param_values, R.param_values,
                 [](auto& a, auto& b) { return a.first==b.first; }));
             arb_assert(L.param_values.size()==R.param_values.size());
 
