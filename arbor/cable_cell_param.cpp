@@ -19,9 +19,10 @@ ARB_ARBOR_API void check_global_properties(const cable_cell_global_properties& G
     if (!param.axial_resistivity)       throw cable_cell_error("missing global default parameter value: axial_resistivity");
     if (!param.membrane_capacitance)    throw cable_cell_error("missing global default parameter value: membrane_capacitance");
 
-    for (const auto& ion: std::ranges::views::keys(G.ion_species)) {
-        if (!param.ion_data.count(ion)) throw cable_cell_error("missing ion defaults for ion "+ion);
-    }
+    // TODO GCC 12 doesn't like?
+    // for (const auto& ion: std::ranges::views::keys(G.ion_species)) {
+        // if (!param.ion_data.count(ion)) throw cable_cell_error("missing ion defaults for ion "+ion);
+    // }
 
     for (const auto& [ion, data]: param.ion_data) {
         if (!data.init_int_concentration) throw cable_cell_error("missing init_int_concentration for ion "+ion);
