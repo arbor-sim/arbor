@@ -1,4 +1,5 @@
 #include <vector>
+#include <ranges>
 
 #include <arbor/common_types.hpp>
 #include <arbor/morph/cv_data.hpp>
@@ -34,7 +35,7 @@ cell_cv_data_impl::cell_cv_data_impl(const cable_cell& cell, const locset& lset)
              && !(x.pos==1 && m.branch_children(x.branch).empty()); // terminal?
     };
     locs.erase(std::partition(locs.begin(), locs.end(), neither_root_nor_terminal), locs.end());
-    util::sort(locs);
+    std::ranges::sort(locs);
     util::unique_in_place(locs);
 
     // Collect cables constituting each CV, maintaining a stack of CV
@@ -87,7 +88,7 @@ cell_cv_data_impl::cell_cv_data_impl(const cable_cell& cell, const locset& lset)
             }
         }
 
-        util::sort(cables);
+        std::ranges::sort(cables);
         util::append(cv_cables, std::move(cables));
         cv_cables_divs.push_back(cv_cables.size());
         ++cv_index;
@@ -96,12 +97,12 @@ cell_cv_data_impl::cell_cv_data_impl(const cable_cell& cell, const locset& lset)
     auto n_cv = cv_index;
     arb_assert(n_cv>0);
     arb_assert(cv_parent.front()==-1);
-    arb_assert(util::all_of(util::subrange_view(cv_parent, 1, n_cv),
-                            [](auto v) { return v!=no_parent; }));
+    arb_assert(std::ranges::all_of(std::ranges::subrange(cv_parent.begin() + 1, cv_parent.begin() + n_cv),
+                                   [](auto v) { return v!=no_parent; }));
 
     // Construct CV children mapping by sorting CV indices by parent.
     assign(cv_children, util::make_span(1, n_cv));
-    util::stable_sort_by(cv_children, [this](auto cv) { return cv_parent[cv]; });
+    std::ranges::stable_sort(cv_children, std::ranges::less{}, [this](auto cv) { return cv_parent[cv]; });
 
     cv_children_divs.reserve(n_cv+1);
     cv_children_divs.push_back(0);

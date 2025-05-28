@@ -72,8 +72,8 @@ struct ARB_ARBOR_API cv_geometry: public cell_cv_data_impl {
     cv_geometry() = default;
 
     auto cables(size_type cv_index) const {
-        auto partn = util::partition_view(cv_cables_divs);
-        return util::subrange_view(cv_cables, partn[cv_index]);
+        const auto& [beg, end] = util::partition_view(cv_cables_divs)[cv_index];
+        return std::ranges::subrange(cv_cables.begin() + beg, cv_cables.begin() + end);
     }
 
     auto children(size_type cv_index) const {

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stack>
+#include <ranges>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -13,7 +14,6 @@
 #include "util/mergeview.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
-#include "util/transform.hpp"
 
 using arb::util::make_span;
 
@@ -232,7 +232,7 @@ ARB_ARBOR_API mlocation_list minset(const morphology& m, const mlocation_list& i
         }
     }
 
-    util::sort(L);
+    std::ranges::sort(L);
     return L;
 }
 
@@ -242,7 +242,7 @@ ARB_ARBOR_API mlocation_list maxset(const morphology& m, const mlocation_list& i
     // Sort the input in reverse order, so that more distal locations
     // come first.
     mlocation_list in = in_;
-    util::sort(in, [](const auto& l, const auto& r) {return r<l;});
+    std::ranges::sort(in, [](const auto& l, const auto& r) {return r<l;});
 
     // List of branches that have had a more distal location found.
     std::unordered_set<msize_t> br;

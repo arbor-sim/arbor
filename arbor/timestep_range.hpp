@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <iosfwd>
-#include <limits>
 
 #include <arbor/assert.hpp>
 #include <util/iterutil.hpp>

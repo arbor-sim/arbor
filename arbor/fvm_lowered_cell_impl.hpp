@@ -6,8 +6,6 @@
 // Classes here are exposed in a header only so that
 // implementation details may be tested in the unit tests.
 // It should otherwise only be used in `fvm_lowered_cell.cpp`.
-
-#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -29,7 +27,6 @@
 #include "util/meta.hpp"
 #include "util/rangeutil.hpp"
 #include "util/strprintf.hpp"
-#include "util/transform.hpp"
 
 namespace arb {
 template <class Backend>
@@ -358,10 +355,7 @@ template <typename Backend> fvm_initialization_data
 fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gids,
                                            const recipe& rec) {
     using std::any_cast;
-    using util::count_along;
-    using util::make_span;
     using util::value_by_key;
-    using util::keys;
 
     fvm_initialization_data fvm_info;
 
@@ -436,14 +430,13 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     post_events_ = mech_data.post_events;
     auto max_detector = 0;
     if (post_events_) {
-        auto it = util::max_element_by(fvm_info.num_sources, [](auto elem) {return util::second(elem);});
-        max_detector = it->second;
+        max_detector = std::ranges::max(fvm_info.num_sources | std::ranges::views::transform([](auto elem) {return util::second(elem);}));
     }
     std::vector<arb_index_type> src_to_spike, cv_to_cell;
 
     if (post_events_) {
-        for (auto cell_idx: make_span(ncell)) {
-            for (auto lid: make_span(fvm_info.num_sources[gids[cell_idx]])) {
+        for (auto cell_idx: util::make_span(ncell)) {
+            for (auto lid: util::make_span(fvm_info.num_sources[gids[cell_idx]])) {
                 src_to_spike.push_back(cell_idx * max_detector + lid);
             }
         }
@@ -458,11 +451,12 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                    [&gids](auto i){return gids[i]; });
 
     // Create shared cell state.
-    // Shared state vectors should accommodate each mechanism's data alignment requests.
 
-    unsigned data_alignment = util::max_value(
-        util::transform_view(keys(mech_data.mechanisms),
-            [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
+    // Shared state vectors should accommodate each mechanism's data alignment requests.
+    auto alignments = std::ranges::views::keys(mech_data.mechanisms)
+                    | std::ranges::views::transform([&](const std::string& name) { return mech_instance(name).mech->data_alignment(); });
+    unsigned data_alignment = 0;
+    if (auto it = std::ranges::max_element(alignments); it != alignments.end()) data_alignment = *it;
 
     auto d_info = get_detector_info(max_detector, ncell, cells, D, context_);
     state_ = std::make_unique<shared_state>(context_.thread_pool,
@@ -503,7 +497,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
 
             layout.gid.resize(config.cv.size());
             layout.idx.resize(layout.gid.size());
-            for (auto i: count_along(config.cv)) {
+            for (auto i: util::count_along(config.cv)) {
                 auto cv = layout.cv[i];
                 layout.weight[i] = 1000/D.cv_area[cv];
                 layout.gid[i] = cv_to_gid[cv];
@@ -517,7 +511,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                     target_handles_[config.target[i]] = handle;
                 }
                 else {
-                    for (auto j: make_span(multiplicity_part[i])) {
+                    for (auto j: util::make_span(multiplicity_part[i])) {
                         target_handles_[config.target[j]] = handle;
                     }
                 }
@@ -528,7 +522,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
             // Junction mechanism contributions are in [nA] (µS * mV); CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
 
-            for (auto i: count_along(layout.cv)) {
+            for (auto i: util::count_along(layout.cv)) {
                 auto cv = layout.cv[i];
                 layout.weight[i] = config.local_weight[i] * 1000/D.cv_area[cv];
             }
@@ -539,7 +533,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
 
             layout.gid.resize(layout.cv.size());
             layout.idx.resize(layout.gid.size());
-            for (auto i: count_along(layout.cv)) {
+            for (auto i: util::count_along(layout.cv)) {
                 layout.weight[i] = config.norm_area[i];
                 layout.gid[i] = cv_to_gid[i];
                 if (i>0 && (layout.gid[i-1] != layout.gid[i])) idx_offset = i;
@@ -581,8 +575,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
 
     // Create lookup structure for target ids.
     util::make_partition(target_handle_divisions_,
-        util::transform_view(gids,
-                             [&](cell_gid_type i) { return fvm_info.num_targets[i]; }));
+                         std::ranges::transform_view(gids, [&](cell_gid_type i) { return fvm_info.num_targets[i]; }));
 
     
     reset();
@@ -775,9 +768,10 @@ void resolve_probe(const cable_probe_total_current_cell& p, probe_resolution_dat
     auto cell_cv_ival = R.D.geometry.cell_cv_interval(R.cell_idx);
     auto cv0 = cell_cv_ival.first;
 
-    util::assign(r.cv_parent, util::transform_view(util::subrange_view(R.D.geometry.cv_parent, cell_cv_ival),
-        [cv0](auto cv) { return cv+1==0? cv: cv-cv0; }));
-    util::assign(r.cv_parent_cond, util::subrange_view(R.D.face_conductance, cell_cv_ival));
+    r.cv_parent = util::subrange_view(R.D.geometry.cv_parent, cell_cv_ival)
+                | std::ranges::views::transform([cv0](auto cv) { return cv+1==0? cv: cv-cv0; })
+                | util::to<std::vector<msize_t>>();
+    r.cv_parent_cond = util::subrange_view(R.D.face_conductance, cell_cv_ival) | util::to<std::vector<double>>();
 
     const auto& stim_cvs = R.M.stimuli.cv_unique;
     const arb_value_type* stim_src = R.state->stim_data.accu_stim_.data();

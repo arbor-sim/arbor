@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <vector>
+#include <ranges>
 
 #include <arbor/event_generator.hpp>
 #include <arbor/spike_event.hpp>
@@ -29,7 +30,7 @@ static void merge_events(
     pse_vector& pending,
     std::vector<event_generator>& generators,
     pse_vector& new_events) {
-    util::sort(pending);
+    std::ranges::sort(pending);
     merge_cell_events(t_from, t_to,
                       util::range_pointer_view(old_events),
                       util::range_pointer_view(pending),
@@ -62,7 +63,7 @@ TEST(merge_events, no_overlap)
         {0, 3, 3},
     };
     // Check that the inputs satisfy the precondition that lc is sorted.
-    EXPECT_TRUE(std::is_sorted(lc.begin(), lc.end()));
+    EXPECT_TRUE(std::ranges::is_sorted(lc));
 
     // These events should be removed from lf by merge_events, and replaced
     // with events to be delivered after t=10
@@ -88,7 +89,7 @@ TEST(merge_events, no_overlap)
         {0, 12, 1},
     };
 
-    EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
+    EXPECT_TRUE(std::ranges::is_sorted(lf));
     EXPECT_EQ(expected, lf);
 }
 
@@ -104,7 +105,7 @@ TEST(merge_events, overlap)
         {0, 10, 2},
         {0, 11, 3},
     };
-    EXPECT_TRUE(std::is_sorted(lc.begin(), lc.end()));
+    EXPECT_TRUE(std::ranges::is_sorted(lc));
 
     pse_vector lf;
 
@@ -129,7 +130,7 @@ TEST(merge_events, overlap)
         {0, 12, 1}, // from events
     };
 
-    EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
+    EXPECT_TRUE(std::ranges::is_sorted(lf));
     EXPECT_EQ(expected, lf);
 }
 
@@ -148,7 +149,7 @@ TEST(merge_events, X)
         {0, 20, 2},
         {0, 21, 3},
     };
-    EXPECT_TRUE(std::is_sorted(lc.begin(), lc.end()));
+    EXPECT_TRUE(std::ranges::is_sorted(lc));
 
     pse_vector lf;
 
@@ -176,7 +177,7 @@ TEST(merge_events, X)
         {0, 26, 4},  // from events
     };
 
-    EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
+    EXPECT_TRUE(std::ranges::is_sorted(lf));
     EXPECT_EQ(expected, lf);
 }
 
@@ -198,7 +199,7 @@ TEST(merge_events, tourney_seq)
         expected.push_back({0, time, w1});
         expected.push_back({0, time, w2});
     }
-    util::sort(expected);
+    std::ranges::sort(expected);
 
     auto g1 = explicit_generator_from_milliseconds(l0, w1, times);
     g1.set_target_lid(0);
@@ -215,7 +216,7 @@ TEST(merge_events, tourney_seq)
         tree.pop();
     }
 
-    EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
+    EXPECT_TRUE(std::ranges::is_sorted(lf));
     EXPECT_EQ(expected, lf);
 }
 
@@ -254,7 +255,7 @@ TEST(merge_events, tourney_poisson) {
         gen.reset();
     }
     // Manually sort the expected events.
-    util::sort(expected);
+    std::ranges::sort(expected);
 
     // Generate output using tournament tree in lf.
     std::vector<event_span> spans;
@@ -269,6 +270,6 @@ TEST(merge_events, tourney_poisson) {
     }
 
     // Test output of tournament tree.
-    EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
+    EXPECT_TRUE(std::ranges::is_sorted(lf));
     EXPECT_EQ(lf, expected);
 }

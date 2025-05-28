@@ -1,6 +1,7 @@
 #include <cmath>
 #include <string>
 #include <vector>
+#include <ranges>
 
 #include <gtest/gtest.h>
 
@@ -208,12 +209,11 @@ TEST(fvm_lowered, matrix_init)
 
     auto n = J.size();
 
-    EXPECT_FALSE(arb::util::any_of(util::subrange_view(J.u, 1, n), isnan));
-    EXPECT_FALSE(arb::util::any_of(J.d, isnan));
-    EXPECT_FALSE(arb::util::any_of(S->voltage, isnan));
-
-    EXPECT_FALSE(arb::util::any_of(util::subrange_view(J.u, 1, n), ispos));
-    EXPECT_FALSE(arb::util::any_of(J.d, isneg));
+    EXPECT_FALSE(std::ranges::any_of(util::subrange_view(J.u, 1, n), isnan));
+    EXPECT_FALSE(std::ranges::any_of(J.d, isnan));
+    EXPECT_FALSE(std::ranges::any_of(S->voltage, isnan));
+    EXPECT_FALSE(std::ranges::any_of(util::subrange_view(J.u, 1, n), ispos));
+    EXPECT_FALSE(std::ranges::any_of(J.d, isneg));
 }
 
 TEST(fvm_lowered, target_handles) {
@@ -452,7 +452,7 @@ TEST(fvm_lowered, derived_mechs) {
 
             tau_values.push_back(mechanism_global(mech, "tau"));
         }
-        util::sort(tau_values);
+        std::ranges::sort(tau_values);
         EXPECT_EQ(fvec({10., 20.}), tau_values);
     }
     {
@@ -772,11 +772,11 @@ TEST(fvm_lowered, weighted_write_ion) {
     auto& ion = state.ion_data.at("ca"s);
     ion.init_concentration();
 
-    std::vector<unsigned> ion_nodes = util::assign_from(ion.node_index_);
+    auto ion_nodes = ion.node_index_ | util::to<std::vector<unsigned>>();
     std::vector<unsigned> expected_ion_nodes = {2, 3, 4};
     EXPECT_EQ(expected_ion_nodes, ion_nodes);
 
-    std::vector<double> ion_init_iconc = util::assign_from(ion.init_Xi_);
+    auto ion_init_iconc = ion.init_Xi_ | util::to<std::vector<double>>();
     std::vector<double> expected_init_iconc = {0.75*con_int, 1.*con_int, 0};
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_init_iconc, ion_init_iconc));
 
@@ -799,7 +799,7 @@ TEST(fvm_lowered, weighted_write_ion) {
 
     ion.init_concentration();
     test_ca->update_ions();
-    std::vector<double> ion_iconc = util::assign_from(ion.Xi_);
+    auto ion_iconc = ion.Xi_ | util::to<std::vector<double>>();
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_iconc, ion_iconc));
 }
 
@@ -872,7 +872,7 @@ TEST(fvm_lowered, post_events_shared_state) {
 
         auto& S = fvcell.*private_state_ptr;
 
-        auto expected_detectors = util::max_value(detectors_per_cell);
+        auto expected_detectors = std::ranges::max(detectors_per_cell);
 
         EXPECT_EQ(expected_detectors, S->n_detector);
         EXPECT_EQ(util::sum(detectors_per_cell), S->src_to_spike.size());
@@ -1010,8 +1010,8 @@ TEST(fvm_lowered, label_data) {
         std::vector<cell_size_type> size_partition;
         auto part = util::make_partition(size_partition, expected_sizes);
         for (const auto& r: part) {
-            util::sort(util::subrange_view(actual_labeled_ranges, r));
-            util::sort(util::subrange_view(expected_labeled_ranges, r));
+            std::ranges::sort(util::subrange_view(actual_labeled_ranges, r));
+            std::ranges::sort(util::subrange_view(expected_labeled_ranges, r));
         }
         EXPECT_EQ(actual_labeled_ranges, expected_labeled_ranges);
 
@@ -1054,8 +1054,8 @@ TEST(fvm_lowered, label_data) {
         std::vector<cell_size_type> size_partition;
         auto part = util::make_partition(size_partition, expected_sizes);
         for (const auto& r: part) {
-            util::sort(util::subrange_view(actual_labeled_ranges, r));
-            util::sort(util::subrange_view(expected_labeled_ranges, r));
+            std::ranges::sort(util::subrange_view(actual_labeled_ranges, r));
+            std::ranges::sort(util::subrange_view(expected_labeled_ranges, r));
         }
         EXPECT_EQ(actual_labeled_ranges, expected_labeled_ranges);
 
@@ -1094,8 +1094,8 @@ TEST(fvm_lowered, label_data) {
         std::vector<cell_size_type> size_partition;
         auto part = util::make_partition(size_partition, expected_sizes);
         for (const auto& r: part) {
-            util::sort(util::subrange_view(actual_labeled_ranges, r));
-            util::sort(util::subrange_view(expected_labeled_ranges, r));
+            std::ranges::sort(util::subrange_view(actual_labeled_ranges, r));
+            std::ranges::sort(util::subrange_view(expected_labeled_ranges, r));
         }
         EXPECT_EQ(actual_labeled_ranges, expected_labeled_ranges);
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstring>
-
+#include <ranges>
 #include <vector>
 
 #include <arbor/common_types.hpp>
@@ -212,9 +212,7 @@ public:
             // Later, branches will be partitioned over thread blocks, and we will
             // take advantage of the fact that the first branch in a partition is
             // the longest, to determine how to pack all the branches in a block.
-            for (auto& branches: branch_map) {
-                util::sort(branches);
-            }
+            for (auto& branches: branch_map) std::ranges::sort(branches);
         }
 
         // The branches generated above have been assigned contiguous ids.
@@ -386,7 +384,7 @@ public:
         std::vector<size_type> cv_to_cell_tmp(matrix_size);
         size_type ci = 0;
         for (auto cv_span: util::partition_view(cell_cv_divs)) {
-            util::fill(util::subrange_view(cv_to_cell_tmp, cv_span), ci);
+            std::ranges::fill(util::subrange_view(cv_to_cell_tmp, cv_span), ci);
             ++ci;
         }
     }

@@ -113,7 +113,7 @@ struct cvp_cv_policy_max_extent {
             }
         }
 
-        util::sort(points);
+        std::ranges::sort(points);
         return unique_sum(locset(std::move(points)), ls::cboundary(domain_));
     }
 
@@ -140,9 +140,7 @@ struct cvp_cv_policy_explicit {
     locset cv_boundary_points(const cable_cell& cell) const {
         return ls::support(
             util::foldl(
-                [this](locset l, const auto& comp) {
-                    return sum(std::move(l), ls::restrict_to(locs_, comp));
-                },
+                [this](locset l, const auto& comp) { return sum(std::move(l), ls::restrict_to(locs_, comp)); },
                 ls::boundary(domain_),
                 components(cell.morphology(), thingify(domain_, cell.provider()))));
     }
@@ -191,11 +189,11 @@ struct cvp_cv_policy_fixed_per_branch {
 
         for (auto& comp: comps) {
             for (mcable c: comp) {
-                double scale = (c.dist_pos-c.prox_pos)*ooncv;
+                double scale = (c.dist_pos - c.prox_pos)*ooncv;
 
                 if (has_flag(flags_, cv_policy_flag::interior_forks)) {
                     for (unsigned i = 0; i<cv_per_branch_; ++i) {
-                        points.push_back({c.branch, c.prox_pos+(1+2*i)*scale/2});
+                        points.push_back({c.branch, c.prox_pos+(1 + 2*i)*scale/2});
                     }
                 }
                 else {
@@ -207,7 +205,7 @@ struct cvp_cv_policy_fixed_per_branch {
             }
         }
 
-        util::sort(points);
+        std::ranges::sort(points);
         return unique_sum(locset(std::move(points)), ls::cboundary(domain_));
     }
 

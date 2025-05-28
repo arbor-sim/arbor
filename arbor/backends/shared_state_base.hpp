@@ -40,7 +40,7 @@ struct shared_state_base {
         // events
         initialize(lanes, handles, divs, dts, d->streams);
         // samples
-        auto n_samples = util::sum_by(samples, [] (const auto& s) {return s.size();});
+        auto n_samples = util::sum(std::ranges::transform_view(samples, [] (const auto& s) {return s.size();}));
         if (d->sample_time.size() < n_samples) {
             d->sample_time = array(n_samples);
             d->sample_value = array(n_samples);

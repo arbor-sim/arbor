@@ -1,3 +1,5 @@
+#include <ranges>
+
 #include <arbor/profile/timer.hpp>
 
 #include <arbor/profile/meter_manager.hpp>
@@ -119,7 +121,7 @@ ARB_ARBOR_API meter_report make_meter_report(const meter_manager& manager, conte
 
     // Count the number of unique hosts.
     // This is equivalent to the number of nodes on most systems.
-    util::sort(hosts);
+    std::ranges::sort(hosts);
     auto num_hosts = std::distance(hosts.begin(), std::unique(hosts.begin(), hosts.end()));
 
     report.checkpoints = manager.checkpoint_names();

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <utility>
+#include <ranges>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/cv_data.hpp>
@@ -23,7 +24,7 @@ using util::make_span;
 ::testing::AssertionResult verify_cv_children(const cv_geometry& g) {
     unsigned visited_children = 0;
     for (unsigned i = 0; i<g.size(); ++i) {
-        if (!util::is_sorted(g.children(i))) {
+        if (!std::ranges::is_sorted(g.children(i))) {
             return ::testing::AssertionFailure() << "CV " << i
                 << " has unsorted sequence of child CVs";
         }
@@ -121,7 +122,7 @@ TEST(cv_geom, trivial) {
             EXPECT_EQ(geom1.cv_cables, geom4.cv_cables);
         }
 
-        mcable_list geom1_cables = util::assign_from(geom1.cables(0));
+        auto geom1_cables = geom1.cables(0) | util::to<mcable_list>();
         EXPECT_TRUE(region_eq(cell.provider(), reg::all(), geom1_cables));
     }
 }
@@ -174,7 +175,7 @@ TEST(cv_geom, one_cv_per_branch) {
                 // Confirm parent CV is fork CV:
                 if (i>0) {
                     auto fork_ext = complete(m, {c.branch, 0});
-                    mcable_list pcables = util::assign_from(geom.cables(geom.cv_parent[i]));
+                    auto pcables = geom.cables(geom.cv_parent[i]) | util::to<mcable_list>();
                     ASSERT_TRUE(testing::cablelist_eq(fork_ext, pcables));
                 }
             }
@@ -332,10 +333,9 @@ TEST(cv_geom, location_cv) {
         }
         else {
             // Trivial CV over fork point.
-            mcable cable0 = cables.front();
+            auto cable0 = cables.front();
             ASSERT_TRUE(cable0.prox_pos==cable0.dist_pos);
-
-            mcable_list clist = util::assign_from(cables);
+            auto clist = cables | util::to<mcable_list>();
             ASSERT_TRUE(testing::cablelist_eq(complete(m, cable0), clist));
         }
     }

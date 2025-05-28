@@ -67,7 +67,7 @@ TEST(span, int_iterators) {
         auto s = uc_span(b, a);
         for (auto it = s.begin(); it != s.end(); ++it) ++touched;
         EXPECT_EQ(s.size(), touched);
-        EXPECT_GT(touched, 0ul); //
+        EXPECT_GT(touched, 0ul);
     }
 
     {

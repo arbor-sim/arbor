@@ -1,5 +1,6 @@
 #include <cmath>
 #include <vector>
+#include <ranges>
 
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/mprovider.hpp>
@@ -19,9 +20,9 @@ TEST(morph, subbranch_components) {
     auto comps = components(m, ex);
 
     ASSERT_EQ(3u, comps.size());
-    ASSERT_FALSE(util::any_of(comps, [](const auto& x) { return x.empty(); }));
+    ASSERT_FALSE(std::ranges::any_of(comps, [](const auto& x) { return x.empty(); }));
 
-    util::sort_by(comps, [](const mextent& x) { return prox_loc(x.front()); });
+    std::ranges::sort(comps, std::ranges::less{}, [](const mextent& x) { return prox_loc(x.front()); });
 
     EXPECT_EQ((mcable_list{mcable{0, 0.125, 0.25}}), comps[0].cables());
     EXPECT_EQ((mcable_list{mcable{0, 0.5,   0.75}}), comps[1].cables());
@@ -72,9 +73,11 @@ TEST(morph, subtree_components) {
 
     for (auto tc: test_cases) {
         auto comps = components(m, mextent(tc.first));
-        util::sort_by(comps, [](const mextent& x) { return prox_loc(x.front()); });
+        std::ranges::sort(comps, std::ranges::less{}, [](const mextent& x) { return prox_loc(x.front()); });
 
-        std::vector<mcable_list> result = util::assign_from(util::transform_view(comps, [](const auto& x) { return x.cables(); }));
+        auto result = comps
+                    | std::ranges::views::transform([](const auto& x) { return x.cables(); })
+                    | util::to<std::vector<mcable_list>>();
         EXPECT_EQ(tc.second, result);
     }
 }

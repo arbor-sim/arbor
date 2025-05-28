@@ -3,7 +3,6 @@ include(ExternalProject)
 # List of micro benchmarks to build.
 
 set(bench_sources
-    accumulate_functor_values.cpp
     default_construct.cpp
     event_setup.cpp
     event_binning.cpp

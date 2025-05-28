@@ -161,6 +161,8 @@ TEST(piecewise, assign_void) {
 }
 
 TEST(piecewise, access) {
+    static_assert(std::ranges::range<pw_elements<int>>);
+
     pw_elements<int> p;
 
     std::array<double, 5> v{1., 1.5, 2., 2.5, 3.};
@@ -411,8 +413,7 @@ TEST(piecewise, zip) {
     pw_elements<ii> p14_03 = pw_zip_with(p14, p03);
     EXPECT_EQ(p03_14.vertices(), p14_03.vertices());
 
-    std::vector<ii> flipped = util::assign_from(util::transform_view(p14_03.values(),
-        [](ii p) { return ii{p.second, p.first}; }));
+    auto flipped = std::ranges::transform_view(p14_03.values(), [](ii p) { return ii{p.second, p.first}; }) | util::to<std::vector<ii>>();
     EXPECT_EQ(p03_14.values(), flipped);
 
     pw_elements<> v03;
@@ -426,8 +427,8 @@ TEST(piecewise, zip) {
 
     auto project = [](std::pair<double, double> extent, pw_element<void>, const pw_element<int>& b) -> double {
         auto [l, r] = extent;
-        double b_width = b.extent.second-b.extent.first;
-        return b.value*(r-l)/b_width;
+        double b_width = b.extent.second - b.extent.first;
+        return b.value*(r - l)/b_width;
     };
 
     pw_elements<void> vxx; // elements cover bounds of p14
@@ -435,8 +436,9 @@ TEST(piecewise, zip) {
 
     pw_elements<double> pxx = pw_zip_with(vxx, p14, project);
 
-    double p14_sum = util::sum(util::transform_view(p14, [](auto&& v) { return v.value; }));
-    double pxx_sum = util::sum(util::transform_view(pxx, [](auto&& v) { return v.value; }));
+    static_assert(std::ranges::forward_range<pw_elements<double>>);
+    double p14_sum = util::sum(std::ranges::transform_view(p14, [](auto&& v) { return v.value; }));
+    double pxx_sum = util::sum(std::ranges::transform_view(pxx, [](auto&& v) { return v.value; }));
     EXPECT_DOUBLE_EQ(p14_sum, pxx_sum);
 }
 

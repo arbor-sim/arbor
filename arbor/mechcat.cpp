@@ -505,10 +505,9 @@ struct catalogue_state {
 
     // Collect all mechanism names present in this catalogue
     std::vector<std::string> mechanism_names() const {
-        std::vector<std::string> result;
-        util::assign(result, util::keys(info_map_));
-        util::append(result, util::keys(derived_map_));
-        return result;
+        auto res = std::ranges::views::keys(info_map_) | util::to<std::vector<std::string>>();
+        std::ranges::copy(std::ranges::views::keys(derived_map_), std::back_inserter(res));
+        return res;
     }
 
     // Schemata for (un-derived) mechanisms.

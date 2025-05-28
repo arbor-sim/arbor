@@ -147,7 +147,7 @@ struct sample_event_stream_base : event_stream_base<sample_event> {
         if (!staged.size()) return;
 
         // return if there are no events
-        auto num_events = util::sum_by(staged, [] (const auto& v) {return v.size();});
+        auto num_events = util::sum(staged | std::ranges::views::transform([] (const auto& v) { return v.size(); }));
         if (!num_events) return;
 
         // allocate space for spans and data

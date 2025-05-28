@@ -4,7 +4,7 @@ Build option/target,Tool name,Minimum version,Notes,Update criteria
 --,C++ compiler,,C++17 support. See below,
 --,GCC,12.0.0,,"* it is supported by the minimum version of CUDA.
 * it is available either by default or can be installed using standard package manager on the supported Linux versions."
---,Clang,13.0,,
+--,Clang,14.0,,
 --,Apple Clang,15,Apple LLVM version 15.0.0 (clang-1500.x.y.z),
 ARB_GPU,Hip Clang,ROCm 3.9,HIP support is currently experimental.,
 ARB_GPU,CUDA,12.0,,"* It is available on all of the target HPC systems (Piz Daint, Juwels Booster)"

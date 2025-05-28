@@ -16,7 +16,6 @@
 #include <arbor/spike_event.hpp>
 
 #include "util/rangeutil.hpp"
-#include "util/transform.hpp"
 
 #include "../simple_recipes.hpp"
 #include <gtest/gtest.h>
@@ -74,9 +73,8 @@ std::vector<cell_gid_type> run_test_sim(const recipe& R, const group_gids_type& 
 
     sim.run((n+1)*ev_delta_t*arb::units::ms, 0.01*arb::units::ms);
 
-    std::vector<cell_gid_type> spike_gids;
     util::sort_by(spikes, [](auto s) { return s.time; });
-    util::assign(spike_gids, util::transform_view(spikes, [](auto s) { return s.source.gid; }));
+    auto spike_gids = std::ranges::transform_view(spikes, [](auto s) { return s.source.gid; }) | util::to<std::vector<cell_gid_type>>();
 
     return spike_gids;
 }

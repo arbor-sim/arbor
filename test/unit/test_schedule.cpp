@@ -2,6 +2,7 @@
 #include <random>
 #include <stdexcept>
 #include <vector>
+#include <ranges>
 
 #include <arbor/common_types.hpp>
 #include <arbor/schedule.hpp>
@@ -27,7 +28,7 @@ void run_invariant_checks(schedule S, time_type t0, time_type t1, unsigned n, in
 
     std::vector<time_type> divisions = {t0, t1};
     std::generate_n(std::back_inserter(divisions), 2*(n-1), [&] { return U(R); });
-    util::sort(divisions);
+    std::ranges::sort(divisions);
 
     bool skip = false;
     for (auto ival: util::partition_view(divisions)) {
@@ -55,11 +56,11 @@ void run_reset_check(schedule S, time_type t0, time_type t1, unsigned n, int see
 
     std::vector<time_type> first_div = {t0, t1};
     std::generate_n(std::back_inserter(first_div), n-1, [&] { return U(R); });
-    util::sort(first_div);
+    std::ranges::sort(first_div);
 
     std::vector<time_type> second_div = {t0, t1};
     std::generate_n(std::back_inserter(second_div), n-1, [&] { return U(R); });
-    util::sort(second_div);
+    std::ranges::sort(second_div);
 
     std::vector<time_type> first;
     for (auto ival: util::partition_view(first_div)) {
@@ -138,7 +139,7 @@ TEST(schedule, regular_rounding) {
     util::append(int_merged, int_r);
 
     EXPECT_EQ(int_merged, int_a);
-    EXPECT_TRUE(util::is_sorted(int_a));
+    EXPECT_TRUE(std::ranges::is_sorted(int_a));
 }
 
 TEST(schedule, explicit_schedule) {

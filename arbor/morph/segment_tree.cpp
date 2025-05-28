@@ -1,13 +1,13 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <ranges>
 
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/segment_tree.hpp>
 
 #include "io/sepval.hpp"
 #include "util/span.hpp"
-#include "util/transform.hpp"
 
 using arb::util::make_span;
 
@@ -220,10 +220,10 @@ bool segment_tree::is_root(msize_t i) const {
 }
 
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const segment_tree& m) {
-    auto tstr = util::transform_view(m.parents_,
-            [](msize_t i) -> std::string {
-                return i==mnpos? "npos": std::to_string(i);
-            });
+    auto tstr = m.parents_
+              | std::ranges::views::transform([](msize_t i) -> std::string {
+                  return i==mnpos? "npos": std::to_string(i);
+                });
     bool one_line = m.size()<2u;
     return o << "(segment_tree (" << (one_line? "": "\n  ") << io::sepval(m.segments_, "\n  ")
              << (one_line? ") (": ")\n  (")

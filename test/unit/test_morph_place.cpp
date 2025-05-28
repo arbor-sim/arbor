@@ -486,10 +486,10 @@ TEST(place_pwlin, segments) {
     auto seg_id = [](const msegment& s) { return s.id; };
 
     util::sort_by(x1min, seg_id);
-    std::vector<msize_t> x1min_seg_ids = util::assign_from(util::transform_view(x1min, seg_id));
+    auto x1min_seg_ids = std::ranges::transform_view(x1min, seg_id) | util::to<std::vector<msize_t>>();
 
     util::sort_by(x1all, seg_id);
-    std::vector<msize_t> x1all_seg_ids = util::assign_from(util::transform_view(x1all, seg_id));
+    auto x1all_seg_ids = std::ranges::transform_view(x1all, seg_id) | util::to<std::vector<msize_t>>();
 
     ASSERT_EQ((std::vector<msize_t>{2, 3, 6, 8}), x1min_seg_ids);
     ASSERT_EQ((std::vector<msize_t>{2, 3, 4, 5, 6, 7, 8}), x1all_seg_ids);
@@ -527,10 +527,10 @@ TEST(place_pwlin, segments) {
     std::vector<msegment> x2all = place.all_segments(x2);
 
     util::sort_by(x2min, seg_id);
-    std::vector<msize_t> x2min_seg_ids = util::assign_from(util::transform_view(x2min, seg_id));
+    auto x2min_seg_ids = std::ranges::transform_view(x2min, seg_id) | util::to<std::vector<msize_t>>();
 
     util::sort_by(x2all, seg_id);
-    std::vector<msize_t> x2all_seg_ids = util::assign_from(util::transform_view(x2all, seg_id));
+    auto x2all_seg_ids = std::ranges::transform_view(x2all, seg_id) | util::to<std::vector<msize_t>>();
 
     ASSERT_EQ((std::vector<msize_t>{2}), x2min_seg_ids);
     ASSERT_EQ((std::vector<msize_t>{2, 3}), x2all_seg_ids);
@@ -547,10 +547,10 @@ TEST(place_pwlin, segments) {
     std::vector<msegment> x3all = place.all_segments(x3);
 
     util::sort_by(x3min, seg_id);
-    std::vector<msize_t> x3min_seg_ids = util::assign_from(util::transform_view(x3min, seg_id));
+    auto x3min_seg_ids = std::ranges::transform_view(x3min, seg_id) | util::to<std::vector<msize_t>>();
 
     util::sort_by(x3all, seg_id);
-    std::vector<msize_t> x3all_seg_ids = util::assign_from(util::transform_view(x3all, seg_id));
+    auto x3all_seg_ids = std::ranges::transform_view(x3all, seg_id) | util::to<std::vector<msize_t>>();
 
     ASSERT_EQ(1u, x3min_seg_ids.size()); // Could be end of s6, all of s7, or beginning of s8
     ASSERT_EQ((std::vector<msize_t>{6, 7, 8}), x3all_seg_ids);

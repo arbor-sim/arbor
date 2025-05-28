@@ -1,6 +1,5 @@
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
+#include <unordered_set>
 
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
@@ -10,8 +9,9 @@
 
 #include "execution_context.hpp"
 #include "util/partition.hpp"
-#include "util/rangeutil.hpp"
 #include "util/span.hpp"
+#include "util/rangeutil.hpp"
+
 
 namespace arb {
 domain_decomposition::domain_decomposition(const recipe& rec,
@@ -20,7 +20,7 @@ domain_decomposition::domain_decomposition(const recipe& rec,
     const auto* dist = ctx->distributed.get();
     unsigned num_domains = dist->size();
     int domain_id = dist->id();
-    cell_size_type num_global_cells = rec.num_cells();
+    const auto num_global_cells = rec.num_cells();
     const bool has_gpu = ctx->gpu->has_gpu();
 
     std::vector<cell_gid_type> local_gids;
@@ -43,7 +43,7 @@ domain_decomposition::domain_decomposition(const recipe& rec,
     if (global_gids.size() != num_global_cells) throw invalid_sum_local_cells(global_gids.size(), num_global_cells);
 
     auto global_gid_vals = global_gids.values();
-    util::sort(global_gid_vals);
+    std::ranges::sort(global_gid_vals);
     for (unsigned i = 1; i < global_gid_vals.size(); ++i) {
         if (global_gid_vals[i] == global_gid_vals[i-1]) throw duplicate_gid(global_gid_vals[i]);
     }
@@ -58,7 +58,7 @@ domain_decomposition::domain_decomposition(const recipe& rec,
     gid_domain_.resize(global_gids.size());
     gid_index_.resize(global_gids.size());
     auto rank_part = util::partition_view(global_gids.partition());
-    for (auto rank: count_along(rank_part)) {
+    for (auto rank: util::count_along(rank_part)) {
         cell_size_type index_on_domain = 0;
         for (auto gid: util::subrange_view(global_gids.values(), rank_part[rank])) {
             gid_domain_[gid] = rank;

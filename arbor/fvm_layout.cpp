@@ -7,6 +7,7 @@
 #include <utility>
 #include <memory>
 #include <string>
+#include <ranges>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell.hpp>
@@ -32,7 +33,6 @@ using util::count_along;
 using util::make_span;
 using util::pw_elements;
 using util::pw_over_cable;
-using util::sort;
 using util::sort_by;
 
 namespace {
@@ -292,13 +292,12 @@ fvm_cv_discretize(const cable_cell& cell,
     }
     for (const auto& [ion, data]: diffusivity) {
          // 'Finite' diffusivity iff not NAN or 0.0 or a complex expression.
-        auto diffusive = std::any_of(data.begin(),
-                                     data.end(),
-                                     [](const auto& kv) {
-                                         const auto& [k, v] = kv;
-                                         auto s = v.scale.get_scalar();
-                                         return !s || *s*v.value != 0.0;
-                                     });
+        auto diffusive = std::ranges::any_of(data,
+                                             [](const auto& kv) {
+                                                 const auto& [k, v] = kv;
+                                                 auto s = v.scale.get_scalar();
+                                                 return !s || *s*v.value != 0.0;
+                                             });
         if (diffusive) {
             // Provide a (non-sensical) default.
             if (!diffusive_ions.count(ion)) diffusive_ions[ion] = {};
@@ -522,17 +521,8 @@ std::vector<mlocation> coincident_locations(const morphology& m, const mlocation
 // Test if location intersects (sorted) sequence of cables.
 template <typename Seq>
 bool cables_intersect_location(Seq&& cables, const mlocation& x) {
-    struct cmp_branch {
-        bool operator()(const mcable& c, msize_t bid) const { return c.branch<bid; }
-        bool operator()(msize_t bid, const mcable& c) const { return bid<c.branch; }
-    };
-
-    using std::begin;
-    using std::end;
-    auto eqr = std::equal_range(begin(cables), end(cables), x.branch, cmp_branch{});
-
-    return util::any_of(util::make_range(eqr),
-                        [&x](const mcable& c) { return c.prox_pos<=x.pos && x.pos<=c.dist_pos; });
+    return std::ranges::any_of(std::ranges::equal_range(cables, x.branch, std::ranges::less{}, [](const mcable& c) { return c.branch; }),
+                               [&x](const mcable& c) { return c.prox_pos<=x.pos && x.pos<=c.dist_pos; });
 }
 
 voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, const cv_geometry& geom, arb_size_type cell_idx, const mlocation& site) {
@@ -549,14 +539,16 @@ voltage_reference_pair fvm_voltage_reference_points(const morphology& morph, con
         return mlocation{c.branch, (c.prox_pos+c.dist_pos)/2};
     };
 
-    auto cv_contains_fork = [&](auto cv, const mlocation& x) {
+    auto cv_contains_fork = [&](const auto cv, const mlocation& x) {
         // CV contains fork if it intersects any location coincident with x
-        // other than x itselfv.
-
+        // other than x itself.
         if (cv_simple(cv)) return false;
-        auto locs = coincident_locations(morph, x);
-
-        return util::any_of(locs, [&](mlocation y) { return cables_intersect_location(geom.cables(cv), y); });
+        const auto& cables = geom.cables(cv);
+        mlocation_list locs = coincident_locations(morph, x);
+        return std::ranges::any_of(locs,
+                                   [&](const auto& y) {
+                                       return cables_intersect_location(cables, y);
+                                   });
     };
 
     site_ref.cv = geom.location_cv(cell_idx, site, cv_prefer::cv_empty);
@@ -743,7 +735,7 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
             append(L.local_weight, R.local_weight);
             append_offset(L.target, target_offset, R.target);
 
-            arb_assert(util::equal(L.param_values, R.param_values,
+            arb_assert(std::ranges::equal(L.param_values, R.param_values,
                 [](auto& a, auto& b) { return a.first==b.first; }));
             arb_assert(L.param_values.size()==R.param_values.size());
 
@@ -809,7 +801,7 @@ ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> f
             local_conns.push_back({local_idx, local_cv, peer_cv, conn.weight});
         }
         // Sort local_conns by local_cv.
-        util::sort(local_conns);
+        std::ranges::sort(local_conns);
         gj_conns[gid] = std::move(local_conns);
     }
     return gj_conns;
@@ -829,7 +821,7 @@ struct fvm_ion_build_data {
     std::vector<arb_index_type> support;
 
     auto& add_to_support(const std::vector<arb_index_type>& cvs) {
-        arb_assert(util::is_sorted(cvs));
+        arb_assert(std::ranges::is_sorted(cvs));
         support = unique_union(support, cvs);
         return *this;
     }
@@ -1112,7 +1104,7 @@ apply_parameters_on_cv(fvm_mechanism_config& config,
     const auto& geometry = data.D.geometry;
     for (auto cv: geometry.cell_cvs(data.cell_idx)) {
         double area = 0;
-        util::fill(param_on_cv, 0.);
+        std::ranges::fill(param_on_cv, 0.);
         for (const mcable& cable: geometry.cables(cv)) {
             double area_on_cable = data.embedding.integrate_area(cable, pw_over_cable(support, cable, 0.));
             if (!area_on_cable) continue;
@@ -1158,7 +1150,7 @@ auto ordered_parameters(const mechanism_info& info) {
     for (const auto& [name, val]: info.parameters) {
         result.emplace_back(name, val.default_value);
     }
-    util::sort(result);
+    std::ranges::sort(result);
     return result;
 }
 
@@ -1492,18 +1484,18 @@ make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<
         };
 
         assign(cv_order, count_along(inst_list));
-        sort(cv_order,
-             [&](arb_size_type i, arb_size_type j) {
-                 const synapse_instance& a = inst_list[i];
-                 const synapse_instance& b = inst_list[j];
-                 if (a.cv<b.cv) return true;
-                 if (b.cv<a.cv) return false;
-                 auto cmp_param = cmp_inst_param(a, b);
-                 if (cmp_param<0) return true;
-                 if (cmp_param>0) return false;
-                 // CV and all parameters are equal, so finally sort on target index.
-                 return a.target_index<b.target_index;
-             });
+        std::ranges::sort(cv_order,
+                          [&](arb_size_type i, arb_size_type j) {
+                              const synapse_instance& a = inst_list[i];
+                              const synapse_instance& b = inst_list[j];
+                              if (a.cv<b.cv) return true;
+                              if (b.cv<a.cv) return false;
+                              auto cmp_param = cmp_inst_param(a, b);
+                              if (cmp_param<0) return true;
+                              if (cmp_param>0) return false;
+                              // CV and all parameters are equal, so finally sort on target index.
+                              return a.target_index<b.target_index;
+                          });
 
         auto config = make_mechanism_config(info, arb_mechanism_kind_point);
         // Do coalesce?
@@ -1591,8 +1583,8 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
         const auto& info = data.catalogue[name];
         auto config = make_mechanism_config(info, arb_mechanism_kind_gap_junction);
 
-        std::vector<std::string> param_names;
-        assign(param_names, util::keys(info.parameters));
+        auto param_names = std::ranges::views::keys(info.parameters)
+                         | util::to<std::vector<std::string>>();
         std::size_t n_param = param_names.size();
 
         std::vector<double> param_dflt;
@@ -1652,7 +1644,7 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_des
     std::unordered_map<std::string, mechanism_desc> revpot_tbl;
     std::unordered_map<std::string, revpot_ion_config> ex_config;
 
-    for (const auto& ion: util::keys(data.ion_species)) {
+    for (const auto& ion: std::ranges::views::keys(data.ion_species)) {
         if (!method.count(ion)) continue;
         const auto& revpot = method.at(ion);
         const auto& name = revpot.name();

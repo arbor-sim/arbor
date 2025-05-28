@@ -143,9 +143,7 @@ result<Stream> multi_step() {
     }
 
     // sort events by time
-    for (auto& v : events) {
-        std::stable_sort(v.begin(), v.end(), [](auto const& l, auto const& r) { return l.time < r.time; });
-    }
+    for (auto& v: events) std::ranges::stable_sort(v.begin(), v.end(), [](auto const& l, auto const& r) { return l.time < r.time; });
 
     // compute expected order as permutation of a pair which indexes into events:
     // first index is cell id, second index is item index
