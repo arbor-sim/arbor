@@ -29,8 +29,8 @@ jobs:
         - {
             name:  "Linux Min Clang",
             os:    "ubuntu-22.04",
-            cc:    "clang-13",
-            cxx:   "clang++-13",
+            cc:    "clang-14",
+            cxx:   "clang++-14",
             py:    "3.10",
             cmake: "3.19.x",
             mpi:   "ON",
