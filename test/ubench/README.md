@@ -38,39 +38,6 @@ During simulation, we need to collate incoming spike events, events from local g
 and events that have yet to be delivered. There are multiple options for doing so: heap/tree
 merge, linear k-merge, or iterative two-way merge.
 
-### `accumulate_functor_values`
-
-#### Motivation
-
-The problem arises when constructing the partition of an integral range where the sizes of each
-sub-interval are given by a function of the index. This requires the computation of the sizes
-> d<sub><i>i</i></sub> = Σ<sub><i>j</i>&lt;<i>i</i></sub> <i>f</i>(<i>j</i>).
-
-One approach using the provided range utilities is to use `std::partial_sum` with
-`util::transform_view` and `util::span`; the other is to simply write a loop that
-performs the accumulation directly. What is the extra cost, if any, of the
-transform-based approach?
-
-The micro-benchmark compares the two implementations, where the function is a simple
-integer square operation, called either via a function pointer or a functional object.
-
-#### Results
-
-Results here are presented only for vector size _n_ equal to 1024.
-
-Platform:
-*  Xeon E3-1220 v2 with base clock 3.1 GHz and max clock 3.5 GHz. 
-*  Linux 4.4.34
-*  gcc version 6.2.0
-*  clang version 3.8.1
-
-| Compiler    | direct/function | transform/function | direct/object | transform/object |
-|:------------|----------------:|-------------------:|--------------:|-----------------:|
-| g++ -O3     |  907 ns | 2090 ns |  907 ns | 614 ns |
-| clang++ -O3 | 1063 ns |  533 ns | 1051 ns | 532 ns |
-
----
-
 ### `cuda_compare_and_reduce`
 
 #### Motivation

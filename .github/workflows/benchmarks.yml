@@ -49,7 +49,6 @@ jobs:
           cd -
       - name: Run benchmarks
         run: |
-          build/bin/accumulate_functor_values
           build/bin/default_construct
           build/bin/event_setup
           build/bin/event_binning
