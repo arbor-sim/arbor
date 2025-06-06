@@ -12,7 +12,8 @@ struct cell_parameters {
 
     // Use complex cell or generic cell
     bool complex_cell = false;
-
+    // Use STDP synapse
+    bool stdp = false;
     //  Maximum number of levels in the cell (not including the soma)
     unsigned max_depth = 5;
 
@@ -89,6 +90,7 @@ read_options(int argc, char** argv) {
     param_from_json(params.cell.compartments, "compartments", json);
     param_from_json(params.cell.lengths, "lengths", json);
     param_from_json(params.cell.synapses, "synapses", json);
+    param_from_json(params.cell.stdp, "stdp", json);
     param_from_json(params.bind_threads, "bind-threads", json);
     param_from_json(params.hint.cpu_group_size, "cpu-group-size", json);
     param_from_json(params.hint.gpu_group_size, "gpu-group-size", json);
