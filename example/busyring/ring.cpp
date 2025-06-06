@@ -204,10 +204,12 @@ int main(int argc, char** argv) {
 
         // Print a banner with information about hardware configuration
         if (root) {
-            std::cout << "gpu:      " << (has_gpu(context)? "yes": "no") << "\n";
-            std::cout << "threads:  " << num_threads(context) << "\n";
-            std::cout << "mpi:      " << (has_mpi(context)? "yes": "no") << "\n";
-            std::cout << "ranks:    " << num_ranks(context) << "\n" << std::endl;
+            std::cout << "gpu:      " << (has_gpu(context)? "yes": "no") << "\n"
+                      << "threads:  " << num_threads(context) << "\n"
+                      << "mpi:      " << (has_mpi(context)? "yes": "no") << "\n"
+                      << "ranks:    " << num_ranks(context) << "\n"
+                      << "stdp:     " << (params.cell.stdp  ? "yes": "no") << "\n"
+                      << std::endl;
         }
 
         arb::profile::meter_manager meters;
