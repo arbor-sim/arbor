@@ -205,8 +205,9 @@ region stitched_morphology::stitch(const std::string& id) const {
 std::vector<msize_t> stitched_morphology::segments(const std::string& id) const {
     auto seg_ids = util::transform_view(util::make_range(impl_->id_to_segs.equal_range(id)), util::second);
     if (seg_ids.empty()) throw no_such_stitch(id);
-
-    return std::vector<msize_t>(begin(seg_ids), end(seg_ids));
+    std::vector<msize_t> res;
+    for (auto seg_id: seg_ids) res.push_back(seg_id);
+    return res;
 }
 
 stitched_morphology::~stitched_morphology() = default;
