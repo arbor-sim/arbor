@@ -4,6 +4,7 @@
 #include "lif_cell_group.hpp"
 #include "profile/profiler_macro.hpp"
 #include "util/rangeutil.hpp"
+#include "util/maputil.hpp"
 #include "util/span.hpp"
 
 using namespace arb;
@@ -39,11 +40,46 @@ lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids,
             }
         }
     }
+
+    if (!util::is_sorted(gids_)) throw arb::arbor_internal_error{"gids must be sorted?!"};
 }
 
-cell_kind lif_cell_group::get_cell_kind() const {
-    return cell_kind::lif;
+void
+lif_cell_group::edit_cell(cell_gid_type gid, std::any cell_edit) {
+    try {
+        auto lif_edit = std::any_cast<lif_cell_editor>(cell_edit);
+        auto lid = util::binary_search_index(gids_, gid);
+        if (!lid) throw arb::arbor_internal_error{"gid " + std::to_string(gid) + " erroneuosly dispatched to cell group."};
+        auto& lowered = cells_[*lid];
+        auto tmp = lif_cell{
+            .source = lowered.source,
+            .target = lowered.target,
+            .tau_m  = lowered.tau_m * U::ms,
+            .V_th   = lowered.V_th  * U::mV,
+            .C_m    = lowered.C_m   * U::pF,
+            .E_L    = lowered.E_L   * U::mV,
+            .E_R    = lowered.E_R   * U::mV,
+            .V_m    = lowered.V_m   * U::mV,
+            .t_ref  = lowered.t_ref * U::ms
+        };
+        lif_edit(tmp);
+        // NOTE: we forbid writing to V_m? Reasons
+        //       * the cell might be in the refractory period which causes semantic issues
+        //         - return to normal or not?
+        //         - what should probes return
+        //       * V_m is the _initial state_ only
+        if (tmp.V_m.value_as(U::mV) != lowered.V_m) throw bad_cell_edit(gid, "Initial voltage is not editable.");
+        if (tmp.source != lowered.source) throw bad_cell_edit(gid, "Source is not editable.");
+        if (tmp.target != lowered.target) throw bad_cell_edit(gid, "Target is not editable.");
+        // Write back
+        lowered = lif_lowered_cell{tmp};
+    }
+    catch (const std::bad_any_cast& ){
+        throw bad_cell_edit(gid, "Not a LIF editor (C++ type-id: '" + std::string{cell_edit.type().name()} + "')");
+    }
 }
+
+cell_kind lif_cell_group::get_cell_kind() const { return cell_kind::lif; }
 
 void lif_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
     PE(advance:lif);

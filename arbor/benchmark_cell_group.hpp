@@ -32,6 +32,8 @@ public:
 
     void remove_all_samplers() override {}
 
+    void edit_cell(cell_gid_type gid, std::any edit) override;
+
     ARB_SERDES_ENABLE(benchmark_cell_group, cells_, spikes_, gids_);
 
     void t_serialize(serializer& ser, const std::string& k) const override;

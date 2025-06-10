@@ -87,11 +87,12 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
     PL();
 }
 
-class simulation_state {
-public:
+struct simulation_state {
     simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx, arb_seed_type seed);
 
     void update(const recipe& rec);
+
+    void edit_cell(cell_gid_type gid, std::any edit);
 
     void reset();
 
@@ -580,6 +581,15 @@ simulation::simulation(const recipe& rec,
 void simulation::reset() { impl_->reset(); }
 
 void simulation::update(const recipe& rec) { impl_->update(rec); }
+
+// facilitate cell editig
+void simulation::edit_cell(cell_gid_type gid, std::any edit) { impl_->edit_cell(gid, edit); }
+void simulation_state::edit_cell(cell_gid_type gid, std::any edit) {
+    if (gid >= ddc_.num_global_cells()) throw std::range_error{"Not a valid gid: " + std::to_string(gid)};
+    if (auto gidx = util::value_by_key(gid_to_local_, gid)) {
+        cell_groups_[*gidx]->edit_cell(gid, edit);
+    }
+}
 
 time_type simulation::run(const units::quantity& tfinal, const units::quantity& dt) {
     auto dt_ms = dt.value_as(units::ms);
