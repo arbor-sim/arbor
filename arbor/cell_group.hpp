@@ -8,6 +8,7 @@
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/serdes.hpp>
+#include <arbor/arbexcept.hpp>
 
 #include "epoch.hpp"
 #include "event_lane.hpp"
@@ -20,8 +21,7 @@
 //   ranges are needed to map (gid, label) pairs to their corresponding lid sets.
 namespace arb {
 
-class cell_group {
-public:
+struct cell_group {
     virtual ~cell_group() = default;
 
     virtual cell_kind get_cell_kind() const = 0;
@@ -32,20 +32,23 @@ public:
     virtual const std::vector<spike>& spikes() const = 0;
     virtual void clear_spikes() = 0;
 
-    // Sampler association methods below should be thread-safe, as they might be invoked
-    // from a sampler call back called from a different cell group running on a different thread.
-
+    // Sampler association methods below should be thread-safe, as they might be
+    // invoked from a sampler call back called from a different cell group
+    // running on a different thread.
     virtual void add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function) = 0;
     virtual void remove_sampler(sampler_association_handle) = 0;
     virtual void remove_all_samplers() = 0;
 
-    // Probe metadata queries might also be called while a simulation is running, and so should
-    // also be thread-safe.
+    // allow editing of certain cell properties
+    virtual void edit_cell(cell_gid_type gid, std::any edit) { throw arbor_internal_error{"Editing not implemented."}; }
 
+    // Probe metadata queries might also be called while a simulation is
+    // running, and so should also be thread-safe.
     virtual std::vector<probe_metadata> get_probe_metadata(const cell_address_type&) const { return {}; }
+
     // trampolines for serialization
     virtual void t_serialize(serializer& s, const std::string&) const = 0;
-    virtual void t_deserialize(serializer& s, const std::string&)  = 0;
+    virtual void t_deserialize(serializer& s, const std::string&) = 0;
 };
 
 using cell_group_ptr = std::unique_ptr<cell_group>;

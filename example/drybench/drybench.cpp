@@ -96,7 +96,7 @@ public:
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
         auto gen = arb::poisson_schedule(params_.cell.spike_freq_hz*arb::units::Hz, gid);
-        return arb::benchmark_cell("src", "tgt", std::move(gen), params_.cell.realtime_ratio);
+        return arb::benchmark_cell{.source="src", .target="tgt", .time_sequence=std::move(gen), .realtime_ratio=params_.cell.realtime_ratio};
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {

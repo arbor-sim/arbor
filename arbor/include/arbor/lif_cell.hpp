@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include <arbor/serdes.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/export.hpp>
@@ -31,5 +33,7 @@ struct ARB_SYMBOL_VISIBLE lif_probe_metadata {};
 // Voltage estimate [mV].
 // Sample value type: `double`
 struct ARB_SYMBOL_VISIBLE lif_probe_voltage {};
+
+using lif_cell_editor = std::function<void(lif_cell&)>;
 
 } // namespace arb

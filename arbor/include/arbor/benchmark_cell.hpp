@@ -22,15 +22,11 @@ struct ARB_SYMBOL_VISIBLE benchmark_cell {
 
     // Time taken in ms to advance the cell one ms of simulation time.
     // If equal to 1, then a single cell can be advanced in realtime 
-    double realtime_ratio;
-
-    benchmark_cell() = default;
-    benchmark_cell(cell_tag_type source, cell_tag_type target, schedule seq, double ratio):
-        source(source), target(target), time_sequence(seq), realtime_ratio(ratio) {};
+    double realtime_ratio = 1.0;
 
     ARB_SERDES_ENABLE(benchmark_cell, source, target, time_sequence, realtime_ratio);
 };
 
+using benchmark_cell_editor = std::function<void(benchmark_cell&)>;
+
 } // namespace arb
-
-

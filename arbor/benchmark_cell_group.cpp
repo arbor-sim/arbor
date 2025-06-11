@@ -11,6 +11,7 @@
 #include "profile/profiler_macro.hpp"
 
 #include "util/span.hpp"
+#include "util/maputil.hpp"
 
 template<typename K>
 void serialize(arb::serializer& s, const K& k, const arb::benchmark_cell_group&);
@@ -23,8 +24,7 @@ benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gid
                                            const recipe& rec,
                                            cell_label_range& cg_sources,
                                            cell_label_range& cg_targets):
-    gids_(gids)
-{
+    gids_(gids) {
     for (auto gid: gids_) {
         if (!rec.get_probes(gid).empty()) {
             throw bad_cell_probe(cell_kind::benchmark, gid);
@@ -47,28 +47,39 @@ benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gid
 }
 
 void benchmark_cell_group::reset() {
-    for (auto& c: cells_) {
-        c.time_sequence.reset();
-    }
-
+    for (auto& c: cells_) c.time_sequence.reset();
     clear_spikes();
 }
 
-void benchmark_cell_group::t_serialize(serializer& ser, const std::string& k) const {
-    serialize(ser, k, *this);
-}
-void benchmark_cell_group::t_deserialize(serializer& ser, const std::string& k) {
-    deserialize(ser, k, *this);
+void
+benchmark_cell_group::edit_cell(cell_gid_type gid, std::any cell_edit) {
+    try {
+        auto bench_edit = std::any_cast<benchmark_cell_editor>(cell_edit);
+        auto lid = util::binary_search_index(gids_, gid);
+        if (!lid) throw arb::arbor_internal_error{"gid " + std::to_string(gid) + " erroneuosly dispatched to cell group."};
+        benchmark_cell& lowered = cells_[*lid];
+        auto tmp = benchmark_cell{.source=lowered.source, .target=lowered.target, .time_sequence=std::move(lowered.time_sequence), .realtime_ratio=lowered.realtime_ratio};
+        bench_edit(tmp);
+        if (tmp.source != lowered.source) throw bad_cell_edit(gid, "Source is not editable.");
+        if (tmp.target != lowered.target) throw bad_cell_edit(gid, "Target is not editable.");
+        // Write back
+        lowered.time_sequence = std::move(tmp.time_sequence);
+        lowered.realtime_ratio = tmp.realtime_ratio;
+    }
+    catch (const std::bad_any_cast&) {
+        throw bad_cell_edit(gid, "Not a Benchmark editor (C++ type-id: '" + std::string{cell_edit.type().name()} + "')");
+    }
 }
 
-cell_kind benchmark_cell_group::get_cell_kind() const {
-    return cell_kind::benchmark;
-}
+void benchmark_cell_group::t_serialize(serializer& ser, const std::string& k) const { serialize(ser, k, *this); }
+
+void benchmark_cell_group::t_deserialize(serializer& ser, const std::string& k) { deserialize(ser, k, *this); }
+
+cell_kind benchmark_cell_group::get_cell_kind() const { return cell_kind::benchmark; }
 
 void benchmark_cell_group::advance(epoch ep,
                                    time_type dt,
-                                   const event_lane_subrange& event_lanes)
-{
+                                   const event_lane_subrange& event_lanes) {
     using std::chrono::high_resolution_clock;
     using duration_type = std::chrono::duration<double, std::micro>;
 
@@ -97,13 +108,9 @@ void benchmark_cell_group::advance(epoch ep,
     PL();
 };
 
-const std::vector<spike>& benchmark_cell_group::spikes() const {
-    return spikes_;
-}
+const std::vector<spike>& benchmark_cell_group::spikes() const { return spikes_; }
 
-void benchmark_cell_group::clear_spikes() {
-    spikes_.clear();
-}
+void benchmark_cell_group::clear_spikes() { spikes_.clear(); }
 
 void benchmark_cell_group::add_sampler(sampler_association_handle h,
                                    cell_member_predicate probeset_ids,

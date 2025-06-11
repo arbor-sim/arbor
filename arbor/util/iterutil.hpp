@@ -197,9 +197,7 @@ public:
         return c -= n;
     }
 
-    difference_type operator-(const Derived& x) const {
-        return inner()-x.inner();
-    }
+    difference_type operator-(const Derived& x) const requires requires (I x) { x - x; } { return inner() - x.inner(); }
 
     bool operator<(const Derived& x) const {
         return inner()<x.inner();
