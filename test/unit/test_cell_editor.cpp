@@ -304,16 +304,43 @@ TEST(edit_benchmark, errors) {
     EXPECT_THROW(sim.edit_cell(42, arb::benchmark_cell_editor([](auto& cell) { cell.realtime_ratio = 42; })), std::range_error);
 }
 
+TEST(edit_benchmark, do_nothing_does_nothing) {
+    arb::benchmark_cell_editor edit = [](auto& cell) { cell.time_sequence = arb::poisson_schedule(1.0_kHz, 42);};
+    arb::benchmark_cell_editor noop = [](auto& cell) {};
+
+    size_t n_noop = 0;
+    {
+        auto rec = bench_recipe{1e-4, 1.0};
+        auto sim = arb::simulation{rec};
+        for (auto gid = 0u; gid < rec.num_cells(); ++gid) sim.edit_cell(gid, edit);
+        sim.run(100_ms, 0.1_ms);
+        for (auto gid = 0u; gid < rec.num_cells(); ++gid) sim.edit_cell(gid, noop);
+        sim.run(200_ms, 0.1_ms);
+        n_noop = sim.num_spikes();
+    }
+    size_t n_expt = 0;
+    {
+        auto rec = bench_recipe{1e-4, 1.0};
+        auto sim = arb::simulation{rec};
+        for (auto gid = 0u; gid < rec.num_cells(); ++gid) sim.edit_cell(gid, edit);
+        sim.run(200_ms, 0.1_ms);
+        n_expt = sim.num_spikes();
+    }
+    EXPECT_EQ(n_expt, n_noop);
+    EXPECT_GE(n_noop, 2100);
+    EXPECT_LE(n_noop, 2400);
+}
+
+
 struct source_recipe: arb::recipe {
 
     struct param_t {
-        double rtr = 1.0;    // real time
         double nu_kHz = 1.0; // freq
         size_t n_100 = 0;    // spikes after N ms
         size_t n_200 = 0;
     };
 
-    source_recipe(double r, double f): ratio(r), freq(f*arb::units::kHz) {}
+    source_recipe(double f): freq(f*arb::units::kHz) {}
 
     arb::cell_size_type num_cells() const override { return N; }
     arb::cell_kind get_cell_kind(arb::cell_gid_type) const override { return arb::cell_kind::spike_source; }
@@ -322,18 +349,16 @@ struct source_recipe: arb::recipe {
     }
 
     arb::cell_size_type N = 10;
-
-    double ratio = 1.0;
     arb::units::quantity freq = 1_kHz;
 };
 
 TEST(edit_source, no_edit) {
     using param_t = source_recipe::param_t;
     //                               rtr  nu   100  200
-    for (const auto& param: {param_t{1e-4, 1.0, 1000, 2000}, // 10 cells x 100ms x 1kHz = 1000 spikes
-                             param_t{1e-4, 2.0, 2000, 4000},
-                             param_t{1e-4, 4.0, 4000, 8000}}) {
-        auto rec = source_recipe{param.rtr, param.nu_kHz};
+    for (const auto& param: {param_t{1.0, 1000, 2000}, // 10 cells x 100ms x 1kHz = 1000 spikes
+                             param_t{2.0, 2000, 4000},
+                             param_t{4.0, 4000, 8000}}) {
+        auto rec = source_recipe{param.nu_kHz};
         auto sim = arb::simulation{rec};
         sim.run(100_ms, 0.1_ms);
         EXPECT_EQ(sim.num_spikes(), param.n_100);
@@ -345,11 +370,11 @@ TEST(edit_source, no_edit) {
 TEST(edit_source, edit_rate) {
     using param_t = source_recipe::param_t;
     //                               rtr  nu    100   200
-    for (const auto& param: {param_t{1e-4, 1.0, 1000, 2100}, // one cell adds 100ms x 2kHz, the others stay at 1Khz => 100 spikes extra
-                             param_t{1e-4, 2.0, 2000, 4200},
-                             param_t{1e-4, 4.0, 4000, 8400}}) {
+    for (const auto& param: {param_t{1.0, 1000, 2100}, // one cell adds 100ms x 2kHz, the others stay at 1Khz => 100 spikes extra
+                             param_t{2.0, 2000, 4200},
+                             param_t{4.0, 4000, 8400}}) {
         arb::spike_source_cell_editor edit = [&](auto& cell) { cell.schedules = {arb::regular_schedule(1.0/(2.0_kHz * param.nu_kHz))}; };
-        auto rec = source_recipe{param.rtr, param.nu_kHz};
+        auto rec = source_recipe{param.nu_kHz};
         auto sim = arb::simulation{rec};
         sim.run(100_ms, 0.1_ms);
         sim.edit_cell(5, edit);
@@ -359,11 +384,11 @@ TEST(edit_source, edit_rate) {
     }
 
     //                               rtr  nu    100   200
-    for (const auto& param: {param_t{1e-4, 1.0, 1000,  2500}, // one cell adds 100ms x 2kHz, the others stay at 1Khz => 100 spikes extra
-                             param_t{1e-4, 2.0, 2000,  5000},
-                             param_t{1e-4, 4.0, 4000, 10000}}) {
+    for (const auto& param: {param_t{1.0, 1000,  2500}, // one cell adds 100ms x 2kHz, the others stay at 1Khz => 100 spikes extra
+                             param_t{2.0, 2000,  5000},
+                             param_t{4.0, 4000, 10000}}) {
         arb::spike_source_cell_editor edit = [&](auto& cell) { cell.schedules = {arb::regular_schedule(1.0/(2.0_kHz * param.nu_kHz))}; };
-        auto rec = source_recipe{param.rtr, param.nu_kHz};
+        auto rec = source_recipe{param.nu_kHz};
         auto sim = arb::simulation{rec};
         sim.run(100_ms, 0.1_ms);
         for (auto gid = 0u; gid < rec.num_cells(); gid += 2) sim.edit_cell(gid, edit);
@@ -373,11 +398,11 @@ TEST(edit_source, edit_rate) {
     }
 
     //                               rtr  nu    100   200
-    for (const auto& param: {param_t{1e-4, 1.0, 1000,  3000}, // one cell adds 100ms x 2kHz, the others stay at 1Khz => 100 spikes extra
-                             param_t{1e-4, 2.0, 2000,  6000},
-                             param_t{1e-4, 4.0, 4000, 12000}}) {
+    for (const auto& param: {param_t{1.0, 1000,  3000}, // one cell adds 100ms x 2kHz, the others stay at 1Khz => 100 spikes extra
+                             param_t{2.0, 2000,  6000},
+                             param_t{4.0, 4000, 12000}}) {
         arb::spike_source_cell_editor edit = [&](auto& cell) { cell.schedules = {arb::regular_schedule(1.0/(2.0_kHz * param.nu_kHz))}; };
-        auto rec = source_recipe{param.rtr, param.nu_kHz};
+        auto rec = source_recipe{param.nu_kHz};
         auto sim = arb::simulation{rec};
         sim.run(100_ms, 0.1_ms);
         for (auto gid = 0u; gid < rec.num_cells(); ++gid) sim.edit_cell(gid, edit);
@@ -388,16 +413,43 @@ TEST(edit_source, edit_rate) {
 
 }
 
+TEST(edit_source, do_nothing_does_nothing) {
+    arb::spike_source_cell_editor edit = [](auto& cell) { cell.schedules = {arb::poisson_schedule(1.0_kHz, 42) };};
+    arb::spike_source_cell_editor noop = [](auto& cell) {};
+
+    size_t n_noop = 0;
+    {
+        auto rec = source_recipe{1.0};
+        auto sim = arb::simulation{rec};
+        for (auto gid = 0u; gid < rec.num_cells(); ++gid) sim.edit_cell(gid, edit);
+        sim.run(100_ms, 0.1_ms);
+        for (auto gid = 0u; gid < rec.num_cells(); ++gid) sim.edit_cell(gid, noop);
+        sim.run(200_ms, 0.1_ms);
+        n_noop = sim.num_spikes();
+    }
+    size_t n_expt = 0;
+    {
+        auto rec = source_recipe{1.0};
+        auto sim = arb::simulation{rec};
+        for (auto gid = 0u; gid < rec.num_cells(); ++gid) sim.edit_cell(gid, edit);
+        sim.run(200_ms, 0.1_ms);
+        n_expt = sim.num_spikes();
+    }
+    EXPECT_EQ(n_expt, n_noop);
+    EXPECT_GE(n_noop, 2100);
+    EXPECT_LE(n_noop, 2400);
+}
+
 TEST(edit_source, edit_schedule) {
     auto eps = 0.06;
 
     using param_t = source_recipe::param_t;
     //                               rtr  nu    100   200
-    for (const auto& param: {param_t{1e-4, 1.0, 1000, 2100}, // one cell adds 100ms x 2kHz, the others stay at 1Khz => 100 spikes extra
-                             param_t{1e-4, 2.0, 2000, 4100},
-                             param_t{1e-4, 4.0, 4000, 8100}}) {
+    for (const auto& param: {param_t{1.0, 1000, 2100}, // one cell adds 100ms x 2kHz, the others stay at 1Khz => 100 spikes extra
+                             param_t{2.0, 2000, 4100},
+                             param_t{4.0, 4000, 8100}}) {
         arb::spike_source_cell_editor edit = [&](auto& cell) { cell.schedules.push_back(arb::poisson_schedule(1.0_ms/param.nu_kHz)); };
-        auto rec = source_recipe{param.rtr, param.nu_kHz};
+        auto rec = source_recipe{param.nu_kHz};
         auto sim = arb::simulation{rec};
         sim.run(100_ms, 0.1_ms);
         sim.edit_cell(5, edit);
@@ -405,15 +457,14 @@ TEST(edit_source, edit_schedule) {
         sim.run(200_ms, 0.1_ms);
         EXPECT_GE(sim.num_spikes(), param.n_200*(1.0 - eps));
         EXPECT_LE(sim.num_spikes(), param.n_200*(1.0 + eps));
-
     }
 
     //                               rtr  nu    100   200
-    for (const auto& param: {param_t{1e-4, 1.0, 1000,  2500},
-                             param_t{1e-4, 2.0, 2000,  5000},
-                             param_t{1e-4, 4.0, 4000, 10000}}) {
+    for (const auto& param: {param_t{1.0, 1000,  2500},
+                             param_t{2.0, 2000,  5000},
+                             param_t{4.0, 4000, 10000}}) {
         arb::spike_source_cell_editor edit = [&](auto& cell) { cell.schedules.push_back(arb::poisson_schedule(1.0_ms/param.nu_kHz)); };
-        auto rec = source_recipe{param.rtr, param.nu_kHz};
+        auto rec = source_recipe{param.nu_kHz};
         auto sim = arb::simulation{rec};
         sim.run(100_ms, 0.1_ms);
         for (auto gid = 0u; gid < rec.num_cells(); gid += 2) sim.edit_cell(gid, edit);
@@ -424,11 +475,11 @@ TEST(edit_source, edit_schedule) {
     }
 
     //                               rtr  nu    100   200
-    for (const auto& param: {param_t{1e-4, 1.0, 1000,  3000},  // 0-100: 1000 spikes 100-200: 1000 + ~1000
-                             param_t{1e-4, 2.0, 2000,  6000},
-                             param_t{1e-4, 4.0, 4000, 12000}}) {
+    for (const auto& param: {param_t{1.0, 1000,  3000},  // 0-100: 1000 spikes 100-200: 1000 + ~1000
+                             param_t{2.0, 2000,  6000},
+                             param_t{4.0, 4000, 12000}}) {
         arb::spike_source_cell_editor edit = [&](auto& cell) { cell.schedules.push_back(arb::poisson_schedule(1.0_ms/param.nu_kHz)); };
-        auto rec = source_recipe{param.rtr, param.nu_kHz};
+        auto rec = source_recipe{param.nu_kHz};
         auto sim = arb::simulation{rec};
         sim.run(100_ms, 0.1_ms);
         for (auto gid = 0u; gid < rec.num_cells(); ++gid) sim.edit_cell(gid, edit);
@@ -440,7 +491,7 @@ TEST(edit_source, edit_schedule) {
 }
 
 TEST(edit_spike_source, errors) {
-    auto rec = source_recipe{1, 1};
+    auto rec = source_recipe{1};
     auto sim = arb::simulation{rec};
     // Check that errors are actually thrown.
     EXPECT_THROW(sim.edit_cell( 0, arb::spike_source_cell_editor([](auto& cell) { cell.source = "foo"; })), arb::bad_cell_edit);

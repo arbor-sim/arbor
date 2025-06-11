@@ -58,12 +58,13 @@ benchmark_cell_group::edit_cell(cell_gid_type gid, std::any cell_edit) {
         auto lid = util::binary_search_index(gids_, gid);
         if (!lid) throw arb::arbor_internal_error{"gid " + std::to_string(gid) + " erroneuosly dispatched to cell group."};
         benchmark_cell& lowered = cells_[*lid];
-        auto tmp = lowered;
+        auto tmp = benchmark_cell(lowered.source, lowered.target, std::move(lowered.time_sequence), lowered.realtime_ratio);
         bench_edit(tmp);
         if (tmp.source != lowered.source) throw bad_cell_edit(gid, "Source is not editable.");
         if (tmp.target != lowered.target) throw bad_cell_edit(gid, "Target is not editable.");
         // Write back
-        lowered = tmp;
+        lowered.time_sequence = std::move(tmp.time_sequence);
+        lowered.realtime_ratio = tmp.realtime_ratio;
     }
     catch (const std::bad_any_cast&) {
         throw bad_cell_edit(gid, "Not a Benchmark editor (C++ type-id: '" + std::string{cell_edit.type().name()} + "')");
