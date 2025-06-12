@@ -453,7 +453,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     decor.place(arb::mlocation{0,0}, arb::threshold_detector{10*U::mV}, "d");
 
     // Add a synapse to proximal end of first dendrite.
-    decor.place(arb::mlocation{1, 0}, arb::synapse{"expsyn"}, "p");
+    decor.place(arb::mlocation{0, 1}, arb::synapse{"expsyn"}, "p");
 
     // Add additional synapses that will not be connected to anything.
     if (params.synapses > 1) {
