@@ -1,5 +1,5 @@
 {
-    "name": "with-stdp",
+    "name": "without-stdp",
     "num-cells": 1024,
     "synapses": 1000,
     "min-delay": 5,
