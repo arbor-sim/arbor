@@ -56,10 +56,10 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
 
     value_type time() const override { return state_->time; }
 
+    void edit_density_parameter(cell_gid_type, cell_lid_type, const cable_cell_density_edit&);
+
     //Exposed for testing purposes
-    std::vector<mechanism_ptr>& mechanisms() {
-        return mechanisms_;
-    }
+    std::vector<mechanism_ptr>& mechanisms() { return mechanisms_; }
 
     ARB_SERDES_ENABLE(fvm_lowered_cell_impl<Backend>, seed_, state_);
 
@@ -354,8 +354,16 @@ fvm_lowered_cell_impl<Backend>::add_probes(const std::vector<cell_gid_type>& gid
     }
 }
 
+template <typename Backend> void
+fvm_lowered_cell_impl<Backend>::edit_density_parameter(cell_gid_type gid,
+                                                       cell_lid_type lid,
+                                                       const cable_cell_density_edit& edit) {
+    state_->update_density_data();
+    // state_
+}
+    
 template <typename Backend> fvm_initialization_data
-fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gids,
+fvm_lowered_cell_impl<Backend>::initialize(constam std::vector<cell_gid_type>& gids,
                                            const recipe& rec) {
     using std::any_cast;
     using util::count_along;

@@ -350,6 +350,16 @@ private:
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
 };
 
+struct cable_cell_density_edit {
+    std::string mechanism_name;
+    region where;
+    std::string parameter_name;
+    double value = 0.0;
+};
+
+using cable_cell_edit = std::variant<cable_cell_density_edit>;
+using cable_cell_editor = std::vector<cable_cell_edit>;
+
 } // namespace arb
 
 ARB_DEFINE_HASH(arb::cable_probe_point_info, a.target, a.multiplicity, a.loc);

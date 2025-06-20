@@ -40,7 +40,7 @@ struct cell_group {
     virtual void remove_all_samplers() = 0;
 
     // allow editing of certain cell properties
-    virtual void edit_cell(cell_gid_type gid, std::any edit) { throw arbor_internal_error{"Editing not implemented."}; }
+    virtual void edit_cell(cell_gid_type gid, std::any edit) = 0;
 
     // Probe metadata queries might also be called while a simulation is
     // running, and so should also be thread-safe.
