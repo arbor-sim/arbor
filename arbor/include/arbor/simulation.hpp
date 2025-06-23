@@ -23,13 +23,13 @@ using spike_export_function = std::function<void(const std::vector<spike>&)>;
 using epoch_function = std::function<void(double time, double tfinal)>;
 
 // simulation_state comprises private implementation for simulation class.
-class simulation_state;
+struct simulation_state;
 
 class simulation_builder;
 
-class ARB_ARBOR_API simulation {
-public:
-    simulation(const recipe& rec, context ctx, const domain_decomposition& decomp,
+struct ARB_ARBOR_API simulation {
+    simulation(const recipe& rec, context ctx,
+               const domain_decomposition& decomp,
                arb_seed_type seed = 0);
 
     simulation(const recipe& rec,
