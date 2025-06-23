@@ -23,5 +23,6 @@
     "lengths": [
         200,
         20
-    ]
+    ],
+    "cpu-group-size": 1
 }

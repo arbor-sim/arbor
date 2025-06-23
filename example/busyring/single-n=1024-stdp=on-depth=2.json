@@ -9,7 +9,7 @@
     "record": false,
     "spikes": false,
     "dt": 0.025,
-    "depth": 2,
+    "depth": 0,
     "complex": false,
     "stdp": true,
     "branch-probs": [
@@ -23,5 +23,6 @@
     "lengths": [
         2,
         1
-    ]
+    ],
+    "cpu-group-size": 1
 }

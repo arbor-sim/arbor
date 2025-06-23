@@ -215,13 +215,12 @@ std::string get_arbor_config_str() {
     #ifdef ARB_BUNDLED_ENABLED
         config_str += std::string("bundled=true, ");
     #else
-        config_str += std::string("bundled=false");
+        config_str += std::string("bundled=false, ");
     #endif
     config_str += std::string("version='") + arb::version + "', " +
                   std::string("source='") + arb::source_id + "', " +
-                  std::string("arch='") + arb::arch + "', " +
                   std::string("build_config='") + arb::build_config + "', " +
-                  std::string("full_build_id='") + arb::full_build_id + "'";
+                  std::string("arch='") + arb::arch + "'";
     return config_str;
 }
 
@@ -256,7 +255,7 @@ int main(int argc, char** argv) {
                       << "mpi:      " << (has_mpi(context)? "yes": "no") << "\n"
                       << "ranks:    " << num_ranks(context) << "\n"
                       << "stdp:     " << (params.cell.stdp  ? "yes": "no") << "\n"
-                      << "config:     " << (get_arbor_config_str()) << "\n"
+                      << "config:   " << (get_arbor_config_str()) << "\n"
                       << std::endl;
         }
 
