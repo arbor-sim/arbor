@@ -22,10 +22,10 @@ std::string gd_string(const arb::group_description& g) {
         g.gids.size(), util::csv(g.gids, 5), g.kind, g.backend);
 }
 
-std::string dd_string(const arb::domain_decomposition& d) {
+std::string dd_string(const arb::domain_decomposition_ptr d) {
     return util::pprintf(
         "<arbor.domain_decomposition: domain_id {}, num_domains {}, num_local_cells {}, num_global_cells {}, groups {}>",
-        d.domain_id(), d.num_domains(), d.num_local_cells(), d.num_global_cells(), d.num_groups());
+        d->domain_id(), d->num_domains(), d->num_local_cells(), d->num_global_cells(), d->num_groups());
 }
 
 std::string ph_string(const arb::partition_hint& h) {
@@ -81,9 +81,7 @@ void register_domain_decomposition(pybind11::module& m) {
         "The domain decomposition is responsible for describing the distribution of cells across cell groups and domains.");
     domain_decomposition
         .def("gid_domain",
-            [](const arb::domain_decomposition& d, arb::cell_gid_type gid) {
-                return d.gid_domain(gid);
-            },
+            [](const arb::domain_decomposition_ptr d, arb::cell_gid_type gid) { return d->gid_domain(gid); },
             "Query the domain id that a cell assigned to (using global identifier gid).",
             "gid"_a)
         .def_property_readonly("num_domains", &arb::domain_decomposition::num_domains,
@@ -137,7 +135,7 @@ void register_domain_decomposition(pybind11::module& m) {
     m.def("generate_network_connections",
           [](const std::shared_ptr<recipe>& rec,
              std::shared_ptr<context_shim> ctx,
-             std::optional<arb::domain_decomposition> decomp) {
+             std::optional<arb::domain_decomposition_ptr> decomp) {
               recipe_shim rec_shim(rec);
               if (!ctx) ctx = std::make_shared<context_shim>(arb::make_context());
               if (!decomp) decomp = arb::partition_load_balance(rec_shim, ctx->context);

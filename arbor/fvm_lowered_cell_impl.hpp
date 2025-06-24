@@ -418,18 +418,15 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     check_voltage_mV_ = global_props.membrane_voltage_limit_mV;
 
     // Discretize cells, build matrix.
-
     fvm_cv_discretization D = fvm_cv_discretize(cells, global_props.default_parameters, context_);
 
     arb_assert(D.n_cell() == ncell);
 
     // Discretize and build gap junction info.
-
     auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
     auto gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
 
     // Discretize mechanism data.
-
     fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, gids, gj_conns, D, context_);
 
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
@@ -553,9 +550,10 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
         }
 
         auto [mech, over] = mech_instance(name);
-        state_->instantiate(*mech, mech_id, over, layout, config.param_values);
-        mechptr_by_name[name] = mech.get();
+        auto id = state_->instantiate(*mech, over, layout, config.param_values);
+        if (id != mech_id) throw arbor_internal_error("Mech id mismatch");
         ++mech_id;
+        mechptr_by_name[name] = mech.get();
 
         switch (config.kind) {
             case arb_mechanism_kind_gap_junction:

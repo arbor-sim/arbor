@@ -21,20 +21,9 @@
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 #include "profile/profiler_macro.hpp"
+#include "skasort.hpp"
 
 namespace arb {
-
-// destructively split event span into before/after given time.
-// Returns before, sets input to after
-inline auto split_event_span(event_span& seq, time_type time) {
-    auto it = std::lower_bound(seq.begin(), seq.end(),
-                               time,
-                               [](auto const& l, auto r) noexcept { return l.time < r; });
-    auto res = event_span{seq.left, it};
-    seq.left = it;
-    return res;
-}
-
 // Create a new cell event_lane vector from sorted pending events, previous event_lane events,
 // and events from event generators for the given interval.
 ARB_ARBOR_API void merge_cell_events(time_type t_from,
@@ -43,48 +32,41 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
                                      event_span pending,
                                      std::vector<event_generator>& generators,
                                      pse_vector& new_events) {
+    // Tree-merge events in [t_from, t_to) from old, pending, and generator events.
     PE(communication:enqueue:setup);
-    new_events.clear();
     // discard events from before the current epoch
-    split_event_span(old_events, t_from);
+    old_events.left = std::lower_bound(old_events.begin(), old_events.end(),
+                                       t_from,
+                                       [](auto const& l, auto r) noexcept { return l.time < r; });
     PL();
 
-    // Tree-merge events in [t_from, t_to) from old, pending, and generator events.
-    if (!generators.empty()) {
-        PE(communication:enqueue:setup);
-        std::vector<event_span> spanbuf(2 + generators.size(), event_span{});
+    std::size_t n_evts = old_events.size() + pending.size();
+    std::vector<event_span> spanbuf;
+    spanbuf.reserve(2 + generators.size());
 
-        // split out events for this epoch from old
-        auto old_split = split_event_span(old_events, t_to);
-        spanbuf.push_back(old_split);
-
-        // split out event for this from pending
-        auto pending_split = split_event_span(pending, t_to);
-        spanbuf.push_back(pending_split);
-
-        // fetch generator events
-        for (auto& g: generators) {
-            event_span evs = g.events(t_from, t_to);
-            if (!evs.empty()) spanbuf.push_back(evs);
+    // fetch generator events
+    PE(communication:enqueue:generators);
+    for (auto& g: generators) {
+        event_span evts = g.events(t_from, t_to);
+        if (!evts.empty()) {
+            spanbuf.push_back(evts);
+            n_evts += evts.size();
         }
-        PL();
-
-        // merge all event source in to new events
-        PE(communication:enqueue:tree);
-        merge_events(spanbuf, new_events);
-        PL();
     }
+    PL();
 
-    // Merge (remaining) old and pending events.
-    PE(communication:enqueue:merge);
-    auto n = new_events.size();
-    new_events.resize(n + pending.size() + old_events.size());
-    std::merge(pending.begin(), pending.end(), old_events.begin(), old_events.end(), new_events.begin() + n);
+    spanbuf.push_back(pending);
+    spanbuf.push_back(old_events);
+
+    // merge all event source in to new events
+    PE(communication:enqueue:tree);
+    new_events.clear();
+    merge_events(spanbuf, new_events, n_evts);
     PL();
 }
 
 struct simulation_state {
-    simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx, arb_seed_type seed);
+    simulation_state(const recipe& rec, const domain_decomposition_ptr decomp, context ctx, arb_seed_type seed);
 
     void update(const recipe& rec);
 
@@ -188,11 +170,10 @@ private:
     // map gid to group index
     std::unordered_map<cell_gid_type, cell_size_type> gid_to_cell_index_;
 
-    communicator communicator_;
     context ctx_;
-    domain_decomposition ddc_;
-
+    domain_decomposition_ptr ddc_;
     task_system_handle task_system_;
+    communicator communicator_;
 
     // Pending events to be delivered.
     std::vector<pse_vector> pending_events_;
@@ -231,23 +212,24 @@ private:
 };
 
 simulation_state::simulation_state(const recipe& rec,
-                                   const domain_decomposition& decomp,
+                                   const domain_decomposition_ptr decomp,
                                    context ctx,
                                    arb_seed_type seed):
     ctx_{ctx},
     ddc_{decomp},
-    task_system_(ctx->thread_pool),
-    local_spikes_({thread_private_spike_store(ctx->thread_pool),
-                  thread_private_spike_store(ctx->thread_pool)}) {
+    task_system_(ctx_->thread_pool),
+    communicator_{rec, ddc_, ctx_},
+    local_spikes_({thread_private_spike_store(ctx_->thread_pool),
+                   thread_private_spike_store(ctx_->thread_pool)}) {
     // Generate the cell groups in parallel, with one task per cell group.
-    auto num_groups = decomp.num_groups();
+    auto num_groups = decomp->num_groups();
     cell_groups_.resize(num_groups);
     std::vector<cell_labels_and_gids> cg_sources(num_groups);
     std::vector<cell_labels_and_gids> cg_targets(num_groups);
     foreach_group_index(
         [&](cell_group_ptr& group, int i) {
           PE(init:simulation:group:factory);
-          const auto& group_info = decomp.group(i);
+          const auto& group_info = decomp->group(i);
           cell_label_range sources, targets;
           auto factory = cell_kind_implementation(group_info.kind, group_info.backend, *ctx_, seed);
           group = factory(group_info.gids, rec, sources, targets);
@@ -272,10 +254,6 @@ simulation_state::simulation_state(const recipe& rec,
     for(auto gidx: util::make_span(num_groups)) local_targets.append(std::move(cg_targets[gidx]));
     target_resolution_map_ = label_resolution_map(std::move(local_targets));
     PL();
-
-    PE(init:simulation:comm);
-    communicator_ = communicator(rec, ddc_, ctx_);
-    PL();
     update(rec);
     epoch_.reset();
 }
@@ -294,7 +272,7 @@ void simulation_state::update(const recipe& rec) {
     cell_size_type lidx = 0;
     PE(init:simulation:update:generators);
     auto target_resolver = resolver(&target_resolution_map_);
-    for (const auto& group_info: ddc_.groups()) {
+    for (const auto& group_info: ddc_->groups()) {
         for (auto gid: group_info.gids) {
             // Store mapping of gid to local cell index.
             gid_to_cell_index_[gid] = lidx;
@@ -454,31 +432,32 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
                 // time may change. Consider synapses like this
                 //
                 // NET_RECEIVE (weight) {
-                //   if (state < threshold) {
-                //      state = state + weight
-                //   }
+                //   if (state < threshold) { state = state + weight }
                 // }
                 //
-                // DERIVATIVE dState {
-                //   state' = -tau
-                // }
+                // DERIVATIVE dState { state' = -tau }
                 //
                 // and we'd end with different behaviours when events with
                 // different weights occur at the same time. We also cannot
                 // collapse events as with LIF cells by summing weights as this
                 // disturbs dynamics in a different way, eg when
                 //
-                // NET_RECEIVE (weight) {
-                //   state = state + 42
-                // }
+                // NET_RECEIVE (weight) { state = state + 42 }
+                //
+                // or
+                //
+                // NET_RECEIVE (weight) { state = state + weight^2 }
+                //
+                // ie synapses are not linear in weight
                 PE(communication:enqueue:sort);
-                util::sort(pending_events_[i]);
+                ska_sort(pending_events_[i].begin(), pending_events_[i].end(),
+                         [](const auto& o) { return std::tie(o.time, o.target, o.weight); });
                 PL();
-
-                event_span pending = util::range_pointer_view(pending_events_[i]);
-                event_span old_events = util::range_pointer_view(event_lanes(next.id-1)[i]);
-
-                merge_cell_events(next.t0, next.t1, old_events, pending, event_generators_[i], event_lanes(next.id)[i]);
+                merge_cell_events(next.t0, next.t1,                                      // time range [from, to)
+                                  util::range_pointer_view(event_lanes(next.id - 1)[i]), // last epoch's events
+                                  util::range_pointer_view(pending_events_[i]),          // current epoch's
+                                  event_generators_[i],
+                                  event_lanes(next.id)[i]);                              // out: merged events
                 pending_events_[i].clear();
             });
     };
@@ -565,7 +544,7 @@ simulation_builder simulation::create(recipe const & rec) { return {rec}; };
 
 simulation::simulation(const recipe& rec,
                        context ctx,
-                       const domain_decomposition& decomp,
+                       const domain_decomposition_ptr decomp,
                        arb_seed_type seed) {
     impl_.reset(new simulation_state(rec, decomp, ctx, seed));
 }

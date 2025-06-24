@@ -63,7 +63,7 @@ TEST(abi, multicore_initialisation) {
     layout.weight.assign(ncv, 1.);
     for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
 
-    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout, {}));
+    EXPECT_EQ(shared_state.instantiate(mech, {}, layout, {}), 0);
 
     {
         ASSERT_EQ(globals.size(), mech.mech_.n_globals);
@@ -144,7 +144,7 @@ TEST(abi, multicore_null) {
     layout.weight.assign(ncv, 1.);
     for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
 
-    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout, {}));
+    EXPECT_EQ(shared_state.instantiate(mech, {}, layout, {}), 0);
 }
 
 #ifdef ARB_GPU_ENABLED
@@ -214,7 +214,7 @@ TEST(abi, gpu_initialisation) {
     layout.weight.assign(ncv, 1.);
     for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
 
-    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout, {}));
+    EXPECT_EQ(shared_state.instantiate(mech, {}, layout, {}), 0);
 
     {
         ASSERT_EQ(globals.size(), mech.mech_.n_globals);
@@ -295,7 +295,7 @@ TEST(abi, gpu_null) {
     layout.weight.assign(ncv, 1.);
     for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
 
-    EXPECT_NO_THROW(shared_state.instantiate(mech, 42, {}, layout, {}));
+    EXPECT_EQ(shared_state.instantiate(mech, {}, layout, {}), 0);
 }
 
 

@@ -66,11 +66,7 @@ void ARB_ARBOR_API pqueue_merge_events(std::vector<event_span>& sources, pse_vec
     }
 }
 
-void ARB_ARBOR_API merge_events(std::vector<event_span>& sources, pse_vector &out) {
-    // Count events, bail if none; else allocate enough space to store them.
-    auto n_evts = std::accumulate(sources.begin(), sources.end(),
-                                  0,
-                                  [] (auto acc, const auto& rng) { return acc + rng.size(); });
+void ARB_ARBOR_API merge_events(std::vector<event_span>& sources, pse_vector &out, std::size_t n_evts) {
     out.reserve(out.size() + n_evts);
     auto n_queues = sources.size();
     if (n_queues < 20) { // NOTE: MAGIC NUMBER, found by ubench/merge
@@ -80,5 +76,14 @@ void ARB_ARBOR_API merge_events(std::vector<event_span>& sources, pse_vector &ou
         pqueue_merge_events(sources, out);
     }
 }
+
+void ARB_ARBOR_API merge_events(std::vector<event_span>& sources, pse_vector &out) {
+    // Count events, bail if none; else allocate enough space to store them.
+    auto n_evts = std::accumulate(sources.begin(), sources.end(),
+                                  0,
+                                  [] (auto acc, const auto& rng) { return acc + rng.size(); });
+    merge_events(sources, out, n_evts);
+}
+
 
 } // namespace arb

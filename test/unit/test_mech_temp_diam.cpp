@@ -53,7 +53,7 @@ void run_celsius_test() {
         layout.cv.push_back(i);
     }
 
-    shared_state->instantiate(*celsius_test, 0, overrides, layout, {});
+    EXPECT_EQ(shared_state->instantiate(*celsius_test, overrides, layout, {}), 0);
     shared_state->reset();
 
     // expect 0 value in state 'c' after init:
@@ -107,7 +107,7 @@ void run_diam_test() {
                                                                          fvm_detector_info{},
                                                                          mech->data_alignment());
 
-    shared_state->instantiate(*mech, 0, mechanism_overrides{}, layout, {});
+    EXPECT_EQ(shared_state->instantiate(*mech, mechanism_overrides{}, layout, {}), 0);
     shared_state->reset();
 
     // expect 0 value in state 'd' after init:

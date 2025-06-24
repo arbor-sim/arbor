@@ -604,8 +604,8 @@ TEST(fvm_lowered, ionic_concentrations) {
                                                                          read_cai_mech->data_alignment());
     shared_state->add_ion("ca", ion_config);
 
-    shared_state->instantiate(*read_cai_mech, 0, overrides, layout, {});
-    shared_state->instantiate(*write_cai_mech, 1, overrides, layout, {});
+    shared_state->instantiate(*read_cai_mech, overrides, layout, {});
+    shared_state->instantiate(*write_cai_mech, overrides, layout, {});
 
     shared_state->reset();
 
