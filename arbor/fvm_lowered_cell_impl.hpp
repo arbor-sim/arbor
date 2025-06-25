@@ -373,6 +373,7 @@ get_cable_cell_global_properties(const recipe& rec) {
 
 inline auto
 instantiate_cable_cells(const recipe& rec, const std::vector<cell_gid_type>& gids, execution_context ctx) {
+    using std::any_cast;
     std::vector<cable_cell> cells;
     cells.resize(gids.size());
     threading::parallel_for::apply(0, gids.size(), ctx.thread_pool.get(),
@@ -391,11 +392,11 @@ instantiate_cable_cells(const recipe& rec, const std::vector<cell_gid_type>& gid
 template <typename Backend> fvm_initialization_data
 fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gids,
                                            const recipe& rec) {
-    using std::any_cast;
+    // ensure GPU is initialized
+    set_gpu();
+
 
     fvm_initialization_data fvm_info;
-
-    set_gpu();
 
     const std::size_t ncell = gids.size();
     profile::get_memory("      [>] cells");
@@ -413,13 +414,10 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     }
     profile::get_memory("      [<] src & tgt");
 
+    // extract and verify global settings
     auto global_props = get_cable_cell_global_properties(rec);
-    const auto& catalogue = global_props.catalogue;
-
-    // Mechanism instantiator helper.
-    auto mech_instance = [&catalogue](const std::string& name) {
-        return catalogue.instance(backend::kind, name);
-    };
+    // fetch backend specific mechanism data
+    auto mech_instance = [&global_props](const auto& name) { return global_props.catalogue.instance(backend::kind, name); };
 
     // Check for physically reasonable membrane volages?
     check_voltage_mV_ = global_props.membrane_voltage_limit_mV;
@@ -427,9 +425,8 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     // Discretize cells, build matrix.
     profile::get_memory("      [>] disc");
     fvm_cv_discretization D = fvm_cv_discretize(cells, global_props.default_parameters, context_);
-    profile::get_memory("      [<] disc");
-
     arb_assert(D.n_cell() == ncell);
+    profile::get_memory("      [<] disc");
 
     // Discretize and build gap junction info.
     auto gj_cvs = fvm_build_gap_junction_cv_map(cells, gids, D);
@@ -443,13 +440,10 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
     post_events_ = mech_data.post_events;
     auto max_detector = 0;
+    std::vector<arb_index_type> src_to_spike, cv_to_cell;
     if (post_events_) {
         auto it = util::max_element_by(fvm_info.num_sources, [](auto elem) {return util::second(elem);});
         max_detector = it->second;
-    }
-
-    std::vector<arb_index_type> src_to_spike, cv_to_cell;
-    if (post_events_) {
         for (auto cell_idx: util::make_span(ncell)) {
             for (auto lid: util::make_span(fvm_info.num_sources[gids[cell_idx]])) {
                 src_to_spike.push_back(cell_idx * max_detector + lid);
@@ -463,33 +457,34 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     std::vector<arb_index_type> cv_to_gid(D.geometry.cv_to_cell.size());
     std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(),
                    cv_to_gid.begin(),
-                   [&gids](auto i){return gids[i]; });
+                   [&gids](auto i){ return gids[i]; });
+
+
+    // Shared state vectors should accommodate each mechanism's data alignment
+    // requests, set a minimum of one.
+    unsigned data_alignment = std::max(util::max_value(
+                                           util::transform_view(util::keys(mech_data.mechanisms),
+                                                                [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); })),
+                                       1u);
 
     // Create shared cell state.
-    // Shared state vectors should accommodate each mechanism's data alignment requests.
-
-    unsigned data_alignment = util::max_value(
-        util::transform_view(util::keys(mech_data.mechanisms),
-            [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
-
-    auto d_info = get_detector_info(max_detector, ncell, cells, D, context_);
     profile::get_memory("      [>] state");
     state_ = std::make_unique<shared_state>(context_.thread_pool,
                                             ncell,
                                             std::move(cv_to_cell),
                                             D,
                                             std::move(src_to_spike),
-                                            d_info,
+                                            get_detector_info(max_detector, ncell, cells, D, context_),
                                             mech_data.ions,
                                             mech_data.stimuli,
-                                            data_alignment? data_alignment: 1u,
+                                            data_alignment,
                                             seed_);
     profile::get_memory("      [<] state");
+
+    profile::get_memory("      [>] instances");
     // Keep track of mechanisms by name for probe lookup.
     std::unordered_map<std::string, mechanism*> mechptr_by_name;
     target_handles_.resize(mech_data.n_target);
-
-    unsigned mech_id = 0;
     for (const auto& [name, config]: mech_data.mechanisms) {
         mechanism_layout layout;
         layout.cv = config.cv;
@@ -505,7 +500,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
         // to convert from the mechanism current contribution units to A/m².
         arb_size_type idx_offset = 0;
         switch (config.kind) {
-        case arb_mechanism_kind_point:
+        case arb_mechanism_kind_point: {
             // Point mechanism contributions are in [nA]; CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
             layout.gid.resize(config.cv.size());
@@ -514,12 +509,16 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                 auto cv = layout.cv[i];
                 layout.weight[i] = 1000/D.cv_area[cv];
                 layout.gid[i] = cv_to_gid[cv];
-                if (i>0 && (layout.gid[i-1] != layout.gid[i])) idx_offset = i;
+                if (i > 0 && (layout.gid[i-1] != layout.gid[i])) idx_offset = i;
                 layout.idx[i] = i - idx_offset;
 
                 if (config.target.empty()) continue;
-
-                target_handle handle(mech_id, i);
+            }
+            auto [mech, over] = mech_instance(name);
+            auto id = state_->instantiate(*mech, over, layout, config.param_values);
+            fvm_info.num_targets_per_mech_id[id] = config.target.size();
+            for (auto i: util::count_along(config.cv)) {
+                target_handle handle(id, i);
                 if (config.multiplicity.empty()) {
                     target_handles_[config.target[i]] = handle;
                 }
@@ -529,18 +528,24 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                     }
                 }
             }
-            fvm_info.num_targets_per_mech_id[mech_id] = config.target.size();
+            mechptr_by_name[name] = mech.get();
+            mechanisms_.emplace_back(mech.release());
             break;
-        case arb_mechanism_kind_gap_junction:
+        }
+        case arb_mechanism_kind_gap_junction: {
             // Junction mechanism contributions are in [nA] (µS * mV); CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
             for (auto i: util::count_along(layout.cv)) {
                 auto cv = layout.cv[i];
                 layout.weight[i] = config.local_weight[i] * 1000/D.cv_area[cv];
             }
+            auto [mech, over] = mech_instance(name);
+            auto id = state_->instantiate(*mech, over, layout, config.param_values);
+            mechptr_by_name[name] = mech.get();
+            mechanisms_.emplace_back(mech.release());
             break;
-        case arb_mechanism_kind_voltage:
-        case arb_mechanism_kind_density:
+        }
+        case arb_mechanism_kind_voltage: {
             // Current density contributions from mechanism are already in [A/m²].
             layout.gid.resize(layout.cv.size());
             layout.idx.resize(layout.gid.size());
@@ -550,37 +555,41 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                 if (i>0 && (layout.gid[i-1] != layout.gid[i])) idx_offset = i;
                 layout.idx[i] = i - idx_offset;
             }
+            auto [mech, over] = mech_instance(name);
+            auto id = state_->instantiate(*mech, over, layout, config.param_values);
+            mechptr_by_name[name] = mech.get();
+            voltage_mechanisms_.emplace_back(mech.release());
             break;
-        case arb_mechanism_kind_reversal_potential:
+        }
+        case arb_mechanism_kind_density: {
+            // Current density contributions from mechanism are already in [A/m²].
+            layout.gid.resize(layout.cv.size());
+            layout.idx.resize(layout.gid.size());
+            for (auto i: util::count_along(layout.cv)) {
+                layout.weight[i] = config.norm_area[i];
+                layout.gid[i] = cv_to_gid[i];
+                if (i>0 && (layout.gid[i-1] != layout.gid[i])) idx_offset = i;
+                layout.idx[i] = i - idx_offset;
+            }
+            auto [mech, over] = mech_instance(name);
+            auto id = state_->instantiate(*mech, over, layout, config.param_values);
+            mechptr_by_name[name] = mech.get();
+            mechanisms_.emplace_back(mech.release());
+            break;
+        }
+        case arb_mechanism_kind_reversal_potential: {
             // Mechanisms that set reversal potential should not be contributing
             // to any currents, so leave weights as zero.
+            auto [mech, over] = mech_instance(name);
+            auto id = state_->instantiate(*mech, over, layout, config.param_values);
+            mechptr_by_name[name] = mech.get();
+            revpot_mechanisms_.emplace_back(mech.release());
             break;
         }
-
-        auto [mech, over] = mech_instance(name);
-        auto id = state_->instantiate(*mech, over, layout, config.param_values);
-        if (id != mech_id) throw arbor_internal_error("Mech id mismatch");
-        ++mech_id;
-        mechptr_by_name[name] = mech.get();
-
-        switch (config.kind) {
-            case arb_mechanism_kind_gap_junction:
-            case arb_mechanism_kind_point:
-            case arb_mechanism_kind_density: {
-                mechanisms_.emplace_back(mech.release());
-                break;
-            }
-            case arb_mechanism_kind_reversal_potential: {
-                revpot_mechanisms_.emplace_back(mech.release());
-                break;
-            }
-            case arb_mechanism_kind_voltage: {
-                voltage_mechanisms_.emplace_back(mech.release());
-                break;
-            }
-            default: throw invalid_mechanism_kind(config.kind);
+        default: throw invalid_mechanism_kind(config.kind);
         }
     }
+    profile::get_memory("      [<] instances");
 
     add_probes(gids, cells, rec, D, mechptr_by_name, mech_data, target_handles_, fvm_info.probe_map);
 
