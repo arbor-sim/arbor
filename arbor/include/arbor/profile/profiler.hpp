@@ -31,8 +31,6 @@ struct profile {
     double wall_time;
 };
 
-ARB_ARBOR_API void get_memory(const char*);
-
 ARB_ARBOR_API void profiler_clear();
 ARB_ARBOR_API void profiler_initialize(context ctx);
 ARB_ARBOR_API void profiler_enter(std::size_t region_id);

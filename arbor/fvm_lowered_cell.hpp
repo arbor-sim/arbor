@@ -139,15 +139,13 @@ struct fvm_probe_data {
     fvm_probe_data(fvm_probe_interpolated_multi p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_membrane_currents p): info(std::move(p)) {}
 
-    std::variant<
-        missing_probe_info,
-        fvm_probe_scalar,
-        fvm_probe_interpolated,
-        fvm_probe_multi,
-        fvm_probe_weighted_multi,
-        fvm_probe_interpolated_multi,
-        fvm_probe_membrane_currents
-    > info = missing_probe_info{};
+    std::variant<missing_probe_info,
+                 fvm_probe_scalar,
+                 fvm_probe_interpolated,
+                 fvm_probe_multi,
+                 fvm_probe_weighted_multi,
+                 fvm_probe_interpolated_multi,
+                 fvm_probe_membrane_currents> info = missing_probe_info{};
 
     auto raw_handle_range() const {
         return util::make_range(
@@ -237,9 +235,8 @@ struct fvm_initialization_data {
 struct fvm_lowered_cell {
     virtual void reset() = 0;
 
-    virtual fvm_initialization_data initialize(
-        const std::vector<cell_gid_type>& gids,
-        const recipe& rec) = 0;
+    virtual fvm_initialization_data initialize(const std::vector<cell_gid_type>& gids,
+                                               const recipe& rec) = 0;
 
     virtual fvm_integration_result integrate(const timestep_range& dts,
                                              const event_lane_subrange& event_lanes,

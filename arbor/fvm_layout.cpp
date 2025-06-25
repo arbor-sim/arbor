@@ -343,7 +343,7 @@ fvm_cv_discretize(const cable_cell& cell,
     msize_t n_branch = D.geometry.n_branch(0);
     auto& ax_res_0 = D.axial_resistivity[0];
     ax_res_0.reserve(n_branch);
-    for (msize_t i = 0; i<n_branch; ++i) {
+    for (msize_t i = 0; i < n_branch; ++i) {
         auto cable = mcable{i, 0., 1.};
         auto scale_param = [&](const auto&,
                                const axial_resistivity& par) -> double {

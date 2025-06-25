@@ -35,8 +35,8 @@ memory_size_type allocated_memory() {
     mach_msg_type_number_t t_info_count = TASK_BASIC_INFO_COUNT;
     auto rc = task_info(mach_task_self(), TASK_BASIC_INFO, (task_info_t) &res, &t_info_count);
     if (KERN_SUCCESS != rc) return -1;
-    // return res.virtual_size/1024/1024;
-    return res.resident_size/1024/1024;
+    // return res.virtual_size;
+    return res.resident_size;
 }
 #else
 memory_size_type allocated_memory() {

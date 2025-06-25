@@ -90,13 +90,8 @@ struct cable_cell_impl {
     dynamic_typed_map<constant_type<std::unordered_multimap<hash_type, lid_range>>::type> labeled_lid_ranges;
 
     cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& dec, const std::optional<cv_policy>& cvp):
-        provider(m, labels)
+        provider(m, labels), dictionary(labels), decorations(dec), discretization_(cvp)
     {
-        profile::get_memory("          [>] cell*");
-        dictionary = labels;
-        decorations = dec;
-        discretization_ = cvp;
-        profile::get_memory("          [<] cell*");
         init();
     }
 

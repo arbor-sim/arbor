@@ -15,8 +15,6 @@
 namespace arb {
 namespace profile {
 
-void get_memory(const char* tag) { std::cerr << tag << ' ' << hw::allocated_memory() << '\n'; }
-    
 using util::make_span;
 
 #ifdef ARB_HAVE_PROFILING

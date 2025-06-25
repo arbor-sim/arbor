@@ -224,7 +224,6 @@ simulation_state::simulation_state(const recipe& rec,
     // Generate the cell groups in parallel, with one task per cell group.
     auto num_groups = decomp->num_groups();
     cell_groups_.resize(num_groups);
-    profile::get_memory("  [>] factories");
     std::vector<cell_labels_and_gids> cg_sources(num_groups);
     std::vector<cell_labels_and_gids> cg_targets(num_groups);
     foreach_group_index(
@@ -232,17 +231,14 @@ simulation_state::simulation_state(const recipe& rec,
           PE(init:simulation:group:factory);
           const auto& group_info = decomp->group(i);
           cell_label_range sources, targets;
-          profile::get_memory("    [>] factory");
           auto factory = cell_kind_implementation(group_info.kind, group_info.backend, *ctx_, seed);
           group = factory(group_info.gids, rec, sources, targets);
-          profile::get_memory("    [<] factory");
           PL();
           PE(init:simulation:group:targets_and_sources);
           cg_sources[i] = cell_labels_and_gids(std::move(sources), group_info.gids);
           cg_targets[i] = cell_labels_and_gids(std::move(targets), group_info.gids);
           PL();
         });
-    profile::get_memory("  [<] factories");
     PE(init:simulation:sources);
     if (rec.resolve_sources()) {
         cell_labels_and_gids local_sources;
