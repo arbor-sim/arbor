@@ -32,6 +32,8 @@
 #include <arborenv/with_mpi.hpp>
 #endif
 
+#define COUNT_RINGS_AND_SYNAPSES // may cause prolonged initialization times for larger networks
+
 using arb::cell_gid_type;
 using arb::cell_lid_type;
 using arb::cell_size_type;
@@ -51,8 +53,10 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
 
 class ring_recipe: public arb::recipe {
 public:
+#ifdef COUNT_RINGS_AND_SYNAPSES
     mutable unsigned int num_syns_created;
-    mutable unsigned int num_rings_created;
+    mutable std::set<unsigned int> rings_created;
+#endif
 
     ring_recipe(ring_params params):
         num_cells_(params.num_cells),
@@ -70,8 +74,10 @@ public:
             gprop.default_parameters.init_membrane_potential = -90;
         }
 
+#ifdef COUNT_RINGS_AND_SYNAPSES
         this->num_syns_created = 0;
-        this->num_rings_created = 0;
+        this->rings_created = std::set<unsigned int>();
+#endif
     }
 
     std::any get_global_properties(cell_kind kind) const override { return gprop; }
@@ -93,12 +99,14 @@ public:
 
         const auto rs = params_.ring_size;
         const auto current_ring = gid/rs;
-        this->num_rings_created = std::max(current_ring, this->num_rings_created);
         const auto ring_start = rs*current_ring;
         const auto ring_end = std::min(ring_start+rs, num_cells_);
         cell_gid_type src = gid==ring_start ? ring_end-1 : gid-1;
         cons.push_back(arb::cell_connection({src, "d"}, {"p"}, event_weight_, min_delay_*U::ms));
+#ifdef COUNT_RINGS_AND_SYNAPSES
+        this->rings_created.insert(current_ring);
         this->num_syns_created++;
+#endif
 
         // Used to pick source cell for a connection.
         std::uniform_int_distribution<cell_gid_type> dist(0, num_cells_-2);
@@ -113,7 +121,9 @@ public:
             const float delay = min_delay_+delay_dist(src_gen);
             cons.push_back(
                 arb::cell_connection({src, "d"}, {"p"}, 0.f, delay*U::ms));
+#ifdef COUNT_RINGS_AND_SYNAPSES
             this->num_syns_created++;
+#endif
         }
 
         return cons;
@@ -248,7 +258,8 @@ int main(int argc, char** argv) {
         arbenv::with_mpi guard(argc, argv, false);
         resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(resources, MPI_COMM_WORLD);
-        root = arb::rank(context) == 0;
+        auto rank = arb::rank(context);
+        root = rank == 0;
 #else
         resources.gpu_id = arbenv::default_gpu();
         auto context = arb::make_context(resources);
@@ -275,15 +286,22 @@ int main(int argc, char** argv) {
         // Create an instance of our recipe.
         ring_recipe recipe(params);
         cell_stats stats(recipe);
-        if (root) {
+        if (root)
             std::cout << stats << "\n";
-            std::cout << "Number of rings on the current rank: " << recipe.num_rings_created << "." << std::endl;
-            std::cout << "Number of synapses on the current rank: " << recipe.num_syns_created << "." << std::endl;
-        }
         // Make decomposition
         auto decomp = arb::partition_load_balance(recipe, context, {{arb::cell_kind::cable, params.hint}});
         // Construct the model.
         arb::simulation sim(recipe, context, decomp);
+        // Output of critical information
+#ifdef COUNT_RINGS_AND_SYNAPSES
+    #ifdef ARB_MPI_ENABLED
+        std::cout << "Number of rings on rank " << rank << ": " << recipe.rings_created.size() << "." << std::endl;
+        std::cout << "Number of synapses on rank " << rank << ": " << recipe.num_syns_created << "." << std::endl;
+    #else
+        std::cout << "Number of rings: " << recipe.rings_created.size() << "." << std::endl;
+        std::cout << "Number of synapses: " << recipe.num_syns_created << "." << std::endl;
+    #endif
+#endif
 
         // Set up the probe that will measure voltage in the cell.
 
