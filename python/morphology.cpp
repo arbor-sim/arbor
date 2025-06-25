@@ -223,11 +223,14 @@ void register_morphology(py::module& m) {
             "Find the location on the morphology that is closest to a 3d point. "
             "Returns the location and its distance from the point.");
 
-    // arb::place_pwlin
+    // arb::mprovider
     prov
         .def(py::init<const arb::morphology&>(),
-            "morphology"_a,
-            "Construct a morphology provider.")
+             "morphology"_a,
+             "Construct a morphology provider.")
+        .def(py::init<const arb::morphology&, const arb::label_dict&>(),
+             "morphology"_a, "labels"_a,
+             "Construct a morphology provider.")
         .def("reify_locset",
              [](const arb::mprovider& p,
                 const std::string& r) {

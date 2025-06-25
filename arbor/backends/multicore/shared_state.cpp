@@ -431,7 +431,7 @@ unsigned shared_state::instantiate(arb::mechanism& m,
 
     // Initialize state and parameter vectors with default values.
     {
-        // Allocate view pointers for random nubers
+        // Allocate view pointers for random numbers
         std::size_t num_random_numbers_per_cv = m.mech_.n_random_variables;
         std::size_t random_number_storage = num_random_numbers_per_cv*cbprng::cache_size();
         for (auto& v: store.random_numbers_) v.resize(num_random_numbers_per_cv);

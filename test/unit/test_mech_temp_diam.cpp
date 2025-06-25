@@ -45,14 +45,12 @@ void run_celsius_test() {
                                                                          fvm_detector_info{},
                                                                          celsius_test->data_alignment());
 
-    mechanism_layout layout;
-    mechanism_overrides overrides;
-
+    std::vector<arb_index_type> cv;
+    for (arb_size_type i = 0; i < ncv; ++i) cv.push_back(i);
+    arb::mechanism_layout layout {.cv=cv};
     layout.weight.assign(ncv, 1.);
-    for (arb_size_type i = 0; i<ncv; ++i) {
-        layout.cv.push_back(i);
-    }
 
+    mechanism_overrides overrides;
     EXPECT_EQ(shared_state->instantiate(*celsius_test, overrides, layout, {}), 0);
     shared_state->reset();
 
@@ -92,13 +90,15 @@ void run_diam_test() {
     std::vector<arb_value_type> area(ncv);
     std::vector<arb_index_type> src_to_spike;
 
-    mechanism_layout layout;
+    std::vector<arb_index_type> cv;
+    for (arb_size_type i = 0; i < ncv; ++i) cv.push_back(i);
+    arb::mechanism_layout layout {.cv=cv};
+
     layout.weight.assign(ncv, 1.);
 
     for (arb_size_type i = 0; i < ncv; ++i) {
         diam[i] =   i*2.0 + 0.1;
         area[i] = i*i*4.0 + 0.2;
-        layout.cv.push_back(i);
     }
 
     auto shared_state = std::make_unique<typename backend::shared_state>(thread_pool, ncell, ncv, cv_to_cell,

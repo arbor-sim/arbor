@@ -70,13 +70,12 @@ void run_test(std::string mech_name,
                                                                          fvm_detector_info{},
                                                                          mech->data_alignment());
 
-    mechanism_layout layout;
+    std::vector<arb_index_type> cv;
+    for (arb_size_type i = 0; i < ncv; ++i) cv.push_back(i);
+    mechanism_layout layout {.cv=cv};
     mechanism_overrides overrides;
 
     layout.weight.assign(ncv, 1.);
-    for (arb_size_type i = 0; i<ncv; ++i) {
-        layout.cv.push_back(i);
-    }
 
     shared_state->instantiate(*mech, overrides, layout, {});
     shared_state->reset();

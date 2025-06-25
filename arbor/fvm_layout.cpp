@@ -724,17 +724,15 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
         L.revpot_read    |= R.revpot_read;
     }
 
-    for (const auto& kv: right.mechanisms) {
-        if (!left.mechanisms.count(kv.first)) {
-            fvm_mechanism_config& L = left.mechanisms[kv.first];
-
-            L = kv.second;
+    for (const auto& [k, v]: right.mechanisms) {
+        if (!left.mechanisms.count(k)) {
+            fvm_mechanism_config& L = left.mechanisms[k];
+            L = v;
             for (auto& t: L.target) t += target_offset;
         }
         else {
-            fvm_mechanism_config& L = left.mechanisms[kv.first];
-            const fvm_mechanism_config& R = kv.second;
-
+            fvm_mechanism_config& L = left.mechanisms[k];
+            const fvm_mechanism_config& R = v;
             L.kind = R.kind;
             append(L.cv, R.cv);
             append(L.peer_cv, R.peer_cv);
@@ -742,13 +740,11 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
             append(L.norm_area, R.norm_area);
             append(L.local_weight, R.local_weight);
             append_offset(L.target, target_offset, R.target);
-
             arb_assert(util::equal(L.param_values, R.param_values,
-                [](auto& a, auto& b) { return a.first==b.first; }));
+                                   [](auto& a, auto& b) { return a.first == b.first; }));
             arb_assert(L.param_values.size()==R.param_values.size());
-
             for (auto j: count_along(R.param_values)) {
-                arb_assert(L.param_values[j].first==R.param_values[j].first);
+                arb_assert(L.param_values[j].first == R.param_values[j].first);
                 append(L.param_values[j].second, R.param_values[j].second);
             }
         }
@@ -770,11 +766,10 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
     return left;
 }
 
-ARB_ARBOR_API std::unordered_map<cell_member_type, arb_size_type> fvm_build_gap_junction_cv_map(
-    const std::vector<cable_cell>& cells,
-    const std::vector<cell_gid_type>& gids,
-    const fvm_cv_discretization& D)
-{
+ARB_ARBOR_API std::unordered_map<cell_member_type, arb_size_type>
+fvm_build_gap_junction_cv_map(const std::vector<cable_cell>& cells,
+                              const std::vector<cell_gid_type>& gids,
+                              const fvm_cv_discretization& D) {
     arb_assert(cells.size() == gids.size());
     std::unordered_map<cell_member_type, arb_size_type> gj_cvs;
     for (auto cell_idx: util::make_span(0, cells.size())) {
@@ -787,12 +782,11 @@ ARB_ARBOR_API std::unordered_map<cell_member_type, arb_size_type> fvm_build_gap_
     return gj_cvs;
 }
 
-ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
-    const std::vector<cell_gid_type>& gids,
-    const cell_label_range& gj_data,
-    const std::unordered_map<cell_member_type, arb_size_type>& gj_cvs,
-    const recipe& rec)
-{
+ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>>
+fvm_resolve_gj_connections(const std::vector<cell_gid_type>& gids,
+                           const cell_label_range& gj_data,
+                           const std::unordered_map<cell_member_type, arb_size_type>& gj_cvs,
+                           const recipe& rec) {
     // Construct and resolve all gj_connections.
     std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns;
     label_resolution_map resolution_map({gj_data, gids});

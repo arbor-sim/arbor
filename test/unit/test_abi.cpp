@@ -59,9 +59,10 @@ TEST(abi, multicore_initialisation) {
                                               arb::fvm_detector_info{},
                                               mech.data_alignment());
 
-    arb::mechanism_layout layout;
+    std::vector<arb_index_type> cv;
+    for (arb_size_type i = 0; i < ncv; ++i) cv.push_back(i);
+    arb::mechanism_layout layout {.cv=cv};
     layout.weight.assign(ncv, 1.);
-    for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
 
     EXPECT_EQ(shared_state.instantiate(mech, {}, layout, {}), 0);
 
@@ -140,10 +141,10 @@ TEST(abi, multicore_null) {
                                               arb::fvm_detector_info{},
                                               mech.data_alignment());
 
-    arb::mechanism_layout layout;
+    std::vector<arb_index_type> cv;
+    for (arb_size_type i = 0; i < ncv; ++i) cv.push_back(i);
+    arb::mechanism_layout layout {.cv=cv};
     layout.weight.assign(ncv, 1.);
-    for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
-
     EXPECT_EQ(shared_state.instantiate(mech, {}, layout, {}), 0);
 }
 
@@ -210,9 +211,10 @@ TEST(abi, gpu_initialisation) {
                                         arb::fvm_detector_info{},
                                         1);
 
-    arb::mechanism_layout layout;
+    std::vector<arb_index_type> cv;
+    for (arb_size_type i = 0; i < ncv; ++i) cv.push_back(i);
+    arb::mechanism_layout layout {.cv=cv};
     layout.weight.assign(ncv, 1.);
-    for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
 
     EXPECT_EQ(shared_state.instantiate(mech, {}, layout, {}), 0);
 
@@ -290,10 +292,11 @@ TEST(abi, gpu_null) {
                                         src_to_spike,
                                         arb::fvm_detector_info{},
                                         1);
+    std::vector<arb_index_type> cv;
+    for (arb_size_type i = 0; i < ncv; ++i) cv.push_back(i);
+    arb::mechanism_layout layout {.cv=cv};
 
-    arb::mechanism_layout layout;
     layout.weight.assign(ncv, 1.);
-    for (arb_size_type i = 0; i<ncv; ++i) layout.cv.push_back(i);
 
     EXPECT_EQ(shared_state.instantiate(mech, {}, layout, {}), 0);
 }

@@ -372,7 +372,10 @@ get_cable_cell_global_properties(const recipe& rec) {
 }
 
 inline auto
-instantiate_cable_cells(const recipe& rec, const std::vector<cell_gid_type>& gids, execution_context ctx) {
+instantiate_cable_cells(const recipe& rec,
+                        const std::vector<cell_gid_type>& gids,
+                        fvm_initialization_data& fvm_info,
+                        execution_context ctx) {
     using std::any_cast;
     std::vector<cable_cell> cells;
     cells.resize(gids.size());
@@ -380,7 +383,9 @@ instantiate_cable_cells(const recipe& rec, const std::vector<cell_gid_type>& gid
            [&](cell_size_type i) {
                auto gid = gids[i];
                try {
+                   profile::get_memory("        [>] cell");
                    cells[i] = any_cast<cable_cell&&>(rec.get_cell_description(gid));
+                   profile::get_memory("        [<] cell");
                }
                catch (std::bad_any_cast&) {
                    throw bad_cell_description(rec.get_cell_kind(gid), gid);
@@ -394,13 +399,12 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                                            const recipe& rec) {
     // ensure GPU is initialized
     set_gpu();
-
-
+    // result
     fvm_initialization_data fvm_info;
 
     const std::size_t ncell = gids.size();
     profile::get_memory("      [>] cells");
-    auto cells = instantiate_cable_cells(rec, gids, context_);
+    auto cells = instantiate_cable_cells(rec, gids, fvm_info, context_);
     profile::get_memory("      [<] cells");
 
     // Populate source, target and gap_junction data vectors.
@@ -412,6 +416,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
         fvm_info.num_targets[gid] = add_labels(fvm_info.target_data, c.synapse_ranges());
         add_labels(fvm_info.gap_junction_data, c.junction_ranges());
     }
+    fvm_info.shrink_to_fit();
     profile::get_memory("      [<] src & tgt");
 
     // extract and verify global settings
@@ -442,8 +447,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     auto max_detector = 0;
     std::vector<arb_index_type> src_to_spike, cv_to_cell;
     if (post_events_) {
-        auto it = util::max_element_by(fvm_info.num_sources, [](auto elem) {return util::second(elem);});
-        max_detector = it->second;
+        max_detector = util::max_element_by(fvm_info.num_sources, [](const auto& elem) { return util::second(elem); })->second;
         for (auto cell_idx: util::make_span(ncell)) {
             for (auto lid: util::make_span(fvm_info.num_sources[gids[cell_idx]])) {
                 src_to_spike.push_back(cell_idx * max_detector + lid);
@@ -458,7 +462,6 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     std::transform(D.geometry.cv_to_cell.begin(), D.geometry.cv_to_cell.end(),
                    cv_to_gid.begin(),
                    [&gids](auto i){ return gids[i]; });
-
 
     // Shared state vectors should accommodate each mechanism's data alignment
     // requests, set a minimum of one.
@@ -486,14 +489,13 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     std::unordered_map<std::string, mechanism*> mechptr_by_name;
     target_handles_.resize(mech_data.n_target);
     for (const auto& [name, config]: mech_data.mechanisms) {
-        mechanism_layout layout;
-        layout.cv = config.cv;
-        layout.multiplicity = config.multiplicity;
-        layout.peer_cv = config.peer_cv;
-        layout.weight.resize(layout.cv.size());
-
-        std::vector<arb_index_type> multiplicity_divs;
-        auto multiplicity_part = util::make_partition(multiplicity_divs, layout.multiplicity);
+        auto n_cv = config.cv.size();
+        auto layout = mechanism_layout {
+          .cv = config.cv,
+          .peer_cv = config.peer_cv,
+          .weight = std::vector<arb_value_type>(n_cv, 0),
+          .multiplicity = config.multiplicity,
+        };
 
         // Mechanism weights are F·α where α ∈ [0, 1] is the proportional
         // contribution in the CV, and F is the scaling factor required
@@ -503,7 +505,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
         case arb_mechanism_kind_point: {
             // Point mechanism contributions are in [nA]; CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
-            layout.gid.resize(config.cv.size());
+            layout.gid.resize(n_cv);
             layout.idx.resize(layout.gid.size());
             for (auto i: util::count_along(config.cv)) {
                 auto cv = layout.cv[i];
@@ -511,20 +513,24 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                 layout.gid[i] = cv_to_gid[cv];
                 if (i > 0 && (layout.gid[i-1] != layout.gid[i])) idx_offset = i;
                 layout.idx[i] = i - idx_offset;
-
-                if (config.target.empty()) continue;
             }
             auto [mech, over] = mech_instance(name);
             auto id = state_->instantiate(*mech, over, layout, config.param_values);
             fvm_info.num_targets_per_mech_id[id] = config.target.size();
-            for (auto i: util::count_along(config.cv)) {
-                target_handle handle(id, i);
+            if (!config.target.empty()) {
                 if (config.multiplicity.empty()) {
-                    target_handles_[config.target[i]] = handle;
+                    for (auto i: util::count_along(config.cv)) {
+                        target_handles_[config.target[i]] = target_handle(id, i);
+                    }
                 }
                 else {
-                    for (auto j: util::make_span(multiplicity_part[i])) {
-                        target_handles_[config.target[j]] = handle;
+                    auto lo = 0;
+                    for (auto i: util::count_along(config.cv)) {
+                        auto hi = lo + layout.multiplicity[i];
+                        for (auto j: util::make_span(lo, hi)) {
+                            target_handles_[config.target[j]] = target_handle(id, i);
+                        }
+                        lo = hi;
                     }
                 }
             }
@@ -540,30 +546,30 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                 layout.weight[i] = config.local_weight[i] * 1000/D.cv_area[cv];
             }
             auto [mech, over] = mech_instance(name);
-            auto id = state_->instantiate(*mech, over, layout, config.param_values);
+            state_->instantiate(*mech, over, layout, config.param_values);
             mechptr_by_name[name] = mech.get();
             mechanisms_.emplace_back(mech.release());
             break;
         }
         case arb_mechanism_kind_voltage: {
             // Current density contributions from mechanism are already in [A/m²].
-            layout.gid.resize(layout.cv.size());
+            layout.gid.resize(n_cv);
             layout.idx.resize(layout.gid.size());
             for (auto i: util::count_along(layout.cv)) {
                 layout.weight[i] = config.norm_area[i];
                 layout.gid[i] = cv_to_gid[i];
-                if (i>0 && (layout.gid[i-1] != layout.gid[i])) idx_offset = i;
+                if ((i > 0) && (layout.gid[i-1] != layout.gid[i])) idx_offset = i;
                 layout.idx[i] = i - idx_offset;
             }
             auto [mech, over] = mech_instance(name);
-            auto id = state_->instantiate(*mech, over, layout, config.param_values);
+            state_->instantiate(*mech, over, layout, config.param_values);
             mechptr_by_name[name] = mech.get();
             voltage_mechanisms_.emplace_back(mech.release());
             break;
         }
         case arb_mechanism_kind_density: {
             // Current density contributions from mechanism are already in [A/m²].
-            layout.gid.resize(layout.cv.size());
+            layout.gid.resize(n_cv);
             layout.idx.resize(layout.gid.size());
             for (auto i: util::count_along(layout.cv)) {
                 layout.weight[i] = config.norm_area[i];
@@ -572,7 +578,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                 layout.idx[i] = i - idx_offset;
             }
             auto [mech, over] = mech_instance(name);
-            auto id = state_->instantiate(*mech, over, layout, config.param_values);
+            state_->instantiate(*mech, over, layout, config.param_values);
             mechptr_by_name[name] = mech.get();
             mechanisms_.emplace_back(mech.release());
             break;
@@ -581,7 +587,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
             // Mechanisms that set reversal potential should not be contributing
             // to any currents, so leave weights as zero.
             auto [mech, over] = mech_instance(name);
-            auto id = state_->instantiate(*mech, over, layout, config.param_values);
+            state_->instantiate(*mech, over, layout, config.param_values);
             mechptr_by_name[name] = mech.get();
             revpot_mechanisms_.emplace_back(mech.release());
             break;
