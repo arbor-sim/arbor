@@ -21,7 +21,7 @@
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 #include "profile/profiler_macro.hpp"
-#include "skasort.hpp"
+#include "util/skasort.hpp"
 
 namespace arb {
 // Create a new cell event_lane vector from sorted pending events, previous event_lane events,
