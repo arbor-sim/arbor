@@ -1,5 +1,4 @@
 #include <tuple>
-#include <variant>
 
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
@@ -228,7 +227,10 @@ void register_morphology(py::module& m) {
         .def(py::init<const arb::morphology&>(),
              "morphology"_a,
              "Construct a morphology provider.")
-        .def(py::init<const arb::morphology&, const arb::label_dict&>(),
+        .def(py::init([](const arb::morphology& m, const label_dict_proxy& l) {
+                      return arb::mprovider(m, l.dict);
+             }),
+             py::keep_alive<1, 3>(),
              "morphology"_a, "labels"_a,
              "Construct a morphology provider.")
         .def("reify_locset",

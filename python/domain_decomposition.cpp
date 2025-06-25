@@ -77,7 +77,7 @@ void register_domain_decomposition(pybind11::module& m) {
         .def("__repr__", &ph_string);
 
     // Domain decomposition
-    pybind11::class_<arb::domain_decomposition> domain_decomposition(m, "domain_decomposition",
+    pybind11::class_<arb::domain_decomposition, std::shared_ptr<arb::domain_decomposition>> domain_decomposition(m, "domain_decomposition",
         "The domain decomposition is responsible for describing the distribution of cells across cell groups and domains.");
     domain_decomposition
         .def("gid_domain",
