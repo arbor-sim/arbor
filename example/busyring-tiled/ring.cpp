@@ -220,7 +220,9 @@ int main(int argc, char** argv) {
         tiled_recipe recipe(params, params.num_tiles);
         auto decomp = arb::partition_load_balance(recipe, ctx, {{arb::cell_kind::cable, params.hint}});
         // Construct the model.
+        arb::profile::get_memory("[>] sim");
         arb::simulation sim(recipe, ctx, decomp);
+        arb::profile::get_memory("[<] sim");
 
         // Set up the probe that will measure voltage in the cell.
         meters.checkpoint("model-init", ctx);
@@ -242,7 +244,7 @@ int main(int argc, char** argv) {
                       << report << '\n';
         }
 #ifdef ARB_PROFILE_ENABLED
-        if (root) arb::profile::print_profiler_summary(std::cout, 0);
+        // if (root) arb::profile::print_profiler_summary(std::cout, 0);
 #endif
     }
     catch (std::exception& e) {

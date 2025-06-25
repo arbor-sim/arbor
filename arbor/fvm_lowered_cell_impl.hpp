@@ -106,25 +106,24 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
     }
 
     // Translate cell probe descriptions into probe handles etc.
-    void resolve_probe_address(
-        std::vector<fvm_probe_data>& probe_data, // out parameter
-        const std::vector<cable_cell>& cells,
-        std::size_t cell_idx,
-        const std::any& paddr,
-        const fvm_cv_discretization& D,
-        const fvm_mechanism_data& M,
-        const std::vector<target_handle>& handles,
-        const std::unordered_map<std::string, mechanism*>& mech_instance_by_name);
+    void resolve_probe_address(std::vector<fvm_probe_data>& probe_data, // out parameter
+                               const std::vector<cable_cell>& cells,
+                               std::size_t cell_idx,
+                               const std::any& paddr,
+                               const fvm_cv_discretization& D,
+                               const fvm_mechanism_data& M,
+                               const std::vector<target_handle>& handles,
+                               const std::unordered_map<std::string, mechanism*>& mech_instance_by_name);
 
-        // Add probes to fvm_info::probe_map
-        void add_probes(const std::vector<cell_gid_type>& gids,
-                        const std::vector<cable_cell>& cells,
-                        const recipe& rec,
-                        const fvm_cv_discretization& D,
-                        const std::unordered_map<std::string, mechanism*>& mechptr_by_name,
-                        const fvm_mechanism_data& mech_data,
-                        const std::vector<target_handle>& target_handles,
-                        probe_association_map& probe_map);
+    // Add probes to fvm_info::probe_map
+    void add_probes(const std::vector<cell_gid_type>& gids,
+                    const std::vector<cable_cell>& cells,
+                    const recipe& rec,
+                    const fvm_cv_discretization& D,
+                    const std::unordered_map<std::string, mechanism*>& mechptr_by_name,
+                    const fvm_mechanism_data& mech_data,
+                    const std::vector<target_handle>& target_handles,
+                    probe_association_map& probe_map);
 };
 
 template <typename Backend>
@@ -354,24 +353,29 @@ fvm_lowered_cell_impl<Backend>::add_probes(const std::vector<cell_gid_type>& gid
     }
 }
 
-template <typename Backend> fvm_initialization_data
-fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gids,
-                                           const recipe& rec) {
-    using std::any_cast;
-    using util::count_along;
-    using util::make_span;
-    using util::value_by_key;
-    using util::keys;
+inline auto
+get_cable_cell_global_properties(const recipe& rec) {
+    try {
+        std::any rec_props = rec.get_global_properties(cell_kind::cable);
+        if (rec_props.has_value()) {
+            auto global_props = any_cast<cable_cell_global_properties>(rec_props);
+            // Assert that all global default parameters have been set.
+            // (Throws cable_cell_error on failure.)
+            check_global_properties(global_props);
+            return global_props;
+        }
+    }
+    catch (std::bad_any_cast&) {
+        throw bad_global_property(cell_kind::cable);
+    }
+    return cable_cell_global_properties{};
+}
 
-    fvm_initialization_data fvm_info;
-
-    set_gpu();
-
+inline auto
+instantiate_cable_cells(const recipe& rec, const std::vector<cell_gid_type>& gids, execution_context ctx) {
     std::vector<cable_cell> cells;
-    const std::size_t ncell = gids.size();
-
-    cells.resize(ncell);
-    threading::parallel_for::apply(0, gids.size(), context_.thread_pool.get(),
+    cells.resize(gids.size());
+    threading::parallel_for::apply(0, gids.size(), ctx.thread_pool.get(),
            [&](cell_size_type i) {
                auto gid = gids[i];
                try {
@@ -381,31 +385,35 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                    throw bad_cell_description(rec.get_cell_kind(gid), gid);
                }
            });
+    return cells;
+}
+
+template <typename Backend> fvm_initialization_data
+fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gids,
+                                           const recipe& rec) {
+    using std::any_cast;
+
+    fvm_initialization_data fvm_info;
+
+    set_gpu();
+
+    const std::size_t ncell = gids.size();
+    profile::get_memory("      [>] cells");
+    auto cells = instantiate_cable_cells(rec, gids, context_);
+    profile::get_memory("      [<] cells");
 
     // Populate source, target and gap_junction data vectors.
-    for (auto i : util::make_span(ncell)) {
+    profile::get_memory("      [>] src & tgt");
+    for (auto i: util::make_span(ncell)) {
         auto gid = gids[i];
         const auto& c = cells[i];
         fvm_info.num_sources[gid] = add_labels(fvm_info.source_data, c.detector_ranges());
         fvm_info.num_targets[gid] = add_labels(fvm_info.target_data, c.synapse_ranges());
         add_labels(fvm_info.gap_junction_data, c.junction_ranges());
     }
+    profile::get_memory("      [<] src & tgt");
 
-    cable_cell_global_properties global_props;
-    try {
-        std::any rec_props = rec.get_global_properties(cell_kind::cable);
-        if (rec_props.has_value()) {
-            global_props = any_cast<cable_cell_global_properties>(rec_props);
-        }
-    }
-    catch (std::bad_any_cast&) {
-        throw bad_global_property(cell_kind::cable);
-    }
-
-    // Assert that all global default parameters have been set.
-    // (Throws cable_cell_error on failure.)
-    check_global_properties(global_props);
-
+    auto global_props = get_cable_cell_global_properties(rec);
     const auto& catalogue = global_props.catalogue;
 
     // Mechanism instantiator helper.
@@ -414,11 +422,12 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     };
 
     // Check for physically reasonable membrane volages?
-
     check_voltage_mV_ = global_props.membrane_voltage_limit_mV;
 
     // Discretize cells, build matrix.
+    profile::get_memory("      [>] disc");
     fvm_cv_discretization D = fvm_cv_discretize(cells, global_props.default_parameters, context_);
+    profile::get_memory("      [<] disc");
 
     arb_assert(D.n_cell() == ncell);
 
@@ -427,7 +436,9 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     auto gj_conns = fvm_resolve_gj_connections(gids, fvm_info.gap_junction_data, gj_cvs, rec);
 
     // Discretize mechanism data.
+    profile::get_memory("      [>] mechs");
     fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, gids, gj_conns, D, context_);
+    profile::get_memory("      [<] mechs");
 
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
     post_events_ = mech_data.post_events;
@@ -436,11 +447,11 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
         auto it = util::max_element_by(fvm_info.num_sources, [](auto elem) {return util::second(elem);});
         max_detector = it->second;
     }
-    std::vector<arb_index_type> src_to_spike, cv_to_cell;
 
+    std::vector<arb_index_type> src_to_spike, cv_to_cell;
     if (post_events_) {
-        for (auto cell_idx: make_span(ncell)) {
-            for (auto lid: make_span(fvm_info.num_sources[gids[cell_idx]])) {
+        for (auto cell_idx: util::make_span(ncell)) {
+            for (auto lid: util::make_span(fvm_info.num_sources[gids[cell_idx]])) {
                 src_to_spike.push_back(cell_idx * max_detector + lid);
             }
         }
@@ -458,10 +469,11 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     // Shared state vectors should accommodate each mechanism's data alignment requests.
 
     unsigned data_alignment = util::max_value(
-        util::transform_view(keys(mech_data.mechanisms),
+        util::transform_view(util::keys(mech_data.mechanisms),
             [&](const std::string& name) { return mech_instance(name).mech->data_alignment(); }));
 
     auto d_info = get_detector_info(max_detector, ncell, cells, D, context_);
+    profile::get_memory("      [>] state");
     state_ = std::make_unique<shared_state>(context_.thread_pool,
                                             ncell,
                                             std::move(cv_to_cell),
@@ -472,7 +484,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                                             mech_data.stimuli,
                                             data_alignment? data_alignment: 1u,
                                             seed_);
-
+    profile::get_memory("      [<] state");
     // Keep track of mechanisms by name for probe lookup.
     std::unordered_map<std::string, mechanism*> mechptr_by_name;
     target_handles_.resize(mech_data.n_target);
@@ -491,16 +503,14 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
         // Mechanism weights are F·α where α ∈ [0, 1] is the proportional
         // contribution in the CV, and F is the scaling factor required
         // to convert from the mechanism current contribution units to A/m².
-
         arb_size_type idx_offset = 0;
         switch (config.kind) {
         case arb_mechanism_kind_point:
             // Point mechanism contributions are in [nA]; CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
-
             layout.gid.resize(config.cv.size());
             layout.idx.resize(layout.gid.size());
-            for (auto i: count_along(config.cv)) {
+            for (auto i: util::count_along(config.cv)) {
                 auto cv = layout.cv[i];
                 layout.weight[i] = 1000/D.cv_area[cv];
                 layout.gid[i] = cv_to_gid[cv];
@@ -514,7 +524,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                     target_handles_[config.target[i]] = handle;
                 }
                 else {
-                    for (auto j: make_span(multiplicity_part[i])) {
+                    for (auto j: util::make_span(multiplicity_part[i])) {
                         target_handles_[config.target[j]] = handle;
                     }
                 }
@@ -524,8 +534,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
         case arb_mechanism_kind_gap_junction:
             // Junction mechanism contributions are in [nA] (µS * mV); CV area A in [µm^2].
             // F = 1/A * [nA/µm²] / [A/m²] = 1000/A.
-
-            for (auto i: count_along(layout.cv)) {
+            for (auto i: util::count_along(layout.cv)) {
                 auto cv = layout.cv[i];
                 layout.weight[i] = config.local_weight[i] * 1000/D.cv_area[cv];
             }
@@ -533,10 +542,9 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
         case arb_mechanism_kind_voltage:
         case arb_mechanism_kind_density:
             // Current density contributions from mechanism are already in [A/m²].
-
             layout.gid.resize(layout.cv.size());
             layout.idx.resize(layout.gid.size());
-            for (auto i: count_along(layout.cv)) {
+            for (auto i: util::count_along(layout.cv)) {
                 layout.weight[i] = config.norm_area[i];
                 layout.gid[i] = cv_to_gid[i];
                 if (i>0 && (layout.gid[i-1] != layout.gid[i])) idx_offset = i;
@@ -570,8 +578,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                 voltage_mechanisms_.emplace_back(mech.release());
                 break;
             }
-            default:;
-                throw invalid_mechanism_kind(config.kind);
+            default: throw invalid_mechanism_kind(config.kind);
         }
     }
 
