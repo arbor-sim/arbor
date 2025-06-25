@@ -14,8 +14,8 @@ namespace arb {
 using concrete_embedding = embed_pwlin;
 
 struct ARB_ARBOR_API mprovider {
+    mprovider(const arb::morphology& m, const label_dict& dict): morphology_(m), embedding_(m), dict_(&dict) {}
     mprovider(const arb::morphology& m): morphology_(m), embedding_(m) {}
-    mprovider(const arb::morphology& m, const label_dict& dict): morphology_(m), embedding_(m), dict_(dict) {}
 
     // Throw exception on missing or recursive definition.
     const mextent& region(const std::string& name) const;
@@ -29,7 +29,7 @@ struct ARB_ARBOR_API mprovider {
 private:
     arb::morphology morphology_;
     concrete_embedding embedding_;
-    const label_dict& dict_ = label_dict();
+    const label_dict* dict_ = nullptr;
 
     template<typename M>
     using map = std::unordered_map<std::string, std::optional<M>>;
