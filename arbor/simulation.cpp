@@ -268,13 +268,14 @@ void simulation_state::update(const recipe& rec) {
     // Forget old generators, if present
     event_generators_.clear();
     event_generators_.resize(num_local_cells);
-    cell_size_type lidx = 0;
     PE(init:simulation:update:generators);
     auto target_resolver = resolver(&target_resolution_map_);
+    cell_size_type lidx = 0;
+    cell_size_type gidx = 0;
     for (const auto& group_info: ddc_->groups()) {
         for (auto gid: group_info.gids) {
             // Store mapping of gid to local cell index.
-            gid_to_cell_index_[gid] = lidx;
+            gid_to_cell_index_[gid] = gidx;
             // Set up the event generators for cell gid.
             event_generators_[lidx] = rec.event_generators(gid);
             // Resolve event_generator targets; each event generator gets their own resolver state.
@@ -285,6 +286,7 @@ void simulation_state::update(const recipe& rec) {
             }
             ++lidx;
         }
+        ++gidx;
     }
     PL();
 
