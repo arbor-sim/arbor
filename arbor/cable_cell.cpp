@@ -65,6 +65,9 @@ struct cable_cell_impl {
     using index_type = cable_cell::index_type;
     using size_type  = cable_cell::size_type;
 
+    // The label dictionary.
+    label_dict dictionary;
+
     // Embedded morphology and labelled region/locset lookup.
     mprovider provider;
 
@@ -77,9 +80,6 @@ struct cable_cell_impl {
     // Track number of point assignments by type for lid/target numbers.
     dynamic_typed_map<constant_type<cell_lid_type>::type> placed_count;
 
-    // The label dictionary.
-    label_dict dictionary;
-
     // The decorations on the cell.
     decor decorations;
 
@@ -90,7 +90,7 @@ struct cable_cell_impl {
     dynamic_typed_map<constant_type<std::unordered_multimap<hash_type, lid_range>>::type> labeled_lid_ranges;
 
     cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& dec, const std::optional<cv_policy>& cvp):
-        provider(m, labels), dictionary(labels), decorations(dec), discretization_(cvp)
+        dictionary(labels), provider(m, dictionary), decorations(dec), discretization_(cvp)
     {
         init();
     }
