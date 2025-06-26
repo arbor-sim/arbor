@@ -71,11 +71,11 @@ struct cable_cell_impl {
     // Regional assignments.
     cable_cell_region_map region_map;
 
-    // Point assignments.
-    cable_cell_location_map location_map;
-
     // Track number of point assignments by type for lid/target numbers.
     dynamic_typed_map<constant_type<cell_lid_type>::type> placed_count;
+    // Point assignments.
+    cable_cell_location_map location_map;
+    std::unordered_map<std::string, mlocation_map<synapse>> synapses_;
 
     // The label dictionary.
     const label_dict dictionary;
@@ -108,16 +108,13 @@ struct cable_cell_impl {
 
     template <typename T>
     mlocation_map<T>& get_location_map(const T&) {
+        if constexpr (std::is_same_v<T, synapse>) return synapses_;
         return location_map.get<T>();
     }
 
-    mlocation_map<synapse>& get_location_map(const synapse& desc) {
-        return location_map.get<synapse>()[desc.mech.name()];
-    }
+    mlocation_map<synapse>& get_location_map(const synapse& desc) { return synapses_[desc.mech.name()]; }
 
-    mlocation_map<junction>& get_location_map(const junction& desc) {
-        return location_map.get<junction>()[desc.mech.name()];
-    }
+    mlocation_map<junction>& get_location_map(const junction& desc) { return location_map.get<junction>()[desc.mech.name()]; }
 
     template <typename Item>
     void place(const mlocation_list& locs, const Item& item, const hash_type& label) {
@@ -301,6 +298,8 @@ const cable_cell::lid_range_map& cable_cell::synapse_ranges() const {
 const cable_cell::lid_range_map& cable_cell::junction_ranges() const {
     return impl_->labeled_lid_ranges.get<junction>();
 }
+
+const std::unordered_map<std::string, mlocation_map<synapse>>& cable_cell::synapses() const { return impl_->synapses_; }
 
 cell_tag_type decor::tag_of(hash_type hash) const {
     if (!hashes_.count(hash)) throw arbor_internal_error{util::pprintf("Unknown hash for {}.", std::to_string(hash))};
