@@ -3,6 +3,7 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/s_expr.hpp>
 #include <arborio/export.hpp>
+#include <arbor/util/expected.hpp>
 
 namespace arborio {
 ARB_ARBORIO_API std::string acc_version();

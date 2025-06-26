@@ -226,7 +226,7 @@ the ``communicator`` object
 .. code-block:: c++
 
    communicator::communicator(const recipe& rec,
-                              const domain_decomposition& dom_dec,
+                              const domain_decomposition_ptr dom_dec,
                               const label_resolution_map& source_resolution_map,
                               const label_resolution_map& target_resolution_map,
                               execution_context& ctx);

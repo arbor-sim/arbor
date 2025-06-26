@@ -37,6 +37,12 @@ struct ARB_ARBOR_API cell_label_range {
 
     void append(cell_label_range other);
 
+    void shrink_to_fit() {
+        sizes.shrink_to_fit();
+        labels.shrink_to_fit();
+        ranges.shrink_to_fit();
+    }
+
     bool check_invariant() const;
 
     // The number of labels associated with each cell.

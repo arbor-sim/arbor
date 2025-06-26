@@ -10,6 +10,7 @@
 #include "timestep_range.hpp"
 #include "util/span.hpp"
 
+
 ARB_SERDES_ENABLE_EXT(arb_deliverable_event_data, mech_index, weight);
 
 namespace arb {
@@ -90,10 +91,10 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
                            const std::vector<target_handle>& handles,
                            const std::vector<std::size_t>& divs,
                            const timestep_range& steps,
-                           std::unordered_map<unsigned, EventStream>& streams) {
+                           std::vector<EventStream>& streams) {
         arb_assert(lanes.size() < divs.size());
         // reset streams and allocate sufficient space for temporaries
-        for (auto& [id, stream]: streams) {
+        for (auto& stream: streams) {
             stream.clear();
             stream.ev_spans_.resize(steps.size() + 1, 0);
         }
@@ -121,7 +122,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
                 cell_evnt_idx[cell_idx] = evnt_idx;
             }
             // sort step bucket and update right partition
-            for (auto& [id, stream]: streams) {
+            for (auto& stream: streams) {
                 // fix the partition property
                 stream.ev_spans_[step + 1] += stream.ev_spans_[step];
                 // sort events in partition
@@ -133,7 +134,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
             }
         }
 
-        for (auto& [id, stream]: streams) static_cast<spike_event_stream_base&>(stream).init();
+        for (auto& stream: streams) static_cast<spike_event_stream_base&>(stream).init();
     }
 };
 

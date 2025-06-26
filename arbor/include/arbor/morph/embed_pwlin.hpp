@@ -24,17 +24,11 @@ struct ARB_ARBOR_API embed_pwlin {
     explicit embed_pwlin(const arb::morphology& m);
 
     // Segment queries.
-    msize_t num_segments() const {
-        return segment_cables_.size();
-    }
+    msize_t num_segments() const { return segment_cables_.size(); }
 
-    mcable segment(msize_t seg_id) const {
-        return segment_cables_.at(seg_id);
-    }
+    mcable segment(msize_t seg_id) const { return segment_cables_.at(seg_id); }
 
-    const mlocation_list& segment_ends() const {
-        return all_segment_ends_;
-    }
+    const mlocation_list& segment_ends() const { return all_segment_ends_; }
 
     // Interpolated radius at location.
     double radius(mlocation) const;

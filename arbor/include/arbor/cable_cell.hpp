@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <type_traits>
 
 #include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
@@ -218,22 +219,17 @@ struct cable_cell_impl;
 // Mechanisms and initial ion data are further keyed by
 // mechanism name and ion name respectively.
 
+template<typename T, typename... Ts>
+constexpr bool type_any_of = std::disjunction_v<std::is_same<T, Ts>...>;
+
 using iexpr_map = std::unordered_map<std::string, iexpr_ptr>;
 
 template <typename T>
-using region_assignment = std::conditional_t<
-    std::is_same_v<T, init_int_concentration> ||
-        std::is_same_v<T, init_ext_concentration> ||
-        std::is_same_v<T, init_reversal_potential>,
-    std::unordered_map<std::string, mcable_map<T>>,
-    std::conditional_t<
-        std::is_same<T, init_int_concentration>::value ||
-        std::is_same<T, init_ext_concentration>::value || std::is_same<T, init_reversal_potential>::value ||
-        std::is_same<T, ion_diffusivity>::value || std::is_same<T, voltage_process>::value,
-        std::unordered_map<std::string, mcable_map<T>>,
-        std::conditional_t<std::is_same_v<T, density>,
-            std::unordered_map<std::string, mcable_map<std::pair<T, iexpr_map>>>,
-            mcable_map<T>>>>;
+using region_assignment = std::conditional_t<type_any_of<T, init_int_concentration, init_ext_concentration, init_reversal_potential, ion_diffusivity, voltage_process>,
+                                             std::unordered_map<std::string, mcable_map<T>>,
+                                             std::conditional_t<std::is_same_v<T, density>,
+                                                                std::unordered_map<std::string, mcable_map<std::pair<T, iexpr_map>>>,
+                                                                mcable_map<T>>>;
 
 template <typename T>
 struct placed {
@@ -247,12 +243,11 @@ struct placed {
 template <typename T>
 using mlocation_map = std::vector<placed<T>>;
 
+// map for synapses or junctions, plain vector else
 template <typename T>
-using location_assignment =
-    std::conditional_t<
-        std::is_same<T, synapse>::value || std::is_same<T, junction>::value,
-        std::unordered_map<std::string, mlocation_map<T>>,
-        mlocation_map<T>>;
+using location_assignment = std::conditional_t<type_any_of<T, synapse, junction>,
+                                               std::unordered_map<std::string, mlocation_map<T>>,
+                                               mlocation_map<T>>;
 
 using cable_cell_region_map = static_typed_map<region_assignment,
                                                density,
@@ -267,7 +262,10 @@ using cable_cell_region_map = static_typed_map<region_assignment,
                                                init_reversal_potential>;
 
 using cable_cell_location_map = static_typed_map<location_assignment,
-    synapse, junction, i_clamp, threshold_detector>;
+                                                 synapse,
+                                                 junction,
+                                                 i_clamp,
+                                                 threshold_detector>;
 
 // High-level abstract representation of a cell.
 struct ARB_SYMBOL_VISIBLE cable_cell {
