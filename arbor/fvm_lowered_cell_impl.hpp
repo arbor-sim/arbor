@@ -1023,6 +1023,7 @@ void resolve_probe(const cable_probe_ion_current_cell& p, probe_resolution_data<
 template <typename B>
 void resolve_probe(const cable_probe_ion_int_concentration& p, probe_resolution_data<B>& R) {
     const auto& ion = p.ion;
+    if (!R.state->ion_data.count(p.ion)) return;
     const auto& xi = R.state->ion_data.at(ion).Xi_;
     if (xi.empty()) return;
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
@@ -1035,7 +1036,9 @@ void resolve_probe(const cable_probe_ion_int_concentration& p, probe_resolution_
 template <typename B>
 void resolve_probe(const cable_probe_ion_ext_concentration& p, probe_resolution_data<B>& R) {
     const auto& ion = p.ion;
+    if (!R.state->ion_data.count(p.ion)) return;
     const auto& xo = R.state->ion_data.at(ion).Xo_;
+    if (xo.empty()) return;
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
         auto opt_i = R.ion_location_index(ion, loc);
         if (!opt_i) continue;
@@ -1046,7 +1049,9 @@ void resolve_probe(const cable_probe_ion_ext_concentration& p, probe_resolution_
 template <typename B>
 void resolve_probe(const cable_probe_ion_diff_concentration& p, probe_resolution_data<B>& R) {
     const auto& ion = p.ion;
+    if (!R.state->ion_data.count(p.ion)) return;
     const auto& xd = R.state->ion_data.at(ion).Xd_;
+    if (xd.empty()) return;
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
         auto opt_i = R.ion_location_index(ion, loc);
         if (!opt_i) continue;

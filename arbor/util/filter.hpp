@@ -155,6 +155,8 @@ public:
         return c;
     }
 
+    difference_type operator-(const filter_iterator& x) const requires requires (I x) { x - x; } { return inner_ - x.inner_; }
+
     bool operator==(const filter_iterator& other) const {
         advance();
         other.advance();
