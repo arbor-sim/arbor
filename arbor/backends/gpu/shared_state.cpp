@@ -347,7 +347,7 @@ void shared_state::instantiate(mechanism& m,
     store.ion_states_d_ = memory::on_gpu(store.ion_states_);
     m.ppack_.ion_states = store.ion_states_d_.data();
 
-    store.random_numbers_.instantiate(m, width_padded, pos_data, cbprng_seed);
+    if (m.mech_.n_random_variables) store.random_numbers_.instantiate(m, width_padded, pos_data, cbprng_seed);
 }
 
 void shared_state::reset() {
