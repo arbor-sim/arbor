@@ -1,5 +1,4 @@
 #include <string>
-#include <utility>
 
 #include <arbor/morph/label_dict.hpp>
 #include <arbor/morph/locset.hpp>
@@ -17,34 +16,43 @@ template <typename RegOrLocMap, typename LabelDictMap>
 static const auto& try_build(const mprovider& provider,
                              const std::string& name,
                              RegOrLocMap& map,
-                             const LabelDictMap* dict) {
-    auto it = map.find(name);
-    if (it == map.end()) {
-        map.emplace(name, std::nullopt);
-        if (auto it = dict->find(name); it != dict->end()) {
-            // NOTE this is the point of recursion!
-            map[name] = thingify(it->second, provider);
-            return map[name].value();
-        }
-        throw unbound_name(name);
+                             const LabelDictMap& dict) {
+    if (auto it = map.find(name); it != map.end()) {
+        if (it->second) return it->second.value();
+        throw circular_definition(name);
     }
-    else if (it->second) {
-        return it->second.value();
+    map[name] = {};
+    if (auto nm = dict.find(name); nm != dict.end()) {
+        // NOTE this is the point of recursion!
+        map[name] = thingify(nm->second, provider);
+        return map[name].value();
     }
-    throw circular_definition(name);
+    throw unbound_name(name);
 }
 
+template <typename RegOrLocMap>
+static const auto& try_lookup(const mprovider& provider,
+                             const std::string& name,
+                             RegOrLocMap& map){
+    if (auto it = map.find(name); it != map.end()) {
+        if (it->second) return it->second.value();
+        throw circular_definition(name);
+    }
+    throw unbound_name(name);
+}
+
+
 const mextent& mprovider::region(const std::string& name) const {
-    auto lut = dict_ ? &dict_->regions() : nullptr;
-    return try_build(*this, name, regions_, lut);
+    if (dict_) try_build(*this, name, regions_, dict_->regions());
+    return try_lookup(*this, name, regions_);
 }
 const mlocation_list& mprovider::locset(const std::string& name) const {
-    auto lut = dict_ ? &dict_->locsets() : nullptr;
-    return try_build(*this, name, locsets_, lut);
+    if (dict_) try_build(*this, name, locsets_, dict_->locsets());
+    return try_lookup(*this, name, locsets_);
 }
 const iexpr_ptr& mprovider::iexpr(const std::string& name) const {
-    auto lut = dict_ ? &dict_->iexpressions() : nullptr;
-    return try_build(*this, name, iexpressions_, lut);
+    if (dict_) try_build(*this, name, iexpressions_, dict_->iexpressions());
+    return try_lookup(*this, name, iexpressions_);
 }
 
 } // namespace arb
