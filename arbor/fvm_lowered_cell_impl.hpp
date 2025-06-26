@@ -368,7 +368,7 @@ get_cable_cell_global_properties(const recipe& rec) {
     catch (std::bad_any_cast&) {
         throw bad_global_property(cell_kind::cable);
     }
-    return cable_cell_global_properties{};
+    throw arbor_internal_error("Unknown error while retrieving cable cell properties.");
 }
 
 inline auto

@@ -1068,8 +1068,13 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     // Ions:
     {
         auto ion_data = dflt.ion_data;
-        ion_data.insert(global_dflt.ion_data.begin(),
-                        global_dflt.ion_data.end());
+        for (const auto& [ion, dflt]: global_dflt.ion_data) {
+            auto& data = ion_data[ion];
+            if (!data.diffusivity) data.diffusivity = data.diffusivity;
+            if (!data.init_ext_concentration)  data.init_ext_concentration  = dflt.init_ext_concentration;
+            if (!data.init_int_concentration)  data.init_int_concentration  = dflt.init_int_concentration;
+            if (!data.init_reversal_potential) data.init_reversal_potential = dflt.init_reversal_potential;
+        }
         make_ion_config(std::move(ion_build_data),
                         ion_data,
                         int_concentration,
@@ -1293,6 +1298,7 @@ make_ion_config(fvm_ion_map build_data,
         config.reset_econc.resize(n_cv);
 
         const auto& global_ion_data = ion_data.at(ion);
+
         auto dflt_iconc = *global_ion_data.init_int_concentration;
         auto dflt_econc = *global_ion_data.init_ext_concentration;
         auto dflt_rvpot = *global_ion_data.init_reversal_potential;
