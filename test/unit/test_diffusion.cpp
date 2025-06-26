@@ -34,7 +34,7 @@ constexpr int    with_gpu = 0;
 constexpr int    with_gpu = -1;
 #endif
 
-struct linear: public recipe {
+struct linear: public ::arb::recipe {
     linear(double x, double d, double c): extent{x}, diameter{d}, cv_length{c} {
         gprop.default_parameters = arb::neuron_parameter_defaults;
         gprop.default_parameters.discretization = arb::cv_policy_max_extent(cv_length);
@@ -363,11 +363,19 @@ TEST(diffusion, setting_diffusivity) {
 }
 
 TEST(diffusion, elided_arrays) {
-    auto rec = linear{100, 1, 1}.set_diffusivity(0.1);
+    auto rec = linear{100, 1, 1};
     result_t exp = {};
     // NOTE: We are still, strictly speaking, failing this test since we don't
     //       get the expected values. However, as we are just checking that we
     //       can still probe elided arrary, that's OK.
+    EXPECT_NO_THROW(run(rec, exp, "nai"));
+    EXPECT_NO_THROW(run(rec, exp, "nao"));
+    EXPECT_NO_THROW(run(rec, exp, "nad"));
+    EXPECT_NO_THROW(run(rec, exp, "cnai"));
+    EXPECT_NO_THROW(run(rec, exp, "cnao"));
+    EXPECT_NO_THROW(run(rec, exp, "cnad"));
+
+    rec.set_diffusivity(1.0);
     EXPECT_NO_THROW(run(rec, exp, "nai"));
     EXPECT_NO_THROW(run(rec, exp, "nao"));
     EXPECT_NO_THROW(run(rec, exp, "nad"));
