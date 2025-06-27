@@ -342,8 +342,7 @@ void shared_state::update_prng_state(mechanism& m) {
         const auto width_padded = store.value_width_padded;
         const auto width = m.ppack_.width;
         arb_value_type* dst = store.random_numbers_[0][0];
-        generate_random_numbers(dst, width, width_padded, num_rv, cbprng_seed, mech_id, counter,
-            store.gid_.data(), store.idx_.data());
+        generate_random_numbers(dst, width, width_padded, num_rv, cbprng_seed, mech_id, counter, store.gid_.data(), store.idx_.data());
     }
 }
 
@@ -401,8 +400,10 @@ void shared_state::instantiate(arb::mechanism& m,
     bool peer_indices = !pos_data.peer_cv.empty();
 
     // store indices for random number generation
-    store.gid_ = pos_data.gid;
-    store.idx_ = pos_data.idx;
+    if (m.mech_.n_random_variables) {
+        store.gid_ = pos_data.gid;
+        store.idx_ = pos_data.idx;
+    }
 
     // Allocate view pointers (except globals!)
     store.state_vars_.resize(m.mech_.n_state_vars); m.ppack_.state_vars = store.state_vars_.data();
@@ -462,9 +463,11 @@ void shared_state::instantiate(arb::mechanism& m,
             m.ppack_.state_vars[idx] = writer.fill(m.mech_.state_vars[idx].default_value);
         }
         // Set random numbers
-        for (auto idx_v: make_span(num_random_numbers_per_cv))
-            for (auto idx_c: make_span(cbprng::cache_size()))
+        for (auto idx_v: make_span(num_random_numbers_per_cv)) {
+            for (auto idx_c: make_span(cbprng::cache_size())) {
                 store.random_numbers_[idx_c][idx_v] = writer.fill(0);
+            }
+        }
 
         // Assign global scalar parameters
         m.ppack_.globals = writer.end;
