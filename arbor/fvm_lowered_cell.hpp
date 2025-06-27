@@ -231,9 +231,7 @@ struct fvm_initialization_data {
 struct fvm_lowered_cell {
     virtual void reset() = 0;
 
-    virtual fvm_initialization_data initialize(
-        const std::vector<cell_gid_type>& gids,
-        const recipe& rec) = 0;
+    virtual fvm_initialization_data initialize(const std::vector<cell_gid_type>& gids, const recipe& rec) = 0;
 
     virtual fvm_integration_result integrate(const timestep_range& dts,
                                              const event_lane_subrange& event_lanes,

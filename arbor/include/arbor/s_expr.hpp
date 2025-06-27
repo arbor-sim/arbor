@@ -53,7 +53,7 @@ struct symbol {
     operator std::string() const { return str; }
 };
 
-inline symbol operator"" _symbol(const char* chars, size_t size) {
+inline symbol operator""_symbol(const char* chars, size_t size) {
     return {chars};
 }
 

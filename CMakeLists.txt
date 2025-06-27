@@ -67,8 +67,9 @@ else()
 endif()
 set(ARB_ARCH ${ARB_DEFAULT_ARCH} CACHE STRING "Target architecture for arbor libraries")
 
-# Perform explicit vectorization?
+option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
+# Perform explicit vectorization?
 option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 
 # Support for Thread pinning
@@ -274,6 +275,11 @@ install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 
 # Add all dependencies.
 
+# Keep track of packages we need to add to the generated CMake config
+# file for arbor.
+set(arbor_export_dependencies)
+
+
 # First make ourselves less chatty
 set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
 set(CMAKE_MESSAGE_LOG_LEVEL STATUS)
@@ -296,36 +302,34 @@ else()
 endif()
 install(TARGETS ext-hwloc EXPORT arbor-targets)
 
-set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "Allow JSON to slip through" FORCE)
-CPMAddPackage(NAME json
+CPMFindPackage(NAME json
               GITHUB_REPOSITORY nlohmann/json
-              VERSION 3.11.2
+              VERSION 3.12.0
               OPTIONS "CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON")
 install(TARGETS nlohmann_json EXPORT arbor-targets)
 
 add_library(ext-random123 INTERFACE)
-CPMAddPackage(NAME random123
+CPMFindPackage(NAME random123
               DOWNLOAD_ONLY YES
               GITHUB_REPOSITORY DEShawResearch/random123
               VERSION 1.14.0)
 if(random123_ADDED)
     target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${random123_SOURCE_DIR}/include>)
 else()
-    find_package(Random123 REQUIRED)
     target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
 endif()
 install(TARGETS ext-random123 EXPORT arbor-targets)
 
 if (ARB_WITH_PYTHON)
-    CPMAddPackage(NAME pybind11
+    CPMFindPackage(NAME pybind11
                   GITHUB_REPOSITORY pybind/pybind11
-                  VERSION 2.10.1
+                  VERSION 2.13.6
                   OPTIONS "PYBIND11_CPP_STANDARD -std=c++20")
     # required for find_python_module
     include(FindPythonModule)
 endif()
 
-CPMAddPackage(NAME pugixml
+CPMFindPackage(NAME pugixml
               GITHUB_REPOSITORY zeux/pugixml
               VERSION 1.13
               DOWNLOAD_ONLY YES)
@@ -334,12 +338,12 @@ if(pugixml_ADDED)
     target_compile_definitions(ext-pugixml INTERFACE PUGIXML_HEADER_ONLY)
     target_include_directories(ext-pugixml INTERFACE $<BUILD_INTERFACE:${pugixml_SOURCE_DIR}/src>)
 else()
-    find_package(pugixml REQUIRED)
+    list(APPEND arbor_export_dependencies pugixml)
     target_link_libraries(ext-pugixml INTERFACE pugixml::pugixml)
 endif()
 install(TARGETS ext-pugixml EXPORT arbor-targets)
 
-CPMAddPackage(NAME fmt
+CPMFindPackage(NAME fmt
               GITHUB_REPOSITORY fmtlib/fmt
               VERSION 10.0.0
               GIT_TAG 10.0.0)
@@ -347,11 +351,11 @@ CPMAddPackage(NAME fmt
 add_library(ext-gtest INTERFACE)
 add_library(ext-bench INTERFACE)
 if (BUILD_TESTING)
-    CPMAddPackage(NAME benchmark
+    CPMFindPackage(NAME benchmark
                   GITHUB_REPOSITORY google/benchmark
                   VERSION 1.8.3
                   OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "CMAKE_BUILD_TYPE release" "BUILD_SHARED_LIBS OFF")
-    CPMAddPackage(NAME googletest
+    CPMFindPackage(NAME googletest
                   GITHUB_REPOSITORY google/googletest
                   GIT_TAG release-1.12.1
                   VERSION 1.12.1
@@ -359,40 +363,44 @@ if (BUILD_TESTING)
     if(benchmark_ADDED)
         target_link_libraries(ext-bench INTERFACE benchmark)
     else()
-        find_package(benchmark REQUIRED)
         target_link_libraries(ext-bench INTERFACE benchmark::benchmark)
     endif()
     if(googletest_ADDED)
         target_link_libraries(ext-gtest INTERFACE )
     else()
-        find_package(googletest REQUIRED)
         target_link_libraries(ext-gtest INTERFACE gtest gtest_main)
     endif()
 endif()
 
-CPMAddPackage(NAME units
-              GITHUB_REPOSITORY llnl/units
-              VERSION 0.9.1
-              OPTIONS "CMAKE_PROJECT_NAME UNITS"
-                      "UNITS_INSTALL ON"
-                      "UNITS_BUILD_STATIC_LIBRARY ON"
-                      "UNITS_ENABLE_TESTS OFF"
-                      "UNITS_BUILD_CONVERTER_APP OFF"
-                      "UNITS_BUILD_WEBSERVER OFF")
-add_library(ext-units INTERFACE)
+CPMFindPackage(NAME units
+               GITHUB_REPOSITORY llnl/units
+               VERSION 0.13.1
+               OPTIONS "UNITS_PROJECT_NAME units"
+                       "SKBUILD OFF"
+                       "UNITS_INSTALL ON"
+                       "BUILD_SHARED_LIBS OFF"
+                       "UNITS_BUILD_STATIC_LIBRARY ON"
+                       "UNITS_BUILD_SHARED_LIBRARY OFF"
+                       "UNITS_BUILD_OBJECT_LIBRARY OFF"
+                       "UNITS_ENABLE_TESTS OFF"
+                       "UNITS_BUILD_CONVERTER_APP OFF"
+                       "UNITS_BUILD_WEBSERVER OFF")
+target_link_libraries(arbor-public-deps INTERFACE units::units)
 if(units_ADDED)
-    target_link_libraries(ext-units INTERFACE units::units)
-else()
-    find_package(units REQUIRED)
-    target_link_libraries(ext-units INTERFACE units::units)
+    install(TARGETS units compile_flags_target EXPORT arbor-targets)
 endif()
-target_link_libraries(arbor-public-deps INTERFACE ext-units)
-install(TARGETS ext-units EXPORT arbor-targets)
+list(APPEND arbor_export_dependencies units)
 
-CPMAddPackage(NAME tinyopt
-              GITHUB_REPOSITORY halfflat/tinyopt
-              GIT_TAG 7e6d707d49c6cb4be27ebd253856be65293288df
-              DOWNLOAD_ONLY YES)
+CPMFindPackage(NAME unordered_dense
+               GITHUB_REPOSITORY martinus/unordered_dense
+               VERSION 4.5.0
+               SYSTEM YES
+               EXCLUDE_FROM_ALL YES)
+
+CPMFindPackage(NAME tinyopt
+               GITHUB_REPOSITORY halfflat/tinyopt
+               GIT_TAG 7e6d707d49c6cb4be27ebd253856be65293288df
+               DOWNLOAD_ONLY YES)
 
 add_library(ext-tinyopt INTERFACE)
 if(tinyopt_ADDED)
@@ -418,11 +426,6 @@ mark_as_advanced(FORCE FETCHCONTENT_BASE_DIR FETCHCONTENT_FULLY_DISCONNECTED FET
 
 # Restore chattyness
 set(CMAKE_MESSAGE_LOG_LEVEL ${_saved_CMAKE_MESSAGE_LOG_LEVEL})
-
-# Keep track of packages we need to add to the generated CMake config
-# file for arbor.
-
-set(arbor_export_dependencies)
 
 # Keep track of which 'components' of arbor are included (this is
 # currently just 'MPI' support and 'neuroml' for NeuroML support in
@@ -492,7 +495,7 @@ endif()
 #----------------------------------------------------------
 
 # The minimum version of Python supported by Arbor.
-set(arb_py_version 3.9.0)
+set(arb_py_version 3.10.0)
 
 if(DEFINED PYTHON_EXECUTABLE)
     set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})

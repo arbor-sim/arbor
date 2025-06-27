@@ -137,16 +137,19 @@ declaration is not needed and you'll get the default values for this ion.
    )
 
 While simple, note some subtleties around our custom concentration mechanism:
+
 - The mechanism ``current_to_delta_x`` uses ``xi`` as a ``STATE`` and is thus
   solely responsible for managing its value. This makes adding an explicit
   initialisation via ``xi0`` necessary. Only one mechanism with this property
   should exist. See above for an alternative.
+
 - The change in ``xd`` due to events arriving at the synapse ``Zap`` will be
   synchronised with ``xi`` in our custom mechanism. If no concentration
   mechanism is used, the synapse needs to be modified to write to ``xi`` as well.
-- By using ``xi=xd``, the Nernst mechanism will pick up the correct value for
-  ``xi``. If that is not your intention, you will have to provide a modified
-  version of ``nernst`` in which ``xi`` is replaced with ``xd``.
+
+ - By using ``xi=xd``, the Nernst mechanism will pick up the correct value for
+   ``xi``. If that is not your intention, you will have to provide a modified
+   version of ``nernst`` in which ``xi`` is replaced with ``xd``.
 
 Final notes
 -----------

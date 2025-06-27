@@ -193,8 +193,10 @@ and the profiler regions can be reset.
             profile::profiler_clear();
         }
 
-After a call to ``util::profiler_clear``, all counters and timers are set to zero.
-This could be used, for example, to generate separate profiler reports for model building and model execution phases.
+After a call to ``util::profiler_clear``, all counters and timers are set to
+zero. This could be used, for example, to generate separate profiler reports for
+model building and model execution phases. It is also required to restart a
+simulation terminated with a caught exception.
 
 Profiler output
 ~~~~~~~~~~~~~~~

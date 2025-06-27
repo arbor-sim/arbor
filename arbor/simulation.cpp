@@ -19,6 +19,7 @@
 #include "threading/threading.hpp"
 #include "util/maputil.hpp"
 #include "util/span.hpp"
+#include "util/strprintf.hpp"
 #include "profile/profiler_macro.hpp"
 
 namespace arb {
@@ -112,7 +113,11 @@ public:
 
     void set_remote_spike_filter(const spike_predicate& p) { return communicator_.set_remote_spike_filter(p); }
 
-    time_type min_delay() { return communicator_.min_delay(); }
+    time_type min_delay() {
+        auto tau =  communicator_.min_delay();
+        if (tau <= 0.0 || !std::isfinite(tau)) throw std::domain_error("Minimum connection delay must be strictly positive and finite.");
+        return tau;
+    }
 
     spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
@@ -265,19 +270,17 @@ simulation_state::simulation_state(
         });
 
     PE(init:simulation:sources);
-    cell_labels_and_gids local_sources, local_targets;
-    for(const auto& i: util::make_span(num_groups)) {
-        local_sources.append(cg_sources.at(i));
-        local_targets.append(cg_targets.at(i));
+    if (rec.resolve_sources()) {
+        cell_labels_and_gids local_sources;
+        for(auto gidx: util::make_span(num_groups)) local_sources.append(std::move(cg_sources[gidx]));
+        auto global_sources = ctx->distributed->gather_cell_labels_and_gids(local_sources);
+        source_resolution_map_ = label_resolution_map(std::move(global_sources));
     }
     PL();
 
-    PE(init:simulation:source:MPI);
-    auto global_sources = ctx->distributed->gather_cell_labels_and_gids(local_sources);
-    PL();
-
-    PE(init:simulation:resolvers);
-    source_resolution_map_ = label_resolution_map(std::move(global_sources));
+    PE(init:simulation:targets);
+    cell_labels_and_gids local_targets;
+    for(auto gidx: util::make_span(num_groups)) local_targets.append(std::move(cg_targets[gidx]));
     target_resolution_map_ = label_resolution_map(std::move(local_targets));
     PL();
 
@@ -302,22 +305,19 @@ void simulation_state::update(const recipe& rec) {
     cell_size_type lidx = 0;
     cell_size_type grpidx = 0;
     PE(init:simulation:update:generators);
-    auto target_resolution_map_ptr = std::make_shared<label_resolution_map>(target_resolution_map_);
+    auto target_resolver = resolver(&target_resolution_map_);
     for (const auto& group_info: ddc_.groups()) {
         for (auto gid: group_info.gids) {
             // Store mapping of gid to local cell index.
             gid_to_local_[gid] = {lidx, grpidx};
-            // Resolve event_generator targets; each event generator gets their own resolver state.
-            auto event_gens = rec.event_generators(gid);
-            for (auto& g: event_gens) {
-                g.resolve_label([target_resolution_map_ptr,
-                                 event_resolver=resolver(target_resolution_map_ptr.get()),
-                                 gid] (const cell_local_label_type& label) mutable {
-                        return event_resolver.resolve({gid, label});
-                    });
-            }
             // Set up the event generators for cell gid.
-            event_generators_[lidx] = event_gens;
+            event_generators_[lidx] = rec.event_generators(gid);
+            // Resolve event_generator targets; each event generator gets their own resolver state.
+            for (auto& gen: event_generators_[lidx]) {
+                target_resolver.clear();
+                auto lid = target_resolver.resolve(gid, gen.target());
+                gen.set_target_lid(lid);
+            }
             ++lidx;
         }
         ++grpidx;
@@ -357,7 +357,7 @@ void simulation_state::reset() {
 time_type simulation_state::run(time_type tfinal, time_type dt) {
     // Progress simulation to time tfinal, through a series of integration epochs
     // of length at most t_interval_. t_interval_ is chosen to be no more than
-    // than half the network minimum delay.
+    // than half the network minimum delay and minimally the timestep `dt`.
     //
     // There are three simulation tasks that can be run partially in parallel:
     //
@@ -396,10 +396,20 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     // Requires state at end of run(), with epoch_.id==k:
     //     * U(k) and D(k) have completed.
 
+    if (!std::isfinite(dt) || dt <= 0) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
     if (!std::isfinite(tfinal) || tfinal < 0) throw std::domain_error("simulation: tfinal must be finite, positive, and in [ms]");
-    if (!std::isfinite(dt) || tfinal < 0) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
-
-    if (tfinal<=epoch_.t1) return epoch_.t1;
+    // NOTE It would be preferable to have the cell groups to make smart
+    //      decisions instead. However, since there is a tradeoff since silently
+    //      installing a smaller timestep might result in inacceptable runtimes.
+    // NOTE we are using tau/2 since that is the actual integration time due to
+    //      the double buffering
+    // NOTE we are _also_ using float epsilon and some fudging as connections store
+    //      delay as float. This shakes out be roughly 1e-6, equivalent to 1ps.
+    if (dt - t_interval_ > 10*std::numeric_limits<float>::epsilon()) {
+        throw arbor_exception(
+            util::pprintf("simulation: Timestep {}ms is too large, must be less than half the minimum network delay ({}ms)",
+                          dt, t_interval_));
+    }
 
     // Compute following epoch, with max time tfinal.
     auto next_epoch = [tfinal](epoch e, time_type interval) -> epoch {
@@ -583,9 +593,9 @@ void simulation::update(const recipe& rec) { impl_->update(rec); }
 
 time_type simulation::run(const units::quantity& tfinal, const units::quantity& dt) {
     auto dt_ms = dt.value_as(units::ms);
-    if (dt_ms <= 0.0 || std::isnan(dt_ms)) throw domain_error("Finite time-step must be supplied.");
+    if (dt_ms <= 0.0 || !std::isfinite(dt_ms)) throw domain_error("Finite time-step must be supplied.");
     auto tfinal_ms = tfinal.value_as(units::ms);
-    if (tfinal_ms <= 0.0 || std::isnan(tfinal_ms)) throw domain_error("Finite time-step must be supplied.");
+    if (tfinal_ms <= 0.0 || !std::isfinite(tfinal_ms)) throw domain_error("Finite time-step must be supplied.");
     return impl_->run(tfinal_ms, dt_ms);
 }
 
