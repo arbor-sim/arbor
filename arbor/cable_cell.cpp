@@ -59,6 +59,22 @@ std::string show(const paintable& item) {
     return os.str();
 }
 
+// Metaprogramming helper to get the index of a type in a variant
+template <typename> struct tag { };
+
+template <typename T, typename V> struct get_index;
+
+template <typename T, typename... Ts>
+struct get_index<T, std::variant<Ts...>>: std::integral_constant<size_t, std::variant<tag<Ts>...>(tag<T>()).index()> {};
+
+template <typename T, typename V> auto constexpr get_index_v = get_index<T, V>::value;
+
+// injection to determine the return value of
+template <typename T>
+using region_assignment_value = std::conditional_t<std::is_same_v<T, density>,
+                                                   mcable_map<std::pair<T, iexpr_map>>,
+                                                   mcable_map<T>>;
+
 
 struct cable_cell_impl {
     using value_type = cable_cell::value_type;
@@ -69,13 +85,29 @@ struct cable_cell_impl {
     mprovider provider;
 
     // Regional assignments.
-    cable_cell_region_map region_map;
+    region_assignment<density> densities_;
+    region_assignment<voltage_process> voltage_processes_;
+    region_assignment<init_int_concentration> init_int_concentrations_;
+    region_assignment<init_ext_concentration> init_ext_concentrations_;
+    region_assignment<init_reversal_potential> reversal_potentials_;
+    region_assignment<ion_diffusivity> diffusivities_;
+    region_assignment<temperature> temperatures_;
+    region_assignment<init_membrane_potential> init_membrane_potentials_;
+    region_assignment<axial_resistivity> axial_resistivities_;
+    region_assignment<membrane_capacitance> membrane_capacitances_;
+    region_assignment<ion_diffusivity> ion_diffusivities_;
+    region_assignment<init_reversal_potential> init_reversal_potentials_;
 
     // Track number of point assignments by type for lid/target numbers.
-    dynamic_typed_map<constant_type<cell_lid_type>::type> placed_count;
+    std::array<cell_lid_type, std::variant_size_v<placeable>> placed_counts_ = {};
+    // The placeable label to lid_range map
+    std::array<std::unordered_multimap<hash_type, lid_range>, std::variant_size_v<placeable>> labeled_lid_ranges_;
+
     // Point assignments.
-    cable_cell_location_map location_map;
     std::unordered_map<std::string, mlocation_map<synapse>> synapses_;
+    std::unordered_map<std::string, mlocation_map<junction>> junctions_;
+    mlocation_map<threshold_detector> detectors_;
+    mlocation_map<i_clamp> i_clamps_;
 
     // The label dictionary.
     const label_dict dictionary;
@@ -85,9 +117,6 @@ struct cable_cell_impl {
 
     // Discretization
     std::optional<cv_policy> discretization_;
-
-    // The placeable label to lid_range map
-    dynamic_typed_map<constant_type<std::unordered_multimap<hash_type, lid_range>>::type> labeled_lid_ranges;
 
     cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations, const std::optional<cv_policy>& cvp):
         provider(m, labels),
@@ -99,27 +128,25 @@ struct cable_cell_impl {
     }
 
     cable_cell_impl(): cable_cell_impl({}, {}, {}, {}) {}
-
     cable_cell_impl(const cable_cell_impl& other) = default;
-
     cable_cell_impl(cable_cell_impl&& other) = default;
 
     void init();
 
     template <typename T>
-    mlocation_map<T>& get_location_map(const T&) {
-        if constexpr (std::is_same_v<T, synapse>) return synapses_;
-        return location_map.get<T>();
+    auto& get_location_map(const T& it) {
+        static_assert(get_index_v<T, placeable> < std::variant_size_v<placeable>, "Not a placeable item");
+        if constexpr (std::is_same_v<T, synapse>) return synapses_[it.mech.name()];
+        if constexpr (std::is_same_v<T, junction>) return junctions_[it.mech.name()];
+        if constexpr (std::is_same_v<T, i_clamp>) return i_clamps_;
+        if constexpr (std::is_same_v<T, threshold_detector>) return detectors_;
     }
-
-    mlocation_map<synapse>& get_location_map(const synapse& desc) { return synapses_[desc.mech.name()]; }
-
-    mlocation_map<junction>& get_location_map(const junction& desc) { return location_map.get<junction>()[desc.mech.name()]; }
 
     template <typename Item>
     void place(const mlocation_list& locs, const Item& item, const hash_type& label) {
+        auto index = get_index_v<Item, placeable>;
         auto& mm = get_location_map(item);
-        cell_lid_type& lid = placed_count.get<Item>();
+        cell_lid_type& lid = placed_counts_[index];
         cell_lid_type first = lid;
 
         for (const auto& loc: locs) {
@@ -127,43 +154,26 @@ struct cable_cell_impl {
             mm.push_back(p);
         }
         auto range = lid_range(first, lid);
-        auto& lid_ranges = labeled_lid_ranges.get<Item>();
-        lid_ranges.insert(std::make_pair(label, range));
+        auto& lid_ranges = labeled_lid_ranges_[index];
+        lid_ranges.emplace(label, range);
     }
 
     template <typename T>
-    mcable_map<T>& get_region_map(const T&) {
-        return region_map.get<T>();
+    region_assignment_value<T>& get_region_map(const T& it) {
+        static_assert(get_index_v<T, paintable> < std::variant_size_v<paintable>);
+        if constexpr (std::is_same_v<T, density>)                 { return densities_[it.mech.name()]; }
+        if constexpr (std::is_same_v<T, voltage_process>)         { return voltage_processes_[it.mech.name()]; }
+        if constexpr (std::is_same_v<T, init_int_concentration>)  { return init_int_concentrations_[it.ion]; }
+        if constexpr (std::is_same_v<T, ion_diffusivity>)         { return ion_diffusivities_[it.ion]; }
+        if constexpr (std::is_same_v<T, init_ext_concentration>)  { return init_ext_concentrations_[it.ion]; }
+        if constexpr (std::is_same_v<T, init_reversal_potential>) { return init_reversal_potentials_[it.ion]; }
+        if constexpr (std::is_same_v<T, init_membrane_potential>) { return init_membrane_potentials_; }
+        if constexpr (std::is_same_v<T, axial_resistivity>)       { return axial_resistivities_; }
+        if constexpr (std::is_same_v<T, temperature>)             { return temperatures_; }
+        if constexpr (std::is_same_v<T, membrane_capacitance>)    { return membrane_capacitances_; }
     }
 
-    mcable_map<voltage_process>& get_region_map(const voltage_process& v) {
-        return region_map.get<voltage_process>()[v.mech.name()];
-    }
-
-    mcable_map<std::pair<density, iexpr_map>> &
-    get_region_map(const density &desc) {
-      return region_map.get<density>()[desc.mech.name()];
-    }
-
-    mcable_map<init_int_concentration>& get_region_map(const init_int_concentration& init) {
-        return region_map.get<init_int_concentration>()[init.ion];
-    }
-
-    mcable_map<ion_diffusivity>& get_region_map(const ion_diffusivity& init) {
-        return region_map.get<ion_diffusivity>()[init.ion];
-    }
-
-    mcable_map<init_ext_concentration>& get_region_map(const init_ext_concentration& init) {
-        return region_map.get<init_ext_concentration>()[init.ion];
-    }
-
-    mcable_map<init_reversal_potential>& get_region_map(const init_reversal_potential& init) {
-        return region_map.get<init_reversal_potential>()[init.ion];
-    }
-
-    void paint(const mextent& cables, const std::string& str, const density& prop) {
-        this->paint(cables, str, scaled_mechanism<density>(prop));
-    }
+    void paint(const mextent& cables, const std::string& str, const density& prop) { this->paint(cables, str, scaled_mechanism<density>(prop)); }
 
     void paint(const mextent& cables, const std::string& str, const scaled_mechanism<density>& prop) {
         std::unordered_map<std::string, iexpr_ptr> im;
@@ -195,13 +205,8 @@ struct cable_cell_impl {
         }
     }
 
-    mlocation_list concrete_locset(const locset& l) const {
-        return thingify(l, provider);
-    }
-
-    mextent concrete_region(const region& r) const {
-        return thingify(r, provider);
-    }
+    mlocation_list concrete_locset(const locset& l) const { return thingify(l, provider); }
+    mextent concrete_region(const region& r) const { return thingify(r, provider); }
 };
 
 const std::optional<cv_policy>& cable_cell::discretization() const { return impl_->discretization_; }
@@ -247,59 +252,38 @@ cable_cell::cable_cell(const cable_cell& other):
     impl_(make_impl(new cable_cell_impl(*other.impl_)))
 {}
 
-const label_dict& cable_cell::labels() const {
-    return impl_->dictionary;
-}
+const label_dict& cable_cell::labels() const { return impl_->dictionary; }
+const concrete_embedding& cable_cell::embedding() const { return impl_->provider.embedding(); }
+const arb::morphology& cable_cell::morphology() const { return impl_->provider.morphology(); }
+const mprovider& cable_cell::provider() const { return impl_->provider; }
 
-const concrete_embedding& cable_cell::embedding() const {
-    return impl_->provider.embedding();
-}
+const region_assignment<density> cable_cell::densities() const { return impl_->densities_; }
+const region_assignment<voltage_process> cable_cell::voltage_processes() const { return impl_->voltage_processes_; }
+const region_assignment<init_int_concentration> cable_cell::init_int_concentrations() const { return impl_->init_int_concentrations_; }
+const region_assignment<init_ext_concentration> cable_cell::init_ext_concentrations() const { return impl_->init_ext_concentrations_; }
+const region_assignment<init_reversal_potential> cable_cell::reversal_potentials() const { return impl_->init_reversal_potentials_; }
+const region_assignment<ion_diffusivity> cable_cell::diffusivities() const { return impl_->ion_diffusivities_; }
+const region_assignment<temperature> cable_cell::temperatures() const { return impl_->temperatures_; }
+const region_assignment<init_membrane_potential> cable_cell::init_membrane_potentials() const { return impl_->init_membrane_potentials_; }
+const region_assignment<axial_resistivity> cable_cell::axial_resistivities() const { return impl_->axial_resistivities_; }
+const region_assignment<membrane_capacitance> cable_cell::membrane_capacitances() const { return impl_->membrane_capacitances_; }
 
-const arb::morphology& cable_cell::morphology() const {
-    return impl_->provider.morphology();
-}
+mlocation_list cable_cell::concrete_locset(const locset& l) const { return impl_->concrete_locset(l); }
+mextent cable_cell::concrete_region(const region& r) const { return impl_->concrete_region(r); }
 
-const mprovider& cable_cell::provider() const {
-    return impl_->provider;
-}
+const decor& cable_cell::decorations() const { return impl_->decorations; }
 
-mlocation_list cable_cell::concrete_locset(const locset& l) const {
-    return impl_->concrete_locset(l);
-}
+const cable_cell_parameter_set& cable_cell::default_parameters() const { return impl_->decorations.defaults(); }
 
-mextent cable_cell::concrete_region(const region& r) const {
-    return impl_->concrete_region(r);
-}
-
-const cable_cell_location_map& cable_cell::location_assignments() const {
-    return impl_->location_map;
-}
-
-const cable_cell_region_map& cable_cell::region_assignments() const {
-    return impl_->region_map;
-}
-
-const decor& cable_cell::decorations() const {
-    return impl_->decorations;
-}
-
-const cable_cell_parameter_set& cable_cell::default_parameters() const {
-    return impl_->decorations.defaults();
-}
-
-const cable_cell::lid_range_map& cable_cell::detector_ranges() const {
-    return impl_->labeled_lid_ranges.get<threshold_detector>();
-}
-
-const cable_cell::lid_range_map& cable_cell::synapse_ranges() const {
-    return impl_->labeled_lid_ranges.get<synapse>();
-}
-
-const cable_cell::lid_range_map& cable_cell::junction_ranges() const {
-    return impl_->labeled_lid_ranges.get<junction>();
-}
+//
+const cable_cell::lid_range_map& cable_cell::detector_ranges() const { return impl_->labeled_lid_ranges_[get_index_v<threshold_detector, placeable>]; }
+const cable_cell::lid_range_map& cable_cell::synapse_ranges() const { return impl_->labeled_lid_ranges_[get_index_v<synapse, placeable>]; }
+const cable_cell::lid_range_map& cable_cell::junction_ranges() const { return impl_->labeled_lid_ranges_[get_index_v<junction, placeable>]; }
 
 const std::unordered_map<std::string, mlocation_map<synapse>>& cable_cell::synapses() const { return impl_->synapses_; }
+const std::unordered_map<std::string, mlocation_map<junction>>& cable_cell::junctions() const { return impl_->junctions_; }
+const mlocation_map<threshold_detector>& cable_cell::detectors() const { return impl_->detectors_; }
+const mlocation_map<i_clamp>& cable_cell::stimuli() const { return impl_->i_clamps_; }
 
 cell_tag_type decor::tag_of(hash_type hash) const {
     if (!hashes_.count(hash)) throw arbor_internal_error{util::pprintf("Unknown hash for {}.", std::to_string(hash))};
