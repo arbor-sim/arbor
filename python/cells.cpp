@@ -921,14 +921,14 @@ void register_cells(py::module& m) {
             "The group of spike detectors has the label 'label', used for forming connections between cells.");
     cable_cell
         .def(py::init(
-            [](const arb::morphology& m, const arb::decor& d, const std::optional<label_dict_proxy>& l, const std::optional<arb::cv_policy>& p) {
+            [](const arb::morphology& m, const arb::decor& d, const std::optional<::pyarb::label_dict>& l, const std::optional<arb::cv_policy>& p) {
                 if (l) return arb::cable_cell(m, d, l->dict, p);
                 return arb::cable_cell(m, d, {}, p);
             }),
             "morphology"_a, "decor"_a, "labels"_a=py::none(), "discretization"_a=py::none(),
             "Construct with a morphology, decor, label dictionary, and cv policy.")
         .def(py::init(
-            [](const arb::segment_tree& t, const arb::decor& d, const std::optional<label_dict_proxy>& l, const std::optional<arb::cv_policy>& p) {
+            [](const arb::segment_tree& t, const arb::decor& d, const std::optional<::pyarb::label_dict>& l, const std::optional<arb::cv_policy>& p) {
                 if (l) return arb::cable_cell({t}, d, l->dict, p);
                 return arb::cable_cell({t}, d, {}, p);
             }),
