@@ -6,7 +6,6 @@
  */
 
 #include <iterator>
-#include <memory>
 #include <type_traits>
 
 #include <arbor/util/uninitialized.hpp>
