@@ -21,7 +21,7 @@ class TestSpikes(unittest.TestCase):
         rec = fixtures.art_spiker_recipe()
         dd = A.partition_load_balance(rec, single_context)
         sim = A.simulation(rec, single_context, dd)
-        sim.record(A.spike_recording.all)
+        sim.record(A.spike_recording.local)
         # run simulation in 5 steps, forcing 5 epochs
         sim.run(1 * U.ms, 0.01 * U.ms)
         sim.run(2 * U.ms, 0.01 * U.ms)
