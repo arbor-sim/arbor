@@ -116,7 +116,7 @@ private:
     };
 };
 
-class locset;
+struct locset;
 
 namespace reg {
 
