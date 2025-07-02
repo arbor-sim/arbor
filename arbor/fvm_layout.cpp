@@ -343,7 +343,7 @@ fvm_cv_discretize(const cable_cell& cell,
     msize_t n_branch = D.geometry.n_branch(0);
     auto& ax_res_0 = D.axial_resistivity[0];
     ax_res_0.reserve(n_branch);
-    for (msize_t i = 0; i<n_branch; ++i) {
+    for (msize_t i = 0; i < n_branch; ++i) {
         auto cable = mcable{i, 0., 1.};
         auto scale_param = [&](const auto&,
                                const axial_resistivity& par) -> double {
@@ -724,17 +724,15 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
         L.revpot_read    |= R.revpot_read;
     }
 
-    for (const auto& kv: right.mechanisms) {
-        if (!left.mechanisms.count(kv.first)) {
-            fvm_mechanism_config& L = left.mechanisms[kv.first];
-
-            L = kv.second;
+    for (const auto& [k, v]: right.mechanisms) {
+        if (!left.mechanisms.count(k)) {
+            fvm_mechanism_config& L = left.mechanisms[k];
+            L = v;
             for (auto& t: L.target) t += target_offset;
         }
         else {
-            fvm_mechanism_config& L = left.mechanisms[kv.first];
-            const fvm_mechanism_config& R = kv.second;
-
+            fvm_mechanism_config& L = left.mechanisms[k];
+            const fvm_mechanism_config& R = v;
             L.kind = R.kind;
             append(L.cv, R.cv);
             append(L.peer_cv, R.peer_cv);
@@ -742,13 +740,11 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
             append(L.norm_area, R.norm_area);
             append(L.local_weight, R.local_weight);
             append_offset(L.target, target_offset, R.target);
-
             arb_assert(util::equal(L.param_values, R.param_values,
-                [](auto& a, auto& b) { return a.first==b.first; }));
+                                   [](auto& a, auto& b) { return a.first == b.first; }));
             arb_assert(L.param_values.size()==R.param_values.size());
-
             for (auto j: count_along(R.param_values)) {
-                arb_assert(L.param_values[j].first==R.param_values[j].first);
+                arb_assert(L.param_values[j].first == R.param_values[j].first);
                 append(L.param_values[j].second, R.param_values[j].second);
             }
         }
@@ -770,11 +766,10 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
     return left;
 }
 
-ARB_ARBOR_API std::unordered_map<cell_member_type, arb_size_type> fvm_build_gap_junction_cv_map(
-    const std::vector<cable_cell>& cells,
-    const std::vector<cell_gid_type>& gids,
-    const fvm_cv_discretization& D)
-{
+ARB_ARBOR_API std::unordered_map<cell_member_type, arb_size_type>
+fvm_build_gap_junction_cv_map(const std::vector<cable_cell>& cells,
+                              const std::vector<cell_gid_type>& gids,
+                              const fvm_cv_discretization& D) {
     arb_assert(cells.size() == gids.size());
     std::unordered_map<cell_member_type, arb_size_type> gj_cvs;
     for (auto cell_idx: util::make_span(0, cells.size())) {
@@ -787,12 +782,11 @@ ARB_ARBOR_API std::unordered_map<cell_member_type, arb_size_type> fvm_build_gap_
     return gj_cvs;
 }
 
-ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
-    const std::vector<cell_gid_type>& gids,
-    const cell_label_range& gj_data,
-    const std::unordered_map<cell_member_type, arb_size_type>& gj_cvs,
-    const recipe& rec)
-{
+ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>>
+fvm_resolve_gj_connections(const std::vector<cell_gid_type>& gids,
+                           const cell_label_range& gj_data,
+                           const std::unordered_map<cell_member_type, arb_size_type>& gj_cvs,
+                           const recipe& rec) {
     // Construct and resolve all gj_connections.
     std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns;
     label_resolution_map resolution_map({gj_data, gids});
@@ -1074,8 +1068,13 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
     // Ions:
     {
         auto ion_data = dflt.ion_data;
-        ion_data.insert(global_dflt.ion_data.begin(),
-                        global_dflt.ion_data.end());
+        for (const auto& [ion, dflt]: global_dflt.ion_data) {
+            auto& data = ion_data[ion];
+            if (!data.diffusivity) data.diffusivity = data.diffusivity;
+            if (!data.init_ext_concentration)  data.init_ext_concentration  = dflt.init_ext_concentration;
+            if (!data.init_int_concentration)  data.init_int_concentration  = dflt.init_int_concentration;
+            if (!data.init_reversal_potential) data.init_reversal_potential = dflt.init_reversal_potential;
+        }
         make_ion_config(std::move(ion_build_data),
                         ion_data,
                         int_concentration,
@@ -1299,6 +1298,7 @@ make_ion_config(fvm_ion_map build_data,
         config.reset_econc.resize(n_cv);
 
         const auto& global_ion_data = ion_data.at(ion);
+
         auto dflt_iconc = *global_ion_data.init_int_concentration;
         auto dflt_econc = *global_ion_data.init_ext_concentration;
         auto dflt_rvpot = *global_ion_data.init_reversal_potential;

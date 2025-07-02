@@ -21,7 +21,7 @@ void check_result(arb_deliverable_event_data const* results, std::vector<arb_del
 template<typename Stream>
 struct result {
     timestep_range steps;
-    std::unordered_map<unsigned, Stream> streams;
+    std::vector<Stream> streams;
     std::unordered_map<unsigned, std::vector<std::vector<arb_deliverable_event_data>>> expected;
 };
 
@@ -74,8 +74,8 @@ result<Stream> single_step() {
 
     // prepare return value
     result<Stream> res {
-        timestep_range{0,1,1},
-        {{0u, Stream{}}, {1u, Stream{}}},
+        timestep_range{0, 1, 1},
+        {Stream{}, Stream{}},
         {}
     };
 
@@ -107,8 +107,8 @@ result<Stream> multi_step() {
         {},
         {}
     };
-    for (std::size_t mech_id=0; mech_id<num_mechanisms; ++mech_id)
-        res.streams[mech_id] = Stream{};
+
+    res.streams.resize(num_mechanisms);
 
     // compute handles and divs
     std::vector<std::size_t> divs(num_cells+1, 0u);

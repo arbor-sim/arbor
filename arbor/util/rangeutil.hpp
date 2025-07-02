@@ -81,7 +81,6 @@ void zero(Seq& vs) {
 }
 
 // Append sequence to a container
-
 template <typename Container, typename Seq>
 Container& append(Container &c, const Seq& seq) {
     auto canon = canonical_view(seq);
@@ -90,7 +89,6 @@ Container& append(Container &c, const Seq& seq) {
 }
 
 // Assign sequence to a container
-
 template <typename AssignableContainer, typename Seq>
 AssignableContainer& assign(AssignableContainer& c, const Seq& seq) {
     auto canon = canonical_view(seq);

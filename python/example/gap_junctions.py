@@ -133,7 +133,8 @@ sim.record(A.spike_recording.all)
 
 # Sampler
 handles = [
-    sim.sample((gid, "Um"), A.regular_schedule(0.1 * U.ms)) for gid in range(ncells)
+    sim.sample((gid, "Um"), A.regular_schedule(0.1 * U.ms))
+    for gid in range(recipe.num_cells())
 ]
 
 # Run simulation

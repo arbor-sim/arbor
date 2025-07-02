@@ -6,10 +6,12 @@ namespace {
 template<typename Result>
 void check(Result result) {
     for (std::size_t step=0; step<result.steps.size(); ++step) {
-        for (auto& [mech_id, stream] :  result.streams) {
+        unsigned mech_id = 0;
+        for (auto& stream: result.streams) {
             stream.mark();
             auto marked = stream.marked_events();
             check_result(marked.begin, result.expected[mech_id][step]);
+            ++mech_id;
         }
     }
 }

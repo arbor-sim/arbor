@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <mutex>
-#include <ostream>
+#include <iostream>
 
 #include <arbor/context.hpp>
 #include <arbor/profile/profiler.hpp>
@@ -10,7 +10,7 @@
 #include "threading/threading.hpp"
 #include "util/span.hpp"
 #include "util/rangeutil.hpp"
-
+#include "hardware/memory.hpp"
 
 namespace arb {
 namespace profile {

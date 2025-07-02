@@ -124,7 +124,7 @@ TEST(network_generation, all) {
         connections_by_dest[c.target.gid].emplace_back(c);
     }
 
-    for (const auto& group: decomp.groups()) {
+    for (const auto& group: decomp->groups()) {
         std::size_t num_dest = group.kind == cell_kind::spike_source ? 0 : 1;
         for (std::size_t gid: group.gids) {
             EXPECT_EQ(connections_by_dest[gid].size(), num_cells * num_dest);
@@ -157,7 +157,7 @@ TEST(network_generation, cable_only) {
         connections_by_dest[c.target.gid].emplace_back(c);
     }
 
-    for (const auto& group: decomp.groups()) {
+    for (const auto& group: decomp->groups()) {
         for (const auto gid: group.gids) {
             // Only one third is a cable cell
             EXPECT_EQ(connections_by_dest[gid].size(),
