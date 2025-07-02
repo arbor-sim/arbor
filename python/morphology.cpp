@@ -226,21 +226,17 @@ void register_morphology(py::module& m) {
         .def(py::init<const arb::morphology&>(),
              "morphology"_a,
              "Construct a morphology provider.")
-        .def(py::init([](const arb::morphology& m, const label_dict_proxy& l) {
-                      return arb::mprovider(m, l.dict);
-             }),
+        .def(py::init([](const arb::morphology& m, const ::pyarb::label_dict& l) { return arb::mprovider(m, l.dict); }),
              py::keep_alive<1, 3>(),
              "morphology"_a, "labels"_a,
              "Construct a morphology provider.")
         .def("reify_locset",
-             [](const arb::mprovider& p,
-                const std::string& r) {
+             [](const arb::mprovider& p, const std::string& r) {
                  return thingify(arborio::parse_locset_expression(r).unwrap(), p);
              },
              "Turn a locset into a list of locations.")
         .def("reify_region",
-             [](const arb::mprovider& p,
-                const std::string& r) {
+             [](const arb::mprovider& p, const std::string& r) {
                  return thingify(arborio::parse_region_expression(r).unwrap(), p);
              },
              "Turn a region into an extent.");

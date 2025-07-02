@@ -2,11 +2,8 @@
 
 #include <cstdlib>
 #include <memory>
-#include <set>
 #include <string>
-#include <unordered_map>
 #include <utility>
-#include <vector>
 
 #include <arbor/export.hpp>
 #include <arbor/morph/primitives.hpp>
@@ -17,7 +14,7 @@ namespace arb {
 struct mprovider;
 struct region_tag {};
 
-class ARB_SYMBOL_VISIBLE region {
+struct ARB_SYMBOL_VISIBLE region {
 public:
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>
