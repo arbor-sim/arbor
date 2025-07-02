@@ -46,9 +46,8 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
 
     void reset() override;
 
-    fvm_initialization_data initialize(
-        const std::vector<cell_gid_type>& gids,
-        const recipe& rec) override;
+    fvm_initialization_data initialize(const std::vector<cell_gid_type>& gids,
+                                       const recipe& rec) override;
 
     fvm_integration_result integrate(const timestep_range& dts,
                                      const event_lane_subrange& event_lanes,
@@ -57,9 +56,7 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
     value_type time() const override { return state_->time; }
 
     //Exposed for testing purposes
-    std::vector<mechanism_ptr>& mechanisms() {
-        return mechanisms_;
-    }
+    std::vector<mechanism_ptr>& mechanisms() { return mechanisms_; }
 
     ARB_SERDES_ENABLE(fvm_lowered_cell_impl<Backend>, seed_, state_);
 
@@ -83,7 +80,7 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
     // Lookup table for target ids -> local target handle indices.
     std::vector<std::size_t> target_handle_divisions_;
 
-    // Optional non-physical voltage check threshold
+    // Optional non-physical voltage check threshold, tripped when |Um| > Ucrit
     std::optional<double> check_voltage_mV_;
 
     // random number generator seed value
@@ -92,6 +89,7 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
     // Flag indicating that at least one of the mechanisms implements the post_events procedure
     bool post_events_ = false;
 
+    // Reset concentrations for timestep, then have all mechanisms run their update
     void update_ion_state();
 
     // Throw if absolute value of membrane voltage exceeds bounds.
@@ -101,9 +99,7 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
     // The GPU will be the one in the execution context context_.
     // If not called, the thread may attempt to launch on a different GPU,
     // leading to crashes.
-    void set_gpu() {
-        if (context_.gpu->has_gpu()) context_.gpu->set_gpu();
-    }
+    void set_gpu() { if (context_.gpu->has_gpu()) context_.gpu->set_gpu(); }
 
     // Translate cell probe descriptions into probe handles etc.
     void resolve_probe_address(std::vector<fvm_probe_data>& probe_data, // out parameter
@@ -115,53 +111,36 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
                                const std::vector<target_handle>& handles,
                                const std::unordered_map<std::string, mechanism*>& mech_instance_by_name);
 
-    // Add probes to fvm_info::probe_map
-    void add_probes(const std::vector<cell_gid_type>& gids,
-                    const std::vector<cable_cell>& cells,
-                    const recipe& rec,
-                    const fvm_cv_discretization& D,
-                    const std::unordered_map<std::string, mechanism*>& mechptr_by_name,
-                    const fvm_mechanism_data& mech_data,
-                    const std::vector<target_handle>& target_handles,
-                    probe_association_map& probe_map);
+   // Add probes to fvm_info::probe_map
+   void add_probes(const std::vector<cell_gid_type>& gids,
+                   const std::vector<cable_cell>& cells,
+                   const recipe& rec,
+                   const fvm_cv_discretization& D,
+                   const std::unordered_map<std::string, mechanism*>& mechptr_by_name,
+                   const fvm_mechanism_data& mech_data,
+                   const std::vector<target_handle>& target_handles,
+                   probe_association_map& probe_map);
 };
 
 template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::reset() {
     state_->reset();
 
-    for (auto& m: voltage_mechanisms_) {
-        m->initialize();
-    }
-
-    for (auto& m: revpot_mechanisms_) {
-        m->initialize();
-    }
-
-    for (auto& m: mechanisms_) {
-        m->initialize();
-    }
+    for (auto& m: voltage_mechanisms_) m->initialize();
+    for (auto& m: revpot_mechanisms_)  m->initialize();
+    for (auto& m: mechanisms_)         m->initialize();
 
     update_ion_state();
-
     state_->zero_currents();
 
     // Note: mechanisms must be initialized again after the ion state is updated,
     // as mechanisms can read/write the ion_state within the initialize block
-    for (auto& m: revpot_mechanisms_) {
-        m->initialize();
-    }
-
-    for (auto& m: mechanisms_) {
-        m->initialize();
-    }
-
-    for (auto& m: voltage_mechanisms_) {
-        m->initialize();
-    }
+    for (auto& m: revpot_mechanisms_)  m->initialize();
+    for (auto& m: mechanisms_)         m->initialize();
+    for (auto& m: voltage_mechanisms_) m->initialize();
 
     // NOTE: Threshold watcher reset must come after the voltage values are set,
-    // as voltage is implicitly read by watcher to set initial state.
+    //       as voltage is implicitly read by watcher to set initial state.
     state_->reset_thresholds();
 }
 
@@ -184,15 +163,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
         arb_assert(state_->time == ts.t_begin());
 
         // Update integration step time information visible to mechanisms.
-        for (auto& m: mechanisms_) {
-            m->set_dt(state_->dt);
-        }
-        for (auto& m: revpot_mechanisms_) {
-            m->set_dt(state_->dt);
-        }
-        for (auto& m: voltage_mechanisms_) {
-            m->set_dt(state_->dt);
-        }
+        for (auto& m: mechanisms_)         m->set_dt(state_->dt);
+        for (auto& m: revpot_mechanisms_)  m->set_dt(state_->dt);
+        for (auto& m: voltage_mechanisms_) m->set_dt(state_->dt);
 
         // Update any required reversal potentials based on ionic concentrations
         for (auto& m: revpot_mechanisms_) {
@@ -243,9 +216,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
 
         // voltage mechs run now; after the cable_solver, but before the
         // threshold test
-        for (auto& m: voltage_mechanisms_) {
-            m->update_current();
-        }
+        for (auto& m: voltage_mechanisms_) m->update_current();
         for (auto& m: voltage_mechanisms_) {
             state_->update_prng_state(*m);
             m->update_state();
@@ -258,9 +229,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
 
         PE(advance:integrate:post);
         if (post_events_) {
-            for (auto& m: mechanisms_) {
-                m->post_event();
-            }
+            for (auto& m: mechanisms_) m->post_event();
         }
         PL();
 
@@ -281,9 +250,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
 template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::update_ion_state() {
     state_->ions_init_concentration();
-    for (auto& m: mechanisms_) {
-        m->update_ions();
-    }
+    for (auto& m: mechanisms_) m->update_ions();
 }
 
 template <typename Backend>
@@ -291,9 +258,8 @@ void fvm_lowered_cell_impl<Backend>::assert_voltage_bounded(arb_value_type bound
     const auto& [vmin, vmax] = state_->voltage_bounds();
     if (vmin >= -bound && vmax <= bound) return;
 
-    throw range_check_failure(
-        util::pprintf("voltage solution out of bounds for at t = {}", state_->time),
-        vmin < -bound ? vmin : vmax);
+    throw range_check_failure(util::pprintf("voltage solution out of bounds for at t = {}", state_->time),
+                              vmin < -bound ? vmin : vmax);
 }
 
 inline
@@ -345,9 +311,7 @@ fvm_lowered_cell_impl<Backend>::add_probes(const std::vector<cell_gid_type>& gid
             if (!probe_data.empty()) {
                 cell_address_type addr{gid, pi.tag};
                 if (probe_map.count(addr)) throw dup_cell_probe(cell_kind::cable, gid, pi.tag);
-                for (auto& data: probe_data) {
-                    probe_map.insert(addr, std::move(data));
-                }
+                for (auto& data: probe_data) probe_map.insert(addr, std::move(data));
             }
         }
     }
@@ -1029,6 +993,7 @@ void resolve_probe(const cable_probe_ion_current_cell& p, probe_resolution_data<
 template <typename B>
 void resolve_probe(const cable_probe_ion_int_concentration& p, probe_resolution_data<B>& R) {
     const auto& ion = p.ion;
+    if (!R.state->ion_data.count(p.ion)) return;
     const auto& xi = R.state->ion_data.at(ion).Xi_;
     if (xi.empty()) return;
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
@@ -1041,7 +1006,9 @@ void resolve_probe(const cable_probe_ion_int_concentration& p, probe_resolution_
 template <typename B>
 void resolve_probe(const cable_probe_ion_ext_concentration& p, probe_resolution_data<B>& R) {
     const auto& ion = p.ion;
+    if (!R.state->ion_data.count(p.ion)) return;
     const auto& xo = R.state->ion_data.at(ion).Xo_;
+    if (xo.empty()) return;
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
         auto opt_i = R.ion_location_index(ion, loc);
         if (!opt_i) continue;
@@ -1052,7 +1019,9 @@ void resolve_probe(const cable_probe_ion_ext_concentration& p, probe_resolution_
 template <typename B>
 void resolve_probe(const cable_probe_ion_diff_concentration& p, probe_resolution_data<B>& R) {
     const auto& ion = p.ion;
+    if (!R.state->ion_data.count(p.ion)) return;
     const auto& xd = R.state->ion_data.at(ion).Xd_;
+    if (xd.empty()) return;
     for (mlocation loc: thingify(p.locations, R.cell.provider())) {
         auto opt_i = R.ion_location_index(ion, loc);
         if (!opt_i) continue;
