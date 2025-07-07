@@ -7,7 +7,6 @@
 #include <cmath>
 #include <cstdint>
 
-#include <iostream>
 #include <arbor/simd/approx.hpp>
 #include <arbor/simd/implbase.hpp>
 

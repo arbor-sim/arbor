@@ -370,10 +370,9 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
     } else if (scalars_.count(rhs_name) && !scalars_.count(lhs_name)) {
         out_ << func_spelling << '(';
         lhs->accept(this);
-        out_ << ", simd_cast<simd_value>(" << rhs_pfxd;
-        out_ << "))";
+        out_ << ", " << rhs_pfxd << ")";
     } else if (!scalars_.count(rhs_name) && scalars_.count(lhs_name)) {
-        out_ << func_spelling << "(simd_cast<simd_value>(" << lhs_pfxd << "), ";
+        out_ << func_spelling << "(" << lhs_pfxd << ", ";
         rhs->accept(this);
         out_ << ")";
     } else {

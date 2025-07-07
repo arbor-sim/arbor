@@ -62,7 +62,6 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                        const std::vector<LocalVariable*>& indexed_vars,
                                        const std::list<index_prop>& indices,
                                        const simd_expr_constraint& constraint,
-                                       std::string constraint_name,
                                        const ApiFlags&);
 
 struct cprint {
@@ -154,7 +153,6 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
 
     if (with_simd) {
         out << "#include <" << arb_header_prefix() << "simd/simd.hpp>\n";
-        out << "#undef NDEBUG\n";
         out << "#include <cassert>\n";
     }
 
@@ -238,7 +236,6 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     out << fmt::format(FMT_COMPILE("#define PPACK_IFACE_BLOCK \\\n"
                                    "[[maybe_unused]] auto {0}width                                                 = pp->width;\\\n"
                                    "[[maybe_unused]] auto {0}n_detectors                                           = pp->n_detectors;\\\n"
-                                   "[[maybe_unused]] auto {0}dt                                                    = pp->dt;\\\n"
                                    "[[maybe_unused]] arb_index_type * __restrict__ {0}vec_ci                       = pp->vec_ci;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_v                        = pp->vec_v;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_i                        = pp->vec_i;\\\n"
@@ -262,9 +259,20 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
                                    "[[maybe_unused]] arb_index_type* __restrict__ {0}index_constraints_independent = pp->index_constraints.independent;\\\n"
                                    "[[maybe_unused]] arb_index_type* __restrict__ {0}index_constraints_none        = pp->index_constraints.none;\\\n"),
                        pp_var_pfx);
+    if (with_simd) {
+        out << fmt::format(FMT_COMPILE("[[maybe_unused]] auto {0}dt                                                    = simd_cast<simd_value>(pp->dt);\\\n"), pp_var_pfx);
+    }
+    else {
+        out << fmt::format(FMT_COMPILE("[[maybe_unused]] auto {0}dt                                                    = pp->dt;\\\n"), pp_var_pfx);
+    }
     auto global = 0;
     for (const auto& scalar: global_ids) {
-        out << fmt::format("[[maybe_unused]] auto {}{} = pp->globals[{}];\\\n", pp_var_pfx, scalar.name(), global);
+        if (with_simd) {
+            out << fmt::format("[[maybe_unused]] auto {}{} = simd_cast<simd_value>(pp->globals[{}]);\\\n", pp_var_pfx, scalar.name(), global);
+        }
+        else {
+            out << fmt::format("[[maybe_unused]] auto {}{} = pp->globals[{}];\\\n", pp_var_pfx, scalar.name(), global);
+        }
         global++;
     }
     out << fmt::format("[[maybe_unused]] auto const * const * {}random_numbers = pp->random_numbers;\\\n", pp_var_pfx);
@@ -637,13 +645,10 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     // are scalars and read-only.
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
         out_ << "indirect(" << pfx << lhs->name() << "+" << index << ", simd_width_) = ";
-        if (!input_mask_.empty())
-            out_ << "S::where(" << input_mask_ << ", ";
+        if (!input_mask_.empty()) out_ << "S::where(" << input_mask_ << ", ";
 
-        // If the rhs is a scalar identifier or a number, it needs to be cast to a vector.
-        auto id = e->rhs()->is_identifier();
-        auto num = e->rhs()->is_number();
-        bool cast = num || (id && scalars_.count(id->name()));
+        // If the rhs is a number it needs to be cast to a vector.
+        bool cast = e->rhs()->is_number();
 
         if (cast) out_ << "simd_cast<simd_value>(";
         e->rhs()->accept(this);
@@ -744,7 +749,7 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
                     default:
                         out << ";\n"
                             << "assign(" << local->name() << ", indirect(" << data_via_ppack(d)
-                            << ", " << node_index_i_name(d) << ", simd_width_, constraint_category_));\n";
+                            << ", " << node_index_i_name(d) << ", simd_width_, index_constraint::" << to_string(constraint) << "));\n";
                     }
                     break;
                 }
@@ -811,14 +816,14 @@ void emit_simd_state_update(std::ostream& out,
                     // We need this instead of simple assignment!
                     out << fmt::format("{{\n"
                                        "  simd_value t_{}0_ = simd_cast<simd_value>(0.0);\n"
-                                       "  assign(t_{}0_, indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_));\n"
+                                       "  assign(t_{}0_, indirect({}, simd_cast<simd_index>({}), simd_width_, index_constraint::{}));\n"
                                        "  {} = S::sub({}, t_{}0_);\n"
-                                       "  indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_) += S::mul({}, {});\n"
+                                       "  indirect({}, simd_cast<simd_index>({}), simd_width_, index_constraint::{}) += S::mul({}, {});\n"
                                        "}}\n",
                                        name,
-                                       name, data, node,
+                                       name, data, node, to_string(constraint),
                                        scaled, scaled, name,
-                                       data, node, weight, scaled);
+                                       data, node, to_string(constraint), weight, scaled);
             }
         }
         else {
@@ -839,14 +844,14 @@ void emit_simd_state_update(std::ostream& out,
                 // We need this instead of simple assignment!
                 out << fmt::format("{{\n"
                                    "  simd_value t_{}0_ = simd_cast<simd_value>(0.0);\n"
-                                   "  assign(t_{}0_, indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_));\n"
+                                   "  assign(t_{}0_, indirect({}, simd_cast<simd_index>({}), simd_width_, index_constraint::{}));\n"
                                    "  {} = S::sub({}, t_{}0_);\n"
-                                   "  indirect({}, simd_cast<simd_index>({}), simd_width_, constraint_category_) += S::mul({}, {});\n"
+                                   "  indirect({}, simd_cast<simd_index>({}), simd_width_, index_constraint::{}) += S::mul({}, {});\n"
                                    "}}\n",
                                    name,
-                                   name, data, node,
+                                   name, data, node, to_string(constraint),
                                    scaled, scaled, name,
-                                   data, node, weight, scaled);
+                                   data, node,  to_string(constraint), weight, scaled);
             }
         }
         else {
@@ -865,10 +870,10 @@ void emit_simd_state_update(std::ostream& out,
                         << "indirect(" << data << " + " << node << ", simd_width_) = " << tempvar << ";\n";
                     break;
                 case simd_expr_constraint::constant:
-                    out << "indirect(" << data << ", simd_cast<simd_index>(" << node << "), simd_width_, constraint_category_) += S::mul(" << weight << ", " << scaled << ");\n";
+                    out << "indirect(" << data << ", simd_cast<simd_index>(" << node << "), simd_width_, index_constraint::" << to_string(constraint) << ") += S::mul(" << weight << ", " << scaled << ");\n";
                     break;
                 default:
-                    out << "indirect(" << data << ", " << node << ", simd_width_, constraint_category_) += S::mul(" << weight << ", " << scaled << ");\n";
+                    out << "indirect(" << data << ", " << node << ", simd_width_, index_constraint::" << to_string(constraint) << ") += S::mul(" << weight << ", " << scaled << ");\n";
             }
         } else {
             out << "indirect(" << data << ", " << index << ", simd_width_, index_constraint::none) += S::mul(" << weight << ", " << scaled << ");\n";
@@ -880,10 +885,10 @@ void emit_simd_state_update(std::ostream& out,
                 out << "indirect(" << data << " + " << node << ", simd_width_) = " << scaled << ";\n";
                 break;
             case simd_expr_constraint::constant:
-                out << "indirect(" << data << ", simd_cast<simd_index>(" << node << "), simd_width_, constraint_category_) = " << scaled << ";\n";
+                out << "indirect(" << data << ", simd_cast<simd_index>(" << node << "), simd_width_, index_constraint::" << to_string(constraint) << ") = " << scaled << ";\n";
                 break;
             default:
-                out << "indirect(" << data << ", " << node << ", simd_width_, constraint_category_) = " << scaled << ";\n";
+                out << "indirect(" << data << ", " << node << ", simd_width_, index_constraint::" << to_string(constraint) << ") = " << scaled << ";\n";
         }
     }
     else {
@@ -915,7 +920,7 @@ void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& 
                 switch (constraint) {
                 case simd_expr_constraint::contiguous:
                     out << "auto " << source_index_i_name(index) << " = simd_cast<simd_index>(indirect(" << source_var(index)
-                        << " + " << index.index_name << ", simd_width_));\n";
+                        << " + " << index.index_name << ", simd_width_, index_constraint::" << to_string(constraint) << "));\n";
                     break;
                 case simd_expr_constraint::constant:
                     out << "auto " << source_index_i_name(index) << " = simd_cast<simd_index>(" << source_var(index)
@@ -923,7 +928,7 @@ void emit_simd_index_initialize(std::ostream& out, const std::list<index_prop>& 
                     break;
                 default:
                     out << "auto " << source_index_i_name(index) << " = simd_cast<simd_index>(indirect(" << source_var(index)
-                        << ", " << index.index_name << ", simd_width_, constraint_category_));\n";
+                        << ", " << index.index_name << ", simd_width_, index_constraint::" << to_string(constraint) << "));\n";
                     break;
                 }
                 break;
@@ -968,15 +973,14 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                        const std::vector<LocalVariable*>& indexed_vars,
                                        const std::vector<VariableExpression*>& scalars,
                                        const std::list<index_prop>& indices,
-                                       const simd_expr_constraint& constraint,
-                                       std::string underlying_constraint_name,
+                                       simd_expr_constraint constraint,
                                        const ApiFlags& flags) {
+
     ENTER(out);
-    out << fmt::format("constraint_category_ = index_constraint::{1};\n"
-                       "for (auto i_ = 0ul; i_ < {0}index_constraints_n_{1}; i_++) {{\n"
+    out << fmt::format("for (auto i_ = 0ul; i_ < {0}index_constraints_n_{1}; i_++) {{\n"
                        "    arb_index_type index_ = {0}index_constraints_{1}[i_];\n",
                        pp_var_pfx,
-                       underlying_constraint_name)
+                       to_string(constraint))
         << indent
         << fmt::format("simd_value w_;\n"
                        "assign(w_, indirect(({}weight+index_), simd_width_));\n",
@@ -1006,36 +1010,19 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method,
         out << "PPACK_IFACE_BLOCK;\n";
         out << "assert(simd_width_ <= (unsigned)S::width(simd_cast<simd_value>(0)));\n";
         if (!indices.empty()) {
-            out << "index_constraint constraint_category_;\n\n";
-
-            //Generate for loop for all contiguous simd_vectors
-            simd_expr_constraint constraint = simd_expr_constraint::contiguous;
-            std::string underlying_constraint = "contiguous";
-
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint, flags);
-
+            // Generate for loop for all contiguous simd_vectors
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, simd_expr_constraint::contiguous, flags);
             //Generate for loop for all independent simd_vectors
-            constraint = simd_expr_constraint::other;
-            underlying_constraint = "independent";
-
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint, flags);
-
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, simd_expr_constraint::independent, flags);
             //Generate for loop for all simd_vectors that have no optimizing constraints
-            constraint = simd_expr_constraint::other;
-            underlying_constraint = "none";
-
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint, flags);
-
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, simd_expr_constraint::none, flags);
             //Generate for loop for all constant simd_vectors
-            constraint = simd_expr_constraint::constant;
-            underlying_constraint = "constant";
-
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint, flags);
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, simd_expr_constraint::constant, flags);
         }
         else {
             // We may nonetheless need to read a global scalar indexed variable.
             for (auto& sym: scalar_indexed_vars) {
-                emit_simd_state_read(out, sym, simd_expr_constraint::other, flags);
+                emit_simd_state_read(out, sym, simd_expr_constraint::none, flags);
             }
 
             out << fmt::format("for (arb_size_type i_ = 0; i_ < {}width; i_ += simd_width_) {{\n",
@@ -1043,8 +1030,7 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method,
                 << indent
                 << simdprint(body, scalars)
                 << popindent
-                <<
-                "}\n";
+                << "}\n";
         }
     }
     EXIT(out);
