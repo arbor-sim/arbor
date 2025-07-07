@@ -22,6 +22,9 @@ struct constraint_partition {
     ARB_SERDES_ENABLE(constraint_partition, contiguous, constant, independent, none);
 };
 
+// contiguous over width n
+//
+// all n values are strictly monotonic
 template <typename It>
 bool is_contiguous_n(It first, unsigned width) {
     while (--width) {
@@ -34,6 +37,9 @@ bool is_contiguous_n(It first, unsigned width) {
     return true;
 }
 
+// constant over width n
+//
+// all n values are equal to the first
 template <typename It>
 bool is_constant_n(It first, unsigned width) {
     while (--width) {
@@ -46,6 +52,9 @@ bool is_constant_n(It first, unsigned width) {
     return true;
 }
 
+// independent over width n
+//
+// no repetitions?? so 0 1 0 1 qualifies, but not 0 0 1 1
 template <typename It>
 bool is_independent_n(It first, unsigned width) {
     while (--width) {
