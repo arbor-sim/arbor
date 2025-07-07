@@ -977,18 +977,32 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                        const ApiFlags& flags) {
 
     ENTER(out);
-    out << fmt::format("for (auto i_ = 0ul; i_ < {0}index_constraints_n_{1}; i_++) {{\n"
-                       "    arb_index_type index_ = {0}index_constraints_{1}[i_];\n",
-                       pp_var_pfx,
-                       to_string(constraint))
-        << indent
-        << fmt::format("simd_value w_;\n"
-                       "assign(w_, indirect(({}weight+index_), simd_width_));\n",
-                       pp_var_pfx);
-
+    if (constraint == simd_expr_constraint::contiguous) {
+        out
+         << fmt::format("for (auto i_ = 0ul; i_ < {0}index_constraints_n_{1}; i_ += 2) {{\n",
+                        pp_var_pfx, to_string(constraint))
+         << indent
+         << fmt::format("for (auto index_ = {0}index_constraints_{1}[i_]; index_ < {0}index_constraints_{1}[i_+1]; index_ += simd_width_) {{\n",
+                           pp_var_pfx, to_string(constraint))
+         << indent
+         << fmt::format("simd_value w_;\n"
+                        "assign(w_, indirect(({}weight+index_), simd_width_));\n",
+                        pp_var_pfx);
+    }
+    else {
+        out << fmt::format("for (auto i_ = 0ul; i_ < {0}index_constraints_n_{1}; i_++) {{\n"
+                           "    arb_index_type index_ = {0}index_constraints_{1}[i_];\n",
+                           pp_var_pfx,
+                           to_string(constraint))
+            << indent
+            << fmt::format("simd_value w_;\n"
+                           "assign(w_, indirect(({}weight+index_), simd_width_));\n",
+                           pp_var_pfx);
+    }
     emit_simd_body_for_loop(out, body, indexed_vars, scalars, indices, constraint, flags);
 
     out << popindent << "}\n";
+    if (constraint == simd_expr_constraint::contiguous) out << popindent << "}\n";
     EXIT(out);
 }
 

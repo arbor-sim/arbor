@@ -1,6 +1,7 @@
 #pragma once
 
-#include <vector>
+#include "backends/multicore/multicore_common.hpp"
+#include "util/rangeutil.hpp"
 
 #include <arbor/simd/simd.hpp>
 #include <arbor/serdes.hpp>
@@ -13,10 +14,13 @@ using S::index_constraint;
 
 struct constraint_partition {
     using iarray = arb::multicore::iarray;
-
+    // sequence of _ranges_ of contiguous index block of width N
     iarray contiguous;
+    // sequence of constant index blocks of width N
     iarray constant;
+    // sequence of independent index blocks of width N
     iarray independent;
+    // sequence of unconstrained index blocks of width N
     iarray none;
 
     ARB_SERDES_ENABLE(constraint_partition, contiguous, constant, independent, none);
@@ -85,22 +89,32 @@ index_constraint idx_constraint(It it, unsigned simd_width) {
 
 template <typename T>
 constraint_partition make_constraint_partition(const T& node_index, unsigned width, unsigned simd_width) {
+    if (!simd_width) return {};
+    arb_assert(util::is_sorted(node_index));
     constraint_partition part;
-    if (simd_width) {
-        for (unsigned i = 0; i < width; i+= simd_width) {
-            auto ptr = &node_index[i];
-            if (is_contiguous_n(ptr, simd_width)) {
-                part.contiguous.push_back(i);
-            }
-            else if (is_constant_n(ptr, simd_width)) {
-                part.constant.push_back(i);
-            }
-            else if (is_independent_n(ptr, simd_width)) {
-                part.independent.push_back(i);
-            }
-            else {
-                part.none.push_back(i);
-            }
+    unsigned idx = 0;
+    while (idx < width) {
+        auto ptr = &node_index[idx];
+        auto beg = idx;
+        while (idx < width && is_contiguous_n(&node_index[idx], simd_width)) idx += simd_width;
+        if (idx > beg) {
+            // NB. This one is different from the others
+            // 1. we already _have_ bumped idx as far as possible
+            // 2. we need to push the start _and_ the end (=idx) of the range
+            part.contiguous.push_back(beg);
+            part.contiguous.push_back(idx);
+        }
+        else if (is_constant_n(ptr, simd_width)) {
+            part.constant.push_back(idx);
+            idx += simd_width;
+        }
+        else if (is_independent_n(ptr, simd_width)) {
+            part.independent.push_back(idx);
+            idx += simd_width;
+        }
+        else {
+            part.none.push_back(idx);
+            idx += simd_width;
         }
     }
     return part;
