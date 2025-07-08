@@ -95,6 +95,10 @@ constraint_partition make_constraint_partition(const T& node_index, unsigned wid
     unsigned idx = 0;
     while (idx < width) {
         auto ptr = &node_index[idx];
+        // First, greedily absorb the contiguous part of the index array. As the
+        // array is sorted, the greedy strategy produces the maximum ranges. If
+        // the contiguous prefix is exhaust, try the other options in decreasing
+        // order of strength.
         auto beg = idx;
         while (idx < width && is_contiguous_n(&node_index[idx], simd_width)) idx += simd_width;
         if (idx > beg) {
@@ -131,10 +135,7 @@ bool compatible_index_constraints(const T& node_index, const U& ion_index, unsig
     for (unsigned i = 0; i < node_index.size(); i+= simd_width) {
         auto nc = idx_constraint(&node_index[i], simd_width);
         auto ic = idx_constraint(&ion_index[i], simd_width);
-
-        if (!is_constraint_stronger(nc, ic)) {
-            return false;
-        }
+        if (!is_constraint_stronger(nc, ic)) return false;
     }
     return true;
 }

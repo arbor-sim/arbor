@@ -217,7 +217,7 @@ void CExprEmitter::visit(IfExpression* e) {
 std::unordered_set<std::string> SimdExprEmitter::mask_names_;
 
 void SimdExprEmitter::visit(NumberExpression* e) {
-    out_ << " (double)" << as_c_double(e->value());
+    out_ << "(double)" << as_c_double(e->value());
 } 
 
 void SimdExprEmitter::visit(UnaryExpression* e) {
