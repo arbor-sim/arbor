@@ -117,7 +117,7 @@ private:
 // LIF cell with probe
 class probe_recipe: public arb::recipe {
 public:
-    probe_recipe(size_t n_conn = 0): n_conn_{n_conn} {}
+    probe_recipe(size_t n_conn = 0): n_conn_{n_conn*2} {}
 
     cell_size_type num_cells() const override {
         return 2;
@@ -129,6 +129,10 @@ public:
         std::vector<cell_connection> res;
         // Use a fictious GID
         for (size_t ix = 0; ix < n_conn_; ++ix) res.emplace_back(cell_global_label_type{0, "src"},
+                                                                 cell_local_label_type{"tgt"},
+                                                                 0.0,
+                                                                 5*U::us);
+        for (size_t ix = 0; ix < n_conn_; ++ix) res.emplace_back(cell_global_label_type{1, "src"},
                                                                  cell_local_label_type{"tgt"},
                                                                  0.0,
                                                                  5*U::us);
@@ -262,7 +266,7 @@ TEST(lif_cell_group, probe) {
 
     std::vector<double> spikes;
 
-    sim.set_global_spike_callback(
+    sim.set_local_spike_callback(
         [&spikes](const std::vector<spike>& spk) { for (const auto& s: spk) spikes.push_back(s.time); }
     );
 

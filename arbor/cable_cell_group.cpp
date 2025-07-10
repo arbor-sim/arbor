@@ -448,7 +448,7 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     // record the local spike source index, which must be converted to a
     // global index for spike communication.
 
-    for (auto c: result.crossings) {
+    for (const auto& c: result.crossings) {
         spikes_.emplace_back(spike_sources_[c.index], time_type(c.time));
     }
 }
