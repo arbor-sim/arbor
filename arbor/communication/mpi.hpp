@@ -255,7 +255,7 @@ gathered_vector<T> gather_all_with_partition(const std::vector<T>& values, MPI_C
 
 template <typename T>
 inline gathered_vector<T> all_to_all_impl(const std::vector<T>& send_buffer, const std::vector<int>& send_counts,
-                                          const std::vector<int>& send_displs, int num_ranks, MPI_Comm comm){
+                                          const std::vector<int>& send_displs, int num_ranks, MPI_Comm comm) {
     using gathered_type = gathered_vector<T>;
     using count_type = typename gathered_type::count_type;
     using traits = mpi_traits<T>;
@@ -273,11 +273,16 @@ inline gathered_vector<T> all_to_all_impl(const std::vector<T>& send_buffer, con
     auto count_per_element = traits::count();
     std::vector<T> recv_buffer(recv_displs.back() / count_per_element);
 
+    //Remove last element to prevent possible errors in communication
+    int sum = recv_displs.back();
+    recv_displs.pop_back();
+
     MPI_OR_THROW(MPI_Alltoallv,
                  const_cast<T*>(send_buffer.data()), send_counts.data(), send_displs.data(), traits::mpi_type(),
                  recv_buffer.data(), recv_counts.data(), recv_displs.data(), traits::mpi_type(),
                  comm);
 
+    recv_displs.push_back(sum);
     for (auto& d : recv_displs) {
         d /= count_per_element;
     }
