@@ -795,10 +795,21 @@ TEST(swc_parser, not_neuron_compliant) {
 }
 
 TEST(swc_parser, drosophilia) {
-    std::string datadir{DATADIR};
-    auto fname = datadir + "/drosophilia.swc";
-    auto data = load_swc_neuron(fname,
-                                swc_loader_options{.allow_non_monotonic_ids=true, .allow_mismatched_tags=true, .tags={{0, "undefined"}, {1, "soma"}, {5, "fork point"}, {6, "end point"}}});
+    // Parse data from the drosophilia project
+    // https://codex.flywire.ai/api/download?dataset=fafb
+    auto parse = [](const auto& fn) {
+        return load_swc_neuron(std::string{DATADIR} + "/" + fn,
+                               swc_loader_options{.allow_non_monotonic_ids=true,
+                                                  .allow_mismatched_tags=true,
+                                                  .tags={{0, "undefined"}, {1, "soma"}, {5, "fork point"}, {6, "end point"}}});
+    };
+    for (const auto& fn: {"720575940661139073.swc",
+                          "720575940661205633.swc",
+                          "720575940661214849.swc",
+                          "720575940661234561.swc",
+                          "720575940661235585.swc"}) {
+        EXPECT_NO_THROW(parse(fn));
+    }
 }
 
 

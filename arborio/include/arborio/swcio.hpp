@@ -130,6 +130,7 @@ ARB_ARBORIO_API swc_data parse_swc(const std::string&, bool lax_ordering=false);
 struct ARB_ARBORIO_API swc_loader_options {
    // allow skips in parent/child relations
    bool allow_non_monotonic_ids = false;
+   // disable checking for tag congruence between parent and child
    bool allow_mismatched_tags = false;
    // supported tags
    std::map<int, std::string> tags = {{1, "soma"}, {2, "axon"}, {3, "dend"}, {4, "apic"}};
