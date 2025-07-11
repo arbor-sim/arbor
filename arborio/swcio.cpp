@@ -367,7 +367,7 @@ ARB_ARBORIO_API loaded_morphology load_swc_arbor(const swc_data& data) {
 ARB_ARBORIO_API loaded_morphology load_swc_arbor(const std::filesystem::path& path) {
     std::ifstream fd(path);
     if (!fd) throw arb::file_not_found_error("unable to open SWC file: "+path.string());
-    return load_swc_arbor(parse_swc(fd, opts.allow_non_monotonic_ids));
+    return load_swc_arbor(parse_swc(fd));
 }
 
 ARB_ARBORIO_API loaded_morphology load_swc_neuron(const std::filesystem::path& path, const swc_loader_options& opts) {
