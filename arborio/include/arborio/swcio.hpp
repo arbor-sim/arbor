@@ -15,10 +15,14 @@ namespace arborio {
 
 // SWC exceptions are thrown by `parse_swc`, and correspond
 // to inconsistent, or in `strict` mode, dubious SWC data.
-
 struct ARB_SYMBOL_VISIBLE swc_error: public arb::arbor_exception {
     swc_error(const std::string& msg, int record_id);
     int record_id;
+};
+
+// Cycle in alledged tree
+struct ARB_SYMBOL_VISIBLE swc_cycle_in_tree: swc_error {
+    explicit swc_cycle_in_tree(int record_id);
 };
 
 // Parent id in record has no corresponding SWC record,

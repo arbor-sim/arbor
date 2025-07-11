@@ -28,6 +28,10 @@ swc_no_such_parent::swc_no_such_parent(int record_id, int parent):
     swc_error("Missing SWC parent record " + std::to_string(parent), record_id)
 {}
 
+swc_cycle_in_tree::swc_cycle_in_tree(int id):
+    swc_error("Found cycle in SWC tree", id)
+{}
+
 swc_record_precedes_parent::swc_record_precedes_parent(int record_id):
     swc_error("SWC parent id is not less than sample id", record_id)
 {}
@@ -94,10 +98,11 @@ std::vector<swc_record> topo_sort(const std::vector<swc_record>& records) {
     auto perm = std::unordered_set<std::size_t>();
 
     std::vector<swc_record> result;
+    result.reserve(records.size());
 
     std::function<void(const swc_record&)> visit = [&] (const auto& rec) {
         if (perm.contains(rec.id)) return;
-        if (temp.contains(rec.id)) throw std::runtime_error{"Cycle!"};
+        if (temp.contains(rec.id)) throw swc_cycle_in_tree{rec.id};
         temp.insert(rec.id);
         for (auto idx: children[rec.id]) visit(records[idx]);
         perm.insert(rec.id);
@@ -158,7 +163,6 @@ swc_data::swc_data(std::string meta, std::vector<arborio::swc_record> recs, bool
 
 ARB_ARBORIO_API swc_data parse_swc(std::istream& in, bool lax_ordering) {
     // Collect any initial comments (lines beginning with '#').
-
     std::string metadata;
     std::vector<swc_record> records;
     std::string line;
@@ -178,9 +182,7 @@ ARB_ARBORIO_API swc_data parse_swc(std::istream& in, bool lax_ordering) {
     }
 
     swc_record r;
-    while (in && (in.peek() != '\n') && in >> r) {
-        records.push_back(r);
-    }
+    while (in && (in.peek() != '\n') && in >> r) records.push_back(r);
 
     return swc_data(std::move(metadata), std::move(records), lax_ordering);
 }
