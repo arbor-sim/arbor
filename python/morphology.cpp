@@ -352,25 +352,37 @@ void register_morphology(py::module& m) {
         "Specifically:\n"
         " * Single-segment somas are disallowed.\n"
         " * There are no special rules related to somata. They can be one or multiple branches\n"
-        "   and other segments can connect anywhere along them.\n"
-        " * A segment is always created between a sample and its parent, meaning there\n"
-        "   are no gaps in the resulting morphology.");
+          "   and other segments can connect anywhere along them.\n"
+          " * A segment is always created between a sample and its parent, meaning there\n"
+          "   are no gaps in the resulting morphology.");
     m.def("load_swc_neuron",
-        [](py::object fn) -> arborio::loaded_morphology {
-            try {
-                auto contents = util::read_file_or_buffer(fn);
-                auto data = arborio::parse_swc(contents);
-                return arborio::load_swc_neuron(data);
-            }
-            catch (arborio::swc_error& e) {
-                // Try to produce helpful error messages for SWC parsing errors.
-                throw pyarb_error(util::pprintf("NEURON SWC: parse error: {}", e.what()));
-            }
-        },
-        "filename_or_stream"_a,
-        "Generate a morphology from an SWC file following the rules prescribed by NEURON.\n"
-        "See the documentation https://docs.arbor-sim.org/en/latest/fileformat/swc.html\n"
-        "for a detailed description of the interpretation.");
+          [](py::object fn,
+             bool allow_non_monotonic_ids=false,
+             bool allow_mismatched_tags=false,
+             std::map<int, std::string> tags = {{1, "soma"}, {2, "axon"}, {3, "dend"}, {4, "apic"}}) -> arborio::loaded_morphology {
+              try {
+                  auto contents = util::read_file_or_buffer(fn);
+                  auto data = arborio::parse_swc(contents, allow_non_monotonic_ids);
+                  return arborio::load_swc_neuron(data,
+                                                  arborio::swc_loader_options{
+                                                  .allow_non_monotonic_ids=allow_non_monotonic_ids,
+                                                  .allow_mismatched_tags=allow_mismatched_tags,
+                                                  .tags=tags
+                                              });
+              }
+              catch (arborio::swc_error& e) {
+                  // Try to produce helpful error messages for SWC parsing errors.
+                  throw pyarb_error(util::pprintf("NEURON SWC: parse error: {}", e.what()));
+              }
+          },
+          "filename_or_stream"_a,
+          py::kw_only(),
+          "allow_non_monotonic_ids"_a=false,
+          "allow_mismatched_tags"_a=false,
+          "tags"_a=std::map<int, std::string>{{1, "soma"}, {2, "axon"}, {3, "dend"}, {4, "apic"}},
+          "Generate a morphology from an SWC file following the rules prescribed by NEURON.\n"
+          "See the documentation https://docs.arbor-sim.org/en/latest/fileformat/swc.html\n"
+          "for a detailed description of the interpretation.");
 
     // Neurolucida ASCII, or .asc, file format support.
     py::class_<arborio::asc_color> color(m,
