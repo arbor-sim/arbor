@@ -117,6 +117,14 @@ TEST(locset, thingify_named) {
         EXPECT_THROW(thingify(locset("durian"_lab), mp), unbound_name);
     }
     {
+        auto labels = label_dict();
+        labels.set("soma-region", "(tag 0)"_reg);
+        labels.set("soma-start", "(on-components 0.0 (region \"soma-region\"))"_ls);
+        auto mp = mprovider(morphology(sm), labels);
+        EXPECT_THROW(mp.locset("topping"), unbound_name);
+        EXPECT_THROW(mp.locset("\"soma-start\""), unbound_name);
+    }
+    {
         label_dict dict;
         dict.set("banana", banana);
         dict.set("cake", cake);
