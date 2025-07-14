@@ -77,7 +77,12 @@ template <typename T>
 constraint_partition make_constraint_partition(const T& node_index, unsigned width, unsigned simd_width) {
     std::cerr << "width=" << width << "simd=" << simd_width << std::endl;
     if (!simd_width) return {};
-    if (width < simd_width) return constraint_partition { .contiguous={}, .constant={}, .independent={}, .none=node_index};
+    if (width < simd_width) {
+        return constraint_partition { .contiguous={},
+                                      .constant={},
+                                      .independent={},
+                                      .none={node_index.begin(), node_index.end()}};
+    }
     arb_assert(util::is_sorted(node_index));
     arb_assert(width % simd_width == 0);
     constraint_partition part;
