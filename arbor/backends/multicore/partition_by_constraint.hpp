@@ -88,7 +88,7 @@ constraint_partition make_constraint_partition(const T& node_index, unsigned wid
         // the contiguous prefix is exhaust, try the other options in decreasing
         // order of strength.
         auto beg = idx;
-        while (idx < width && len == simd_width && is_contiguous_n(&node_index[idx], len)) idx += simd_width;
+        while (idx < width && is_contiguous_n(&node_index[idx], len)) idx += len;
         if (idx > beg) {
             // NB. This one is different from the others
             // 1. we already _have_ bumped idx as far as possible
@@ -98,15 +98,15 @@ constraint_partition make_constraint_partition(const T& node_index, unsigned wid
         }
         else if (is_constant_n(ptr, len)) {
             part.constant.push_back(idx);
-            idx += simd_width;
+            idx += len;
         }
         else if (is_independent_n(ptr, len)) {
             part.independent.push_back(idx);
-            idx += simd_width;
+            idx += len;
         }
         else {
             part.none.push_back(idx);
-            idx += simd_width;
+            idx += len;
         }
     }
     return part;
