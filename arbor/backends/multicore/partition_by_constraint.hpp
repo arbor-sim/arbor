@@ -33,9 +33,7 @@ template <typename It>
 bool is_contiguous_n(It first, unsigned width) {
     while (--width) {
         It next = first;
-        if ((*first) +1 != *++next) {
-            return false;
-        }
+        if ((*first) +1 != *++next) return false;
         first = next;
     }
     return true;
@@ -48,9 +46,7 @@ template <typename It>
 bool is_constant_n(It first, unsigned width) {
     while (--width) {
         It next = first;
-        if (*first != *++next) {
-            return false;
-        }
+        if (*first != *++next) return false;
         first = next;
     }
     return true;
@@ -63,9 +59,7 @@ template <typename It>
 bool is_independent_n(It first, unsigned width) {
     while (--width) {
         It next = first;
-        if (*first == *++next) {
-            return false;
-        }
+        if (*first == *++next) return false;
         first = next;
     }
     return true;
@@ -73,24 +67,17 @@ bool is_independent_n(It first, unsigned width) {
 
 template <typename It>
 index_constraint idx_constraint(It it, unsigned simd_width) {
-    if (is_contiguous_n(it, simd_width)) {
-        return index_constraint::contiguous;
-    }
-    else if (is_constant_n(it, simd_width)) {
-        return index_constraint::constant;
-    }
-    else if (is_independent_n(it, simd_width)) {
-        return index_constraint::independent;
-    }
-    else {
-        return index_constraint::none;
-    }
+    if (is_contiguous_n(it, simd_width))  return index_constraint::contiguous;
+    if (is_constant_n(it, simd_width))    return index_constraint::constant;
+    if (is_independent_n(it, simd_width)) return index_constraint::independent;
+    return index_constraint::none;
 }
 
 template <typename T>
 constraint_partition make_constraint_partition(const T& node_index, unsigned width, unsigned simd_width) {
     std::cerr << "width=" << width << "simd=" << simd_width << std::endl;
     if (!simd_width) return {};
+    if (width < simd_width) return constraint_partition { .contiguous={}, .constant={}, .independent={}, .none=node_index};
     arb_assert(util::is_sorted(node_index));
     arb_assert(width % simd_width == 0);
     constraint_partition part;
