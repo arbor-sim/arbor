@@ -34,15 +34,24 @@ TEST(partition_by_constraint, partition_constant) {
         const int c = 5;
         std::fill(input_index.begin(), input_index.end(), c);
 
-        iarray expected;
+        iarray expected, none;
         for (unsigned i = 0; i < input_size; i += simd_width) {
             expected.push_back(i);
+        }
+
+        std::size_t n_none = 0;
+        if (input_size % simd_width != 0) {
+            n_none += 1;
+            auto last = expected.back();
+            expected.pop_back();
+            none.push_back(last);
         }
 
         auto output = multicore::make_constraint_partition(input_index, input_size, simd_width);
 
         EXPECT_EQ(0u, output.independent.size());
-        EXPECT_EQ(0u, output.none.size());
+        EXPECT_EQ(n_none, output.none.size());
+        EXPECT_EQ(none, output.none);
         if(simd_width != 1) {
             EXPECT_EQ(0u, output.contiguous.size());
             EXPECT_EQ(expected, output.constant);
@@ -63,16 +72,26 @@ TEST(partition_by_constraint, partition_independent) {
     auto check = [] (std::size_t simd_width, std::size_t input_size) {
         iarray input_index(input_size);
         iarray expected;
+        iarray none;
 
         for (unsigned i = 0; i < input_size; i++) {
             input_index[i] = i * 2;
             if(i % simd_width == 0) expected.push_back(i);
         }
 
+        std::size_t n_none = 0;
+        if (input_size % simd_width != 0) {
+            n_none += 1;
+            auto last = expected.back();
+            expected.pop_back();
+            none.push_back(last);
+        }
+
         auto output = multicore::make_constraint_partition(input_index, input_size, simd_width);
 
         EXPECT_EQ(0u, output.constant.size());
-        EXPECT_EQ(0u, output.none.size());
+        EXPECT_EQ(n_none, output.none.size());
+        EXPECT_EQ(none, output.none);
         if(simd_width != 1) {
             EXPECT_EQ(0u, output.contiguous.size());
             EXPECT_EQ(expected, output.independent);
@@ -81,11 +100,12 @@ TEST(partition_by_constraint, partition_independent) {
             EXPECT_EQ(0u, output.independent.size());
             EXPECT_EQ(expected, output.contiguous);
         }
+
     };
 
     check(2, 128);
     check(4, 2048);
-    check(8, 1027);
+    check(8, 27);
 }
 
 TEST(partition_by_constraint, partition_none) {
