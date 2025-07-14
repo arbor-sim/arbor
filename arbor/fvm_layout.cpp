@@ -1070,7 +1070,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
         auto ion_data = dflt.ion_data;
         for (const auto& [ion, dflt]: global_dflt.ion_data) {
             auto& data = ion_data[ion];
-            if (!data.diffusivity) data.diffusivity = data.diffusivity;
+            if (!data.diffusivity)             data.diffusivity             = dflt.diffusivity;
             if (!data.init_ext_concentration)  data.init_ext_concentration  = dflt.init_ext_concentration;
             if (!data.init_int_concentration)  data.init_int_concentration  = dflt.init_int_concentration;
             if (!data.init_reversal_potential) data.init_reversal_potential = dflt.init_reversal_potential;
