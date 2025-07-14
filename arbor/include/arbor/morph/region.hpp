@@ -58,29 +58,21 @@ public:
     region(mextent);
     region(mcable_list);
 
-    friend mextent thingify(const region& r, const mprovider& m) {
-        return r.impl_->thingify(m);
-    }
+    friend mextent thingify(const region& r, const mprovider& m) { return r.impl_->thingify(m); }
 
-    friend std::ostream& operator<<(std::ostream& o, const region& p) {
-        return p.impl_->print(o);
-    }
+    friend std::ostream& operator<<(std::ostream& o, const region& p) { return p.impl_->print(o); }
 
     // The union of regions.
     friend region join(region, region);
 
     template <typename ...Args>
-    friend region join(region l, region r, Args... args) {
-        return join(join(std::move(l), std::move(r)), std::move(args)...);
-    }
+    friend region join(region l, region r, Args... args) { return join(join(std::move(l), std::move(r)), std::move(args)...); }
 
     // The intersection of regions.
     friend region intersect(region, region);
 
     template <typename ...Args>
-    friend region intersect(region l, region r, Args... args) {
-        return intersect(intersect(std::move(l), std::move(r)), std::move(args)...);
-    }
+    friend region intersect(region l, region r, Args... args) { return intersect(intersect(std::move(l), std::move(r)), std::move(args)...); }
 
 private:
     struct interface {
@@ -96,18 +88,9 @@ private:
     struct wrap: interface {
         explicit wrap(const Impl& impl): wrapped(impl) {}
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
-
-        virtual std::unique_ptr<interface> clone() override {
-            return std::make_unique<wrap<Impl>>(wrapped);
-        }
-
-        virtual mextent thingify(const mprovider& m) override {
-            return thingify_(wrapped, m);
-        }
-
-        virtual std::ostream& print(std::ostream& o) override {
-            return o << wrapped;
-        }
+        virtual std::unique_ptr<interface> clone() override { return std::make_unique<wrap<Impl>>(wrapped); }
+        virtual mextent thingify(const mprovider& m) override { return thingify_(wrapped, m); }
+        virtual std::ostream& print(std::ostream& o) override { return o << wrapped; }
 
         Impl wrapped;
     };
