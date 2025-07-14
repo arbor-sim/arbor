@@ -91,6 +91,7 @@ template <typename T>
 constraint_partition make_constraint_partition(const T& node_index, unsigned width, unsigned simd_width) {
     if (!simd_width) return {};
     arb_assert(util::is_sorted(node_index));
+    arb_assert(width % simd_width == 0);
     constraint_partition part;
     unsigned idx = 0;
     while (idx < width) {
