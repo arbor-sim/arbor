@@ -89,6 +89,7 @@ index_constraint idx_constraint(It it, unsigned simd_width) {
 
 template <typename T>
 constraint_partition make_constraint_partition(const T& node_index, unsigned width, unsigned simd_width) {
+    std::cerr << "width=" << width << "simd=" << simd_width << std::endl;
     if (!simd_width) return {};
     arb_assert(util::is_sorted(node_index));
     arb_assert(width % simd_width == 0);
