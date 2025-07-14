@@ -77,24 +77,18 @@ template <typename T>
 constraint_partition make_constraint_partition(const T& node_index, unsigned width, unsigned simd_width) {
     std::cerr << "width=" << width << "simd=" << simd_width << std::endl;
     if (!simd_width) return {};
-    if (width < simd_width) {
-        return constraint_partition { .contiguous={},
-                                      .constant={},
-                                      .independent={},
-                                      .none={node_index.begin(), node_index.end()}};
-    }
     arb_assert(util::is_sorted(node_index));
-    arb_assert(width % simd_width == 0);
     constraint_partition part;
     unsigned idx = 0;
     while (idx < width) {
+        auto len = std::min(simd_width, width - idx);
         auto ptr = &node_index[idx];
         // First, greedily absorb the contiguous part of the index array. As the
         // array is sorted, the greedy strategy produces the maximum ranges. If
         // the contiguous prefix is exhaust, try the other options in decreasing
         // order of strength.
         auto beg = idx;
-        while (idx < width && is_contiguous_n(&node_index[idx], simd_width)) idx += simd_width;
+        while (idx < width && len == simd_width && is_contiguous_n(&node_index[idx], len)) idx += simd_width;
         if (idx > beg) {
             // NB. This one is different from the others
             // 1. we already _have_ bumped idx as far as possible
@@ -102,11 +96,11 @@ constraint_partition make_constraint_partition(const T& node_index, unsigned wid
             part.contiguous.push_back(beg);
             part.contiguous.push_back(idx);
         }
-        else if (is_constant_n(ptr, simd_width)) {
+        else if (is_constant_n(ptr, len)) {
             part.constant.push_back(idx);
             idx += simd_width;
         }
-        else if (is_independent_n(ptr, simd_width)) {
+        else if (is_independent_n(ptr, len)) {
             part.independent.push_back(idx);
             idx += simd_width;
         }
