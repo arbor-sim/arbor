@@ -10,25 +10,23 @@
 #include "util/tourney_tree.hpp"
 
 namespace arb {
-void merge_cell_events(
-    time_type t_from,
-    time_type t_to,
-    event_span old_events,
-    event_span pending,
-    std::vector<event_generator>& generators,
-    pse_vector& new_events);
+void merge_cell_events(time_type t_from,
+                       time_type t_to,
+                       event_span old_events,
+                       event_span pending,
+                       std::vector<event_generator>& generators,
+                       pse_vector& new_events);
 } // namespace arb
 
 using namespace arb;
 
 // Wrapper for arb::merge_cell_events.
-static void merge_events(
-    time_type t_from,
-    time_type t_to,
-    const pse_vector& old_events,
-    pse_vector& pending,
-    std::vector<event_generator>& generators,
-    pse_vector& new_events) {
+static void merge_events(time_type t_from,
+                         time_type t_to,
+                         const pse_vector& old_events,
+                         pse_vector& pending,
+                         std::vector<event_generator>& generators,
+                         pse_vector& new_events) {
     util::sort(pending);
     merge_cell_events(t_from, t_to,
                       util::range_pointer_view(old_events),

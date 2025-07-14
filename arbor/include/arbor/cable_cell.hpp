@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <type_traits>
 
 #include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
@@ -237,8 +238,9 @@ struct placed {
 template <typename T>
 using mlocation_map = std::vector<placed<T>>;
 
+// map for synapses or junctions, plain vector else
 template <typename T>
-using location_assignment = std::conditional_t<std::is_same<T, synapse>::value || std::is_same<T, junction>::value,
+using location_assignment = std::conditional_t<std::is_same_v<T, synapse> || std::is_same_v<T, junction>,
                                                std::unordered_map<std::string, mlocation_map<T>>,
                                                mlocation_map<T>>;
 

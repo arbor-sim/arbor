@@ -201,18 +201,18 @@ TEST(domain_decomposition, homogenous_population)
         auto rec = homo_recipe(num_cells, dummy_cell{});
         const auto D = partition_load_balance(rec, ctx);
 
-        EXPECT_EQ(D.num_global_cells(), num_cells);
-        EXPECT_EQ(D.num_local_cells(), num_cells);
-        EXPECT_EQ(D.num_groups(), 1u);
+        EXPECT_EQ(D->num_global_cells(), num_cells);
+        EXPECT_EQ(D->num_local_cells(), num_cells);
+        EXPECT_EQ(D->num_groups(), 1u);
 
         auto gids = make_span(num_cells);
         for (auto gid: gids) {
-            EXPECT_EQ(0, D.gid_domain(gid));
+            EXPECT_EQ(0, D->gid_domain(gid));
         }
 
         // Each cell group contains 1 cell of kind cable
         // Each group should also be tagged for cpu execution
-        auto grp = D.group(0u);
+        auto grp = D->group(0u);
 
         EXPECT_EQ(grp.gids.size(), num_cells);
         EXPECT_EQ(grp.gids.front(), 0u);
@@ -233,19 +233,19 @@ TEST(domain_decomposition, homogenous_population)
         auto rec = homo_recipe(num_cells, dummy_cell{});
         const auto D = partition_load_balance(rec, ctx);
 
-        EXPECT_EQ(D.num_global_cells(), num_cells);
-        EXPECT_EQ(D.num_local_cells(), num_cells);
-        EXPECT_EQ(D.num_groups(), num_cells);
+        EXPECT_EQ(D->num_global_cells(), num_cells);
+        EXPECT_EQ(D->num_local_cells(), num_cells);
+        EXPECT_EQ(D->num_groups(), num_cells);
 
         auto gids = make_span(num_cells);
         for (auto gid: gids) {
-            EXPECT_EQ(0, D.gid_domain(gid));
+            EXPECT_EQ(0, D->gid_domain(gid));
         }
 
         // Each cell group contains 1 cell of kind cable
         // Each group should also be tagged for cpu execution
         for (auto i: gids) {
-            auto& grp = D.group(i);
+            auto& grp = D->group(i);
             EXPECT_EQ(grp.gids.size(), 1u);
             EXPECT_EQ(grp.gids.front(), unsigned(i));
             EXPECT_EQ(grp.backend, backend_kind::multicore);
@@ -270,17 +270,17 @@ TEST(domain_decomposition, heterogenous_population)
         auto R = hetero_recipe(num_cells);
         const auto D = partition_load_balance(R, ctx);
 
-        EXPECT_EQ(D.num_global_cells(), num_cells);
-        EXPECT_EQ(D.num_local_cells(), num_cells);
+        EXPECT_EQ(D->num_global_cells(), num_cells);
+        EXPECT_EQ(D->num_local_cells(), num_cells);
         // one cell group with num_cells/2 on gpu, and num_cells/2 groups on cpu
         auto expected_groups = num_cells/2+1;
-        EXPECT_EQ(D.num_groups(), expected_groups);
+        EXPECT_EQ(D->num_groups(), expected_groups);
 
         auto grps = make_span(expected_groups);
         unsigned ncells = 0;
         // iterate over each group and test its properties
         for (auto i: grps) {
-            auto& grp = D.group(i);
+            auto& grp = D->group(i);
             auto k = grp.kind;
             if (k==cell_kind::cable) {
                 EXPECT_EQ(grp.backend, backend_kind::gpu);
@@ -312,13 +312,13 @@ TEST(domain_decomposition, heterogenous_population)
         auto R = hetero_recipe(num_cells);
         const auto D = partition_load_balance(R, ctx);
 
-        EXPECT_EQ(D.num_global_cells(), num_cells);
-        EXPECT_EQ(D.num_local_cells(), num_cells);
-        EXPECT_EQ(D.num_groups(), num_cells);
+        EXPECT_EQ(D->num_global_cells(), num_cells);
+        EXPECT_EQ(D->num_local_cells(), num_cells);
+        EXPECT_EQ(D->num_groups(), num_cells);
 
         auto gids = make_span(num_cells);
         for (auto gid: gids) {
-            EXPECT_EQ(0, D.gid_domain(gid));
+            EXPECT_EQ(0, D->gid_domain(gid));
         }
 
         // Each cell group contains 1 cell of kind cable
@@ -326,7 +326,7 @@ TEST(domain_decomposition, heterogenous_population)
         auto grps = make_span(num_cells);
         std::map<cell_kind, std::set<cell_gid_type>> kind_lists;
         for (auto i: grps) {
-            auto& grp = D.group(i);
+            auto& grp = D->group(i);
             EXPECT_EQ(grp.gids.size(), 1u);
             auto k = grp.kind;
             kind_lists[k].insert(grp.gids.front());
@@ -358,7 +358,7 @@ TEST(domain_decomposition, hints) {
     hints[cell_kind::spike_source].cpu_group_size = 4;
 
     auto rec = hetero_recipe(20);
-    domain_decomposition D = partition_load_balance(rec, ctx, hints);
+    auto D = partition_load_balance(rec, ctx, hints);
 
     std::vector<std::vector<cell_gid_type>> expected_c1d_groups =
         {{0, 2, 4}, {6, 8, 10}, {12, 14, 16}, {18}};
@@ -368,7 +368,7 @@ TEST(domain_decomposition, hints) {
 
     std::vector<std::vector<cell_gid_type>> c1d_groups, ss_groups;
 
-    for (auto& g: D.groups()) {
+    for (auto& g: D->groups()) {
         EXPECT_TRUE(g.kind==cell_kind::cable || g.kind==cell_kind::spike_source);
 
         if (g.kind==cell_kind::cable) {
@@ -392,13 +392,13 @@ TEST(domain_decomposition, gj_recipe) {
     auto recipes = {gap_recipe(false), gap_recipe(true)};
     for (const auto& R: recipes) {
         const auto D0 = partition_load_balance(R, ctx);
-        EXPECT_EQ(9u, D0.num_groups());
+        EXPECT_EQ(9u, D0->num_groups());
 
         std::vector<std::vector<cell_gid_type>> expected_groups0 =
             {{1}, {5}, {6}, {10}, {12}, {14}, {0, 13}, {2, 7, 11}, {3, 4, 8, 9}};
 
         for (unsigned i = 0; i < 9u; i++) {
-            EXPECT_EQ(expected_groups0[i], D0.group(i).gids);
+            EXPECT_EQ(expected_groups0[i], D0->group(i).gids);
         }
 
         // Test different group_hints
@@ -407,25 +407,25 @@ TEST(domain_decomposition, gj_recipe) {
         hints[cell_kind::cable].prefer_gpu = false;
 
         const auto D1 = partition_load_balance(R, ctx, hints);
-        EXPECT_EQ(5u, D1.num_groups());
+        EXPECT_EQ(5u, D1->num_groups());
 
          std::vector<std::vector<cell_gid_type>> expected_groups1 =
             {{1, 5, 6}, {10, 12, 14}, {0, 13}, {2, 7, 11}, {3, 4, 8, 9}};
 
         for (unsigned i = 0; i < 5u; i++) {
-            EXPECT_EQ(expected_groups1[i], D1.group(i).gids);
+            EXPECT_EQ(expected_groups1[i], D1->group(i).gids);
         }
 
         hints[cell_kind::cable].cpu_group_size = 20;
         hints[cell_kind::cable].prefer_gpu = false;
 
         const auto D2 = partition_load_balance(R, ctx, hints);
-        EXPECT_EQ(1u, D2.num_groups());
+        EXPECT_EQ(1u, D2->num_groups());
 
         std::vector<cell_gid_type> expected_groups2 =
             {1, 5, 6, 10, 12, 14, 0, 13, 2, 7, 11, 3, 4, 8, 9};
 
-        EXPECT_EQ(expected_groups2, D2.group(0).gids);
+        EXPECT_EQ(expected_groups2, D2->group(0).gids);
     }
 }
 
@@ -449,8 +449,8 @@ TEST(domain_decomposition, unidirectional_gj_recipe) {
         const auto D = partition_load_balance(R, ctx);
         std::vector<cell_gid_type> expected_group = {0, 1, 2, 3, 4, 5, 6};
 
-        EXPECT_EQ(1u, D.num_groups());
-        EXPECT_EQ(expected_group, D.group(0).gids);
+        EXPECT_EQ(1u, D->num_groups());
+        EXPECT_EQ(expected_group, D->group(0).gids);
     }
     {
         std::vector<std::vector<gap_junction_connection>> gj_conns =
@@ -470,9 +470,9 @@ TEST(domain_decomposition, unidirectional_gj_recipe) {
         const auto D = partition_load_balance(R, ctx);
         std::vector<std::vector<cell_gid_type>> expected_groups = {{6}, {0, 1, 2, 3}, {4, 5}, {7, 8, 9}};
 
-        EXPECT_EQ(expected_groups.size(), D.num_groups());
+        EXPECT_EQ(expected_groups.size(), D->num_groups());
         for (unsigned i=0; i < expected_groups.size(); ++i) {
-            EXPECT_EQ(expected_groups[i], D.group(i).gids);
+            EXPECT_EQ(expected_groups[i], D->group(i).gids);
         }
     }
     {
@@ -493,9 +493,9 @@ TEST(domain_decomposition, unidirectional_gj_recipe) {
         const auto D = partition_load_balance(R, ctx);
         std::vector<std::vector<cell_gid_type>> expected_groups = {{1}, {2}, {9}, {0, 8}, {3, 4, 5, 6, 7}};
 
-        EXPECT_EQ(expected_groups.size(), D.num_groups());
+        EXPECT_EQ(expected_groups.size(), D->num_groups());
         for (unsigned i=0; i < expected_groups.size(); ++i) {
-            EXPECT_EQ(expected_groups[i], D.group(i).gids);
+            EXPECT_EQ(expected_groups[i], D->group(i).gids);
         }
     }
 }

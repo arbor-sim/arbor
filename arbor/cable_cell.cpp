@@ -81,6 +81,9 @@ struct cable_cell_impl {
     using index_type = cable_cell::index_type;
     using size_type  = cable_cell::size_type;
 
+    // The label dictionary.
+    label_dict dictionary;
+
     // Embedded morphology and labelled region/locset lookup.
     mprovider provider;
 
@@ -109,18 +112,14 @@ struct cable_cell_impl {
     mlocation_map<threshold_detector> detectors_;
     mlocation_map<i_clamp> i_clamps_;
 
-    // The label dictionary.
-    const label_dict dictionary;
-
     // The decorations on the cell.
     decor decorations;
 
     // Discretization
     std::optional<cv_policy> discretization_;
-
     cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations, const std::optional<cv_policy>& cvp):
-        provider(m, labels),
         dictionary(labels),
+        provider(m, dictionary),
         decorations(decorations),
         discretization_{cvp}
     {
