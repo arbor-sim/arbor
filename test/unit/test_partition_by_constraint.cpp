@@ -85,7 +85,7 @@ TEST(partition_by_constraint, partition_independent) {
 
     check(2, 128);
     check(4, 2048);
-    check(8, 1024);
+    check(8, 1027);
 }
 
 TEST(partition_by_constraint, partition_none) {
@@ -116,7 +116,7 @@ TEST(partition_by_constraint, partition_none) {
     check(2, 128);
     check(4, 2048);
     check(8, 1024);
-
+    check(8, 21);
 }
 
 TEST(partition_by_constraint, partition_random) {
@@ -156,4 +156,5 @@ TEST(partition_by_constraint, partition_random) {
     check(2, 128);
     check(4, 2048);
     check(8, 1024);
+    check(8, 2048);
 }

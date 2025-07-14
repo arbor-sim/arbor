@@ -82,27 +82,33 @@ constraint_partition make_constraint_partition(const T& node_index, unsigned wid
     unsigned idx = 0;
     while (idx < width) {
         auto len = std::min(simd_width, width - idx);
-        auto ptr = &node_index[idx];
-        // First, greedily absorb the contiguous part of the index array. As the
-        // array is sorted, the greedy strategy produces the maximum ranges. If
-        // the contiguous prefix is exhaust, try the other options in decreasing
-        // order of strength.
-        auto beg = idx;
-        while (idx < width && is_contiguous_n(&node_index[idx], len)) idx += len;
-        if (idx > beg) {
-            // NB. This one is different from the others
-            // 1. we already _have_ bumped idx as far as possible
-            // 2. we need to push the start _and_ the end (=idx) of the range
-            part.contiguous.push_back(beg);
-            part.contiguous.push_back(idx);
-        }
-        else if (is_constant_n(ptr, len)) {
-            part.constant.push_back(idx);
-            idx += len;
-        }
-        else if (is_independent_n(ptr, len)) {
-            part.independent.push_back(idx);
-            idx += len;
+        if (len == simd_width) {
+            auto ptr = &node_index[idx];
+            // First, greedily absorb the contiguous part of the index array. As the
+            // array is sorted, the greedy strategy produces the maximum ranges. If
+            // the contiguous prefix is exhaust, try the other options in decreasing
+            // order of strength.
+            auto beg = idx;
+            while (idx < width && is_contiguous_n(&node_index[idx], len)) idx += len;
+            if (idx > beg) {
+                // NB. This one is different from the others
+                // 1. we already _have_ bumped idx as far as possible
+                // 2. we need to push the start _and_ the end (=idx) of the range
+                part.contiguous.push_back(beg);
+                part.contiguous.push_back(idx);
+            }
+            else if (is_constant_n(ptr, len)) {
+                part.constant.push_back(idx);
+                idx += len;
+            }
+            else if (is_independent_n(ptr, len)) {
+                part.independent.push_back(idx);
+                idx += len;
+            }
+            else {
+                part.none.push_back(idx);
+                idx += len;
+            }
         }
         else {
             part.none.push_back(idx);
