@@ -320,7 +320,7 @@ TEST(linear_test, homogeneous) {
     EXPECT_TRUE(r.is_linear);
     EXPECT_TRUE(r.is_homogeneous);
     EXPECT_FALSE(r.monolinear());
-    EXPECT_EXPR_EQ(r.coef["x"], "-a+2"_expr);
+    EXPECT_EXPR_EQ(r.coef["x"], "2 - a"_expr);
     EXPECT_EXPR_EQ(r.coef["y"], "1"_expr);
 }
 
