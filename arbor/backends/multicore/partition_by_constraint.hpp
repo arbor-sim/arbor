@@ -83,7 +83,7 @@ constraint_partition make_constraint_partition(const T& node_index, unsigned wid
         auto ptr = &node_index[idx];
         if (is_contiguous_n(ptr, simd_width)) {
             // extend range vs add a new one
-            if (!part.contiguous.empty() && part.contiguous.back() == idx) {
+            if (!part.contiguous.empty() && part.contiguous.back() == (int)idx) {
                 part.contiguous.back() += simd_width;
             }
             else {
