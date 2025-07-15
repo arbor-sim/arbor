@@ -146,7 +146,6 @@ TEST(partition_by_constraint, partition_none) {
 
 TEST(partition_by_constraint, partition_random) {
     auto check = [] (std::size_t simd_width, std::size_t input_size) {
-        std::cerr << simd_width << " " << input_size << std::endl;
         // process input in quarters
         // 1. no constraint
         // 2. independent
@@ -170,9 +169,7 @@ TEST(partition_by_constraint, partition_random) {
             expected_contiguous = {0, static_cast<int>(input_size)/4, 3*static_cast<int>(input_size)/4, static_cast<int>(input_size)};
             expected_none       = {};
         }
-        std::cerr << "Partion" << std::endl;
         auto output = multicore::make_constraint_partition(input_index, input_size, simd_width);
-        std::cerr << "Partion DONE" << std::endl;
         EXPECT_EQ(expected_contiguous, output.contiguous);
         EXPECT_EQ(expected_constant, output.constant);
         EXPECT_EQ(expected_independent, output.independent);

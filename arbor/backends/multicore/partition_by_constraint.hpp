@@ -1,7 +1,6 @@
 #pragma once
 
 #include "backends/multicore/multicore_common.hpp"
-#include "util/rangeutil.hpp"
 
 #include <arbor/simd/simd.hpp>
 #include <arbor/serdes.hpp>
@@ -75,7 +74,6 @@ index_constraint idx_constraint(It it, unsigned simd_width) {
 
 template <typename T>
 constraint_partition make_constraint_partition(const T& node_index, unsigned width, unsigned simd_width) {
-    std::cerr << "width=" << width << "simd=" << simd_width << std::endl;
     if (!simd_width) return {};
     constraint_partition part;
     unsigned idx = 0;
