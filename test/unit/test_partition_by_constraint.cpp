@@ -99,9 +99,9 @@ TEST(partition_by_constraint, partition_independent) {
             EXPECT_EQ(expected, output.independent);
         }
         else {
-            iarray range{0, input_size};
+            iarray expected{0, static_cast<int>(input_size)};
             EXPECT_EQ(0u, output.independent.size());
-            EXPECT_EQ(range, output.contiguous);
+            EXPECT_EQ(expected, output.contiguous);
         }
 
     };
