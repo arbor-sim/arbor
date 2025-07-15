@@ -23,6 +23,7 @@ TEST(partition_by_constraint, partition_contiguous) {
         EXPECT_EQ(expected, output.contiguous);
     };
 
+    check(1, 128);
     check(2, 128);
     check(4, 2048);
     check(8, 1024);
@@ -63,6 +64,7 @@ TEST(partition_by_constraint, partition_constant) {
         }
     };
 
+    check(1, 15);
     check(2, 15);
     check(4, 20);
     check(8, 10);
@@ -97,12 +99,14 @@ TEST(partition_by_constraint, partition_independent) {
             EXPECT_EQ(expected, output.independent);
         }
         else {
+            iarray range{0, input_size};
             EXPECT_EQ(0u, output.independent.size());
-            EXPECT_EQ(expected, output.contiguous);
+            EXPECT_EQ(range, output.contiguous);
         }
 
     };
 
+    check(1, 128);
     check(2, 128);
     check(4, 2048);
     check(8, 27);
@@ -133,6 +137,7 @@ TEST(partition_by_constraint, partition_none) {
         }
     };
 
+    check(1, 128);
     check(2, 128);
     check(4, 2048);
     check(8, 1024);

@@ -77,44 +77,33 @@ template <typename T>
 constraint_partition make_constraint_partition(const T& node_index, unsigned width, unsigned simd_width) {
     std::cerr << "width=" << width << "simd=" << simd_width << std::endl;
     if (!simd_width) return {};
-    arb_assert(util::is_sorted(node_index));
     constraint_partition part;
     unsigned idx = 0;
-    while (idx < width) {
+    for (; idx < width; idx += simd_width) {
         auto len = std::min(simd_width, width - idx);
-        if (len == simd_width) {
-            auto ptr = &node_index[idx];
-            // First, greedily absorb the contiguous part of the index array. As the
-            // array is sorted, the greedy strategy produces the maximum ranges. If
-            // the contiguous prefix is exhaust, try the other options in decreasing
-            // order of strength.
-            auto beg = idx;
-            while (idx < width && is_contiguous_n(&node_index[idx], len)) idx += len;
-            if (idx > beg) {
-                // NB. This one is different from the others
-                // 1. we already _have_ bumped idx as far as possible
-                // 2. we need to push the start _and_ the end (=idx) of the range
-                part.contiguous.push_back(beg);
-                part.contiguous.push_back(idx);
-            }
-            else if (is_constant_n(ptr, len)) {
-                part.constant.push_back(idx);
-                idx += len;
-            }
-            else if (is_independent_n(ptr, len)) {
-                part.independent.push_back(idx);
-                idx += len;
+        if (len < simd_width) break;
+        auto ptr = &node_index[idx];
+        if (is_contiguous_n(ptr, simd_width)) {
+            // extend range vs add a new one
+            if (!part.contiguous.empty() && part.contiguous.back() == idx) {
+                part.contiguous.back() += simd_width;
             }
             else {
-                part.none.push_back(idx);
-                idx += len;
+                part.contiguous.push_back(idx);
+                part.contiguous.push_back(idx + simd_width);
             }
+        }
+        else if (is_constant_n(ptr, simd_width)) {
+            part.constant.push_back(idx);
+        }
+        else if (is_independent_n(ptr, simd_width)) {
+            part.independent.push_back(idx);
         }
         else {
             part.none.push_back(idx);
-            idx += len;
         }
     }
+    if (idx < width) part.none.push_back(idx);
     return part;
 }
 
