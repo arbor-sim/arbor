@@ -1,5 +1,4 @@
 #include <tuple>
-#include <variant>
 
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
@@ -67,7 +66,6 @@ void register_morphology(py::module& m) {
     py::class_<arborio::swc_metadata> swc_meta(m,
                                                "swc_metadata",
                                                "SWC metadata type: empty.");
-
 
     // arb::mlocation
     location
@@ -426,7 +424,7 @@ void register_morphology(py::module& m) {
                 &arborio::loaded_morphology::metadata,
                 "File type specific metadata.")
         .def_property_readonly("labels",
-            [](const arborio::loaded_morphology& m) {return label_dict_proxy(m.labels);},
+            [](const arborio::loaded_morphology& m) {return ::pyarb::label_dict(m.labels);},
             "Any labels defined by the loaded file.");
 
     m.def("load_asc",
@@ -452,13 +450,13 @@ void register_morphology(py::module& m) {
             &arborio::nml_metadata::id,
             "Morphology id.")
         .def("segments",
-            [](const arborio::nml_metadata& md) {return label_dict_proxy(md.segments);},
+            [](const arborio::nml_metadata& md) {return ::pyarb::label_dict(md.segments);},
             "Label dictionary containing one region expression for each segment id.")
         .def("named_segments",
-            [](const arborio::nml_metadata& md) {return label_dict_proxy(md.named_segments);},
+            [](const arborio::nml_metadata& md) {return ::pyarb::label_dict(md.named_segments);},
             "Label dictionary containing one region expression for each name applied to one or more segments.")
         .def("groups",
-            [](const arborio::nml_metadata& md) {return label_dict_proxy(md.groups);},
+            [](const arborio::nml_metadata& md) {return ::pyarb::label_dict(md.groups);},
             "Label dictionary containing one region expression for each segmentGroup id.")
         .def_readonly("group_segments",
             &arborio::nml_metadata::group_segments,

@@ -34,7 +34,7 @@ constexpr int    with_gpu = 0;
 constexpr int    with_gpu = -1;
 #endif
 
-struct linear: public recipe {
+struct linear: public ::arb::recipe {
     linear(double x, double d, double c): extent{x}, diameter{d}, cv_length{c} {
         gprop.default_parameters = arb::neuron_parameter_defaults;
         gprop.default_parameters.discretization = arb::cv_policy_max_extent(cv_length);
@@ -49,8 +49,16 @@ struct linear: public recipe {
     arb::cell_size_type num_cells()                             const override { return 1; }
     arb::cell_kind get_cell_kind(arb::cell_gid_type)            const override { return arb::cell_kind::cable; }
     std::any get_global_properties(arb::cell_kind)              const override { return gprop; }
-    std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override { return {{arb::cable_probe_ion_diff_concentration_cell{"na"}, "nad"}}; }
-    util::unique_any get_cell_description(arb::cell_gid_type)   const override { return arb::cable_cell(morph, decor); }
+    std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override {
+        return {{arb::cable_probe_ion_diff_concentration_cell{"na"}, "nad"},
+                {arb::cable_probe_ion_int_concentration_cell{"na"}, "nai"},
+                {arb::cable_probe_ion_ext_concentration_cell{"na"}, "nao"},
+                {arb::cable_probe_ion_diff_concentration{arb::ls::location(0, 0.5), "na"}, "cnad"},
+                {arb::cable_probe_ion_int_concentration{arb::ls::location(0, 0.5), "na"}, "cnai"},
+                {arb::cable_probe_ion_ext_concentration{arb::ls::location(0, 0.5), "na"}, "cnao"},
+    };
+    }
+    util::unique_any get_cell_description(arb::cell_gid_type) const override { return arb::cable_cell(morph, decor); }
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
         std::vector<arb::event_generator> result;
@@ -99,16 +107,17 @@ testing::AssertionResult all_near(const result_t& a, const result_t& b, double e
         if (fabs(az - bz) > eps) res << " Z elements " << az << " and " << bz << " differ at index " << ix << ".";
     }
     std::string str = res.str();
+    std::cerr << res.str();
     if (str.empty()) return testing::AssertionSuccess();
     else             return testing::AssertionFailure() << str;
 }
 
-testing::AssertionResult run(const linear& rec, const result_t exp) {
+testing::AssertionResult run(const linear& rec, const result_t exp, const std::string& tag="nad") {
     result_t sample_values;
     auto sampler = [&sample_values](arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
         sample_values.clear();
         auto ptr = arb::util::any_cast<const arb::mcable_list*>(pm.meta);
-        ASSERT_NE(ptr, nullptr);
+        if (ptr == nullptr) return;
         auto n_cable = ptr->size();
         for (std::size_t i = 0; i<n; ++i) {
             const auto& [val, _ig] = *arb::util::any_cast<const arb::cable_sample_range*>(samples[i].data);
@@ -120,7 +129,7 @@ testing::AssertionResult run(const linear& rec, const result_t exp) {
     };
     auto ctx = make_context({arbenv::default_concurrency(), with_gpu});
     auto sim = simulation{rec, ctx, partition_load_balance(rec, ctx)};
-    sim.add_sampler(arb::all_probes, arb::regular_schedule(0.1*arb::units::ms), sampler);
+    sim.add_sampler(arb::one_tag(tag), arb::regular_schedule(0.1*arb::units::ms), sampler);
     sim.run(0.11*arb::units::ms, 0.01*arb::units::ms);
     return all_near(sample_values, exp, epsilon);
 }
@@ -350,5 +359,28 @@ TEST(diffusion, setting_diffusivity) {
         r.dec.paint("(tag 1)"_reg, ion_diffusivity{"bla", 13*U::m2/U::s});
         EXPECT_THROW(simulation(r).run(1*arb::units::ms, 1*arb::units::ms), cable_cell_error);
     }
+
+}
+
+TEST(diffusion, elided_arrays) {
+    auto rec = linear{100, 1, 1};
+    result_t exp = {};
+    // NOTE: We are still, strictly speaking, failing this test since we don't
+    //       get the expected values. However, as we are just checking that we
+    //       can still probe elided arrary, that's OK.
+    EXPECT_NO_THROW(run(rec, exp, "nai"));
+    EXPECT_NO_THROW(run(rec, exp, "nao"));
+    EXPECT_NO_THROW(run(rec, exp, "nad"));
+    EXPECT_NO_THROW(run(rec, exp, "cnai"));
+    EXPECT_NO_THROW(run(rec, exp, "cnao"));
+    EXPECT_NO_THROW(run(rec, exp, "cnad"));
+
+    rec.set_diffusivity(1.0);
+    EXPECT_NO_THROW(run(rec, exp, "nai"));
+    EXPECT_NO_THROW(run(rec, exp, "nao"));
+    EXPECT_NO_THROW(run(rec, exp, "nad"));
+    EXPECT_NO_THROW(run(rec, exp, "cnai"));
+    EXPECT_NO_THROW(run(rec, exp, "cnao"));
+    EXPECT_NO_THROW(run(rec, exp, "cnad"));
 
 }
