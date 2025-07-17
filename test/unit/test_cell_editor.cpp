@@ -4,11 +4,23 @@
 #include <arbor/simulation.hpp>
 #include <arbor/units.hpp>
 
+#include <arbor/cable_cell.hpp>
+#include <arbor/cable_cell_param.hpp>
 #include <arbor/lif_cell.hpp>
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/spike_source_cell.hpp>
 
+#include <arborenv/default_env.hpp>
+
 #include "util/span.hpp"
+
+constexpr double epsilon  = 1e-6;
+#ifdef ARB_GPU_ENABLED
+constexpr int    with_gpu = 0;
+#else
+constexpr int    with_gpu = -1;
+#endif
+
 
 using namespace arb::units::literals;
 
@@ -415,7 +427,7 @@ TEST(edit_source, edit_rate) {
 
 TEST(edit_source, do_nothing_does_nothing) {
     arb::spike_source_cell_editor edit = [](auto& cell) { cell.schedules = {arb::poisson_schedule(1.0_kHz, 42) };};
-    arb::spike_source_cell_editor noop = [](auto& cell) {};
+    arb::spike_source_cell_editor noop = [](arb::spike_source_cell& cell) {};
 
     size_t n_noop = 0;
     {
@@ -497,4 +509,155 @@ TEST(edit_spike_source, errors) {
     EXPECT_THROW(sim.edit_cell( 0, arb::spike_source_cell_editor([](auto& cell) { cell.source = "foo"; })), arb::bad_cell_edit);
     EXPECT_THROW(sim.edit_cell( 0, 42), arb::bad_cell_edit);
     EXPECT_THROW(sim.edit_cell(42, arb::spike_source_cell_editor([](auto& cell) {})), std::range_error);
+}
+
+constexpr size_t N = 4;
+constexpr double eps = 1e-6;
+constexpr double T = 40;
+constexpr double dt = 1;
+constexpr size_t n_step = T/dt;
+using result_t = std::vector<std::array<double, N>>;
+
+struct cable_recipe: arb::recipe {
+    cable_recipe() {
+        props.default_parameters = arb::neuron_parameter_defaults;
+    }
+
+    arb::cell_size_type num_cells() const override { return N; }
+    arb::cell_kind get_cell_kind(arb::cell_gid_type) const override { return arb::cell_kind::cable; }
+    arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override {
+        // Create a cable cell
+        //
+        //   +------+
+        //   |  hh  |=== pas ===
+        //   +------+
+        //
+        auto dec = arb::decor{}
+            .paint(arb::reg::tagged(1), arb::density("hh", {{"gkbar", 0.036}}))
+            .paint(arb::reg::tagged(2), arb::density("pas"))
+            .place(arb::ls::location(0, 0.5), arb::i_clamp::box(10_ms, 20_ms, 100_pA), "ic1")
+            ;
+        auto par = arb::mnpos;
+        auto seg = arb::segment_tree{};
+        par = seg.append(par, { 0, 0, 0, 42}, {10, 0, 0, 42}, 1); // soma
+        par = seg.append(par, {10, 0, 0, 23}, {20, 0, 0, 23}, 2); // dendrite
+        auto mrf = arb::morphology{seg};
+        auto lbl = arb::label_dict{};
+        auto cvp = arb::cv_policy_max_extent(1.0);
+        return arb::cable_cell{mrf, dec, lbl, cvp};
+    }
+
+    virtual std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override { return {{arb::cable_probe_membrane_voltage{arb::ls::location(0, 0.5)}, "Um"}}; }
+    std::any get_global_properties(arb::cell_kind) const override { return props; }
+
+    arb::cable_cell_global_properties props;
+
+};
+
+testing::AssertionResult all_near(const std::vector<double>& a, const result_t& b, int iy, double eps) {
+    if (a.size() != b.size()) return testing::AssertionFailure() << "sequences differ in length"
+                                                                 << " #expected=" << b.size()
+                                                                 << " #received=" << a.size();
+    std::stringstream res;
+    res << std::setprecision(9);
+    for (size_t ix = 0; ix < a.size(); ++ix) {
+        // printf("%9.6f, ", b[ix][iy]);
+        auto ax = a[ix];
+        auto bx = b[ix][iy];
+        if (fabs(ax - bx) > eps) {
+            res << " elements " << ax << " and " << bx << " differ at index " << ix << ", " << iy << ".";
+            break;
+        }
+    }
+    std::string str = res.str();
+    std::cerr << res.str();
+    if (str.empty()) return testing::AssertionSuccess();
+    else             return testing::AssertionFailure() << str;
+}
+
+TEST(edit_cable, errors) {
+    auto rec = cable_recipe{};
+    auto sim = arb::simulation{rec};
+    // wrong editor
+    EXPECT_THROW(sim.edit_cell( 0, arb::spike_source_cell_editor([](auto& cell) { cell.source = "foo"; })), arb::bad_cell_edit);
+    // non-existant gid
+    EXPECT_THROW(sim.edit_cell(42, arb::cable_cell_density_editor{.mechanism="hh",  .values={{"gnabar", 23}}}), std::range_error);
+    // non-existant mechanism
+    EXPECT_THROW(sim.edit_cell( 0, arb::cable_cell_density_editor{.mechanism="bar", .values={}}), arb::bad_cell_edit);
+    // non-existant parameter
+    EXPECT_THROW(sim.edit_cell( 0, arb::cable_cell_density_editor{.mechanism="hh",  .values={{"foobar", 23}}}), arb::bad_cell_edit);
+}
+
+TEST(edit_cable, hh) {
+    result_t sample_values;
+    sample_values.resize(n_step);
+    auto sampler = [&sample_values](arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
+        auto gid = pm.id.gid;
+        for (std::size_t ix = 0; ix < n; ++ix) {
+            sample_values[ix][gid] = *arb::util::any_cast<const double*>(samples[ix].data);
+        }
+    };
+
+    std::vector unedited = {-65.000000, -65.976650, -66.650927, -67.003375, -67.167843, -67.211650, -67.190473, -67.136324, -67.069902, -67.002777, -66.941313, -65.466084, -64.416894,  -63.769651, -63.388147, -63.232318, -63.250644, -63.392280, -63.602123, -63.830035, -64.038928, -64.208130, -64.331221, -64.411239, -64.455972, -64.474584, -64.475653, -64.466276, -64.451815, -64.436002, -64.421192, -65.752674, -66.673119, -67.139232, -67.345711, -67.391215, -67.353235, -67.274783, -67.182795, -67.091783};
+    std::vector   edited = {-65.000000, -67.510461, -68.850726, -69.323006, -69.412256, -69.310662, -69.143188, -68.961183, -68.793752, -68.650870, -68.535689, -67.105997, -66.245441, -65.838325, -65.701969, -65.744705, -65.876993, -66.038533, -66.190518, -66.314565, -66.405806, -66.467100, -66.504513, -66.524656, -66.533345, -66.535117, -66.533209, -66.529750, -66.526015, -66.522677, -66.520013, -67.778855, -68.485211, -68.769411, -68.846721, -68.811386, -68.730803, -68.636385, -68.546405, -68.468299 };
+
+    auto ctx = arb::make_context({arbenv::default_concurrency(), with_gpu});
+    auto rec = cable_recipe{};
+
+    // results must be invariant under the group size, even if it doesn't divide into N
+    for (size_t g_size = 1; g_size <= N; ++g_size) {
+        // ... and the gid targeted
+        for (size_t gid = 0; gid < N; ++gid) {
+            auto sim = arb::simulation{rec, ctx, partition_load_balance(rec, ctx, {{arb::cell_kind::cable, arb::partition_hint{.cpu_group_size=g_size}}})};
+            sim.add_sampler(arb::all_probes, arb::regular_schedule(dt*arb::units::ms), sampler);
+            sim.edit_cell(gid, arb::cable_cell_density_editor{.mechanism="hh", .values={{"gkbar", 0.08}}});
+            sim.run(T*arb::units::ms, dt*arb::units::ms);
+            // all gids present 'unedited' traces, except the one gid we targeted
+            for (size_t col = 0; col < N; ++col) {
+                if (col == gid) {
+                    EXPECT_TRUE(all_near(edited, sample_values, col, eps));
+                }
+                else {
+                    EXPECT_TRUE(all_near(unedited, sample_values, col, eps));
+                }
+            }
+        }
+    }
+}
+
+TEST(edit_cable, pas) {
+    result_t sample_values;
+    sample_values.resize(n_step);
+    auto sampler = [&sample_values](arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
+        auto gid = pm.id.gid;
+        for (std::size_t ix = 0; ix < n; ++ix) {
+            sample_values[ix][gid] = *arb::util::any_cast<const double*>(samples[ix].data);
+        }
+    };
+
+    std::vector unedited = {-65.000000, -65.976650, -66.650927, -67.003375, -67.167843, -67.211650, -67.190473, -67.136324, -67.069902, -67.002777, -66.941313, -65.466084, -64.416894,  -63.769651, -63.388147, -63.232318, -63.250644, -63.392280, -63.602123, -63.830035, -64.038928, -64.208130, -64.331221, -64.411239, -64.455972, -64.474584, -64.475653, -64.466276, -64.451815, -64.436002, -64.421192, -65.752674, -66.673119, -67.139232, -67.345711, -67.391215, -67.353235, -67.274783, -67.182795, -67.091783};
+    std::vector   edited = {-65.000000, -69.757544, -69.936277, -69.930119, -69.928897, -69.923681, -69.921390, -69.918695, -69.916944, -69.915342, -69.914131, -69.830342, -69.826531, -69.825903, -69.825334, -69.824923, -69.824554, -69.824259, -69.824007, -69.823799, -69.823624, -69.823477, -69.823354, -69.823251, -69.823164, -69.823091, -69.823029, -69.822978, -69.822934, -69.822897, -69.822866, -69.905645, -69.908623, -69.908538, -69.908525, -69.908448, -69.908413, -69.908370, -69.908339, -69.908311 };
+
+    auto ctx = arb::make_context({arbenv::default_concurrency(), with_gpu});
+    auto rec = cable_recipe{};
+
+    // results must be invariant under the group size, even if it doesn't divide into N
+    for (size_t g_size = 1; g_size <= N; ++g_size) {
+        // ... and the gid targeted
+        for (size_t gid = 0; gid < N; ++gid) {
+            auto sim = arb::simulation{rec, ctx, partition_load_balance(rec, ctx, {{arb::cell_kind::cable, arb::partition_hint{.cpu_group_size=g_size}}})};
+            sim.add_sampler(arb::all_probes, arb::regular_schedule(dt*arb::units::ms), sampler);
+            sim.edit_cell(gid, arb::cable_cell_density_editor{.mechanism="pas", .values={{"g", 0.08}}});
+            sim.run(T*arb::units::ms, dt*arb::units::ms);
+            // all gids present 'unedited' traces, except the one gid we targeted
+            for (size_t col = 0; col < N; ++col) {
+                if (col == gid) {
+                    EXPECT_TRUE(all_near(edited, sample_values, col, eps));
+                }
+                else {
+                    EXPECT_TRUE(all_near(unedited, sample_values, col, eps));
+                }
+            }
+        }
+    }
 }

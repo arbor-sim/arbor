@@ -85,7 +85,7 @@ spike_source_cell_group::edit_cell(cell_gid_type gid, std::any cell_edit) {
         time_sequences_[idx] = std::move(tmp.schedules);
     }
     catch (const std::bad_any_cast&) {
-        throw bad_cell_edit(gid, "Not a LIF editor (C++ typid: '" + std::string{cell_edit.type().name()} + "')");
+        throw bad_cell_edit(gid, "Not a source cell editor (C++ typid: '" + std::string{cell_edit.type().name()} + "')");
     }
 }
 

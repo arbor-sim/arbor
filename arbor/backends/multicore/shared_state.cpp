@@ -23,7 +23,6 @@
 
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
-#include "fvm.hpp"
 
 namespace arb {
 namespace multicore {
@@ -183,7 +182,6 @@ void istim_state::add_current(const arb_value_type time, array& current_density)
 }
 
 // shared_state methods:
-
 shared_state::shared_state(task_system_handle,    // ignored in mc backend
                            arb_size_type n_cell,
                            arb_size_type n_cv_,
@@ -400,10 +398,8 @@ void shared_state::instantiate(arb::mechanism& m,
     bool peer_indices = !pos_data.peer_cv.empty();
 
     // store indices for random number generation
-    if (m.mech_.n_random_variables) {
-        store.gid_ = pos_data.gid;
-        store.idx_ = pos_data.idx;
-    }
+    store.gid_ = pos_data.gid;
+    if (m.mech_.n_random_variables) store.idx_ = pos_data.idx;
 
     // Allocate view pointers (except globals!)
     store.state_vars_.resize(m.mech_.n_state_vars); m.ppack_.state_vars = store.state_vars_.data();
@@ -530,6 +526,15 @@ void shared_state::instantiate(arb::mechanism& m,
         // Peer CVs are only filled for gap junction mechanisms. They are used
         // to index the voltage at the other side of a gap-junction connection.
         if (peer_indices) m.ppack_.peer_index = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
+    }
+}
+
+void shared_state::update_density_data(cell_gid_type lid, arb_mechanism_ppack& ppack, cell_gid_type pid, arb_value_type val) {
+    for (auto idx = 0ul; idx < ppack.width; ++idx) {
+        if (lid != ppack.vec_ci[ppack.node_index[idx]]) continue;
+        std::cerr << "old=" << ppack.parameters[pid][idx];
+        ppack.parameters[pid][idx] = val;
+        std::cerr << " new=" << ppack.parameters[pid][idx] << '\n';
     }
 }
 

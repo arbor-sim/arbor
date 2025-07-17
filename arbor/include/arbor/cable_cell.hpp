@@ -244,16 +244,11 @@ using location_assignment = std::conditional_t<std::is_same<T, synapse>::value |
 
 // Allowed edits on cable cells
 
-// Overwrite a named parameter on a given mechanism within a region
-struct cable_cell_density_edit {
+// Overwrite a list of named parameters on a given mechanism
+struct cable_cell_density_editor {
     std::string mechanism;
-    std::string parameter;
-    double value = NAN;
-    region where = reg::all();
+    std::unordered_map<std::string, double> values;
 };
-
-
-using cable_cell_editor = std::vector<std::variant<cable_cell_density_edit>>;
 
 // High-level abstract representation of a cell.
 struct ARB_SYMBOL_VISIBLE cable_cell {
