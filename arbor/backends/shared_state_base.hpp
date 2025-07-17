@@ -42,8 +42,8 @@ struct shared_state_base {
         // samples
         auto n_samples = util::sum_by(samples, [] (const auto& s) {return s.size();});
         if (d->sample_time.size() < n_samples) {
-            d->sample_time = array(n_samples);
-            d->sample_value = array(n_samples);
+            d->sample_time.resize(n_samples);
+            d->sample_value.resize(n_samples);
         }
         initialize(samples, d->sample_events);
         // thresholds
@@ -78,6 +78,11 @@ struct shared_state_base {
                                                                           disc.cv_volume);
             d->add_ion(ion, data, std::move(solver));
         }
+    }
+
+    void update_density_data(cell_gid_type gid, arb_mechanism_ppack& ppack, cell_gid_type pid, arb_value_type val) {
+        auto d = static_cast<D*>(this);
+        d->update_density_data(gid, ppack, pid, val);
     }
 
     arb_value_type* mechanism_state_data(const mechanism& m,

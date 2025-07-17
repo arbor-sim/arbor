@@ -2,11 +2,7 @@
 //
 // Start with pas (passive dendrite) mechanism
 
-// NOTE: This targets an earlier version of the Arbor API and
-// will need to be reworked in order to compile.
-
 #include <any>
-#include <fstream>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/segment_tree.hpp>
@@ -16,13 +12,18 @@
 #include "execution_context.hpp"
 #include "fvm_lowered_cell_impl.hpp"
 
+#include "../unit/common.hpp"
+
 using namespace arb;
 
 using backend = arb::multicore::backend;
 using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 
+
+ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_mechanisms_ptr, &fvm_cell::mechanisms_)
+
 mechanism_ptr& find_mechanism(const std::string& name, fvm_cell& cell) {
-    auto &mechs = cell.mechanisms();
+    auto &mechs = cell.*private_mechanisms_ptr;
     auto it = std::find_if(mechs.begin(),
                            mechs.end(),
                            [&](mechanism_ptr& m){return m->internal_name()==name;});

@@ -242,6 +242,14 @@ using location_assignment = std::conditional_t<std::is_same<T, synapse>::value |
                                                std::unordered_map<std::string, mlocation_map<T>>,
                                                mlocation_map<T>>;
 
+// Allowed edits on cable cells
+
+// Overwrite a list of named parameters on a given mechanism
+struct cable_cell_density_editor {
+    std::string mechanism;
+    std::unordered_map<std::string, double> values;
+};
+
 // High-level abstract representation of a cell.
 struct ARB_SYMBOL_VISIBLE cable_cell {
     using lid_range_map = std::unordered_multimap<hash_type, lid_range>;
@@ -275,10 +283,10 @@ struct ARB_SYMBOL_VISIBLE cable_cell {
     const mprovider& provider() const;
 
     // Convenience access to placed items.
-    const std::unordered_map<std::string, mlocation_map<synapse>>& synapses() const;
-    const std::unordered_map<std::string, mlocation_map<junction>>& junctions() const;
-    const mlocation_map<threshold_detector>& detectors() const;
-    const mlocation_map<i_clamp>& stimuli() const;
+    const location_assignment<synapse>& synapses() const;
+    const location_assignment<junction>& junctions() const;
+    const location_assignment<threshold_detector>& detectors() const;
+    const location_assignment<i_clamp>& stimuli() const;
 
     // Convenience access to painted items.
     const region_assignment<density> densities() const;

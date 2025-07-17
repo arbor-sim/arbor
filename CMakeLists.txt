@@ -357,8 +357,7 @@ if (BUILD_TESTING)
                   OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "CMAKE_BUILD_TYPE release" "BUILD_SHARED_LIBS OFF")
     CPMFindPackage(NAME googletest
                   GITHUB_REPOSITORY google/googletest
-                  GIT_TAG release-1.12.1
-                  VERSION 1.12.1
+                  VERSION 1.17.0
                   OPTIONS "INSTALL_GTEST OFF" "BUILD_GMOCK OFF")
     if(benchmark_ADDED)
         target_link_libraries(ext-bench INTERFACE benchmark)

@@ -12,6 +12,8 @@
 #include <utility>
 #include <vector>
 
+#include <iostream>
+
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/cable_cell.hpp>
@@ -55,8 +57,7 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
 
     value_type time() const override { return state_->time; }
 
-    //Exposed for testing purposes
-    std::vector<mechanism_ptr>& mechanisms() { return mechanisms_; }
+    void edit_density_parameter(cell_gid_type, cell_gid_type, const cable_cell_density_editor&) override;
 
     ARB_SERDES_ENABLE(fvm_lowered_cell_impl<Backend>, seed_, state_);
 
@@ -317,6 +318,24 @@ fvm_lowered_cell_impl<Backend>::add_probes(const std::vector<cell_gid_type>& gid
     }
 }
 
+template <typename Backend> void
+fvm_lowered_cell_impl<Backend>::edit_density_parameter(cell_gid_type gid,
+                                                       cell_gid_type lid,
+                                                       const cable_cell_density_editor& edit) {
+    std::cerr << "gid=" << gid << " lid=" << lid << '\n';
+    auto mech = std::find_if(mechanisms_.begin(), mechanisms_.end(), [&edit](const auto& m) { return m->internal_name() == edit.mechanism; });
+    if (mech == mechanisms_.end()) throw bad_cell_edit{gid, "no such mechanism: " + edit.mechanism};
+    auto ptr = mech->get();
+    if (ptr->kind() != arb_mechanism_kind_density) throw bad_cell_edit{gid, "not a density mechanism: " + edit.mechanism};
+    auto params = util::make_range(ptr->mech_.parameters, ptr->mech_.parameters + ptr->mech_.n_parameters);
+    for (const auto& [key, val]: edit.values) {
+        auto param = std::find_if(params.begin(), params.end(), [&key](const auto& p) { return p.name == key; });
+        if (params.end() == param) throw bad_cell_edit{gid, "no paramter " + key + " in mechanism: " + edit.mechanism};
+        auto pid = param - params.begin();
+        state_->update_density_data(lid, ptr->ppack_, pid, val);
+    }
+}
+    
 template <typename Backend> fvm_initialization_data
 fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gids,
                                            const recipe& rec) {
@@ -402,8 +421,8 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
         auto it = util::max_element_by(fvm_info.num_sources, [](auto elem) {return util::second(elem);});
         max_detector = it->second;
     }
-    std::vector<arb_index_type> src_to_spike, cv_to_cell;
 
+    std::vector<arb_index_type> src_to_spike;
     if (post_events_) {
         for (auto cell_idx: make_span(ncell)) {
             for (auto lid: make_span(fvm_info.num_sources[gids[cell_idx]])) {
@@ -411,8 +430,9 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
             }
         }
         src_to_spike.shrink_to_fit();
-        cv_to_cell = D.geometry.cv_to_cell;
     }
+
+    auto cv_to_cell = D.geometry.cv_to_cell;
 
     // map control volume ids to global cell ids
     std::vector<arb_index_type> cv_to_gid(D.geometry.cv_to_cell.size());
@@ -439,9 +459,9 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                                             data_alignment? data_alignment: 1u,
                                             seed_);
 
+    target_handles_.resize(mech_data.n_target);
     // Keep track of mechanisms by name for probe lookup.
     std::unordered_map<std::string, mechanism*> mechptr_by_name;
-    target_handles_.resize(mech_data.n_target);
 
     unsigned mech_id = 0;
     for (const auto& [name, config]: mech_data.mechanisms) {
@@ -535,7 +555,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                 voltage_mechanisms_.emplace_back(mech.release());
                 break;
             }
-            default:;
+            default:
                 throw invalid_mechanism_kind(config.kind);
         }
     }

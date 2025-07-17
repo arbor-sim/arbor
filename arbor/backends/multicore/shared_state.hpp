@@ -239,6 +239,8 @@ struct ARB_ARBOR_API shared_state:
         sample_time_host = util::range_pointer_view(sample_time);
         sample_value_host = util::range_pointer_view(sample_value);
     }
+
+    void update_density_data(cell_gid_type gid, arb_mechanism_ppack& ppack, cell_gid_type pid, arb_value_type val);
 };
 
 // For debugging only:

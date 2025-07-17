@@ -44,6 +44,8 @@ struct ARB_ARBOR_API cable_cell_group: public cell_group {
 
     void remove_all_samplers() override;
 
+    void edit_cell(cell_gid_type gid, std::any edit) override;
+
     std::vector<probe_metadata> get_probe_metadata(const cell_address_type&) const override;
 
     ARB_SERDES_ENABLE(cable_cell_group, gids_, spikes_, lowered_);

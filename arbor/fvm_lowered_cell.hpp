@@ -231,11 +231,14 @@ struct fvm_initialization_data {
 struct fvm_lowered_cell {
     virtual void reset() = 0;
 
-    virtual fvm_initialization_data initialize(const std::vector<cell_gid_type>& gids, const recipe& rec) = 0;
+    virtual fvm_initialization_data initialize(const std::vector<cell_gid_type>& gids,
+                                               const recipe& rec) = 0;
 
     virtual fvm_integration_result integrate(const timestep_range& dts,
                                              const event_lane_subrange& event_lanes,
                                              const std::vector<std::vector<sample_event>>& staged_samples) = 0;
+
+    virtual void edit_density_parameter(cell_gid_type gid, cell_gid_type lid, const cable_cell_density_editor& edit) = 0;
 
     virtual arb_value_type time() const = 0;
 

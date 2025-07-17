@@ -94,7 +94,7 @@ public:
         // different MPI ranks and threads.
         auto sched = arb::poisson_schedule(params_.cell.spike_freq_hz*arb::units::Hz, gid);
 
-        return arb::benchmark_cell("src", "tgt", sched, params_.cell.realtime_ratio);
+        return arb::benchmark_cell{.source="src", .target="tgt", .time_sequence=sched, .realtime_ratio=params_.cell.realtime_ratio};
     }
 
     arb::cell_kind get_cell_kind(arb::cell_gid_type gid) const override {

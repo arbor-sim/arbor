@@ -87,11 +87,12 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
     PL();
 }
 
-class simulation_state {
-public:
+struct simulation_state {
     simulation_state(const recipe& rec, const domain_decomposition& decomp, context ctx, arb_seed_type seed);
 
     void update(const recipe& rec);
+
+    void edit_cell(cell_gid_type gid, std::any edit);
 
     void reset();
 
@@ -191,11 +192,7 @@ private:
     std::vector<std::vector<event_generator>> event_generators_;
 
     // Hash table for looking up the the local index of a cell with a given gid
-    struct gid_local_info {
-        cell_size_type cell_index;
-        cell_size_type group_index;
-    };
-    std::unordered_map<cell_gid_type, gid_local_info> gid_to_local_;
+    std::unordered_map<cell_gid_type, cell_size_type> gid_to_local_;
 
     communicator communicator_;
     context ctx_;
@@ -309,7 +306,7 @@ void simulation_state::update(const recipe& rec) {
     for (const auto& group_info: ddc_.groups()) {
         for (auto gid: group_info.gids) {
             // Store mapping of gid to local cell index.
-            gid_to_local_[gid] = {lidx, grpidx};
+            gid_to_local_[gid] = grpidx;
             // Set up the event generators for cell gid.
             event_generators_[lidx] = rec.event_generators(gid);
             // Resolve event_generator targets; each event generator gets their own resolver state.
@@ -564,32 +561,35 @@ void simulation_state::remove_all_samplers() {
 }
 
 std::vector<probe_metadata> simulation_state::get_probe_metadata(const cell_address_type& probeset_id) const {
-    if (auto linfo = util::value_by_key(gid_to_local_, probeset_id.gid)) {
-        return cell_groups_.at(linfo->group_index)->get_probe_metadata(probeset_id);
+    if (auto gidx = util::value_by_key(gid_to_local_, probeset_id.gid)) {
+        return cell_groups_.at(*gidx)->get_probe_metadata(probeset_id);
     }
-    else {
-        return {};
-    }
+    return {};
 }
 
 // Simulation class implementations forward to implementation class.
 
 simulation_builder simulation::create(recipe const & rec) { return {rec}; };
 
-simulation::simulation(
-    const recipe& rec,
-    context ctx,
-    const domain_decomposition& decomp,
-    arb_seed_type seed)
-{
+simulation::simulation(const recipe& rec,
+                       context ctx,
+                       const domain_decomposition& decomp,
+                       arb_seed_type seed) {
     impl_.reset(new simulation_state(rec, decomp, ctx, seed));
 }
 
-void simulation::reset() {
-    impl_->reset();
-}
+void simulation::reset() { impl_->reset(); }
 
 void simulation::update(const recipe& rec) { impl_->update(rec); }
+
+// facilitate cell editig
+void simulation::edit_cell(cell_gid_type gid, std::any edit) { impl_->edit_cell(gid, edit); }
+void simulation_state::edit_cell(cell_gid_type gid, std::any edit) {
+    if (gid >= ddc_.num_global_cells()) throw std::range_error{"Not a valid gid: " + std::to_string(gid)};
+    if (auto gidx = util::value_by_key(gid_to_local_, gid)) {
+        cell_groups_[*gidx]->edit_cell(gid, edit);
+    }
+}
 
 time_type simulation::run(const units::quantity& tfinal, const units::quantity& dt) {
     auto dt_ms = dt.value_as(units::ms);
