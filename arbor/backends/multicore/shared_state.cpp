@@ -532,9 +532,11 @@ void shared_state::instantiate(arb::mechanism& m,
 void shared_state::update_density_data(cell_gid_type lid, arb_mechanism_ppack& ppack, cell_gid_type pid, arb_value_type val) {
     for (auto idx = 0ul; idx < ppack.width; ++idx) {
         if (lid != ppack.vec_ci[ppack.node_index[idx]]) continue;
-        std::cerr << "old=" << ppack.parameters[pid][idx];
+        std::cerr << "idx=" << idx
+                  << " old=" << ppack.parameters[pid][idx];
         ppack.parameters[pid][idx] = val;
-        std::cerr << " new=" << ppack.parameters[pid][idx] << '\n';
+        std::cerr << " weight=" << ppack.weight[idx]
+                  << " new=" << ppack.parameters[pid][idx] << '\n';
     }
 }
 

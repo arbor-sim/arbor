@@ -14,7 +14,6 @@
 
 #include "util/span.hpp"
 
-constexpr double epsilon  = 1e-6;
 #ifdef ARB_GPU_ENABLED
 constexpr int    with_gpu = 0;
 #else
@@ -519,7 +518,7 @@ constexpr size_t n_step = T/dt;
 using result_t = std::vector<std::array<double, N>>;
 
 struct cable_recipe: arb::recipe {
-    cable_recipe() {
+    cable_recipe(arb::decor dec_): dec{std::move(dec_)} {
         props.default_parameters = arb::neuron_parameter_defaults;
     }
 
@@ -532,18 +531,12 @@ struct cable_recipe: arb::recipe {
         //   |  hh  |=== pas ===
         //   +------+
         //
-        auto dec = arb::decor{}
-            .paint(arb::reg::tagged(1), arb::density("hh", {{"gkbar", 0.036}}))
-            .paint(arb::reg::tagged(2), arb::density("pas"))
-            .place(arb::ls::location(0, 0.5), arb::i_clamp::box(10_ms, 20_ms, 100_pA), "ic1")
-            ;
         auto par = arb::mnpos;
         auto seg = arb::segment_tree{};
         par = seg.append(par, { 0, 0, 0, 42}, {10, 0, 0, 42}, 1); // soma
         par = seg.append(par, {10, 0, 0, 23}, {20, 0, 0, 23}, 2); // dendrite
         auto mrf = arb::morphology{seg};
         auto lbl = arb::label_dict{};
-        auto cvp = arb::cv_policy_max_extent(1.0);
         return arb::cable_cell{mrf, dec, lbl, cvp};
     }
 
@@ -551,7 +544,8 @@ struct cable_recipe: arb::recipe {
     std::any get_global_properties(arb::cell_kind) const override { return props; }
 
     arb::cable_cell_global_properties props;
-
+    arb::decor dec;
+    arb::cv_policy cvp = arb::cv_policy_max_extent(1.0);
 };
 
 testing::AssertionResult all_near(const std::vector<double>& a, const result_t& b, int iy, double eps) {
@@ -576,7 +570,13 @@ testing::AssertionResult all_near(const std::vector<double>& a, const result_t& 
 }
 
 TEST(edit_cable, errors) {
-    auto rec = cable_recipe{};
+    auto dec = arb::decor{}
+        .paint(arb::reg::tagged(1), arb::density("hh", {{"gkbar", 0.036}}))
+        .paint(arb::reg::tagged(2), arb::density("pas"))
+        .place(arb::ls::location(0, 0.5), arb::i_clamp::box(10_ms, 20_ms, 100_pA), "ic1")
+        ;
+
+    auto rec = cable_recipe{dec};
     auto sim = arb::simulation{rec};
     // wrong editor
     EXPECT_THROW(sim.edit_cell( 0, arb::spike_source_cell_editor([](auto& cell) { cell.source = "foo"; })), arb::bad_cell_edit);
@@ -601,8 +601,13 @@ TEST(edit_cable, hh) {
     std::vector unedited = {-65.000000, -65.976650, -66.650927, -67.003375, -67.167843, -67.211650, -67.190473, -67.136324, -67.069902, -67.002777, -66.941313, -65.466084, -64.416894,  -63.769651, -63.388147, -63.232318, -63.250644, -63.392280, -63.602123, -63.830035, -64.038928, -64.208130, -64.331221, -64.411239, -64.455972, -64.474584, -64.475653, -64.466276, -64.451815, -64.436002, -64.421192, -65.752674, -66.673119, -67.139232, -67.345711, -67.391215, -67.353235, -67.274783, -67.182795, -67.091783};
     std::vector   edited = {-65.000000, -67.510461, -68.850726, -69.323006, -69.412256, -69.310662, -69.143188, -68.961183, -68.793752, -68.650870, -68.535689, -67.105997, -66.245441, -65.838325, -65.701969, -65.744705, -65.876993, -66.038533, -66.190518, -66.314565, -66.405806, -66.467100, -66.504513, -66.524656, -66.533345, -66.535117, -66.533209, -66.529750, -66.526015, -66.522677, -66.520013, -67.778855, -68.485211, -68.769411, -68.846721, -68.811386, -68.730803, -68.636385, -68.546405, -68.468299 };
 
+    auto dec = arb::decor{}
+        .paint(arb::reg::tagged(1), arb::density("hh", {{"gkbar", 0.036}}))
+        .paint(arb::reg::tagged(2), arb::density("pas"))
+        .place(arb::ls::location(0, 0.5), arb::i_clamp::box(10_ms, 20_ms, 100_pA), "ic1")
+        ;
     auto ctx = arb::make_context({arbenv::default_concurrency(), with_gpu});
-    auto rec = cable_recipe{};
+    auto rec = cable_recipe{dec};
 
     // results must be invariant under the group size, even if it doesn't divide into N
     for (size_t g_size = 1; g_size <= N; ++g_size) {
@@ -638,8 +643,13 @@ TEST(edit_cable, pas) {
     std::vector unedited = {-65.000000, -65.976650, -66.650927, -67.003375, -67.167843, -67.211650, -67.190473, -67.136324, -67.069902, -67.002777, -66.941313, -65.466084, -64.416894,  -63.769651, -63.388147, -63.232318, -63.250644, -63.392280, -63.602123, -63.830035, -64.038928, -64.208130, -64.331221, -64.411239, -64.455972, -64.474584, -64.475653, -64.466276, -64.451815, -64.436002, -64.421192, -65.752674, -66.673119, -67.139232, -67.345711, -67.391215, -67.353235, -67.274783, -67.182795, -67.091783};
     std::vector   edited = {-65.000000, -69.757544, -69.936277, -69.930119, -69.928897, -69.923681, -69.921390, -69.918695, -69.916944, -69.915342, -69.914131, -69.830342, -69.826531, -69.825903, -69.825334, -69.824923, -69.824554, -69.824259, -69.824007, -69.823799, -69.823624, -69.823477, -69.823354, -69.823251, -69.823164, -69.823091, -69.823029, -69.822978, -69.822934, -69.822897, -69.822866, -69.905645, -69.908623, -69.908538, -69.908525, -69.908448, -69.908413, -69.908370, -69.908339, -69.908311 };
 
+    auto dec = arb::decor{}
+        .paint(arb::reg::tagged(1), arb::density("hh", {{"gkbar", 0.036}}))
+        .paint(arb::reg::tagged(2), arb::density("pas"))
+        .place(arb::ls::location(0, 0.5), arb::i_clamp::box(10_ms, 20_ms, 100_pA), "ic1")
+        ;
     auto ctx = arb::make_context({arbenv::default_concurrency(), with_gpu});
-    auto rec = cable_recipe{};
+    auto rec = cable_recipe{dec};
 
     // results must be invariant under the group size, even if it doesn't divide into N
     for (size_t g_size = 1; g_size <= N; ++g_size) {
@@ -660,4 +670,17 @@ TEST(edit_cable, pas) {
             }
         }
     }
+}
+
+TEST(edit_cable, can_edit_derived) {
+    auto dec = arb::decor{}
+        .paint(arb::reg::tagged(1), arb::density("hh", {{"gkbar", 0.036}}))
+        .paint(arb::reg::tagged(2), arb::density("pas/e=-80", {{"g", 0.1}}))
+        .paint(arb::reg::tagged(2), arb::density("pas/e=-70", {{"g", 0.2}}))
+        .paint(arb::reg::tagged(2), arb::density("pas/e=-60", {{"g", 0.3}}))
+        .place(arb::ls::location(0, 0.5), arb::i_clamp::box(10_ms, 20_ms, 100_pA), "ic1")
+        ;
+    auto rec = cable_recipe{dec};
+    auto sim = arb::simulation{rec};
+    sim.edit_cell(0, arb::cable_cell_density_editor{.mechanism="pas", .values={{"g", 0.08}}});
 }

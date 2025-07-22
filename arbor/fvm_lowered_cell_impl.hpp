@@ -323,7 +323,8 @@ fvm_lowered_cell_impl<Backend>::edit_density_parameter(cell_gid_type gid,
                                                        cell_gid_type lid,
                                                        const cable_cell_density_editor& edit) {
     std::cerr << "gid=" << gid << " lid=" << lid << '\n';
-    auto mech = std::find_if(mechanisms_.begin(), mechanisms_.end(), [&edit](const auto& m) { return m->internal_name() == edit.mechanism; });
+    auto mech = std::find_if(mechanisms_.begin(), mechanisms_.end(),
+                             [&edit](const auto& m) { return m->mech_.name == edit.mechanism; });
     if (mech == mechanisms_.end()) throw bad_cell_edit{gid, "no such mechanism: " + edit.mechanism};
     auto ptr = mech->get();
     if (ptr->kind() != arb_mechanism_kind_density) throw bad_cell_edit{gid, "not a density mechanism: " + edit.mechanism};
@@ -417,13 +418,10 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
     post_events_ = mech_data.post_events;
     auto max_detector = 0;
+    std::vector<arb_index_type> src_to_spike;
     if (post_events_) {
         auto it = util::max_element_by(fvm_info.num_sources, [](auto elem) {return util::second(elem);});
         max_detector = it->second;
-    }
-
-    std::vector<arb_index_type> src_to_spike;
-    if (post_events_) {
         for (auto cell_idx: make_span(ncell)) {
             for (auto lid: make_span(fvm_info.num_sources[gids[cell_idx]])) {
                 src_to_spike.push_back(cell_idx * max_detector + lid);
