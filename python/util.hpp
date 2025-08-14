@@ -25,7 +25,7 @@ std::string to_path(py::object fn) {
     }
     throw std::runtime_error(
         util::pprintf("Cannot convert objects of type {} to a path-like.",
-                        std::string{py::str(fn.get_type())}));
+                        std::string{py::str(py::type::of(fn))}));
 }
 
 inline
