@@ -23,13 +23,8 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <cstdint>
-#include <mutex>
 #include <optional>
-#include <string>
-#include <string_view>
 #include <tuple>
-#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -45,32 +40,32 @@ struct network_site_info_extended {
     cell_lid_type lid;
 };
 
-void push_back(const domain_decomposition& dom_dec,
-    std::vector<connection>& vec,
-    const network_site_info_extended& source,
-    const network_site_info_extended& target,
-    double weight,
-    double delay) {
+void push_back(const domain_decomposition_ptr dom_dec,
+               std::vector<connection>& vec,
+               const network_site_info_extended& source,
+               const network_site_info_extended& target,
+               double weight,
+               double delay) {
     vec.emplace_back(connection{{source.info.gid, source.lid},
-        target.lid,
-        (float)weight,
-        (float)delay,
-        dom_dec.index_on_domain(target.info.gid)});
+                                 target.lid,
+                                 (float)weight,
+                                 (float)delay,
+                                 dom_dec->index_on_domain(target.info.gid)});
 }
 
-void push_back(const domain_decomposition& dom_dec,
-    std::vector<network_connection_info>& vec,
-    const network_site_info_extended& source,
-    const network_site_info_extended& target,
-    double weight,
-    double delay) {
+void push_back(const domain_decomposition_ptr dom_dec,
+               std::vector<network_connection_info>& vec,
+               const network_site_info_extended& source,
+               const network_site_info_extended& target,
+               double weight,
+               double delay) {
     vec.emplace_back(source.info, target.info, weight, delay);
 }
 
 template <typename ConnectionType>
 std::vector<ConnectionType> generate_network_connections_impl(const recipe& rec,
-    const context& ctx,
-    const domain_decomposition& dom_dec) {
+                                                              const context& ctx,
+                                                              const domain_decomposition_ptr dom_dec) {
     const auto description_opt = rec.network_description();
     if (!description_opt.has_value()) return {};
 
@@ -88,7 +83,7 @@ std::vector<ConnectionType> generate_network_connections_impl(const recipe& rec,
 
     std::unordered_map<cell_kind, std::vector<cell_gid_type>> gids_by_kind;
 
-    for (const auto& group: dom_dec.groups()) {
+    for (const auto& group: dom_dec->groups()) {
         auto& gids = gids_by_kind[group.kind];
         for (const auto& gid: group.gids) { gids.emplace_back(gid); }
     }
@@ -236,6 +231,8 @@ std::vector<ConnectionType> generate_network_connections_impl(const recipe& rec,
     // select connections
     std::vector<std::vector<ConnectionType>> connection_batches(num_batches);
 
+    using point_t = decltype(local_tgt_tree)::point_type;
+
     auto sample_sources = [&](const util::range<network_site_info_extended*>& source_range) {
         const auto batch_size = (source_range.size() + num_batches - 1) / num_batches;
         threading::parallel_for::apply(
@@ -255,14 +252,13 @@ std::vector<ConnectionType> generate_network_connections_impl(const recipe& rec,
 
                 if (selection.max_distance().has_value()) {
                     const double d = selection.max_distance().value();
-                    local_tgt_tree.bounding_box_for_each(
-                        decltype(local_tgt_tree)::point_type{source.info.global_location.x - d,
-                            source.info.global_location.y - d,
-                            source.info.global_location.z - d},
-                        decltype(local_tgt_tree)::point_type{source.info.global_location.x + d,
-                            source.info.global_location.y + d,
-                            source.info.global_location.z + d},
-                        sample);
+                    local_tgt_tree.bounding_box_for_each(point_t{source.info.global_location.x - d,
+                                                                 source.info.global_location.y - d,
+                                                                 source.info.global_location.z - d},
+                                                         point_t{source.info.global_location.x + d,
+                                                                 source.info.global_location.y + d,
+                                                                 source.info.global_location.z + d},
+                                                         sample);
                 }
                 else { local_tgt_tree.for_each(sample); }
             });
@@ -282,14 +278,14 @@ std::vector<ConnectionType> generate_network_connections_impl(const recipe& rec,
 }  // namespace
 
 std::vector<connection> generate_connections(const recipe& rec,
-    const context& ctx,
-    const domain_decomposition& dom_dec) {
+                                             const context& ctx,
+                                             const domain_decomposition_ptr dom_dec) {
     return generate_network_connections_impl<connection>(rec, ctx, dom_dec);
 }
 
 ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(const recipe& rec,
-    const context& ctx,
-    const domain_decomposition& dom_dec) {
+                                                                                const context& ctx,
+                                                                                const domain_decomposition_ptr dom_dec) {
     auto connections = generate_network_connections_impl<network_connection_info>(rec, ctx, dom_dec);
 
     // generated connections may have different order each time due to multi-threading.

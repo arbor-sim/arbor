@@ -131,7 +131,10 @@ TEST(locset, thingify_named) {
         dict.set("topping", locset("fruit"_lab));
         dict.set("fruit", locset("strawberry"_lab));
 
-        EXPECT_THROW(mprovider(morphology(sm), dict), unbound_name);
+        auto mp = mprovider(morphology(sm), dict);
+        EXPECT_THROW(mp.locset("topping"), unbound_name);
+        // First try we didn't know what fruit was, so now we are stuck.
+        EXPECT_THROW(mp.locset("fruit"), circular_definition);
     }
     {
         label_dict dict;
@@ -140,7 +143,8 @@ TEST(locset, thingify_named) {
         dict.set("topping", locset("fruit"_lab));
         dict.set("fruit", sum(locset("banana"_lab), locset("topping"_lab)));
 
-        EXPECT_THROW(mprovider(morphology(sm), dict), circular_definition);
+        auto mp = mprovider(morphology(sm), dict);
+        EXPECT_THROW(mp.locset("fruit"), circular_definition);
     }
 }
 
@@ -172,7 +176,10 @@ TEST(region, thingify_named) {
         dict.set("topping", region("fruit"_lab));
         dict.set("fruit", "(region \"strawberry\")"_reg);
 
-        EXPECT_THROW(mprovider(morphology(sm), dict), unbound_name);
+        auto mp = mprovider(morphology(sm), dict);
+        EXPECT_THROW(mp.region("topping"), unbound_name);
+        // First try we didn't know what fruit was, so now we are stuck.
+        EXPECT_THROW(mp.region("fruit"), circular_definition);
     }
     {
         label_dict dict;
@@ -181,7 +188,8 @@ TEST(region, thingify_named) {
         dict.set("topping", region("fruit"_lab));
         dict.set("fruit", join("(region \"cake\")"_reg, region("topping"_lab)));
 
-        EXPECT_THROW(mprovider(morphology(sm), dict), circular_definition);
+        auto mp = mprovider(morphology(sm), dict);
+        EXPECT_THROW(mp.region(("topping")), circular_definition);
     }
 }
 
