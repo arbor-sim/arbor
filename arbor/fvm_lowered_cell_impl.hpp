@@ -322,9 +322,31 @@ template <typename Backend> void
 fvm_lowered_cell_impl<Backend>::edit_density_parameter(cell_gid_type gid,
                                                        cell_gid_type lid,
                                                        const cable_cell_density_editor& edit) {
+    std::unordered_map<std::string, double> globals;
+    auto beg = edit.mechanism.find('/');
+    auto name = edit.mechanism.substr(0, beg);
+    while (beg != std::string::npos) {
+        ++beg;
+        auto end = edit.mechanism.find('=', beg);
+        if (end == std::string::npos) throw std::runtime_error{"oops"};
+        auto key = edit.mechanism.substr(beg, end - beg);
+        beg = end + 1;
+        end = edit.mechanism.find(',', beg);
+        auto val = edit.mechanism.substr(beg, end - beg);
+        beg = end;
+        globals[key] = std::stold(val);
+    }
     std::cerr << "gid=" << gid << " lid=" << lid << '\n';
-    auto mech = std::find_if(mechanisms_.begin(), mechanisms_.end(),
-                             [&edit](const auto& m) { return m->mech_.name == edit.mechanism; });
+    auto matches = [&name, &globals](const auto& m) {
+        if (m->mech_.name != name) return false;
+        for (arb_size_type ix = 0; ix < m->mech_.n_globals; ++ix) {
+            const auto& info =  m->mech_.globals[ix];
+            std::cerr << " * " << info.name << ": " << info.default_value << '\n';
+            // if (auto it = globals.find(info.name); it != globals.end() && it->second != info.)
+        }
+        return true;
+    };
+    auto mech = std::find_if(mechanisms_.begin(), mechanisms_.end(), matches);
     if (mech == mechanisms_.end()) throw bad_cell_edit{gid, "no such mechanism: " + edit.mechanism};
     auto ptr = mech->get();
     if (ptr->kind() != arb_mechanism_kind_density) throw bad_cell_edit{gid, "not a density mechanism: " + edit.mechanism};

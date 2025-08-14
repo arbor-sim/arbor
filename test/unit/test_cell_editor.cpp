@@ -682,5 +682,5 @@ TEST(edit_cable, can_edit_derived) {
         ;
     auto rec = cable_recipe{dec};
     auto sim = arb::simulation{rec};
-    sim.edit_cell(0, arb::cable_cell_density_editor{.mechanism="pas", .values={{"g", 0.08}}});
+    sim.edit_cell(0, arb::cable_cell_density_editor{.mechanism="pas/e=-70,k=42", .values={{"g", 0.08}}});
 }
