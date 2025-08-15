@@ -68,7 +68,6 @@ expected_outputs=(
 # old w/o CBRNG
 #    972
 #    6998
-
     972
     6998
     6998
