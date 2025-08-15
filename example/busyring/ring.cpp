@@ -3,6 +3,8 @@
 #include <iostream>
 #include <algorithm>
 #include <array>
+#include <random>
+#include <cmath>
 
 #include <nlohmann/json.hpp>
 
