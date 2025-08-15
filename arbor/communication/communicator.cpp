@@ -80,7 +80,7 @@ void make_remote_connections(const std::vector<cell_gid_type>& gids,
                              resolver& target_resolver,
                              resolver& source_resolver,
                              communicator::connection_list& out) {
-    PE(init:communicator:update:connections:remote);
+    PE(connections);
     std::vector<connection> ext_connections;
     std::size_t n_ext = 0;
     target_resolver.clear();
@@ -96,41 +96,44 @@ void make_remote_connections(const std::vector<cell_gid_type>& gids,
             ++n_ext;
         }
     }
-    PL();
+    PL(connections);
 
-    PE(init:communicator:update:sort:remote);
+    PE(sort);
     util::sort(ext_connections);
-    PL();
+    PL(sort);
 
-    PE(init:communicator:update:destructure:remote);
+    PE(destructure);
     out.clear();
     out.reserve(n_ext);
     out.make(ext_connections);
-    PL();
+    PL(destructure);
 }
 
 void communicator::update_connections(const recipe& rec,
                                       const domain_decomposition_ptr dom_dec,
                                       const label_resolution_map& source_resolution_map,
                                       const label_resolution_map& target_resolution_map) {
+    PE(update_conns);
     // Record all the gids in a flat vector.
-    PE(init:communicator:update:collect_gids);
+    PE(collect_gids);
     std::vector<cell_gid_type> gids;
     gids.reserve(num_local_cells_);
     for (const auto& g: dom_dec->groups()) util::append(gids, g.gids);
-    PL();
+    PL(collect_gids);
 
     // Prepare resolvers
     auto target_resolver = resolver(&target_resolution_map);
     auto source_resolver = resolver(&source_resolution_map);
 
     // Build cell partition by group for passing events to cell groups
-    PE(init:communicator:update:index);
+    PE(index);
     reset_index(dom_dec, index_divisions_, index_part_);
-    PL();
+    PL(index);
 
     // Construct connection from external
+    PE(remote);
     make_remote_connections(gids, rec, dom_dec, target_resolver, source_resolver, ext_connections_);
+    PL(remote);
 
     // Construct connections from recipe callback
     // NOTE: It'd great to parallelize here, however, as we write to different
@@ -176,7 +179,7 @@ void communicator::update_connections(const recipe& rec,
             });
     };
 
-    PE(init:communicator:update:connections:local);
+    PE(local);
     target_resolver.clear();
     bool resolution_enabled = rec.resolve_sources();
     for (const auto tgt_gid: gids) {
@@ -188,9 +191,9 @@ void communicator::update_connections(const recipe& rec,
             ++n_con;
         }
     }
-    PL();
+    PL(local);
 
-    PE(init:communicator:update:connections:raw);
+    PE(raw);
     for (const auto tgt_gid: gids) {
         auto tgt_iod = dom_dec->index_on_domain(tgt_gid);
         for (const auto& conn: rec.raw_connections_on(tgt_gid)) {
@@ -198,11 +201,11 @@ void communicator::update_connections(const recipe& rec,
             ++n_con;
         }
     }
-    PL();
+    PL(raw);
 
 
     // Construct connections from high-level specification.
-    PE(init:communicator:update:connections:generated);
+    PE(generated);
     for (const auto& conn: generate_connections(rec, ctx_, dom_dec)) {
         auto src_gid = conn.source.gid;
         // NOTE: a bit awkward, as we don't have the tgt_gid.
@@ -211,24 +214,25 @@ void communicator::update_connections(const recipe& rec,
         connections_by_src_domain[src_dom].push_back(conn);
         ++n_con;
     }
-    PL();
+    PL(generated);
 
     // Sort the connections for each domain; num_domains_ independent sorts
     // parallelized trivially.
-    PE(init:communicator:update:sort:local);
+    PE(sort);
     threading::parallel_for::apply(0, num_domains_, ctx_->thread_pool.get(),
                                    [&](auto i) { util::sort(connections_by_src_domain[i]); });
-    PL();
+    PL(sort);
 
-    PE(init:communicator:update:connections:partition);
+    PE(partition);
     reset_partition(connections_by_src_domain, connection_part_);
-    PL();
+    PL(partition);
 
-    PE(init:communicator:update:destructure:local);
+    PE(destructure);
     connections_.clear();
     connections_.reserve(n_con);
     connections_.make(connections_by_src_domain);
-    PL();
+    PL(destructure);
+    PL(update_conns);
 }
 
 std::pair<cell_size_type, cell_size_type> communicator::group_queue_range(cell_size_type i) {
@@ -250,34 +254,36 @@ time_type communicator::min_delay() {
 
 communicator::spikes
 communicator::exchange(std::vector<spike> local_spikes) {
-    PE(communication:exchange:sort);
+    PE(exchange);
+    PE(sort);
     // sort the spikes in ascending order of source gid
     util::sort_by(local_spikes, [](spike s){return s.source;});
-    PL();
+    PL(sort);
 
-    PE(communication:exchange:gather);
+    PE(gather);
     // global all-to-all to gather a local copy of the global spike list on each node.
     auto global_spikes = ctx_->distributed->gather_spikes(local_spikes);
     num_spikes_ += global_spikes.size();
-    PL();
+    PL(gather);
 
     // Get remote spikes
-    PE(communication:exchange:gather:remote);
+    PE(remote);
     if (remote_spike_filter_) {
         local_spikes.erase(std::remove_if(local_spikes.begin(),
                                           local_spikes.end(),
                                           [this] (const auto& s) { return !remote_spike_filter_(s); }));
     }
     auto remote_spikes = ctx_->distributed->remote_gather_spikes(local_spikes);
-    PL();
+    PL(remote);
 
-    PE(communication:exchange:gather:remote:post_process);
+    PE(post_process);
     // set the remote bit on all incoming spikes
     std::for_each(remote_spikes.begin(), remote_spikes.end(),
                   [](spike& s) { s.source = global_cell_of(s.source); });
     // sort, since we cannot trust our peers
     std::sort(remote_spikes.begin(), remote_spikes.end());
-    PL();
+    PL(post_process);
+    PL(exchange);
     return {global_spikes, remote_spikes};
 }
 
