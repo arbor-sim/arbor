@@ -200,20 +200,25 @@ shared_state::shared_state(task_system_handle tp,
 void shared_state::update_prng_state(mechanism& m) {
     if (!m.mech_.n_random_variables) return;
     auto const mech_id = m.mechanism_id();
-    auto& store = storage[mech_id];
+    auto& store = storage.at(mech_id);
     store.random_numbers_.update(m);
 }
 
-void shared_state::instantiate(mechanism& m,
-                               unsigned id,
-                               const mechanism_overrides& overrides,
-                               const mechanism_layout& pos_data,
-                               const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
+unsigned shared_state::instantiate(mechanism& m,
+                                   const mechanism_overrides& overrides,
+                                   const mechanism_layout& pos_data,
+                                   const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
     assert(m.iface_.backend == arb_backend_kind_gpu);
     using util::make_range;
     using util::make_span;
     using util::ptr_by_key;
     using util::value_by_key;
+
+    // get new id
+    auto id = streams.size();
+    // allocate new slots
+    streams.push_back({});
+    storage.push_back({});
 
     bool mult_in_place = !pos_data.multiplicity.empty();
     bool peer_indices = !pos_data.peer_cv.empty();
@@ -236,9 +241,7 @@ void shared_state::instantiate(mechanism& m,
     m.ppack_.time_since_spike = time_since_spike.data();
     m.ppack_.n_detectors      = n_detector;
 
-    if (storage.count(id)) throw arb::arbor_internal_error("Duplicate mech id in shared state");
-    auto& store = storage.emplace(id, mech_storage{}).first->second;
-    streams[id] = spike_event_stream{};
+    auto& store = storage.back();
 
     // Allocate view pointers
     store.state_vars_ = std::vector<arb_value_type*>(m.mech_.n_state_vars);
@@ -263,7 +266,7 @@ void shared_state::instantiate(mechanism& m,
     }
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
-    if (width==0) return;
+    if (width==0) return id;
 
     // Allocate and initialize state and parameter vectors with default values.
     {
@@ -348,6 +351,7 @@ void shared_state::instantiate(mechanism& m,
     m.ppack_.ion_states = store.ion_states_d_.data();
 
     if (m.mech_.n_random_variables) store.random_numbers_.instantiate(m, width_padded, pos_data, cbprng_seed);
+    return id;
 }
 
 void shared_state::reset() {

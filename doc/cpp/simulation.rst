@@ -33,7 +33,7 @@ then build the simulation.
 
         // Get a description of the partition the model over the cores
         // (and gpu if available) on node.
-        arb::domain_decomposition decomp = arb::partition_load_balance(recipe, context);
+        auto decomp = arb::partition_load_balance(recipe, context);
 
         // Instantiate the simulation.
         arb::simulation sim(recipe, decomp, context);

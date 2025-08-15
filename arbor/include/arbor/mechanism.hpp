@@ -118,7 +118,7 @@ private:
 
 struct mechanism_layout {
     // Maps in-instance index to CV index.
-    std::vector<arb_index_type> cv;
+    const std::vector<arb_index_type>& cv;
 
     // Maps in-instance index to peer CV index (only for gap-junctions).
     std::vector<arb_index_type> peer_cv;
