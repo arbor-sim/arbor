@@ -33,19 +33,19 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
                                      std::vector<event_generator>& generators,
                                      pse_vector& new_events) {
     // Tree-merge events in [t_from, t_to) from old, pending, and generator events.
-    PE(communication:enqueue:setup);
+    PE(setup);
     // discard events from before the current epoch
     old_events.left = std::lower_bound(old_events.begin(), old_events.end(),
                                        t_from,
                                        [](auto const& l, auto r) noexcept { return l.time < r; });
-    PL();
+    PL(setup);
 
     std::size_t n_evts = old_events.size() + pending.size();
     std::vector<event_span> spanbuf;
     spanbuf.reserve(2 + generators.size());
 
     // fetch generator events
-    PE(communication:enqueue:generators);
+    PE(generators);
     for (auto& g: generators) {
         event_span evts = g.events(t_from, t_to);
         if (!evts.empty()) {
@@ -53,16 +53,16 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
             n_evts += evts.size();
         }
     }
-    PL();
+    PL(generators);
 
     spanbuf.push_back(pending);
     spanbuf.push_back(old_events);
 
     // merge all event source in to new events
-    PE(communication:enqueue:tree);
+    PE(tree);
     new_events.clear();
     merge_events(spanbuf, new_events, n_evts);
-    PL();
+    PL(tree);
 }
 
 struct simulation_state {
@@ -184,7 +184,7 @@ private:
 
     // Sampler associations handles are managed by a helper class.
     util::handle_set<sampler_association_handle> sassoc_handles_;
-    
+
     // Accessors to events
     std::vector<pse_vector>& event_lanes(std::ptrdiff_t epoch_id) { return event_lanes_[epoch_id&1]; }
     thread_private_spike_store& local_spikes(std::ptrdiff_t epoch_id) { return local_spikes_[epoch_id&1]; }
@@ -221,43 +221,51 @@ simulation_state::simulation_state(const recipe& rec,
     communicator_{rec, ddc_, ctx_},
     local_spikes_({thread_private_spike_store(ctx_->thread_pool),
                    thread_private_spike_store(ctx_->thread_pool)}) {
+    PE(arbor);
+    PE(init);
     // Generate the cell groups in parallel, with one task per cell group.
+    PE(group);
     auto num_groups = decomp->num_groups();
     cell_groups_.resize(num_groups);
     std::vector<cell_labels_and_gids> cg_sources(num_groups);
     std::vector<cell_labels_and_gids> cg_targets(num_groups);
     foreach_group_index(
         [&](cell_group_ptr& group, int i) {
-          PE(init:simulation:group:factory);
+          PE(factory);
           const auto& group_info = decomp->group(i);
           cell_label_range sources, targets;
           auto factory = cell_kind_implementation(group_info.kind, group_info.backend, *ctx_, seed);
           group = factory(group_info.gids, rec, sources, targets);
-          PL();
-          PE(init:simulation:group:targets_and_sources);
+          PL(factory);
+          PE(targets_and_sources);
           cg_sources[i] = cell_labels_and_gids(std::move(sources), group_info.gids);
           cg_targets[i] = cell_labels_and_gids(std::move(targets), group_info.gids);
-          PL();
+          PL(targets_and_sources);
         });
-    PE(init:simulation:sources);
+    PL(group);
+    PE(sources);
     if (rec.resolve_sources()) {
         cell_labels_and_gids local_sources;
         for(auto gidx: util::make_span(num_groups)) local_sources.append(std::move(cg_sources[gidx]));
         auto global_sources = ctx->distributed->gather_cell_labels_and_gids(local_sources);
         source_resolution_map_ = label_resolution_map(std::move(global_sources));
     }
-    PL();
+    PL(sources);
 
-    PE(init:simulation:targets);
+    PE(targets);
     cell_labels_and_gids local_targets;
     for(auto gidx: util::make_span(num_groups)) local_targets.append(std::move(cg_targets[gidx]));
     target_resolution_map_ = label_resolution_map(std::move(local_targets));
-    PL();
+    PL(targets);
+    PL(init);
+    PL(arbor);
     update(rec);
     epoch_.reset();
 }
 
 void simulation_state::update(const recipe& rec) {
+    PE(arbor);
+    PE(update);
     communicator_.update_connections(rec, ddc_, source_resolution_map_, target_resolution_map_);
     // Use half minimum delay of the network for max integration interval.
     t_interval_ = min_delay()/2;
@@ -268,7 +276,7 @@ void simulation_state::update(const recipe& rec) {
     // Forget old generators, if present
     event_generators_.clear();
     event_generators_.resize(num_local_cells);
-    PE(init:simulation:update:generators);
+    PE(generators);
     auto target_resolver = resolver(&target_resolution_map_);
     cell_size_type lidx = 0;
     cell_size_type gidx = 0;
@@ -288,13 +296,15 @@ void simulation_state::update(const recipe& rec) {
         }
         ++gidx;
     }
-    PL();
+    PL(generators);
 
     // Create event lane buffers.
     // One buffer is consumed by cell group updates while the other is filled with events for
     // the following epoch. In each buffer there is one lane for each local cell.
     event_lanes_[0].resize(num_local_cells);
     event_lanes_[1].resize(num_local_cells);
+    PL(update);
+    PL(arbor);
 }
 
 void simulation_state::reset() {
@@ -361,6 +371,8 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     //
     // Requires state at end of run(), with epoch_.id==k:
     //     * U(k) and D(k) have completed.
+    PE(arbor);
+    PE(run);
 
     if (!std::isfinite(dt) || dt <= 0) throw std::domain_error("simulation: dt must be finite, positive, and in [ms]");
     if (!std::isfinite(tfinal) || tfinal < 0) throw std::domain_error("simulation: tfinal must be finite, positive, and in [ms]");
@@ -386,40 +398,46 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
     // Update task: advance cell groups to end of current epoch and store spikes in local_spikes_.
     auto update = [this, dt](epoch current) {
+        PE(update);
         local_spikes(current.id).clear();
         foreach_group_index(
             [&](cell_group_ptr& group, int i) {
                 auto queues = util::subrange_view(event_lanes(current.id), communicator_.group_queue_range(i));
+                PE(advance);
                 group->advance(current, dt, queues);
+                PL(advance);
 
-                PE(advance:spikes);
+                PE(spikes);
                 local_spikes(current.id).insert(group->spikes());
                 group->clear_spikes();
-                PL();
+                PL(spikes);
             });
+        PL(update);
     };
 
     // Exchange task: gather previous locally generated spikes, distribute across all ranks, and deliver
     // post-synaptic spike events to per-cell pending event vectors.
     auto exchange = [this](epoch prev) {
+        PE(exchange);
         // Collate locally generated spikes.
-        PE(communication:exchange:local_gather);
+        PE(local_gather);
         auto all_local_spikes = local_spikes(prev.id).gather();
-        PL();
+        PL(local_gather);
         communicator_.remote_ctrl_send_continue(prev);
         // Gather generated spikes across all ranks.
         auto spikes = communicator_.exchange(all_local_spikes);
 
         // Present spikes to user-supplied callbacks.
-        PE(communication:spikeio);
+        PE(spikeio);
         if (local_export_callback_) local_export_callback_(all_local_spikes);
         if (global_export_callback_) global_export_callback_(spikes.from_local.values());
-        PL();
+        PL(spikeio);
 
         // Append events formed from global spikes to per-cell pending event queues.
-        PE(communication:walkspikes);
+        PE(walkspikes);
         communicator_.make_event_queues(spikes, pending_events_);
-        PL();
+        PL(walkspikes);
+        PL(exchange);
     };
 
     // Enqueue task: build event_lanes for next epoch from pending events, event-generator events for the
@@ -427,6 +445,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     auto enqueue = [this](epoch next) {
         foreach_cell(
             [&](cell_size_type i) {
+                PE(enqueue);
                 // NOTE Despite the superficial optics, we need to sort by the
                 // full key here and _not_ purely by time. With different
                 // parallel distributions, the ordering of events with the same
@@ -450,16 +469,20 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
                 // NET_RECEIVE (weight) { state = state + weight^2 }
                 //
                 // ie synapses are not linear in weight
-                PE(communication:enqueue:sort);
+                PE(sort);
                 ska_sort(pending_events_[i].begin(), pending_events_[i].end(),
                          [](const auto& o) { return std::tie(o.time, o.target, o.weight); });
-                PL();
+                PL(sort);
+
+                PE(merge_cell_events);
                 merge_cell_events(next.t0, next.t1,                                      // time range [from, to)
                                   util::range_pointer_view(event_lanes(next.id - 1)[i]), // last epoch's events
                                   util::range_pointer_view(pending_events_[i]),          // current epoch's
                                   event_generators_[i],
                                   event_lanes(next.id)[i]);                              // out: merged events
+                PL(merge_cell_events);
                 pending_events_[i].clear();
+                PL(enqueue);
             });
     };
 
@@ -506,6 +529,8 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     // Record current epoch for next run() invocation.
     epoch_ = current;
     communicator_.remote_ctrl_send_done();
+    PL(run);
+    PL(arbor);
     return current.t1;
 }
 

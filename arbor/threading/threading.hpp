@@ -16,6 +16,7 @@
 #include <vector>
 
 #include <arbor/export.hpp>
+#include "arbor/profile/profiler.hpp"
 
 namespace arb {
 namespace threading {
@@ -286,7 +287,7 @@ public:
     task_group& operator=(const task_group&) = delete;
 
     template <typename F>
-    class wrap {
+    class wrap_exception {
         F f_;
         std::atomic<std::size_t>& counter_;
         exception_state& exception_status_;
@@ -294,21 +295,21 @@ public:
     public:
         // Construct from a compatible function, atomic counter, and exception_state.
         template <typename F2>
-        explicit wrap(F2&& other, std::atomic<std::size_t>& c, exception_state& ex):
+        explicit wrap_exception(F2&& other, std::atomic<std::size_t>& c, exception_state& ex):
                 f_(std::forward<F2>(other)),
                 counter_(c),
                 exception_status_(ex)
         {}
 
-        wrap(wrap&& other):
+        wrap_exception(wrap_exception&& other):
                 f_(std::move(other.f_)),
                 counter_(other.counter_),
                 exception_status_(other.exception_status_)
         {}
 
         // std::function is not guaranteed to not copy the contents on move construction,
-        // but the class is safe because we don't call operator() more than once on the same wrapped task.
-        wrap(const wrap& other):
+        // but the class is safe because we don't call operator() more than once on the same wrap_exceptionped task.
+        wrap_exception(const wrap_exception& other):
                 f_(other.f_),
                 counter_(other.counter_),
                 exception_status_(other.exception_status_)
@@ -331,11 +332,48 @@ public:
     };
 
     template <typename F>
+    class wrap_timer {
+        F f_;
+        std::vector<std::uint32_t> timer_stack;
+
+    public:
+      // Construct from a compatible function, atomic counter, and exception_state.
+      template <typename F2>
+      explicit wrap_timer(F2&& other, std::vector<std::uint32_t> _timer_stack ):
+                                                                                 f_(std::forward<F2>(other)), timer_stack(std::move(_timer_stack))
+      {}
+
+      wrap_timer(wrap_timer&& other):
+                                       f_(std::move(other.f_)), timer_stack(std::move(other.timer_stack))
+      {}
+
+      // std::function is not guaranteed to not copy the contents on move construction,
+      // but the class is safe because we don't call operator() more than once on the same wrap_timerped task.
+      wrap_timer(const wrap_timer& other):
+                                            f_(other.f_),
+                                            timer_stack(other.timer_stack)
+      {}
+
+      // This is where tasks of the task_group are actually executed.
+      void operator()() {
+        auto prev_timer_stack = arb::profile::get_current_timer_stack();
+        arb::profile::thread_started(timer_stack);
+        f_();
+        arb::profile::thread_started(prev_timer_stack);
+      }
+    };
+
+    template <typename F>
     using callable = typename std::decay<F>::type;
 
     template <typename F>
-    wrap<callable<F>> make_wrapped_function(F&& f, std::atomic<std::size_t>& c, exception_state& ex) {
-        return wrap<callable<F>>(std::forward<F>(f), c, ex);
+    wrap_exception<callable<F>> make_wrapped_exception_function(F&& f, std::atomic<std::size_t>& c, exception_state& ex) {
+      return wrap_exception<callable<F>>(std::forward<F>(f), c, ex);
+    }
+
+    template <typename F>
+    wrap_timer<callable<F>> make_wrapped_timer_function(F&& f, std::vector<std::uint32_t>&& timer_stack) {
+      return wrap_timer<callable<F>>(std::forward<F>(f), timer_stack);
     }
 
     // Adds new tasks to be executed in the task_group.
@@ -346,7 +384,8 @@ public:
     template<typename F>
     int run(F&& f) {
         int priority = task_system::get_task_priority()+1;
-        run(std::forward<F>(f), priority);
+        auto timer_stack = arb::profile::get_current_timer_stack();
+        run(make_wrapped_timer_function(std::forward<F>(f),std::move(timer_stack)), priority);
         return priority;
     }
 
@@ -355,7 +394,8 @@ public:
     void run(F&& f, int priority) {
         running_ = true;
         ++in_flight_;
-        task_system_->async(priority_task{make_wrapped_function(std::forward<F>(f), in_flight_, exception_status_), priority});
+        auto timer_stack = arb::profile::get_current_timer_stack();
+        task_system_->async(priority_task{make_wrapped_exception_function(make_wrapped_timer_function(std::forward<F>(f),std::move(timer_stack)), in_flight_, exception_status_), priority});
     }
 
     // Wait till all tasks in this group are done.

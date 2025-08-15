@@ -18,6 +18,9 @@ struct profile {
     // the name of each profiled region.
     std::vector<std::string> names;
 
+    // the timer stacks
+    std::vector<std::vector<std::uint32_t>> stacks{};
+
     // the number of times each region was called.
     std::vector<std::size_t> counts;
 
@@ -34,7 +37,9 @@ struct profile {
 ARB_ARBOR_API void profiler_clear();
 ARB_ARBOR_API void profiler_initialize(context ctx);
 ARB_ARBOR_API void profiler_enter(std::size_t region_id);
-ARB_ARBOR_API void profiler_leave();
+ARB_ARBOR_API void profiler_leave(std::size_t region_id);
+ARB_ARBOR_API void thread_started(const std::vector<std::uint32_t>& timer_stack);
+ARB_ARBOR_API const std::vector<std::uint32_t>& get_current_timer_stack();
 
 ARB_ARBOR_API profile profiler_summary();
 
