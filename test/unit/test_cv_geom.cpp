@@ -130,7 +130,7 @@ TEST(cv_geom, one_cv_per_branch) {
     using namespace common_morphology;
 
     auto complete = [] (const arb::morphology& m, arb::mcable c) {
-        return thingify(arb::reg::complete(arb::region(c)), arb::mprovider(m)).cables();
+        return thingify(arb::reg::complete(arb::region(c)), arb::mprovider(m, arb::label_dict())).cables();
     };
 
     for (auto& p: test_morphologies) {

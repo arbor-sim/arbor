@@ -10,8 +10,8 @@ namespace arb {
 // Does not include connections from the "connections_on" recipe function.
 // Only returns connections with local cell targets as described in the domain decomposition.
 ARB_ARBOR_API std::vector<network_connection_info> generate_network_connections(const recipe& rec,
-    const context& ctx,
-    const domain_decomposition& dom_dec);
+                                                                                const context& ctx,
+                                                                                const domain_decomposition_ptr dom_dec);
 
 // Generate and return list of ALL connections from the network description of the recipe.
 // Does not include connections from the "connections_on" recipe function.

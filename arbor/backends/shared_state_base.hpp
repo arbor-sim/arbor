@@ -96,17 +96,15 @@ struct shared_state_base {
     void mark_events() {
         auto d = static_cast<D*>(this);
         auto& streams = d->streams;
-        for (auto& stream: streams) stream.second.mark();
+        for (auto& stream: streams) stream.mark();
     }
 
     void deliver_events(mechanism& m) {
         auto d = static_cast<D*>(this);
-        auto& streams = d->streams;
-        if (auto it = streams.find(m.mechanism_id()); it != streams.end()) {
-            if (auto& deliverable_events = it->second; !deliverable_events.empty()) {
-                auto state = deliverable_events.marked_events();
-                m.deliver_events(state);
-            }
+        auto& stream = d->streams.at(m.mechanism_id());
+        if (!stream.empty()) {
+            auto state = stream.marked_events();
+            m.deliver_events(state);
         }
     }
 

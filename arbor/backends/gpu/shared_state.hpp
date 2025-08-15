@@ -162,8 +162,8 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
 
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
-    std::unordered_map<unsigned, mech_storage> storage;
-    std::unordered_map<unsigned, spike_event_stream> streams;
+    std::vector<mech_storage> storage;
+    std::vector<spike_event_stream> streams;
 
     shared_state() = default;
 
@@ -210,11 +210,10 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
                  arb_seed_type cbprng_seed_ = 0u);
 
     // Setup a mechanism and tie its backing store to this object
-    void instantiate(mechanism&,
-                     unsigned,
-                     const mechanism_overrides&,
-                     const mechanism_layout&,
-                     const std::vector<std::pair<std::string, std::vector<arb_value_type>>>&);
+    unsigned instantiate(mechanism&,
+                         const mechanism_overrides&,
+                         const mechanism_layout&,
+                         const std::vector<std::pair<std::string, std::vector<arb_value_type>>>&);
 
     void update_prng_state(mechanism&);
 
