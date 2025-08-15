@@ -62,6 +62,7 @@ skip_local=(
 
 # Lookup table for expected spike count
 expected_outputs=(
+
 # new w/ CBRNG
 #    954
 #    6999
