@@ -46,45 +46,43 @@ std::pair<arb_value_type, arb_value_type> minmax_value_impl(arb_size_type n, con
 ion_state::ion_state(const fvm_ion_config& ion_data,
                      unsigned, // alignment/padding ignored.
                      solver_ptr ptr):
-    write_eX_(ion_data.revpot_written),
-    write_Xo_(ion_data.econc_written),
-    write_Xi_(ion_data.iconc_written),
+    flags_(ion_data),
     node_index_(make_const_view(ion_data.cv)),
     iX_(ion_data.cv.size(), NAN),
-    eX_(ion_data.init_revpot.begin(), ion_data.init_revpot.end()),
-    Xi_(ion_data.init_iconc.begin(), ion_data.init_iconc.end()),
-    Xd_(ion_data.cv.size(), NAN),
-    Xo_(ion_data.init_econc.begin(), ion_data.init_econc.end()),
     gX_(ion_data.cv.size(), NAN),
-    init_Xi_(make_const_view(ion_data.init_iconc)),
-    init_Xo_(make_const_view(ion_data.init_econc)),
-    reset_Xi_(make_const_view(ion_data.reset_iconc)),
-    reset_Xo_(make_const_view(ion_data.reset_econc)),
-    init_eX_(make_const_view(ion_data.init_revpot)),
     charge(1u, static_cast<arb_value_type>(ion_data.charge)),
     solver(std::move(ptr)) {
-    arb_assert(node_index_.size()==init_Xi_.size());
-    arb_assert(node_index_.size()==init_Xo_.size());
-    arb_assert(node_index_.size()==init_eX_.size());
+    if (flags_.reset_xi()
+      ||flags_.reset_xd()) reset_Xi_ = make_const_view(ion_data.reset_iconc);
+    if (flags_.reset_xi()) init_Xi_  = make_const_view(ion_data.init_iconc);
+    if (flags_.xi())       Xi_       = make_const_view(ion_data.init_iconc);
+
+    if (flags_.reset_xo()) reset_Xo_ = make_const_view(ion_data.reset_econc);
+    if (flags_.reset_xo()) init_Xo_  = make_const_view(ion_data.init_econc);
+    if (flags_.xo())       Xo_       = make_const_view(ion_data.init_econc);
+
+    if (flags_.reset_ex()) init_eX_  = make_const_view(ion_data.init_revpot);
+    if (flags_.ex())       eX_       = make_const_view(ion_data.init_revpot);
+
+    if (flags_.xd())       Xd_       = make_const_view(ion_data.reset_iconc);
 }
 
 void ion_state::init_concentration() {
     // NB. not resetting Xd here, it's controlled via the solver.
-    if (write_Xi_) memory::copy(init_Xi_, Xi_);
-    if (write_Xo_) memory::copy(init_Xo_, Xo_);
+    if (flags_.reset_xi()) memory::copy(init_Xi_, Xi_);
+    if (flags_.reset_xo()) memory::copy(init_Xo_, Xo_);
 }
 
 void ion_state::zero_current() {
-    memory::fill(gX_, 0);
     memory::fill(iX_, 0);
 }
 
 void ion_state::reset() {
     zero_current();
-    memory::copy(reset_Xi_, Xd_);
-    if (write_Xi_) memory::copy(reset_Xi_, Xi_);
-    if (write_Xo_) memory::copy(reset_Xo_, Xo_);
-    if (write_eX_) memory::copy(init_eX_, eX_);
+    if (flags_.reset_xi()) memory::copy(reset_Xi_, Xi_);
+    if (flags_.reset_xo()) memory::copy(reset_Xo_, Xo_);
+    if (flags_.reset_ex()) memory::copy(init_eX_, eX_);
+    if (flags_.reset_xd()) memory::copy(reset_Xi_, Xd_);
 }
 
 // istim_state methods:
@@ -192,7 +190,7 @@ shared_state::shared_state(task_system_handle tp,
     time_since_spike(n_cell*n_detector),
     src_to_spike(make_const_view(src_to_spike_)),
     cbprng_seed(cbprng_seed_),
-    sample_events(thread_pool),
+    sample_events(),
     watcher{n_cv_, src_to_spike.data(), detector_info}
 {
     memory::fill(time_since_spike, -1.0);
@@ -202,20 +200,25 @@ shared_state::shared_state(task_system_handle tp,
 void shared_state::update_prng_state(mechanism& m) {
     if (!m.mech_.n_random_variables) return;
     auto const mech_id = m.mechanism_id();
-    auto& store = storage[mech_id];
+    auto& store = storage.at(mech_id);
     store.random_numbers_.update(m);
 }
 
-void shared_state::instantiate(mechanism& m,
-                               unsigned id,
-                               const mechanism_overrides& overrides,
-                               const mechanism_layout& pos_data,
-                               const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
+unsigned shared_state::instantiate(mechanism& m,
+                                   const mechanism_overrides& overrides,
+                                   const mechanism_layout& pos_data,
+                                   const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
     assert(m.iface_.backend == arb_backend_kind_gpu);
     using util::make_range;
     using util::make_span;
     using util::ptr_by_key;
     using util::value_by_key;
+
+    // get new id
+    auto id = streams.size();
+    // allocate new slots
+    streams.push_back({});
+    storage.push_back({});
 
     bool mult_in_place = !pos_data.multiplicity.empty();
     bool peer_indices = !pos_data.peer_cv.empty();
@@ -238,9 +241,7 @@ void shared_state::instantiate(mechanism& m,
     m.ppack_.time_since_spike = time_since_spike.data();
     m.ppack_.n_detectors      = n_detector;
 
-    if (storage.count(id)) throw arb::arbor_internal_error("Duplicate mech id in shared state");
-    auto& store = storage.emplace(id, mech_storage{}).first->second;
-    streams[id] = deliverable_event_stream{thread_pool};
+    auto& store = storage.back();
 
     // Allocate view pointers
     store.state_vars_ = std::vector<arb_value_type*>(m.mech_.n_state_vars);
@@ -262,11 +263,10 @@ void shared_state::instantiate(mechanism& m,
         ion_state.external_concentration  = oion->Xo_.data();
         ion_state.diffusive_concentration = oion->Xd_.data();
         ion_state.ionic_charge            = oion->charge.data();
-        ion_state.conductivity            = oion->gX_.data();
     }
 
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
-    if (width==0) return;
+    if (width==0) return id;
 
     // Allocate and initialize state and parameter vectors with default values.
     {
@@ -350,7 +350,8 @@ void shared_state::instantiate(mechanism& m,
     store.ion_states_d_ = memory::on_gpu(store.ion_states_);
     m.ppack_.ion_states = store.ion_states_d_.data();
 
-    store.random_numbers_.instantiate(m, width_padded, pos_data, cbprng_seed);
+    if (m.mech_.n_random_variables) store.random_numbers_.instantiate(m, width_padded, pos_data, cbprng_seed);
+    return id;
 }
 
 void shared_state::reset() {
@@ -387,14 +388,6 @@ void shared_state::take_samples() {
         take_samples_impl(state, time, sample_time.data(), sample_value.data());
     }
 }
-
-void shared_state::init_events(const event_lane_subrange& lanes,
-                               const std::vector<target_handle>& handles,
-                               const std::vector<size_t>& divs,
-                               const timestep_range& dts) {
-    arb::gpu::event_stream<deliverable_event>::multi_event_stream(lanes, handles, divs, dts, streams);
-}
-
 
 // Debug interface
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s) {

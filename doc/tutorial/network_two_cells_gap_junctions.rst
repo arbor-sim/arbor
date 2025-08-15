@@ -68,7 +68,7 @@ used).
 
 
 ``gap_junctions_on``
--------------------
+--------------------
 
 Similar to ``connections_on``, this method returns a list of gap junction
 connections and these are defined in the same manner.

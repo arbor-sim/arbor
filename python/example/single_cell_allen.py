@@ -131,10 +131,10 @@ def make_cell(base, swc, fit):
     decor.place('"midpoint"', A.threshold_detector(-40 * U.mV), "sd")
 
     # (10) discretisation strategy: max compartment length
-    decor.discretization(A.cv_policy_max_extent(20))
+    cvp = A.cv_policy_max_extent(20)
 
     # (11) Create cell
-    return A.cable_cell(morphology, decor, labels), offset
+    return A.cable_cell(morphology, decor, labels, cvp), offset
 
 
 # (12) Create cell, model
@@ -145,7 +145,7 @@ model = A.single_cell_model(cell)
 model.probe("voltage", '"midpoint"', "Um", frequency=1 / (5 * U.us))
 
 # (14) Install the Allen mechanism catalogue.
-model.properties.catalogue.extend(A.allen_catalogue(), "")
+model.properties.catalogue.extend(A.allen_catalogue())
 
 # (15) Run simulation
 model.run(tfinal=1.4 * U.s, dt=5 * U.us)

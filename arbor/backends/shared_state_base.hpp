@@ -7,14 +7,18 @@
 #include "backends/common_types.hpp"
 #include "fvm_layout.hpp"
 
-#include "event_lane.hpp"
 #include "timestep_range.hpp"
+#include "util/rangeutil.hpp"
+#include "timestep_range.hpp"
+#include "event_lane.hpp"
 
 namespace arb {
 
 // Common functionality for CPU/GPU shared state.
 template <typename D, typename array, typename ion_state>
 struct shared_state_base {
+
+    using diff_solver = typename ion_state::solver_type;
 
     void update_time_to(const timestep_range::timestep& ts) {
         auto d = static_cast<D*>(this);
@@ -34,21 +38,24 @@ struct shared_state_base {
                      const std::vector<size_t>& divs) {
         auto d = static_cast<D*>(this);
         // events
-        d->init_events(lanes, handles, divs, dts);
+        initialize(lanes, handles, divs, dts, d->streams);
         // samples
         auto n_samples = util::sum_by(samples, [] (const auto& s) {return s.size();});
         if (d->sample_time.size() < n_samples) {
             d->sample_time = array(n_samples);
             d->sample_value = array(n_samples);
         }
-        d->sample_events.init(samples);
+        initialize(samples, d->sample_events);
         // thresholds
         d->watcher.clear_crossings();
     }
 
     void configure_solver(const fvm_cv_discretization& disc) {
         auto d = static_cast<D*>(this);
-        d->solver = {disc.geometry.cv_parent, disc.geometry.cell_cv_divs, disc.cv_capacitance, disc.face_conductance, disc.cv_area};
+        d->solver = {disc.geometry.cv_parent,
+                     disc.geometry.cell_cv_divs,
+                     disc.cv_capacitance,
+                     disc.face_conductance};
     }
 
     void add_ion(const std::string& ion_name,
@@ -64,11 +71,11 @@ struct shared_state_base {
                   const std::unordered_map<std::string, fvm_ion_config>& ions) {
         auto d = static_cast<D*>(this);
         for (const auto& [ion, data]: ions) {
-            std::unique_ptr<typename ion_state::solver_type> solver = nullptr;
-            if (data.is_diffusive) solver = std::make_unique<typename ion_state::solver_type>(disc.geometry.cv_parent,
-                                                                                              disc.geometry.cell_cv_divs,
-                                                                                              data.face_diffusivity,
-                                                                                              disc.cv_area);
+            std::unique_ptr<diff_solver> solver = nullptr;
+            if (data.is_diffusive) solver = std::make_unique<diff_solver>(disc.geometry.cv_parent,
+                                                                          disc.geometry.cell_cv_divs,
+                                                                          data.face_diffusivity,
+                                                                          disc.cv_volume);
             d->add_ion(ion, data, std::move(solver));
         }
     }
@@ -89,17 +96,15 @@ struct shared_state_base {
     void mark_events() {
         auto d = static_cast<D*>(this);
         auto& streams = d->streams;
-        for (auto& stream: streams) stream.second.mark();
+        for (auto& stream: streams) stream.mark();
     }
 
     void deliver_events(mechanism& m) {
         auto d = static_cast<D*>(this);
-        auto& streams = d->streams;
-        if (auto it = streams.find(m.mechanism_id()); it != streams.end()) {
-            if (auto& deliverable_events = it->second; !deliverable_events.empty()) {
-                auto state = deliverable_events.marked_events();
-                m.deliver_events(state);
-            }
+        auto& stream = d->streams.at(m.mechanism_id());
+        if (!stream.empty()) {
+            auto state = stream.marked_events();
+            m.deliver_events(state);
         }
     }
 
@@ -134,15 +139,11 @@ struct shared_state_base {
 
     void integrate_cable_state() {
         auto d = static_cast<D*>(this);
-        d->solver.solve(d->voltage, d->dt, d->current_density, d->conductivity);
+        d->solver.solve(d->voltage, d->dt, d->current_density, d->conductivity, d->area_um2);
         for (auto& [ion, data]: d->ion_data) {
             if (data.solver) {
                 data.solver->solve(data.Xd_,
-                                   d->dt,
-                                   d->voltage,
-                                   data.iX_,
-                                   data.gX_,
-                                   data.charge[0]);
+                                   d->dt);
             }
         }
     }

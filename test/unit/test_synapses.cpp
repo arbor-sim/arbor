@@ -108,8 +108,8 @@ TEST(synapses, syn_basic_state) {
     std::vector<index_type> syn_mult(num_syn, 1);
     std::vector<value_type> syn_weight(num_syn, 1.0);
 
-    state.instantiate(*expsyn,  0, {}, {syn_cv, {}, syn_weight, syn_mult}, {});
-    state.instantiate(*exp2syn, 1, {}, {syn_cv, {}, syn_weight, syn_mult}, {});
+    state.instantiate(*expsyn,  {}, {syn_cv, {}, syn_weight, syn_mult}, {});
+    state.instantiate(*exp2syn, {}, {syn_cv, {}, syn_weight, syn_mult}, {});
 
     // Parameters initialized to default values?
 
@@ -152,7 +152,7 @@ TEST(synapses, syn_basic_state) {
     std::vector<pse_vector> events{{{0, 0.0, 3.14f}, {1, 0.0, 1.41f}, {2, 0.0, 2.71f}, {3, 0.0, 0.07f}}};
     auto lanes = event_lane_subrange(events.begin(), events.end());
     std::vector<target_handle> handles{{0, 1}, {0, 3}, {1, 0}, {1, 2}};
-    std::vector<size_t> divs{0};
+    std::vector<size_t> divs{0, handles.size()};
     state.begin_epoch(lanes, {}, dts, handles, divs);
     state.mark_events();
 

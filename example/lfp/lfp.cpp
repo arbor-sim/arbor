@@ -47,7 +47,7 @@ struct lfp_demo_recipe: public arb::recipe {
         return {{arb::cable_probe_total_current_cell{}, "Itotal"},
                 {arb::cable_probe_membrane_voltage{synapse_location_}, "Um"},
                 {arb::cable_probe_total_ion_current_density{synapse_location_}, "Iion"},
-                {arb::cable_probe_point_state{0, "expsyn", "g"}, "expsyn-g"}};
+                {arb::cable_probe_point_state{"syn", "expsyn", "g"}, "expsyn-g"}};
     }
 
     arb::cell_kind get_cell_kind(cell_gid_type) const override {
@@ -87,14 +87,13 @@ private:
             // Use NEURON defaults for reversal potentials, ion concentrations etc., but override ra, cm.
             .set_default(axial_resistivity{100*U::Ohm*U::cm})     // [Ω·cm]
             .set_default(membrane_capacitance{0.01*U::F/U::m2}) // [F/m²]
-            // Twenty CVs per branch on the dendrites (tag 4).
-            .set_default(cv_policy_fixed_per_branch(20, arb::reg::tagged(4)))
             // Add pas and hh mechanisms:
             .paint("(tag 1)"_reg, density("hh")) // (default parameters)
             .paint("(tag 4)"_reg, density("pas/e=-70.0"))
             // Add exponential synapse at centre of soma.
             .place(synapse_location_, synapse("expsyn", {{"e", 0}, {"tau", 2}}), "syn");
-        cell_ = cable_cell(tree, dec);
+        // Twenty CVs per branch on the dendrites (tag 4).
+        cell_ = cable_cell(tree, dec, {}, cv_policy_fixed_per_branch(20, arb::reg::tagged(4)));
     }
 };
 

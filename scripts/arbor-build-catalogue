@@ -18,7 +18,7 @@ if not CXX.exists():
     # Example <>/lib/python3.10/site-packages/arbor
     altern = "c++"
     from shutil import which
-    if which(altern) == None:
+    if which(altern) is None:
         print(
             f"Error: Neither prefix '{CXX}' nor fallback '{altern}' exist. Please provide a path to a C++ compiler with --cxx",
             file=sys.stderr,
@@ -80,7 +80,7 @@ enabled) must be present in the target directory.""",
         metavar="gpu",
         default=config["gpu"] if config["gpu"] else "none",
         choices=["none", "cuda", "hip", "cuda-clang"],
-        help=f"Enable GPU support",
+        help="Enable GPU support",
     )
 
     parser.add_argument(
@@ -149,25 +149,28 @@ if gpu == "cuda":
 include(FindCUDAToolkit)
 add_compile_definitions(ARB_CUDA)
 add_compile_definitions(ARB_HAVE_GPU)
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+    # Pascal, Volta, Ampere, Hopper
+    set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
+endif()
 find_package(CUDAToolkit)
 enable_language(CUDA)
-set(CMAKE_CUDA_STANDARD 14)
-
+set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CUDA_HOST_COMPILER {args["cxx"]})
 """
 elif gpu == "cuda-clang":
     print("CUDA-Clang support is currently considered experimental only.")
-    gpu_support = f"""
+    gpu_support = """
 add_compile_definitions(ARB_CUDA)
 add_compile_definitions(ARB_HAVE_GPU)
 find_package(CUDAToolkit)
 enable_language(CUDA)
-set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_STANDARD 20)
 add_compile_options(-xcuda --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_70 --cuda-gpu-arch=sm_80 --cuda-path=${CUDA_TOOLKIT_ROOT_DIR}))
 """
 elif gpu == "hip":
     print("HIP support is currently considered experimental only.")
-    gpu_support = f"""
+    gpu_support = """
 add_compile_definitions(ARB_HIP)
 add_compile_definitions(ARB_HAVE_GPU)
 add_compile_options(-xhip --amdgpu-target=gfx906 --amdgpu-target=gfx900)
@@ -180,48 +183,34 @@ else:
     print(f"Internal Error: Unknown GPU type: {gpu}", file=sys.stderr)
     exit(-1)
 
-def check_dirs(dirry):
-    bindir = Path(dirry) / args["bin"]
-    datdir = Path(dirry) / args["data"] / "arbor"
-    pakdir = Path(dirry) / args["lib"] / "cmake" / "arbor"
-
-    for path in [
-        bindir / "modcc",
-        datdir / "BuildModules.cmake",
-        pakdir / "arbor-config.cmake",
-    ]:
-        if not path.exists():
-            raise FileNotFoundError(f"Could not find required tool: {path}. Please check your installation.")
-    return bindir,datdir,pakdir
-
-paths=[
-    args["prefix"],
+paths = [
+    Path(args["prefix"]),
     Path(A.__path__[0]).parent.parent.parent.parent,
     Path(A.__path__[0]),
 ]
 
 for path in paths:
-    try:
-        bindir,datdir,pakdir = check_dirs(path)
-    except:
-        pass
-try:
-    bindir
-except NameError:
-    print(
-        f"Could not find required tool: {paths}. Please check your installation.",
-        file=sys.stderr,
-    )
-    exit(-1)
+    reqs = [path / args["bin"] / "modcc",
+            path / args["data"] / "arbor" / "BuildModules.cmake",
+            path / args["lib"] / "cmake" / "arbor" / "arbor-config.cmake",]
+
+    if all(req.exists() for req in reqs):
+        prefix = path
+        break
+else:
+    raise FileNotFoundError("Could not find required tools. Please check your installation.")
+
+bindir, datdir, pakdir = prefix / args['bin'], path / args["data"] / "arbor", path / args["lib"] / "cmake"
 
 cmake = f"""
 cmake_minimum_required(VERSION 3.9)
 project({name}-cat LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(arbor_DIR {pakdir})
+list(APPEND CMAKE_PREFIX_PATH {pakdir}/arbor)
+list(APPEND CMAKE_PREFIX_PATH {pakdir}/units)
 find_package(arbor REQUIRED)
 {gpu_support}
 set(CMAKE_BUILD_TYPE release)
@@ -260,7 +249,7 @@ if debug:
     # manager that doesn't clean up the build folder so that the generated cpp
     # code can be debugged
     class TemporaryDirectory:
-        def __enter__(*args, **kwargs):
+        def __enter__(*args, **_):
             if isinstance(debug, str):
                 path = os.path.abspath(debug)
                 try:
@@ -276,7 +265,7 @@ if debug:
             print(f"Building debug code in '{path}'.")
             return path
 
-        def __exit__(*args, **kwargs):
+        def __exit__(*args, **_):
             pass
 
 else:

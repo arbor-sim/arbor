@@ -202,12 +202,11 @@ namespace {
                 arb::segment_tree tree;
                 tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
                 arb::decor decor;
-                decor.set_default(arb::cv_policy_fixed_per_branch(10));
                 decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10*arb::units::mV}, "src");
                 decor.place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "tgt");
-                return arb::cable_cell(arb::morphology(tree), decor);
+                return arb::cable_cell(arb::morphology(tree), decor, {}, arb::cv_policy_fixed_per_branch(10));
             }
-            return arb::lif_cell("src", "tgt");
+            return arb::lif_cell{.source="src", .target="tgt"};
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
@@ -274,10 +273,9 @@ namespace {
             arb::segment_tree tree;
             tree.append(arb::mnpos, {0, 0, 0.0, 1.0}, {0, 0, 200, 1.0}, 1);
             arb::decor decor;
-            decor.set_default(arb::cv_policy_fixed_per_branch(10));
             decor.place(arb::mlocation{0, 0.5}, arb::threshold_detector{10*arb::units::mV}, "src");
             decor.place(arb::ls::uniform(arb::reg::all(), 0, size_, gid), arb::synapse("expsyn"), "tgt");
-            return arb::cable_cell(arb::morphology(tree), decor);
+            return arb::cable_cell(arb::morphology(tree), decor, {}, arb::cv_policy_fixed_per_branch(10));
         }
         cell_kind get_cell_kind(cell_gid_type gid) const override {
             return cell_kind::cable;
@@ -313,20 +311,20 @@ namespace {
     }
 
     // make a list of the gids on the local domain
-    std::vector<cell_gid_type> get_gids(const domain_decomposition& D) {
+    std::vector<cell_gid_type> get_gids(const domain_decomposition_ptr D) {
         std::vector<cell_gid_type> gids;
-        for (auto i: util::make_span(0, D.num_groups())) {
-            util::append(gids, D.group(i).gids);
+        for (auto i: util::make_span(0, D->num_groups())) {
+            util::append(gids, D->group(i).gids);
         }
         return gids;
     }
 
     // make a hash table mapping local gid to local cell_group index
     std::unordered_map<cell_gid_type, cell_gid_type>
-    get_group_map(const domain_decomposition& D) {
+    get_group_map(const domain_decomposition_ptr D) {
         std::unordered_map<cell_gid_type, cell_gid_type> map;
-        for (auto i: util::make_span(0, D.num_groups())) {
-            for (auto gid: D.group(i).gids) {
+        for (auto i: util::make_span(0, D->num_groups())) {
+            for (auto gid: D->group(i).gids) {
                 map[gid] = i;
             }
         }
@@ -432,7 +430,7 @@ namespace {
 
 template <typename F>
 ::testing::AssertionResult
-test_ring(const domain_decomposition& D, communicator& C, F&& f) {
+test_ring(const domain_decomposition_ptr D, communicator& C, F&& f) {
     using util::transform_view;
     using util::assign_from;
     using util::filter;
@@ -463,9 +461,9 @@ test_ring(const domain_decomposition& D, communicator& C, F&& f) {
     // search for the expected event.
     int expected_count = 0;
     for (auto gid: gids) {
-        auto src = source_of(gid, D.num_global_cells());
+        auto src = source_of(gid, D->num_global_cells());
         if (f(src)) {
-            auto expected = expected_event_ring(gid, D.num_global_cells());
+            auto expected = expected_event_ring(gid, D->num_global_cells());
             auto grp = group_map[gid];
             auto& q = queues[grp];
             if (std::find(q.begin(), q.end(), expected)==q.end()) {
@@ -509,7 +507,7 @@ TEST(communicator, ring)
     // set up source and target label->lid resolvers
     // from cable_cell_group and lif_cell_group
     std::vector<cell_gid_type> mc_gids, lif_gids;
-    for (auto g: D.groups()) {
+    for (auto g: D->groups()) {
         if (g.kind == cell_kind::cable) {
             mc_gids.insert(mc_gids.end(), g.gids.begin(), g.gids.end());
         }
@@ -543,7 +541,7 @@ TEST(communicator, ring)
 
 template <typename F>
 ::testing::AssertionResult
-test_all2all(const domain_decomposition& D, communicator& C, F&& f) {
+test_all2all(const domain_decomposition_ptr D, communicator& C, F&& f) {
     using util::transform_view;
     using util::assign_from;
     using util::filter;
@@ -558,7 +556,7 @@ test_all2all(const domain_decomposition& D, communicator& C, F&& f) {
     std::reverse(local_spikes.begin(), local_spikes.end());
 
     std::vector<cell_gid_type> spike_gids = assign_from(
-        filter(make_span(0, D.num_global_cells()), f));
+        filter(make_span(0, D->num_global_cells()), f));
 
     // gather the global set of spikes
     auto [global_spikes, remote_spikes] = C.exchange(local_spikes);
@@ -572,7 +570,7 @@ test_all2all(const domain_decomposition& D, communicator& C, F&& f) {
     std::vector<arb::pse_vector> queues(C.num_local_cells());
     auto spikes = communicator::spikes{global_spikes, {}};
     C.make_event_queues(spikes, queues);
-    if (queues.size() != D.num_groups()) { // one queue for each cell group
+    if (queues.size() != D->num_groups()) { // one queue for each cell group
         return ::testing::AssertionFailure()
             << "expect one event queue for each cell group";
     }
@@ -629,7 +627,7 @@ TEST(communicator, all2all)
     // set up source and target label->lid resolvers
     // from cable_cell_group
     std::vector<cell_gid_type> mc_gids;
-    for (auto g: D.groups()) {
+    for (auto g: D->groups()) {
         mc_gids.insert(mc_gids.end(), g.gids.begin(), g.gids.end());
     }
     cell_label_range local_sources, local_targets;
@@ -676,7 +674,7 @@ TEST(communicator, mini_network)
     // set up source and target label->lid resolvers
     // from cable_cell_group
     std::vector<cell_gid_type> gids;
-    for (auto g: D.groups()) {
+    for (auto g: D->groups()) {
         gids.insert(gids.end(), g.gids.begin(), g.gids.end());
     }
     cell_label_range local_sources, local_targets;

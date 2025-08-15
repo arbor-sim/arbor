@@ -1,6 +1,5 @@
 #pragma once
 
-#include <any>
 #include <string>
 
 #include <arbor/arbexcept.hpp>
@@ -26,18 +25,22 @@ ARB_ARBORIO_API parse_network_hopefully<arb::network_value> parse_network_value_
     const std::string& s);
 
 namespace literals {
-inline arb::network_selection operator"" _ns(const char* s, std::size_t) {
-    if (auto r = parse_network_selection_expression(s))
+inline arb::network_selection operator""_ns(const char* s, std::size_t) {
+    if (auto r = parse_network_selection_expression(s)) {
         return *r;
-    else
+    }
+    else {
         throw r.error();
+    }
 }
 
-inline arb::network_value operator"" _nv(const char* s, std::size_t) {
-    if (auto r = parse_network_value_expression(s))
+inline arb::network_value operator""_nv(const char* s, std::size_t) {
+    if (auto r = parse_network_value_expression(s)) {
         return *r;
-    else
+    }
+    else {
         throw r.error();
+    }
 }
 
 }  // namespace literals

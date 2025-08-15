@@ -56,7 +56,7 @@ public:
         params_(params)
     {
         gprop.default_parameters = arb::neuron_parameter_defaults;
-        gprop.catalogue.import(arb::global_allen_catalogue(), "");
+        gprop.catalogue.extend(arb::global_allen_catalogue());
 
         if (params.cell.complex_cell) {
             gprop.default_parameters.reversal_potential_method["ca"] = "nernst/ca";
@@ -421,9 +421,7 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
 
     if (params.synapses>1) decor.place(syns, arb::synapse("expsyn"), "s");
 
-    decor.set_default(arb::cv_policy_every_segment());
-
-    return {arb::morphology(tree), decor};
+    return {arb::morphology(tree), decor, {}, arb::cv_policy_every_segment()};
 }
 
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
@@ -453,7 +451,5 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     }
 
     // Make a CV between every sample in the sample tree.
-    decor.set_default(arb::cv_policy_every_segment());
-
-    return {arb::morphology(tree), decor};
+    return {arb::morphology(tree), decor, {}, arb::cv_policy_every_segment()};
 }

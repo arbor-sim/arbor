@@ -197,9 +197,7 @@ public:
         return c -= n;
     }
 
-    difference_type operator-(const Derived& x) const {
-        return inner()-x.inner();
-    }
+    difference_type operator-(const Derived& x) const requires requires (I x) { x - x; } { return inner() - x.inner(); }
 
     bool operator<(const Derived& x) const {
         return inner()<x.inner();
@@ -282,13 +280,9 @@ public:
         return c;
     }
 
-    bool operator==(const Derived& x) const noexcept {
-        return index_==x.index_;
-    }
-
-    bool operator!=(const Derived& x) const noexcept {
-        return !(derived()==x);
-    }
+    bool operator==(const Derived& x) const { return index_==x.index_; }
+    bool operator!=(const Derived& x) const { return !(derived()==x); }
+    auto operator<=>(const Derived& x) const { return derived().index_ <=> x.index_; }
 
     // bidirectional iterator requirements
 
@@ -333,22 +327,6 @@ public:
 
     difference_type operator-(const Derived& x) const noexcept {
         return (difference_type)index_ - (difference_type)x.index_;
-    }
-
-    bool operator<(const Derived& x) const noexcept {
-        return index_ < x.index_;
-    }
-
-    bool operator<=(const Derived& x) const noexcept {
-        return derived()<x || derived()==x;
-    }
-
-    bool operator>=(const Derived& x) const noexcept {
-        return !(derived()<x);
-    }
-
-    bool operator>(const Derived& x) const noexcept {
-        return !(derived()<=x);
     }
 };
 

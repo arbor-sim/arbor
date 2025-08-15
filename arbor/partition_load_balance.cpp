@@ -171,7 +171,7 @@ auto build_local_components(const recipe& rec, context ctx) {
 
 } // namespace
 
-ARB_ARBOR_API domain_decomposition partition_load_balance(const recipe& rec,
+ARB_ARBOR_API domain_decomposition_ptr partition_load_balance(const recipe& rec,
                                                           context ctx,
                                                           const partition_hint_map& hint_map) {
     const auto components = build_local_components(rec, ctx);
@@ -212,6 +212,6 @@ ARB_ARBOR_API domain_decomposition partition_load_balance(const recipe& rec,
         if (!group_elements.empty()) groups.emplace_back(params.kind, std::move(group_elements), params.backend);
     }
 
-    return {rec, ctx, groups};
+    return std::make_shared<domain_decomposition>(rec, ctx, groups);
 }
 } // namespace arb

@@ -1,9 +1,7 @@
-#include <cmath>
+#include <algorithm>
 #include <ios>
 #include <limits>
-#include <numeric>
 #include <iostream>
-#include <set>
 #include <string>
 #include <sstream>
 #include <fstream>
@@ -13,7 +11,6 @@
 
 #include <arbor/morph/segment_tree.hpp>
 #include <arbor/morph/label_dict.hpp>
-
 #include "arbor/morph/primitives.hpp"
 
 #include <arborio/swcio.hpp>

@@ -347,7 +347,7 @@ Interconnectivity
 
     All stored network selections
 
-   .. cpp:function:: const nv_map& selections() const
+   .. cpp:function:: const nv_map& values() const
 
     All stored network values
 
@@ -379,7 +379,7 @@ Interconnectivity
         with local gids in the domain composition as the target.  Does not include connections from
         the ``connections_on`` recipe function.
 
-.. function:: generate_network_connections(recipe)
+.. function:: generate_network_connections(recipe) :no-index:
 
         Generate network connections from the network description in the recipe. Returns all generated connections on every process.
         Does not include connections from the "connections_on" recipe function.

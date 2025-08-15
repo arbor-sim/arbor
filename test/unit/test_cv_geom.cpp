@@ -130,7 +130,7 @@ TEST(cv_geom, one_cv_per_branch) {
     using namespace common_morphology;
 
     auto complete = [] (const arb::morphology& m, arb::mcable c) {
-        return thingify(arb::reg::complete(arb::region(c)), arb::mprovider(m)).cables();
+        return thingify(arb::reg::complete(arb::region(c)), arb::mprovider(m, arb::label_dict())).cables();
     };
 
     for (auto& p: test_morphologies) {
@@ -584,8 +584,7 @@ TEST(region_cv, custom_geometry) {
     {
         decor d;
         // Discretize by segment
-        d.set_default(cv_policy_every_segment());
-        auto cell = cable_cell(m, d, l);
+        auto cell = cable_cell(m, d, l, cv_policy_every_segment());
         auto geom = cv_data(cell);
         EXPECT_TRUE(geom);
 
@@ -642,8 +641,7 @@ TEST(region_cv, custom_geometry) {
           {2, 0.2},
           {2, 1}
         });
-        d.set_default(cv_policy_explicit(ls));
-        auto cell = cable_cell(m, d, l);
+        auto cell = cable_cell(m, d, l, cv_policy_explicit(ls));
         auto geom = cv_data(cell);
         EXPECT_TRUE(geom);
 

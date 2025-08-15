@@ -20,8 +20,7 @@ struct partition_hint {
 
 using partition_hint_map = std::unordered_map<cell_kind, partition_hint>;
 
-ARB_ARBOR_API domain_decomposition partition_load_balance(
-    const recipe& rec,
-    context ctx,
-    const partition_hint_map& hint_map = {});
+ARB_ARBOR_API domain_decomposition_ptr partition_load_balance(const recipe& rec,
+                                                              context ctx,
+                                                              const partition_hint_map& hint_map = {});
 } // namespace arb

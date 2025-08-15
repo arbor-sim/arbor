@@ -10,25 +10,23 @@
 #include "util/tourney_tree.hpp"
 
 namespace arb {
-void merge_cell_events(
-    time_type t_from,
-    time_type t_to,
-    event_span old_events,
-    event_span pending,
-    std::vector<event_generator>& generators,
-    pse_vector& new_events);
+void merge_cell_events(time_type t_from,
+                       time_type t_to,
+                       event_span old_events,
+                       event_span pending,
+                       std::vector<event_generator>& generators,
+                       pse_vector& new_events);
 } // namespace arb
 
 using namespace arb;
 
 // Wrapper for arb::merge_cell_events.
-static void merge_events(
-    time_type t_from,
-    time_type t_to,
-    const pse_vector& old_events,
-    pse_vector& pending,
-    std::vector<event_generator>& generators,
-    pse_vector& new_events) {
+static void merge_events(time_type t_from,
+                         time_type t_to,
+                         const pse_vector& old_events,
+                         pse_vector& pending,
+                         std::vector<event_generator>& generators,
+                         pse_vector& new_events) {
     util::sort(pending);
     merge_cell_events(t_from, t_to,
                       util::range_pointer_view(old_events),
@@ -159,10 +157,8 @@ TEST(merge_events, X)
         {0, 26, 4},
     };
 
-    auto gen = regular_generator({"l0"}, 42.f, t0*arb::units::ms, 5*arb::units::ms);
-    gen.resolve_label([](const cell_local_label_type&) {return 2;});
-    std::vector<event_generator> generators = {gen};
-
+    std::vector<event_generator> generators = {regular_generator({"l0"}, 42.f, t0*arb::units::ms, 5*arb::units::ms)};
+    generators[0].set_target_lid(2);
     merge_events(t0, t1, lc, events, generators, lf);
 
     pse_vector expected = {
@@ -182,9 +178,7 @@ TEST(merge_events, X)
     EXPECT_EQ(expected, lf);
 }
 
-    struct labeled_synapse_event {
-
-    };
+struct labeled_synapse_event {};
 
 using lse_vector = std::vector<std::tuple<cell_local_label_type, time_type, float>>;
 
@@ -204,11 +198,10 @@ TEST(merge_events, tourney_seq)
     }
     util::sort(expected);
 
-    auto
-        g1 = explicit_generator_from_milliseconds(l0, w1, times),
-        g2 = explicit_generator_from_milliseconds(l0, w2, times);
-    g1.resolve_label([](const cell_local_label_type&) {return 0;});
-    g2.resolve_label([](const cell_local_label_type&) {return 0;});
+    auto g1 = explicit_generator_from_milliseconds(l0, w1, times);
+    g1.set_target_lid(0);
+    auto g2 = explicit_generator_from_milliseconds(l0, w2, times);
+    g2.set_target_lid(0);
 
     std::vector<event_span> spans = {g1.events(0, terminal_time),
                                      g2.events(0, terminal_time)};
@@ -243,7 +236,7 @@ TEST(merge_events, tourney_poisson) {
         // of events with the same time but different weights works properly.
         auto G = i%(ngen-1);
         auto gen = poisson_generator(label, weight, t0*arb::units::ms, lambda*arb::units::kHz, G);
-        gen.resolve_label([lid](const cell_local_label_type&) {return lid;});
+        gen.set_target_lid(lid);
         generators.push_back(std::move(gen));
     }
 

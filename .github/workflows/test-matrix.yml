@@ -13,6 +13,7 @@ jobs:
     name: "CMake Matrix Test."
     runs-on: ${{ matrix.config.os }}
     strategy:
+      fail-fast: false
       matrix:
         config:
         - {
@@ -20,7 +21,7 @@ jobs:
             os:    "ubuntu-22.04",
             cc:    "gcc-12",
             cxx:   "g++-12",
-            py:    "3.9",
+            py:    "3.10",
             cmake: "3.19.x",
             mpi:   "ON",
             simd:  "OFF"
@@ -28,19 +29,19 @@ jobs:
         - {
             name:  "Linux Min Clang",
             os:    "ubuntu-22.04",
-            cc:    "clang-12",
-            cxx:   "clang++-12",
-            py:    "3.9",
+            cc:    "clang-13",
+            cxx:   "clang++-13",
+            py:    "3.10",
             cmake: "3.19.x",
             mpi:   "ON",
             simd:  "OFF"
           }
         - {
             name:  "MacOS Min",
-            os:    "macos-12",
+            os:    "macos-13",
             cc:    "clang",
             cxx:   "clang++",
-            py:    "3.9",
+            py:    "3.10",
             cmake: "3.19.x",
             mpi:   "ON",
             simd:  "OFF"
@@ -50,7 +51,7 @@ jobs:
             os:    "ubuntu-24.04",
             cc:    "gcc-14",
             cxx:   "g++-14",
-            py:    "3.12",
+            py:    "3.13",
             cmake: "3.22.x",
             mpi:   "ON",
             simd:  "OFF"
@@ -60,7 +61,7 @@ jobs:
             os:    "ubuntu-24.04",
             cc:    "gcc-14",
             cxx:   "g++-14",
-            py:    "3.12",
+            py:    "3.13",
             cmake: "3.22.x",
             mpi:   "OFF",
             simd:  "ON"
@@ -70,7 +71,7 @@ jobs:
             os:    "ubuntu-24.04",
             cc:    "clang-18",
             cxx:   "clang++-18",
-            py:    "3.12",
+            py:    "3.13",
             cmake: "3.22.x",
             mpi:   "ON",
             simd:  "OFF"
@@ -80,7 +81,7 @@ jobs:
             os:    "macos-14",
             cc:    "clang",
             cxx:   "clang++",
-            py:    "3.12",
+            py:    "3.13",
             cmake: "3.22.x",
             mpi:   "ON",
             simd:  "OFF"
@@ -115,7 +116,7 @@ jobs:
       - name: Update pip
         run: python -m pip install --upgrade pip
       - name: Install Python packages
-        run:  pip install numpy sphinx svgwrite sphinx-rtd-theme mpi4py pandas seaborn
+        run:  pip install numpy sphinx svgwrite sphinx-rtd-theme mpi4py pandas seaborn pybind11-stubgen
       - name: Clone w/ submodules
         uses: actions/checkout@v4
         with:
