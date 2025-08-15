@@ -7,6 +7,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <unordered_set>
+#include <set>
 #include <vector>
 
 #include <arbor/morph/segment_tree.hpp>
