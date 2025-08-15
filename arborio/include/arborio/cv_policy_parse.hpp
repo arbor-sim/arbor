@@ -1,6 +1,5 @@
 #pragma once
 
-#include <any>
 #include <string>
 
 #include <arbor/cv_policy.hpp>
@@ -24,7 +23,7 @@ ARB_ARBORIO_API parse_cv_policy_hopefully parse_cv_policy_expression(const arb::
 namespace literals {
 
 inline
-arb::cv_policy operator "" _cvp(const char* s, std::size_t) {
+arb::cv_policy operator ""_cvp(const char* s, std::size_t) {
     if (auto r = parse_cv_policy_expression(s)) return *r;
     else throw r.error();
 }

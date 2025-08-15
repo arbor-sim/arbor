@@ -19,9 +19,8 @@ using namespace U::literals;
 
 // Simple ring network of LIF neurons.
 // with one regularly spiking cell (fake cell) connected to the first cell in the ring.
-class ring_recipe: public arb::recipe {
-public:
-    ring_recipe(cell_size_type n_lif_cells, float weight, float delay):
+struct ring_recipe: public arb::recipe {
+    ring_recipe(cell_size_type n_lif_cells, float weight, time_type delay):
         n_lif_cells_(n_lif_cells), weight_(weight), delay_(delay)
     {}
 
@@ -67,13 +66,13 @@ public:
             return spike_source_cell("src", explicit_schedule_from_milliseconds({0.}));
         }
         // LIF cell.
-        auto cell = lif_cell("src", "tgt");
-        return cell;
+        return lif_cell{.source="src", .target="tgt"};
     }
 
 private:
     cell_size_type n_lif_cells_;
-    float weight_, delay_;
+    float weight_;
+    time_type delay_;
 };
 
 // LIF cells connected in the manner of a path 0->1->...->n-1.
@@ -97,8 +96,7 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto cell = lif_cell("src", "tgt");
-        return cell;
+        return lif_cell{.source="src", .target="tgt"};
     }
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
@@ -137,7 +135,7 @@ public:
         return res;
     }
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto cell = lif_cell("src", "tgt");
+        auto cell = lif_cell{.source="src", .target="tgt"};
         if (gid == 0) {
             cell.E_R = -23.0*U::mV;
             cell.V_m = -18.0*U::mV;
@@ -704,7 +702,7 @@ TEST(lif_cell_group, probe_with_connections) {
         [&spikes](const std::vector<spike>& spk) { for (const auto& s: spk) spikes.push_back(s.time); }
     );
 
-    sim.run(10*U::ms, 0.005*U::ms);
+    sim.run(10*U::ms, 0.0025*U::ms);
     std::vector<Um_type> exp = {{ 0, -18 },
                                 { 0.025, -17.9750624 },
                                 { 0.05, -17.9502492 },

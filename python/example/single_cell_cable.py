@@ -103,9 +103,8 @@ class Cable(A.recipe):
         )
 
         policy = A.cv_policy_max_extent(self.cv_policy_max_extent)
-        decor.discretization(policy)
 
-        return A.cable_cell(tree, decor, labels)
+        return A.cable_cell(tree, decor, labels, policy)
 
     def probes(self, _):
         return self.the_probes

@@ -10,7 +10,11 @@ struct fvm_gap_junction {
     arb_size_type local_cv;  // CV index of the local gap junction site.
     arb_size_type peer_cv;   // CV index of the peer gap junction site.
     arb_value_type weight;   // unit-less local weight of the connection.
+
+    constexpr bool operator==(const fvm_gap_junction&) const = default;
+    constexpr auto operator<=>(const fvm_gap_junction& o) const {
+        return std::tie(local_cv, peer_cv, local_idx, weight) <=> std::tie(o.local_cv, o.peer_cv, o.local_idx, o.weight);
+    }
 };
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(fvm_gap_junction, (a.local_cv, a.peer_cv, a.local_idx, a.weight), (b.local_cv, b.peer_cv, b.local_idx, b.weight))
 
 } // namespace arb

@@ -13,13 +13,17 @@ namespace arbenv {
 struct alignas(sizeof(void*)) uuid {
     std::array<unsigned char, 16> bytes =
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+    bool operator==(const uuid&) const = default;
+    auto operator<=>(const uuid& rhs) const {
+        for (int ix = 0; bytes.size(); ++ix) {
+            if (auto res = bytes[ix] <=> rhs.bytes[ix]; res != 0) {
+                return res;
+            }
+        }
+        return std::strong_ordering::equivalent;
+    }
 };
-
-// Test GPU uids for equality
-bool operator==(const uuid& lhs, const uuid& rhs);
-
-// Strict lexographical ordering of GPU uids
-bool operator<(const uuid& lhs, const uuid& rhs);
 
 // Print uuid in big-endian format, e.g. f1fd7811-e4d3-4d54-abb7-efc579fb1e28
 std::ostream& operator<<(std::ostream& o, const uuid& id);

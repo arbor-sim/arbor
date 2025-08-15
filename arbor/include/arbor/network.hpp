@@ -4,7 +4,6 @@
 #include <arbor/common_types.hpp>
 #include <arbor/export.hpp>
 #include <arbor/morph/primitives.hpp>
-#include <arbor/util/lexcmp_def.hpp>
 
 #include <array>
 #include <cstdint>
@@ -12,10 +11,7 @@
 #include <memory>
 #include <optional>
 #include <ostream>
-#include <stdexcept>
 #include <string>
-#include <string_view>
-#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -41,13 +37,9 @@ struct ARB_SYMBOL_VISIBLE network_site_info {
     hash_type label;
     mlocation location;
     mpoint global_location;
-
+    auto operator<=>(const network_site_info&) const = default;
     ARB_ARBOR_API friend std::ostream& operator<<(std::ostream& os, const network_site_info& s);
 };
-
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(network_site_info,
-    (a.gid, a.kind, a.label, a.location, a.global_location),
-    (b.gid, a.kind, b.label, b.location, b.global_location))
 
 struct ARB_SYMBOL_VISIBLE network_connection_info {
     network_site_info source, target;
@@ -62,14 +54,9 @@ struct ARB_SYMBOL_VISIBLE network_connection_info {
         weight(weight),
         delay(delay) {}
 
-    ARB_ARBOR_API friend std::ostream& operator<<(std::ostream& os,
-        const network_connection_info& s);
+    auto operator<=>(const network_connection_info&) const = default;
+    ARB_ARBOR_API friend std::ostream& operator<<(std::ostream& os, const network_connection_info& s);
 };
-
-ARB_DEFINE_LEXICOGRAPHIC_ORDERING(network_connection_info,
-    (a.source, a.target, a.weight, a.delay),
-    (b.source, b.target, b.weight, b.delay))
-
 struct network_selection_impl;
 
 struct network_value_impl;

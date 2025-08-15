@@ -71,12 +71,13 @@ decor = (
     .place('"root"', A.iclamp(30 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp1")
     .place('"root"', A.iclamp(50 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp2")
     .place('"axon_terminal"', A.threshold_detector(-10 * U.mV), "detector")
-    # Set discretisation: Soma as one CV, 1um everywhere else
-    .discretization('(replace (single (region "soma")) (max-extent 1.0))')
 )
 
+# Set discretisation: Soma as one CV, 1um everywhere else
+cvp = A.cv_policy('(replace (single (region "soma")) (max-extent 1.0))')
+
 # (4) Create the cell.
-cell = A.cable_cell(morph, decor, labels)
+cell = A.cable_cell(morph, decor, labels, cvp)
 
 # (5) Construct the model
 model = A.single_cell_model(cell)
@@ -96,7 +97,7 @@ model.properties.set_ion(
 # second string parameter that can prefix the name of the mechanisms to avoid
 # collisions between catalogues in this case we have no collisions so we use an
 # empty prefix string.
-model.properties.catalogue.extend(A.allen_catalogue(), "")
+model.properties.catalogue.extend(A.allen_catalogue())
 
 # (7) Add probes.
 # Add a voltage probe on "custom_terminal"

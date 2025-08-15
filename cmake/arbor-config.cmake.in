@@ -10,9 +10,6 @@ foreach(dep @arbor_export_dependencies@)
     find_dependency(${dep})
 endforeach()
 
-# TODO Explicitely needed... until I find a way out.
-find_dependency(units)
-
 include("${CMAKE_CURRENT_LIST_DIR}/arbor-targets.cmake")
 
 set(_supported_components @arbor_supported_components@)

@@ -1,19 +1,20 @@
 #include <cstdio>
 #include <mutex>
-#include <ostream>
+#include <iostream>
 
 #include <arbor/context.hpp>
 #include <arbor/profile/profiler.hpp>
+#include <arbor/profile/timer.hpp>
 
 #include "execution_context.hpp"
 #include "threading/threading.hpp"
 #include "util/span.hpp"
 #include "util/rangeutil.hpp"
+#include "hardware/memory.hpp"
 
 namespace arb {
 namespace profile {
 
-using timer_type = timer<>;
 using util::make_span;
 
 #ifdef ARB_HAVE_PROFILING
@@ -117,6 +118,12 @@ public:
         static profiler p;
         return p;
     }
+
+    void clear() {
+        for (auto& r: recorders_) r.clear();
+        name_index_.clear();
+        region_names_.clear();
+    }
 };
 
 
@@ -150,12 +157,12 @@ void recorder::enter(region_id_type index) {
         accumulators_.resize(index+1);
     }
     index_ = index;
-    start_time_ = timer_type::tic();
+    start_time_ = timer::tic();
 }
 
 void recorder::leave() {
     // calculate the elapsed time before any other steps, to increase accuracy.
-    auto delta = timer_type::toc(start_time_);
+    auto delta = timer::toc(start_time_);
 
     if (index_==npos) {
         throw std::runtime_error("recorder::leave without matching recorder::enter");
@@ -383,6 +390,11 @@ ARB_ARBOR_API void profiler_leave() {
     profiler::get_global_profiler().leave();
 }
 
+ARB_ARBOR_API void profiler_clear() {
+    profiler::get_global_profiler().clear();
+}
+
+
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string& name) {
     if (!is_valid_region_string(name)) {
         throw std::runtime_error(std::string("'")+name+"' is not a valid profiler region name.");
@@ -418,6 +430,7 @@ ARB_ARBOR_API std::ostream& print_profiler_summary(std::ostream& os, double limi
     
 #else
 
+ARB_ARBOR_API void profiler_clear() {}
 ARB_ARBOR_API void profiler_leave() {}
 ARB_ARBOR_API void profiler_enter(region_id_type) {}
 ARB_ARBOR_API profile profiler_summary();

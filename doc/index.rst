@@ -54,6 +54,9 @@ The Arbor software can be cited by version via Zenodo or via Arbors introductory
 Latest version
     |zlatest|
 
+Version 0.11.0
+    |z0110|
+
 Version 0.10.0
     |z0100|
 
@@ -95,8 +98,11 @@ Cite (Bibtex format)
 .. |intropaper| image:: https://zenodo.org/badge/DOI/10.1109/EMPDP.2019.8671560.svg
     :target: https://doi.org/10.1109/EMPDP.2019.8671560
 
-.. |zlatest| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.13284789.svg
-    :target: https://doi.org/10.5281/zenodo.13284789image::
+.. |zlatest| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.15277617.svg
+    :target: https://doi.org/10.5281/zenodo.15277617
+
+.. |z0110| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.15277617.svg
+    :target: https://doi.org/10.5281/zenodo.15277617
 
 .. |z0100| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.13284789.svg
     :target: https://doi.org/10.5281/zenodo.13284789
@@ -176,6 +182,7 @@ A full list of our software attributions can be found `here <https://github.com/
    :caption: File formats:
    :maxdepth: 1
 
+   fileformat/index
    fileformat/swc
    fileformat/neuroml
    fileformat/asc

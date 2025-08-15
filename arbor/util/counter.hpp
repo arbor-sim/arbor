@@ -1,7 +1,6 @@
 #pragma once
 
 /* Present an integral value as an iterator, for integral-range 'containers' */
-
 #include <cstddef>
 #include <iterator>
 #include <type_traits>
@@ -77,12 +76,7 @@ struct counter {
 
     value_type operator[](difference_type n) const { return v_+n; }
 
-    bool operator==(counter x) const { return v_==x.v_; }
-    bool operator!=(counter x) const { return v_!=x.v_; }
-    bool operator<=(counter x) const { return v_<=x.v_; }
-    bool operator>=(counter x) const { return v_>=x.v_; }
-    bool operator<(counter x) const { return v_<x.v_; }
-    bool operator>(counter x) const { return v_>x.v_; }
+    auto operator<=>(const counter& y) const = default;
 
     counter& operator=(const counter&) = default;
     counter& operator=(counter&&) = default;

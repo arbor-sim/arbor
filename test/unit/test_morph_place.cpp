@@ -27,9 +27,6 @@ struct v3 {
     friend v3 operator*(v3 p, double s) {
         return {s*p.x, s*p.y, s*p.z};
     }
-    friend v3 operator*(double s, v3 p) {
-        return p*s;
-    }
     friend v3 operator/(v3 p, double s) {
         return p*(1./s);
     }
