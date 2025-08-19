@@ -169,7 +169,7 @@ struct cell_stats {
 };
 
 int main(int argc, char** argv) {
-    // try {
+    try {
         bool root = true;
 
         auto params = read_options(argc, argv);
@@ -275,11 +275,11 @@ int main(int argc, char** argv) {
             std::cout << report << '\n'
                       << arb::profile::profiler_summary() << '\n';
         }
-    // }
-    // catch (std::exception& e) {
-        // std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";
-        // return 1;
-    // }
+    }
+    catch (std::exception& e) {
+        std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";
+        return 1;
+    }
 
     return 0;
 }
