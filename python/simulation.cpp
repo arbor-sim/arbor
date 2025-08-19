@@ -169,7 +169,6 @@ public:
 
         // Constructed callbacks are passed to the underlying simulator object, _and_ a copy
         // is kept in sampler_map_; the two copies share the same recorder data.
-
         sampler_callback cb{std::move(recorders)};
         auto sah = sim_->add_sampler(arb::one_probe(probeset_id), sched.schedule(), cb);
         sampler_map_.insert({sah, cb});

@@ -37,9 +37,7 @@ struct recorder_base: sample_recorder {
                     sample_raw_.data());
     }
 
-    py::object meta() const override {
-        return py::cast(meta_);
-    }
+    py::object meta() const override { return py::cast(std::vector<Meta>(meta_, meta_ + stride_ - 1)); }
 
     void reset() override { sample_raw_.clear(); }
 
