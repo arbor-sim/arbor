@@ -19,15 +19,12 @@
 namespace arb {
 
 // Internal hashes use this 64bit id
-
 using hash_type = std::size_t;
 
 // For identifying cells globally.
-
 using cell_gid_type = std::uint32_t;
 
 // For sizes of collections of cells.
-
 using cell_size_type = std::make_unsigned_t<cell_gid_type>;
 
 // For indexes into cell-local data.

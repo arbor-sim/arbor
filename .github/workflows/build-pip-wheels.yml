@@ -105,6 +105,7 @@ jobs:
           name: dist
       - name: Publish distribution 📦 to Test PyPI
         run: |
+          pip install -U packaging
           pip install twine
           twine upload -r testpypi ./*
         env:

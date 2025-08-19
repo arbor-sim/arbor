@@ -402,6 +402,7 @@ class TestDiffusion(unittest.TestCase):
 
         # prepare the simulation
         cel = A.cable_cell(morph, dec, labels, cvp)
+
         # A.write_component(cel, "morpho.txt"
         rec = recipe(cat, cel, prb, inject_remove)
         sim = A.simulation(rec, ctx)

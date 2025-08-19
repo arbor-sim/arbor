@@ -150,10 +150,10 @@ Both are used in ``rewire`` to produce a random connection matrix.
 We then proceed to run the simulation:
 
 .. literalinclude:: ../../python/example/plasticity/random_network.py
-  :language: python
-  :lines: 68-79
+    :language: python
+    :lines: 68-79
 
- and plot the results as before:
+and plot the results as before:
 
 .. figure:: ../../python/example/plasticity/02-rates.svg
     :width: 400

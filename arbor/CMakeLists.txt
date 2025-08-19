@@ -133,6 +133,7 @@ endif()
 # Library target:
 add_library(arbor ${arbor_sources} ${arbor-builtin-mechanisms})
 target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
+target_include_directories(arbor PRIVATE $<BUILD_INTERFACE:${unordered_dense_SOURCE_DIR}/include>)
 target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
 
 if(ARB_WITH_CUDA_CLANG)
@@ -163,4 +164,7 @@ configure_file(
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/simd/sve_bits.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arbor/simd)
 
-install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS arbor
+        EXPORT arbor-targets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

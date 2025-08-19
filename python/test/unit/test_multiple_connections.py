@@ -153,11 +153,10 @@ class TestMultipleConnections(unittest.TestCase):
 
     # Test #1 (for 'round_robin')
     @fixtures.context()
-    @fixtures.art_spiker_recipe()
     @fixtures.sum_weight_hh_spike()
     @fixtures.sum_weight_hh_spike_2()
     def test_multiple_connections_rr_no_halt(
-        self, context, art_spiker_recipe, sum_weight_hh_spike, sum_weight_hh_spike_2
+        self, context, sum_weight_hh_spike, sum_weight_hh_spike_2
     ):
         weight = (
             sum_weight_hh_spike / 2
@@ -166,48 +165,45 @@ class TestMultipleConnections(unittest.TestCase):
             0.97 * sum_weight_hh_spike_2 / 2
         )  # connection strength which is, summed over two connections, just NOT enough to evoke an immediate spike at t=1.8ms
 
-        # define new method 'connections_on()' and overwrite the original one in the 'art_spiker_recipe' object
-        def connections_on(self, gid):
-            # incoming to neurons 0--2
-            if gid < 3:
+        class recipe(fixtures.art_spiker_recipe):
+            def __init__(self):
+                super().__init__()
+
+            # define new method 'connections_on()' and overwrite the original one in the 'art_spiker_recipe' object
+            def connections_on(self, gid):
+                # incoming to neuron 3
+                if gid == 3:
+                    source_label_0 = A.cell_global_label(
+                        0, "spike_source"
+                    )  # referring to the "spike_source" label of neuron 0
+                    source_label_1 = A.cell_global_label(
+                        1, "spike_source"
+                    )  # referring to the "spike_source" label of neuron 1
+
+                    target_label_rr = A.cell_local_label(
+                        "postsyn_target", A.selection_policy.round_robin
+                    )  # referring to the current item in the "postsyn_target" label group of neuron 3, moving to the next item afterwards
+
+                    conn_0_3_n1 = A.connection(
+                        source_label_0, target_label_rr, weight, 0.2 * U.ms
+                    )  # first connection from neuron 0 to 3
+                    conn_0_3_n2 = A.connection(
+                        source_label_0, target_label_rr, weight, 0.2 * U.ms
+                    )  # second connection from neuron 0 to 3
+                    # NOTE: this is not connecting to the same target label item as 'conn_0_3_n1' because 'round_robin' has been used before!
+                    conn_1_3_n1 = A.connection(
+                        source_label_1, target_label_rr, weight2, 1.4 * U.ms
+                    )  # first connection from neuron 1 to 3
+                    conn_1_3_n2 = A.connection(
+                        source_label_1, target_label_rr, weight2, 1.4 * U.ms
+                    )  # second connection from neuron 1 to 3
+                    # NOTE: this is not connecting to the same target label item as 'conn_1_3_n1' because 'round_robin' has been used before!
+
+                    return [conn_0_3_n1, conn_0_3_n2, conn_1_3_n1, conn_1_3_n2]
                 return []
 
-            # incoming to neuron 3
-            elif gid == 3:
-                source_label_0 = A.cell_global_label(
-                    0, "spike_source"
-                )  # referring to the "spike_source" label of neuron 0
-                source_label_1 = A.cell_global_label(
-                    1, "spike_source"
-                )  # referring to the "spike_source" label of neuron 1
-
-                target_label_rr = A.cell_local_label(
-                    "postsyn_target", A.selection_policy.round_robin
-                )  # referring to the current item in the "postsyn_target" label group of neuron 3, moving to the next item afterwards
-
-                conn_0_3_n1 = A.connection(
-                    source_label_0, target_label_rr, weight, 0.2 * U.ms
-                )  # first connection from neuron 0 to 3
-                conn_0_3_n2 = A.connection(
-                    source_label_0, target_label_rr, weight, 0.2 * U.ms
-                )  # second connection from neuron 0 to 3
-                # NOTE: this is not connecting to the same target label item as 'conn_0_3_n1' because 'round_robin' has been used before!
-                conn_1_3_n1 = A.connection(
-                    source_label_1, target_label_rr, weight2, 1.4 * U.ms
-                )  # first connection from neuron 1 to 3
-                conn_1_3_n2 = A.connection(
-                    source_label_1, target_label_rr, weight2, 1.4 * U.ms
-                )  # second connection from neuron 1 to 3
-                # NOTE: this is not connecting to the same target label item as 'conn_1_3_n1' because 'round_robin' has been used before!
-
-                return [conn_0_3_n1, conn_0_3_n2, conn_1_3_n1, conn_1_3_n2]
-
-        art_spiker_recipe.connections_on = types.MethodType(
-            connections_on, art_spiker_recipe
-        )
-
         # run the main part of this test
-        sim, handle_mem = self.rr_main(context, art_spiker_recipe, weight, weight2)
+        sim, handle_mem = self.rr_main(context, recipe(), weight, weight2)
 
         # evaluate the outcome
         self.evaluate_outcome(sim, handle_mem)
@@ -215,11 +211,10 @@ class TestMultipleConnections(unittest.TestCase):
 
     # Test #2 (for the combination of 'round_robin_halt' and 'round_robin')
     @fixtures.context()
-    @fixtures.art_spiker_recipe()
     @fixtures.sum_weight_hh_spike()
     @fixtures.sum_weight_hh_spike_2()
     def test_multiple_connections_rr_halt(
-        self, context, art_spiker_recipe, sum_weight_hh_spike, sum_weight_hh_spike_2
+        self, context, sum_weight_hh_spike, sum_weight_hh_spike_2
     ):
         weight = (
             sum_weight_hh_spike / 2
@@ -228,49 +223,46 @@ class TestMultipleConnections(unittest.TestCase):
             0.97 * sum_weight_hh_spike_2 / 2
         )  # connection strength which is, summed over two connections, just NOT enough to evoke an immediate spike at t=1.8ms
 
-        # define new method 'connections_on()' and overwrite the original one in the 'art_spiker_recipe' object
-        def connections_on(self, gid):
-            # incoming to neurons 0--2
-            if gid < 3:
+        class recipe(fixtures.art_spiker_recipe):
+            def __init__(self):
+                super().__init__()
+
+            # define new method 'connections_on()' and overwrite the original one in the 'art_spiker_recipe' object
+            def connections_on(self, gid):
+                # incoming to neuron 3
+                if gid == 3:
+                    source_label_0 = A.cell_global_label(
+                        0, "spike_source"
+                    )  # referring to the "spike_source" label of neuron 0
+                    source_label_1 = A.cell_global_label(
+                        1, "spike_source"
+                    )  # referring to the "spike_source" label of neuron 1
+
+                    target_label_rr_halt = A.cell_local_label(
+                        "postsyn_target", A.selection_policy.round_robin_halt
+                    )  # referring to the current item in the "postsyn_target" label group of neuron 3
+                    target_label_rr = A.cell_local_label(
+                        "postsyn_target", A.selection_policy.round_robin
+                    )  # referring to the current item in the "postsyn_target" label group of neuron 3, moving to the next item afterwards
+
+                    conn_0_3_n1 = A.connection(
+                        source_label_0, target_label_rr_halt, weight, 0.2 * U.ms
+                    )  # first connection from neuron 0 to 3
+                    conn_0_3_n2 = A.connection(
+                        source_label_0, target_label_rr, weight, 0.2 * U.ms
+                    )  # second connection from neuron 0 to 3
+                    conn_1_3_n1 = A.connection(
+                        source_label_1, target_label_rr_halt, weight2, 1.4 * U.ms
+                    )  # first connection from neuron 1 to 3
+                    conn_1_3_n2 = A.connection(
+                        source_label_1, target_label_rr, weight2, 1.4 * U.ms
+                    )  # second connection from neuron 1 to 3
+
+                    return [conn_0_3_n1, conn_0_3_n2, conn_1_3_n1, conn_1_3_n2]
                 return []
 
-            # incoming to neuron 3
-            elif gid == 3:
-                source_label_0 = A.cell_global_label(
-                    0, "spike_source"
-                )  # referring to the "spike_source" label of neuron 0
-                source_label_1 = A.cell_global_label(
-                    1, "spike_source"
-                )  # referring to the "spike_source" label of neuron 1
-
-                target_label_rr_halt = A.cell_local_label(
-                    "postsyn_target", A.selection_policy.round_robin_halt
-                )  # referring to the current item in the "postsyn_target" label group of neuron 3
-                target_label_rr = A.cell_local_label(
-                    "postsyn_target", A.selection_policy.round_robin
-                )  # referring to the current item in the "postsyn_target" label group of neuron 3, moving to the next item afterwards
-
-                conn_0_3_n1 = A.connection(
-                    source_label_0, target_label_rr_halt, weight, 0.2 * U.ms
-                )  # first connection from neuron 0 to 3
-                conn_0_3_n2 = A.connection(
-                    source_label_0, target_label_rr, weight, 0.2 * U.ms
-                )  # second connection from neuron 0 to 3
-                conn_1_3_n1 = A.connection(
-                    source_label_1, target_label_rr_halt, weight2, 1.4 * U.ms
-                )  # first connection from neuron 1 to 3
-                conn_1_3_n2 = A.connection(
-                    source_label_1, target_label_rr, weight2, 1.4 * U.ms
-                )  # second connection from neuron 1 to 3
-
-                return [conn_0_3_n1, conn_0_3_n2, conn_1_3_n1, conn_1_3_n2]
-
-        art_spiker_recipe.connections_on = types.MethodType(
-            connections_on, art_spiker_recipe
-        )
-
         # run the main part of this test
-        sim, handle_mem = self.rr_main(context, art_spiker_recipe, weight, weight2)
+        sim, handle_mem = self.rr_main(context, recipe(), weight, weight2)
 
         # evaluate the outcome
         self.evaluate_outcome(sim, handle_mem)
@@ -278,84 +270,73 @@ class TestMultipleConnections(unittest.TestCase):
 
     # Test #3 (for 'univalent')
     @fixtures.context()
-    @fixtures.art_spiker_recipe()
     @fixtures.sum_weight_hh_spike()
     @fixtures.sum_weight_hh_spike_2()
     def test_multiple_connections_uni(
-        self, context, art_spiker_recipe, sum_weight_hh_spike, sum_weight_hh_spike_2
+        self, context, sum_weight_hh_spike, sum_weight_hh_spike_2
     ):
         weight = sum_weight_hh_spike  # connection strength which is just enough to evoke an immediate spike at t=1ms (equaling the sum of two connections in Test #2)
         weight2 = (
             0.97 * sum_weight_hh_spike_2
         )  # connection strength which is just NOT enough to evoke an immediate spike at t=1.8ms (equaling the sum of two connections in Test #2)
 
-        # define new method 'connections_on()' and overwrite the original one in the 'art_spiker_recipe' object
-        def connections_on(self, gid):
-            # incoming to neurons 0--2
-            if gid < 3:
-                return []
-
-            # incoming to neuron 3
-            elif gid == 3:
-                source_label_0 = A.cell_global_label(
-                    0, "spike_source"
-                )  # referring to the "spike_source" label of neuron 0
-                source_label_1 = A.cell_global_label(
-                    1, "spike_source"
-                )  # referring to the "spike_source" label of neuron 1
-
-                target_label_uni_n1 = A.cell_local_label(
-                    "postsyn_target_1", A.selection_policy.univalent
-                )  # referring to an only item in the "postsyn_target_1" label group of neuron 3
-                target_label_uni_n2 = A.cell_local_label(
-                    "postsyn_target_2", A.selection_policy.univalent
-                )  # referring to an only item in the "postsyn_target_2" label group of neuron 3
-
-                conn_0_3 = A.connection(
-                    source_label_0, target_label_uni_n1, weight, 0.2 * U.ms
-                )  # connection from neuron 0 to 3
-                conn_1_3 = A.connection(
-                    source_label_1, target_label_uni_n2, weight2, 1.4 * U.ms
-                )  # connection from neuron 1 to 3
-
-                return [conn_0_3, conn_1_3]
-
-        art_spiker_recipe.connections_on = types.MethodType(
-            connections_on, art_spiker_recipe
-        )
-
         # define new method 'cell_description()' and overwrite the original one in the 'art_spiker_recipe' object
         create_syn_mechanism = self.create_syn_mechanism
 
-        def cell_description(self, gid):
-            # spike source neuron
-            if gid < 3:
+        class recipe(fixtures.art_spiker_recipe):
+            def __init__(self):
+                super().__init__()
+
+            # define new method 'connections_on()' and overwrite the original one in the 'art_spiker_recipe' object
+            def connections_on(self, gid):
+                # incoming to neuron 3
+                if gid == 3:
+                    source_label_0 = A.cell_global_label(
+                        0, "spike_source"
+                    )  # referring to the "spike_source" label of neuron 0
+                    source_label_1 = A.cell_global_label(
+                        1, "spike_source"
+                    )  # referring to the "spike_source" label of neuron 1
+
+                    target_label_uni_n1 = A.cell_local_label(
+                        "postsyn_target_1", A.selection_policy.univalent
+                    )  # referring to an only item in the "postsyn_target_1" label group of neuron 3
+                    target_label_uni_n2 = A.cell_local_label(
+                        "postsyn_target_2", A.selection_policy.univalent
+                    )  # referring to an only item in the "postsyn_target_2" label group of neuron 3
+
+                    conn_0_3 = A.connection(
+                        source_label_0, target_label_uni_n1, weight, 0.2 * U.ms
+                    )  # connection from neuron 0 to 3
+                    conn_1_3 = A.connection(
+                        source_label_1, target_label_uni_n2, weight2, 1.4 * U.ms
+                    )  # connection from neuron 1 to 3
+
+                    return [conn_0_3, conn_1_3]
+                return []
+
+            def cell_description(self, gid):
+                # spike-receiving cable neuron
+                if gid == 3:
+                    tree, labels, decor = self._cable_cell_elements()
+
+                    decor.place(
+                        '"midpoint"',
+                        A.synapse(create_syn_mechanism()),
+                        "postsyn_target_1",
+                    )  # place synapse for input from one presynaptic neuron at the center of the soma
+                    decor.place(
+                        '"midpoint"',
+                        A.synapse(create_syn_mechanism()),
+                        "postsyn_target_2",
+                    )  # place synapse for input from another presynaptic neuron at the center of the soma
+                    # (using another label as above!)
+                    return A.cable_cell(tree, decor, labels)
                 return A.spike_source_cell("spike_source", self.schedule(gid))
 
-            # spike-receiving cable neuron
-            elif gid == 3:
-                tree, labels, decor = self._cable_cell_elements()
-
-                decor.place(
-                    '"midpoint"',
-                    A.synapse(create_syn_mechanism()),
-                    "postsyn_target_1",
-                )  # place synapse for input from one presynaptic neuron at the center of the soma
-                decor.place(
-                    '"midpoint"',
-                    A.synapse(create_syn_mechanism()),
-                    "postsyn_target_2",
-                )  # place synapse for input from another presynaptic neuron at the center of the soma
-                # (using another label as above!)
-
-                return A.cable_cell(tree, decor, labels)
-
-        art_spiker_recipe.cell_description = types.MethodType(
-            cell_description, art_spiker_recipe
-        )
-
+        rec = recipe()
         # read connections from recipe for testing
-        connections_from_recipe = art_spiker_recipe.connections_on(3)
+        connections_from_recipe = rec.connections_on(3)
 
         # connection from neuron 0 to 3
         self.assertEqual(connections_from_recipe[0].dest.label, "postsyn_target_1")
@@ -368,7 +349,7 @@ class TestMultipleConnections(unittest.TestCase):
         self.assertAlmostEqual(connections_from_recipe[1].delay, 1.4)
 
         # construct simulation object
-        sim = A.simulation(art_spiker_recipe, context)
+        sim = A.simulation(rec, context)
         sim.record(A.spike_recording.all)
 
         # create schedule and handle to record the membrane potential of neuron 3

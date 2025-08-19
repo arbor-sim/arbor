@@ -57,7 +57,7 @@ The conduction velocity in simulation is calculated from the time of the maximum
 
 .. literalinclude:: ../../python/example/single_cell_cable.py
    :language: python
-   :lines: 228-243
+   :lines: 228-242
 
 Keep in mind that the calculated (idealized) conduction velocity is only correct for an infinite cable.
 

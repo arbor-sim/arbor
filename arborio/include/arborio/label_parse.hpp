@@ -59,18 +59,18 @@ struct morph_from_label {
 };
 
 inline
-arb::locset operator "" _ls(const char* s, std::size_t) {
+arb::locset operator ""_ls(const char* s, std::size_t) {
     if (auto r = parse_locset_expression(s)) return *r;
     else throw r.error();
 }
 
 inline
-arb::region operator "" _reg(const char* s, std::size_t) {
+arb::region operator ""_reg(const char* s, std::size_t) {
     if (auto r = parse_region_expression(s)) return *r;
     else throw r.error();
 }
 
-inline morph_from_string operator "" _morph(const char* s, std::size_t) { return {s}; }
-inline morph_from_label operator "" _lab(const char* s, std::size_t) { return {s}; }
+inline morph_from_string operator ""_morph(const char* s, std::size_t) { return {s}; }
+inline morph_from_label operator ""_lab(const char* s, std::size_t) { return {s}; }
 } // namespace literals
 } // namespace arborio
