@@ -150,11 +150,11 @@ public:
         return c;
     }
 
-    bool operator==(const Derived& x) const {
+    bool operator==(const iterator_adaptor& x) const {
         return inner()==x.inner();
     }
 
-    bool operator!=(const Derived& x) const {
+    bool operator!=(const iterator_adaptor& x) const {
         return !(derived()==x);
     }
 
