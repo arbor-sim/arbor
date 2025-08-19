@@ -29,11 +29,18 @@ all_examples=(
     "brunel -G 10"
     "brunel -G 100"
     "brunel -G 100000"
-    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 1 --use-cable-cells"
-    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 10 --use-cable-cells"
-    # TODO These need to be enabled when the group size issue is fixed.
-    # "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 100 --use-cable-cells"
-    # "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 100000 --use-cable-cells"
+    "brunel -G 1      --use-raw-connections"
+    "brunel -G 10     --use-raw-connections"
+    "brunel -G 100    --use-raw-connections"
+    "brunel -G 100000 --use-raw-connections"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 1      --use-cable-cells"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 10     --use-cable-cells"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 100    --use-cable-cells"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 100000 --use-cable-cells"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 1      --use-cable-cells --use-raw-connections"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 10     --use-cable-cells --use-raw-connections"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 100    --use-cable-cells --use-raw-connections"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 100000 --use-cable-cells --use-raw-connections"
     "gap_junctions"
     "generators"
     "lfp"
@@ -60,10 +67,18 @@ expected_outputs=(
     6998
     6998
     6998
+    6998
+    6998
+    6998
+    6998
     38956
     38956
-    # 38956
-    # 38956
+    38956
+    38956
+    38956
+    38956
+    38956
+    38956
     "30"
     ""
     ""

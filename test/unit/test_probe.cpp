@@ -628,42 +628,47 @@ void run_ion_density_probe_test(context ctx) {
     // Implementation detail has that the cables (and corresponding raw handles) are
     // sorted by CV in the fvm_probe_weighted_multi object; this is assumed
     // below.
+    //
+    // Internal concentration
+    {
+        auto* p_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, "cai-all"}).front()->info);
+        ASSERT_TRUE(p_ptr);
+        const fvm_probe_multi& na_int_all_info = *p_ptr;
 
-    auto* p_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, "cai-all"}).front()->info);
-    ASSERT_TRUE(p_ptr);
-    const fvm_probe_multi& na_int_all_info = *p_ptr;
+        auto* m_ptr = std::get_if<mcable_list>(&na_int_all_info.metadata);
+        ASSERT_TRUE(m_ptr);
+        mcable_list na_int_all_metadata = *m_ptr;
+        ASSERT_EQ(2u, na_int_all_metadata.size());
 
-    auto* m_ptr = std::get_if<mcable_list>(&na_int_all_info.metadata);
-    ASSERT_TRUE(m_ptr);
-    mcable_list na_int_all_metadata = *m_ptr;
+        ASSERT_EQ(2u, na_int_all_info.raw_handles.size());
+        EXPECT_EQ(na_int_cv2,   na_int_all_info.raw_handles[1]);
+        EXPECT_EQ(na_int_cv2-1, na_int_all_info.raw_handles[0]);
 
-    ASSERT_EQ(2u, na_int_all_metadata.size());
-    ASSERT_EQ(2u, na_int_all_info.raw_handles.size());
+        EXPECT_DOUBLE_EQ(1./3., na_int_all_metadata[0].prox_pos);
+        EXPECT_DOUBLE_EQ(2./3., na_int_all_metadata[0].dist_pos);
+        EXPECT_DOUBLE_EQ(2./3., na_int_all_metadata[1].prox_pos);
+        EXPECT_DOUBLE_EQ(1.,    na_int_all_metadata[1].dist_pos);
+    }
+    // External concentration
+    {
+        auto* p_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, "cao-all"}).front()->info);
+        ASSERT_TRUE(p_ptr);
+        const fvm_probe_multi& ca_ext_all_info = *p_ptr;
 
-    EXPECT_DOUBLE_EQ(1./3., na_int_all_metadata[0].prox_pos);
-    EXPECT_DOUBLE_EQ(2./3., na_int_all_metadata[0].dist_pos);
-    EXPECT_DOUBLE_EQ(2./3., na_int_all_metadata[1].prox_pos);
-    EXPECT_DOUBLE_EQ(1.,    na_int_all_metadata[1].dist_pos);
-    EXPECT_EQ(na_int_cv2,   na_int_all_info.raw_handles[1]);
-    EXPECT_EQ(na_int_cv2-1, na_int_all_info.raw_handles[0]);
+        auto * m_ptr = std::get_if<mcable_list>(&ca_ext_all_info.metadata);
+        ASSERT_TRUE(m_ptr);
+        mcable_list ca_ext_all_metadata = *m_ptr;
 
-    p_ptr = std::get_if<fvm_probe_multi>(&probe_map.data_on({0, "cao-all"}).front()->info);
-    ASSERT_TRUE(p_ptr);
-    const fvm_probe_multi& ca_ext_all_info = *p_ptr;
+        ASSERT_EQ(3u, ca_ext_all_metadata.size());
+        ASSERT_EQ(3u, ca_ext_all_info.raw_handles.size());
 
-    m_ptr = std::get_if<mcable_list>(&ca_ext_all_info.metadata);
-    ASSERT_TRUE(m_ptr);
-    mcable_list ca_ext_all_metadata = *m_ptr;
-
-    ASSERT_EQ(3u, ca_ext_all_metadata.size());
-    ASSERT_EQ(3u, ca_ext_all_info.raw_handles.size());
-
-    EXPECT_DOUBLE_EQ(0.,    ca_ext_all_metadata[0].prox_pos);
-    EXPECT_DOUBLE_EQ(1./3., ca_ext_all_metadata[1].prox_pos);
-    EXPECT_DOUBLE_EQ(2./3., ca_ext_all_metadata[2].prox_pos);
-    EXPECT_EQ(ca_ext_cv0,   ca_ext_all_info.raw_handles[0]);
-    EXPECT_EQ(ca_ext_cv1,   ca_ext_all_info.raw_handles[1]);
-    EXPECT_EQ(ca_ext_cv2,   ca_ext_all_info.raw_handles[2]);
+        EXPECT_DOUBLE_EQ(0.,    ca_ext_all_metadata[0].prox_pos);
+        EXPECT_DOUBLE_EQ(1./3., ca_ext_all_metadata[1].prox_pos);
+        EXPECT_DOUBLE_EQ(2./3., ca_ext_all_metadata[2].prox_pos);
+        EXPECT_EQ(ca_ext_cv0,   ca_ext_all_info.raw_handles[0]);
+        EXPECT_EQ(ca_ext_cv1,   ca_ext_all_info.raw_handles[1]);
+        EXPECT_EQ(ca_ext_cv2,   ca_ext_all_info.raw_handles[2]);
+    }
 }
 
 template <typename Backend>

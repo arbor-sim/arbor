@@ -58,8 +58,9 @@ class simulation_shim {
     std::unordered_map<arb::sampler_association_handle, sampler_callback> sampler_map_;
 
 public:
-    simulation_shim(std::shared_ptr<recipe>& rec, const context_shim& ctx, const arb::domain_decomposition& decomp, std::uint64_t seed, pyarb_global_ptr global_ptr):
-        global_ptr_(global_ptr) {
+    simulation_shim(std::shared_ptr<recipe>& rec, const context_shim& ctx, const arb::domain_decomposition_ptr decomp, std::uint64_t seed, pyarb_global_ptr global_ptr):
+        global_ptr_(global_ptr)
+    {
         try {
             sim_.reset(new arb::simulation(recipe_shim(rec), ctx.context, decomp, seed));
         }
@@ -218,7 +219,7 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
         .def(py::init(
                  [global_ptr](std::shared_ptr<recipe>& rec,
                               std::optional<std::shared_ptr<context_shim>> ctx_,
-                              std::optional<arb::domain_decomposition> decomp,
+                              std::optional<arb::domain_decomposition_ptr> decomp,
                               std::uint64_t seed) {
                      try {
                          auto ctx = ctx_.value_or(std::make_shared<context_shim>(make_context_shim()));

@@ -4,6 +4,7 @@
 #include <any>
 #include <stdexcept>
 #include <string>
+#include <iostream>
 
 #include <arbor/common_types.hpp>
 #include <arbor/export.hpp>
@@ -36,12 +37,18 @@ struct ARB_SYMBOL_VISIBLE domain_error: arbor_exception {
 };
 
 // Recipe errors:
-
 struct ARB_SYMBOL_VISIBLE bad_cell_probe: arbor_exception {
     bad_cell_probe(cell_kind kind, cell_gid_type gid);
     cell_gid_type gid;
     cell_kind kind;
 };
+
+struct ARB_SYMBOL_VISIBLE resolution_disabled: arbor_exception {
+    resolution_disabled(cell_gid_type gid):
+        arbor_exception("Recipe has disabled source resolution, but asked for resolution on gid=" + std::to_string(gid))
+    {}
+};
+
 
 struct ARB_SYMBOL_VISIBLE dup_cell_probe: arbor_exception {
     dup_cell_probe(cell_kind kind, cell_gid_type gid, cell_tag_type tag);
@@ -111,9 +118,9 @@ struct ARB_SYMBOL_VISIBLE zero_thread_requested_error: arbor_exception {
 template<typename E>
 struct ARB_SYMBOL_VISIBLE sample_reader_metadata_error: arbor_exception {
     sample_reader_metadata_error(util::any_ptr have_):
-        arbor_exception{"Sample reader: could not cast to metadata type; expected " + expect + " got " + have},
+        arbor_exception{"Sample reader: could not cast to metadata type; expected " + std::string{typeid(E*).name()} + " got " + std::string{have_.type().name()}},
         have{have_.type().name()},
-        expect{typeid((E*)nullptr).name()}
+        expect{typeid(E*).name()}
         {}
 
     std::string have;
@@ -123,9 +130,9 @@ struct ARB_SYMBOL_VISIBLE sample_reader_metadata_error: arbor_exception {
 template<typename E>
 struct ARB_SYMBOL_VISIBLE sample_reader_value_error: arbor_exception {
     sample_reader_value_error(std::any have_):
-        arbor_exception{"Sample reader: could not cast to value type; expected " + expect + " got " + have},
+        arbor_exception{"Sample reader: could not cast to value type; expected " + std::string{typeid(E*).name()} + " got " + std::string{have_.type().name()}},
         have{have_.type().name()},
-        expect{typeid((E*)nullptr).name()}
+        expect{typeid(E*).name()}
         {}
 
     std::string have;

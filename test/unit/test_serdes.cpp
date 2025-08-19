@@ -231,7 +231,7 @@ TEST(serdes, single_cell) {
 }
 
 TEST(serdes, network) {
-    auto dt = 0.5*arb::units::ms;
+    auto dt = 0.05*arb::units::ms;
     auto T  = 5*arb::units::ms;
 
     // Result
@@ -300,7 +300,7 @@ TEST(serdes, host_device_arrays) {
 }
 
 TEST(serdes, single_cell_gpu) {
-    auto dt = 0.5*arb::units::ms;
+    auto dt = 0.05*arb::units::ms;
     auto T  = 5*arb::units::ms;
 
     // Result

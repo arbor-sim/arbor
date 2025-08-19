@@ -65,7 +65,9 @@ class Arbor(CMakePackage, CudaPackage):
     variant("doc", default=False, description="Build documentation.")
     variant("mpi", default=False, description="Enable MPI support")
     variant("python", default=True, description="Enable Python frontend support")
-    variant("pystubs", default=True, when="@0.11:", description="Python stub generation")
+    variant(
+        "pystubs", default=True, when="@0.11:", description="Python stub generation"
+    )
     variant(
         "vectorize",
         default=False,
@@ -87,6 +89,8 @@ class Arbor(CMakePackage, CudaPackage):
     conflicts("%intel")
 
     depends_on("cmake@3.19:", type="build")
+    depends_on("c", type="build")  # generated 
+    depends_on("cxx", type="build")  # generated
 
     # misc dependencies
     depends_on("fmt@7.1:", when="@0.5.3:")  # required by the modcc compiler
@@ -117,6 +121,8 @@ class Arbor(CMakePackage, CudaPackage):
         extends("python")
         depends_on("python@3.7:", type=("build", "run"))
         depends_on("python@3.9:", when="@0.9.1:", type=("build", "run"))
+        depends_on("python@3.10:", when="@0.10.0:", type=("build", "run"))
+        depends_on("python@3.10:", when="@0.11.0:", type=("build", "run"))
         depends_on("py-numpy", type=("build", "run"))
         depends_on("py-pybind11@2.6:", type="build")
         depends_on("py-pybind11@2.8.1:", when="@0.5.3:", type="build")
@@ -136,27 +142,24 @@ class Arbor(CMakePackage, CudaPackage):
         return ["all", "html"] if "+doc" in self.spec else ["all"]
 
     def cmake_args(self):
+        spec = self.spec
         args = [
             self.define_from_variant("ARB_WITH_ASSERTIONS", "assertions"),
             self.define_from_variant("ARB_WITH_MPI", "mpi"),
             self.define_from_variant("ARB_WITH_PYTHON", "python"),
             self.define_from_variant("ARB_VECTORIZE", "vectorize"),
-            self.define_from_variant("ARB_USE_HWLOC", "hwloc"),
-            self.define_from_variant("ARB_BUILD_PYTHON_STUBS", "pystubs"),
+            self.define("ARB_ARCH", "none"),
+            self.define("ARB_CXX_FLAGS_TARGET", optimization_flags(self.compiler, spec.target)),
         ]
 
-        if "+cuda" in self.spec:
-            args.append("-DARB_GPU=cuda")
-            args.append(self.define_from_variant("ARB_USE_GPU_RNG", "gpu_rng"))
+        if self.spec.satisfies("+cuda"):
+            args.extend(
+                [
+                    self.define("ARB_GPU", "cuda"),
+                    self.define_from_variant("ARB_USE_GPU_RNG", "gpu_rng"),
+                ]
+            )
 
-        # query spack for the architecture-specific compiler flags set by its wrapper
-        args.append("-DARB_ARCH=none")
-        opt_flags = self.spec.target.optimization_flags(
-            self.spec.compiler.name, str(self.spec.compiler.version)
-        )
-        # Might return nothing
-        if opt_flags:
-            args.append("-DARB_CXX_FLAGS_TARGET=" + opt_flags)
         return args
 
     @run_after("install", when="+python")

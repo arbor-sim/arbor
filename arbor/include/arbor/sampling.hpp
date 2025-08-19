@@ -86,8 +86,9 @@ struct sample_reader {
         time_(sr.time)
     {
         using util::any_cast;
+        if (n_sample_ == 0) return;
         metadata_ = any_cast<M*>(apm);
-        if (!metadata_) throw sample_reader_metadata_error<M>{apm};
+        if(!metadata_) throw sample_reader_metadata_error<M>{apm};
         using V = sample_reader<M>::value_type;
         try {
             values_ = any_cast<V*>(sr.values);
@@ -97,7 +98,7 @@ struct sample_reader {
         }
     }
 
-    private:
+private:
     std::size_t width_ = 0;
     std::size_t n_sample_ = 0;
     const time_type* time_ = nullptr;

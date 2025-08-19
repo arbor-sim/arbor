@@ -44,12 +44,4 @@ DERIVATIVE states {
 }
 
 FUNCTION h_inf(v) { h_inf = 1.0 / (1 + exp( (v + 48.8)/10)) }
-
-FUNCTION vtrap(x, y) {
-  if (fabs(x / y) < 1e-6) {
-    vtrap = y * (1 - x / y / 2)
-  }
-  else {
-    vtrap = x / (exp(x / y) - 1)
-  }
-}
+FUNCTION vtrap(x, y) { vtrap = y*exprelr(x/y) }

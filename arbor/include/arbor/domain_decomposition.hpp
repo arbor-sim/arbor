@@ -1,7 +1,5 @@
 #pragma once
 
-#include <algorithm>
-#include <functional>
 #include <utility>
 #include <vector>
 
@@ -37,16 +35,15 @@ struct group_description {
 /// distribution of cells across cell_groups and domains.
 /// A load balancing algorithm is responsible for generating the
 /// domain_decomposition, e.g. arb::partitioned_load_balancer().
-class ARB_ARBOR_API domain_decomposition {
-public:
+struct ARB_ARBOR_API domain_decomposition {
     domain_decomposition() = delete;
     domain_decomposition(const recipe& rec, context ctx, const std::vector<group_description>& groups);
 
     domain_decomposition(const domain_decomposition&) = default;
     domain_decomposition& operator=(const domain_decomposition&) = default;
 
-    int gid_domain(cell_gid_type gid) const;
-    cell_size_type index_on_domain(cell_gid_type gid) const;
+    int gid_domain(cell_gid_type gid) const { return gid_domain_[gid]; }
+    cell_size_type index_on_domain(cell_gid_type gid) const { return gid_index_[gid]; }
     int num_domains() const;
     int domain_id() const;
     cell_size_type num_local_cells() const;
@@ -57,9 +54,8 @@ public:
 
 private:
     /// Return the domain id and index on domain of cell with gid.
-    /// Supplied by the load balancing algorithm that generates the domain
-    /// decomposition.
-    std::function<std::pair<int,cell_size_type>(cell_gid_type)> gid_domain_;
+    std::vector<int> gid_domain_;
+    std::vector<cell_size_type> gid_index_;
 
     /// Number of distributed domains
     int num_domains_;
@@ -76,4 +72,7 @@ private:
     /// Descriptions of the cell groups on the local domain
     std::vector<group_description> groups_;
 };
+
+using domain_decomposition_ptr = std::shared_ptr<domain_decomposition>;
+
 } // namespace arb

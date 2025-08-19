@@ -75,7 +75,7 @@ void register_cable_loader(pybind11::module& m) {
           "Write decor to file.");
 
     m.def("write_component",
-          [](const label_dict_proxy& d, py::object fn) { return write_component<arb::label_dict>(d.dict, fn); },
+          [](const ::pyarb::label_dict& d, py::object fn) { return write_component<arb::label_dict>(d.dict, fn); },
           pybind11::arg("object"),
           pybind11::arg("filename_or_descriptor"),
           "Write label_dict to file.");
@@ -106,10 +106,10 @@ void register_cable_loader(pybind11::module& m) {
         .def_property_readonly(
             "component",
             [](const arborio::cable_cell_component& c) {
-                using py_cable_cell_variant = std::variant<arb::morphology, pyarb::label_dict_proxy, arb::decor, arb::cable_cell>;
+                using py_cable_cell_variant = std::variant<arb::morphology, ::pyarb::label_dict, arb::decor, arb::cable_cell>;
                 auto cable_cell_variant_visitor = arb::util::overload(
                     [&](const arb::morphology& p) { return py_cable_cell_variant(p);},
-                    [&](const arb::label_dict& p) { return py_cable_cell_variant(label_dict_proxy(p));},
+                    [&](const arb::label_dict& p) { return py_cable_cell_variant(::pyarb::label_dict(p));},
                     [&](const arb::decor& p)      { return py_cable_cell_variant(p);},
                     [&](const arb::cable_cell& p) { return py_cable_cell_variant(p);});
                 return std::visit(cable_cell_variant_visitor, c.component);

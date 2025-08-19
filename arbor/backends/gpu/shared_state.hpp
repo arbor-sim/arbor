@@ -9,10 +9,7 @@
 #include <arbor/fvm_types.hpp>
 
 #include "fvm_layout.hpp"
-#include "timestep_range.hpp"
-
 #include "threading/threading.hpp"
-
 #include "backends/common_types.hpp"
 #include "backends/shared_state_base.hpp"
 #include "backends/gpu/rand.hpp"
@@ -165,8 +162,8 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
 
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
-    std::unordered_map<unsigned, mech_storage> storage;
-    std::unordered_map<unsigned, spike_event_stream> streams;
+    std::vector<mech_storage> storage;
+    std::vector<spike_event_stream> streams;
 
     shared_state() = default;
 
@@ -213,11 +210,10 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
                  arb_seed_type cbprng_seed_ = 0u);
 
     // Setup a mechanism and tie its backing store to this object
-    void instantiate(mechanism&,
-                     unsigned,
-                     const mechanism_overrides&,
-                     const mechanism_layout&,
-                     const std::vector<std::pair<std::string, std::vector<arb_value_type>>>&);
+    unsigned instantiate(mechanism&,
+                         const mechanism_overrides&,
+                         const mechanism_layout&,
+                         const std::vector<std::pair<std::string, std::vector<arb_value_type>>>&);
 
     void update_prng_state(mechanism&);
 
@@ -244,7 +240,7 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s);
 
 } // namespace gpu
 
-ARB_SERDES_ENABLE_EXT(gpu::ion_state, Xd_, gX_);
+ARB_SERDES_ENABLE_EXT(gpu::ion_state, Xd_);
 ARB_SERDES_ENABLE_EXT(gpu::mech_storage,
                       data_,
                       // NOTE(serdes) ion_states_, this is just a bunch of pointers

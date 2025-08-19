@@ -8,7 +8,8 @@
 #include "backends/event_stream_state.hpp"
 #include "event_lane.hpp"
 #include "timestep_range.hpp"
-#include "util/partition.hpp"
+#include "util/span.hpp"
+
 
 ARB_SERDES_ENABLE_EXT(arb_deliverable_event_data, mech_index, weight);
 
@@ -63,77 +64,78 @@ public:
     virtual void init() = 0;
 };
 
-struct spike_event_stream_base : event_stream_base<deliverable_event> {
+struct spike_event_stream_base: event_stream_base<deliverable_event> {
+    // Take in one event lane per cell `gid` and reorganise into one stream per
+    // synapse `mech_id`.
+    //
+    // - Due to the cell group coalescing multiple cells and their synapses into
+    //   one object, one `mech_id` can touch multiple lanes / `gid`s.
+    // - Inversely, two `mech_id`s can cover different, but overlapping sets of `gid`s
+    // - Multiple `mech_id`s can receive events from the same source
+    //
+    // Pre:
+    // - Events in `lanes[ix]` forall ix
+    //   * are sorted by time
+    //   * `ix` maps to exactly one cell in the local cell group
+    // - `divs` partitions `handles` such that the target handles for cell `ix`
+    //   are located in `handles[divs[ix]..divs[ix + 1]]`
+    // - `handles` records `(mech_id, index)` of a target s.t. `index` is the instance
+    //   with the set identified by `mech_id`, e.g. a single synapse placed on a multi-
+    //   location locset (plus the merging across cells by groups)
+    // Post:
+    // - streams[mech_id] contains a list of all events for synapse `mech_id` s.t.
+    //   * the list is sorted by (time_step, lid, time)
+    //   * the list is partitioned by `time_step` via `ev_spans`
     template<typename EventStream>
     friend void initialize(const event_lane_subrange& lanes,
                            const std::vector<target_handle>& handles,
                            const std::vector<std::size_t>& divs,
                            const timestep_range& steps,
-                           std::unordered_map<unsigned, EventStream>& streams) {
+                           std::vector<EventStream>& streams) {
         arb_assert(lanes.size() < divs.size());
-
         // reset streams and allocate sufficient space for temporaries
-        auto n_steps = steps.size();
-        for (auto& [k, v]: streams) {
-            v.clear();
-            v.spike_counter_.clear();
-            v.spike_counter_.resize(steps.size(), 0);
-            v.spikes_.clear();
-            // ev_data_ has been cleared during v.clear(), so we use its capacity
-            v.spikes_.reserve(v.ev_data_.capacity());
+        for (auto& stream: streams) {
+            stream.clear();
+            stream.ev_spans_.resize(steps.size() + 1, 0);
         }
-
-        // loop over lanes: group events by mechanism and sort them by time
-        auto cell = 0;
-        for (const auto& lane: lanes) {
-            auto div = divs[cell];
-            ++cell;
-            arb_size_type step = 0;
-            for (const auto& evt: lane) {
-                auto time = evt.time;
-                auto weight = evt.weight;
-                auto target = evt.target;
-                while(step < n_steps && time >= steps[step].t_end()) ++step;
-                // Events coinciding with epoch's upper boundary belong to next epoch
-                if (step >= n_steps) break;
-                arb_assert(div + target < handles.size());
-                const auto& handle = handles[div + target];
-                auto& stream = streams[handle.mech_id];
-                stream.spikes_.push_back(spike_data{step, handle.mech_index, time, weight});
-                // insertion sort with last element as pivot
-                // ordering: first w.r.t. step, within a step: mech_index, within a mech_index: time
-                auto first = stream.spikes_.begin();
-                auto last = stream.spikes_.end();
-                auto pivot = std::prev(last, 1);
-                std::rotate(std::upper_bound(first, pivot, *pivot), pivot, last);
-                // increment count in current time interval
-                stream.spike_counter_[step]++;
+        // Traverse incoming data first by time step then by cell, keeping track
+        // of the next event to process in the time range [t(step), t(step+1)).
+        // That allows for sorting event spans individually.
+        auto cell_evnt_idx = std::vector(lanes.size(), cell_size_type(0));
+        for (auto step: util::count_along(steps)) {
+            const auto& [t_lo, t_hi] = steps[step];
+            for (auto cell_idx: util::count_along(lanes)) {
+                auto div = divs[cell_idx];
+                auto evnt_idx = cell_evnt_idx[cell_idx];
+                const auto& lane = lanes[cell_idx];
+                // find lower edge and skip events
+                for (; evnt_idx < lane.size() && lane[evnt_idx].time < t_lo; ++evnt_idx) {}
+                // traverse lower edge -> upper edge and store events
+                for (; evnt_idx < lane.size() && lane[evnt_idx].time < t_hi; ++evnt_idx) {
+                    const auto& evnt = lane[evnt_idx];
+                    const auto& handle = handles[div + evnt.target];
+                    auto& stream = streams[handle.mech_id];
+                    stream.ev_data_.emplace_back(event_data_type{handle.mech_index, evnt.weight});
+                    stream.ev_spans_[step + 1]++;
+                }
+                // remember the next event to process for cell `idx`
+                cell_evnt_idx[cell_idx] = evnt_idx;
+            }
+            // sort step bucket and update right partition
+            for (auto& stream: streams) {
+                // fix the partition property
+                stream.ev_spans_[step + 1] += stream.ev_spans_[step];
+                // sort events in partition
+                std::sort(stream.ev_data_.begin() + stream.ev_spans_[step],
+                          stream.ev_data_.begin() + stream.ev_spans_[step + 1],
+                          [](const auto& a, const auto& b) {
+                              return std::tie(a.mech_index, a.weight) < std::tie(b.mech_index, b.weight);
+                          });
             }
         }
 
-        for (auto& [id, stream]: streams) {
-            // copy temporary deliverable_events into stream's ev_data_
-            stream.ev_data_.reserve(stream.spikes_.size());
-            std::transform(stream.spikes_.begin(), stream.spikes_.end(), std::back_inserter(stream.ev_data_),
-                [](auto const& e) noexcept -> arb_deliverable_event_data {
-                return {e.mech_index, e.weight}; });
-            // scan over spike_counter_ and  written to ev_spans_
-            util::make_partition(stream.ev_spans_, stream.spike_counter_);
-            // delegate to derived class init: static cast necessary to access protected init()
-            static_cast<spike_event_stream_base&>(stream).init();
-        }
+        for (auto& stream: streams) static_cast<spike_event_stream_base&>(stream).init();
     }
-
-  protected: // members
-    struct spike_data {
-        arb_size_type step = 0;
-        cell_local_size_type mech_index = 0;
-        time_type time = 0;
-        float weight = 0;
-        auto operator<=>(spike_data const&) const noexcept = default;
-    };
-    std::vector<spike_data> spikes_;
-    std::vector<std::size_t> spike_counter_;
 };
 
 struct sample_event_stream_base : event_stream_base<sample_event> {

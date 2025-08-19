@@ -107,7 +107,7 @@ void print_header(double from, double to) {
               << "|---------+-------------+----------|\n";
 }
 
-const double dt = 0.05;
+const double dt = 0.025;
 
 int main(int argc, char** argv) {
     auto rec = recipe(3);

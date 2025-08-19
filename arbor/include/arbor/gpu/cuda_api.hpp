@@ -100,27 +100,11 @@ inline api_error_type device_mem_get_info(ARGS &&... args) {
 
 // Wrappers around CUDA addition functions.
 // CUDA 8 introduced support for atomicAdd with double precision, but only for
-// Pascal GPUs (__CUDA_ARCH__ >= 600). These wrappers provide a portable
-// atomic addition interface that chooses the appropriate implementation.
-
-#if __CUDA_ARCH__ < 600 // Maxwell or older (no native double precision atomic addition)
-__device__
-inline double gpu_atomic_add(double* address, double val) {
-    using I = unsigned long long int;
-    I* address_as_ull = (I*)address;
-    I old = *address_as_ull, assumed;
-    do {
-        assumed = old;
-        old = atomicCAS(address_as_ull, assumed, __double_as_longlong(val+__longlong_as_double(assumed)));
-    } while (assumed != old);
-    return __longlong_as_double(old);
-}
-#else // use build in atomicAdd for double precision from Pascal onwards
+// Pascal GPUs (__CUDA_ARCH__ >= 600). We assume no one is running anything older.
 __device__
 inline double gpu_atomic_add(double* address, double val) {
     return atomicAdd(address, val);
 }
-#endif
 
 __device__
 inline double gpu_atomic_sub(double* address, double val) {
@@ -138,9 +122,12 @@ inline float gpu_atomic_sub(float* address, float val) {
 }
 
 /// Warp-Level Primitives
-
 __device__ __inline__ unsigned ballot(unsigned mask, unsigned is_root) {
     return __ballot_sync(mask, is_root);
+}
+
+__device__ __inline__ unsigned active_mask() {
+    return __activemask();
 }
 
 __device__ __inline__ unsigned any(unsigned mask, unsigned width) {

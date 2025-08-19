@@ -465,7 +465,7 @@ communicator for distributed communication, it can be initialised with the commu
         arb::context context = arb::make_context(resources, MPI_COMM_WORLD);
 
         // Partition model over the distributed system.
-        arb::domain_decomposition decomp = arb::partition_load_balance(recipe, context);
+        auto decomp = arb::partition_load_balance(recipe, context);
 
         // Instantiate the simulation over the distributed system.
         arb::simulation sim(recipe, decomp, context);

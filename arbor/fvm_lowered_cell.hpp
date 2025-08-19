@@ -218,6 +218,12 @@ struct fvm_initialization_data {
     // Maps storing number of sources/targets per cell.
     std::unordered_map<cell_gid_type, arb_size_type> num_sources;
     std::unordered_map<cell_gid_type, arb_size_type> num_targets;
+
+    void shrink_to_fit() {
+        source_data.shrink_to_fit();
+        target_data.shrink_to_fit();
+        gap_junction_data.shrink_to_fit();
+    }
 };
 
 // Common base class for FVM implementation on host or gpu back-end.
@@ -225,9 +231,8 @@ struct fvm_initialization_data {
 struct fvm_lowered_cell {
     virtual void reset() = 0;
 
-    virtual fvm_initialization_data initialize(
-        const std::vector<cell_gid_type>& gids,
-        const recipe& rec) = 0;
+    virtual fvm_initialization_data initialize(const std::vector<cell_gid_type>& gids,
+                                               const recipe& rec) = 0;
 
     virtual fvm_integration_result integrate(const timestep_range& dts,
                                              const event_lane_subrange& event_lanes,
