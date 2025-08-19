@@ -10,6 +10,6 @@ struct probe_value_type_of {
 };
 
 template <typename M>
-using probe_value_type_of_t = probe_value_type_of<M>::type;
+using probe_value_type_of_t = typename probe_value_type_of<M>::type;
 
 } // namespace arb
