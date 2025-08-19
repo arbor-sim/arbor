@@ -58,8 +58,7 @@ INITIAL {
     A = 0
     B = 0
     tp = (tau1*tau2)/(tau2 - tau1) * log(tau2/tau1)
-    factor = -exp(-tp/tau1) + exp(-tp/tau2)
-    factor = 1/factor
+    factor = 1/(exp(-tp/tau2) - exp(-tp/tau1))
 }
 
 BREAKPOINT {
