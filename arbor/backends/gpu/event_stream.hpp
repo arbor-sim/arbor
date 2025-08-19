@@ -9,22 +9,21 @@ namespace arb {
 namespace gpu {
 
 template<typename BaseEventStream>
-struct event_stream : BaseEventStream {
-  public:
+struct event_stream final: BaseEventStream {
     ARB_SERDES_ENABLE(event_stream<BaseEventStream>,
                       ev_data_,
                       ev_spans_,
                       device_ev_data_,
                       index_);
 
-  protected:
+protected:
     void init() override final {
         resize(this->device_ev_data_, this->ev_data_.size());
         memory::copy_async(this->ev_data_, this->device_ev_data_);
         this->base_ptr_ = this->device_ev_data_.data();
     }
 
-  private: // device memory
+private: // device memory
     using event_data_type = typename BaseEventStream::event_data_type;
     using device_array = memory::device_vector<event_data_type>;
 

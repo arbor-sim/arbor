@@ -63,7 +63,7 @@ std::vector<cell_gid_type> run_test_sim(const recipe& R, const group_gids_type& 
     }
 
     auto C = make_context();
-    auto D = domain_decomposition(R, C, groups);
+    auto D = std::make_shared<domain_decomposition>(R, C, groups);
     simulation sim(R, C, D);
 
     std::vector<spike> spikes;
