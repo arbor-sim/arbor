@@ -9,7 +9,6 @@
 #include <arbor/spike.hpp>
 
 #include "backends/event.hpp"
-#include "cell_group.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "label_resolution.hpp"
 #include "cable_cell_group.hpp"
@@ -118,7 +117,7 @@ void run_samples(const fvm_probe_multi& p,
 
     scratch.times.clear();
     scratch.values.clear();
-    scratch.values.reserve(n_raw_per_sample*n_sample);
+    scratch.values.reserve(std::size_t{n_raw_per_sample}*std::size_t{n_sample});
 
     for (sample_size_type j = 0; j < n_sample; ++j) {
         auto offset = j*n_raw_per_sample + sc.begin_offset;
@@ -143,7 +142,7 @@ void run_samples(const fvm_probe_weighted_multi& p,
 
     scratch.times.clear();
     scratch.values.clear();
-    scratch.values.reserve(n_raw_per_sample*n_sample);
+    scratch.values.reserve(std::size_t{n_raw_per_sample}*std::size_t{n_sample});
 
     for (sample_size_type j = 0; j < n_sample; ++j) {
         auto offset = j*n_raw_per_sample + sc.begin_offset;
@@ -170,7 +169,7 @@ void run_samples(const fvm_probe_interpolated_multi& p,
 
     scratch.times.clear();
     scratch.values.clear();
-    scratch.values.reserve(n_interp_per_sample*n_sample);
+    scratch.values.reserve(std::size_t{n_interp_per_sample}*std::size_t{n_sample});
 
     for (sample_size_type j = 0; j < n_sample; ++j) {
         auto offset = j*n_raw_per_sample + sc.begin_offset;

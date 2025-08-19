@@ -669,7 +669,7 @@ TEST(sde, solver) {
     // a basic sampler: stores result in a vector
     auto sampler_ = [nsteps] (std::vector<arb_value_type>& results, const probe_metadata& pm, const sample_records& samples) {
         std::size_t n_entities = samples.width;
-        std::size_t offset = pm.id.gid*nsteps*n_entities;
+        std::size_t offset = std::size_t{pm.id.gid}*std::size_t{nsteps}*n_entities;
         std::size_t stride = n_entities;
         assert(samples.n_sample == nsteps);
 
@@ -816,7 +816,7 @@ TEST(sde, coupled) {
                               const probe_metadata& pm,
                               const sample_records& samples) {
         std::size_t n_entities = samples.width;
-        std::size_t offset = pm.id.gid*nsteps*n_entities;
+        std::size_t offset = std::size_t{pm.id.gid}*std::size_t{nsteps}*n_entities;
         std::size_t stride = n_entities;
         assert(samples.n_sample == nsteps);
 
