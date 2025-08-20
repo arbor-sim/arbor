@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
