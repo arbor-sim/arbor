@@ -1,7 +1,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <algorithm>
+#include <sstream>
 #include <array>
 
 #include <nlohmann/json.hpp>
