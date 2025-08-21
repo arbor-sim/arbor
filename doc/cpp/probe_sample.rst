@@ -51,7 +51,7 @@ Membrane voltage
 Queries cell membrane potential at each site in ``locations``.
 
 *  Sample value: ``double``. Membrane potential in millivolts.
-*  Metadata: ``mlocation``. Location of probe.
+*  Metadata: ``mlocation``. Locations of probe.
 
 .. code::
 
@@ -77,7 +77,7 @@ Estimate intracellular current at each site in ``locations``,
 in the distal direction.
 
 *  Sample value: Current in nanoamperes.
-*  Metadata: ``mlocation``. Location as of probe.
+*  Metadata: ``mlocation``. Locations as of probe.
 
 Transmembrane current
 ^^^^^^^^^^^^^^^^^^^^^
@@ -117,7 +117,7 @@ Membrane current attributed to a particular ion across components of the cell.
 Membrane current density at given locations _excluding_ capacitive currents.
 
 *  Sample value: Current density in amperes per square metre.
-*  Metadata: ``mlocation``. Location of probe.
+*  Metadata: ``mlocation``. Locations of probe.
 
 .. code::
 
@@ -168,7 +168,7 @@ Ion concentration
 Ionic internal concentration of ion at each site in ``locations``.
 
 * Sample value: Ion concentration in millimoles per litre.
-* Metadata: ``mlocation``. Location of probe.
+* Metadata: ``mlocation``. Locations of probe.
 
 .. code::
 
@@ -193,7 +193,7 @@ Ionic external concentration of ion across components of the cell.
 Ionic external concentration of ion at each site in ``locations``.
 
 *  Sample value: Ion concentration in millimoles per litre.
-*  Metadata: ``mlocation``. Location of probe.
+*  Metadata: ``mlocation``. Locations of probe.
 
 .. code::
 
@@ -222,7 +222,7 @@ Diffusive ionic concentration of the given ``ion`` at the sites specified by
 
 * Sample value: the concentration in millimoles per litre across an unbranched
    component of the cell, as determined by the discretisation.
-*  Metadata: ``mlocation``. Each cable in the cable list describes
+*  Metadata: ``mcable``. Each cable in the cable list describes
    the unbranched component for the corresponding sample value.
 
 .. code::
@@ -254,7 +254,7 @@ Value of state variable in a density mechanism in each site in ``locations``. If
 the mechanism is not defined at a particular site, that site is ignored.
 
 *  Sample value: State variable value.
-* Metadata: ``mlocation``. Location as given in the probeset address.
+* Metadata: ``mlocation``. Locations as given in the probeset address.
 
 .. code::
 
@@ -474,6 +474,47 @@ treating ``sample_records`` like tabular data with ``width`` columns containing 
             // Retrieve metadata at j
             meta_type metadata(std::size_t j) const;
         };
+
+Note that for many cases a ``simple_sampler`` is provided which records tabular
+data into ``simple_sampler_result`` and can be attached to probes like this
+
+.. container:: example-code
+
+    .. code-block:: cpp
+
+        // The schedule for sampling every 1 ms.
+        auto sched = arb::regular_schedule(1*arb::units::ms);
+        // This is where the voltage samples will be stored as (time, value) pairs
+        sample_result voltage;
+        // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
+        sim.add_sampler(arb::one_probe(probeset_id), sched, arb::make_simple_sampler(voltage));
+
+Then,
+
+.. cpp:class:: simple_sampler_result
+
+
+    .. cpp:member:: std::size_t n_sample
+
+        number of rows
+
+    .. cpp:member:: std::size_t width
+
+        number of columns
+
+    .. cpp:member:: std::vector<time_type> time
+
+        sample times, one entry per row
+
+    .. cpp:member:: std::vector<std::remove_const_t<M>> metadata
+
+        probe specific metadata, one entry per column
+
+    .. cpp:member:: std::vector<std::vector<std::remove_const_t<value_type>>> values
+
+        values, one entry per row, each entry is a vector with one entry per column
+
+can be used to retrieve the data.
 
 Model and cell group interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
