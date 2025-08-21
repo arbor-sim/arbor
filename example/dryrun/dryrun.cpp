@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 
 #include <nlohmann/json.hpp>
 
@@ -45,7 +46,13 @@ struct run_params {
     bool defaulted = true;
 };
 
-void write_trace_json(const arb::trace_data<double>& trace);
+
+// result of simple sampler for probe type
+using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type>;
+
+// Writes voltage trace as a json file.
+void write_trace_json(const sample_result&);
+
 run_params read_options(int argc, char** argv);
 
 using arb::cell_gid_type;
@@ -57,8 +64,7 @@ using arb::time_type;
 // Generate a cell.
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params);
 
-class tile_desc: public arb::tile {
-public:
+struct tile_desc: public arb::tile {
     tile_desc(unsigned num_cells, unsigned num_tiles, cell_parameters params, unsigned min_delay):
             num_cells_(num_cells),
             num_tiles_(num_tiles),
@@ -66,21 +72,13 @@ public:
             min_delay_(min_delay)
     {}
 
-    cell_size_type num_cells() const override {
-        return num_cells_;
-    }
+    cell_size_type num_cells() const override { return num_cells_; }
 
-    cell_size_type num_tiles() const override {
-        return num_tiles_;
-    }
+    cell_size_type num_tiles() const override { return num_tiles_; }
 
-    arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return branch_cell(gid, cell_params_);
-    }
+    arb::util::unique_any get_cell_description(cell_gid_type gid) const override { return branch_cell(gid, cell_params_); }
 
-    cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return cell_kind::cable;
-    }
+    cell_kind get_cell_kind(cell_gid_type gid) const override { return cell_kind::cable; }
 
     std::any get_global_properties(arb::cell_kind) const override {
         arb::cable_cell_global_properties gprop;
@@ -92,11 +90,9 @@ public:
     // src gid in {0, ..., num_cells_*num_tiles_ - 1}.
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
         std::uniform_int_distribution<cell_gid_type> source_distribution(0, num_cells_*num_tiles_ - 2);
-
         auto src_gen = std::mt19937(gid);
         auto src = source_distribution(src_gen);
         if (src>=gid) ++src;
-
         return {arb::cell_connection({src, "detector"}, {"synapse"}, event_weight_, min_delay_*U::ms)};
     }
 
@@ -104,17 +100,12 @@ public:
     // for ALL cells on ALL ranks. This is because the symmetric recipe can not easily
     // translate the src gid of an event generator
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
-        std::vector<arb::event_generator> gens;
-        if (gid%20 == 0) {
-            gens.push_back(arb::explicit_generator_from_milliseconds({"synapse"}, event_weight_, std::vector{1.0}));
-        }
-        return gens;
+        if (gid%20 == 0) return { arb::explicit_generator_from_milliseconds({"synapse"}, event_weight_, std::vector{1.0}) };
+        return {};
     }
 
-    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
-        // One probe per cell, sampling membrane voltage at end of soma.
-        return {{arb::cable_probe_membrane_voltage{arb::mlocation{0, 0.0}}, "Um"}};
-    }
+    // One probe per cell, sampling membrane voltage at end of soma.
+    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override { return {{arb::cable_probe_membrane_voltage{arb::mlocation{0, 0.0}}, "Um"}}; }
 
 private:
     cell_size_type num_cells_;
@@ -152,11 +143,11 @@ int main(int argc, char** argv) {
         std::cout << sup::mask_stream(root);
 
         // Print a banner with information about hardware configuration
-        std::cout << "gpu:      " << (has_gpu(ctx)? "yes": "no") << "\n";
-        std::cout << "threads:  " << num_threads(ctx) << "\n";
-        std::cout << "mpi:      " << (has_mpi(ctx)? "yes": "no") << "\n";
-        std::cout << "ranks:    " << num_ranks(ctx) << "(" << params.num_ranks << ")\n" << std::endl;
-        std::cout << "run mode: " << distribution_type(ctx) << "\n";
+        std::cout << "gpu:      " << (has_gpu(ctx)? "yes": "no") << "\n"
+                  << "threads:  " << num_threads(ctx) << "\n"
+                  << "mpi:      " << (has_mpi(ctx)? "yes": "no") << "\n"
+                  << "ranks:    " << num_ranks(ctx) << "(" << params.num_ranks << ")\n" << std::endl
+                  << "run mode: " << distribution_type(ctx) << "\n";
 
         assert(arb::num_ranks(ctx)==params.num_ranks);
 
@@ -176,7 +167,7 @@ int main(int argc, char** argv) {
         // The schedule for sampling every 1 ms.
         auto sched = arb::regular_schedule(1*arb::units::ms);
         // This is where the voltage samples will be stored as (time, value) pairs
-        arb::trace_vector<double> voltage;
+        sample_result voltage;
         // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
         sim.add_sampler(arb::one_probe(probeset_id), sched, arb::make_simple_sampler(voltage));
 
@@ -216,7 +207,7 @@ int main(int argc, char** argv) {
                 }
             }
             // Write the samples to a json file.
-            write_trace_json(voltage.at(0));
+            write_trace_json(voltage);
         }
 
         auto profile = arb::profile::profiler_summary();
@@ -233,26 +224,25 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void write_trace_json(const arb::trace_data<double>& trace) {
+void write_trace_json(const sample_result& result) {
     std::string path = "./voltages.json";
 
     nlohmann::json json;
-    json["name"] = "ring demo";
+    json["name"] = "ring_demo";
     json["units"] = "mV";
-    json["cell"] = "0.0";
-    json["probe"] = "0";
-
-    auto& jt = json["data"]["time"];
-    auto& jy = json["data"]["voltage"];
-
-    for (const auto& sample: trace) {
-        jt.push_back(sample.t);
-        jy.push_back(sample.v);
-    }
+    json["cell"] = "0";
+    json["probe"] = "Um";
+    std::stringstream loc;
+    loc << result.metadata.at(0);
+    json["location"] = loc.str();
+    json["data"]["time"] = result.time;
+    json["data"]["voltage"] = result.values.at(0);
 
     std::ofstream file(path);
     file << std::setw(1) << json << "\n";
 }
+
+
 
 run_params read_options(int argc, char** argv) {
     using sup::param_from_json;
