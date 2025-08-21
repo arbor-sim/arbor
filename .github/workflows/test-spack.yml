@@ -66,6 +66,9 @@ jobs:
         run: |
           source spack/share/spack/setup-env.sh
           spack repo create custom_repo arbor
+          echo "repo:" > custom_repo/repo.yaml
+          echo "  namespace: arbor" >> custom_repo/repo.yaml
+          echo "  api: v2.0" >> custom_repo/repo.yaml
           mkdir -p custom_repo/packages/arbor
           spack repo add custom_repo
           spack reindex
