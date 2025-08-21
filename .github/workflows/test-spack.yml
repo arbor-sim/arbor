@@ -65,7 +65,7 @@ jobs:
       - name: add arbor spack package
         run: |
           source spack/share/spack/setup-env.sh
-          spack repo create custom_repo
+          spack repo create custom_repo arbor
           mkdir -p custom_repo/packages/arbor
           spack repo add custom_repo
           spack reindex

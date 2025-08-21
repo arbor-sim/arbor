@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 from spack.package import *
-
+from spack.build_environment import optimization_flags
 
 class Arbor(CMakePackage, CudaPackage):
     """Arbor is a high-performance library for computational neuroscience
@@ -12,19 +12,24 @@ class Arbor(CMakePackage, CudaPackage):
 
     homepage = "https://arbor-sim.org"
     git = "https://github.com/arbor-sim/arbor.git"
-    url = "https://github.com/arbor-sim/arbor/releases/download/v0.8.1/arbor-v0.9.0-full.tar.gz"
+    url="https://github.com/arbor-sim/arbor/releases/download/v0.11.0/arbor-v0.11.0-full.tar.gz"
     maintainers = ("thorstenhater", "haampie")
     submodules = True
 
     version("master", branch="master", submodules=True)
     version("develop", branch="master", submodules=True)
     version(
+        "0.11.0",
+        sha256="8ceaee90991ca2682b146b7d9ea4876f6405511e88cd281e1b8adc8b210a8f14",
+        url="https://github.com/arbor-sim/arbor/releases/download/v0.11.0/arbor-v0.11.0-full.tar.gz"
+        submodules=True,
+    )
+    version(
         "0.10.0",
         sha256="6b6cc900b85fbf833fae94817b9406a0d690dc28",
         url="https://github.com/arbor-sim/arbor/releases/download/v0.10.1/arbor-v0.10.0-full.tar.gz",
         submodules=True,
     )
-
     version(
         "0.9.0",
         sha256="5f9740955c821aca81e23298c17ad64f33f635756ad9b4a0c1444710f564306a",
@@ -102,6 +107,7 @@ class Arbor(CMakePackage, CudaPackage):
     depends_on("pugixml@1.13:", when="@0.9.1:")
     depends_on("pugixml@1.14:", when="@0.10.0:")
     depends_on("nlohmann-json@3.11.3:")
+    depends_on("nlohmann-json@4.0.0:", when="@0.10.0:")
     depends_on("random123@1.14.0:")
     with when("+cuda"):
         depends_on("cuda@10:")
