@@ -334,12 +334,12 @@ public:
     template <typename F>
     class wrap_timer {
         F f_;
-        std::vector<std::uint32_t> timer_stack;
+        arb::profile::timer_stack timer_stack;
 
     public:
       // Construct from a compatible function, atomic counter, and exception_state.
       template <typename F2>
-      explicit wrap_timer(F2&& other, std::vector<std::uint32_t> _timer_stack ):
+      explicit wrap_timer(F2&& other, arb::profile::timer_stack _timer_stack ):
                                                                                  f_(std::forward<F2>(other)), timer_stack(std::move(_timer_stack))
       {}
 
@@ -359,7 +359,7 @@ public:
         auto prev_timer_stack = arb::profile::get_current_timer_stack();
         arb::profile::thread_started(timer_stack);
         f_();
-        arb::profile::thread_started(prev_timer_stack);
+        arb::profile::thread_stopped(prev_timer_stack);
       }
     };
 
@@ -372,7 +372,7 @@ public:
     }
 
     template <typename F>
-    wrap_timer<callable<F>> make_wrapped_timer_function(F&& f, std::vector<std::uint32_t>&& timer_stack) {
+    wrap_timer<callable<F>> make_wrapped_timer_function(F&& f, arb::profile::timer_stack&& timer_stack) {
       return wrap_timer<callable<F>>(std::forward<F>(f), timer_stack);
     }
 
