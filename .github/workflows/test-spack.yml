@@ -70,6 +70,7 @@ jobs:
           echo "  namespace: arbor" >> custom_repo/repo.yaml
           echo "  api: v2.0" >> custom_repo/repo.yaml
           mkdir -p custom_repo/spack_repo/arbor
+          mkdir -p custom_repo/packages/arbor
           spack repo add custom_repo/spack_repo/arbor
           spack reindex
           cp arbor/spack/package.py custom_repo/packages/arbor
