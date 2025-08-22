@@ -140,9 +140,9 @@ struct profile_node {
 
     profile_node() = default;
     profile_node(std::string n, double t, region_id_type c):
-            name(std::move(n)), time(t), count(c) {}
+        name(std::move(n)), time(t), count(c) {}
     profile_node(std::string n):
-            name(std::move(n)), time(0), count(npos) {}
+        name(std::move(n)), time(0), count(npos) {}
 };
 
 // recorder implementation
@@ -164,7 +164,7 @@ void recorder::enter(region_id_type index, const std::vector<std::string>& names
 
 void recorder::leave(region_id_type index, const std::vector<std::string>& names) {
     if(current_timer_stack[current_timer_stack.size()-1] != index) {
-        throw std::runtime_error("recorder::leave without matching recorder::enter "+names[index] + " / "+names[current_timer_stack[current_timer_stack.size()-1]] );
+        throw std::runtime_error("recorder::leave without matching recorder::enter Trying to leave "+names[index] + " but currently in "+names[current_timer_stack[current_timer_stack.size()-1]]);
     }
     auto& cur_acc = accumulators_[current_timer_stack];
 
@@ -188,7 +188,7 @@ void recorder::thread_started(timer_stack _timer_stack) {
   const auto now = timer::tic();
   for(auto stack_depth=0U;stack_depth < current_timer_stack.size();stack_depth++) {
     const timer_stack sub_timer_stack(current_timer_stack.begin(), current_timer_stack.begin() + stack_depth+1);
-    auto & acc = accumulators_[sub_timer_stack];
+    auto& acc = accumulators_[sub_timer_stack];
     acc.running = true;
     acc.start_time = now;
   }
@@ -199,7 +199,7 @@ void recorder::thread_stopped(const timer_stack _timer_stack) {
   current_timer_stack = std::move(_timer_stack);
   for(auto stack_depth=0U;stack_depth < current_timer_stack.size();stack_depth++) {
     const timer_stack sub_timer_stack(current_timer_stack.begin(), current_timer_stack.begin() + stack_depth+1);
-    auto & acc = accumulators_[sub_timer_stack];
+    auto& acc = accumulators_[sub_timer_stack];
     acc.running = false;
     acc.time +=  timer::toc(acc.start_time);
   }
@@ -278,8 +278,6 @@ profile profiler::results() const {
     profile p;
     p.names = region_names_;
 
-    p.times = {};
-    p.counts = {};
     for (auto& r: recorders_) {
         auto& accumulators = r.accumulators();
         for (auto &[timer_stack, acc] : accumulators) {
@@ -309,7 +307,7 @@ void remove_zero_time_nodes(profile_node &node) {
       std::remove_if(node.children.begin(), node.children.end(), [](const profile_node &child) { return child.time == 0; }), node.children.end()
   );
 
-  for (auto &child : node.children) {
+  for (auto& child : node.children) {
     remove_zero_time_nodes(child);
   }
 }
@@ -374,8 +372,7 @@ void profiler::thread_stopped(const timer_stack& _timer_stack) {
 }
 
 const timer_stack& profiler::get_current_timer_stack() {
-    return recorders_[thread_ids_.at(std::this_thread::get_id())]
-      .get_timer_stack();
+    return recorders_[thread_ids_.at(std::this_thread::get_id())].get_timer_stack();
 }
 
 struct prof_line {

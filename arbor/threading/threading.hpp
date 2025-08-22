@@ -339,19 +339,21 @@ public:
     public:
       // Construct from a compatible function, atomic counter, and exception_state.
       template <typename F2>
-      explicit wrap_timer(F2&& other, arb::profile::timer_stack _timer_stack ):
-                                                                                 f_(std::forward<F2>(other)), timer_stack(std::move(_timer_stack))
+      explicit wrap_timer(F2&& other, arb::profile::timer_stack _timer_stack):
+                f_(std::forward<F2>(other)),
+                timer_stack(std::move(_timer_stack))
       {}
 
       wrap_timer(wrap_timer&& other):
-                                       f_(std::move(other.f_)), timer_stack(std::move(other.timer_stack))
+                f_(std::move(other.f_)),
+                timer_stack(std::move(other.timer_stack))
       {}
 
       // std::function is not guaranteed to not copy the contents on move construction,
       // but the class is safe because we don't call operator() more than once on the same wrap_timerped task.
       wrap_timer(const wrap_timer& other):
-                                            f_(other.f_),
-                                            timer_stack(other.timer_stack)
+                f_(other.f_),
+                timer_stack(other.timer_stack)
       {}
 
       // This is where tasks of the task_group are actually executed.
