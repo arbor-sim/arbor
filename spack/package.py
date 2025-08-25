@@ -134,7 +134,8 @@ class Arbor(CMakePackage, CudaPackage):
         depends_on("py-pybind11@2.8.1:", when="@0.5.3:", type="build")
         depends_on("py-pybind11@2.10.1:", when="@0.7.1:", type="build")
         depends_on("py-pybind11@2.13.6:", when="@0.11.0:", type="build")
-        depends_on("py-pybind11-stubgen@2.5:", when="+pystubs", type="build")
+
+    depends_on("py-pybind11-stubgen@2.5:", when="+pystubs", type="build")
 
     # sphinx based documentation
     with when("+doc"):
@@ -152,6 +153,8 @@ class Arbor(CMakePackage, CudaPackage):
             self.define_from_variant("ARB_WITH_ASSERTIONS", "assertions"),
             self.define_from_variant("ARB_WITH_MPI", "mpi"),
             self.define_from_variant("ARB_WITH_PYTHON", "python"),
+            self.define_from_variant("BUILD_DOCUMENTATION", "doc"),
+            self.define_from_variant("ARB_BUILD_PYTHON_STUBS", "pystubs"),
             self.define_from_variant("ARB_VECTORIZE", "vectorize"),
             self.define("ARB_ARCH", "none"),
             self.define("ARB_CXX_FLAGS_TARGET", optimization_flags(self.compiler, spec.target)),
