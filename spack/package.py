@@ -6,6 +6,8 @@
 from spack.package import *
 from spack.build_environment import optimization_flags
 
+print("ARBOR SPACKAGE")
+
 class Arbor(CMakePackage, CudaPackage):
     """Arbor is a high-performance library for computational neuroscience
     simulations."""
