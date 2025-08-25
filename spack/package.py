@@ -139,9 +139,13 @@ class Arbor(CMakePackage, CudaPackage):
 
     # sphinx based documentation
     with when("+doc"):
-        depends_on("python@3.10:", type="build")
-        depends_on("py-sphinx", type="build")
-        depends_on("py-svgwrite", type="build")
+        depends_on("python@3.10:", when="+doc", type="build")
+        depends_on("py-sphinx",    when="+doc", type="build")
+        depends_on("py-svgwrite",  when="+doc", type="build")
+
+    depends_on("py-sphinx", type="build")
+    depends_on("py-svgwrite", type="build")
+
 
     @property
     def build_targets(self):
