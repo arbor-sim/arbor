@@ -138,6 +138,9 @@ class Arbor(CMakePackage, CudaPackage):
     depends_on("py-pybind11-stubgen@2.5:", when="+pystubs", type="build")
 
     # sphinx based documentation
+    with when("+doc"):
+        print("HAVE DOCS")
+
     depends_on("python@3.10:", when="+doc", type="build")
     depends_on("py-sphinx",    when="+doc", type="build")
     depends_on("py-svgwrite",  when="+doc", type="build")
@@ -159,6 +162,7 @@ class Arbor(CMakePackage, CudaPackage):
             self.define("ARB_ARCH", "none"),
             self.define("ARB_CXX_FLAGS_TARGET", optimization_flags(self.compiler, spec.target)),
         ]
+        print(args)
 
         if self.spec.satisfies("+cuda"):
             args.extend(
