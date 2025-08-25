@@ -74,6 +74,7 @@ jobs:
           spack repo add custom_repo/spack_repo/arbor
           spack reindex
           cp arbor/spack/package.py custom_repo/packages/arbor
+          cat custom_repo/packages/arbor/package.py
 
       - name: build and install arbor through spack dev-build
         run: |
