@@ -63,14 +63,26 @@ void lif_cell_group::clear_spikes() {
 }
 
 void lif_cell_group::add_sampler(sampler_association_handle h,
-                                 cell_member_predicate probeset_ids,
+                                 cell_member_predicate pred,
                                  schedule sched,
                                  sampler_function fn) {
-    std::lock_guard<std::mutex> guard(sampler_mex_);
     std::vector<cell_address_type> probeset;
-    for (const auto& [k, v]: probes_) {
-        if (probeset_ids(k)) probeset.push_back(k);
+    if (std::holds_alternative<predicate_function>(pred)) {
+        auto fun = std::get<predicate_function>(pred);
+        for (const auto& [k, v]: probes_) {
+            if (fun(k)) probeset.push_back(k);
+        }
     }
+    else if (std::holds_alternative<one_probe>(pred)) {
+        auto pid = std::get<one_probe>(pred).pid;
+        if (probes_.contains(pid)) probeset.push_back(pid);
+    }
+    else if (std::holds_alternative<all_probes_t>(pred)) {
+        for (const auto& [k, v]: probes_) {
+            probeset.push_back(k);
+        }
+    }
+
     auto assoc = arb::sampler_association{std::move(sched),
                                           std::move(fn),
                                           std::move(probeset)};
@@ -79,11 +91,9 @@ void lif_cell_group::add_sampler(sampler_association_handle h,
 }
 
 void lif_cell_group::remove_sampler(sampler_association_handle h) {
-    std::lock_guard<std::mutex> guard(sampler_mex_);
     samplers_.erase(h);
 }
 void lif_cell_group::remove_all_samplers() {
-    std::lock_guard<std::mutex> guard(sampler_mex_);
     samplers_.clear();
 }
 
@@ -121,7 +131,6 @@ void lif_cell_group::advance_cell(time_type tfinal,
     std::vector<std::pair<time_type, sampler_association_handle>> samples;
     if (!samplers_.empty()) {
         auto tlast = last_time_sampled_[lid];
-        std::lock_guard<std::mutex> guard(sampler_mex_);
         for (auto& [hdl, assoc]: samplers_) {
              // No need to generate events
             if (assoc.probeset_ids.empty()) continue;
@@ -229,7 +238,6 @@ void lif_cell_group::advance_cell(time_type tfinal,
     arb_assert (sampled_voltages.size() <= n_values);
     // Now we need to call all sampler callbacks with the data we have collected
     {
-        std::lock_guard<std::mutex> guard(sampler_mex_);
         for (auto& [k, vs]: sampled) {
             const auto& fun = samplers_[k].sampler;
             for (auto& [id, us]: vs) {

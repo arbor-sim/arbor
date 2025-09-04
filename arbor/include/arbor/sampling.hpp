@@ -2,27 +2,35 @@
 
 #include <cstddef>
 #include <functional>
+#include <variant>
 
 #include <arbor/common_types.hpp>
 #include <arbor/util/any_ptr.hpp>
 
 namespace arb {
 
-using cell_member_predicate = std::function<bool (const cell_address_type&)>;
-
-static cell_member_predicate all_probes = [](const cell_address_type&) { return true; };
+struct all_probes_t {};
 
 struct one_probe {
     one_probe(cell_address_type p): pid{std::move(p)} {}
     cell_address_type pid;
-    bool operator()(const cell_address_type& x) { return x == pid; }
 };
+
+using predicate_function = std::function<bool (const cell_address_type&)>;
+
+using cell_member_predicate = std::variant<all_probes_t,
+                                           one_probe,
+                                           predicate_function>;
+
+static cell_member_predicate all_probes = all_probes_t{};
+
 
 struct one_gid {
     one_gid(cell_gid_type p): gid{std::move(p)} {}
     cell_gid_type gid;
     bool operator()(const cell_address_type& x) { return x.gid == gid; }
 };
+
 struct one_tag {
     one_tag(cell_tag_type p): tag{std::move(p)} {}
     cell_tag_type tag;
