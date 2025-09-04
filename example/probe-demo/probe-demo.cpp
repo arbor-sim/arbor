@@ -50,6 +50,8 @@ const char* help_msg =
     "    j_k         potassium ion membrane current density [A/m²] at X\n"
     "    c_na        internal sodium concentration [mmol/L] at X\n"
     "    c_k         internal potassium concentration [mmol/L] at X\n"
+    "    E_na        sodium reversal potential [mV] at X\n"
+    "    E_k         potassium reversal potential [mV] at X\n"
     "    hh_m        HH state variable m at X\n"
     "    hh_h        HH state variable h at X\n"
     "    hh_n        HH state variable n at X\n"
@@ -64,6 +66,8 @@ const char* help_msg =
     "    all_i       total membrane current [nA] in each CV\n"
     "    all_c_na    internal sodium concentration [mmol/L] in each CV\n"
     "    all_c_k     internal potassium concentration [mmol/L] in each CV\n"
+    "    all_E_na    sodium reversal potential [mV] in each CV\n"
+    "    all_E_k     potassium reversal potential [mV] in each CV\n"
     "    all_hh_m    HH state variable m in each CV\n"
     "    all_hh_h    HH state variable h in each CV\n"
     "    all_hh_n    HH state variable n in each CV\n"
@@ -97,17 +101,11 @@ struct cable_recipe: public arb::recipe {
 
     arb::cell_size_type num_cells() const override { return 1; }
 
-    std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override {
-        return {{probe_addr, "probe"}};
-    }
+    std::vector<arb::probe_info> get_probes(arb::cell_gid_type) const override { return {{probe_addr, "probe"}}; }
 
-    arb::cell_kind get_cell_kind(arb::cell_gid_type) const override {
-        return arb::cell_kind::cable;
-    }
+    arb::cell_kind get_cell_kind(arb::cell_gid_type) const override {return arb::cell_kind::cable; }
 
-    any get_global_properties(arb::cell_kind) const override {
-        return gprop;
-    }
+    any get_global_properties(arb::cell_kind) const override { return gprop; }
 
     arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
         const double length = 1000; // [µm]
@@ -134,9 +132,7 @@ struct cable_recipe: public arb::recipe {
 int main(int argc, char** argv) {
     try {
         options opt;
-        if (!parse_options(opt, argc, argv)) {
-            return 0;
-        }
+        if (!parse_options(opt, argc, argv)) return 0;
 
         cable_recipe R(opt.probe_addr, opt.n_cv);
 
@@ -172,7 +168,6 @@ void scalar_sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_rec
     for (std::size_t i = 0; i<n; ++i) {
         auto* value = any_cast<const double*>(samples[i].data);
         assert(value);
-
         std::cout << samples[i].time << ", " << loc->pos << ", " << *value << '\n';
     }
 }
@@ -227,6 +222,8 @@ bool parse_options(options& opt, int& argc, char** argv) {
         {"j_k",          {"j_k",       true, [](std::any a) { auto x = std::any_cast<double>(a); return arb::cable_probe_ion_current_density{L{0, x}, "k"}; }}},
         {"c_na",         {"c_na",      true, [](std::any a) { auto x = std::any_cast<double>(a); return arb::cable_probe_ion_int_concentration{L{0, x}, "na"}; }}},
         {"c_k",          {"c_k",       true, [](std::any a) { auto x = std::any_cast<double>(a); return arb::cable_probe_ion_int_concentration{L{0, x}, "k"}; }}},
+        {"e_na",         {"e_na",      true, [](std::any a) { auto x = std::any_cast<double>(a); return arb::cable_probe_ion_reversal_potential{L{0, x}, "na"}; }}},
+        {"e_k",          {"e_k",       true, [](std::any a) { auto x = std::any_cast<double>(a); return arb::cable_probe_ion_reversal_potential{L{0, x}, "k"}; }}},
         {"hh_m",         {"hh_m",      true, [](std::any a) { auto x = std::any_cast<double>(a); return arb::cable_probe_density_state{L{0, x}, "hh", "m"}; }}},
         {"hh_h",         {"hh_h",      true, [](std::any a) { auto x = std::any_cast<double>(a); return arb::cable_probe_density_state{L{0, x}, "hh", "h"}; }}},
         {"hh_n",         {"hh_n",      true, [](std::any a) { auto x = std::any_cast<double>(a); return arb::cable_probe_density_state{L{0, x}, "hh", "n"}; }}},
@@ -239,6 +236,8 @@ bool parse_options(options& opt, int& argc, char** argv) {
         {"all_i",        {"i",         false, [](std::any) { return arb::cable_probe_total_current_cell{}; }}},
         {"all_c_na",     {"c_na",      false, [](std::any) { return arb::cable_probe_ion_int_concentration_cell{"na"}; }}},
         {"all_c_k",      {"c_k",       false, [](std::any) { return arb::cable_probe_ion_int_concentration_cell{"k"}; }}},
+        {"all_e_na",     {"e_na",      false, [](std::any) { return arb::cable_probe_ion_reversal_potential_cell{"na"}; }}},
+        {"all_e_k",      {"e_k",       false, [](std::any) { return arb::cable_probe_ion_reversal_potential_cell{"k"}; }}},
         {"all_hh_m",     {"hh_m",      false, [](std::any) { return arb::cable_probe_density_state_cell{"hh", "m"}; }}},
         {"all_hh_h",     {"hh_h",      false, [](std::any) { return arb::cable_probe_density_state_cell{"hh", "h"}; }}},
         {"all_hh_n",     {"hh_n",      false, [](std::any) { return arb::cable_probe_density_state_cell{"hh", "n"}; }}},
