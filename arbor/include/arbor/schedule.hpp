@@ -9,7 +9,6 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/util/extra_traits.hpp>
 #include <arbor/export.hpp>
 #include <arbor/serdes.hpp>
 #include <arbor/units.hpp>
@@ -36,11 +35,11 @@ inline time_event_span as_time_event_span(const std::vector<time_type>& v) {
 struct ARB_ARBOR_API schedule {
     schedule();
 
-    template <typename Impl, typename = std::enable_if_t<!std::is_same_v<util::remove_cvref_t<Impl>, schedule>>>
+    template <typename Impl, typename = std::enable_if_t<!std::is_same_v<std::remove_cvref_t<Impl>, schedule>>>
     explicit schedule(const Impl& impl):
         impl_(new wrap<Impl>(impl)) {}
 
-    template <typename Impl, typename = std::enable_if_t<!std::is_same_v<util::remove_cvref_t<Impl>, schedule>>>
+    template <typename Impl, typename = std::enable_if_t<!std::is_same_v<std::remove_cvref_t<Impl>, schedule>>>
     explicit schedule(Impl&& impl):
         impl_(new wrap<Impl>(std::move(impl))) {}
 

@@ -55,8 +55,7 @@ struct linear: public ::arb::recipe {
                 {arb::cable_probe_ion_ext_concentration_cell{"na"}, "nao"},
                 {arb::cable_probe_ion_diff_concentration{arb::ls::location(0, 0.5), "na"}, "cnad"},
                 {arb::cable_probe_ion_int_concentration{arb::ls::location(0, 0.5), "na"}, "cnai"},
-                {arb::cable_probe_ion_ext_concentration{arb::ls::location(0, 0.5), "na"}, "cnao"},
-    };
+                {arb::cable_probe_ion_ext_concentration{arb::ls::location(0, 0.5), "na"}, "cnao"},};
     }
     util::unique_any get_cell_description(arb::cell_gid_type) const override { return arb::cable_cell(morph, decor); }
 
@@ -112,18 +111,17 @@ testing::AssertionResult all_near(const result_t& a, const result_t& b, double e
     else             return testing::AssertionFailure() << str;
 }
 
-testing::AssertionResult run(const linear& rec, const result_t exp, const std::string& tag="nad") {
+testing::AssertionResult run_cell(const linear& rec, const result_t exp, const std::string& tag="nad") {
     result_t sample_values;
-    auto sampler = [&sample_values](arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
+    auto sampler = [&sample_values](arb::probe_metadata pm, const arb::sample_records& recs) {
         sample_values.clear();
-        auto ptr = arb::util::any_cast<const arb::mcable_list*>(pm.meta);
-        if (ptr == nullptr) return;
-        auto n_cable = ptr->size();
-        for (std::size_t i = 0; i<n; ++i) {
-            const auto& [val, _ig] = *arb::util::any_cast<const arb::cable_sample_range*>(samples[i].data);
-            for (unsigned j = 0; j<n_cable; ++j) {
-                arb::mcable loc = (*ptr)[j];
-                sample_values.push_back({samples[i].time, loc.prox_pos, val[j]});
+        auto reader = arb::sample_reader<arb::cable_state_cell_meta_type>(pm.meta, recs);
+        for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+            auto time = reader.time(ix);
+            for (std::size_t iy = 0; iy < reader.n_column(); ++iy) {
+                auto cable = reader.metadata(iy);
+                auto value = reader.value(ix, iy);
+                sample_values.push_back({time, cable.prox_pos, value});
             }
         }
     };
@@ -134,26 +132,48 @@ testing::AssertionResult run(const linear& rec, const result_t exp, const std::s
     return all_near(sample_values, exp, epsilon);
 }
 
+testing::AssertionResult run(const linear& rec, const result_t exp, const std::string& tag="nad") {
+    result_t sample_values;
+    auto sampler = [&sample_values](arb::probe_metadata pm, const arb::sample_records& recs) {
+        sample_values.clear();
+        auto reader = arb::sample_reader<arb::cable_state_meta_type>(pm.meta, recs);
+        for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+            auto time = reader.time(ix);
+            for (std::size_t iy = 0; iy < reader.n_column(); ++iy) {
+                auto loc   = reader.metadata(iy);
+                auto value = reader.value(ix, iy);
+                sample_values.push_back({time, loc.pos, value});
+            }
+        }
+    };
+    auto ctx = make_context({arbenv::default_concurrency(), with_gpu});
+    auto sim = simulation{rec, ctx, partition_load_balance(rec, ctx)};
+    sim.add_sampler(arb::one_tag(tag), arb::regular_schedule(0.1*arb::units::ms), sampler);
+    sim.run(0.11*arb::units::ms, 0.01*arb::units::ms);
+    return all_near(sample_values, exp, epsilon);
+}
+
+
 TEST(diffusion, errors) {
     {
         // Cannot R/W Xd w/o setting diffusivity
         auto rec = linear{30, 3, 1}.add_decay();
-        ASSERT_THROW(run(rec, {}), illegal_diffusive_mechanism);
+        ASSERT_THROW(run_cell(rec, {}), illegal_diffusive_mechanism);
     }
     {
         // Cannot R/W Xd w/o setting diffusivity
         auto rec = linear{30, 3, 1}.add_inject();
-        ASSERT_THROW(run(rec, {}), illegal_diffusive_mechanism);
+        ASSERT_THROW(run_cell(rec, {}), illegal_diffusive_mechanism);
     }
     {
         // No negative diffusivity
         auto rec = linear{30, 3, 1}.set_diffusivity(-42.0, "(all)"_reg);
-        ASSERT_THROW(run(rec, {}), cable_cell_error);
+        ASSERT_THROW(run_cell(rec, {}), cable_cell_error);
     }
     {
         // No negative diffusivity
         auto rec = linear{30, 3, 1}.set_diffusivity(-42.0);
-        ASSERT_THROW(run(rec, {}), cable_cell_error);
+        ASSERT_THROW(run_cell(rec, {}), cable_cell_error);
     }
 }
 
@@ -182,7 +202,7 @@ TEST(diffusion, by_initial_concentration) {
                     {0.100000, 0.700000, 0.000314},
                     {0.100000, 0.800000, 0.000010},
                     {0.100000, 0.900000, 0.000000}};
-    EXPECT_TRUE(run(rec, exp));
+    EXPECT_TRUE(run_cell(rec, exp));
 }
 
 TEST(diffusion, by_event) {
@@ -211,7 +231,7 @@ TEST(diffusion, by_event) {
                     { 0.100000,  0.700000,  0.166753},
                     { 0.100000,  0.800000,  0.005465},
                     { 0.100000,  0.900000,  0.000149}};
-    EXPECT_TRUE(run(rec, exp));
+    EXPECT_TRUE(run_cell(rec, exp));
 }
 
 TEST(diffusion, decay) {
@@ -239,7 +259,7 @@ TEST(diffusion, decay) {
                     { 0.100000,  0.700000,  0.060647},
                     { 0.100000,  0.800000,  0.060647},
                     { 0.100000,  0.900000,  0.060647}};
-    EXPECT_TRUE(run(rec, exp));
+    EXPECT_TRUE(run_cell(rec, exp));
 }
 
 TEST(diffusion, decay_by_initial_concentration) {
@@ -268,7 +288,7 @@ TEST(diffusion, decay_by_initial_concentration) {
                     { 0.100000,  0.700000,  0.000191},
                     { 0.100000,  0.800000,  0.000006},
                     { 0.100000,  0.900000,  0.000000}};
-    EXPECT_TRUE(run(rec, exp));
+    EXPECT_TRUE(run_cell(rec, exp));
 }
 
 TEST(diffusion, decay_by_event) {
@@ -298,7 +318,7 @@ TEST(diffusion, decay_by_event) {
                     { 0.100000,  0.700000,  0.101130},
                     { 0.100000,  0.800000,  0.003314},
                     { 0.100000,  0.900000,  0.000090}};
-    EXPECT_TRUE(run(rec, exp));
+    EXPECT_TRUE(run_cell(rec, exp));
 }
 
 TEST(diffusion, setting_diffusivity) {
@@ -368,19 +388,18 @@ TEST(diffusion, elided_arrays) {
     // NOTE: We are still, strictly speaking, failing this test since we don't
     //       get the expected values. However, as we are just checking that we
     //       can still probe elided arrary, that's OK.
-    EXPECT_NO_THROW(run(rec, exp, "nai"));
-    EXPECT_NO_THROW(run(rec, exp, "nao"));
-    EXPECT_NO_THROW(run(rec, exp, "nad"));
+    EXPECT_NO_THROW(run_cell(rec, exp, "nai"));
+    EXPECT_NO_THROW(run_cell(rec, exp, "nao"));
+    EXPECT_NO_THROW(run_cell(rec, exp, "nad"));
     EXPECT_NO_THROW(run(rec, exp, "cnai"));
     EXPECT_NO_THROW(run(rec, exp, "cnao"));
     EXPECT_NO_THROW(run(rec, exp, "cnad"));
 
     rec.set_diffusivity(1.0);
-    EXPECT_NO_THROW(run(rec, exp, "nai"));
-    EXPECT_NO_THROW(run(rec, exp, "nao"));
-    EXPECT_NO_THROW(run(rec, exp, "nad"));
+    EXPECT_NO_THROW(run_cell(rec, exp, "nai"));
+    EXPECT_NO_THROW(run_cell(rec, exp, "nao"));
+    EXPECT_NO_THROW(run_cell(rec, exp, "nad"));
     EXPECT_NO_THROW(run(rec, exp, "cnai"));
     EXPECT_NO_THROW(run(rec, exp, "cnao"));
     EXPECT_NO_THROW(run(rec, exp, "cnad"));
-
 }

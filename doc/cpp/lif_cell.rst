@@ -52,3 +52,18 @@ LIF cells
     .. cpp:member:: const arb::units::quantity& t_ref
 
         Refractory period [ms]. Must be finite and positive.
+
+Probing and Sampling
+--------------------
+
+Membrane voltage
+^^^^^^^^^^^^^^^^
+
+.. code::
+
+    struct lif_probe_voltage {};
+
+Queries cell membrane potential.
+
+* Sample value: ``double``. Membrane potential (mV).
+* Metadata: none

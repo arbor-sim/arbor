@@ -5,6 +5,8 @@
 #include <arbor/export.hpp>
 #include <arbor/units.hpp>
 
+#include <arbor/util/extra_traits.hpp>
+
 namespace arb {
 
 namespace U = arb::units;
@@ -28,8 +30,20 @@ struct ARB_SYMBOL_VISIBLE lif_cell {
 // LIF probe metadata, to be passed to sampler callbacks. Intentionally left blank.
 struct ARB_SYMBOL_VISIBLE lif_probe_metadata {};
 
+using lif_sample_type = const double;
+using lif_meta_type = const lif_probe_metadata;
+
 // Voltage estimate [mV].
 // Sample value type: `double`
-struct ARB_SYMBOL_VISIBLE lif_probe_voltage {};
+struct ARB_SYMBOL_VISIBLE lif_probe_voltage {
+    using value_type = lif_sample_type;
+    using meta_type = const lif_probe_metadata;
+};
+
+template <>
+struct probe_value_type_of<const lif_meta_type> {
+    using type = lif_sample_type;
+};
+
 
 } // namespace arb

@@ -1,160 +1,279 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/PR-SVG-20010719/DTD/svg10.dtd">
-<svg width="31cm" height="15cm" viewBox="317 116 606 297" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <g id="Achtergrond">
-    <g>
-      <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 0.2; stroke: #000000" x="419.401" y="118" width="104.599" height="278" rx="0" ry="0"/>
-      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="471.7" y="140.881">
-        <tspan x="471.7" y="140.881">probeset</tspan>
-        <tspan x="471.7" y="156.881"></tspan>
-        <tspan x="471.7" y="172.881"></tspan>
-        <tspan x="471.7" y="188.881"></tspan>
-        <tspan x="471.7" y="204.881"></tspan>
-        <tspan x="471.7" y="220.881"></tspan>
-        <tspan x="471.7" y="236.881"></tspan>
-        <tspan x="471.7" y="252.881"></tspan>
-        <tspan x="471.7" y="268.881"></tspan>
-        <tspan x="471.7" y="284.881"></tspan>
-        <tspan x="471.7" y="300.881"></tspan>
-        <tspan x="471.7" y="316.881"></tspan>
-        <tspan x="471.7" y="332.881"></tspan>
-        <tspan x="471.7" y="348.881"></tspan>
-        <tspan x="471.7" y="364.881"></tspan>
-        <tspan x="471.7" y="380.881"></tspan>
-      </text>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="198.98813mm"
+   height="115.17507mm"
+   viewBox="0 0 198.98813 115.17507"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.2 (ebf0e940, 2025-05-08)"
+   sodipodi:docname="sampling.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="true"
+     inkscape:zoom="1.4823793"
+     inkscape:cx="134.91823"
+     inkscape:cy="65.098047"
+     inkscape:window-width="2560"
+     inkscape:window-height="1440"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1">
+    <inkscape:grid
+       id="grid1"
+       units="mm"
+       originx="-6.5118861"
+       originy="-81.227084"
+       spacingx="0.99999998"
+       spacingy="1"
+       empcolor="#0099e5"
+       empopacity="0.30196078"
+       color="#0099e5"
+       opacity="0.14901961"
+       empspacing="5"
+       enabled="true"
+       visible="true" />
+  </sodipodi:namedview>
+  <defs
+     id="defs1">
+    <rect
+       x="359.05511"
+       y="548.03149"
+       width="453.54333"
+       height="37.795277"
+       id="rect13" />
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-6.5118861,-81.227082)">
+    <rect
+       style="opacity:0.8;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.499999;stroke-dasharray:none;stroke-opacity:0.7"
+       id="rect20"
+       width="198.98813"
+       height="115.17506"
+       x="6.5118861"
+       y="81.227081" />
+    <g
+       id="g4">
+      <g
+         id="g3"
+         transform="translate(-22.5,4.9999963)">
+        <circle
+           style="opacity:0.8;fill:none;stroke:#000000;stroke-width:1.5;stroke-opacity:1"
+           id="path1"
+           cx="50"
+           cy="100"
+           r="15" />
+        <path
+           style="opacity:0.8;fill:none;stroke:#000000;stroke-width:1.5;stroke-opacity:1"
+           d="m 50,115 -14.999999,20 25,9.99999 -10.000001,15 5,15"
+           id="path2" />
+        <path
+           style="opacity:0.8;fill:none;stroke:#000000;stroke-width:1.5;stroke-opacity:1"
+           d="m 47.5,139.99999 -17.5,10 5.000001,10"
+           id="path3" />
+      </g>
+      <text
+         xml:space="preserve"
+         style="font-size:7.05556px;line-height:0.19px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:0.8;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.5;stroke-opacity:1"
+         x="24.953293"
+         y="195.13664"
+         id="text3"><tspan
+           sodipodi:role="line"
+           id="tspan3"
+           style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.5"
+           x="24.953293"
+           y="195.13664">Cell</tspan></text>
     </g>
-    <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="395" y="369">
-      <tspan x="395" y="369"></tspan>
-    </text>
-    <g>
-      <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x="318.4" y="184" width="65.65" height="38" rx="0" ry="0"/>
-      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="351.225" y="206.881">
-        <tspan x="351.225" y="206.881">handle</tspan>
-      </text>
-    </g>
-    <g>
-      <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x="435.926" y="184" width="71.25" height="38" rx="0" ry="0"/>
-      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="471.551" y="206.881">
-        <tspan x="471.551" y="206.881">probe 1</tspan>
-      </text>
-    </g>
-    <g>
-      <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x="435.926" y="247" width="71.25" height="38" rx="0" ry="0"/>
-      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="471.551" y="269.881">
-        <tspan x="471.551" y="269.881">probe 2</tspan>
-      </text>
-    </g>
-    <g>
-      <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke-dasharray: 20; stroke: #000000" x="435.926" y="311" width="75.25" height="38" rx="0" ry="0"/>
-      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="473.551" y="333.881">
-        <tspan x="473.551" y="333.881">probe ...</tspan>
-      </text>
-    </g>
-    <g>
-      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x1="384.05" y1="203" x2="426.19" y2="203"/>
-      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="433.69,203 423.69,208 426.19,203 423.69,198 "/>
-    </g>
-    <g>
-      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x1="384.05" y1="203" x2="430.329" y2="267.586"/>
-      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="434.698,273.682 424.809,268.466 430.329,267.586 432.937,262.641 "/>
-    </g>
-    <g>
-      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x1="384.05" y1="203" x2="432.537" y2="330.401"/>
-      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="435.205,337.41 426.975,329.843 432.537,330.401 436.321,326.286 "/>
-    </g>
-    <g>
-      <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x="547.924" y="184" width="86.15" height="38" rx="0" ry="0"/>
-      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="590.999" y="206.881">
-        <tspan x="590.999" y="206.881">meta (str)</tspan>
-      </text>
-    </g>
-    <g>
-      <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x="547.924" y="247" width="114.75" height="38" rx="0" ry="0"/>
-      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="605.299" y="269.881">
-        <tspan x="605.299" y="269.881">data (ndarray)</tspan>
-      </text>
-    </g>
-    <g>
-      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x1="507.176" y1="203" x2="538.188" y2="203"/>
-      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="545.688,203 535.688,208 538.188,203 535.688,198 "/>
-    </g>
-    <g>
-      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x1="507.176" y1="203" x2="542.636" y2="257.825"/>
-      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="546.71,264.122 537.08,258.441 542.636,257.825 545.477,253.01 "/>
-    </g>
-    <g>
-      <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x="700.924" y="247" width="120.5" height="38" rx="0" ry="0"/>
-      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="761.174" y="269.881">
-        <tspan x="761.174" y="269.881">[0]: time, value</tspan>
-      </text>
-    </g>
-    <g>
-      <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x="700.924" y="311" width="120.5" height="38" rx="0" ry="0"/>
-      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="761.174" y="333.881">
-        <tspan x="761.174" y="333.881">[1]: time, value</tspan>
-      </text>
-    </g>
-    <g>
-      <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke-dasharray: 20; stroke: #000000" x="700.926" y="374.4" width="124.5" height="38" rx="0" ry="0"/>
-      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="763.176" y="397.281">
-        <tspan x="763.176" y="397.281">[...]: time, value</tspan>
-      </text>
-    </g>
-    <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="761.174" y="330">
-      <tspan x="761.174" y="330"></tspan>
-    </text>
-    <g>
-      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x1="662.674" y1="266" x2="691.264" y2="266"/>
-      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="698.764,266 688.764,271 691.264,266 688.764,261 "/>
-    </g>
-    <g>
-      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x1="662.674" y1="266" x2="696.498" y2="330.867"/>
-      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="699.966,337.517 690.909,330.962 696.498,330.867 699.776,326.339 "/>
-    </g>
-    <g>
-      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x1="662.674" y1="266" x2="698.195" y2="384.077"/>
-      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="700.356,391.259 692.687,383.123 698.195,384.077 702.263,380.242 "/>
-    </g>
-    <g>
-      <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x="700.824" y="184" width="220.9" height="38" rx="0" ry="0"/>
-      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="811.274" y="206.881">
-        <tspan x="811.274" y="206.881">location expression for probe 1</tspan>
-      </text>
-    </g>
-    <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="811.274" y="203">
-      <tspan x="811.274" y="203"></tspan>
-    </text>
-    <g>
-      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x1="634.074" y1="203" x2="691.088" y2="203"/>
-      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="698.588,203 688.588,208 691.088,203 688.588,198 "/>
-    </g>
-    <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="811.274" y="203">
-      <tspan x="811.274" y="203"></tspan>
-    </text>
-    <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="473.55" y="330">
-      <tspan x="473.55" y="330"></tspan>
-    </text>
-    <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="763.174" y="393.4">
-      <tspan x="763.174" y="393.4"></tspan>
-    </text>
-    <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="473.55" y="330">
-      <tspan x="473.55" y="330"></tspan>
-    </text>
-    <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="763.174" y="393.4">
-      <tspan x="763.174" y="393.4"></tspan>
-    </text>
-    <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="811.274" y="203">
-      <tspan x="811.274" y="203"></tspan>
-    </text>
-    <text font-size="12.7998" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="351.225" y="203">
-      <tspan x="351.225" y="203"></tspan>
-    </text>
-    <text font-size="12.7998" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="471.7" y="257">
-      <tspan x="471.7" y="257"></tspan>
-    </text>
-    <g>
-      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke-dasharray: 4; stroke: #000000" x1="419.401" y1="118" x2="388.647" y2="175.418"/>
-      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="385.106,182.029 385.42,170.853 388.647,175.418 394.235,175.575 "/>
-    </g>
+    <path
+       style="opacity:0.8;fill:none;fill-opacity:1;stroke:#6e6e6e;stroke-width:1;stroke-dasharray:none;stroke-opacity:0.7"
+       d="M 42.499999,105 H 75 v 59.99999 H 27.5"
+       id="path4" />
+    <path
+       style="opacity:0.8;fill:none;fill-opacity:1;stroke:#6e6e6e;stroke-width:1;stroke-dasharray:none;stroke-opacity:0.7"
+       d="M 75,130 H 20"
+       id="path5" />
+    <path
+       style="opacity:0.8;fill:none;fill-opacity:1;stroke:#6e6e6e;stroke-width:1;stroke-dasharray:none;stroke-opacity:0.7"
+       d="m 75,149.99999 -37.499999,-1e-5"
+       id="path6" />
+    <path
+       style="opacity:0.8;fill:none;fill-opacity:1;stroke:#6e6e6e;stroke-width:1;stroke-dasharray:none;stroke-opacity:0.7"
+       d="m 75,135 h 35"
+       id="path7" />
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:0.19px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:0.8;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:0.7"
+       x="75.054176"
+       y="195"
+       id="text7"><tspan
+         sodipodi:role="line"
+         id="tspan7"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1"
+         x="75.054176"
+         y="195">Probe Locations</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:0.19px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:0.8;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:0.7"
+       x="92.819214"
+       y="130.13664"
+       id="text8"><tspan
+         sodipodi:role="line"
+         id="tspan8"
+         style="stroke-width:1"
+         x="92.819214"
+         y="130.13664">Sampler</tspan><tspan
+         sodipodi:role="line"
+         style="stroke-width:1"
+         x="92.819214"
+         y="130.32664"
+         id="tspan9" /></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:0.19px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:0.8;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:0.9"
+       x="120.14793"
+       y="97.392326"
+       id="text11"><tspan
+         sodipodi:role="line"
+         id="tspan11"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1"
+         x="120.14793"
+         y="97.392326">t</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:0.19px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:0.8;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:0.9"
+       x="136.05835"
+       y="97.442284"
+       id="text11-4"><tspan
+         sodipodi:role="line"
+         id="tspan11-1"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1"
+         x="136.05835"
+         y="97.442284">loc1</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:0.19px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:0.8;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:0.9"
+       x="194.72691"
+       y="97.431953"
+       id="text11-4-5"><tspan
+         sodipodi:role="line"
+         id="tspan11-1-3"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1"
+         x="194.72691"
+         y="97.431953">loc4</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:0.19px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:0.8;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:0.9"
+       x="175.18129"
+       y="97.438835"
+       id="text11-4-7"><tspan
+         sodipodi:role="line"
+         id="tspan11-1-1"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1"
+         x="175.18129"
+         y="97.438835">loc3</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:0.19px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:0.8;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:0.9"
+       x="155.15817"
+       y="97.442284"
+       id="text11-4-3"><tspan
+         sodipodi:role="line"
+         id="tspan11-1-10"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1"
+         x="155.15817"
+         y="97.442284">loc2</tspan></text>
+    <rect
+       style="opacity:0.8;fill:none;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-dasharray:none;stroke-opacity:0.9"
+       id="rect10"
+       width="90"
+       height="75"
+       x="115.00001"
+       y="104.99999" />
+    <rect
+       style="opacity:0.8;fill:none;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-dasharray:none;stroke-opacity:0.9"
+       id="rect11"
+       width="90"
+       height="9.9999971"
+       x="115.00001"
+       y="90" />
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:0.19px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:0.8;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:0.9"
+       x="159.89963"
+       y="195"
+       id="text12"><tspan
+         sodipodi:role="line"
+         id="tspan12"
+         style="stroke-width:1"
+         x="159.89963"
+         y="195">Sample Data</tspan></text>
+    <text
+       xml:space="preserve"
+       transform="scale(0.26458333)"
+       id="text13"
+       style="font-size:26.6667px;line-height:0.71811px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect13);display:inline;opacity:0.8;fill:#000000;fill-opacity:1;stroke:none;stroke-width:3.77953;stroke-dasharray:none;stroke-opacity:0.9" />
+    <path
+       style="opacity:0.8;fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-dasharray:none;stroke-opacity:0.7"
+       d="m 125,105 v 74.99999"
+       id="path13" />
+    <path
+       style="opacity:0.8;fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.499999;stroke-dasharray:none;stroke-opacity:0.7"
+       d="m 145,105 v 74.99999"
+       id="path14"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="opacity:0.8;fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.499999;stroke-dasharray:none;stroke-opacity:0.7"
+       d="m 165,105 v 74.99999"
+       id="path15"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="opacity:0.8;fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.499999;stroke-dasharray:none;stroke-opacity:0.7"
+       d="m 185,105 v 74.99999"
+       id="path16"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="opacity:0.8;fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.499999;stroke-dasharray:none;stroke-opacity:0.7"
+       d="M 125,89.999996 V 99.999997"
+       id="path17" />
+    <path
+       style="opacity:0.8;fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.499999;stroke-dasharray:none;stroke-opacity:0.7"
+       d="M 145,89.999996 V 99.999997"
+       id="path18" />
+    <path
+       style="opacity:0.8;fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.499999;stroke-dasharray:none;stroke-opacity:0.7"
+       d="M 165,89.999996 V 99.999997"
+       id="path19" />
+    <path
+       style="opacity:0.8;fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.499999;stroke-dasharray:none;stroke-opacity:0.7"
+       d="M 185,89.999996 V 99.999997"
+       id="path20" />
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:0.19px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:0.8;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:0.7"
+       x="165.05418"
+       y="86.277596"
+       id="text7-2"><tspan
+         sodipodi:role="line"
+         id="tspan7-0"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1"
+         x="165.05418"
+         y="86.277596">Metadata</tspan></text>
   </g>
 </svg>

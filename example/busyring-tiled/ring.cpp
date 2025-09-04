@@ -1,5 +1,3 @@
-#include <fstream>
-#include <iomanip>
 #include <iostream>
 #include <algorithm>
 #include <array>
@@ -13,7 +11,6 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
-#include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
@@ -36,13 +33,9 @@ using arb::cell_lid_type;
 using arb::cell_size_type;
 using arb::cell_kind;
 using arb::time_type;
-using arb::cable_probe_membrane_voltage;
 
 using namespace arborio::literals;
 namespace U = arb::units;
-
-// Writes voltage trace as a json file.
-void write_trace_json(std::string fname, const arb::trace_data<double>& trace);
 
 // Generate a cell.
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params);
@@ -117,12 +110,6 @@ struct ring_recipe: public arb::recipe {
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         if (gid%params_.ring_size == 0) return {arb::explicit_generator_from_milliseconds({"p"}, event_weight_, std::vector{1.0})};
         return {};
-    }
-
-    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
-        // Measure at the soma.
-        arb::mlocation loc{0, 0.0};
-        return {{cable_probe_membrane_voltage{loc}, "Um"}};
     }
 
     cell_size_type num_cells_;
@@ -222,7 +209,6 @@ int main(int argc, char** argv) {
         // Construct the model.
         arb::simulation sim(recipe, ctx, decomp);
 
-        // Set up the probe that will measure voltage in the cell.
         meters.checkpoint("model-init", ctx);
 
         // Run the simulation.
@@ -251,25 +237,6 @@ int main(int argc, char** argv) {
     }
 
     return 0;
-}
-
-void write_trace_json(std::string fname, const arb::trace_data<double>& trace) {
-    nlohmann::json json;
-    json["name"] = "ring demo";
-    json["units"] = "mV";
-    json["cell"] = "0.0";
-    json["probe"] = "0";
-
-    auto& jt = json["data"]["time"];
-    auto& jy = json["data"]["voltage"];
-
-    for (const auto& sample: trace) {
-        jt.push_back(sample.t);
-        jy.push_back(sample.v);
-    }
-
-    std::ofstream file(fname);
-    file << std::setw(1) << json << "\n";
 }
 
 // Helper used to interpolate in branch_cell.
