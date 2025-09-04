@@ -342,7 +342,7 @@ TEST(serdes, single_cell_gpu) {
 }
 
 TEST(serdes, network_gpu) {
-    auto dt = 0.5*arb::units::ms;
+    auto dt = 0.05*arb::units::ms;
     auto T  = 5*arb::units::ms;
 
     // Result
