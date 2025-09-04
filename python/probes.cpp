@@ -94,7 +94,6 @@ struct recorder_lif: recorder_base<arb::lif_probe_metadata> {
     recorder_lif(const arb::lif_probe_metadata* meta_ptr): recorder_base<arb::lif_probe_metadata>(meta_ptr, 1) {}
 };
 
-
 template <typename Meta>
 struct recorder_cable_vector: recorder_base<Meta> {
     using recorder_base<Meta>::sample_raw_;
@@ -117,7 +116,6 @@ protected:
 };
 
 // Specific recorder classes:
-
 struct recorder_cable_scalar_mlocation: recorder_cable_scalar<arb::mlocation> {
     explicit recorder_cable_scalar_mlocation(const arb::mlocation* meta_ptr):
         recorder_cable_scalar(meta_ptr) {}
@@ -139,7 +137,6 @@ struct recorder_cable_vector_point_info: recorder_cable_vector<std::vector<arb::
 };
 
 // Helper for registering sample recorder factories and (trivial) metadata conversions.
-
 template <typename Meta, typename Recorder>
 void register_probe_meta_maps(pyarb_global_ptr g) {
     g->recorder_factories.assign<Meta>(
@@ -232,6 +229,14 @@ arb::probe_info cable_probe_ion_ext_concentration(const char* where, const char*
 
 arb::probe_info cable_probe_ion_ext_concentration_cell(const char* ion, const std::string& tag) {
     return {arb::cable_probe_ion_ext_concentration_cell{ion}, tag};
+}
+
+arb::probe_info cable_probe_ion_reversal_potential(const char* where, const char* ion, const std::string& tag) {
+    return {arb::cable_probe_ion_reversal_potential{arborio::parse_locset_expression(where).unwrap(), ion}, tag};
+}
+
+arb::probe_info cable_probe_ion_reversal_potential_cell(const char* ion, const std::string& tag) {
+    return {arb::cable_probe_ion_reversal_potential_cell{ion}, tag};
 }
 
 // LIF cell probes
@@ -345,6 +350,14 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
     m.def("cable_probe_ion_ext_concentration_cell",
           &cable_probe_ion_ext_concentration_cell,
           "Probe specification for cable cell external ionic concentration for each cable in each CV.",
+          "ion"_a, "tag"_a);
+    m.def("cable_probe_ion_reversal_potential",
+          &cable_probe_ion_reversal_potential,
+          "Probe specification for cable cell external ionic reversal potential at points in a location set.",
+          "where"_a, "ion"_a, "tag"_a);
+    m.def("cable_probe_ion_reversal_potential_cell",
+          &cable_probe_ion_reversal_potential_cell,
+          "Probe specification for cable cell ionic reversal potential for each cable in each CV.",
           "ion"_a, "tag"_a);
 
     // Add probe metadata to maps for converters and recorders.

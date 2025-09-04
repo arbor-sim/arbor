@@ -617,8 +617,7 @@ void fvm_lowered_cell_impl<Backend>::resolve_probe_address(std::vector<fvm_probe
                                                            const std::vector<target_handle>& handles,
                                                            const std::unordered_map<std::string, mechanism*>& mech_instance_by_name) {
     probe_data.clear();
-    probe_resolution_data<Backend> prd{
-        probe_data, state_.get(), cells[cell_idx], cell_idx, D, M, handles, mech_instance_by_name};
+    probe_resolution_data<Backend> prd{probe_data, state_.get(), cells[cell_idx], cell_idx, D, M, handles, mech_instance_by_name};
 
     using V = util::any_visitor<cable_probe_membrane_voltage,
                                 cable_probe_membrane_voltage_cell,
@@ -633,14 +632,15 @@ void fvm_lowered_cell_impl<Backend>::resolve_probe_address(std::vector<fvm_probe
                                 cable_probe_point_state_cell,
                                 cable_probe_ion_current_density,
                                 cable_probe_ion_current_cell,
+                                cable_probe_ion_ext_concentration,
+                                cable_probe_ion_ext_concentration_cell,
                                 cable_probe_ion_int_concentration,
                                 cable_probe_ion_int_concentration_cell,
                                 cable_probe_ion_diff_concentration,
                                 cable_probe_ion_diff_concentration_cell,
-                                cable_probe_ion_ext_concentration,
-                                cable_probe_ion_ext_concentration_cell,
-                                cable_probe_ion_ext_concentration,
-                                cable_probe_ion_ext_concentration_cell>;
+                                cable_probe_ion_reversal_potential,
+                                cable_probe_ion_reversal_potential_cell
+                                >;
 
     auto visitor = util::overload([&prd](auto& probe_addr) { resolve_probe(probe_addr, prd); },
                                   [] { throw cable_cell_error("unrecognized probe type"), fvm_probe_data{}; });

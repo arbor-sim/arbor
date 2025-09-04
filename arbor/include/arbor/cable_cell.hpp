@@ -225,9 +225,6 @@ struct ARB_SYMBOL_VISIBLE cable_probe_ion_reversal_potential_cell {
     std::string ion;
 };
 
-
-
-
 // Forward declare the implementation, for PIMPL.
 struct cable_cell_impl;
 
