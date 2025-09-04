@@ -65,18 +65,23 @@ jobs:
       - name: add arbor spack package
         run: |
           source spack/share/spack/setup-env.sh
-          spack repo create custom_repo
+          spack repo create custom_repo arbor
+          echo "repo:" > custom_repo/repo.yaml
+          echo "  namespace: arbor" >> custom_repo/repo.yaml
+          echo "  api: v2.0" >> custom_repo/repo.yaml
+          mkdir -p custom_repo/spack_repo/arbor
           mkdir -p custom_repo/packages/arbor
-          spack repo add custom_repo
+          spack repo add custom_repo/spack_repo/arbor
           spack reindex
           cp arbor/spack/package.py custom_repo/packages/arbor
+          cat custom_repo/packages/arbor/package.py
 
       - name: build and install arbor through spack dev-build
         run: |
           source spack/share/spack/setup-env.sh
-          spack install --no-check-signature --only dependencies arbor@develop target=x86_64_v2 +python ~pystubs ^python@${{ matrix.python-version }}
+          spack install --no-check-signature --only dependencies arbor.arbor@develop target=x86_64_v2 +python ^python@${{ matrix.python-version }}
           cd arbor
-          spack dev-build arbor@develop target=x86_64_v2 +python ~pystubs ^python@${{ matrix.python-version }}
+          spack dev-build arbor.arbor@develop target=x86_64_v2 +python ^python@${{ matrix.python-version }}
 
       - name: load arbor and verify installation, python examples.
         run: |
