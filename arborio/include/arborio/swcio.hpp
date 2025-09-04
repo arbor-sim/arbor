@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
 #include <filesystem>
 
 #include <arbor/arbexcept.hpp>
@@ -14,16 +15,20 @@ namespace arborio {
 
 // SWC exceptions are thrown by `parse_swc`, and correspond
 // to inconsistent, or in `strict` mode, dubious SWC data.
-
 struct ARB_SYMBOL_VISIBLE swc_error: public arb::arbor_exception {
     swc_error(const std::string& msg, int record_id);
     int record_id;
 };
 
+// Cycle in alledged tree
+struct ARB_SYMBOL_VISIBLE swc_cycle_in_tree: swc_error {
+    explicit swc_cycle_in_tree(int record_id);
+};
+
 // Parent id in record has no corresponding SWC record,
 // nor is the record the root record with parent id -1.
 struct ARB_SYMBOL_VISIBLE swc_no_such_parent: swc_error {
-    explicit swc_no_such_parent(int record_id);
+    explicit swc_no_such_parent(int record_id, int parent);
 };
 
 // Parent id is greater than or equal to record id.
@@ -48,7 +53,7 @@ struct ARB_SYMBOL_VISIBLE swc_mismatched_tags: swc_error {
 
 // Only tags 1, 2, 3, 4 supported
 struct ARB_SYMBOL_VISIBLE swc_unsupported_tag: swc_error {
-    explicit swc_unsupported_tag(int record_id);
+    explicit swc_unsupported_tag(int record_id, int tag);
 };
 
 struct ARB_ARBORIO_API swc_record {
@@ -89,8 +94,8 @@ private:
 
 public:
     swc_data() = delete;
-    swc_data(std::vector<arborio::swc_record>);
-    swc_data(std::string, std::vector<arborio::swc_record>);
+    swc_data(std::vector<arborio::swc_record>, bool lax=false);
+    swc_data(std::string, std::vector<arborio::swc_record>, bool lax=false);
 
     const std::vector<swc_record>& records() const {return records_;};
     std::string metadata() const {return metadata_;};
@@ -100,24 +105,23 @@ public:
 // in comments (stripping initial '#' and subsequent whitespace).
 // Stops at EOF or after reading the first line that does not parse as SWC.
 //
-// In `relaxed` mode, it will check that:
+// It will check that:
 //     * There are no duplicate record ids.
 //     * All record ids are positive.
-//     * There are no records whose parent id is not less than the record id.
 //     * Only one record has parent id -1; all other parent ids correspond to records.
-//
-// In `strict` mode, it will additionally check that the data cannot be interpreted
-// as a 'spherical soma' SWC file:
 //     * The root record must share its tag with at least one other record
 //       which has the root as parent. This implies that there must be at least
 //       two SWC records.
+//
+// If lax_ordering is false it will also
+//     * There are no records whose parent id is not less than the record id.
 //
 // Throws a corresponding exception of type derived from `swc_error` if any of the
 // conditions above are encountered.
 //
 // SWC records are returned in id order.
-ARB_ARBORIO_API swc_data parse_swc(std::istream&);
-ARB_ARBORIO_API swc_data parse_swc(const std::string&);
+ARB_ARBORIO_API swc_data parse_swc(std::istream&, bool lax_ordering=false);
+ARB_ARBORIO_API swc_data parse_swc(const std::string&, bool lax_ordering=false);
 
 // Convert a valid, ordered sequence of SWC records into a morphology.
 //
@@ -127,6 +131,15 @@ ARB_ARBORIO_API swc_data parse_swc(const std::string&);
 // one segment for each SWC record after the first: this record defines the tag
 // and distal point of the segment, while the proximal point is taken from the
 // parent record.
+struct ARB_ARBORIO_API swc_loader_options {
+   // allow skips in parent/child relations
+   bool allow_non_monotonic_ids = false;
+   // disable checking for tag congruence between parent and child
+   bool allow_mismatched_tags = false;
+   // supported tags
+   std::map<int, std::string> tags = {{1, "soma"}, {2, "axon"}, {3, "dend"}, {4, "apic"}};
+};
+
 ARB_ARBORIO_API loaded_morphology load_swc_arbor(const swc_data& data);
 ARB_ARBORIO_API loaded_morphology load_swc_arbor(const std::filesystem::path& fn);
 
@@ -135,7 +148,7 @@ ARB_ARBORIO_API loaded_morphology load_swc_arbor(const std::filesystem::path& fn
 // Note that 'one-point soma' SWC files are supported here
 //
 // Complies inferred SWC rules from NEURON, explicitly listed in the docs.
-ARB_ARBORIO_API loaded_morphology load_swc_neuron(const swc_data& data);
-ARB_ARBORIO_API loaded_morphology load_swc_neuron(const std::filesystem::path& fn);
+ARB_ARBORIO_API loaded_morphology load_swc_neuron(const swc_data& data, const swc_loader_options& opts={});
+ARB_ARBORIO_API loaded_morphology load_swc_neuron(const std::filesystem::path& fn, const swc_loader_options& opts={});
 
 } // namespace arborio
