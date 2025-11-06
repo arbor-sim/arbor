@@ -16,7 +16,7 @@ using namespace arborio::literals;
 struct v_proc_recipe: public arb::recipe {
     v_proc_recipe(bool clamp, bool limit): limit{limit}, clamp{clamp} {
         gprop.default_parameters = arb::neuron_parameter_defaults;
-        gprop.default_parameters.discretization = arb::cv_policy_max_extent(1.0);
+        gprop.default_parameters.discretization = arb::cv_policy_max_extent(1.0 * arb::units::um);
     }
 
     arb::cell_size_type num_cells() const override { return 1; }
@@ -226,7 +226,7 @@ TEST(v_process, clamp_fine) {
         }
     };
     auto rec = v_proc_recipe{true, false};
-    rec.gprop.default_parameters.discretization = arb::cv_policy_max_extent(0.5);
+    rec.gprop.default_parameters.discretization = arb::cv_policy_max_extent(0.5 * arb::units::um);
     auto sim = arb::simulation(rec);
     sim.add_sampler(arb::all_probes, arb::regular_schedule(0.05*arb::units::ms), fun);
     sim.run(1.0*arb::units::ms, 0.005*arb::units::ms);

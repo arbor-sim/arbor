@@ -111,7 +111,7 @@ arb::cv_policy make_cv_policy_fixed_per_branch(unsigned cv_per_branch, const std
     return arb::cv_policy_fixed_per_branch(cv_per_branch, arborio::parse_region_expression(reg).unwrap());
 }
 
-arb::cv_policy make_cv_policy_max_extent(double cv_length, const std::string& reg) {
+arb::cv_policy make_cv_policy_max_extent(const arb::units::quantity& cv_length, const std::string& reg) {
     return arb::cv_policy_max_extent(cv_length, arborio::parse_region_expression(reg).unwrap());
 }
 
@@ -324,6 +324,14 @@ void register_cells(py::module& m) {
             ss << p;
             return ss.str();
         })
+        .def("boundary_points",
+             [] (const arb::cv_policy& cvp,
+                 const arb::cable_cell& cell) {
+                 const auto ls = cvp.cv_boundary_points(cell);
+                 return thingify(ls, cell.provider());
+             },
+             "cell"_a, "cable cell to compute CVs for.",
+             "Compute CV boundaries for cable cell")
         .def("__str__", [](const arb::cv_policy& p) {
             std::stringstream ss;
             ss << p;
@@ -360,6 +368,14 @@ void register_cells(py::module& m) {
 
     // arb::cell_cv_data
     cell_cv_data
+        .def(py::init([](const arb::cable_cell& cell) {
+            if (auto cvd = arb::cv_data(cell); cvd) {
+                return std::move(*cvd);
+            }
+            else {
+                throw std::runtime_error("Could not construct cell_cv_data.");
+            } 
+        }))
         .def_property_readonly("num_cv", [](const arb::cell_cv_data& data){return data.size();},
                                "Return the number of CVs in the cell.")
         .def("cables",

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "arbor/units.hpp"
 #include <memory>
 #include <utility>
 
@@ -130,8 +131,8 @@ ARB_ARBOR_API cv_policy operator|(const cv_policy&, const cv_policy&);
 
 ARB_ARBOR_API cv_policy cv_policy_explicit(locset, region = reg::all());
 
-ARB_ARBOR_API cv_policy cv_policy_max_extent(double, region, cv_policy_flag = cv_policy_flag::none);
-ARB_ARBOR_API cv_policy cv_policy_max_extent(double, cv_policy_flag = cv_policy_flag::none);
+ARB_ARBOR_API cv_policy cv_policy_max_extent(const units::quantity& len, region, cv_policy_flag = cv_policy_flag::none);
+ARB_ARBOR_API cv_policy cv_policy_max_extent(const units::quantity& len, cv_policy_flag = cv_policy_flag::none);
 
 ARB_ARBOR_API cv_policy cv_policy_fixed_per_branch(unsigned, region, cv_policy_flag = cv_policy_flag::none);
 ARB_ARBOR_API cv_policy cv_policy_fixed_per_branch(unsigned, cv_policy_flag = cv_policy_flag::none);

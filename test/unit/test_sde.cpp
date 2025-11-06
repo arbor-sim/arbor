@@ -260,7 +260,7 @@ public:
             segment_tree tree;
             tree.append(mnpos, {i*20., 0, 0.0, 4.0}, {i*20., 0, n1*cv_size, 4.0}, 1);
             tree.append(0, {i*20., 0, ncvs*cv_size, 4.0}, 2);
-            cells_.push_back(cable_cell(morphology(tree), dec, {}, cv_policy_max_extent(cv_size)));
+            cells_.push_back(cable_cell(morphology(tree), dec, {}, cv_policy_max_extent(cv_size * arb::units::um)));
         }
     }
 
@@ -340,7 +340,7 @@ public:
             segment_tree tree;
             tree.append(mnpos, {i*20., 0, 0.0, 4.0}, {i*20., 0, n1*cv_size, 4.0}, 1);
             tree.append(0, {i*20., 0, ncvs*cv_size, 4.0}, 2);
-            cells_.push_back(cable_cell(morphology(tree), dec, labels, cv_policy_max_extent(cv_size)));
+            cells_.push_back(cable_cell(morphology(tree), dec, labels, cv_policy_max_extent(cv_size * arb::units::um)));
         }
     }
 
@@ -972,7 +972,7 @@ public:
             segment_tree tree;
             tree.append(mnpos, {i*20., 0, 0.0, 4.0}, {i*20., 0, n1*cv_size, 4.0}, 1);
             tree.append(0, {i*20., 0, ncvs*cv_size, 4.0}, 2);
-            cells_.push_back(cable_cell(morphology(tree), dec, labels, cv_policy_max_extent(cv_size)));
+            cells_.push_back(cable_cell(morphology(tree), dec, labels, cv_policy_max_extent(cv_size * arb::units::um)));
         }
     }
 
