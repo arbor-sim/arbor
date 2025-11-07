@@ -12,7 +12,7 @@ set(arborio-sources
 
 add_library(arborio ${arborio-sources})
 
-target_link_libraries(arborio PUBLIC ext-pugixml)
+target_link_libraries(arborio PUBLIC ext-pugixml ext-json)
 add_library(arborio-public-headers INTERFACE)
 add_library(arborio-private-headers INTERFACE)
 
@@ -24,7 +24,7 @@ target_include_directories(arborio-public-headers INTERFACE
 target_include_directories(arborio-private-headers INTERFACE
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
 
-target_link_libraries(arborio PUBLIC arbor arborio-public-headers nlohmann_json::nlohmann_json)
+target_link_libraries(arborio PUBLIC arbor arborio-public-headers)
 list(APPEND arbor_supported_components "neuroml")
 set(arbor_supported_components "${arbor_supported_components}" PARENT_SCOPE)
 

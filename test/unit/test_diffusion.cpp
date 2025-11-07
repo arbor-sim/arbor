@@ -138,22 +138,22 @@ TEST(diffusion, errors) {
     {
         // Cannot R/W Xd w/o setting diffusivity
         auto rec = linear{30, 3, 1}.add_decay();
-        ASSERT_THROW(run(rec, {}), illegal_diffusive_mechanism);
+        ASSERT_THROW((void)run(rec, {}), illegal_diffusive_mechanism);
     }
     {
         // Cannot R/W Xd w/o setting diffusivity
         auto rec = linear{30, 3, 1}.add_inject();
-        ASSERT_THROW(run(rec, {}), illegal_diffusive_mechanism);
+        ASSERT_THROW((void)run(rec, {}), illegal_diffusive_mechanism);
     }
     {
         // No negative diffusivity
         auto rec = linear{30, 3, 1}.set_diffusivity(-42.0, "(all)"_reg);
-        ASSERT_THROW(run(rec, {}), cable_cell_error);
+        ASSERT_THROW((void)run(rec, {}), cable_cell_error);
     }
     {
         // No negative diffusivity
         auto rec = linear{30, 3, 1}.set_diffusivity(-42.0);
-        ASSERT_THROW(run(rec, {}), cable_cell_error);
+        ASSERT_THROW((void)run(rec, {}), cable_cell_error);
     }
 }
 
@@ -368,19 +368,19 @@ TEST(diffusion, elided_arrays) {
     // NOTE: We are still, strictly speaking, failing this test since we don't
     //       get the expected values. However, as we are just checking that we
     //       can still probe elided arrary, that's OK.
-    EXPECT_NO_THROW(run(rec, exp, "nai"));
-    EXPECT_NO_THROW(run(rec, exp, "nao"));
-    EXPECT_NO_THROW(run(rec, exp, "nad"));
-    EXPECT_NO_THROW(run(rec, exp, "cnai"));
-    EXPECT_NO_THROW(run(rec, exp, "cnao"));
-    EXPECT_NO_THROW(run(rec, exp, "cnad"));
+    EXPECT_NO_THROW((void)run(rec, exp, "nai"));
+    EXPECT_NO_THROW((void)run(rec, exp, "nao"));
+    EXPECT_NO_THROW((void)run(rec, exp, "nad"));
+    EXPECT_NO_THROW((void)run(rec, exp, "cnai"));
+    EXPECT_NO_THROW((void)run(rec, exp, "cnao"));
+    EXPECT_NO_THROW((void)run(rec, exp, "cnad"));
 
     rec.set_diffusivity(1.0);
-    EXPECT_NO_THROW(run(rec, exp, "nai"));
-    EXPECT_NO_THROW(run(rec, exp, "nao"));
-    EXPECT_NO_THROW(run(rec, exp, "nad"));
-    EXPECT_NO_THROW(run(rec, exp, "cnai"));
-    EXPECT_NO_THROW(run(rec, exp, "cnao"));
-    EXPECT_NO_THROW(run(rec, exp, "cnad"));
+    EXPECT_NO_THROW((void)run(rec, exp, "nai"));
+    EXPECT_NO_THROW((void)run(rec, exp, "nao"));
+    EXPECT_NO_THROW((void)run(rec, exp, "nad"));
+    EXPECT_NO_THROW((void)run(rec, exp, "cnai"));
+    EXPECT_NO_THROW((void)run(rec, exp, "cnao"));
+    EXPECT_NO_THROW((void)run(rec, exp, "cnad"));
 
 }

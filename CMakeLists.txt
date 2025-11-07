@@ -302,17 +302,22 @@ else()
 endif()
 install(TARGETS ext-hwloc EXPORT arbor-targets)
 
-CPMFindPackage(NAME json
-              GITHUB_REPOSITORY nlohmann/json
-              VERSION 3.12.0
-              OPTIONS "CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON")
-install(TARGETS nlohmann_json EXPORT arbor-targets)
+CPMFindPackage(NAME nlohmann_json
+               GITHUB_REPOSITORY nlohmann/json
+               VERSION 3.12.0)
+add_library(ext-json INTERFACE)
+target_link_libraries(ext-json INTERFACE nlohmann_json::nlohmann_json)
+install(TARGETS ext-json EXPORT arbor-targets)
+if(nlohmann_json_ADDED)
+    install(TARGETS nlohmann_json EXPORT arbor-targets)
+endif()
+
 
 add_library(ext-random123 INTERFACE)
 CPMFindPackage(NAME random123
-              DOWNLOAD_ONLY YES
-              GITHUB_REPOSITORY DEShawResearch/random123
-              VERSION 1.14.0)
+               DOWNLOAD_ONLY YES
+               GITHUB_REPOSITORY DEShawResearch/random123
+               VERSION 1.14.0)
 if(random123_ADDED)
     target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${random123_SOURCE_DIR}/include>)
 else()
@@ -322,17 +327,17 @@ install(TARGETS ext-random123 EXPORT arbor-targets)
 
 if (ARB_WITH_PYTHON)
     CPMFindPackage(NAME pybind11
-                  GITHUB_REPOSITORY pybind/pybind11
-                  VERSION 3.0.0
-                  OPTIONS "PYBIND11_CPP_STANDARD -std=c++20")
+                   GITHUB_REPOSITORY pybind/pybind11
+                   VERSION 3.0.0
+                   OPTIONS "PYBIND11_CPP_STANDARD -std=c++20")
     # required for find_python_module
     include(FindPythonModule)
 endif()
 
 CPMFindPackage(NAME pugixml
-              GITHUB_REPOSITORY zeux/pugixml
-              VERSION 1.13
-              DOWNLOAD_ONLY YES)
+               GITHUB_REPOSITORY zeux/pugixml
+               VERSION 1.13
+               DOWNLOAD_ONLY YES)
 add_library(ext-pugixml INTERFACE)
 if(pugixml_ADDED)
     target_compile_definitions(ext-pugixml INTERFACE PUGIXML_HEADER_ONLY)
@@ -357,8 +362,7 @@ if (BUILD_TESTING)
                   OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "CMAKE_BUILD_TYPE release" "BUILD_SHARED_LIBS OFF")
     CPMFindPackage(NAME googletest
                   GITHUB_REPOSITORY google/googletest
-                  GIT_TAG release-1.12.1
-                  VERSION 1.12.1
+                  VERSION 1.17.0
                   OPTIONS "INSTALL_GTEST OFF" "BUILD_GMOCK OFF")
     if(benchmark_ADDED)
         target_link_libraries(ext-bench INTERFACE benchmark)
