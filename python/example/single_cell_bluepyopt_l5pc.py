@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import arbor as A
+from arbor import units as U
 import pandas
 import seaborn
 import sys
@@ -28,20 +29,22 @@ labels["dend1"] = (
 
 # (3) Define stimulus and spike detector, adjust discretization
 decor.place(
-    '"soma_center"', A.iclamp(tstart=295, duration=5, current=1.9), "soma_iclamp"
+    '"soma_center"',
+    A.iclamp(tstart=295 * U.ms, duration=5 * U.ms, current=1.9 * U.nA),
+    "soma_iclamp",
 )
 
 # Add spike detector
-decor.place('"soma_center"', A.threshold_detector(-10), "detector")
+decor.place('"soma_center"', A.threshold_detector(-10 * U.mV), "detector")
 
 # Adjust discretization (single CV on soma, default everywhere else)
-cvp = A.cv_policy_max_extent(1.0) | A.cv_policy_single('"soma"')
+cvp = A.cv_policy_max_extent(1.0 * U.um) | A.cv_policy_single('"soma"')
 
 # (4) Create the cell.
 cell = A.cable_cell(morpho, decor, labels, cvp)
 
 # (5) Declare a probe.
-probe = A.cable_probe_membrane_voltage('"dend1"')
+probe = A.cable_probe_membrane_voltage('"dend1"', tag="Um")
 
 
 # (6) Create a class that inherits from A.recipe
@@ -92,11 +95,11 @@ sim = A.simulation(recipe)
 # Instruct the simulation to record the spikes and sample the probe
 sim.record(A.spike_recording.all)
 
-probe_id = A.cell_member(0, 0)
-handle = sim.sample(probe_id, A.regular_schedule(0.02))
+probe_id = A.cell_member(0, "Um")
+handle = sim.sample(probe_id, A.regular_schedule(0.02 * U.ms))
 
 # (8) Run the simulation
-sim.run(tfinal=600, dt=0.025)
+sim.run(tfinal=600 * U.ms, dt=0.025 * U.ms)
 
 # (9) Print or display the results
 spikes = sim.spikes()

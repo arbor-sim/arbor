@@ -33,7 +33,7 @@ class TwoCellsWithGapJunction(A.recipe):
         self.rL = rL * U.Ohm * U.cm
         self.g = g * U.S / U.cm2
         self.gj_g = gj_g * U.uS
-        self.max_extent = max_extent
+        self.max_extent = max_extent * U.um
         self.the_props = A.neuron_cable_properties()
 
     def num_cells(self):
