@@ -210,6 +210,21 @@ struct ARB_SYMBOL_VISIBLE cable_probe_ion_ext_concentration_cell {
     std::string ion;
 };
 
+// Ion reversal potential [mV] at `location`.
+// Sample value type: `double`
+// Sample metadata type: `mlocation`
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_reversal_potential {
+    locset locations;
+    std::string ion;
+};
+
+// Ion reversal potential [mV] across components of the cell
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mcable_list`
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_reversal_potential_cell {
+    std::string ion;
+};
+
 // Forward declare the implementation, for PIMPL.
 struct cable_cell_impl;
 
