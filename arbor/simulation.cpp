@@ -40,9 +40,11 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
                                        [](auto const& l, auto r) noexcept { return l.time < r; });
     PL(setup);
 
+    PE(reserve);
     std::size_t n_evts = old_events.size() + pending.size();
     std::vector<event_span> spanbuf;
     spanbuf.reserve(2 + generators.size());
+    PL(reserve);
 
     // fetch generator events
     PE(generators);
@@ -55,8 +57,10 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
     }
     PL(generators);
 
+    PE(push_back);
     spanbuf.push_back(pending);
     spanbuf.push_back(old_events);
+    PL(push_back);
 
     // merge all event source in to new events
     PE(tree);
@@ -481,7 +485,9 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
                                   event_generators_[i],
                                   event_lanes(next.id)[i]);                              // out: merged events
                 PL(merge_cell_events);
+                PE(clear);
                 pending_events_[i].clear();
+                PL(clear);
                 PL(enqueue);
             });
     };
