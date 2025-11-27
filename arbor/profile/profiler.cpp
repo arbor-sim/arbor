@@ -516,9 +516,10 @@ ARB_ARBOR_API const timer_stack& get_current_timer_stack() {
 ARB_ARBOR_API void profiler_clear() {}
 ARB_ARBOR_API void profiler_leave() {}
 ARB_ARBOR_API void profiler_enter(region_id_type) {}
-ARB_ARBOR_API void thread_started() {}
-ARB_ARBOR_API void thread_stopped() {}
-ARB_ARBOR_API const timer_stack& get_current_timer_stack() { return {}; }
+ARB_ARBOR_API void thread_started(const timer_stack& timer_stack) {}
+ARB_ARBOR_API void thread_stopped(const timer_stack& timer_stack) {}
+timer_stack empty_timer_stack{};
+ARB_ARBOR_API const timer_stack& get_current_timer_stack() { return empty_timer_stack; }
 ARB_ARBOR_API profile profiler_summary();
 ARB_ARBOR_API profile profiler_summary() {return profile();}
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string&) {return 0;}
