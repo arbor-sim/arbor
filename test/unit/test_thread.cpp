@@ -127,8 +127,8 @@ TEST(task_group, test_copy) {
         g.run(f);
         g.wait();
 
-        // Copy into "wrap" and move wrap into a task (std::function<void()>)
-        EXPECT_EQ(1, nmove);
+        // Copy into "wrap", move wrap into a task (std::function<void()>), move into exception wrapper, and move into timer wrapper
+        EXPECT_EQ(3, nmove);
         EXPECT_EQ(1, ncopy);
         reset();
     }
@@ -143,8 +143,8 @@ TEST(task_group, test_move) {
         g.run(std::move(f));
         g.wait();
 
-        // Move into wrap and move wrap into a task (std::function<void()>)
-        EXPECT_LE(nmove, 2);
+        // Move into wrap, move wrap into a task (std::function<void()>), move into exception wrapper, and move into timer wrapper
+        EXPECT_LE(nmove, 4);
         EXPECT_LE(ncopy, 1);
         reset();
     }
