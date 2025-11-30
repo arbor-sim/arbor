@@ -619,19 +619,38 @@ basic checks performed on them. The :cpp:type:`swc_data` object can then be used
 
       Stored the list of samples from an SWC file, after performing some checks.
 
-.. cpp:function:: swc_data parse_swc(std::istream&)
+.. cpp:function:: swc_data parse_swc(std::istream&, bool lax_ordering=false)
 
-   Returns an :cpp:type:`swc_data` object given an std::istream object.
+   Returns an :cpp:type:`swc_data` object given an std::istream object. If
+   ``lax_ordering`` is ``true`` data is allowed to be presented out of order
+   and will be passed to a topological sort before further processing.
 
 .. cpp:function:: morphology load_swc_arbor(const swc_data& data)
 
    Returns a :cpp:type:`morphology` constructed according to Arbor's
    :ref:`SWC specifications <formatswc-arbor>`.
 
-.. cpp:function:: morphology load_swc_neuron(const swc_data& data)
+.. cpp:class:: swc_loader_options
+
+  Customisation options for ``swc_load_neuron``
+
+  .. cpp:member:: bool allow_non_monotonic_ids = false
+
+    Allow skips in parent/child relations, result in parsing with ``lax_ordering=true``.
+
+  .. cpp:member:: bool allow_mismatched_tags = false
+
+    Disable the assertion that children have the same tag as their parent **or**
+    their parent is tagged as soma.
+
+  .. cpp:member:: std::map<int, std::string> tags = {{1, "soma"}, {2, "axon"}, {3, "dend"}, {4, "apic"}}
+
+    Addmissable tags, will be added to the metadata.
+
+.. cpp:function:: morphology load_swc_neuron(const swc_data& data, const swc_loader_options& = {})
 
    Returns a :cpp:type:`morphology` constructed according to NEURON's
-   :ref:`SWC specifications <formatswc-neuron>`.
+   :ref:`SWC specifications <formatswc-neuron>`
 
 .. cpp:function:: morphology load_swc_arbor(const std::filesystem::path& data)
 
