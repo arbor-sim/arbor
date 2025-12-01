@@ -1,5 +1,5 @@
 Build option/target,Tool name,Minimum version,Notes,Update criteria
---,CMake,3.19,,"* Is available as a module on HPC systems
+--,CMake,3.25,,"* Is available as a module on HPC systems
 * When arbitrary changes in more recently released versions make supported"
 --,C++ compiler,,C++17 support. See below,
 --,GCC,12.0.0,,"* it is supported by the minimum version of CUDA.
