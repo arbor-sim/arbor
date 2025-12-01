@@ -125,6 +125,9 @@ public:
         name_index_.clear();
         region_names_.clear();
     }
+
+  private:
+    timer_stack empty_stack{};
 };
 
 
@@ -364,14 +367,17 @@ const std::vector<std::string>& profiler::regions() const {
 }
 
 void profiler::thread_started(const timer_stack& timer_stack) {
+  if(!init_) return;
     recorders_[thread_ids_.at(std::this_thread::get_id())].thread_started(timer_stack);
 }
 
 void profiler::thread_stopped(const timer_stack& _timer_stack) {
+  if(!init_) return;
   recorders_[thread_ids_.at(std::this_thread::get_id())].thread_stopped(_timer_stack);
 }
 
 const timer_stack& profiler::get_current_timer_stack() {
+  if (!init_) return empty_stack;
     return recorders_[thread_ids_.at(std::this_thread::get_id())].get_timer_stack();
 }
 
