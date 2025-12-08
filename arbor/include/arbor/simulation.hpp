@@ -22,21 +22,21 @@ namespace arb {
 
 using spike_export_function = std::function<void(const std::vector<spike>&)>;
 using epoch_function = std::function<void(double time, double tfinal)>;
+using balancer_function = std::function<domain_decomposition_ptr(const recipe&, context)>;
 
 // simulation_state comprises private implementation for simulation class.
-class simulation_state;
+struct simulation_state;
 
 class simulation_builder;
 
-class ARB_ARBOR_API simulation {
-public:
-    simulation(const recipe& rec, context ctx, const domain_decomposition& decomp,
+struct ARB_ARBOR_API simulation {
+    simulation(const recipe& rec, context ctx,
+               const domain_decomposition_ptr decomp,
                arb_seed_type seed = 0);
 
     simulation(const recipe& rec,
                context ctx = make_context(),
-               std::function<domain_decomposition(const recipe&, context)> balancer = 
-                   [](auto& r, auto c) { return partition_load_balance(r, c); },
+               balancer_function balancer = [](auto& r, auto c) { return partition_load_balance(r, c); },
                arb_seed_type seed = 0):
         simulation(rec, ctx, balancer(rec, ctx)) {}
 
@@ -116,13 +116,12 @@ public:
         return *this;
     }
 
-    simulation_builder& set_decomposition(domain_decomposition decomp) noexcept {
-        balancer_ = [decomp = std::move(decomp)](const recipe&, context) {return decomp; };
+    simulation_builder& set_decomposition(domain_decomposition_ptr decomp) noexcept {
+        balancer_ = [decomp](const recipe&, context) {return decomp; };
         return *this;
     }
 
-    simulation_builder& set_balancer(
-        std::function<domain_decomposition(const recipe&, context)> balancer) noexcept {
+    simulation_builder& set_balancer(balancer_function balancer) noexcept {
         balancer_ = std::move(balancer);
         return *this;
     }
@@ -151,14 +150,14 @@ private:
             build(ctx, partition_load_balance(rec_, ctx));
     }
 
-    simulation build(context ctx, domain_decomposition const& decomp) const {
+    simulation build(context ctx, const domain_decomposition_ptr decomp) const {
         return simulation(rec_, ctx, decomp, seed_);
     }
 
 private:
     const recipe& rec_;
     context ctx_;
-    std::function<domain_decomposition(const recipe&, context)> balancer_;
+    balancer_function balancer_;
     arb_seed_type seed_ = 0u;
 };
 

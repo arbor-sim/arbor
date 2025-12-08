@@ -26,10 +26,10 @@
 
 namespace arb {
 
-communicator::communicator(const recipe& rec, const domain_decomposition& dom_dec, context ctx):
+communicator::communicator(const recipe& rec, const domain_decomposition_ptr dom_dec, context ctx):
     num_total_cells_{rec.num_cells()},
-    num_local_cells_{dom_dec.num_local_cells()},
-    num_local_groups_{dom_dec.num_groups()},
+    num_local_cells_{dom_dec->num_local_cells()},
+    num_local_groups_{dom_dec->num_groups()},
     num_domains_{(cell_size_type)ctx->distributed->size()},
     ctx_(std::move(ctx)) {}
 
@@ -56,12 +56,12 @@ cell_member_type global_cell_of(const cell_member_type& c) {
 }
 
 inline
-void reset_index(const domain_decomposition& dom_dec,
+void reset_index(const domain_decomposition_ptr dom_dec,
                  std::vector<cell_size_type>& divs,
                  util::partition_view_type<std::vector<cell_size_type>>& part) {
     divs.clear();
     part = util::make_partition(divs,
-                                util::transform_view(dom_dec.groups(),
+                                util::transform_view(dom_dec->groups(),
                                                      [](const group_description& g){
                                                          return g.gids.size();
                                                      }));
@@ -77,7 +77,7 @@ void reset_partition(const std::vector<std::vector<connection>>& connss,
 
 void make_remote_connections(const std::vector<cell_gid_type>& gids,
                              const recipe& rec,
-                             const domain_decomposition& dom_dec,
+                             const domain_decomposition_ptr dom_dec,
                              resolver& target_resolver,
                              resolver& source_resolver,
                              communicator::connection_list& out) {
@@ -86,7 +86,7 @@ void make_remote_connections(const std::vector<cell_gid_type>& gids,
     std::size_t n_ext = 0;
     target_resolver.clear();
     for (auto tgt_gid: gids) {
-        const auto iod = dom_dec.index_on_domain(tgt_gid);
+        const auto iod = dom_dec->index_on_domain(tgt_gid);
         source_resolver.clear();
         for (const auto& conn: rec.external_connections_on(tgt_gid)) {
             auto src = global_cell_of(conn.source);
@@ -111,14 +111,14 @@ void make_remote_connections(const std::vector<cell_gid_type>& gids,
 }
 
 void communicator::update_connections(const recipe& rec,
-                                      const domain_decomposition& dom_dec,
+                                      const domain_decomposition_ptr dom_dec,
                                       const label_resolution_map& source_resolution_map,
                                       const label_resolution_map& target_resolution_map) {
     // Record all the gids in a flat vector.
     PE(init:communicator:update:collect_gids);
     std::vector<cell_gid_type> gids;
     gids.reserve(num_local_cells_);
-    for (const auto& g: dom_dec.groups()) util::append(gids, g.gids);
+    for (const auto& g: dom_dec->groups()) util::append(gids, g.gids);
     PL();
 
     // Prepare resolvers
@@ -169,7 +169,7 @@ void communicator::update_connections(const recipe& rec,
             // targets always get resolution
             auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
             // NOTE old compilers stumble over emplace_back here
-            auto src_dom = dom_dec.gid_domain(src_gid);
+            auto src_dom = dom_dec->gid_domain(src_gid);
             connections_by_src_domain[src_dom].emplace_back(
                 connection{
                 .source={.gid=src_gid, .index=src_lid},
@@ -185,7 +185,7 @@ void communicator::update_connections(const recipe& rec,
     target_resolver.clear();
     bool resolution_enabled = rec.resolve_sources();
     for (const auto tgt_gid: gids) {
-        auto tgt_iod = dom_dec.index_on_domain(tgt_gid);
+        auto tgt_iod = dom_dec->index_on_domain(tgt_gid);
         source_resolver.clear();
         for (const auto& conn: rec.connections_on(tgt_gid)) {
             if (!resolution_enabled) throw resolution_disabled{tgt_gid};
@@ -197,7 +197,7 @@ void communicator::update_connections(const recipe& rec,
 
     PE(init:communicator:update:connections:raw);
     for (const auto tgt_gid: gids) {
-        auto tgt_iod = dom_dec.index_on_domain(tgt_gid);
+        auto tgt_iod = dom_dec->index_on_domain(tgt_gid);
         for (const auto& conn: rec.raw_connections_on(tgt_gid)) {
             push_connection(conn, tgt_gid, tgt_iod);
             ++n_con;
@@ -212,7 +212,7 @@ void communicator::update_connections(const recipe& rec,
         auto src_gid = conn.source.gid;
         // NOTE: a bit awkward, as we don't have the tgt_gid.
         if (src_gid >= num_total_cells_) throw arb::bad_connection_source_gid(-1, src_gid, num_total_cells_);
-        auto src_dom = dom_dec.gid_domain(src_gid);
+        auto src_dom = dom_dec->gid_domain(src_gid);
         connections_by_src_domain[src_dom].push_back(conn);
         gids_domains[src_dom].push_back(conn.source);
         ++n_con;

@@ -351,6 +351,25 @@ Ionic diffusion concrentration
 
    **Metadata**: the list of corresponding :class:`cable` objects.
 
+Reversal potential
+^^^^^^^^^^^^^^^^^^
+
+   .. py:function:: cable_probe_ion_reversal_potential_cell(ion, tag)
+
+   Reversal potential of the given ``ion`` for each cable in each CV.
+
+   **Metadata**: the explicit :class:`location` of the sample site.
+
+   **Kind**: :term:`vector probe`.
+
+   .. py:function:: cable_probe_ion_reversal_potential(where, ion, tag)
+
+   Reversal potential of the given ``ion`` at the sites specified by the
+   location expression string ``where``.
+
+   **Metadata**: the list of corresponding :class:`cable` objects.
+
+
 .. _pycablecell-probesample-lif:
 
 LIF Cell probing
