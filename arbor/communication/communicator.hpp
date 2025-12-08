@@ -140,9 +140,6 @@ private:
     cell_size_type num_local_cells_ = 0;
     cell_size_type num_local_groups_ = 0;
     cell_size_type num_domains_ = 0;
-    std::uint64_t num_spikes_ = 0u;
-    std::uint64_t num_local_events_ = 0u;
-    context ctx_;
     spike_predicate remote_spike_filter_;
 
     // partition of connections over the domains of the sources' ids.
