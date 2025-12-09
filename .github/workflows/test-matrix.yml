@@ -38,7 +38,7 @@ jobs:
           }
         - {
             name:  "MacOS Min",
-            os:    "macos-13",
+            os:    "macos-14",
             cc:    "clang",
             cxx:   "clang++",
             py:    "3.10",
@@ -78,7 +78,7 @@ jobs:
           }
         - {
             name:  "MacOS Max",
-            os:    "macos-14",
+            os:    "macos-15",
             cc:    "clang",
             cxx:   "clang++",
             py:    "3.13",
