@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.25)
 include(CMakeDependentOption)
 include(CheckIPOSupported)
 
@@ -449,6 +449,13 @@ else()
     set_arch_target(ARB_CXXOPT_ARCH_CPU ARB_CXXOPT_ARCH ${ARB_ARCH})
     set(ARB_CXX_FLAGS_TARGET_FULL ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH})
     set(ARB_CXX_FLAGS_TARGET_FULL_CPU ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH_CPU})
+endif()
+
+try_compile(arb_can_compile_cxx
+            SOURCES ${PROJECT_SOURCE_DIR}/cmake/dummy.cpp
+            COMPILE_DEFINITIONS ${ARB_CXX_FLAGS_TARGET_FULL_CPU})
+if(NOT arb_can_compile_cxx)
+  message(FATAL_ERROR "Cannot compile a trivial CXX program using the final compiler flags: ${ARB_CXX_FLAGS_TARGET_FULL_CPU}")
 endif()
 
 # Add SVE compiler flags if detected/desired
