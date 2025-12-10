@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <iostream>
 #include <optional>
+#include <vector>
 
 #include <tinyopt/tinyopt.h>
 
