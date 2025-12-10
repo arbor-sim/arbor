@@ -60,7 +60,7 @@ class TwoCellsWithGapJunction(A.recipe):
         )
 
         if self.max_extent is not None:
-            cvp = A.cv_policy_max_extent(self.max_extent)
+            cvp = A.cv_policy_max_extent(self.max_extent * U.um)
         else:
             cvp = A.cv_policy_single()
 

@@ -94,8 +94,8 @@ TEST(cv_policy, empty_morphology) {
     cv_policy policies[] = {
         cv_policy_fixed_per_branch(3),
         cv_policy_fixed_per_branch(3, interior_forks),
-        cv_policy_max_extent(0.234),
-        cv_policy_max_extent(0.234, interior_forks),
+        cv_policy_max_extent(0.234 * arb::units::um),
+        cv_policy_max_extent(0.234 * arb::units::um, interior_forks),
         cv_policy_single(),
         cv_policy_single(reg::all()),
         cv_policy_explicit(ls::location(0, 0))
@@ -205,26 +205,26 @@ TEST(cv_policy, max_extent) {
         {
             // Extent of 0.25 should give exact fp calculation, giving
             // 4 CVs on the root branch.
-            cv_policy pol = cv_policy_max_extent(0.25);
+            cv_policy pol = cv_policy_max_extent(0.25 * arb::units::um);
             locset expected = as_locset(L{0, 0}, L{0, 0.25}, L{0, 0.5}, L{0, 0.75}, L{0, 1});
             EXPECT_TRUE(locset_eq(cell.provider(), expected, pol.cv_boundary_points(cell)));
         }
         {
             // Same, but applied to cable (0, 0.25, 0.75) should give 2 Cvs.
-            cv_policy pol = cv_policy_max_extent(0.25, reg::cable(0, 0.25, 0.75));
+            cv_policy pol = cv_policy_max_extent(0.25 * arb::units::um, reg::cable(0, 0.25, 0.75));
             locset expected = as_locset(L{0, 0.25}, L{0, 0.5}, L{0, 0.75});
             EXPECT_TRUE(locset_eq(cell.provider(), expected, pol.cv_boundary_points(cell)));
 
         }
         {
             // Interior forks:
-            cv_policy pol = cv_policy_max_extent(0.25, interior_forks);
+            cv_policy pol = cv_policy_max_extent(0.25 * arb::units::um, interior_forks);
             locset expected = as_locset(L{0, 0}, L{0, 0.125}, L{0, 0.375}, L{0, 0.625}, L{0, 0.875}, L{0, 1});
             EXPECT_TRUE(locset_eq(cell.provider(), expected, pol.cv_boundary_points(cell)));
         }
         {
             // Interior forks but restricted to sub-cable.
-            cv_policy pol = cv_policy_max_extent(0.25, reg::cable(0, 0.25, 0.75), interior_forks);
+            cv_policy pol = cv_policy_max_extent(0.25 * arb::units::um, reg::cable(0, 0.25, 0.75), interior_forks);
             locset expected = as_locset(L{0, 0.25}, L{0, 0.375}, L{0, 0.625}, L{0, 0.75});
             EXPECT_TRUE(locset_eq(cell.provider(), expected, pol.cv_boundary_points(cell)));
 
@@ -244,7 +244,7 @@ TEST(cv_policy, max_extent) {
         {
             // Max extent of 0.6 should give two CVs on branches of length 1,
             // four CVs on branches of length 2, and seven CVs on the branch of length 4.
-            cv_policy pol = cv_policy_max_extent(0.6);
+            cv_policy pol = cv_policy_max_extent(0.6 * arb::units::um);
             mlocation_list points = thingify(pol.cv_boundary_points(cell), cell.provider());
 
             mlocation_list points_b012 = util::assign_from(util::filter(points, [](mlocation l) { return l.branch<3; }));
@@ -321,8 +321,8 @@ TEST(cv_policy, domain) {
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_single(reg1).domain()));
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_fixed_per_branch(3, reg1).domain()));
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_fixed_per_branch(3, reg1, interior_forks).domain()));
-    EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_max_extent(3, reg1).domain()));
-    EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_max_extent(3, reg1, interior_forks).domain()));
+    EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_max_extent(3 * arb::units::um, reg1).domain()));
+    EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_max_extent(3 * arb::units::um, reg1, interior_forks).domain()));
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_every_segment(reg1).domain()));
 
     EXPECT_TRUE(region_eq(cell.provider(), join(reg1, reg2), (cv_policy_single(reg1)+cv_policy_single(reg2)).domain()));

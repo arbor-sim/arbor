@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import arbor as A
+from arbor import units as U
 import pandas
 import seaborn
 import sys
@@ -24,14 +25,16 @@ labels["soma_center"] = "(location 0 0.5)"
 
 # (3) Define stimulus and spike detector, adjust discretization
 decor.place(
-    '"soma_center"', A.iclamp(tstart=100, duration=50, current=0.05), "soma_iclamp"
+    '"soma_center"',
+    A.iclamp(tstart=100 * U.ms, duration=50 * U.ms, current=0.05 * U.nA),
+    "soma_iclamp",
 )
 
 # Add spike detector
 decor.place('"soma_center"', A.threshold_detector(-10), "detector")
 
 # Adjust discretization (single CV on soma, default everywhere else)
-cvp = A.cv_policy_max_extent(1.0) | A.cv_policy_single('"soma"')
+cvp = A.cv_policy_max_extent(1.0 * U.um) | A.cv_policy_single('"soma"')
 
 # (4) Create the cell.
 cell = A.cable_cell(morpho, decor, labels, cvp)
@@ -45,10 +48,10 @@ m.properties.catalogue.extend(A.default_catalogue(), "default::")
 m.properties.catalogue.extend(A.bbp_catalogue(), "BBP::")
 
 # (6) Attach voltage probe that samples at 50 kHz.
-m.probe("voltage", where='"soma_center"', frequency=50)
+m.probe("voltage", where='"soma_center"', tag="Um", frequency=50 * U.kHz)
 
 # (7) Simulate the cell for 200 ms.
-m.run(tfinal=200)
+m.run(tfinal=200 * U.ms)
 print("Simulation done.")
 
 # (8) Print spike times.

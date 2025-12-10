@@ -120,12 +120,16 @@ struct cvp_cv_policy_max_extent {
     region domain() const { return domain_; }
 };
 
-ARB_ARBOR_API cv_policy cv_policy_max_extent(double ext, region reg, cv_policy_flag flag) {
-    return cv_policy{cvp_cv_policy_max_extent{ext, std::move(reg), flag}};
+ARB_ARBOR_API cv_policy cv_policy_max_extent(const units::quantity& ext, region reg, cv_policy_flag flag) {
+    auto ext_um = ext.value_as(units::um);
+    if (!std::isfinite(ext_um) || ext_um < 0) throw std::domain_error("Max extent requires a positive length.");
+    return cv_policy{cvp_cv_policy_max_extent{ext_um, std::move(reg), flag}};
 }
 
-ARB_ARBOR_API cv_policy cv_policy_max_extent(double ext, cv_policy_flag flag) {
-    return cv_policy{cvp_cv_policy_max_extent{ext, reg::all(), flag}};
+ARB_ARBOR_API cv_policy cv_policy_max_extent(const units::quantity& ext, cv_policy_flag flag) {
+    auto ext_um = ext.value_as(units::um);
+    if (!std::isfinite(ext_um) || ext_um < 0) throw std::domain_error("Max extent requires a positive length.");
+    return cv_policy{cvp_cv_policy_max_extent{ext_um, reg::all(), flag}};
 }
 
 struct cvp_cv_policy_explicit {
