@@ -54,7 +54,7 @@ public:
     /// Returns
     /// * full global set of vectors, along with meta data about their partition
     /// * a list of spikes received from remote simulations
-    spikes exchange(std::vector<spike> local_spikes);
+    spikes exchange(std::vector<spike>& local_spikes);
 
     /// Check each global spike in turn to see it generates local events.
     /// If so, make the events and insert them into the appropriate event list.
@@ -69,6 +69,7 @@ public:
     /// Returns the total number of global spikes over the duration of the simulation
     std::uint64_t num_spikes() const;
     void set_num_spikes(std::uint64_t n);
+    std::uint64_t num_local_spikes() const;
 
     cell_size_type num_local_cells() const;
 
@@ -77,7 +78,8 @@ public:
     // used for commmunicate to coupled simulations
     void remote_ctrl_send_continue(const epoch&);
     void remote_ctrl_send_done();
-
+    
+    
     void update_connections(const recipe& rec,
                             const domain_decomposition_ptr dom_dec,
                             const label_resolution_map& source_resolution_map,
@@ -138,9 +140,6 @@ private:
     cell_size_type num_local_cells_ = 0;
     cell_size_type num_local_groups_ = 0;
     cell_size_type num_domains_ = 0;
-    std::uint64_t num_spikes_ = 0u;
-    std::uint64_t num_local_events_ = 0u;
-    context ctx_;
     spike_predicate remote_spike_filter_;
 
     // partition of connections over the domains of the sources' ids.
@@ -151,9 +150,16 @@ private:
     // Arbor internal connections
     connection_list connections_;
 
+    // sources with connections to other ranks
+    std::unordered_map<cell_member_type, std::vector<cell_size_type>> src_ranks_;
+
     // Connections from external simulators into Arbor.
     // Currently we have no partitions/indices/acceleration structures
     connection_list ext_connections_;
+    std::uint64_t num_spikes_ = 0u;
+    std::uint64_t num_local_spikes_ = 0u;
+    std::uint64_t num_local_events_ = 0u;
+    context ctx_;
 };
 
 } // namespace arb

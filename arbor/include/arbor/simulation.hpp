@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <unordered_set>
 
 #include <arbor/export.hpp>
 #include <arbor/arb_types.hpp>

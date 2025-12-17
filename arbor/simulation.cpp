@@ -184,7 +184,7 @@ private:
 
     // Sampler associations handles are managed by a helper class.
     util::handle_set<sampler_association_handle> sassoc_handles_;
-
+    
     // Accessors to events
     std::vector<pse_vector>& event_lanes(std::ptrdiff_t epoch_id) { return event_lanes_[epoch_id&1]; }
     thread_private_spike_store& local_spikes(std::ptrdiff_t epoch_id) { return local_spikes_[epoch_id&1]; }
@@ -403,7 +403,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     // post-synaptic spike events to per-cell pending event vectors.
     auto exchange = [this](epoch prev) {
         // Collate locally generated spikes.
-        PE(communication:exchange:gatherlocal);
+        PE(communication:exchange:local_gather);
         auto all_local_spikes = local_spikes(prev.id).gather();
         PL();
         communicator_.remote_ctrl_send_continue(prev);
