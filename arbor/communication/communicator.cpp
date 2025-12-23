@@ -222,32 +222,6 @@ void communicator::update_connections(const recipe& rec,
     }
     PL(generated);
 
-    PE(sort_unique);
-    arb::threading::parallel_for::apply(0, gids_domains.size(), ctx_->thread_pool.get(),
-    [&](int i) {
-        auto& domain_gids = gids_domains[i];
-        std::sort(domain_gids.begin(), domain_gids.end());
-        domain_gids.erase(
-            std::unique(domain_gids.begin(), domain_gids.end()),
-            domain_gids.end()
-        );
-    });
-    PL(sort_unique);
-
-    PE(gids);
-        auto srcs_by_rank = ctx_->distributed->all_to_all_gids_domains(gids_domains);
-        const auto& part = srcs_by_rank.partition();
-        const auto& srcs = srcs_by_rank.values();
-        for (auto domain: util::make_span(0, num_domains_)) {
-            auto beg = part[domain];
-            auto end = part[domain + 1];
-            for (auto idx: util::make_span(beg, end)) {
-                const auto& src = srcs[idx];
-                src_ranks_[src].push_back(domain);
-            }
-        }
-    PL(gids);
-
     // Sort the connections for each domain; num_domains_ independent sorts
     // parallelized trivially.
     PE(sort);
@@ -330,6 +304,7 @@ communicator::exchange(std::vector<spike>& local_spikes) {
     util::sort_by(local_spikes, [](spike s){return s.source;});
     PL(sort);
 
+    PE(gather);
     PE(sum_spikes);
     num_local_spikes_ = ctx_->distributed->sum(local_spikes.size());
     num_spikes_ += num_local_spikes_;
