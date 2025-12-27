@@ -4,13 +4,15 @@
 #include <arbor/common_types.hpp>
 #include <arbor/schedule.hpp>
 
+#include "util/cbrng.hpp"
+
 namespace arb {
 
 // Schedule at Poisson point process with rate 1/mean_dt,
 // restricted to non-negative times.
 struct poisson_schedule_impl {
     poisson_schedule_impl(time_type tstart, time_type rate_kHz, seed_type seed, time_type tstop):
-        tstart_(tstart), rate_(rate_kHz), exp_(rate_kHz), rng_(seed), seed_(seed), next_(tstart), tstop_(tstop) {
+        tstart_(tstart), rate_(rate_kHz), rng_(seed), seed_(seed), next_(tstart), tstop_(tstop) {
         if (!std::isfinite(tstart_))  throw std::domain_error("Poisson schedule: start must be finite and in [ms]");
         if (!std::isfinite(tstop_))   throw std::domain_error("Poisson schedule: stop must be finite and in [ms]");
         if (!std::isfinite(rate_kHz)) throw std::domain_error("Poisson schedule: rate must be finite and in [kHz]");
@@ -20,9 +22,7 @@ struct poisson_schedule_impl {
     }
 
     void reset() {
-        rng_ = engine_type{seed_};
-        if (discard_ > 0) rng_.discard(discard_);
-        exp_ = std::exponential_distribution<time_type>{rate_};
+        rng_ = {seed_, discard_};
         next_ = tstart_;
         step();
     }
@@ -32,23 +32,27 @@ struct poisson_schedule_impl {
     time_event_span events(time_type t0, time_type t1) {
         // if we start after the maximal allowed time, we have nothing to do
         if (t0 >= tstop_) return {};
-
         // restrict by maximal allowed time
         t1 = std::min(t1, tstop_);
-
-        times_.clear();
-
+        // advance to start time
         while (next_ < t0) { step(); }
-
+        // record events in [t0, t1)
+        times_.clear();
         while (next_ < t1) {
             times_.push_back(next_);
             step();
         }
-
         return as_time_event_span(times_);
     }
 
-    void step() { next_ += exp_(rng_); }
+    // Leverage that for X ~ P(lambda) the interarrival times T = X_i+1 - X_i
+    // are T ~ Exp(lambda), thus an ordered stream of X ~ P(lambda) is the
+    // cumulative sum of T ~ Exp(lambda). We convert U(0, 1) to Exp(lambda) per
+    // inverse transform sampling. See
+    // https://en.wikipedia.org/wiki/Exponential_distribution#Random_variate_generation
+    // Important detail: as rng gives X in [0, 1) and we'd rather not have log(0), we
+    // use 1 - X in (0, 1] (but still uniform).
+    void step() { next_ += -std::log(1 - rng_())/rate_; }
 
     template<typename K>
     void t_serialize(::arb::serializer& ser, const K& k) const {
@@ -71,8 +75,7 @@ struct poisson_schedule_impl {
 
     time_type tstart_;
     time_type rate_;
-    std::exponential_distribution<time_type> exp_;
-    engine_type rng_;
+    util::uniform_t rng_;
     seed_type seed_;
     time_type next_;
     std::vector<time_type> times_;

@@ -5,7 +5,6 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-#include <random>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -17,10 +16,9 @@
 // Time schedules for probe–sampler associations.
 namespace arb {
 
-using engine_type = std::mt19937_64;
-using seed_type = std::remove_cv_t<decltype(engine_type::default_seed)>;
+using seed_type = std::uint64_t;
 
-constexpr static auto default_seed = engine_type::default_seed;
+constexpr static auto default_seed = 0xdeadbeef;
 
 using time_event_span = std::pair<const time_type*, const time_type*>;
 
@@ -111,13 +109,14 @@ schedule ARB_ARBOR_API regular_schedule(const units::quantity& dt);
 schedule ARB_ARBOR_API explicit_schedule(const std::vector<units::quantity>& seq);
 schedule ARB_ARBOR_API explicit_schedule_from_milliseconds(const std::vector<time_type>& seq);
 
+/// Poisson point process schedule.
 schedule ARB_ARBOR_API poisson_schedule(const units::quantity& tstart,
                                         const units::quantity& rate,
-                                        seed_type seed = default_seed,
+                                        seed_type seed=default_seed,
                                         const units::quantity& tstop=terminal_time*units::ms);
 
 schedule ARB_ARBOR_API poisson_schedule(const units::quantity& rate,
-                                        seed_type seed = default_seed,
+                                        seed_type seed=default_seed,
                                         const units::quantity& tstop=terminal_time*units::ms);
 
 } // namespace arb
