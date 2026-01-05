@@ -173,10 +173,10 @@ class ArborCellGeometry(lfpykit.CellGeometry):
         for i, m in enumerate(cables):
             segs = p.segments([m])
             for seg in segs:
-                x = np.row_stack([x, [seg.prox.x, seg.dist.x]])
-                y = np.row_stack([y, [seg.prox.y, seg.dist.y]])
-                z = np.row_stack([z, [seg.prox.z, seg.dist.z]])
-                d = np.row_stack([d, [seg.prox.radius * 2, seg.dist.radius * 2]])
+                x = np.vstack([x, [seg.prox.x, seg.dist.x]])
+                y = np.vstack([y, [seg.prox.y, seg.dist.y]])
+                z = np.vstack([z, [seg.prox.z, seg.dist.z]])
+                d = np.vstack([d, [seg.prox.radius * 2, seg.dist.radius * 2]])
                 CV_ind = np.r_[CV_ind, i]
 
         super().__init__(x=x, y=y, z=z, d=d)
@@ -244,8 +244,8 @@ axis = np.array([-110, 370, -80, 70])
 dx = 2  # spatial resolution along x-axis (µm)
 dz = 2  # spatial resolution along y-axis (µm)
 X, Y = np.meshgrid(
-    np.linspace(axis[0], axis[1], int(np.diff(axis[:2]) // dx) + 1),
-    np.linspace(axis[2], axis[3], int(np.diff(axis[2:]) // dz) + 1),
+    np.arange(axis[0], axis[1] + dx/2, dx), # span grid with spacing dx and dz,
+    np.arange(axis[2], axis[3] + dz/2, dz), # making sure the endpoints are included
 )
 Z = np.zeros_like(X)
 
