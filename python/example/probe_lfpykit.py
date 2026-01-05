@@ -244,8 +244,8 @@ axis = np.array([-110, 370, -80, 70])
 dx = 2  # spatial resolution along x-axis (µm)
 dz = 2  # spatial resolution along y-axis (µm)
 X, Y = np.meshgrid(
-    np.arange(axis[0], axis[1] + dx/2, dx), # span grid with spacing dx and dz,
-    np.arange(axis[2], axis[3] + dz/2, dz), # making sure the endpoints are included
+    np.arange(axis[0], axis[1] + dx/2, dx, dtype=float), # span grid with spacing dx and dz,
+    np.arange(axis[2], axis[3] + dz/2, dz, dtype=float), # making sure the endpoints are included
 )
 Z = np.zeros_like(X)
 
