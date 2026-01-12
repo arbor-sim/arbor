@@ -1,9 +1,7 @@
 #include <iostream>
 
 #include <array>
-#include <cmath>
 #include <fstream>
-#include <random>
 
 #include <sup/json_params.hpp>
 #include <arbor/load_balance.hpp>
@@ -47,7 +45,8 @@ struct ring_params {
     cell_parameters cell;
 };
 
-ring_params read_options(int argc, char** argv) {
+inline ring_params
+read_options(int argc, char** argv) {
     const char* usage = "Usage:  arbor-busyring [params [opath]]\n\n"
                         "Driver for the Arbor busyring benchmark\n\n"
                         "Options:\n"
