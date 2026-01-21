@@ -1,0 +1,28 @@
+{
+    "name": "without-stdp",
+    "num-cells": 32768,
+    "synapses": 1000,
+    "min-delay": 5,
+    "duration": 200,
+    "ring-size": 4,
+    "event-weight": 0.2,
+    "record": false,
+    "spikes": false,
+    "dt": 0.025,
+    "depth": 10,
+    "complex": false,
+    "stdp": false,
+    "branch-probs": [
+        1,
+        0.5
+    ],
+    "compartments": [
+        20,
+        2
+    ],
+    "lengths": [
+        200,
+        20
+    ],
+    "cpu-group-size": 1
+}
