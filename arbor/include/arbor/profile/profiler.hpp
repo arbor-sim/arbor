@@ -41,8 +41,8 @@ ARB_ARBOR_API void profiler_clear();
 ARB_ARBOR_API void profiler_initialize(context ctx);
 ARB_ARBOR_API void profiler_enter(std::size_t region_id);
 ARB_ARBOR_API void profiler_leave(std::size_t region_id);
-ARB_ARBOR_API void thread_started(const timer_stack& timer_stack);
-ARB_ARBOR_API void thread_stopped(const timer_stack& timer_stack);
+ARB_ARBOR_API void task_started(const timer_stack& timer_stack);
+ARB_ARBOR_API void task_stopped(const timer_stack& timer_stack);
 ARB_ARBOR_API const timer_stack& get_current_timer_stack();
 
 ARB_ARBOR_API profile profiler_summary();

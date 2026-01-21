@@ -34,28 +34,25 @@ struct profile_accumulator {
     bool running = false;
 };
 
-struct TimerStackHash {
-    std::size_t operator()(const timer_stack& v) const {
-        std::size_t seed = v.size();
-        for (auto& i : v) {
-            seed ^= std::hash<std::uint32_t>{}(i) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        }
-        return seed;
+struct timer_stack_hasher {
+    auto operator()(const timer_stack& key) const noexcept -> uint64_t {
+        return hash_value(key);
     }
 };
+using accumulators_type = std::unordered_map<timer_stack, profile_accumulator, timer_stack_hasher>;
 
 // Records the accumulated time spent in profiler regions on one thread.
 // There is one recorder for each thread.
 class recorder {
     // Each timer stack has its own profile accumulator to store the time spend in this state
-    std::unordered_map<timer_stack , profile_accumulator, TimerStackHash> accumulators_{};
+    accumulators_type accumulators_{};
 
     // The current state of nested timers
     timer_stack current_timer_stack{};
 
 public:
     // Return an unordered map that assigns each timer stack its profile accumulator
-    [[nodiscard]] const std::unordered_map<timer_stack, profile_accumulator, TimerStackHash>& accumulators() const;
+    [[nodiscard]] const std::unordered_map<timer_stack, profile_accumulator, timer_stack_hasher>& accumulators() const;
 
     // Start timing the region with index.
     // Throws std::runtime_error if already timing a region.
@@ -66,10 +63,10 @@ public:
     void leave(region_id_type index, const std::vector<std::string>& names);
 
     // A new thread has been started from the following timer stack
-    void thread_started(timer_stack _timer_stack);
+    void task_started(timer_stack _timer_stack);
 
     // A thread has been stopped
-    void thread_stopped(timer_stack _timer_stack);
+    void task_stopped(timer_stack _timer_stack);
 
     // Get the current timer stack
     const timer_stack&get_timer_stack() const;
@@ -106,8 +103,8 @@ public:
     void initialize(task_system_handle& ts);
     void enter(region_id_type index);
     void enter(const std::string& name);
-    void thread_started(const timer_stack& timer_stack);
-    void thread_stopped(const timer_stack& _timer_stack);
+    void task_started(const timer_stack& timer_stack);
+    void task_stopped(const timer_stack& _timer_stack);
     const timer_stack& get_current_timer_stack();
     void leave(region_id_type index);
     void leave(const std::string& name);
@@ -150,15 +147,27 @@ struct profile_node {
 
 // recorder implementation
 
-const std::unordered_map<timer_stack, profile_accumulator, TimerStackHash>& recorder::accumulators() const {
+const accumulators_type& recorder::accumulators() const {
     return accumulators_;
+}
+
+std::string timer_stack_to_string(const timer_stack& ts, const std::vector<std::string>& names) {
+    std::stringstream ss{};
+    for (auto i=0U;i<ts.size();i++) {
+const auto timer = ts[i];
+        ss << names[timer];
+        if (i != ts.size()-1) {
+            ss << ", ";
+        }
+    }
+    return ss.str();
 }
 
 void recorder::enter(region_id_type index, const std::vector<std::string>& names) {
     current_timer_stack.push_back(index);
     auto& cur_acc = accumulators_[current_timer_stack];
     if (cur_acc.running) {
-        throw std::runtime_error("recorder::enter you entered the timer twice "+names[index]);
+        throw std::runtime_error("recorder::enter you entered the timer twice "+names[index] + " TimerStack: " + timer_stack_to_string(current_timer_stack, names));
     }
 
     cur_acc.start_time = timer::tic();
@@ -167,7 +176,7 @@ void recorder::enter(region_id_type index, const std::vector<std::string>& names
 
 void recorder::leave(region_id_type index, const std::vector<std::string>& names) {
     if(current_timer_stack[current_timer_stack.size()-1] != index) {
-        throw std::runtime_error("recorder::leave without matching recorder::enter Trying to leave "+names[index] + " but currently in "+names[current_timer_stack[current_timer_stack.size()-1]]);
+        throw std::runtime_error("recorder::leave without matching recorder::enter Trying to leave "+names[index] + " but currently in "+names[current_timer_stack[current_timer_stack.size()-1]] + + " TimerStack: " + timer_stack_to_string(current_timer_stack, names));
     }
     auto& cur_acc = accumulators_[current_timer_stack];
 
@@ -186,7 +195,7 @@ void recorder::clear() {
     current_timer_stack.clear();
 }
 
-void recorder::thread_started(timer_stack _timer_stack) {
+void recorder::task_started(timer_stack _timer_stack) {
   current_timer_stack = std::move(_timer_stack);
   const auto now = timer::tic();
   for(auto stack_depth=0U;stack_depth < current_timer_stack.size();stack_depth++) {
@@ -198,7 +207,7 @@ void recorder::thread_started(timer_stack _timer_stack) {
 
 }
 
-void recorder::thread_stopped(const timer_stack _timer_stack) {
+void recorder::task_stopped(const timer_stack _timer_stack) {
   current_timer_stack = std::move(_timer_stack);
   for(auto stack_depth=0U;stack_depth < current_timer_stack.size();stack_depth++) {
     const timer_stack sub_timer_stack(current_timer_stack.begin(), current_timer_stack.begin() + stack_depth+1);
@@ -366,14 +375,14 @@ const std::vector<std::string>& profiler::regions() const {
     return region_names_;
 }
 
-void profiler::thread_started(const timer_stack& timer_stack) {
+void profiler::task_started(const timer_stack& timer_stack) {
   if(!init_) return;
-    recorders_[thread_ids_.at(std::this_thread::get_id())].thread_started(timer_stack);
+    recorders_[thread_ids_.at(std::this_thread::get_id())].task_started(timer_stack);
 }
 
-void profiler::thread_stopped(const timer_stack& _timer_stack) {
+void profiler::task_stopped(const timer_stack& _timer_stack) {
   if(!init_) return;
-  recorders_[thread_ids_.at(std::this_thread::get_id())].thread_stopped(_timer_stack);
+  recorders_[thread_ids_.at(std::this_thread::get_id())].task_stopped(_timer_stack);
 }
 
 const timer_stack& profiler::get_current_timer_stack() {
@@ -473,12 +482,12 @@ ARB_ARBOR_API void profiler_leave(region_id_type id) {
 ARB_ARBOR_API void profiler_clear() {
     profiler::get_global_profiler().clear();
 }
-ARB_ARBOR_API void thread_started(const timer_stack& _timer_stack) {
-    profiler::get_global_profiler().thread_started(_timer_stack);
+ARB_ARBOR_API void task_started(const timer_stack& _timer_stack) {
+    profiler::get_global_profiler().task_started(_timer_stack);
 }
 
-ARB_ARBOR_API void thread_stopped(const timer_stack& _timer_stack) {
-  profiler::get_global_profiler().thread_stopped(_timer_stack);
+ARB_ARBOR_API void task_stopped(const timer_stack& _timer_stack) {
+  profiler::get_global_profiler().task_stopped(_timer_stack);
 }
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string& name) {
     if (!is_valid_region_string(name)) {
@@ -522,8 +531,8 @@ ARB_ARBOR_API const timer_stack& get_current_timer_stack() {
 ARB_ARBOR_API void profiler_clear() {}
 ARB_ARBOR_API void profiler_leave() {}
 ARB_ARBOR_API void profiler_enter(region_id_type) {}
-ARB_ARBOR_API void thread_started(const timer_stack& timer_stack) {}
-ARB_ARBOR_API void thread_stopped(const timer_stack& timer_stack) {}
+ARB_ARBOR_API void task_started(const timer_stack& timer_stack) {}
+ARB_ARBOR_API void task_stopped(const timer_stack& timer_stack) {}
 timer_stack empty_timer_stack{};
 ARB_ARBOR_API const timer_stack& get_current_timer_stack() { return empty_timer_stack; }
 ARB_ARBOR_API profile profiler_summary();

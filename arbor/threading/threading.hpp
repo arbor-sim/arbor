@@ -359,9 +359,9 @@ public:
       // This is where tasks of the task_group are actually executed.
       void operator()() {
         auto prev_timer_stack = arb::profile::get_current_timer_stack();
-        arb::profile::thread_started(timer_stack);
+        arb::profile::task_started(timer_stack);
         f_();
-        arb::profile::thread_stopped(prev_timer_stack);
+        arb::profile::task_stopped(prev_timer_stack);
       }
     };
 
