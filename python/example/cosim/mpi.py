@@ -14,7 +14,7 @@ else:
 group = world.Split(color)
 inter = group.Create_intercomm(0, world, leader, 42)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print(f"{world.rank:2d}/{world.size:2d} {group.rank:2d}/{group.size:2d}")
 
     if color == 0:

@@ -69,26 +69,26 @@ and create a ``recipe`` with a configurable number of ``lif`` cells
 
 .. literalinclude:: ../../python/example/cosim/ring.py
     :language: python
-    :lines: 5-18
+    :lines: 5-17
 
 that connect in a ring
 
 .. literalinclude:: ../../python/example/cosim/ring.py
     :language: python
-    :lines: 20-22
+    :lines: 19-21
 
 At time ``0.1 ms`` we inject a single spike into the first cell
 
 .. literalinclude:: ../../python/example/cosim/ring.py
     :language: python
-    :lines: 24-27
+    :lines: 23-30
 
 that should propagate indefinitely. To confirm, we set up the simulation
 and run it for ``10ms``, printing out spikes at the end:
 
 .. literalinclude:: ../../python/example/cosim/ring.py
     :language: python
-    :lines: 30-36
+    :lines: 33-39
 
 and receive
 
@@ -159,31 +159,31 @@ by noting the parameters
 
 .. literalinclude:: ../../python/example/cosim/wilson_cowan.py
     :language: python
-    :lines: 5-17
+    :lines: 6-18
 
 and the sigmoid activation function
 
 .. literalinclude:: ../../python/example/cosim/wilson_cowan.py
     :language: python
-    :lines: 20-21
+    :lines: 21-22
 
 Next, the model is defined as the temporal derivative
 
 .. literalinclude:: ../../python/example/cosim/wilson_cowan.py
     :language: python
-    :lines: 23-29
+    :lines: 25-31
 
 and the step function wrapping the SciPy integrator
 
 .. literalinclude:: ../../python/example/cosim/wilson_cowan.py
     :language: python
-    :lines: 31-33
+    :lines: 34-36
 
 For testing, we simulate for 100ms and plot
 
 .. literalinclude:: ../../python/example/cosim/wilson_cowan.py
     :language: python
-    :lines: 35-60
+    :lines: 39-64
 
 receiving
 
@@ -212,9 +212,9 @@ First, we grab ``mpi4py`` and the ``WORLD`` communicator
     :lines: 1-3
 
 Then, we need to determine which ranks (in ``WORLD``!) belong to which group
-(dubbed ``color``) in the MPI documentation, here we assume all ranks *but* the
-first will run Arbor. Likewise, we need to select a rank in ``WORLD`` as the
-leader in the respective group (the group's rank ``0``).
+(dubbed ``color`` in MPI parlance) in the MPI documentation, here we assume all
+ranks *but* the first will run Arbor. Likewise, we need to select a rank in
+``WORLD`` as the leader in the respective group (the group's rank ``0``).
 
 .. literalinclude:: ../../python/example/cosim/mpi.py
     :language: python
@@ -326,7 +326,7 @@ tweak the ``recipe`` a bit, which is best done by inheritance
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
-    :lines: 18-22
+    :lines: 19-31
 
 we also define a weight for the connections incoming from the neural mass model.
 These are defined as such 
@@ -384,14 +384,14 @@ forever until we receive a message signalling termination.
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
-    :lines: 46-51
+    :lines: 45-47
 
 In case of failure, we abort and print the reason. If Arbor sends the done
 signal we terminate the loop since the final step has been executed.
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
-    :lines: 52-54
+    :lines: 48-53
 
 Finally, we handle the epoch message which requests proceeding into the next
 epoch. First, we send the list of spikes from this rank using the
@@ -399,24 +399,23 @@ intercommunicator. For now, we'll leave it empty.
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
-    :lines: 56-57
+    :lines: 54-56
 
-
-Next, we will convert this into two rates by counting the spikes by their
-origin. We are going to assign ``gid=0..11`` as connected to the excitatory
-population, ``gid=12..15``, and leave the rest unconnected. Thus, we allocate
-two arrays of zeros such that we have one entry for each NMM timestep in the
-epoch.
+In return, we received the list of spikes from all Arbor ranks. Next, we will
+convert this into two rates by counting the spikes by their origin. We are going
+to assign ``gid=0..11`` as connected to the excitatory population,
+``gid=12..15``, and leave the rest unconnected. Thus, we allocate two arrays of
+zeros such that we have one entry for each NMM timestep in the epoch.
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
-    :lines: 59-61
+    :lines: 58-60
 
 Then, we sort the spikes into the bins 
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
-    :lines: 63-73
+    :lines: 62-72
 
 Now, we can proceed with the integration of the neural mass model; we choose
 here to add the rates we computed in the binning step directly to the variable ``E``
@@ -424,14 +423,14 @@ and ``I`` for that timestep
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
-    :lines: 75-86
+    :lines: 74-85
 
 Then, we increment all timings and the bin index, record the models
 values, and proceed to the next timestep until we have completed the epoch.
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
-    :lines: 87-89
+    :lines: 86-88
 
 Unknown message types cause an abort.
 

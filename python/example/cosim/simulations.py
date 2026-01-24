@@ -10,13 +10,13 @@ from mpi import world, group, inter
 assert world.size == 2, "Need exactly two ranks"
 
 
-dt_arb = 0.005 # ms
+dt_arb = 0.005  # ms
 dt_nmm = 0.01  # ms
-dt_com = 1.0   # ms
-T = 100        # ms
+dt_com = 0.5  # ms
+T = 100  # ms
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if world.rank == 0:
         print(f"[NMM] {world.rank:2d}/{world.size:2d} {group.rank:2d}/{group.size:2d}")
 
@@ -36,16 +36,15 @@ if __name__ == '__main__':
                 ts.append(t)
                 Es.append(y[0])
                 Is.append(y[1])
-    else: # rank != 0
+    else:  # rank != 0
         print(f"[ARB] {world.rank:2d}/{world.size:2d} {group.rank:2d}/{group.size:2d}")
         rec = recipe(n_cell=4)
         sim = A.simulation(rec)
         sim.record(A.spike_recording.all)
-        sim.run(T*U.ms, dt_arb*U.ms)
+        sim.run(T * U.ms, dt_arb * U.ms)
 
-        rates = np.zeros(int(T/dt_com))
+        rates = np.zeros(int(T / dt_com))
         for _, time in sim.spikes():
-            idx = int(time/dt_com)
+            idx = int(time / dt_com)
             rates[idx] += 1
         print(rates)
-            
