@@ -4,11 +4,16 @@ How to use MPI to generate coupled simulations at different scales
 ==================================================================
 
 In this tutorial we are going to discuss how to use Arbor and MPI to drive
-simulations at different scales or levels of abstraction. This _requires_ an
-MPI-enabled build of Arbor. In general, throughout this tutorial, we are
-assuming you are comfortable with the basics of Arbor (cells, recipes, and
-networks), Python package management, and MPI, as wells as installing software
-on your system.
+simulations at different scales or levels of abstraction. This *requires* an
+MPI-enabled build of Arbor. This allows you to build compound simulations that
+focus effort on detailed models (in Arbor) where needed and use more abstract
+models to embed the more complex structures. In general, throughout this
+tutorial, we are assuming you are comfortable with the basics of Arbor (cells,
+recipes, and networks), Python package management, and MPI, as wells as
+installing software on your system. All source code for all intermediate steps
+can be in the directory
+`python/example/cosim <https://github.com/arbor-sim/arbor/tree/master/python/example/brunel>`__
+of the Arbor source tree.
 
 Setup
 -----
@@ -445,22 +450,39 @@ compare to the pure Wilson-Cown model from before
             
 You can find this script in ``cosim.py``.
 
+Summary
+-------
+
+We have seen how to an extremely simple model in Arbor can interact with a
+neural mass model over an MPI-mediated bridge by looking at each component in
+turn. We have also implemented a trivial neural mass model from scratch. It is
+important to note that both models -- Arbor and NMM -- are individually as
+expressive as they would be on their own. However, when joined into a single
+model and enriched with additional dynamics -- the connections in between and
+the conversions from rate to discrete spikes and back -- we are able to model
+more complex scenarios at reasonable computational cost.
+
 What now?
 ---------
 
 From here, you can a variety of ways towards more realistic models:
 
 - Generate spikes *for* Arbor from rates using an assumed distribution and random numbers.
+- Refine the rate calculation, e.g., by using a smoothing filter.
 - Use another model than Wilson-Cowan.
 - Use TVB or similar tools to simulate the NMM.
-- Iterate on the Arbor network model.
+- Iterate on the Arbor network model by
 
-We invite you to read `our paper <https://arxiv.org/pdf/2505.16861>` on the
-subject; you can find the `accompanying source code
-<https://github.com/arbor-contrib/arbor-tvb-cosim>` in our contrib section. All
+  - using cable cells
+  - increasing network complexity
+  - add plasticity
+
+
+We invite you to read `our paper <https://arxiv.org/pdf/2505.16861>`__ on the
+subject; you can find the `accompanying source code <https://github.com/arbor-contrib/arbor-tvb-cosim>`__
+in our contrib section. All
 source code for all intermediate steps can be in the directory
-`python/example/cosim
-<https://github.com/arbor-sim/arbor/tree/master/python/example/brunel>` of the
+`python/example/cosim <https://github.com/arbor-sim/arbor/tree/master/python/example/brunel>`__ of the
 Arbor source tree.
 
 References
