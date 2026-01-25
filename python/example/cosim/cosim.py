@@ -1,10 +1,10 @@
-import arbor as A
-from arbor import units as U
-import numpy as np
 # import our previous code
 from wilson_cowan import step, Params
 from ring import recipe
 from mpi import world, group, inter
+import arbor as A
+from arbor import units as U
+import numpy as np
 
 
 assert world.size == 2, "Need exactly two ranks"
