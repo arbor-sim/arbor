@@ -51,6 +51,18 @@ which should print
    {'mpi': True, 'mpi4py': True, 'gpu': None, 'vectorize': True, ... more fields elided}
 
 
+Overview
+--------
+
+We will create two models, one a spiking neural network in Arbor, the second a
+simple neural mass model, and then connect them over an interface. Both models
+will be basic, to emphasise the scaffolding, but can either be iterate upon or
+swapped for more interesting alternatives without touching the framework. Then,
+we will build the scaffolding itself, based on MPI, which is largely independent
+of the models. Finally, with all parts in hand, we will show how to wired them
+in to a coherent global model.
+
+   
 Creating an Arbor model
 -----------------------
 
@@ -269,15 +281,11 @@ functionality for actually running the simulation in tandem. We store this in
 Running two simulations in tandem
 ---------------------------------
 
-From here on out, we will assert that the simulation is run on exactly two ranks.
-This not required and asymmetric rank counts are absolutely possible and extremely
-useful since Arbor models are (usually) computationally intensive. Thus, our CLI
-invocation looks like this
-
-.. code-block::
-
-    mpirun -n 2 python simulations.py
-
+The core idea here is to write a single script that looks at its MPI rank and
+either runs the Wilson-Cowan NMM or the Arbor ring model. The next section will
+then iterate and show how to utilise the MPI intercommunicator from the last
+section to pass messsages between the models.
+    
 We now import the custom Wilson-Cowan model and the Arbor ring model along with
 the libraries
 
@@ -309,20 +317,69 @@ example code, except the nested time loop
     :language: python
     :lines: 20-38
 
-for the Arbor simulation, we only change the reporting to spikes per epoch
+for the Arbor simulation, we will use the ``group`` communicator to create a
+context, which is then passed to the simulation as an additional argument
 
 .. literalinclude:: ../../python/example/cosim/simulations.py
     :language: python
-    :lines: 39-50
+    :lines: 39-45
 
-This gives us *parallel* simulations, but not yet *co-simulation*.
+For all intents and purposes ``group`` behaves like ``world`` for Arbor, it just
+has a different number of ranks. Finally, we print out the ring's spikes:
+
+.. literalinclude:: ../../python/example/cosim/simulations.py
+    :language: python
+    :lines: 39-45
+
+This gives us *parallel* simulations, but not yet *co-simulation*, as the two
+models cannot exchange information.
 
 Joining the two simulations
 ---------------------------
 
 How, we need to transfer information from one model to the other. Copy the
-previous step into a new file ``cosim.py``. For the Arbor model, we need to
-tweak the ``recipe`` a bit, which is best done by inheritance
+previous step into a new file ``cosim.py``. From here on out, we will assert
+that the simulation is run on exactly two ranks. This not required and
+asymmetric rank counts are absolutely possible and extremely useful since Arbor
+models are (usually) computationally intensive. Thus, our CLI invocation looks
+like this
+
+.. code-block::
+
+    mpirun -n 2 python simulations.py
+
+We are going to use the code we have built during the last section and edit the
+two parts of the ``if-else`` construct deciding which simulation to run. We will
+be starting with the ``else`` (Arbor) part, as it is a bit simpler.
+
+If we strip out all recording and error handling it looks like this:
+
+.. code-block::
+    :language: python
+   
+    if world.rank == 0: # first rank, running W-C
+        y = np.array([0.2, 0.1])
+        ps = Params()
+
+        t = 0
+        while t < T: # all other ranks, running Arbor
+            epoch = 0
+            while epoch < dt_com:
+                y = step(0, dt_nmm, y, ps)
+                t += dt_nmm
+                epoch += dt_nmm
+    else:  # rank != 0
+        rec = recipe(n_cell=4)
+        ctx = A.context(mpi=group) # `group` connects all ranks except 0
+        sim = A.simulation(rec, context=ctx)
+        sim.run(T * U.ms, dt_arb * U.ms)
+
+
+Enabling co-simulation for Arbor
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For the Arbor model, we need to tweak the ``recipe`` a bit, which is
+best done by inheritance
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
@@ -379,8 +436,18 @@ co-simulation protocols
 4. Once the simulation is complete, a done signal is sent.
 5. Internal errors will result in an abort message specifying the reason.
 
-Thus, we need to handle these messages on the ranks driving the NMM; we will loop
-forever until we receive a message signalling termination.
+
+   
+Enabling co-simulation for Wilson-Cowan
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+With Arbor set up, we need to set up the connection infrastructure from the NMM
+side. Arbor has this already built-in, so this part is a bit more verbose (which
+is why we have put it second). Arbor, as outlined above, will progress its
+simulation and send messages periodically. Thus, we need to handle these
+messages on the ranks driving the NMM. Arbor functions as the controlling entity
+here, in the NMM simulation we will loop forever until we receive a message
+signalling termination.
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
@@ -434,20 +501,23 @@ values, and proceed to the next timestep until we have completed the epoch.
 
 Unknown message types cause an abort.
 
+Results
+^^^^^^^
+
 After the simulation, we plot the recorded variables ``E`` and ``I`` and see this
 
 .. figure:: ../images/co-sim-02.svg
     :width: 600
     :align: center
 
-compare to the pure Wilson-Cown model from before
+compared to the pure Wilson-Cown model from before
             
 .. figure:: ../images/co-sim-01.svg
     :width: 600
     :align: center
 
-            
-You can find this script in ``cosim.py``.
+we clearly see the impact of the spiking rate of from the ring model. You can
+find this script in ``cosim.py``.
 
 Summary
 -------
@@ -477,12 +547,15 @@ From here, you can a variety of ways towards more realistic models:
   - add plasticity
 
 
-We invite you to read `our paper <https://arxiv.org/pdf/2505.16861>`__ on the
-subject; you can find the `accompanying source code <https://github.com/arbor-contrib/arbor-tvb-cosim>`__
-in our contrib section. All
-source code for all intermediate steps can be in the directory
-`python/example/cosim <https://github.com/arbor-sim/arbor/tree/master/python/example/brunel>`__ of the
-Arbor source tree.
+We invite you to read `our paper <https://arxiv.org/pdf/2505.16861>`_ on the
+subject; you can find the `accompanying source code
+<https://github.com/arbor-contrib/arbor-tvb-cosim>`_ in our contrib section.
+All source code for all intermediate steps can be in the directory
+`python/example/cosim
+<https://github.com/arbor-sim/arbor/tree/master/python/example/cosim>`_ of the
+Arbor source tree. More information is found in the documentation on
+:ref:`interconnectivity <interconnectivtycross>`_. For the usage of MPI in Python see
+`here <https://mpi4py.readthedocs.io/en/stable/mpi4py.html>`_ and for MPI in general `here <https://www.mpi-forum.org/docs>`_
 
 References
 ----------

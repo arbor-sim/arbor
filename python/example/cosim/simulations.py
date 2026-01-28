@@ -7,7 +7,7 @@ from arbor import units as U
 import numpy as np
 
 
-assert world.size == 2, "Need exactly two ranks"
+assert world.size >= 2, "Need two or more ranks"
 
 
 dt_arb = 0.005  # ms
@@ -39,7 +39,8 @@ if __name__ == "__main__":
     else:  # rank != 0
         print(f"[ARB] {world.rank:2d}/{world.size:2d} {group.rank:2d}/{group.size:2d}")
         rec = recipe(n_cell=4)
-        sim = A.simulation(rec)
+        ctx = A.context(mpi=group)
+        sim = A.simulation(rec, context=ctx)
         sim.record(A.spike_recording.all)
         sim.run(T * U.ms, dt_arb * U.ms)
 
