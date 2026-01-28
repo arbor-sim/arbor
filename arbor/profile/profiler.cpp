@@ -176,7 +176,7 @@ void recorder::enter(region_id_type index, const std::vector<std::string>& names
 
 void recorder::leave(region_id_type index, const std::vector<std::string>& names) {
     if(current_timer_stack[current_timer_stack.size()-1] != index) {
-        throw std::runtime_error("recorder::leave without matching recorder::enter Trying to leave "+names[index] + " but currently in "+names[current_timer_stack[current_timer_stack.size()-1]] + + " TimerStack: " + timer_stack_to_string(current_timer_stack, names));
+        throw std::runtime_error("recorder::leave without matching recorder::enter Trying to leave "+names[index] + " but currently in "+names[current_timer_stack[current_timer_stack.size()-1]] + " TimerStack: " + timer_stack_to_string(current_timer_stack, names));
     }
     auto& cur_acc = accumulators_[current_timer_stack];
 
