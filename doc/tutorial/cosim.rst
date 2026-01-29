@@ -46,9 +46,15 @@ MPI-enabled version of Arbor. You can test it using a file
 
 which should print
 
-.. code-block::
+.. code-block:: python
 
-   {'mpi': True, 'mpi4py': True, 'gpu': None, 'vectorize': True, ... more fields elided}
+     {
+        'mpi': True,
+        'mpi4py': True,
+        'gpu': None,
+        'vectorize': True,
+        # ... more fields elided
+     }
 
 
 Overview
@@ -70,29 +76,38 @@ For co-simulation, we need a network model in Arbor and some disjoint model that
 receives and produces spikes in exchange. We will, for sake of the
 demonstration, use a simple ring of leaky-integrate-and-fire cells, but the
 concepts translate to cable cells and more complex networks straightforwardly.
+Save this script in ``ring.py`` for later use.
 
 We import the usual libraries
 
 .. literalinclude:: ../../python/example/cosim/ring.py
     :language: python
+    :linenos:
+    :lineno-match:
     :lines: 1-2
 
 and create a ``recipe`` with a configurable number of ``lif`` cells
 
 .. literalinclude:: ../../python/example/cosim/ring.py
     :language: python
+    :linenos:
+    :lineno-match:
     :lines: 5-17
 
 that connect in a ring
 
 .. literalinclude:: ../../python/example/cosim/ring.py
     :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 19-21
 
 At time ``0.1 ms`` we inject a single spike into the first cell
 
 .. literalinclude:: ../../python/example/cosim/ring.py
     :language: python
+    :linenos:
+    :lineno-match:
     :lines: 23-30
 
 that should propagate indefinitely. To confirm, we set up the simulation
@@ -100,6 +115,8 @@ and run it for ``10ms``, printing out spikes at the end:
 
 .. literalinclude:: ../../python/example/cosim/ring.py
     :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 33-39
 
 and receive
@@ -127,8 +144,13 @@ and receive
     9.1ms gid=  2
     9.6ms gid=  3
 
-Save this script in ``ring.py`` for later use.
-    
+For reference, the full file:
+
+.. literalinclude:: ../../python/example/cosim/ring.py
+    :language: python
+    :linenos:
+    :lineno-match:               
+
 Creating an simple Neural Mass Model (NMM)
 ------------------------------------------
 
@@ -165,36 +187,48 @@ We write a simple simulation
 
 .. literalinclude:: ../../python/example/cosim/wilson_cowan.py
     :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 1-3
 
 by noting the parameters
 
 .. literalinclude:: ../../python/example/cosim/wilson_cowan.py
     :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 6-18
 
 and the sigmoid activation function
 
 .. literalinclude:: ../../python/example/cosim/wilson_cowan.py
     :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 21-22
 
 Next, the model is defined as the temporal derivative
 
 .. literalinclude:: ../../python/example/cosim/wilson_cowan.py
     :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 25-31
 
 and the step function wrapping the SciPy integrator
 
 .. literalinclude:: ../../python/example/cosim/wilson_cowan.py
     :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 34-36
 
 For testing, we simulate for 100ms and plot
 
 .. literalinclude:: ../../python/example/cosim/wilson_cowan.py
     :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 39-64
 
 receiving
@@ -204,6 +238,12 @@ receiving
     :align: center
 
 We called this file ``wilson_cowan.py`` and will use it later.
+
+.. literalinclude:: ../../python/example/cosim/wilson_cowan.py
+    :language: python
+    :linenos:
+    :lineno-match:               
+
             
 MPI Setup
 ---------
@@ -217,7 +257,8 @@ via ``mpirun``, i.e.
 
     mpirun -n 4 python mpi.py
 
-First, we grab ``mpi4py`` and the ``WORLD`` communicator
+We store this in ``mpi.py`` for later use of the communicators. First, we grab
+``mpi4py`` and the ``WORLD`` communicator
 
 .. literalinclude:: ../../python/example/cosim/mpi.py
     :language: python
@@ -230,12 +271,16 @@ ranks *but* the first will run Arbor. Likewise, we need to select a rank in
 
 .. literalinclude:: ../../python/example/cosim/mpi.py
     :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 5-12
 
 Then we cleave the ``WORLD`` in twain
 
 .. literalinclude:: ../../python/example/cosim/mpi.py
     :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 14
             
 Now, ``group`` is an MPI communicator similar to ``world``, but it collects
@@ -245,19 +290,15 @@ in ``world`` and one in ``group``. Additionally two ranks in different groups
 cannot communicate using ``group``, only ``world`` which is still valid. For
 example, a sum reduction over ``group`` will provide the sum over (world) rank
 zero to (world) rank zero and the sum over all other ranks to (world) rank one,
-since we elected it as the group's leader. As a rank having multiple identities
-is confusing, we print both ids before we start the actual execution
+since we elected it as the group's leader. Next, we create a bridge between the
+halves (the first argument is for tweaking the rank ids within the new
+communicator and the last one is a tag for avoiding collisions. You can ignore
+both for now)
 
 .. literalinclude:: ../../python/example/cosim/mpi.py
     :language: python
-    :lines: 18
-
-Next, we create a bridge between the halves (the first argument is for tweaking
-the rank ids within the new communicator and the last one is a tag for avoiding
-collisions. You can ignore both for now)
-
-.. literalinclude:: ../../python/example/cosim/mpi.py
-    :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 15
 
 the communicator ``inter`` is a different beast than ``world`` and ``group``;
@@ -272,11 +313,19 @@ Then, we print our identity
             
 .. literalinclude:: ../../python/example/cosim/mpi.py
     :language: python
-    :lines: 20-23
+    :linenos:
+    :lineno-match:               
+    :lines: 17-23
 
 This concludes setting up MPI functionality. Next, we will incrementally add
-functionality for actually running the simulation in tandem. We store this in
-``mpi.py`` for later use.
+functionality for actually running the simulation in tandem. The full file is
+reproduced below
+
+.. literalinclude:: ../../python/example/cosim/mpi.py
+    :language: python
+    :linenos:
+    :lineno-match:               
+
 
 Running two simulations in tandem
 ---------------------------------
@@ -291,12 +340,16 @@ the libraries
 
 .. literalinclude:: ../../python/example/cosim/simulations.py
     :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 1-6
 
 and from ``mpi.py`` we fetch the communicators
 
 .. literalinclude:: ../../python/example/cosim/simulations.py
     :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 7
 
 Now, we will start running the two simulations in parallel using two nested
@@ -308,6 +361,8 @@ different. We will run the simulations for ``100ms``
 
 .. literalinclude:: ../../python/example/cosim/simulations.py
     :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 13-16
 
 First, the neural mass model simulation is largely lifted from the previous
@@ -315,6 +370,8 @@ example code, except the nested time loop
 
 .. literalinclude:: ../../python/example/cosim/simulations.py
     :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 20-38
 
 for the Arbor simulation, we will use the ``group`` communicator to create a
@@ -322,6 +379,8 @@ context, which is then passed to the simulation as an additional argument
 
 .. literalinclude:: ../../python/example/cosim/simulations.py
     :language: python
+    :linenos:
+    :lineno-match:               
     :lines: 39-45
 
 For all intents and purposes ``group`` behaves like ``world`` for Arbor, it just
@@ -329,10 +388,17 @@ has a different number of ranks. Finally, we print out the ring's spikes:
 
 .. literalinclude:: ../../python/example/cosim/simulations.py
     :language: python
-    :lines: 39-45
+    :linenos:
+    :lineno-match:               
+    :lines: 47-51
 
 This gives us *parallel* simulations, but not yet *co-simulation*, as the two
-models cannot exchange information.
+models cannot exchange information. The full file is reproduced below
+
+.. literalinclude:: ../../python/example/cosim/simulations.py
+    :language: python
+    :linenos:
+    :lineno-match:               
 
 Joining the two simulations
 ---------------------------
@@ -354,8 +420,7 @@ be starting with the ``else`` (Arbor) part, as it is a bit simpler.
 
 If we strip out all recording and error handling it looks like this:
 
-.. code-block::
-    :language: python
+.. code-block:: python
    
     if world.rank == 0: # first rank, running W-C
         y = np.array([0.2, 0.1])
@@ -374,7 +439,15 @@ If we strip out all recording and error handling it looks like this:
         sim = A.simulation(rec, context=ctx)
         sim.run(T * U.ms, dt_arb * U.ms)
 
+We set up the co-simulation by importing our previous work and set the constants
 
+.. literalinclude:: ../../python/example/cosim/cosim.py
+    :language: python
+    :linenos:
+    :lineno-match:               
+    :lines: 2-16
+
+        
 Enabling co-simulation for Arbor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -383,13 +456,18 @@ best done by inheritance
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
-    :lines: 19-31
+    :linenos:
+    :lineno-match:               
+    :lines: 19-22
 
 we also define a weight for the connections incoming from the neural mass model.
-These are defined as such 
+These are defined by adding a new callback to the recipe 
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
+    :linenos:
+    :lineno-match:
+    :emphasize-lines: 7
     :lines: 24-31
 
 The delay for these connections is identical to the epoch time, in real models
@@ -403,20 +481,18 @@ intractable. Thus, this must be defined as part of the overall model. One option
 is to assign a cell count to each population and assume distributions for the
 spiking activity, then drawing random numbers to generate spikes from the
 distributions according to the activity rates. For now, we will set the external
-weights to zero and return to the problem later.
+weights to zero and return to the problem later. To keep things simple for this
+demonstration, we allocate a single virtual ``gid`` per remote population, i.e.
+assume both the excitatory and inhibitory population are represented by exactly
+one cell (line highlighted above).
 
-To keep things simple for this demonstration, we allocate a single virtual ``gid``
-per remote population, i.e. assume both the excitatory and inhibitory population
-are represented by exactly one cell
-
-.. literalinclude:: ../../python/example/cosim/cosim.py
-    :language: python
-    :lines: 30
-
-Next, we modify the simulation setup in Arbor using our newly derived ``corecipe``
+Next, we modify the simulation setup in Arbor using our newly derived
+``corecipe`` to the end of the file.
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
+    :linenos:
+    :lineno-match:                              
     :lines: 101-107
 
 The addition of the ``inter`` intercommunicator kicks off Arbor's internal
@@ -436,7 +512,6 @@ co-simulation protocols
 4. Once the simulation is complete, a done signal is sent.
 5. Internal errors will result in an abort message specifying the reason.
 
-
    
 Enabling co-simulation for Wilson-Cowan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -447,10 +522,21 @@ is why we have put it second). Arbor, as outlined above, will progress its
 simulation and send messages periodically. Thus, we need to handle these
 messages on the ranks driving the NMM. Arbor functions as the controlling entity
 here, in the NMM simulation we will loop forever until we receive a message
-signalling termination.
+signalling termination. This loop replaces the outer loop from the previous
+section, i.e.
+
+.. literalinclude:: ../../python/example/cosim/simulations.py
+    :language: python
+    :linenos:
+    :lineno-match:                              
+    :lines: 30-38
+
+is replaced by the code in the remainder of this section
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
+    :linenos:
+    :lineno-match:                              
     :lines: 45-47
 
 In case of failure, we abort and print the reason. If Arbor sends the done
@@ -458,6 +544,8 @@ signal we terminate the loop since the final step has been executed.
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
+    :linenos:
+    :lineno-match:                              
     :lines: 48-53
 
 Finally, we handle the epoch message which requests proceeding into the next
@@ -466,6 +554,8 @@ intercommunicator. For now, we'll leave it empty.
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
+    :linenos:
+    :lineno-match:                              
     :lines: 54-56
 
 In return, we received the list of spikes from all Arbor ranks. Next, we will
@@ -476,20 +566,26 @@ zeros such that we have one entry for each NMM timestep in the epoch.
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
+    :linenos:
+    :lineno-match:                              
     :lines: 58-60
 
 Then, we sort the spikes into the bins 
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
+    :linenos:
+    :lineno-match:                              
     :lines: 62-72
 
 Now, we can proceed with the integration of the neural mass model; we choose
-here to add the rates we computed in the binning step directly to the variable ``E``
-and ``I`` for that timestep
+here to add the rates we computed in the binning step directly to the variable
+``E`` and ``I`` for that timestep
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
+    :linenos:
+    :lineno-match:                              
     :lines: 74-85
 
 Then, we increment all timings and the bin index, record the models
@@ -497,6 +593,8 @@ values, and proceed to the next timestep until we have completed the epoch.
 
 .. literalinclude:: ../../python/example/cosim/cosim.py
     :language: python
+    :linenos:
+    :lineno-match:                              
     :lines: 86-88
 
 Unknown message types cause an abort.
@@ -517,7 +615,12 @@ compared to the pure Wilson-Cown model from before
     :align: center
 
 we clearly see the impact of the spiking rate of from the ring model. You can
-find this script in ``cosim.py``.
+find this script in ``cosim.py``:
+
+.. literalinclude:: ../../python/example/cosim/cosim.py
+    :language: python
+    :linenos:
+    :lineno-match:               
 
 Summary
 -------
@@ -529,7 +632,12 @@ important to note that both models -- Arbor and NMM -- are individually as
 expressive as they would be on their own. However, when joined into a single
 model and enriched with additional dynamics -- the connections in between and
 the conversions from rate to discrete spikes and back -- we are able to model
-more complex scenarios at reasonable computational cost.
+more complex scenarios at reasonable computational cost. We have also seen that
+the adding co-simulation to Arbor is quite efficient in term of code: adding
+external connections and passing the intercommunicator. The parts that require
+care -- translating from and to spikes and modeling the virtual cells from
+populations -- also require the bulk of the code. This also means that adding
+co-simulation an existing Arbor model into this framework is straightforward.
 
 What now?
 ---------
@@ -549,13 +657,14 @@ From here, you can a variety of ways towards more realistic models:
 
 We invite you to read `our paper <https://arxiv.org/pdf/2505.16861>`_ on the
 subject; you can find the `accompanying source code
-<https://github.com/arbor-contrib/arbor-tvb-cosim>`_ in our contrib section.
-All source code for all intermediate steps can be in the directory
+<https://github.com/arbor-contrib/arbor-tvb-cosim>`_ in our contrib section. All
+source code for all intermediate steps can be in the directory
 `python/example/cosim
 <https://github.com/arbor-sim/arbor/tree/master/python/example/cosim>`_ of the
 Arbor source tree. More information is found in the documentation on
-:ref:`interconnectivity <interconnectivtycross>`_. For the usage of MPI in Python see
-`here <https://mpi4py.readthedocs.io/en/stable/mpi4py.html>`_ and for MPI in general `here <https://www.mpi-forum.org/docs>`_
+:ref:`interconnectivity <interconnectivitycross>`. For the usage of MPI in Python
+see `MPI4Py <https://mpi4py.readthedocs.io/en/stable/mpi4py.html>`_ and for MPI
+in general the `MPI Forum <https://www.mpi-forum.org/docs>`_
 
 References
 ----------
