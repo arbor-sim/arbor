@@ -23,9 +23,7 @@ cell_json, morpho, decor, labels = ephys.create_acc.read_acc(cell_json_filename)
 labels["soma_center"] = "(location 0 0.5)"
 
 # (3) Define stimulus and spike detector, adjust discretization
-decor.place(
-    '"soma_center"', A.i_clamp(tstart=100, duration=50, current=0.05)
-)
+decor.place('"soma_center"', A.i_clamp(tstart=100, duration=50, current=0.05))
 
 # Add spike detector
 decor.place('"soma_center"', A.threshold_detector(-10), "detector")

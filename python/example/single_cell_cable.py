@@ -97,7 +97,7 @@ class Cable(A.recipe):
                 '"start"',
                 A.i_clamp(
                     self.stimulus_start, self.stimulus_duration, self.stimulus_amplitude
-                )
+                ),
             )
         )
 
