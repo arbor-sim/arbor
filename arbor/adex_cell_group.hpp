@@ -16,10 +16,6 @@
 
 namespace arb {
 
-#define UNIT_OF(x, u) \
-    x = adex.x.value_as(arb::units::u); \
-    if (!std::isfinite(x)) throw std::domain_error(#x " must be finite and in [" #u "]"); \
-
 struct ARB_SYMBOL_VISIBLE adex_lowered_cell {
     cell_tag_type source; // Label of source
     cell_tag_type target; // Label of target
@@ -44,18 +40,18 @@ struct ARB_SYMBOL_VISIBLE adex_lowered_cell {
         source = adex.source;
         target = adex.target;
 
-        UNIT_OF(delta, mV);
-        UNIT_OF(V_th, mV);
-        UNIT_OF(C_m, pF);
-        UNIT_OF(E_L, mV);
-        UNIT_OF(E_R, mV);
-        UNIT_OF(V_m, mV);
-        UNIT_OF(t_ref, ms);
-        UNIT_OF(g, uS);
-        UNIT_OF(tau, ms);
-        UNIT_OF(w, nA);
-        UNIT_OF(a, uS);
-        UNIT_OF(b, nA);
+        delta = units::unit_of(adex.delta, units::mV, "delta");
+        V_th  = units::unit_of(adex.V_th,  units::mV, "V_th");
+        C_m   = units::unit_of(adex.C_m,   units::pF, "C_m");
+        E_L   = units::unit_of(adex.E_L,   units::mV, "E_L");
+        E_R   = units::unit_of(adex.E_R,   units::mV, "E_R");
+        V_m   = units::unit_of(adex.V_m,   units::mV, "V_m");
+        t_ref = units::unit_of(adex.t_ref, units::ms, "t_ref");
+        g     = units::unit_of(adex.g,     units::uS, "g");
+        tau   = units::unit_of(adex.tau,   units::ms, "tau");
+        w     = units::unit_of(adex.w,     units::nA, "w");
+        a     = units::unit_of(adex.a,     units::uS, "a");
+        b     = units::unit_of(adex.b,     units::nA, "b");
 
         if (t_ref < 0) throw std::domain_error("t_ref must be positive.");
         if (t_ref < 0) throw std::domain_error("tau must be positive.");
@@ -64,8 +60,6 @@ struct ARB_SYMBOL_VISIBLE adex_lowered_cell {
 
     ARB_SERDES_ENABLE(adex_lowered_cell, delta, V_th, V_m, C_m, E_L, E_R, t_ref, g, tau, w, a, b);
 };
-
-#undef UNIT_OF
 
 struct ARB_ARBOR_API adex_cell_group: public cell_group {
     adex_cell_group() = default;

@@ -138,9 +138,8 @@ struct ARB_SYMBOL_VISIBLE init_membrane_potential {
 
     init_membrane_potential() = default;
     init_membrane_potential(const U::quantity& m, iexpr scale=1):
-      value(m.value_as(U::mV)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mV]."};
-    }
+        value(U::unit_of(m, U::mV, "membrane potential")),
+        scale{scale} {}
 };
 
 
@@ -150,9 +149,9 @@ struct ARB_SYMBOL_VISIBLE temperature {
 
     temperature() = default;
     temperature(const U::quantity& m, iexpr scale=1):
-      value(m.value_as(U::Kelvin)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [K]."};
-    }
+        value(U::unit_of(m, U::Kelvin, "Temperature")),
+        scale{scale}
+    {}
 };
 
 struct ARB_SYMBOL_VISIBLE axial_resistivity {
@@ -161,9 +160,9 @@ struct ARB_SYMBOL_VISIBLE axial_resistivity {
 
     axial_resistivity() = default;
     axial_resistivity(const U::quantity& m, iexpr scale=1):
-      value(m.value_as(U::cm*U::Ohm)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [Ω·cm]."};
-    }
+        value(U::unit_of(m, U::cm*U::Ohm, "Resistivity")),
+        scale{scale}
+    {}
 };
 
 struct ARB_SYMBOL_VISIBLE membrane_capacitance {
@@ -172,9 +171,9 @@ struct ARB_SYMBOL_VISIBLE membrane_capacitance {
 
     membrane_capacitance() = default;
     membrane_capacitance(const U::quantity& m, iexpr scale=1):
-      value(m.value_as(U::F/U::m2)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [F/m²]."};
-    }
+        value(U::unit_of(m, U::F/U::m2, "Capacitance")),
+        scale{scale}
+    {}
 };
 
 struct ARB_SYMBOL_VISIBLE init_int_concentration {
@@ -184,9 +183,9 @@ struct ARB_SYMBOL_VISIBLE init_int_concentration {
 
     init_int_concentration() = default;
     init_int_concentration(const std::string& ion, const U::quantity& m, iexpr scale=1):
-      ion{ion}, value(m.value_as(U::mM)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mM]."};
-    }
+        ion{ion},
+        value(U::unit_of(m, U::mM, "Concentration")),
+        scale{scale} {}
 };
 
 struct ARB_SYMBOL_VISIBLE ion_diffusivity {
@@ -196,9 +195,10 @@ struct ARB_SYMBOL_VISIBLE ion_diffusivity {
 
     ion_diffusivity() = default;
     ion_diffusivity(const std::string& ion, const U::quantity& m, iexpr scale=1):
-      ion{ion}, value(m.value_as(U::m2/U::s)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [m²/s]."};
-    }
+        ion{ion},
+        value(U::unit_of(m, U::m2/U::s, "Diffusivity")),
+        scale{scale}
+    {}
 };
 
 struct ARB_SYMBOL_VISIBLE init_ext_concentration {
@@ -208,9 +208,10 @@ struct ARB_SYMBOL_VISIBLE init_ext_concentration {
 
     init_ext_concentration() = default;
     init_ext_concentration(const std::string& ion, const U::quantity& m, iexpr scale=1):
-      ion{ion}, value(m.value_as(U::mM)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mM]."};
-    }
+        ion{ion},
+        value(U::unit_of(m, U::mM, "Concentration")),
+        scale{scale}
+    {}
 };
 
 struct ARB_SYMBOL_VISIBLE init_reversal_potential {
@@ -220,9 +221,10 @@ struct ARB_SYMBOL_VISIBLE init_reversal_potential {
 
     init_reversal_potential() = default;
     init_reversal_potential(const std::string& ion, const U::quantity& m, iexpr scale=1):
-      ion{ion}, value(m.value_as(U::mV)), scale{scale} {
-        if (std::isnan(value)) throw std::domain_error{"Value must be finite and in [mV]."};
-    }
+        ion{ion},
+        value(U::unit_of(m, U::mV, "Reversal potential")),
+        scale{scale}
+    {}
 };
 
 // Mechanism description, viz. mechanism name and
@@ -458,16 +460,12 @@ struct ARB_SYMBOL_VISIBLE cable_cell_global_properties {
                  const U::quantity& init_revpot,
                  const U::quantity& diffusivity=0.0*U::m2/U::s) {
         ion_species[ion_name] = charge;
-
         auto &ion_data = default_parameters.ion_data[ion_name];
-        ion_data.init_int_concentration = init_iconc.value_as(U::mM);
-        if (std::isnan(*ion_data.init_int_concentration)) throw std::domain_error("init_int_concentration must be finite and convertible to mM");
-        ion_data.init_ext_concentration = init_econc.value_as(U::mM);
-        if (std::isnan(*ion_data.init_ext_concentration)) throw std::domain_error("init_ext_concentration must be finite and convertible to mM");
-        ion_data.init_reversal_potential = init_revpot.value_as(U::mV);
-        if (std::isnan(*ion_data.init_reversal_potential)) throw std::domain_error("init_reversal_potential must be finite and convertible to mV");
-        ion_data.diffusivity = diffusivity.value_as(U::m2/U::s);
-        if (std::isnan(*ion_data.diffusivity) || *ion_data.diffusivity < 0) throw std::domain_error("diffusivity must be positive, finite, and convertible to m2/s");
+        ion_data.init_int_concentration  = U::unit_of(init_iconc,  U::mM,      "init_int_concentration");
+        ion_data.init_ext_concentration  = U::unit_of(init_econc,  U::mM,      "init_ext_concentration");
+        ion_data.init_reversal_potential = U::unit_of(init_revpot, U::mV,      "init_reversal_potential");
+        ion_data.diffusivity             = U::unit_of(diffusivity, U::m2/U::s, "diffusivity");
+        if (*ion_data.diffusivity < 0) throw std::domain_error("diffusivity must be positive");
     }
 
     void add_ion(const std::string& ion_name,

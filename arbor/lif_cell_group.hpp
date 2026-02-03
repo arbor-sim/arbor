@@ -16,11 +16,6 @@
 
 namespace arb {
 
-#define UNIT_OF(x, u) \
-    x = lif.x.value_as(arb::units::u); \
-    if (!std::isfinite(x)) throw std::domain_error(#x " must be finite and in [" #u "]"); \
-
-
 // Model parameters of leaky integrate and fire neuron model.
 struct ARB_SYMBOL_VISIBLE lif_lowered_cell {
     cell_tag_type source; // Label of source.
@@ -40,13 +35,13 @@ struct ARB_SYMBOL_VISIBLE lif_lowered_cell {
         source = lif.source;
         target = lif.target;
 
-        UNIT_OF(tau_m, ms);
-        UNIT_OF(V_th,  mV);
-        UNIT_OF(C_m,   pF);
-        UNIT_OF(E_L,   mV);
-        UNIT_OF(E_R,   mV);
-        UNIT_OF(V_m,   mV);
-        UNIT_OF(t_ref, ms);
+        tau_m = units::unit_of(lif.tau_m, units::ms, "tau_m");
+        V_th  = units::unit_of(lif.V_th,  units::mV, "V_th" );
+        C_m   = units::unit_of(lif.C_m,   units::pF, "C_m"  );
+        E_L   = units::unit_of(lif.E_L,   units::mV, "E_L"  );
+        E_R   = units::unit_of(lif.E_R,   units::mV, "E_R"  );
+        V_m   = units::unit_of(lif.V_m,   units::mV, "V_m"  );
+        t_ref = units::unit_of(lif.t_ref, units::ms, "t_ref");
 
         if (tau_m < 0) throw std::domain_error("tau_m must be positive.");
         if (C_m < 0) throw std::domain_error("C_m must be positive.");
@@ -55,8 +50,6 @@ struct ARB_SYMBOL_VISIBLE lif_lowered_cell {
 
     ARB_SERDES_ENABLE(lif_lowered_cell, source, target, tau_m, V_th, C_m, E_L, E_R, V_m, t_ref);
 };
-
-#undef UNIT_OF
 
 struct ARB_ARBOR_API lif_cell_group: public cell_group {
     lif_cell_group() = default;

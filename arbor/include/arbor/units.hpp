@@ -4,6 +4,9 @@
 
 namespace arb::units {
 
+
+
+
 using quantity = ::units::precise_measurement;
 
 
@@ -11,6 +14,12 @@ using unit = ::units::precise_unit;
 using ::units::to_string;
 using ::units::unit_cast_from_string;
 
+inline double
+unit_of(const quantity& q, const unit& u, const std::string& lbl="quantity") {
+    auto x = q.value_as(u); \
+    if (!std::isfinite(x)) throw std::domain_error(lbl + " must be finite and in [" + to_string(u) + "]");
+    return x;
+}
 
 using ::units::precise::pico;
 using ::units::precise::nano;
