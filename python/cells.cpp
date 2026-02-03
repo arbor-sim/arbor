@@ -209,7 +209,7 @@ void register_cells(py::module& m) {
     py::class_<arb::threshold_detector> detector(m, "threshold_detector", "A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an arbor.connection.");
     py::class_<arb::synapse> synapse(m, "synapse", "For placing a synaptic mechanism on a locset.");
     py::class_<arb::junction> junction(m, "junction", "For placing a gap-junction mechanism on a locset.");
-    py::class_<arb::i_clamp> i_clamp(m, "iclamp", "A current clamp for injecting a DC or fixed frequency current governed by a piecewise linear envelope.");
+    py::class_<arb::i_clamp> i_clamp(m, "i_clamp", "A current clamp for injecting a DC or fixed frequency current governed by a piecewise linear envelope.");
 
     spike_source_cell
         .def(py::init<>(
@@ -580,9 +580,9 @@ void register_cells(py::module& m) {
         .def_readonly("frequency", &arb::i_clamp::frequency, "Oscillation frequency (kHz), zero implies DC stimulus.")
         .def_readonly("phase", &arb::i_clamp::phase, "Oscillation initial phase (rad)")
         .def("__repr__", [](const arb::i_clamp& c) {
-            return util::pprintf("<arbor.iclamp: frequency {} kHz>", c.frequency);})
+            return util::pprintf("<arbor.i_clamp: frequency {} kHz>", c.frequency);})
         .def("__str__", [](const arb::i_clamp& c) {
-            return util::pprintf("<arbor.iclamp: frequency {} kHz>", c.frequency);});
+            return util::pprintf("<arbor.i_clamp: frequency {} kHz>", c.frequency);});
 
     detector
         .def(py::init(
@@ -905,10 +905,10 @@ void register_cells(py::module& m) {
             "The group of junctions has the label 'label', used for forming gap-junction connections between cells.")
         // Place current clamp stimulus.
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::i_clamp& stim, const char* label_name) {
-                return dec.place(arborio::parse_locset_expression(locset).unwrap(), stim, label_name);
+            [](arb::decor& dec, const char* locset, const arb::i_clamp& stim) {
+                return dec.place(arborio::parse_locset_expression(locset).unwrap(), stim);
             },
-            "locations"_a, "iclamp"_a, "label"_a,
+            "locations"_a, "i_clamp"_a, 
             "Add a current stimulus at each location in locations."
             "The group of current stimuli has the label 'label'.")
         // Place spike detector.

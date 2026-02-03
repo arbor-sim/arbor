@@ -24,7 +24,7 @@ labels["soma_center"] = "(location 0 0.5)"
 
 # (3) Define stimulus and spike detector, adjust discretization
 decor.place(
-    '"soma_center"', A.iclamp(tstart=100, duration=50, current=0.05), "soma_iclamp"
+    '"soma_center"', A.i_clamp(tstart=100, duration=50, current=0.05)
 )
 
 # Add spike detector

@@ -95,10 +95,9 @@ class Cable(A.recipe):
             .paint('"cable"', A.density(f"pas/e={self.Vm}", g=self.g))
             .place(
                 '"start"',
-                A.iclamp(
+                A.i_clamp(
                     self.stimulus_start, self.stimulus_duration, self.stimulus_amplitude
-                ),
-                "iclamp",
+                )
             )
         )
 
