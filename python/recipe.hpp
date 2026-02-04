@@ -25,9 +25,7 @@ namespace pyarb {
 // of util::unique_any used by the C++ recipe interface.
 // The recipe_shim unwraps the python objects, and forwards them
 // to the C++ back end.
-
-class recipe {
-public:
+struct recipe {
     recipe() = default;
     virtual ~recipe() {}
 
@@ -35,34 +33,19 @@ public:
     virtual pybind11::object cell_description(arb::cell_gid_type gid) const = 0;
     virtual arb::cell_kind cell_kind(arb::cell_gid_type gid) const = 0;
 
-    virtual std::vector<pybind11::object> event_generators(arb::cell_gid_type gid) const {
-        return {};
-    }
-    virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const {
-        return {};
-    }
-    virtual std::vector<arb::ext_cell_connection> external_connections_on(arb::cell_gid_type gid) const {
-        return {};
-    }
-    virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const {
-        return {};
-    }
-    virtual std::vector<arb::probe_info> probes(arb::cell_gid_type gid) const {
-        return {};
-    }
-    virtual pybind11::object global_properties(arb::cell_kind kind) const {
-        return pybind11::none();
-    };
-    virtual std::optional<arb::network_description> network_description() const {
-        return std::nullopt;
-    };
-    virtual arb::isometry cell_isometry(arb::cell_gid_type gid) const {
-        return arb::isometry();
-    };
+    virtual bool resolve_sources() const { return true; }
+    virtual std::vector<pybind11::object> event_generators(arb::cell_gid_type gid) const { return {}; }
+    virtual arb::connection_list connections_on(arb::cell_gid_type gid) const { return {}; }
+    virtual arb::raw_connection_list raw_connections_on(arb::cell_gid_type gid) const { return {}; }
+    virtual arb::ext_connection_list external_connections_on(arb::cell_gid_type gid) const { return {}; }
+    virtual std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type) const { return {}; }
+    virtual std::vector<arb::probe_info> probes(arb::cell_gid_type gid) const { return {}; }
+    virtual pybind11::object global_properties(arb::cell_kind kind) const { return pybind11::none(); };
+    virtual std::optional<arb::network_description> network_description() const { return std::nullopt; };
+    virtual arb::isometry cell_isometry(arb::cell_gid_type gid) const { return arb::isometry(); };
 };
 
-class recipe_trampoline: public recipe {
-public:
+struct recipe_trampoline: public recipe {
     arb::cell_size_type num_cells() const override {
         PYBIND11_OVERRIDE_PURE(arb::cell_size_type, recipe, num_cells);
     }
@@ -80,16 +63,24 @@ public:
         }
     }
 
+    bool resolve_sources() const override {
+        PYBIND11_OVERRIDE(bool, recipe, resolve_sources);
+    }
+
     std::vector<pybind11::object> event_generators(arb::cell_gid_type gid) const override {
         PYBIND11_OVERRIDE(std::vector<pybind11::object>, recipe, event_generators, gid);
     }
 
-    std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERRIDE(std::vector<arb::cell_connection>, recipe, connections_on, gid);
+    arb::connection_list connections_on(arb::cell_gid_type gid) const override {
+        PYBIND11_OVERRIDE(arb::connection_list, recipe, connections_on, gid);
     }
 
-    std::vector<arb::ext_cell_connection> external_connections_on(arb::cell_gid_type gid) const override {
-        PYBIND11_OVERRIDE(std::vector<arb::ext_cell_connection>, recipe, external_connections_on, gid);
+    arb::raw_connection_list raw_connections_on(arb::cell_gid_type gid) const override {
+        PYBIND11_OVERRIDE(arb::raw_connection_list, recipe, raw_connections_on, gid);
+    }
+
+    arb::ext_connection_list external_connections_on(arb::cell_gid_type gid) const override {
+        PYBIND11_OVERRIDE(arb::ext_connection_list, recipe, external_connections_on, gid);
     }
 
     std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type gid) const override {
@@ -134,6 +125,10 @@ public:
         return try_catch_pyexception([&](){ return impl_->num_cells(); }, msg);
     }
 
+    bool resolve_sources() const override {
+        return try_catch_pyexception([&](){ return impl_->resolve_sources(); }, msg);
+    }
+
     // The pyarb::recipe::cell_decription method returns a pybind11::object, that is
     // unwrapped and copied into a util::unique_any.
     arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override;
@@ -144,12 +139,16 @@ public:
 
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override;
 
-    std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
+    arb::connection_list connections_on(arb::cell_gid_type gid) const override {
         return try_catch_pyexception([&](){ return impl_->connections_on(gid); }, msg);
     }
 
-    std::vector<arb::ext_cell_connection> external_connections_on(arb::cell_gid_type gid) const override {
+    arb::ext_connection_list external_connections_on(arb::cell_gid_type gid) const override {
         return try_catch_pyexception([&](){ return impl_->external_connections_on(gid); }, msg);
+    }
+
+    arb::raw_connection_list raw_connections_on(arb::cell_gid_type gid) const override {
+        return try_catch_pyexception([&](){ return impl_->raw_connections_on(gid); }, msg);
     }
 
     std::vector<arb::gap_junction_connection> gap_junctions_on(arb::cell_gid_type gid) const override {

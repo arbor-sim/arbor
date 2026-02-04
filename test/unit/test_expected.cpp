@@ -1,10 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <utility>
-#include <vector>
 #include <arbor/util/expected.hpp>
-
-#include "common.hpp"
 
 using namespace arb::util;
 using std::in_place;
@@ -315,7 +312,7 @@ struct Xswap {
 };
 
 struct swap_can_throw {
-    friend void swap(swap_can_throw& s1, swap_can_throw& s2) noexcept(false) {}
+    friend void swap(swap_can_throw& s1, swap_can_throw& s2) noexcept(false) { std::swap(s1, s2); }
 };
 }
 

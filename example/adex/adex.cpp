@@ -60,8 +60,8 @@ void sampler(const arb::probe_metadata& pm, std::size_t n, const arb::sample_rec
 
 void print() {
     std::cerr << std::fixed << std::setprecision(4);
-    for (int ix = 0; ix < times.size(); ++ix) {
-        std::cout << times[ix] << ", " << Um[ix] << ", " << w[ix] << '\n';
+    for (size_t ix = 0; ix < times.size(); ++ix) {
+        std::cout << times[ix] << "," << Um[ix] << "," << w[ix] << '\n';
     }
 }
 

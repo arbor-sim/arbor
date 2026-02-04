@@ -2,6 +2,7 @@
 #include <utility>
 #include <vector>
 #include <limits>
+#include <unordered_set>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -25,10 +26,10 @@
 
 namespace arb {
 
-communicator::communicator(const recipe& rec, const domain_decomposition& dom_dec, context ctx):
+communicator::communicator(const recipe& rec, const domain_decomposition_ptr dom_dec, context ctx):
     num_total_cells_{rec.num_cells()},
-    num_local_cells_{dom_dec.num_local_cells()},
-    num_local_groups_{dom_dec.num_groups()},
+    num_local_cells_{dom_dec->num_local_cells()},
+    num_local_groups_{dom_dec->num_groups()},
     num_domains_{(cell_size_type)ctx->distributed->size()},
     ctx_(std::move(ctx)) {}
 
@@ -54,146 +55,210 @@ cell_member_type global_cell_of(const cell_member_type& c) {
     return {c.gid | msb, c.index};
 }
 
-void communicator::update_connections(const recipe& rec,
-                                      const domain_decomposition& dom_dec,
-                                      const label_resolution_map& source_resolution_map,
-                                      const label_resolution_map& target_resolution_map) {
-    PE(init:communicator:update:clear);
-    // Forget all lingering information
-    connections_.clear();
-    ext_connections_.clear();
-    connection_part_.clear();
-    index_divisions_.clear();
-    PL();
+inline
+void reset_index(const domain_decomposition_ptr dom_dec,
+                 std::vector<cell_size_type>& divs,
+                 util::partition_view_type<std::vector<cell_size_type>>& part) {
+    divs.clear();
+    part = util::make_partition(divs,
+                                util::transform_view(dom_dec->groups(),
+                                                     [](const group_description& g){
+                                                         return g.gids.size();
+                                                     }));
+}
 
-    // Construct connections from high-level specification
-    auto generated_connections = generate_connections(rec, ctx_, dom_dec);
+inline
+void reset_partition(const std::vector<std::vector<connection>>& connss,
+                     std::vector<cell_size_type>& part) {
+    part.clear();
+    part.push_back(0);
+    for (const auto& conns: connss) part.push_back(part.back() + conns.size());
+}
 
-    // Make a list of local cells' connections
-    //   -> gid_connections
-    // Count the number of local connections (i.e. connections terminating on this domain)
-    //   -> n_cons: scalar
-    // Calculate and store domain id of the presynaptic cell on each local connection
-    //   -> src_domains: array with one entry for every local connection
-    // Also the count of presynaptic sources from each domain
-    //   -> src_counts: array with one entry for each domain
-
-    // Record all the gid in a flat vector.
-
-    PE(init:communicator:update:collect_gids);
-    std::vector<cell_gid_type> gids; gids.reserve(num_local_cells_);
-    for (const auto& g: dom_dec.groups()) util::append(gids, g.gids);
-    PL();
-
-    // Build the connection information for local cells.
-    PE(init:communicator:update:gid_connections);
-    std::vector<cell_connection> gid_connections;
-    std::vector<ext_cell_connection> gid_ext_connections;
-    std::vector<size_t> part_connections;
-    part_connections.reserve(num_local_cells_);
-    part_connections.push_back(0);
-    std::vector<size_t> part_ext_connections;
-    part_ext_connections.reserve(num_local_cells_);
-    part_ext_connections.push_back(0);
-    std::vector<unsigned> src_domains;
-    std::vector<cell_size_type> src_counts(num_domains_);
-    for (const auto gid: gids) {
-        // Local
-        const auto& conns = rec.connections_on(gid);
-        for (const auto& conn: conns) {
-            const auto sgid = conn.source.gid;
-            if (sgid >= num_total_cells_) throw arb::bad_connection_source_gid(gid, sgid, num_total_cells_);
-            const auto src = dom_dec.gid_domain(sgid);
-            src_domains.push_back(src);
-            src_counts[src]++;
-            gid_connections.emplace_back(conn);
-        }
-        part_connections.push_back(gid_connections.size());
-        // Remote
-        const auto& ext_conns = rec.external_connections_on(gid);
-        for (const auto& conn: ext_conns) {
-            gid_ext_connections.emplace_back(conn);
-        }
-        part_ext_connections.push_back(gid_ext_connections.size());
-    }
-    for (const auto& c: generated_connections) {
-        auto sgid = c.source.gid;
-        if (sgid >= num_total_cells_) {
-            throw arb::bad_connection_source_gid(c.source.gid, sgid, num_total_cells_);
-        }
-        const auto src = dom_dec.gid_domain(sgid);
-        src_domains.push_back(src);
-        src_counts[src]++;
-    }
-
-    util::make_partition(connection_part_, src_counts);
-    auto n_cons = gid_connections.size() + generated_connections.size();
-    auto n_ext_cons = gid_ext_connections.size();
-    PL();
-
-    // Construct the connections. The loop above gave us the information needed
-    // to do this in place.
-    // NOTE: The connections are partitioned by the domain of their source gid.
-    PE(init:communicator:update:connections);
-    std::vector<connection> connections(n_cons);
-    std::vector<connection> ext_connections(n_ext_cons);
-    auto offsets = connection_part_; // Copy, as we use this as the list of current target indices to write into
-    std::size_t ext = 0;
-    auto src_domain = src_domains.begin();
-    auto target_resolver = resolver(&target_resolution_map);
-    for (const auto index: util::make_span(num_local_cells_)) {
-        const auto tgt_gid = gids[index];
-        const auto iod = dom_dec.index_on_domain(tgt_gid);
-        auto source_resolver = resolver(&source_resolution_map);
-        for (const auto cidx: util::make_span(part_connections[index], part_connections[index+1])) {
-            const auto& conn = gid_connections[cidx];
-            auto src_gid = conn.source.gid;
-            if(is_external(src_gid)) throw arb::source_gid_exceeds_limit(tgt_gid, src_gid);
-            auto src_lid = source_resolver.resolve(conn.source);
-            auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
-            auto offset  = offsets[*src_domain]++;
-            ++src_domain;
-            connections[offset] = {{src_gid, src_lid}, tgt_lid, conn.weight, conn.delay, iod};
-        }
-        for (const auto cidx: util::make_span(part_ext_connections[index], part_ext_connections[index+1])) {
-            const auto& conn = gid_ext_connections[cidx];
+void make_remote_connections(const std::vector<cell_gid_type>& gids,
+                             const recipe& rec,
+                             const domain_decomposition_ptr dom_dec,
+                             resolver& target_resolver,
+                             resolver& source_resolver,
+                             communicator::connection_list& out) {
+    PE(init:communicator:update:connections:remote);
+    std::vector<connection> ext_connections;
+    std::size_t n_ext = 0;
+    target_resolver.clear();
+    for (auto tgt_gid: gids) {
+        const auto iod = dom_dec->index_on_domain(tgt_gid);
+        source_resolver.clear();
+        for (const auto& conn: rec.external_connections_on(tgt_gid)) {
             auto src = global_cell_of(conn.source);
             auto src_gid = conn.source.rid;
             if(is_external(src_gid)) throw arb::source_gid_exceeds_limit(tgt_gid, src_gid);
             auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
-            ext_connections[ext] = {src, tgt_lid, conn.weight, conn.delay, iod};
-            ++ext;
+            ext_connections.push_back({src, tgt_lid, conn.weight, conn.delay, iod});
+            ++n_ext;
         }
     }
-    for (const auto& c: generated_connections) {
-        auto offset = offsets[*src_domain]++;
-        ++src_domain;
-        connections[offset] = c;
+    PL();
+
+    PE(init:communicator:update:sort:remote);
+    util::sort(ext_connections);
+    PL();
+
+    PE(init:communicator:update:destructure:remote);
+    out.clear();
+    out.reserve(n_ext);
+    out.make(ext_connections);
+    PL();
+}
+
+void communicator::update_connections(const recipe& rec,
+                                      const domain_decomposition_ptr dom_dec,
+                                      const label_resolution_map& source_resolution_map,
+                                      const label_resolution_map& target_resolution_map) {
+    // Record all the gids in a flat vector.
+    PE(init:communicator:update:collect_gids);
+    std::vector<cell_gid_type> gids;
+    gids.reserve(num_local_cells_);
+    for (const auto& g: dom_dec->groups()) util::append(gids, g.gids);
+    PL();
+
+    // Prepare resolvers
+    auto target_resolver = resolver(&target_resolution_map);
+    auto source_resolver = resolver(&source_resolution_map);
+
+    // Build cell partition by group for passing events to cell groups
+    PE(init:communicator:update:index);
+    reset_index(dom_dec, index_divisions_, index_part_);
+    PL();
+
+    // Construct connection from external
+    make_remote_connections(gids, rec, dom_dec, target_resolver, source_resolver, ext_connections_);
+
+    // Construct connections from recipe callback
+    // NOTE: It'd great to parallelize here, however, as we write to different
+    //       src_domains *and* use the same resolvers, that's not feasible.
+    //       The only way to speed this up w/ more HW is to use more MPI tasks,
+    //       for now. The alternative is
+    //       - make coarsegrained parallel chunks,
+    //       - copy the resolvers into each
+    //       - generate one resultant vector each
+    //       - merge those serially
+    //       The word coarsegrained is load-bearing, as many small task will result
+    //       in many, many allocations and we don't have the proper primitives.
+    std::size_t n_con = 0;
+    std::vector<std::vector<connection>> connections_by_src_domain(num_domains_);
+    std::vector<std::vector<cell_member_type>> gids_domains(num_domains_);
+    for (auto& v : gids_domains) {
+        v.reserve(gids.size());
+    }
+    // helper for adding a connection
+    auto push_connection = [&] (const auto& conn, cell_gid_type tgt_gid, cell_size_type tgt_iod) {
+        auto src_gid = conn.source.gid;
+        if(src_gid >= num_total_cells_) throw arb::bad_connection_source_gid(tgt_gid, src_gid, num_total_cells_);
+            // strip off qualifiers and match on type to find the actual lid of source
+            auto src_lid = cell_lid_type(-1);
+            using C = std::decay_t<decltype(conn)>;
+            if constexpr (std::is_same_v<cell_connection, C>) {
+                src_lid = source_resolver.resolve(conn.source);
+            }
+            else if constexpr (std::is_same_v<raw_cell_connection, C>) {
+                src_lid = conn.source.index;
+            }
+            else {
+                ARB_UNREACHABLE;
+            }
+            // targets always get resolution
+            auto tgt_lid = target_resolver.resolve(tgt_gid, conn.target);
+            // NOTE old compilers stumble over emplace_back here
+            auto src_dom = dom_dec->gid_domain(src_gid);
+            connections_by_src_domain[src_dom].emplace_back(
+                connection{
+                .source={.gid=src_gid, .index=src_lid},
+                .target=tgt_lid,
+                .weight=conn.weight,
+                .delay=conn.delay,
+                .index_on_domain=tgt_iod
+            });
+            gids_domains[src_dom].push_back(cell_member_type{src_gid, src_lid});
+    };
+
+    PE(init:communicator:update:connections:local);
+    target_resolver.clear();
+    bool resolution_enabled = rec.resolve_sources();
+    for (const auto tgt_gid: gids) {
+        auto tgt_iod = dom_dec->index_on_domain(tgt_gid);
+        source_resolver.clear();
+        for (const auto& conn: rec.connections_on(tgt_gid)) {
+            if (!resolution_enabled) throw resolution_disabled{tgt_gid};
+            push_connection(conn, tgt_gid, tgt_iod);
+            ++n_con;
+        }
     }
     PL();
 
-    PE(init:communicator:update:index);
-    // Build cell partition by group for passing events to cell groups
-    index_part_ = util::make_partition(index_divisions_,
-        util::transform_view(
-            dom_dec.groups(),
-            [](const group_description& g){ return g.gids.size(); }));
+    PE(init:communicator:update:connections:raw);
+    for (const auto tgt_gid: gids) {
+        auto tgt_iod = dom_dec->index_on_domain(tgt_gid);
+        for (const auto& conn: rec.raw_connections_on(tgt_gid)) {
+            push_connection(conn, tgt_gid, tgt_iod);
+            ++n_con;
+        }
+    }
     PL();
 
-    PE(init:communicator:update:sort_connections);
-    // Sort the connections for each domain.
-    // This is num_domains_ independent sorts, so it can be parallelized trivially.
-    const auto& cp = connection_part_;
+
+    // Construct connections from high-level specification.
+    PE(init:communicator:update:connections:generated);
+    for (const auto& conn: generate_connections(rec, ctx_, dom_dec)) {
+        auto src_gid = conn.source.gid;
+        // NOTE: a bit awkward, as we don't have the tgt_gid.
+        if (src_gid >= num_total_cells_) throw arb::bad_connection_source_gid(-1, src_gid, num_total_cells_);
+        auto src_dom = dom_dec->gid_domain(src_gid);
+        connections_by_src_domain[src_dom].push_back(conn);
+        gids_domains[src_dom].push_back(conn.source);
+        ++n_con;
+    }
+    PL();
+    
+    PE(init:communicator:update:connections:sort_unique);
+    arb::threading::parallel_for::apply(0, gids_domains.size(), ctx_->thread_pool.get(),
+    [&](int i) {
+        auto& domain_gids = gids_domains[i];
+        std::sort(domain_gids.begin(), domain_gids.end());
+        domain_gids.erase(
+            std::unique(domain_gids.begin(), domain_gids.end()),
+            domain_gids.end()
+        );
+    });
+    PL();
+    
+    PE(init:communicator:update:connections:gids);
+        auto srcs_by_rank = ctx_->distributed->all_to_all_gids_domains(gids_domains);
+        const auto& part = srcs_by_rank.partition();
+        const auto& srcs = srcs_by_rank.values();
+        for (auto domain: util::make_span(0, num_domains_)) {
+            auto beg = part[domain];
+            auto end = part[domain + 1];
+            for (auto idx: util::make_span(beg, end)) {
+                const auto& src = srcs[idx];
+                src_ranks_[src].push_back(domain);
+            }
+        }
+    PL();
+    // Sort the connections for each domain; num_domains_ independent sorts
+    // parallelized trivially.
+    PE(init:communicator:update:sort:local);
     threading::parallel_for::apply(0, num_domains_, ctx_->thread_pool.get(),
-                                   [&](cell_size_type i) {
-                                       util::sort(util::subrange_view(connections, cp[i], cp[i+1]));
-                                   });
-    std::sort(ext_connections.begin(), ext_connections.end());
+                                   [&](auto i) { util::sort(connections_by_src_domain[i]); });
     PL();
 
-    PE(init:communicator:update:destructure_connections);
-    connections_.make(connections);
-    ext_connections_.make(ext_connections);
+    PE(init:communicator:update:connections:partition);
+    reset_partition(connections_by_src_domain, connection_part_);
+    PL();
+    
+    PE(init:communicator:update:destructure:local);
+    connections_.clear();
+    connections_.reserve(n_con);
+    connections_.make(connections_by_src_domain);
     PL();
 }
 
@@ -214,17 +279,62 @@ time_type communicator::min_delay() {
     return res;
 }
 
+gathered_vector<spike>
+generate_all_to_all_vector(const std::vector<spike>& spikes,
+                           const std::unordered_map<cell_member_type, std::vector<cell_size_type>>& src_ranks,
+                           std::size_t num_domains) {
+
+    using count_type = gathered_vector<spike>::count_type;
+    // count outgoing spikes per rank
+    std::vector<count_type> offsets(num_domains + 1, 0);
+    for (const auto& spk: spikes) {
+        auto ranks = src_ranks.find(spk.source);
+        if (ranks != src_ranks.end()) {
+            for (auto rank: ranks->second) {
+                ++offsets[rank + 1];
+            }
+        }
+    }
+
+    // make partition so we can sort the spikes into bins
+    std::partial_sum(offsets.begin(), offsets.end(),
+                     offsets.begin());
+    auto size = offsets.back();
+
+    // we have the sizes per rank to send to, so deal spikes into bins.
+    std::vector<spike> spikes_per_rank(size);
+    auto rank_indices = offsets;
+    for (const auto& spk: spikes) {
+        auto ranks = src_ranks.find(spk.source);
+        if (ranks != src_ranks.end()) {
+            for (auto rank: ranks->second) {
+                auto& index = rank_indices[rank];
+                spikes_per_rank[index] = spk;
+                ++index;
+            }
+        }
+    }
+    return {std::move(spikes_per_rank), std::move(offsets)};
+}
+
 communicator::spikes
-communicator::exchange(std::vector<spike> local_spikes) {
+communicator::exchange(std::vector<spike>& local_spikes) {
     PE(communication:exchange:sort);
     // sort the spikes in ascending order of source gid
     util::sort_by(local_spikes, [](spike s){return s.source;});
     PL();
 
-    PE(communication:exchange:gather);
+    PE(communication:exchange:sum_spikes);
+    num_local_spikes_ = ctx_->distributed->sum(local_spikes.size());
+    num_spikes_ += num_local_spikes_;
+    PL();
+
+    PE(communication:exchange:generate);
+    auto spikes_per_rank = generate_all_to_all_vector(local_spikes, src_ranks_, num_domains_);
+    PL();
+    PE(communication:exchange:all2all);
     // global all-to-all to gather a local copy of the global spike list on each node.
-    auto global_spikes = ctx_->distributed->gather_spikes(local_spikes);
-    num_spikes_ += global_spikes.size();
+    auto global_spikes = ctx_->distributed->all_to_all_spikes(spikes_per_rank);
     PL();
 
     // Get remote spikes
@@ -244,86 +354,38 @@ communicator::exchange(std::vector<spike> local_spikes) {
     // sort, since we cannot trust our peers
     std::sort(remote_spikes.begin(), remote_spikes.end());
     PL();
-    return {global_spikes, remote_spikes};
+    return {std::move(global_spikes), std::move(remote_spikes)};
 }
 
 void communicator::set_remote_spike_filter(const spike_predicate& p) { remote_spike_filter_ = p; }
 void communicator::remote_ctrl_send_continue(const epoch& e) { ctx_->distributed->remote_ctrl_send_continue(e); }
 void communicator::remote_ctrl_send_done() { ctx_->distributed->remote_ctrl_send_done(); }
 
-// Given
-// * a set of connections and an index into the set
-// * a range of spikes
-// * an output queue,
-// append events for that sub-range of spikes to the
-// queue that has the same source as the connection
-// at index.
-template<typename It>
-void enqueue_from_source(const communicator::connection_list& cons,
-                         const size_t idx,
-                         It& spk,
-                         const It end,
-                         std::vector<pse_vector>& out) {
-    // const refs to connection.
-    auto src = cons.srcs[idx];
-    auto dst = cons.dests[idx];
-    auto del = cons.delays[idx];
-    auto wgt = cons.weights[idx];
-    auto dom = cons.idx_on_domain[idx];
-    auto& que = out[dom];
-    for (; spk != end && spk->source == src; ++spk) {
-        que.emplace_back(dst, spk->time + del, wgt);
-    }
-}
-    
-// Internal helper to append to the event queues
 template<typename S>
 void append_events_from_domain(const communicator::connection_list& cons, size_t cn, const size_t ce,
                                const S& spks,
                                std::vector<pse_vector>& queues) {
     auto sp = spks.begin(), se = spks.end();
-    if (se == sp) return;
-    // We have a choice of whether to walk spikes or connections:
-    // i.e., we can iterate over the spikes, and for each spike search
-    // the for connections that have the same source; or alternatively
-    // for each connection, we can search the list of spikes for spikes
-    // with the same source.
-    //
-    // We iterate over whichever set is the smallest, which has
-    // complexity of order max(S log(C), C log(S)), where S is the
-    // number of spikes, and C is the number of connections.
-    if (cons.size() < spks.size()) {
-        for (; sp != se && cn < ce; ++cn) {
-            // sp is now the beginning of a range of spikes from the same
-            // source.
-            sp = std::lower_bound(sp, se,
-                                  cons.srcs[cn],
-                                  [](const auto& spk, const auto& src) { return spk.source < src; });
-            // now, sp is at the end of the equal source range.
-            enqueue_from_source(cons, cn, sp, se, queues);
-        }
-    }
-    else {
-        while (sp != se) {
-            auto beg = sp;
-            auto src = beg->source;
-            // Here, `cn` is the index of the first connection whose source
-            // is larger or equal to the spike's source. It may be `ce` if
-            // all elements compare < to spk.source.
-            cn = std::lower_bound(cons.srcs.begin() + cn,
-                                  cons.srcs.begin() + ce,
-                                  src)
-                - cons.srcs.begin();
-            for (;  cn < ce && cons.srcs[cn] == src; ++cn) {
-                // Reset the spike iterator as we walk the same sub-range
-                // for each connection with the same source.
-                sp = beg;
-                // If we ever get multiple spikes from the same source, treat
-                // them all. This is mostly rare.
-                enqueue_from_source(cons, cn, sp, se, queues);
+    while (sp < se && cn < ce) {
+        auto src = cons.srcs[cn];
+        while (sp < se && sp->source < src) ++sp;
+        if (sp >= se) continue;
+        auto fst = sp;
+        for (; cn < ce && cons.srcs[cn] == src; ++cn) {
+            auto dom = cons.idx_on_domain[cn];
+            auto& que = queues[dom];
+            auto dst = cons.dests[cn];
+            auto del = cons.delays[cn];
+            auto wgt = cons.weights[cn];
+            // Handle all connections with the same source
+            // scan the range of spikes, once per connection
+            for (sp = fst; sp < se && sp->source == src; ++sp) {
+                que.emplace_back(dst, sp->time + del, wgt);
             }
-            while (sp != se && sp->source == src) ++sp;
         }
+        // once we leave here, sp will be at the end of the eglible range
+        // and all connections with the same source will have been treated.
+        // so, we can just leave sp at this end.
     }
 }
 
@@ -346,6 +408,7 @@ void communicator::make_event_queues(communicator::spikes& spikes,
 }
 
 std::uint64_t communicator::num_spikes() const { return num_spikes_; }
+std::uint64_t communicator::num_local_spikes() const { return num_local_spikes_; }
 void communicator::set_num_spikes(std::uint64_t n) { num_spikes_ = n; }
 cell_size_type communicator::num_local_cells() const { return num_local_cells_; }
 const communicator::connection_list& communicator::connections() const { return connections_; }

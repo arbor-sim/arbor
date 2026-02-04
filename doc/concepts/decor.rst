@@ -36,7 +36,7 @@ Decorations are described by a **decor** object in Arbor. It provides facilities
    All methods on decor objects (``paint``, ``place``, and ``set_default``)
    return a reference to the objects so you can chain them together. This saves
    some repetition. You can break long statements over multiple lines, but in
-   Python this requires use of continuation lines ``\`` or wrapping the whole
+   Python this requires the use of continuation lines ``\`` or wrapping the whole
    expression into parentheses.
 
 .. _cablecell-paint:
@@ -49,16 +49,16 @@ They can be specified at three different levels:
 
 * *globally*: a global default for all cells in a model.
 * *per-cell*: override the global defaults for a specific cell.
-* *per-region*: specialize on specific cell regions.
+* *per-region*: specialize in specific cell regions.
 
 This hierarchical approach for resolving parameters and properties allows
 us to, for example, define a global default value for calcium concentration,
-then provide a different values on specific cell regions.
+then provide different values on specific cell regions.
 
-Some dynamics, such as membrane capacitance and the initial concentration of ion species
+Some dynamics, such as membrane capacitance and the initial concentration of ion species,
 must be defined for all CVs. Others need only be applied where they are
-present, for example ion channels.
-The types of dynamics, and where they can be defined, are
+present, for example, ion channels.
+The types of dynamics and where they can be defined are
 :ref:`tabulated <cablecell-painted-resolution>` below.
 
 .. _cablecell-painted-resolution:
@@ -75,7 +75,7 @@ The types of dynamics, and where they can be defined, are
    ion valence,            --, --, ✓
 
 If a property is defined at multiple levels, the most local definition will be chosen:
-a cell-local definition will override a global definition, and a definition on a region
+a cell-local definition will override a global definition, and a definition of a region
 will override any cell-local or global definition on that region.
 
 .. warning::
@@ -231,11 +231,11 @@ can't be overridden at cell or region level.
 
 Each ion species has the following properties:
 
-1. *internal concentration*: concentration on interior of the membrane [mM].
-2. *external concentration*: concentration on exterior of the membrane [mM].
+1. *internal concentration*: concentration on interior of the membrane :math:`[mM]`.
+2. *external concentration*: concentration on exterior of the membrane :math:`[mM]`.
 3. *reversal potential*: reversal potential [mV].
 4. *reversal potential mechanism*:  method for calculating reversal potential.
-5. *diffusivity*: diffusion coefficient for marker concentration, defaults to zero [m^2/s].
+5. *diffusivity*: diffusion coefficient for marker concentration, defaults to zero :math:`[m^2/s]`.
 
 Properties 1, 2 and 3 must be defined, and are used as the initial values for
 each quantity at the start of the simulation. They are specified globally,

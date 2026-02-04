@@ -6,7 +6,7 @@
 // will need to be reworked in order to compile.
 
 #include <any>
-#include <fstream>
+#include <random>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/segment_tree.hpp>
@@ -63,7 +63,6 @@ public:
 
         arb::decor decor;
         decor.paint(arb::reg::tagged(1), arb::density("pas"));
-        decor.set_default(arb::cv_policy_max_extent((dend_length+soma_radius*2)/num_comp_));
 
         auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
         for(unsigned i = 0; i < num_synapse_; i++) {
@@ -71,7 +70,7 @@ public:
             decor.place(arb::mlocation{0, distribution(gen)}, arb::synapse("expsyn"), "syn");
         }
 
-        return arb::cable_cell{arb::morphology(tree), decor};
+        return arb::cable_cell{arb::morphology(tree), decor, {}, arb::cv_policy_max_extent((dend_length+soma_radius*2)/num_comp_)};
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
@@ -110,9 +109,7 @@ public:
 
         arb::decor decor;
         decor.paint(arb::reg::all(), arb::density("pas"));
-        decor.set_default(arb::cv_policy_max_extent((dend_length+soma_radius*2)/num_comp_));
-
-        return arb::cable_cell {arb::morphology(tree), decor};
+        return arb::cable_cell {arb::morphology(tree), decor, {}, arb::cv_policy_max_extent((dend_length+soma_radius*2)/num_comp_)};
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
@@ -153,9 +150,8 @@ public:
 
         arb::decor decor;
         decor.paint(arb::reg::all(), arb::density("pas"));
-        decor.set_default(arb::cv_policy_max_extent((dend_length*3+soma_radius*2)/num_comp_));
 
-        return arb::cable_cell{arb::morphology(tree), decor};
+        return arb::cable_cell{arb::morphology(tree), decor, {}, arb::cv_policy_max_extent((dend_length*3+soma_radius*2)/num_comp_)};
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
@@ -194,9 +190,8 @@ public:
 
         arb::decor decor;
         decor.paint(arb::reg::all(), arb::density("hh"));
-        decor.set_default(arb::cv_policy_max_extent((dend_length+soma_radius*2)/num_comp_));
 
-        return arb::cable_cell{arb::morphology(tree), decor};
+        return arb::cable_cell{arb::morphology(tree), decor, {}, arb::cv_policy_max_extent((dend_length+soma_radius*2)/num_comp_)};
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
@@ -237,9 +232,8 @@ public:
 
         arb::decor decor;
         decor.paint(arb::reg::all(), arb::density("hh"));
-        decor.set_default(arb::cv_policy_max_extent((dend_length*3+soma_radius*2)/num_comp_));
 
-        return arb::cable_cell{arb::morphology(tree), decor};
+        return arb::cable_cell{arb::morphology(tree), decor, {}, arb::cv_policy_max_extent((dend_length*3+soma_radius*2)/num_comp_)};
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {

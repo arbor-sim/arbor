@@ -1,23 +1,24 @@
 Build option/target,Tool name,Minimum version,Notes,Update criteria
---,CMake,3.19,,"* Is available as a module on HPC systems
+--,CMake,3.25,,"* Is available as a module on HPC systems
 * When arbitrary changes in more recently released versions make supported"
 --,C++ compiler,,C++17 support. See below,
 --,GCC,12.0.0,,"* it is supported by the minimum version of CUDA.
 * it is available either by default or can be installed using standard package manager on the supported Linux versions."
---,Clang,12.0,,
---,Apple Clang,13,Apple LLVM version 13.0.0 (clang-1300.x.y.z),
+--,Clang,13.0,,
+--,Apple Clang,15,Apple LLVM version 15.0.0 (clang-1500.x.y.z),
 ARB_GPU,Hip Clang,ROCm 3.9,HIP support is currently experimental.,
 ARB_GPU,CUDA,12.0,,"* It is available on all of the target HPC systems (Piz Daint, Juwels Booster)"
 ARB_WITH_MPI,MPI,,Many MPI implementations are supported.,
 "ARB_WITH_MPI, ARB_WITH_PYTHON ",mpi4py,3.1.0,Minimum version depends on compatiblity with your Python and MPI versions. 3.1.0 is the first release to support Python > 3.8.,
 html,     .. literalinclude:: ../requirements.txt,,See ``doc/requirements.txt``,
-unit,googletest,1.12.1,submodule ``ext/gtest.*``,
-bench,Google-benchmark,,submodule ``ext/google-benchmark``,
---,json,3.11.3,submodule ``ext/json``,
---,pugi,1.14,submodule ``ext/pugixml``,
---,random123,1.14.0,submodule ``ext/random123``,
---,fmt,10.2.1,submodule ``ext/fmt``,
---,tinyopt,,source copy ``ext/tinyopt``,
---,units,0.9.1,submodule ``ext/units``,
-ARB_WITH_PYTHON,pybind11,2.10.1,submodule ``ext/pybind11``,
-ARB_WITH_PYTHON,Python,3.9,Python compatiblity is the range between the latest officially released point version and the minimum here specified.,"* it is not more advanced than the version specified by NEP 29."
+unit,googletest,1.12.1,CPM,
+bench,Google-benchmark,1.8.3,CPM,
+--,json,3.12.0,CPM,
+--,pugi,1.13,CPM,
+--,random123,1.14.0,CPM,
+--,fmt,10.0.0,CPM,
+--,tinyopt,,CPM,
+--,units,0.13.1,CPM,
+--,unordered_dense,4.5.0,CPM,
+ARB_WITH_PYTHON,pybind11,3.0.0,CPM,
+ARB_WITH_PYTHON,Python,3.10,Python compatiblity is the range between the latest officially released point version and the minimum here specified.,"* it is not more advanced than the version specified by NEP 29."

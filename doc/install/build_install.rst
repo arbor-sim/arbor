@@ -169,23 +169,6 @@ will need to install `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
 .. _install-downloading:
 
 
-External dependencies
-~~~~~~~~~~~~~~~~~~~~~
-
-For the (optional) python bindings Arbor uses `pybind11 <https://github.com/pybind/pybind11>`_, and
-JSON parsing is faciliated through `nlohmann json <https://github.com/nlohmann/json>`_.
-
-There are two ways to obtain these libraries. The default way is to use them from the
-system, e.g., installed via ``apt install python3-pybind11`` and ``apt install nlohmann-json3-dev``
-for a Debian based distribution.
-
-The other possiblity is to use versions of these dependencies that are bundled with Arbor
-via the CMAKE option `ARB_USE_BUNDLED_LIBS`.
-If set, `pybind11 <https://github.com/pybind/pybind11>`_ is retrieved from a Git submodule (see below)
-and `nlohmann json <https://github.com/nlohmann/json>`_ from a copy in the checked out sources.
-
-It is also possible to select only one of the two libraries to be taken from the system or from Arbor.
-
 .. _building:
 
 Building and installing Arbor
@@ -211,7 +194,7 @@ For more detailed build configuration options, see the `quick start <quickstart_
     # 2) Use CMake to configure the build.
     # By default Arbor builds in release mode, i.e. with optimizations on.
     # Release mode should be used for installing and benchmarking Arbor.
-    cmake .. # add -DARB_USE_BUNDLED_LIBS=ON to use bundled/git-submoduled libs
+    cmake ..
 
     # 3.1) Build Arbor library.
     make -j 4
@@ -492,7 +475,6 @@ use ``ARB_PYTHON_LIB_PATH`` to specify the location where the Python module is t
     mkdir build
     cd build
     cmake ../arbor -DARB_WITH_PYTHON=on       \       # enable python support.
-                   -DARB_USE_BUNDLED_LIBS=on  \       # use bundled versions of deps.
                    -DARB_PYTHON_LIB_PATH="$pyprefix"  # set Python installation path.
 
     # Build and install
@@ -969,71 +951,49 @@ If you hope to install Arbor from source in a virtual environment in order not t
 
 .. code-block:: bash
 
-#create a virtual environment
+    #create a virtual environment    
+    conda create --name arbor_test
+    conda activate arbor_test
+    
+    #go to the folder and clone the Arbor source package from GitHub
+    cd ~/miniconda3/envs/arbor_test/
+    mkdir src
+    cd src
+    git clone https://github.com/arbor-sim/arbor.git --recurse-submodules
+    
+    #install python and numpy in this environment
+    conda install python=3.12.2
+    conda install numpy
+    
+    #start the build
+    cd arbor
+    mkdir build
+    cd build
+    cmake .. -GNinja -DCMAKE_CXX_COMPILER=$(which g++) -DCMAKE_C_COMPILER=$(which gcc) -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=ON -DPython3_EXECUTABLE=$(which python3) -DARB_USE_BUNDLED_LIBS=ON
+    
+    #activate ninja to install
+    ninja
+    sudo ninja install
+    
+    #correct the path to the site packages and the libc files
+    #first request the right Python site package path
+    python -c 'import numpy; print(numpy.__path__)'
 
-conda create --name arbor_test
-conda activate arbor_test
-
-
-#go to the folder and clone the Arbor source package from GitHub
-
-cd ~/miniconda3/envs/arbor_test/
-mkdir src
-cd src
-git clone https://github.com/arbor-sim/arbor.git --recurse-submodules
-
-
-#install python and numpy in this environment
-
-conda install python=3.12.2
-conda install numpy
-
-
-#start the build
-
-cd arbor
-mkdir build
-cd build
-
-cmake .. -GNinja -DCMAKE_CXX_COMPILER=$(which g++) -DCMAKE_C_COMPILER=$(which gcc) -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=ON -DPython3_EXECUTABLE=$(which python3) -DARB_USE_BUNDLED_LIBS=ON
-
-
-#activate ninja to install
-
-ninja
-sudo ninja install
-
-
-#correct the path to the site packages and the libc files
-#first request the right Python site package path
-
-python -c 'import numpy; print(numpy.__path__)'
-
-#load the right path to the one used for installing
-
-cp -r ~/miniconda3/envs/arbor_test/src/arbor/build/python/arbor <site-packages>
-Replace <site-packages> with the path you get in the previous operation before ‘/numpy’
-
-#redirect the libc files such that the miniconda environment can access it
-
-ln -sf /lib/x86_64-linux-gnu/libstdc++.so.6 ~/miniconda3/envs/arbor_test/bin/../lib/libstdc++.so.6
+    #load the right path to the one used for installing    
+    #replace <site-packages> with the path you get in the previous operation before ‘/numpy’
+    cp -r ~/miniconda3/envs/arbor_test/src/arbor/build/python/arbor <site-packages>
+    
+    #redirect the libc files such that the miniconda environment can access it    
+    ln -sf /lib/x86_64-linux-gnu/libstdc++.so.6 ~/miniconda3/envs/arbor_test/bin/../lib/libstdc++.so.6
+    
+    #go to any working directory to try if you successfully installed arbor, by starting python and importing arbor.
+    #one thing to add here could be testing for the version, i.e.,
+    python -c 'import arbor; print(arbor.__version__)'
+    #should work without errors and print something like 0.91-dev.
 
 
-#go to any working directory to try if you successfully installed arbor, by starting python and importing arbor.
-
-One thing to add here could be testing for the version, i.e.
-
-python -c 'import arbor; print(arbor.__version__)'
-
-should work without errors and print something like 0.91-dev.
-
-
-python
-import arbor
-
-#then deactivate the environment if no more actions are planned. In the future, always first activate the virtual environment with and then use arbor in this environment with:
-
-conda activate arbor_test
-python
->>>import arbor
+    #then deactivate the environment if no more actions are planned. In the future, always first activate the virtual environment with and then use arbor in this environment with:
+    conda activate arbor_test
+    python
+    >>>import arbor
 

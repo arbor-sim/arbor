@@ -1,6 +1,6 @@
 .. _tutorialsinglecellallen:
 
-A single cell model from the Allen Brain Atlas
+A single-cell model from the Allen Brain Atlas
 ==============================================
 
 In this tutorial we'll see how we can take a model from the `Allen Brain Atlas <https://brain-map.org/>`_
@@ -66,18 +66,18 @@ The parameter fit
 The most complicated part is transferring the values for the appropriate
 parameters in parameter fit file to an :class:`arbor.decor`. The file file is a
 ``json`` file, which is fortunate; Python comes with a ``json`` package in its
-standard library. The `passive` and `conditions` block contains cell-wide
+standard library. The `passive` and `conditions` blocks contain cell-wide
 defaults, while the `genome` section contains the parameters for all the
-mechanism properties. In certain cases, parameters names include the mechanism
+mechanism properties. In certain cases, parameter names include the mechanism
 name, so some processing needs to take place.
 
 Step **(3)** shows the precise steps needed to load the fit parameter file into
-a list of global properties, region specific properties, reversal potentials,
+a list of global properties, region-specific properties, reversal potentials,
 and mechanism parameters. This is not a generic function that will successfully
 load any Allen model, but it can be used as a starting point. The function
 composes 4 components out of the ``json`` file:
 
-1. global electro-physiological parameters
+1. global electro-physiological parameters,
 2. a set of electro-physiological parameters per region,
 3. a set of reversal potentials per ion species and region,
 4. a set of mechanisms with parameters per region.
@@ -97,7 +97,7 @@ the function that will return the cable cell from the model as an
 .. literalinclude:: ../../python/example/single_cell_allen.py
    :language: python
    :dedent:
-   :lines: 79-138
+   :lines: 78-138
 
 Step **(4)** creates an empty :class:`arbor.decor`.
 

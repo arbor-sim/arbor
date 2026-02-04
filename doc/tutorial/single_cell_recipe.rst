@@ -1,13 +1,13 @@
 .. _tutorialsinglecellrecipe:
 
-A simple single cell recipe
+A simple single-cell recipe
 ===========================
 
-This example builds the same single cell model as :ref:`tutorialsinglecell`,
+This example builds the same single-cell model as :ref:`tutorialsinglecell`,
 except using a :class:`arbor.recipe` and :class:`arbor.simulation` instead of a :class:`arbor.single_cell_model`.
 
 Recipes are an important concept in Arbor. They represent the most versatile
-tool for building a complex network of cells. We will go though this example of
+tool for building a complex network of cells. We will go through this example of
 a model of a single cell, before using the recipe to represent more complex
 networks in subsequent examples.
 
@@ -16,14 +16,14 @@ networks in subsequent examples.
    **Concepts covered in this example:**
 
    1. Building a :class:`arbor.recipe`.
-   2. Using the recipe, default context and domain decomposition to create an :class:`arbor.simulation`
+   2. Using the recipe, default context and domain decomposition to create an :class:`arbor.simulation`.
    3. Running the simulation and visualizing the results.
 
 The cell
 --------
 
 Let's copy the cell description from the :ref:`original example <tutorialsinglecell-cell>`,
-where construction of the cell is explained in detail.
+where the construction of the cell is explained in detail.
 
 .. literalinclude:: ../../python/example/single_cell_recipe.py
    :language: python
@@ -51,10 +51,10 @@ returns `0` by default and models without cells are quite boring!
    :language: python
    :lines: 31-61
 
-Step **(4)** describes the recipe that will reflect our single cell model.
+Step **(4)** describes the recipe that will reflect our single-cell model.
 
 Step **(4.1)** defines the class constructor. It can take any shape you need,
-but it is important to call base class' constructor as the first action. If the
+but it is important to call the base class' constructor as the first action. If the
 overridden methods of the class need to return an object, it may be a good idea
 to have the returned object be a member of the class. With this constructor, we
 could easily change the cell and probes of the model, should we want to do so.
@@ -80,7 +80,7 @@ voltage probe located at "midpoint".
 Step **(4.6)** returns the properties that will be applied to all cells of that
 kind in the model.
 
-More methods may be overridden if your model requires that, see
+More methods may be overridden if your model requires that; see
 :class:`arbor.recipe` for options.
 
 Now we instantiate the recipe
@@ -92,7 +92,7 @@ Now we instantiate the recipe
 The simulation
 --------------
 
-:class:`arbor.single_cell_model` does not only take care of the recipe, it also
+:class:`arbor.single_cell_model` does not only take care of the recipe, but it also
 takes care of defining how the simulation will be run. When you create and use
 your own recipe, you can to do this manually, in the form of defining a
 execution context and a domain decomposition. Fortunately, the default

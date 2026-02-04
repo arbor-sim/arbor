@@ -7,13 +7,12 @@ on:
     tags:
       - v*
   schedule:
-    - cron: '0 2 * * 0' # run at 2 AM every sunday
+    - cron: '0 3 * * 0'
 
 jobs:
   get_timestamp:
     name: Prep pyproject.toml
     runs-on: ubuntu-latest
-
     steps:
       - name: Get Arbor
         uses: actions/checkout@v4
@@ -106,6 +105,7 @@ jobs:
           name: dist
       - name: Publish distribution 📦 to Test PyPI
         run: |
+          pip install -U packaging
           pip install twine
           twine upload -r testpypi ./*
         env:
@@ -122,7 +122,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: "recursive"
+          submodules: recursive
           path: arbor
       - name: Make full tarball
         run: |

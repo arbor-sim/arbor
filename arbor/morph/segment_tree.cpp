@@ -1,6 +1,6 @@
-#include <stdexcept>
 #include <map>
 #include <vector>
+#include <algorithm>
 
 #include <arbor/morph/morphexcept.hpp>
 #include <arbor/morph/segment_tree.hpp>
@@ -245,7 +245,6 @@ ARB_ARBOR_API std::vector<msize_t> tag_roots(const segment_tree& t, int tag) {
 
     return tag_roots;
 }
-
 
 } // namespace arb
 

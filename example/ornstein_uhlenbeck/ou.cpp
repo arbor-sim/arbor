@@ -21,20 +21,19 @@ public:
 
         // build catalogue with stochastic mechanism
         cell_gprop_.catalogue = global_default_catalogue();
-        cell_gprop_.catalogue.import(arb::global_ornstein_uhlenbeck_catalogue(), "");
+        cell_gprop_.catalogue.extend(arb::global_ornstein_uhlenbeck_catalogue());
         cell_gprop_.default_parameters = neuron_parameter_defaults;
         
         // paint the process on the whole cell
         decor dec;
         double const cv_size = 1.0;
-        dec.set_default(cv_policy_max_extent(cv_size));
         dec.paint("(all)"_reg , density("hh"));
         dec.paint("(all)"_reg , density("ornstein_uhlenbeck"));
 
         // single-cell tree with ncvs control volumes
         segment_tree tree;
         tree.append(mnpos, {0, 0, 0.0, 4.0}, {0, 0, ncvs*cv_size, 4.0}, 1);
-        cell_ = cable_cell(morphology(tree), dec);
+        cell_ = cable_cell(morphology(tree), dec, {}, cv_policy_max_extent(cv_size));
     }
 
     arb::cell_size_type num_cells() const override { return 1; }

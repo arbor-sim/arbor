@@ -8,7 +8,7 @@ Arbor provides two library APIs for working with hardware resources:
 * The core *libarbor* is used to *describe* the hardware resources
   and their contexts for use in Arbor simulations.
 * The *libarborenv* provides an API for querying available hardware
-  resources (e.g. the number of available GPUs), and initializing MPI.
+  resources (e.g., the number of available GPUs), and initializing MPI.
 
 
 libarborenv
@@ -99,7 +99,7 @@ The header ``arborenv/gpu_env.hpp`` supplies lower-level functions for querying 
     .. Note::
 
         Arbor allows at most one GPU per MPI rank, and furthermore requires that
-        an MPI rank has exclusive access to a GPU, i.e. two MPI ranks can not
+        an MPI rank has exclusive access to a GPU, i.e., two MPI ranks can not
         share a GPU.
         This function assigns a unique GPU to each rank when more than one rank
         has access to the same GPU(s).
@@ -120,7 +120,7 @@ The header ``arborenv/gpu_env.hpp`` supplies lower-level functions for querying 
     Throws:
 
     * :cpp:any:`arbenv::gpu_uuid_error`: if there was an error in the CUDA runtime
-        on the local or remote MPI ranks, i.e. if one rank throws, all ranks
+        on the local or remote MPI ranks, i.e., if one rank throws, all ranks
         will throw.
 
 The header ``arborenv/with_mpi.hpp`` provides an RAII interface for initializing MPI
@@ -131,13 +131,13 @@ and handling exceptions on MPI exit.
     The :cpp:class:`with_mpi` type is a simple RAII scoped guard for MPI initialization
     and finalization. On creation :cpp:class:`with_mpi` will call :cpp:any:`MPI_Init_thread`
     to initialize MPI with the minimum level thread support required by Arbor, that is
-    ``MPI_THREAD_SERIALIZED``. When it goes out of scope it will automatically call
+    ``MPI_THREAD_SERIALIZED``. When it goes out of scope, it will automatically call
     :cpp:any:`MPI_Finalize`.
 
     .. cpp:function:: with_mpi(int& argcp, char**& argvp, bool fatal_errors = true)
 
         The constructor takes the :cpp:any:`argc` and :cpp:any:`argv` arguments
-        passed to main of the calling application, and an additional flag
+        passed to the ``main`` function of the calling application, and an additional flag
         :cpp:any:`fatal_errors` that toggles whether errors in MPI API calls
         should return error codes or terminate.
 
@@ -152,10 +152,10 @@ and handling exceptions on MPI exit.
         if the rank with the exception attempts to call :cpp:any:`MPI_Finalize` and
         other ranks are waiting in other MPI calls. If this happens inside a try-catch
         block, the deadlock stops the exception from being handled.
-        For this reason the destructor of :cpp:class:`with_mpi` only calls
+        For this reason, the destructor of :cpp:class:`with_mpi` only calls
         :cpp:any:`MPI_Finalize` if there are no uncaught exceptions.
-        This isn't perfect because the other MPI ranks still deadlock,
-        however it gives the exception handling code to report the error for debugging.
+        This isn't perfect because the other MPI ranks can still deadlock,
+        however, it gives the exception handling code to report the error for debugging.
 
     An example workflow that uses the MPI scope guard. Note that this code will
     print the exception error message in the case where only one MPI rank threw
@@ -255,7 +255,7 @@ The core Arbor library *libarbor* provides an API for:
         help with performance by suppressing unneeded task migrations from the
         OS. See also `affinity
         <https://en.wikipedia.org/wiki/Processor_affinity>`_. Do not enable if
-        process binding is handled externally, eg by SLURM or OpenMPI, or
+        process binding is handled externally, e.g., by SLURM or OpenMPI, or
         disable it there first.
 
     .. cpp:member:: bool bind_threads
@@ -270,15 +270,15 @@ The core Arbor library *libarbor* provides an API for:
     .. cpp:member:: int gpu_id
 
         The identifier of the GPU to use.
-        The gpu id corresponds to the ``int device`` parameter used by CUDA API calls
-        to identify gpu devices.
+        The GPU id corresponds to the ``int device`` parameter used by CUDA API calls
+        to identify GPU devices.
         Set to -1 to indicate that no GPU device is to be used.
         See ``cudaSetDevice`` and ``cudaDeviceGetAttribute`` provided by the
         `CUDA API <https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html>`_.
 
     .. cpp:function:: bool has_gpu() const
 
-        Indicates whether a GPU is selected (i.e. whether :cpp:member:`gpu_id` is ``-1``).
+        Indicates whether a GPU is selected (i.e., whether :cpp:member:`gpu_id` is ``-1``).
 
 .. cpp:namespace:: arb
 
@@ -292,7 +292,7 @@ The core Arbor library *libarbor* provides an API for:
 
 Arbor contexts are created by calling :cpp:func:`make_context`, which returns an initialized
 context. There are two versions of :cpp:func:`make_context`, for creating contexts
-with and without distributed computation with MPI respectively.
+with and without distributed computation with MPI, respectively.
 
 .. cpp:function:: context make_context(proc_allocation alloc=proc_allocation())
 
@@ -329,13 +329,13 @@ whether it has a GPU, how many threads are in its thread pool, using helper func
 .. cpp:function:: unsigned num_ranks(const context&)
 
    Query the number of distributed ranks. If the context has an MPI
-   communicator, return is equivalent to :cpp:any:`MPI_Comm_size`.
+   communicator, the return value is equivalent to :cpp:any:`MPI_Comm_size`.
    If the communicator has no MPI, returns 1.
 
 .. cpp:function:: unsigned rank(const context&)
 
    Query the rank of the calling rank. If the context has an MPI
-   communicator, return is equivalent to :cpp:any:`MPI_Comm_rank`.
+   communicator, the return value is equivalent to :cpp:any:`MPI_Comm_rank`.
    If the communicator has no MPI, returns 0.
 
 Here are some simple examples of how to create a :cpp:class:`arb::context` using
@@ -364,7 +364,7 @@ Here are some simple examples of how to create a :cpp:class:`arb::context` using
       auto mpi_context = arb::make_context(resources, MPI_COMM_WORLD)
 
 Here is a more complicated example of creating a :cpp:class:`context` on a
-system where support for GPU and MPI support are conditional.
+system where support for GPU and MPI is conditional.
 
 .. container:: example-code
 
@@ -439,7 +439,7 @@ HPC clusters, Arbor uses  *distributed contexts* to:
 
 The global context used to run a simulation is determined at run time, not at compile time.
 This means that if Arbor is compiled with support for MPI enabled, then at run time the
-user can choose between using a non-distributed (local) context, or an distributed MPI
+user can choose between using a non-distributed (local) context, or a distributed MPI
 context.
 
 An execution context is created by a user before building and running a simulation.
@@ -465,7 +465,7 @@ communicator for distributed communication, it can be initialised with the commu
         arb::context context = arb::make_context(resources, MPI_COMM_WORLD);
 
         // Partition model over the distributed system.
-        arb::domain_decomposition decomp = arb::partition_load_balance(recipe, context);
+        auto decomp = arb::partition_load_balance(recipe, context);
 
         // Instantiate the simulation over the distributed system.
         arb::simulation sim(recipe, decomp, context);
@@ -493,8 +493,8 @@ A distributed context can then be generated using helper functions :cpp:func:`ar
         auto dist_ctx = arb::make_mpi_context(MPI_COMM_WORLD, bind);
         // if `bind` is true, Arbor will attempt to generate a process binding mask
         // such that the processes on each node receive maximal partitions of the
-        // available hardware. Do not use if your MPI (like eg OpenMPI) or cluster
-        // manager set this (eg SLURM).
+        // available hardware. Do not use if your MPI (e.g., OpenMPI) or cluster
+        // manager set this (e.g., SLURM).
 
 Class documentation
 ^^^^^^^^^^^^^^^^^^^
@@ -533,7 +533,7 @@ Class documentation
     .. cpp:function:: int id() const
 
         Each distributed process has a unique integer identifier, where the identifiers
-        are numbered contiguously in the half open range [0, size).
+        are numbered contiguously in the half-open range [0, size).
         (for example ``MPI_Rank``).
 
     .. cpp:function:: int size() const
@@ -613,7 +613,7 @@ Class documentation
 
     .. cpp:function:: mpi_context(MPI_Comm comm)
 
-        Create a context that will uses the MPI communicator :cpp:any:`comm`.
+        Create a context that will use the MPI communicator :cpp:any:`comm`.
 
 .. cpp:function:: distributed_context_handle make_mpi_context(MPI_Comm comm)
 
@@ -665,7 +665,7 @@ To support dry-run mode we use the following classes:
 
     .. cpp:function:: int id() const
 
-        Always 0. We are only performing the simulation on the local domain which will be root.
+        Always 0. We are only performing the simulation on the local domain which will be the root.
 
     .. cpp:function:: int size() const
 

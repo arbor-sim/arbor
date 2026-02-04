@@ -5,10 +5,12 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <type_traits>
 
 #include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/cable_cell_param.hpp>
+#include <arbor/cv_policy.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/constants.hpp>
 #include <arbor/iexpr.hpp>
@@ -19,7 +21,6 @@
 #include <arbor/morph/morphology.hpp>
 #include <arbor/morph/primitives.hpp>
 #include <arbor/util/hash_def.hpp>
-#include <arbor/util/typed_map.hpp>
 
 namespace arb {
 
@@ -52,7 +53,8 @@ using cable_sample_range = std::pair<const double*, const double*>;
 //
 // Metadata for point process probes.
 struct ARB_SYMBOL_VISIBLE cable_probe_point_info {
-    cell_lid_type target;   // Target number of point process instance on cell.
+    cell_tag_type target;   // Target tag of point process instance on cell.
+    cell_lid_type lid;      // Target lid of point process instance on cell.
     unsigned multiplicity;  // Number of combined instances at this site.
     mlocation loc;          // Point on cell morphology where instance is placed.
 };
@@ -108,6 +110,7 @@ struct ARB_SYMBOL_VISIBLE cable_probe_density_state {
 };
 
 // Value of state variable `state` in density mechanism `mechanism` across components of the cell.
+//
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `mcable_list`
 struct ARB_SYMBOL_VISIBLE cable_probe_density_state_cell {
@@ -116,16 +119,30 @@ struct ARB_SYMBOL_VISIBLE cable_probe_density_state_cell {
 };
 
 // Value of state variable `key` in point mechanism `source` at target `target`.
+//
 // Sample value type: `double`
 // Sample metadata type: `cable_probe_point_info`
 struct ARB_SYMBOL_VISIBLE cable_probe_point_state {
-    cell_lid_type target;
+    cell_tag_type target;
     std::string mechanism;
     std::string state;
+
+    // Engage in minimal hygeine. Ideally, we'd disable all nullptr constructors.
+    cable_probe_point_state(std::nullptr_t, std::string, std::string) = delete;
+    cable_probe_point_state() = delete;
+
+    constexpr cable_probe_point_state(cell_tag_type t, std::string m, std::string s):
+        target(std::move(t)), mechanism(std::move(m)), state(std::move(s)) {}
+    constexpr cable_probe_point_state(const cable_probe_point_state&) = default;
+    constexpr cable_probe_point_state(cable_probe_point_state&&) = default;
+    constexpr cable_probe_point_state& operator=(const cable_probe_point_state&) = default;
+    constexpr cable_probe_point_state& operator=(cable_probe_point_state&&) = default;
 };
 
-// Value of state variable `key` in point mechanism `source` at every target with this mechanism.
-// Metadata has one entry of type cable_probe_point_info for each matched (possibly coalesced) instance.
+// Value of state variable `key` in point mechanism `source` at every target
+// with this mechanism. Metadata has one entry of type cable_probe_point_info
+// for each matched (possibly coalesced) instance.
+//
 // Sample value type: `cable_sample_range`
 // Sample metadata type: `std::vector<cable_probe_point_info>`
 struct ARB_SYMBOL_VISIBLE cable_probe_point_state_cell {
@@ -193,56 +210,54 @@ struct ARB_SYMBOL_VISIBLE cable_probe_ion_ext_concentration_cell {
     std::string ion;
 };
 
+// Ion reversal potential [mV] at `location`.
+// Sample value type: `double`
+// Sample metadata type: `mlocation`
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_reversal_potential {
+    locset locations;
+    std::string ion;
+};
+
+// Ion reversal potential [mV] across components of the cell
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mcable_list`
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_reversal_potential_cell {
+    std::string ion;
+};
+
 // Forward declare the implementation, for PIMPL.
 struct cable_cell_impl;
 
 // Typed maps for access to painted and placed assignments:
 //
-// Mechanisms and initial ion data are further keyed by
-// mechanism name and ion name respectively.
-
+// Mechanisms and initial ion data are further keyed by mechanism name and ion
+// name respectively.
 using iexpr_map = std::unordered_map<std::string, iexpr_ptr>;
 
 template <typename T>
-using region_assignment = std::conditional_t<
-    std::is_same_v<T, init_int_concentration> ||
-        std::is_same_v<T, init_ext_concentration> ||
-        std::is_same_v<T, init_reversal_potential>,
-    std::unordered_map<std::string, mcable_map<T>>,
-    std::conditional_t<
-        std::is_same<T, init_int_concentration>::value ||
-        std::is_same<T, init_ext_concentration>::value || std::is_same<T, init_reversal_potential>::value ||
-        std::is_same<T, ion_diffusivity>::value || std::is_same<T, voltage_process>::value,
-        std::unordered_map<std::string, mcable_map<T>>,
-        std::conditional_t<std::is_same_v<T, density>,
-            std::unordered_map<std::string, mcable_map<std::pair<T, iexpr_map>>>,
-            mcable_map<T>>>>;
+using region_assignment = std::conditional_t<std::is_same_v<T, init_int_concentration> || std::is_same_v<T, init_ext_concentration> || std::is_same_v<T, init_reversal_potential> || std::is_same_v<T, ion_diffusivity> || std::is_same_v<T, voltage_process>,
+                                             std::unordered_map<std::string, mcable_map<T>>,
+                                             std::conditional_t<std::is_same_v<T, density>,
+                                                                std::unordered_map<std::string, mcable_map<std::pair<T, iexpr_map>>>,
+                                                                mcable_map<T>>>;
 
 template <typename T>
 struct placed {
     mlocation loc;
     cell_lid_type lid;
     T item;
+    hash_type tag;
 };
 
 // Note: lid fields of elements of mlocation_map used in cable_cell are strictly increasing.
 template <typename T>
 using mlocation_map = std::vector<placed<T>>;
 
+// map for synapses or junctions, plain vector else
 template <typename T>
-using location_assignment =
-    std::conditional_t<
-        std::is_same<T, synapse>::value || std::is_same<T, junction>::value,
-        std::unordered_map<std::string, mlocation_map<T>>,
-        mlocation_map<T>>;
-
-using cable_cell_region_map = static_typed_map<region_assignment,
-    density, voltage_process, init_membrane_potential, axial_resistivity,
-    temperature, membrane_capacitance, init_int_concentration,
-    ion_diffusivity, init_ext_concentration, init_reversal_potential>;
-
-using cable_cell_location_map = static_typed_map<location_assignment,
-    synapse, junction, i_clamp, threshold_detector>;
+using location_assignment = std::conditional_t<std::is_same_v<T, synapse> || std::is_same_v<T, junction>,
+                                               std::unordered_map<std::string, mlocation_map<T>>,
+                                               mlocation_map<T>>;
 
 // High-level abstract representation of a cell.
 struct ARB_SYMBOL_VISIBLE cable_cell {
@@ -260,12 +275,13 @@ struct ARB_SYMBOL_VISIBLE cable_cell {
 
     // Copy and move assignment operators.
     cable_cell& operator=(cable_cell&&) = default;
-    cable_cell& operator=(const cable_cell& other) {
-        return *this = cable_cell(other);
-    }
+    cable_cell& operator=(const cable_cell& other) { return *this = cable_cell(other); }
 
     /// Construct from morphology, label and decoration descriptions.
-    cable_cell(const class morphology& m, const decor& d, const label_dict& l={});
+    cable_cell(const class morphology& m,
+               const decor& d,
+               const label_dict& l={},
+               const std::optional<cv_policy>& = {});
 
     /// Access to labels
     const label_dict& labels() const;
@@ -276,35 +292,34 @@ struct ARB_SYMBOL_VISIBLE cable_cell {
     const mprovider& provider() const;
 
     // Convenience access to placed items.
+    const std::unordered_map<std::string, mlocation_map<synapse>>& synapses() const;
+    const std::unordered_map<std::string, mlocation_map<junction>>& junctions() const;
+    const mlocation_map<threshold_detector>& detectors() const;
+    const mlocation_map<i_clamp>& stimuli() const;
 
-    const std::unordered_map<std::string, mlocation_map<synapse>>& synapses() const {
-        return location_assignments().get<synapse>();
-    }
-
-    const std::unordered_map<std::string, mlocation_map<junction>>& junctions() const {
-        return location_assignments().get<junction>();
-    }
-
-    const mlocation_map<threshold_detector>& detectors() const {
-        return location_assignments().get<threshold_detector>();
-    }
-
-    const mlocation_map<i_clamp>& stimuli() const {
-        return location_assignments().get<i_clamp>();
-    }
+    // Convenience access to painted items.
+    const region_assignment<density> densities() const;
+    const region_assignment<voltage_process> voltage_processes() const;
+    const region_assignment<init_int_concentration> init_int_concentrations() const;
+    const region_assignment<init_ext_concentration> init_ext_concentrations() const;
+    const region_assignment<init_reversal_potential> reversal_potentials() const;
+    const region_assignment<ion_diffusivity> diffusivities() const;
+    const region_assignment<temperature> temperatures() const;
+    const region_assignment<init_membrane_potential> init_membrane_potentials() const;
+    const region_assignment<axial_resistivity> axial_resistivities() const;
+    const region_assignment<membrane_capacitance> membrane_capacitances() const;
 
     // Access to a concrete list of locations for a locset.
     mlocation_list concrete_locset(const locset&) const;
-
     // Access to a concrete list of cable segments for a region.
     mextent concrete_region(const region&) const;
 
-    // Generic access to painted and placed items.
-    const cable_cell_region_map& region_assignments() const;
-    const cable_cell_location_map& location_assignments() const;
-
     // The decorations on the cell.
     const decor& decorations() const;
+
+    // The current cv_policy of this cell
+    const std::optional<cv_policy>& discretization() const;
+    void discretization(cv_policy);
 
     // The default parameter and ion settings on the cell.
     const cable_cell_parameter_set& default_parameters() const;

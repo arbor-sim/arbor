@@ -52,7 +52,7 @@ disabled.
 
 Cable cell probes that contingently do not correspond to a valid measurable
 quantity are ignored: samplers attached to them will receive no values.
-Mechanism state queries however will throw a ``cable_cell_error`` exception at
+Mechanism state queries, however will throw a ``cable_cell_error`` exception at
 simulation initialization if the requested state variable does not exist on the
 mechanism.
 
@@ -82,7 +82,7 @@ Queries cell membrane potential at each site in ``locations``.
 
     struct cable_probe_membrane_voltage_cell {};
 
-Queries cell membrane potential across whole cell.
+Queries cell membrane potential across the whole cell.
 
 *  Sample value: ``cable_sample_range``. Each value is the
    average membrane potential in millivolts across an unbranched
@@ -173,7 +173,7 @@ Membrane current _excluding_ capacitive currents and stimuli across components o
 
     struct cable_probe_total_current_cell {};
 
-Total membrance current excluding current stimuli across components of the cell.
+Total membrane current excluding current stimuli across components of the cell.
 
 *  Sample value: ``cable_sample_range``. Each value is the current in
    nanoamperes across an unbranched component of the cell, as determined
@@ -268,8 +268,8 @@ Ionic diffusion concrentration.
         std::string ion;
     };
 
-Diffusive ionic concentration of the given ``ion`` at the
-sites specified by ``locations``.
+Diffusive ionic concentration of the given ``ion`` at the sites specified by
+``locations``.
 
 .. code::
 
@@ -279,6 +279,24 @@ sites specified by ``locations``.
 
 Ionic diffusion concrentration attributed to a particular ``ion`` across CVs of the cell.
 
+Ionic reversal potential.
+
+.. code::
+
+    struct cable_probe_ion_reversal_potential {
+        locset locations;
+        std::string ion;
+    };
+
+Reversal potential of the given ``ion`` at the sites specified by ``locations``.
+
+.. code::
+
+    struct cable_probe_ion_reversal_potential_cell {
+        std::string ion;
+    };
+
+Reversal potential attributed to a particular ``ion`` across CVs of the cell.
 
 Mechanism state
 ^^^^^^^^^^^^^^^
@@ -609,7 +627,7 @@ the same sequence of time points, that is, it must exhibit repeatable
 and deterministic behaviour.
 
 The ``schedule`` object itself uses type-erasure to wrap any schedule
-implementation class, which can be any copy--constructable class that
+implementation class, which can be any copy--constructible class that
 provides the methods ``reset()`` and ``events(t0, t1)`` above. Three
 schedule implementations are provided by the engine:
 

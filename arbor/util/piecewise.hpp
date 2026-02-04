@@ -1,6 +1,5 @@
 #pragma once
 
-
 // Create/manipulate 1-d piecewise defined objects.
 //
 // A `pw_element<A>` describes a _value_ of type `A` and an _extent_ of
@@ -103,7 +102,6 @@
 
 #include "util/iterutil.hpp"
 #include "util/transform.hpp"
-#include "util/meta.hpp"
 #include "util/partition.hpp"
 
 namespace arb {
@@ -160,14 +158,29 @@ struct pw_element_proxy {
         extent(pw.extent(i)), value(pw.value(i)) {}
 
     operator pw_element<X>() const { return pw_element<X>{extent, value}; }
-    operator X() const { return value; }
-    pw_element_proxy& operator=(X x) {value = std::move(x); return *this; };
+    operator X&() const { return value; }
+    pw_element_proxy& operator=(X x) { value = std::move(x); return *this; };
 
     double lower_bound() const { return extent.first; }
     double upper_bound() const { return extent.second; }
 
     const std::pair<double, double> extent;
     X& value;
+};
+
+template <typename X>
+struct pw_element_proxy<const X> {
+    pw_element_proxy(const pw_elements<X>& pw, pw_size_type i):
+        extent(pw.extent(i)), value(pw.value(i)) {}
+
+    operator pw_element<X>() const { return pw_element<X>{extent, value}; }
+    operator const X&() const { return value; }
+
+    double lower_bound() const { return extent.first; }
+    double upper_bound() const { return extent.second; }
+
+    const std::pair<double, double> extent;
+    const X& value;
 };
 
 // Compute indices into vertex set corresponding to elements that cover a point x:
@@ -239,12 +252,12 @@ struct pw_elements {
         const_iterator(): pw_(nullptr) {}
 
         using value_type = pw_element<X>;
-        using pointer = const pointer_proxy<pw_element<X>>;
-        using reference = pw_element<X>;
+        using pointer = const pointer_proxy<pw_element_proxy<const X>>;
+        using reference = pw_element_proxy<const X>;
 
-        reference operator[](difference_type j) const { return (*pw_)[j+*c_]; }
-        reference operator*() const { return (*pw_)[*c_]; }
-        pointer operator->() const { return pointer{(*pw_)[*c_]}; }
+        reference operator[](difference_type j) const { return {*pw_, j + *c_}; }
+        reference operator*() const { return {*pw_, *c_}; }
+        pointer operator->() const { return pointer{reference{*pw_, *c_}}; }
 
         // (required for iterator_adaptor)
         counter<pw_size_type>& inner() { return c_; }
@@ -384,7 +397,6 @@ struct pw_elements {
     void push_back(double left, double right, U&& v) {
         if (!empty() && left != vertex_.back()) throw std::runtime_error("noncontiguous element");
         if (right<left) throw std::runtime_error("inverted element");
-
         // Extend value_ first in case a conversion/copy/move throws.
         value_.push_back(std::forward<U>(v));
         if (vertex_.empty()) vertex_.push_back(left);
@@ -393,10 +405,7 @@ struct pw_elements {
 
     template <typename U>
     void push_back(double right, U&& v) {
-        if (empty()) {
-            throw std::runtime_error("require initial left vertex for element");
-        }
-
+        if (empty()) throw std::runtime_error("require initial left vertex for element");
         push_back(vertex_.back(), right, std::forward<U>(v));
     }
 
@@ -410,37 +419,41 @@ struct pw_elements {
         using std::begin;
         using std::end;
 
+        // Invariant, see below
+        //   empty() || value_.size() + 1 = vertex_.size()
+        auto vs = std::size(vertices);
+        auto es = std::size(values);
+        // check invariant
+        if (!((es == 0 && es == vs)
+           || (es != 0 && es + 1 == vs))) {
+            // TODO(fmt): Make a better error w/ format.
+            throw std::runtime_error{"Vertices and values need to have matching lengths"};
+        }
+
+        // clean-up
+        clear();
+
+        // We know that invariant holds from here on.
+        if (es == 0) return;
+
         auto vi = begin(vertices);
-        auto ve = end(vertices);
         auto ei = begin(values);
         auto ee = end(values);
 
-        if (ei == ee) { // empty case
-            if (vi != ve) throw std::runtime_error{"Vertices and values need to have same length; values too long."};
-            clear();
-            return;
-        }
-        clear();
-        if (vi == ve) throw std::runtime_error{"Vertices and values need to have same length; values too short."};
-
-        reserve(vertices.size());
+        reserve(vs);
         double left = *vi++;
         double right = *vi++;
         push_back(left, right, *ei++);
-
         while (ei != ee) {
-            if (vi == ve) throw std::runtime_error{"Vertices and values need to have same length; values too short."};
             double right = *vi++;
             push_back(right, *ei++);
         }
-        if (vi != ve) throw std::runtime_error{"Vertices and values need to have same length; values too long."};
     }
 
 private:
     // Consistency requirements:
     // 1. empty() || value_.size()+1 = vertex_.size()
     // 2. vertex_[i]<=vertex_[j] for i<=j.
-
     std::vector<double> vertex_;
     std::vector<X> value_;
 };

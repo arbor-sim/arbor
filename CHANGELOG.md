@@ -1,3 +1,79 @@
+# v0.11.0 (*22.04.2025* Happy Easter)
+
+Focussing on bug fixes, modernisation and performance improvements.
+The memory footprint has been reduced substantially
+
+## Major changes since v0.10
+* Modernising the code base and infrastructure:
+  * Begin adopting C++20
+  * Use the `ruff` linter / formatter 
+  * Use CPM and simplify CMake.
+* Fixing problems with diffusion
+  * Update units and scaling
+  * Correct solver matrix coefficients
+* :warning: Modcc used to mis-compile `-K^n` into `(-K)^n` due to a parser error 
+* Allow probing of point mechanism state variables by tag.
+
+## Breaking changes
+* Stricter checks on network construction / simulation parameters.
+  * connections will now throw errors when given negative / zero delays
+  * simulation will throw when given a network with minimum delay less than the
+    timestep
+* Discretisation now is a property of the `cable_cell` object, no longer the
+  `decor`
+
+## New tutorials and documentation 
+* Plasticity tutorial
+* Add connectivity tutorial
+  
+## Internal changes
+* Auto-generate type stubs
+* Remove clock for std::chrono
+* added E_R to lif cell model
+* Performance
+  * Fix embarrassingly quadratic bug in fvm-layout
+  * Faster sort spikes
+  * Faster event dispatch
+* Memory footprint
+  * Create less intermediate data from events
+  * Elide GPU allocations for unused arrays (`Xd`, `Xi`, ...)
+* Clean-up catalogue extension. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2409
+* Refactor discretization. by @thorstenhater in https://github.com/arbor-sim/arbor/pull/2415
+
+**Full Changelog**: https://github.com/arbor-sim/arbor/compare/v0.10.1...v0.11.0
+
+# v0.10.0 (*08.08.2024*)
+
+## Major Changes since v0.9.0
+* Automatic network generation from high-level specifications.
+* Units at the user interface including scaling and conversion.
+* Morphologies are loaded through a unified interface; which produces a bundle of morphology, metadata, and segment tree.
+
+## Internal Updates
+
+* Documentation overhaul
+* Python bindings offer type stubs; giving auto-completion and inline documentation in some editors/IDEs.
+* Performance improvements
+  - Label resolution uses hashes instead of strings, saving memory, network traffic, and time.
+  - Spike delivery is up to 30% faster leading to 10% end-to-end improvements in some cases (e.g. `example/brunel`) 
+  - Load balancing is faster and doesn't rely on MPI, leading to shorter setup times for large networks.
+* Fixes
+  - Better support for source builds on MacOS (aarch64)
+  - `modcc` no longer allows internal variables (`v`, `celsius`, ...) as `ASSIGNED`
+  - Better support for raw (C++) mechanisms
+* MC cells renamed cable cells.
+  
+## Breaking changes
+* Return values of all morphology loaders have changed.
+* Raw (segment tree) loaders removed.
+* Support for Python 3.8 removed.
+* C++: Removed `simulation::inject_events`, use a generator instead. 
+  
+## New Contributors
+* @ErbB4 made their first contribution in https://github.com/arbor-sim/arbor/pull/2271
+
+**Full Changelog**: https://github.com/arbor-sim/arbor/compare/v0.9.0...v0.10.0
+
 # v0.9.0
 
 ** 2023 08 09 **

@@ -20,10 +20,7 @@ set(arbor_sources
     fvm_layout.cpp
     fvm_lowered_cell_impl.cpp
     hardware/memory.cpp
-    hardware/power.cpp
     iexpr.cpp
-    io/locked_ostream.cpp
-    io/serialize_hex.cpp
     label_resolution.cpp
     lif_cell_group.cpp
     adex_cell_group.cpp
@@ -49,10 +46,8 @@ set(arbor_sources
     network_impl.cpp
     simulation.cpp
     partition_load_balance.cpp
-    profile/clock.cpp
     profile/memory_meter.cpp
     profile/meter_manager.cpp
-    profile/power_meter.cpp
     profile/profiler.cpp
     schedule.cpp
     spike_event_io.cpp
@@ -125,7 +120,10 @@ install(TARGETS arbor-private-headers EXPORT arbor-targets)
 # variable, build_all_mods target. Note: CMake source file properties are
 # directory-local.
 
+set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
+set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
 add_subdirectory(../mechanisms "${CMAKE_BINARY_DIR}/mechanisms")
+set(CMAKE_MESSAGE_LOG_LEVEL ${_saved_CMAKE_MESSAGE_LOG_LEVEL})
 set_source_files_properties(${arbor-builtin-mechanisms} DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTIES GENERATED TRUE)
 
 if(ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
@@ -136,6 +134,7 @@ endif()
 # Library target:
 add_library(arbor ${arbor_sources} ${arbor-builtin-mechanisms})
 target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
+target_include_directories(arbor PRIVATE $<BUILD_INTERFACE:${unordered_dense_SOURCE_DIR}/include>)
 target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
 
 if(ARB_WITH_CUDA_CLANG)
@@ -166,4 +165,7 @@ configure_file(
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/arbor/simd/sve_bits.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/arbor/simd)
 
-install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS arbor
+        EXPORT arbor-targets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

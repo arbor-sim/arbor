@@ -18,7 +18,7 @@ runpyex () {
   echo "### Example $1: OK."
 }
 
-runpyex brunel.py -n 400 -m 100 -e 20 -p 0.1 -w 1.2 -d 1 -g 0.5 -l 5 -t 100 -s 1 -G 50 -S 123
+runpyex brunel.py -n 400 -m 100 -e 20 -p 0.1 -w 1.2 -d 1 -g 0.5 -l 5 -t 100 -s 0.5 -G 50 -S 123
 # runpyex dynamic-catalogue.py # depends on running a-b-c first, see run_external_tests.sh
 runpyex gap_junctions.py
 runpyex single_cell_cable.py

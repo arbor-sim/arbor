@@ -1,14 +1,14 @@
 .. _pysinglecellmodel:
 
-Single cell model
+Single-cell model
 =================
 
 .. py:currentmodule:: arbor
 
 .. class:: single_cell_model
 
-   Wrapper for simplified description and execution of single cell models.
-   Only available in the python library.
+   Wrapper for simplified description and execution of single-cell models.
+   It is only available in the Python library.
    Abstracts away the details of a :class:`recipe`, :class:`context` and
    :class:`domain_decomposition` for simulations of single, stand-alone
    cable cells.

@@ -68,12 +68,10 @@ set(unit_sources
     test_cv_geom.cpp
     test_cv_layout.cpp
     test_cv_policy.cpp
-    test_cycle.cpp
     test_domain_decomposition.cpp
     test_dry_run_context.cpp
     test_event_delivery.cpp
     test_event_generators.cpp
-    test_event_queue.cpp
     test_event_stream.cpp
     test_expected.cpp
     test_filter.cpp
@@ -86,7 +84,6 @@ set(unit_sources
     test_iexpr.cpp
     test_index.cpp
     test_kinetic_linear.cpp
-    test_lexcmp.cpp
     test_label_resolution.cpp
     test_lif_cell_group.cpp
     test_adex_cell_group.cpp
@@ -97,7 +94,6 @@ set(unit_sources
     test_matrix.cpp
     test_mcable_map.cpp
     test_cable_cell_group.cpp
-    test_mechanisms.cpp
     test_mech_temp_diam.cpp
     test_mechcat.cpp
     test_mechinfo.cpp
@@ -150,6 +146,7 @@ set(unit_sources
     test_vector.cpp
     test_version.cpp
     test_v_clamp.cpp
+    test_debug.cpp
 
     # unit test driver
     test.cpp
@@ -189,14 +186,15 @@ make_catalogue_standalone(
     MOD dummy
     CXX
     CXX_FLAGS_TARGET ${ARB_CXX_FLAGS_TARGET_FULL}
-    VERBOSE ON)
+    VERBOSE ${ARB_CAT_VERBOSE})
 
 target_link_libraries(dummy-catalogue PRIVATE arbor-private-deps)
 add_dependencies(unit dummy-catalogue)
 
-target_link_libraries(unit PRIVATE arbor-private-deps)
+target_link_libraries(unit PRIVATE arbor-private-deps ext-gtest)
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../swc\"")
 target_compile_definitions(unit PRIVATE "-DLIBDIR=\"${PROJECT_BINARY_DIR}/lib\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/testing")
-target_link_libraries(unit PRIVATE ext-gtest ext-random123 arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)
+target_link_libraries(unit PRIVATE gtest gtest_main ext-random123 arbor arborenv arborio arborio-private-headers arbor-private-headers arbor-sup)
+target_include_directories(unit PRIVATE $<BUILD_INTERFACE:${unordered_dense_SOURCE_DIR}/include>)

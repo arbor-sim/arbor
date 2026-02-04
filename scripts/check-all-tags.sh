@@ -13,7 +13,7 @@ PREFIX="${1:-} `pwd`/build/bin"
 cxx=/usr/local/opt/llvm/bin/clang++
 cc=/usr/local/opt/llvm/bin/clang
 
-for tag in v0.4 v0.5.2 v0.6 v0.7 v0.8 v0.8.1 v0.9.0
+for tag in v0.4 v0.5.2 v0.6 v0.7 v0.8 v0.8.1 v0.9.0 v0.10.0 v0.11.0
 do
     echo "Version=$tag"
     rm -rf ext/*
@@ -25,7 +25,7 @@ do
         echo " * simd=$simd"
         out=results/$tag-`git rev-parse --short HEAD`/cpp/simd=$simd
         cd build
-        cmake .. -DARB_USE_BUNDLED_LIBS=ON -DCMAKE_CXX_COMPILER=$cxx -DCMAKE_C_COMPILER=$cc -DCMAKE_BUILD_TYPE=release -DARB_VECTORIZE=$simd -DARB_ARCH=native
+        cmake .. -DCMAKE_CXX_COMPILER=$cxx -DCMAKE_C_COMPILER=$cc -DCMAKE_BUILD_TYPE=release -DARB_VECTORIZE=$simd -DARB_ARCH=native
         ninja install examples
         cd -
         for ex in bench brunel gap_junctions generators lfp ring single-cell "probe-demo v"

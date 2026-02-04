@@ -9,10 +9,7 @@
 #include <arbor/fvm_types.hpp>
 
 #include "fvm_layout.hpp"
-#include "timestep_range.hpp"
-
 #include "threading/threading.hpp"
-
 #include "backends/common_types.hpp"
 #include "backends/shared_state_base.hpp"
 #include "backends/gpu/rand.hpp"
@@ -24,7 +21,6 @@
 
 namespace arb {
 namespace gpu {
-
 /*
  * Ion state fields correspond to NMODL ion variables, where X
  * is replaced with the name of the ion. E.g. for calcium 'ca':
@@ -40,25 +36,23 @@ struct ARB_ARBOR_API ion_state {
     using solver_type = arb::gpu::diffusion_state<arb_value_type, arb_index_type>;
     using solver_ptr  = std::unique_ptr<solver_type>;
 
-    bool write_eX_;          // is eX written?
-    bool write_Xo_;          // is Xo written?
-    bool write_Xi_;          // is Xi written?
+    ion_data_flags flags_;    // Track what and when to reset / allocate
 
-    iarray node_index_; // Instance to CV map.
-    array iX_;          // (A/m²) current density
-    array eX_;          // (mV) reversal potential
-    array Xi_;          // (mM) internal concentration
-    array Xd_;          // (mM) diffusive concentration
-    array Xo_;          // (mM) external concentration
-    array gX_;          // (kS/m²) per-species conductivity
+    iarray node_index_;       // Instance to CV map.
+    array iX_;                // (A/m²) current density
+    array eX_;                // (mV) reversal potential
+    array Xi_;                // (mM) internal concentration
+    array Xd_;                // (mM) diffusive concentration
+    array Xo_;                // (mM) external concentration
+    array gX_;                // (kS/m²) per-species conductivity
 
-    array init_Xi_;     // (mM) area-weighted initial internal concentration
-    array init_Xo_;     // (mM) area-weighted initial external concentration
-    array reset_Xi_;    // (mM) area-weighted user-set internal concentration
-    array reset_Xo_;    // (mM) area-weighted user-set internal concentration
-    array init_eX_;     // (mM) initial reversal potential
+    array init_Xi_;           // (mM) area-weighted initial internal concentration
+    array init_Xo_;           // (mM) area-weighted initial external concentration
+    array reset_Xi_;          // (mM) area-weighted user-set internal concentration
+    array reset_Xo_;          // (mM) area-weighted user-set internal concentration
+    array init_eX_;           // (mM) initial reversal potential
 
-    array charge;       // charge of ionic species (global, length 1)
+    array charge;             // charge of ionic species (global, length 1)
 
     solver_ptr solver = nullptr;
 
@@ -115,8 +109,6 @@ struct ARB_ARBOR_API istim_state {
 };
 
 struct mech_storage {
-    mech_storage() = default;
-    mech_storage(task_system_handle tp) : deliverable_events_(tp) {}
     array data_;
     iarray indices_;
     std::vector<arb_value_type>  globals_;
@@ -127,7 +119,6 @@ struct mech_storage {
     memory::device_vector<arb_value_type*> state_vars_d_;
     memory::device_vector<arb_ion_state>   ion_states_d_;
     random_numbers random_numbers_;
-    deliverable_event_stream deliverable_events_;
 };
 
 struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_state> {
@@ -143,9 +134,9 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
     arb_size_type n_cv = 0;       // Total number of CVs.
 
     iarray cv_to_cell;            // Maps CV index to cell index.
-    arb_value_type time;          // integration start time [ms].
-    arb_value_type time_to;       // integration end time [ms]
-    arb_value_type dt;            // dt [ms].
+    arb_value_type time = 0.0;    // integration start time [ms].
+    arb_value_type time_to = 0.0; // integration end time [ms]
+    arb_value_type dt  = 0.0;     // dt [ms].
     array voltage;                // Maps CV index to membrane voltage [mV].
     array current_density;        // Maps CV index to current density [A/m²].
     array conductivity;           // Maps CV index to membrane conductivity [kS/m²].
@@ -171,7 +162,8 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
 
     istim_state stim_data;
     std::unordered_map<std::string, ion_state> ion_data;
-    std::unordered_map<unsigned, mech_storage> storage;
+    std::vector<mech_storage> storage;
+    std::vector<spike_event_stream> streams;
 
     shared_state() = default;
 
@@ -218,11 +210,10 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
                  arb_seed_type cbprng_seed_ = 0u);
 
     // Setup a mechanism and tie its backing store to this object
-    void instantiate(mechanism&,
-                     unsigned,
-                     const mechanism_overrides&,
-                     const mechanism_layout&,
-                     const std::vector<std::pair<std::string, std::vector<arb_value_type>>>&);
+    unsigned instantiate(mechanism&,
+                         const mechanism_overrides&,
+                         const mechanism_layout&,
+                         const std::vector<std::pair<std::string, std::vector<arb_value_type>>>&);
 
     void update_prng_state(mechanism&);
 
@@ -249,16 +240,16 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, shared_state& s);
 
 } // namespace gpu
 
-ARB_SERDES_ENABLE_EXT(gpu::ion_state, Xd_, gX_);
+ARB_SERDES_ENABLE_EXT(gpu::ion_state, Xd_);
 ARB_SERDES_ENABLE_EXT(gpu::mech_storage,
                       data_,
                       // NOTE(serdes) ion_states_, this is just a bunch of pointers
-                      random_numbers_,
-                      deliverable_events_);
+                      random_numbers_);
 ARB_SERDES_ENABLE_EXT(gpu::shared_state,
                       cbprng_seed,
                       ion_data,
                       storage,
+                      streams,
                       voltage,
                       current_density,
                       conductivity,

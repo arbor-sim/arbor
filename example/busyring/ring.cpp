@@ -3,6 +3,8 @@
 #include <iostream>
 #include <algorithm>
 #include <array>
+#include <random>
+#include <cmath>
 
 #include <nlohmann/json.hpp>
 
@@ -56,7 +58,7 @@ public:
         params_(params)
     {
         gprop.default_parameters = arb::neuron_parameter_defaults;
-        gprop.catalogue.import(arb::global_allen_catalogue(), "");
+        gprop.catalogue.extend(arb::global_allen_catalogue());
 
         if (params.cell.complex_cell) {
             gprop.default_parameters.reversal_potential_method["ca"] = "nernst/ca";
@@ -398,9 +400,6 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
     decor.paint(soma, arb::axial_resistivity{133.577*U::Ohm*U::cm});
     decor.paint(soma, arb::membrane_capacitance{4.21567e-2*U::F/U::m2});
 
-    decor.paint(dend, arb::axial_resistivity{68.355*U::Ohm*U::cm});
-    decor.paint(dend, arb::membrane_capacitance{2.11248e-2*U::F/U::m2});
-
     decor.paint(soma, arb::density("pas/e=-76.4024", {{"g", 0.000119174}}));
     decor.paint(soma, arb::density("NaV",            {{"gbar", 0.0499779}}));
     decor.paint(soma, arb::density("SK",             {{"gbar", 0.000733676}}));
@@ -410,22 +409,21 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
     decor.paint(soma, arb::density("CaDynamics",     {{"gamma", 0.0177038}, {"decay", 42.2507}}));
     decor.paint(soma, arb::density("Ih",             {{"gbar", 1.07608e-07}}));
 
+    decor.paint(dend, arb::axial_resistivity{68.355*U::Ohm*U::cm});
+    decor.paint(dend, arb::membrane_capacitance{2.11248e-2*U::F/U::m2});
+
     decor.paint(dend, arb::density("pas/e=-88.2554", {{"g", 9.57001e-05}}));
     decor.paint(dend, arb::density("NaV",            {{"gbar", 0.0472215}}));
     decor.paint(dend, arb::density("Kv3_1",          {{"gbar", 0.186859}}));
     decor.paint(dend, arb::density("Im_v2",          {{"gbar", 0.00132163}}));
     decor.paint(dend, arb::density("Ih",             {{"gbar", 9.18815e-06}}));
 
-    decor.place(cntr, arb::synapse("expsyn"), "p");
-    if (params.synapses>1) {
-        decor.place(syns, arb::synapse("expsyn"), "s");
-    }
-
     decor.place(cntr, arb::threshold_detector{-20.0*U::mV}, "d");
+    decor.place(cntr, arb::synapse("expsyn"), "p");
 
-    decor.set_default(arb::cv_policy_every_segment());
+    if (params.synapses>1) decor.place(syns, arb::synapse("expsyn"), "s");
 
-    return {arb::morphology(tree), decor};
+    return {arb::morphology(tree), decor, {}, arb::cv_policy_every_segment()};
 }
 
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
@@ -455,7 +453,5 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     }
 
     // Make a CV between every sample in the sample tree.
-    decor.set_default(arb::cv_policy_every_segment());
-
-    return {arb::morphology(tree), decor};
+    return {arb::morphology(tree), decor, {}, arb::cv_policy_every_segment()};
 }

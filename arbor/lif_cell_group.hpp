@@ -44,7 +44,7 @@ struct ARB_SYMBOL_VISIBLE lif_lowered_cell {
         t_ref = units::unit_of(lif.t_ref, units::ms, "t_ref");
 
         if (tau_m < 0) throw std::domain_error("tau_m must be positive.");
-        if (C_m < 0) throw std::domain_error("C_m must be positive.");
+        if (C_m < 0)   throw std::domain_error("C_m must be positive.");
         if (t_ref < 0) throw std::domain_error("t_ref must be positive.");
     }
 

@@ -17,15 +17,30 @@ print_synopsis() {
 distributed=0
 examples=()
 prefix=""
-PREFIX=" `pwd`/build/bin"
-tag=dev-`git rev-parse --short HEAD`
+PREFIX=" $(pwd)/build/bin"
+tag=dev-$(git rev-parse --short HEAD)
 out="results/$tag/cpp/"
 ok=0
 
 # List of all examples
 all_examples=(
     "bench"
-    "brunel"
+    "brunel -G 1"
+    "brunel -G 10"
+    "brunel -G 100"
+    "brunel -G 100000"
+    "brunel -G 1      --use-raw-connections"
+    "brunel -G 10     --use-raw-connections"
+    "brunel -G 100    --use-raw-connections"
+    "brunel -G 100000 --use-raw-connections"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 1      --use-cable-cells"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 10     --use-cable-cells"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 100    --use-cable-cells"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 100000 --use-cable-cells"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 1      --use-cable-cells --use-raw-connections"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 10     --use-cable-cells --use-raw-connections"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 100    --use-cable-cells --use-raw-connections"
+    "brunel --n-excitatory 10000 --n-inhibitory 2500 --tfinal 10 --in-degree-prop 0.1 --dt 0.01 --lambda 1.5 -g 0.8 --delay 1.0 --weight 0.00010 -G 100000 --use-cable-cells --use-raw-connections"
     "gap_junctions"
     "generators"
     "lfp"
@@ -47,8 +62,32 @@ skip_local=(
 
 # Lookup table for expected spike count
 expected_outputs=(
-    972
-    6998
+
+# new w/ CBRNG
+#    954
+#    6999
+#    39104
+# old w/o CBRNG
+#    972
+#    6998
+#    38956
+    954
+    6999
+    6999
+    6999
+    6999
+    6999
+    6999
+    6999
+    6999
+    39104
+    39104
+    39104
+    39104
+    39104
+    39104
+    39104
+    39104
     "30"
     ""
     ""
@@ -93,7 +132,7 @@ execute_example() {
         fi
     done
     if [[ -n ${expected} ]]; then
-        actual=$(grep -Eo '[0-9]+ spikes' ${path}/stdout.txt || echo "N/A")
+        actual=$(grep -Eo "[0-9]+ spikes" ${path}/stdout.txt || echo "N/A")
         if [[ $distributed == 1 && "$actual" == "N/A" ]]; then
             echo "check skipped on remote rank"
         elif [ "$expected spikes" == "$actual" ]; then

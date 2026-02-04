@@ -136,7 +136,6 @@ protected:
 };
 
 // Specific recorder classes:
-
 struct recorder_cable_scalar_mlocation: recorder_cable_scalar<arb::mlocation> {
     explicit recorder_cable_scalar_mlocation(const arb::mlocation* meta_ptr):
         recorder_cable_scalar(meta_ptr) {}
@@ -158,7 +157,6 @@ struct recorder_cable_vector_point_info: recorder_cable_vector<std::vector<arb::
 };
 
 // Helper for registering sample recorder factories and (trivial) metadata conversions.
-
 template <typename Meta, typename Recorder>
 void register_probe_meta_maps(pyarb_global_ptr g) {
     g->recorder_factories.assign<Meta>(
@@ -213,7 +211,7 @@ arb::probe_info cable_probe_density_state_cell(const char* mechanism, const char
     return {arb::cable_probe_density_state_cell{mechanism, state}, tag};
 };
 
-arb::probe_info cable_probe_point_state(arb::cell_lid_type target, const char* mechanism, const char* state, const std::string& tag) {
+arb::probe_info cable_probe_point_state(const arb::cell_tag_type& target, const char* mechanism, const char* state, const std::string& tag) {
     return {arb::cable_probe_point_state{target, mechanism, state}, tag};
 }
 
@@ -253,6 +251,14 @@ arb::probe_info cable_probe_ion_ext_concentration_cell(const char* ion, const st
     return {arb::cable_probe_ion_ext_concentration_cell{ion}, tag};
 }
 
+arb::probe_info cable_probe_ion_reversal_potential(const char* where, const char* ion, const std::string& tag) {
+    return {arb::cable_probe_ion_reversal_potential{arborio::parse_locset_expression(where).unwrap(), ion}, tag};
+}
+
+arb::probe_info cable_probe_ion_reversal_potential_cell(const char* ion, const std::string& tag) {
+    return {arb::cable_probe_ion_reversal_potential_cell{ion}, tag};
+}
+
 // LIF cell probes
 arb::probe_info lif_probe_voltage(const std::string& tag) {
     return {arb::lif_probe_voltage{}, tag};
@@ -290,15 +296,17 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
 
     cable_probe_point_info
         .def_readwrite("target", &arb::cable_probe_point_info::target,
-            "The target index of the point process instance on the cell.")
+            "The tag of the point process instance on the cell.")
+        .def_readwrite("lid", &arb::cable_probe_point_info::lid,
+            "The local index of the point process instance on the cell.")
         .def_readwrite("multiplicity", &arb::cable_probe_point_info::multiplicity,
             "Number of coalesced point processes (linear synapses) associated with this instance.")
         .def_readwrite("location", &arb::cable_probe_point_info::loc,
             "Location of point process instance on cell.")
         .def("__str__", [](arb::cable_probe_point_info m) {
-            return pprintf("<arbor.cable_probe_point_info: target {}, multiplicity {}, location {}>", m.target, m.multiplicity, m.loc);})
+            return pprintf("<arbor.cable_probe_point_info: target {}, lid {}, multiplicity {}, location {}>", m.target, m.lid, m.multiplicity, m.loc);})
         .def("__repr__",[](arb::cable_probe_point_info m) {
-            return pprintf("<arbor.cable_probe_point_info: target {}, multiplicity {}, location {}>", m.target, m.multiplicity, m.loc);});
+            return pprintf("<arbor.cable_probe_point_info: target {}, lid {}, multiplicity {}, location {}>", m.target, m.lid, m.multiplicity, m.loc);});
 
     // Probe address constructors:
 
@@ -345,8 +353,8 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
           "mechanism"_a, "state"_a, "tag"_a);
     m.def("cable_probe_point_state",
           &cable_probe_point_state,
-        "Probe specification for a cable cell point mechanism state variable value at a given target index.",
-        "target"_a, "mechanism"_a, "state"_a, "tag"_a);
+          "Probe specification for a cable cell point mechanism state variable value at a given target index.",
+          "target"_a, "mechanism"_a, "state"_a, "tag"_a);
     m.def("cable_probe_point_state_cell",
           &cable_probe_point_state_cell,
           "Probe specification for a cable cell point mechanism state variable value at every corresponding target.",
@@ -382,6 +390,14 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
     m.def("cable_probe_ion_ext_concentration_cell",
           &cable_probe_ion_ext_concentration_cell,
           "Probe specification for cable cell external ionic concentration for each cable in each CV.",
+          "ion"_a, "tag"_a);
+    m.def("cable_probe_ion_reversal_potential",
+          &cable_probe_ion_reversal_potential,
+          "Probe specification for cable cell external ionic reversal potential at points in a location set.",
+          "where"_a, "ion"_a, "tag"_a);
+    m.def("cable_probe_ion_reversal_potential_cell",
+          &cable_probe_ion_reversal_potential_cell,
+          "Probe specification for cable cell ionic reversal potential for each cable in each CV.",
           "ion"_a, "tag"_a);
 
     // Add probe metadata to maps for converters and recorders.

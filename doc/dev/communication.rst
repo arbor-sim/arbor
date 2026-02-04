@@ -5,16 +5,15 @@ Communication in Arbor
 
 Communication between cells (and thus cell groups) is facilitated using discrete
 events which we call `spikes` in analogy to the underlying neurobiological
-process. Spikes are the only way to communicate between different cell kinds, eg
-cable cells and integrate-and-fire. In accordance to current theory, spikes are
+process. Spikes are the only way to communicate between different cell kinds, e.g.,
+cable cells and integrate-and-fire. In accordance with current theory, spikes are
 reduced to a simple time value. The connection is abstracted into a weight and a
-delay; modelling all axonal processes. While this may seem crude, it is a well
-supported model and commonly used in neuronal simulations.
+delay; modelling all axonal processes. While this may seem crude, it is a well-supported model and commonly used in neuronal simulations.
 
 Connections are formed between sources (cable cell: threshold detectors) and targets
 (cable cell: synapses). During runtime, events from all sources are concatenated
 on all MPI ranks using ``Allgatherv`` and targets are responsible for selecting
-events they have subscribed to. This is optimised for by sorting events locally
+events they have subscribed to. This is optimised by sorting events locally
 (by source) and relying on the process layout to convert this into a *globally*
 sorted array.
 
@@ -98,7 +97,7 @@ this
    }
 
 Now ``spikes`` is the array of all spikes during the last *epoch* where
-each sub-array of spikes is sorted, ie between ``offsets[ix]`` and
+each sub-array of spikes is sorted, i.e., between ``offsets[ix]`` and
 ``offest[ix+1]``. The ``offsets`` array has a length of MPI task count
 and its ``i``'th element gives the position of the first spike sent by
 task ``i``.
@@ -110,7 +109,7 @@ Distribution of Events to Targets
 
 Having received the generated spikes, the concatenated data is converted
 into events on each local cell group. This is done asynchronously with
-computation of the next cell state. In ``simulation.cpp`` we find
+the computation of the next cell state. In ``simulation.cpp`` we find
 
 .. code-block:: c++
 
@@ -130,7 +129,7 @@ which uses this
    // Check each global spike in turn to see it generates local events.
    // If so, make the events and insert them into the appropriate event list.
    //
-   // Takes reference to a vector of event lists as an argument, with one list
+   // Takes a reference to a vector of event lists as an argument, with one list
    // for each local cell group. On completion, the events in each list are
    // all events that must be delivered to targets in that cell group as a
    // result of the global spike exchange, plus any events that were already
@@ -227,7 +226,7 @@ the ``communicator`` object
 .. code-block:: c++
 
    communicator::communicator(const recipe& rec,
-                              const domain_decomposition& dom_dec,
+                              const domain_decomposition_ptr dom_dec,
                               const label_resolution_map& source_resolution_map,
                               const label_resolution_map& target_resolution_map,
                               execution_context& ctx);
@@ -243,7 +242,7 @@ After that process,
    };
 
 will contain all connections in ``connections_`` partitioned by the
-domain of the source's ``gid`` in ``dom_dec``. Beginnings of the
+domain of the source's ``gid`` in ``dom_dec``. The beginnings of the
 respective partitions are pointed to by the indices in
 ``connection_part_``.
 
@@ -254,7 +253,7 @@ local ids on the respective source and target cells.
 .. note::
 
    The ``label_resolution_map`` class is used to translate from labels at the
-   user facing API layers to Arbor's internal mappings in the vein of
+   user-facing API layers to Arbor's internal mappings in the vein of
    ``(cell_gid, item_offset)``, where ``item_offset`` is an automatically
    assigned integer ID. Textual labels are created by calls to ``place``
    as in this example

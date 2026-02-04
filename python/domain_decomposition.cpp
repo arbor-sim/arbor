@@ -7,6 +7,7 @@
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
+#include <arbor/network_generation.hpp>
 
 #include "context.hpp"
 #include "error.hpp"
@@ -21,10 +22,10 @@ std::string gd_string(const arb::group_description& g) {
         g.gids.size(), util::csv(g.gids, 5), g.kind, g.backend);
 }
 
-std::string dd_string(const arb::domain_decomposition& d) {
+std::string dd_string(const arb::domain_decomposition_ptr d) {
     return util::pprintf(
         "<arbor.domain_decomposition: domain_id {}, num_domains {}, num_local_cells {}, num_global_cells {}, groups {}>",
-        d.domain_id(), d.num_domains(), d.num_local_cells(), d.num_global_cells(), d.num_groups());
+        d->domain_id(), d->num_domains(), d->num_local_cells(), d->num_global_cells(), d->num_groups());
 }
 
 std::string ph_string(const arb::partition_hint& h) {
@@ -76,13 +77,11 @@ void register_domain_decomposition(pybind11::module& m) {
         .def("__repr__", &ph_string);
 
     // Domain decomposition
-    pybind11::class_<arb::domain_decomposition> domain_decomposition(m, "domain_decomposition",
+    pybind11::class_<arb::domain_decomposition, std::shared_ptr<arb::domain_decomposition>> domain_decomposition(m, "domain_decomposition",
         "The domain decomposition is responsible for describing the distribution of cells across cell groups and domains.");
     domain_decomposition
         .def("gid_domain",
-            [](const arb::domain_decomposition& d, arb::cell_gid_type gid) {
-                return d.gid_domain(gid);
-            },
+            [](const arb::domain_decomposition_ptr d, arb::cell_gid_type gid) { return d->gid_domain(gid); },
             "Query the domain id that a cell assigned to (using global identifier gid).",
             "gid"_a)
         .def_property_readonly("num_domains", &arb::domain_decomposition::num_domains,
@@ -132,6 +131,20 @@ void register_domain_decomposition(pybind11::module& m) {
           "to the local hardware resources described by context on the calling rank.\n"
           "The cell_groups are guaranteed to be present on the calling rank.",
           "recipe"_a, "context"_a, "groups"_a);
+
+    m.def("generate_network_connections",
+          [](const std::shared_ptr<recipe>& rec,
+             std::shared_ptr<context_shim> ctx,
+             std::optional<arb::domain_decomposition_ptr> decomp) {
+              recipe_shim rec_shim(rec);
+              if (!ctx) ctx = std::make_shared<context_shim>(arb::make_context());
+              if (!decomp) decomp = arb::partition_load_balance(rec_shim, ctx->context);
+              return generate_network_connections(rec_shim, ctx->context, decomp.value());
+        },
+        "recipe"_a, "context"_a=pybind11::none(), "decomp"_a=pybind11::none(),
+        "Generate network connections from the network description in the recipe. Will only "
+        "generate connections with local gids in the domain composition as target.");
+
 }
 
 } // namespace pyarb

@@ -90,9 +90,9 @@ cell. We add two labels:
 
 * ``soma`` defines a *region* with ``(tag 1)``. Note that this corresponds to
   the ``tag`` parameter that was used to define the single segment in step (1).
-* ``midpoint`` defines a *location* at ``(location 0 0.5)``, which is the midpoint
-``0.5`` of branch ``0``, which corresponds to the midpoint of the soma
-  on the morphology defined in step (1).
+* ``midpoint`` defines a *location* at ``(location 0 0.5)``, which is the
+  midpoint ``0.5`` of branch ``0``, which corresponds to the midpoint of the
+  soma on the morphology defined in step (1).
 
 .. literalinclude:: ../../python/example/single_cell_model.py
    :language: python
@@ -179,7 +179,7 @@ And, finally, we plot the membrane potential
 
 .. literalinclude:: ../../python/example/single_cell_model.py
    :language: python
-   :lines: 42-48
+   :lines: 6-7,42-48
 
 
 We should be seeing something like this:

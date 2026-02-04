@@ -7,9 +7,7 @@
 #include <string>
 #include <memory>
 #include <type_traits>
-#include <unordered_map>
 #include <variant>
-#include <vector>
 
 #include <arbor/export.hpp>
 
@@ -55,7 +53,7 @@ struct symbol {
     operator std::string() const { return str; }
 };
 
-inline symbol operator"" _symbol(const char* chars, size_t size) {
+inline symbol operator""_symbol(const char* chars, size_t size) {
     return {chars};
 }
 

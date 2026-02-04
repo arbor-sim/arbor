@@ -45,10 +45,10 @@ area (lateral)                                   area                           
 
 current_density (density mechanisms)             identifier defined using ``NONSPECIFIC_CURRENT``     mA/cm²
 conductivity (density mechanisms)                identifier inferred from current_density equation    S/cm²
-                                                 e.g. in ``i = g*v`` g is the conductivity
+                                                 e.g., in ``i = g*v`` g is the conductivity
 current (point and junction mechanisms)          identifier defined using ``NONSPECIFIC_CURRENT``     nA
-conductance (point and junction mechanisms)      identifier inferred from current equation            µS
-                                                 e.g. in ``i = g*v`` g is the conductance
+conductance (point and junction mechanisms)      identifier inferred from the current equation        µS
+                                                 e.g., in ``i = g*v`` g is the conductance
 ion X current_density (density mechanisms)       iX                                                   mA/cm²
 
 ion X current (point and junction mechanisms)    iX                                                   nA
@@ -64,7 +64,7 @@ Ions
 
 * Arbor recognizes ``na``, ``ca`` and ``k`` ions by default. Any new ions
   used in NMODL need to be explicitly added into Arbor along with their default
-  properties and valence (this can be done in the recipe or on a single cell model).
+  properties and valence (this can be done in the recipe or on a single-cell model).
   Simply specifying them in NMODL will not work.
 * The parameters and variables of each ion referenced in a ``USEION`` statement
   are available automatically to the mechanism. The exposed variables are:
@@ -72,15 +72,15 @@ Ions
   ``eX`` and current ``iX``. It is an error to also mark these as
   ``PARAMETER``, ``ASSIGNED`` or ``CONSTANT``.
 * ``READ`` and ``WRITE`` permissions of ``Xi``, ``Xo``, ``eX`` and ``iX`` can be set
-  in NMODL in the ``NEURON`` block. If a parameter is writable it is automatically
+  in NMODL in the ``NEURON`` block. If a parameter is writable, it is automatically
   readable and must not be specified as both.
 * If ``Xi``, ``Xo``, ``eX``, ``iX``, ``Xd`` are used in a ``PROCEDURE`` or ``FUNCTION``,
   they need to be passed as arguments.
 * If ``Xi`` or ``Xo`` (internal and external concentrations) are written in the
-  NMODL mechanism they need to be declared as ``STATE`` variables and their
+  NMODL mechanism, they need to be declared as ``STATE`` variables and their
   initial values have to be set in the ``INITIAL`` block in the mechanism. This
   transfers **all** responsibility for handling ``Xi`` / ``Xo`` to the mechanism
-  and will lead to painted initial values to be ignored. If these quantities are
+  and will lead to painted initial values being ignored. If these quantities are
   not made ``STATE`` they may be written to, but their values will be reset to
   their initial values every time step.
 * The diffusive concentration ``Xd`` does not share this semantics. It will not
@@ -99,7 +99,7 @@ They are also reserved words and must not be used for other purposes.
 The list of special variables is:
 - ``v`` membrane voltage on current CV in mV,
 - ``diam`` CV diameter (cross-section) in µm,
-- ``area`` CV lateral (ie cylindrical mantle) surface area in µm²,
+- ``area`` CV lateral (i.e., cylindrical mantle) surface area in µm²,
 - ``celsius`` CV temperature in Celsius
 
 Variables declared by ``NONSPECIFIC_CURRENT`` or ``USEION ... READ ... WRITE
@@ -137,7 +137,7 @@ Unsupported features
 * ``derivimplicit`` solving method is not supported, use ``cnexp`` instead.
 * ``VERBATIM`` blocks are not supported.
 * ``LOCAL`` variables outside blocks are not supported.
-* free standing blocks are not supported.
+* Free-standing blocks are not supported.
 * ``INDEPENDENT`` variables are not supported.
 * loops, arrays, and pointers are not supported by Arbor.
 
@@ -197,7 +197,7 @@ proportional to ``sin(x)`` and ``cos(y)``. However, this file is equivalent to
    }
 
 which is almost never what the author would expect. Thus, this construction constitutes
-an error in ``modcc``; if want this particular behaviour, please state this explicit by
+an error in ``modcc``; if want this particular behaviour, please state this explicitly by
 writing code similar to the second example.
 
 .. _arbornmodl:
@@ -207,12 +207,12 @@ Arbor-specific features
 
 * It is required to explicitly pass 'magic' variables like ``v`` into procedures.
   It makes things more explicit by eliding shared and implicit global state. However, 
-  this is only partially true, as having `PARAMETER v` brings it into scope, *but only* 
-  in `BREAKPOINT`.
+  this is only partially true, as having ``PARAMETER v`` brings it into scope, *but only* 
+  in ``BREAKPOINT``.
 * Arbor's NMODL dialect supports the most widely used features of NEURON. It also
-  has some features unavailable in NEURON such as the ``POST_EVENT`` procedure block.
+  has some features unavailable in NEURON, such as the ``POST_EVENT`` procedure block.
   This procedure has a single argument representing the time since the last spike on
-  the cell. In the event of multiple detectors on the cell, and multiple spikes on the
+  the cell. In the event of multiple detectors on the cell and multiple spikes on the
   detectors within the same integration period, the times of each of these spikes will
   be processed by the ``POST_EVENT`` block. Spikes are processed only once and then
   cleared.
@@ -228,7 +228,7 @@ Arbor-specific features
 
 * Arbor allows a gap-junction mechanism to access the membrane potential at the peer site
   of a gap-junction connection as well as the local site. The peer membrane potential is
-  made available through the ``v_peer`` variable while the local membrane potential
+  made available through the ``v_peer`` variable, while the local membrane potential
   is available through ``v``, as usual.
 * Arbor offers a number of additional unary math functions which may offer improved performance
   compared to hand-rolled solutions (especially with the vectorized and GPU backends).
@@ -255,8 +255,8 @@ Voltage Processes
 -----------------
 
 Some cases require direct manipulation of the membrane voltage ``v``; which is
-normally prohibited and for good reason so. For these limited application,
-however, we offer mechanisms that are similar to ``density`` mechanism, but are
+normally prohibited and for good reason so. For these limited applications,
+however, we offer mechanisms that are similar to the ``density`` mechanism, but are
 tagged with ``VOLTAGE_PROCESS`` where normally ``SUFFIX`` would be used.
 
 This is both a very sharp tool and a somewhat experimental feature. Depending on
@@ -284,7 +284,7 @@ As of the current implementation, we note the following details and constraints
 
 * only the ``INITIAL`` and ``BREAKPOINT`` procedures are called.
 * no ``WRITE`` access to ionic quantities is allowed.
-* only one ``VOLTAGE_PROCESS`` maybe present on a single location, adding more
+* only one ``VOLTAGE_PROCESS`` may be present on a single location, adding more
   results in an exception.
 * the ``BREAKPOINT`` callback will execute _after_ the cable solver. A
   consequence of this is that if the initial membrane potential :math:`V_0` is
@@ -336,12 +336,12 @@ A popular equation for determining the reversal potential during the simulation 
 the `Nernst equation <https://en.wikipedia.org/wiki/Nernst_equation>`_.
 Both Arbor and NEURON make use of ``nernst``. Arbor implements it as a mechanism and
 NEURON implements it as a built-in method. However, the conditions for using the
-``nernst`` equation to change the reversal potential of an ion differ between the
+Nernst equation to change the reversal potential of an ion differs between the
 two simulators.
 
 1. In Arbor, the reversal potential of an ion remains equal to its initial value (which
 has to be set by the user) over the entire course of the simulation, unless another
-mechanism which alters that reversal potential (such as ``nernst``) is explicitly selected
+mechanism that alters that reversal potential (such as ``nernst``) is explicitly selected
 for the entire cell. (see :ref:`cppcablecell-revpot` for details).
 
 .. NOTE:
@@ -356,22 +356,22 @@ calculated using ``nernst``. The rule is documented
 `here <https://neuron.yale.edu/neuron/static/new_doc/modelspec/programmatic/ions.html>`_
 and can be summarized as follows:
 
-  Examining all mechansims on a given section, if the internal or external concentration of
+  Examining all mechanisms in a given section, if the internal or external concentration of
   an ion is **written**, and its reversal potential is **read but not written**, then the
-  nernst equation is used **continuously** during the simulation to update the reversal
+  Nernst equation is used **continuously** during the simulation to update the reversal
   potential of the ion.
   And if the internal or external concentration of an ion is **read**, and its reversal
-  potential is **read but not written**, then the nernst equation is used **once** at the
-  beginning of the simulation to caluclate the reversal potential of the ion, and then
+  potential is **read but not written**, then the Nernst equation is used **once** at the
+  beginning of the simulation to calculate the reversal potential of the ion and then
   remains constant.
   Otherwise, the reversal potential is set by the user and remains constant.
 
 One of the main consequences of this difference in behavior is that in Arbor, a mechanism
 modifying the reversal potential (for example ``nernst``) can only be applied (for a given ion)
-at a global level on a given cell. While in Neuron, different mechanisms can be used for
+at a global level on a given cell. While in NEURON, different mechanisms can be used for
 calculating the reversal potential of an ion on different parts of the morphology.
 This is due to the different methods Arbor and NEURON use for discretising the morphology.
-(A ``region`` in Arbor may include part of a CV, where as in NEURON, a ``section`` can only
+(A ``region`` in Arbor may include part of a CV, whereas in NEURON, a ``section`` can only
 contain full ``segments``).
 
 Modelers are encouraged to verify the expected behavior of the reversal potentials of ions
@@ -395,13 +395,13 @@ obtain clean and performant NMODL files. We regularly have seen speed-ups
 factors of roughly three from optimising NMODL.
 
 First, let us discuss how NMODL becomes part of an Arbor simulation. NMODL
-mechanisms are given in ``.mod`` files, whose layout and syntax has been
+mechanisms are given in ``.mod`` files, whose layout and syntax have been
 discussed above. These are compiled by ``modcc`` into a series of callbacks as
 specified by the :ref:`mechanism_abi`. These operate on data held in Arbor's
 internal storage. But, ``modcc`` does not generate machine code, it goes through
-C++ (and/or CUDA) as an intermediary which is processed by a standard C++
+C++ (and/or CUDA) as an intermediary, which is processed by a standard C++
 compiler like GCC (or nvcc) to produce either a shared object (for external
-catalogues) and code directly linked into Arbor (the built-in catalogues).
+catalogues) or code directly linked into Arbor (the built-in catalogues).
 
 Now, we turn to a series of tips we found helpful in producing fast NMODL
 mechanisms. In terms of performance of variable declaration, the hierarchy is
@@ -440,7 +440,7 @@ as opposed to a ``FUNCTION``.
 
 ``PARAMETER`` should only be used for values that must be set by the simulator.
 All fixed values should be ``CONSTANT`` instead. These will be inlined by
-``modcc`` and propagated through the computations which can uncover more
+``modcc`` and propagated through the computations, which can uncover more
 optimisation potential.
 
 Sharing Expressions Between ``INITIAL`` and ``BREAKPOINT`` or ``DERIVATIVE``
@@ -452,7 +452,7 @@ accomodate both blocks. DRY code is a good idea nevertheless, so use a series of
 ``FUNCTION`` instead to compute common expressions.
 
 This leads naturally to a common optimisation in H-H style ion channels. If you
-heeded the advice above, you will likely see this patter emerge:
+heeded the advice above, you will likely see this pattern emerge:
 
 .. code::
 
@@ -463,7 +463,7 @@ heeded the advice above, you will likely see this patter emerge:
 
    n' = (ninf - n)/ntau
 
-Written out in this explicit way it becomes obvious that this can be expressed
+Written out in this explicit way, it becomes obvious that this can be expressed
 compactly as
 
 .. code::
@@ -486,13 +486,13 @@ Complex Expressions in Current Computation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``modcc``, Arbor's NMODL compiler, applies symbolic differentiation to the
-current expression to find the conductance as ``g = d I/d U`` which are then
+current expression to find the conductance as ``g = d I/d U`` which is then
 used to compute the voltage update. ``g`` is thus computed multiple times every
 timestep and if the corresponding expression is inefficient, it will cost more
-time than needed. The differentiation implementation quite naive and will not
+time than needed. The differentiation implementation is quite naive and will not
 optimise the resulting expressions. This is an internal detail of Arbor and
-might change in the future, but for now this particular optimisation can help to
-produce better performing code. Here is an example
+might change in the future, but for now, this particular optimisation can help to
+produce better-performing code. Here is an example
 
 .. code::
 
@@ -556,7 +556,7 @@ of this pattern from ``hh.mod`` in the Arbor sources
 Specialised Functions
 ~~~~~~~~~~~~~~~~~~~~~
 
-Some extra cost can be saved by choosing Arbor-specific optimized math functions instead of
+Some extra costs can be saved by choosing Arbor-specific optimized math functions instead of
 hand-rolled versions. Please consult the table in :ref:`this section <arbornmodl>`.
 A common pattern is the use of a guarded exponential of the form
 

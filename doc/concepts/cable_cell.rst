@@ -7,17 +7,27 @@ An Arbor *cable cell* is a full :ref:`description <modelcelldesc>` of a cell
 with morphology and cell dynamics like ion species and their properties, ion
 channels, synapses, gap junction mechanisms, stimuli and threshold detectors.
 
-Cable cells are constructed from three components:
+Cable cells are constructed from four components:
 
-* :ref:`Morphology <morph>`: a description of the geometry and branching structure of the cell shape.
-* :ref:`Label dictionary <labels>`: a set of definitions and a :abbr:`DSL (domain specific language)` that refer to regions and locations on the cell morphology.
-* :ref:`Decor <cablecell-decoration>`: a description of the dynamics on the cell, placed according to the named rules in the dictionary. It can reference :ref:`mechanisms` from mechanism catalogues.
+* :ref:`Morphology <morph>`: a description of the geometry and branching
+  structure of the cell shape.
+* :ref:`Label dictionary <labels>`: a set of definitions and a :abbr:`DSL
+  (domain specific language)` that refer to regions and locations on the cell
+  morphology.
+* :ref:`Decor <cablecell-decoration>`: a description of the dynamics on the
+  cell, placed according to the named rules in the dictionary. It can reference
+  :ref:`mechanisms` from mechanism catalogues.
+* :ref:`Discretization <cablecell-discretization>` a prescription of how to split
+  the cell into control volumes (CV) also known as compartments.
 
 When a cable cell is constructed the following steps are performed using the inputs:
 
-1. Concrete regions and locsets are generated for the morphology for each labelled region and locset in the dictionary
-2. The default values for parameters specified in the decor, such as ion species concentration, are instantiated.
-3. Dynamics (mechanisms, parameters, synapses, gap junctions etc.) are instantiated on the regions and locsets as specified by the decor.
+1. Concrete regions and locsets are generated for the morphology for each
+   labelled region and locset in the dictionary
+2. The default values for parameters specified in the decor, such as ion species
+   concentration, are instantiated.
+3. Dynamics (mechanisms, parameters, synapses, gap junctions etc.) are
+   instantiated on the regions and locsets as specified by the decor.
 
 Once constructed, the cable cell can be queried for specific information about the cell, but it can't be modified (it is *immutable*).
 
@@ -46,6 +56,7 @@ Once constructed, the cable cell can be queried for specific information about t
    labels
    mechanisms
    decor
+   discretization
 
 API
 ---

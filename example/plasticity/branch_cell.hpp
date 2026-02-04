@@ -130,7 +130,5 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     }
 
     // Make a CV between every sample in the sample tree.
-    decor.set_default(arb::cv_policy_every_segment());
-
-    return {arb::morphology(tree), labels, decor};
+    return {arb::morphology(tree), decor, labels, arb::cv_policy_every_segment()};
 }

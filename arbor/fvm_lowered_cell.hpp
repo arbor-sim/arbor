@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <memory>
-#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <variant>
@@ -17,19 +16,14 @@
 #include <arbor/recipe.hpp>
 #include <arbor/serdes.hpp>
 #include <arbor/util/any_ptr.hpp>
+#include <arbor/sampling.hpp>
 
 #include "backends/event.hpp"
 #include "backends/common_types.hpp"
-#include "backends/threshold_crossing.hpp"
 #include "execution_context.hpp"
-#include "sampler_map.hpp"
+#include "event_lane.hpp"
 #include "timestep_range.hpp"
-#include "util/maputil.hpp"
-#include "util/meta.hpp"
 #include "util/range.hpp"
-#include "util/rangeutil.hpp"
-#include "util/strprintf.hpp"
-#include "util/transform.hpp"
 
 namespace arb {
 
@@ -145,15 +139,13 @@ struct fvm_probe_data {
     fvm_probe_data(fvm_probe_interpolated_multi p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_membrane_currents p): info(std::move(p)) {}
 
-    std::variant<
-        missing_probe_info,
-        fvm_probe_scalar,
-        fvm_probe_interpolated,
-        fvm_probe_multi,
-        fvm_probe_weighted_multi,
-        fvm_probe_interpolated_multi,
-        fvm_probe_membrane_currents
-    > info = missing_probe_info{};
+    std::variant<missing_probe_info,
+                 fvm_probe_scalar,
+                 fvm_probe_interpolated,
+                 fvm_probe_multi,
+                 fvm_probe_weighted_multi,
+                 fvm_probe_interpolated_multi,
+                 fvm_probe_membrane_currents> info = missing_probe_info{};
 
     auto raw_handle_range() const {
         return util::make_range(
@@ -217,7 +209,6 @@ private:
 
 struct fvm_initialization_data {
     // Handles for accessing lowered cell.
-    std::vector<target_handle> target_handles;
     std::unordered_map<unsigned, arb_size_type> num_targets_per_mech_id;
 
     // Maps probe ids to probe handles and tags.
@@ -231,6 +222,12 @@ struct fvm_initialization_data {
     // Maps storing number of sources/targets per cell.
     std::unordered_map<cell_gid_type, arb_size_type> num_sources;
     std::unordered_map<cell_gid_type, arb_size_type> num_targets;
+
+    void shrink_to_fit() {
+        source_data.shrink_to_fit();
+        target_data.shrink_to_fit();
+        gap_junction_data.shrink_to_fit();
+    }
 };
 
 // Common base class for FVM implementation on host or gpu back-end.
@@ -238,14 +235,12 @@ struct fvm_initialization_data {
 struct fvm_lowered_cell {
     virtual void reset() = 0;
 
-    virtual fvm_initialization_data initialize(
-        const std::vector<cell_gid_type>& gids,
-        const recipe& rec) = 0;
+    virtual fvm_initialization_data initialize(const std::vector<cell_gid_type>& gids,
+                                               const recipe& rec) = 0;
 
-    virtual fvm_integration_result integrate(
-        const timestep_range& dts,
-        const std::vector<std::vector<std::vector<deliverable_event>>>& staged_events_per_mech_id,
-        const std::vector<std::vector<sample_event>>& staged_samples) = 0;
+    virtual fvm_integration_result integrate(const timestep_range& dts,
+                                             const event_lane_subrange& event_lanes,
+                                             const std::vector<std::vector<sample_event>>& staged_samples) = 0;
 
     virtual arb_value_type time() const = 0;
 

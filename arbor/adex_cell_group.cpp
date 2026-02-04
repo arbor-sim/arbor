@@ -195,7 +195,7 @@ void adex_cell_group::advance_cell(time_type t_fin,
         auto rx = 0;
         for (unsigned ix = 0; ix < sample_sizes.size(); ++ix) {
             auto size = sample_sizes[ix];
-            for (int kx = 0; kx < size; ++kx) {
+            for (size_t kx = 0; kx < size; ++kx) {
                 sample_records[ix][kx].data = const_cast<const double*>(sample_data.data() + rx);
                 sample_events[rx].data = sample_data.data() + rx;
                 ++rx;
@@ -208,7 +208,7 @@ void adex_cell_group::advance_cell(time_type t_fin,
     auto& cell = cells_[lid];
     auto n_events = static_cast<int>(!event_lanes.empty() ? event_lanes[lid].size() : 0);
     auto evt_idx = 0;
-    auto spl_idx = 0;
+    size_t spl_idx = 0;
     while (time < t_fin) {
         auto t_end = std::min(t_fin, time + dt);
         // forward progress?
@@ -253,7 +253,7 @@ void adex_cell_group::advance_cell(time_type t_fin,
     auto n_samplers = sample_callbacks.size();
     {
         std::lock_guard<std::mutex> guard{sampler_mex_};
-        for (int s_idx = 0; s_idx < n_samplers; ++s_idx) {
+        for (size_t s_idx = 0; s_idx < n_samplers; ++s_idx) {
             const auto& sd = sample_records[s_idx];
             auto hdl = sample_callbacks[s_idx];
             const auto& fun = samplers_[hdl].sampler;

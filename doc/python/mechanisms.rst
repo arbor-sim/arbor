@@ -5,7 +5,7 @@ Cable cell mechanisms
 
 .. py:class:: mechanism
 
-    Mechanisms describe physical processes, distributed over the membrane of the cell.
+    Mechanisms describe physical processes distributed over the membrane of the cell.
     *Density mechanisms* are associated with regions of the cell, whose dynamics are
     a function of the cell state and their own state where they are present.
     *Point mechanisms* are defined at discrete locations on the cell, which receive
@@ -34,38 +34,38 @@ Cable cell mechanisms
 
     .. code-block:: Python
 
-        import arbor
+        import arbor as A
 
-        # A passive leaky channel with default parameter values (set in NOMDL file).
-        pas_0 = arbor.mechanism('pas')
+        # A passive leaky channel with default parameter values (set in NMODL file).
+        pas_0 = A.mechanism('pas')
 
         # A passive leaky channel with custom conductance (range).
-        pas_1 = arbor.mechanism('pas', {'g': 0.02})
+        pas_1 = A.mechanism('pas', {'g': 0.02})
 
         # A passive leaky channel with custom reversal potential (global).
-        pas_2 = arbor.mechanism('pas/e=-45')
+        pas_2 = A.mechanism('pas/e=-45')
 
         # A passive leaky channel with custom reversal potential (global), and custom conductance (range).
-        pas_3a = arbor.mechanism('pas/e=-45', {'g', 0.1})
+        pas_3a = A.mechanism('pas/e=-45', {'g', 0.1})
 
         # A passive leaky channel with custom reversal potential (global), and custom conductance (range)
         # written as keyword args.
-        pas_3b = arbor.mechanism('pas/e=-45', g=0.1)
+        pas_3b = A.mechanism('pas/e=-45', g=0.1)
 
-        # This is an equivalent to pas_3, using set method to specify range parameters.
-        pas_4 = arbor.mechanism('pas/e=-45')
+        # This is equivalent to pas_3, using the set method to specify range parameters.
+        pas_4 = A.mechanism('pas/e=-45')
         pas_4.set('g', 0.1)
 
         # Reversal potential using Nernst equation with GLOBAL parameter values
         # for Faraday's constant and the target ion species, set with a '/' followed
-        # by comma-separated list of parameter after the base mechanism name.
+        # by a comma-separated list of parameters after the base mechanism name.
         rev = arbor.mechanism('nernst/F=96485,x=ca')
 
-        # An exponential synapse with default parameter values (set in NOMDL file).
-        expsyn = arbor.mechanism("expsyn")
+        # An exponential synapse with default parameter values (set in NMODL file).
+        expsyn = A.mechanism("expsyn")
 
-        # A gap-junction mechanism with default parameter values (set in NOMDL file).
-        gj = arbor.mechanism("gj")
+        # A gap-junction mechanism with default parameter values (set in NMODL file).
+        gj = A.mechanism("gj")
 
     .. method:: mechanism(name, params)
 
@@ -113,9 +113,9 @@ Cable cell mechanisms
 
     .. code-block:: Python
 
-        import arbor
+        import arbor as A
 
-        pas = arbor.mechanism('pas')
+        pas = A.mechanism('pas')
         pas.set('g', 0.2)
 
         # Decorate the 'soma' with (multiple) density mechanisms
@@ -265,8 +265,8 @@ Cable cell mechanisms
 
     .. code-block:: Python
 
-        import arbor
-        cat = arbor.default_catalogue()
+        import arbor as A
+        cat = A.default_catalogue()
 
         # Get mechanism_info for the 'expsyn' mechanism.
         mech = cat['expsyn']
@@ -320,13 +320,13 @@ Cable cell mechanisms
 
 .. py:class:: ion_dependency
 
-    Meta data about a mechanism's dependence on an ion species,
+    Metadata about a mechanism's dependence on an ion species,
     presented as read-only attributes.
 
     .. code-block:: Python
 
-        import arbor
-        cat = arbor.default_catalogue()
+        import arbor as A
+        cat = A.default_catalogue()
 
         # Get ion_dependency for the 'hh' mechanism.
         ions = cat['hh'].ions
@@ -365,7 +365,7 @@ Cable cell mechanisms
 
 .. py:class:: mechanism_field
 
-    Meta data about a specific field of a mechanism, presented as read-only attributes.
+    Metadata about a specific field of a mechanism is presented as read-only attributes.
 
     .. py:attribute:: units
         :type: string
@@ -437,7 +437,7 @@ Mechanism catalogues
 
     .. py:method:: __getitem__(name)
 
-        Look up mechanism meta data with *name*.
+        Look up mechanism metadata with *name*.
 
         .. code-block:: Python
 
@@ -455,7 +455,7 @@ Mechanism catalogues
 
     .. py:method:: __iter___()
 
-        Return a list names of all the mechanisms in the catalogue.
+        Return a list of names of all the mechanisms in the catalogue.
 
         Note: This enables the following idiom
 
@@ -469,7 +469,7 @@ Mechanism catalogues
         :return: :class:`py_mech_cat_iterator`
 
 
-    .. py:method:: extend(other, prefix)
+    .. py:method:: extend(other, prefix="")
 
         Import another catalogue, possibly with a prefix. Will raise an exception
         in case of name collisions.
@@ -479,7 +479,7 @@ Mechanism catalogues
             import arbor
 
             cat = arbor.default_catalogue()
-            cat.extend(arbor.allen_catalogue(), "")
+            cat.extend(arbor.allen_catalogue())
 
         :param other: reference to other catalogue.
         :type other: :class:`mechanism_catalogue`
@@ -491,21 +491,21 @@ Mechanism catalogues
         Derive a new mechanism with *name* from the mechanism *parent*.
 
         If no parameters or ion renaming are specified with *globals* or *ions*,
-        the method will attempt to implicitly derive a new mechanism from parent by parsing global and
+        the method will attempt to implicitly derive a new mechanism from the parent by parsing global and
         ions from the parent string.
 
         .. code-block:: Python
 
-            import arbor
+            import arbor as A
 
-            cat = arbor.default_catalogue()
+            cat = A.default_catalogue()
 
             # Use the value of the Faraday constant as published by CODATA in 1986,
-            # and bind to pottasium ion species.
+            # and bind to potassium ion species.
             cat.derive('krev',  'nernst', globals={'F': 96485.309}, ions={'x': 'k'})
 
             # Derive a reversal potential mechanism for sodium from the one we defined
-            # for potasium, which will inherit the redefined Faraday constant.
+            # for potassium, which will inherit the redefined Faraday constant.
             cat.derive('narev', 'krev', ions={'k': 'na'})
 
             # Alternatively, we can derive a mechanism with global parameters and ion renaming

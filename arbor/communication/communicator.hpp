@@ -39,7 +39,7 @@ public:
     communicator() = default;
 
     explicit communicator(const recipe& rec,
-                          const domain_decomposition& dom_dec,
+                          const domain_decomposition_ptr dom_dec,
                           context ctx);
 
     /// The range of event queues that belong to cells in group i.
@@ -54,7 +54,7 @@ public:
     /// Returns
     /// * full global set of vectors, along with meta data about their partition
     /// * a list of spikes received from remote simulations
-    spikes exchange(std::vector<spike> local_spikes);
+    spikes exchange(std::vector<spike>& local_spikes);
 
     /// Check each global spike in turn to see it generates local events.
     /// If so, make the events and insert them into the appropriate event list.
@@ -69,6 +69,7 @@ public:
     /// Returns the total number of global spikes over the duration of the simulation
     std::uint64_t num_spikes() const;
     void set_num_spikes(std::uint64_t n);
+    std::uint64_t num_local_spikes() const;
 
     cell_size_type num_local_cells() const;
 
@@ -77,9 +78,10 @@ public:
     // used for commmunicate to coupled simulations
     void remote_ctrl_send_continue(const epoch&);
     void remote_ctrl_send_done();
-
+    
+    
     void update_connections(const recipe& rec,
-                            const domain_decomposition& dom_dec,
+                            const domain_decomposition_ptr dom_dec,
                             const label_resolution_map& source_resolution_map,
                             const label_resolution_map& target_resolution_map);
 
@@ -93,8 +95,7 @@ public:
         std::vector<float> weights;
         std::vector<float> delays;
 
-        void make(const std::vector<connection>& cons) {
-            clear();
+        void make(std::vector<connection>& cons) {
             for (const auto& con: cons) {
                 idx_on_domain.push_back(con.index_on_domain);
                 srcs.push_back(con.source);
@@ -102,6 +103,23 @@ public:
                 weights.push_back(con.weight);
                 delays.push_back(con.delay);
             }
+        }
+
+        void make(std::vector<std::vector<connection>>& conss) {
+            for (auto& cons: conss) {
+                make(cons);
+                // NOTE: For memory capacity reasons, we destroy
+                //       the sub-vectors here, once we are done.
+                cons = {};
+            }
+        }
+
+        void reserve(std::size_t n) {
+            idx_on_domain.reserve(n);
+            srcs.reserve(n);
+            dests.reserve(n);
+            weights.reserve(n);
+            delays.reserve(n);
         }
 
         void clear() {
@@ -118,25 +136,28 @@ public:
     const connection_list& connections() const;
 
 private:
-
     cell_size_type num_total_cells_ = 0;
     cell_size_type num_local_cells_ = 0;
     cell_size_type num_local_groups_ = 0;
     cell_size_type num_domains_ = 0;
-    // Arbor internal connections
-    connection_list connections_;
+    spike_predicate remote_spike_filter_;
+
     // partition of connections over the domains of the sources' ids.
     std::vector<cell_size_type> connection_part_;
     std::vector<cell_size_type> index_divisions_;
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
 
-    spike_predicate remote_spike_filter_;
+    // Arbor internal connections
+    connection_list connections_;
+
+    // sources with connections to other ranks
+    std::unordered_map<cell_member_type, std::vector<cell_size_type>> src_ranks_;
 
     // Connections from external simulators into Arbor.
     // Currently we have no partitions/indices/acceleration structures
     connection_list ext_connections_;
-
     std::uint64_t num_spikes_ = 0u;
+    std::uint64_t num_local_spikes_ = 0u;
     std::uint64_t num_local_events_ = 0u;
     context ctx_;
 };
