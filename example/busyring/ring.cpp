@@ -5,6 +5,7 @@
 #include <array>
 #include <random>
 #include <cmath>
+#include <set>
 
 #include <nlohmann/json.hpp>
 
@@ -32,6 +33,8 @@
 #include <arborenv/with_mpi.hpp>
 #endif
 
+#define COUNT_RINGS_AND_SYNAPSES // may cause prolonged initialization times for larger networks
+
 using arb::cell_gid_type;
 using arb::cell_lid_type;
 using arb::cell_size_type;
@@ -51,6 +54,11 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
 
 class ring_recipe: public arb::recipe {
 public:
+#ifdef COUNT_RINGS_AND_SYNAPSES
+    mutable unsigned int num_syns_created;
+    mutable std::set<unsigned int> rings_created;
+#endif
+
     ring_recipe(ring_params params):
         num_cells_(params.num_cells),
         min_delay_(params.min_delay),
@@ -66,6 +74,11 @@ public:
             gprop.default_parameters.temperature_K = 34 + 273.15;
             gprop.default_parameters.init_membrane_potential = -90;
         }
+
+#ifdef COUNT_RINGS_AND_SYNAPSES
+        this->num_syns_created = 0;
+        this->rings_created = std::set<unsigned int>();
+#endif
     }
 
     std::any get_global_properties(cell_kind kind) const override { return gprop; }
@@ -85,19 +98,23 @@ public:
         const auto ncons = params_.cell.synapses;
         cons.reserve(ncons);
 
-        const auto s = params_.ring_size;
-        const auto group = gid/s;
-        const auto group_start = s*group;
-        const auto group_end = std::min(group_start+s, num_cells_);
-        cell_gid_type src = gid==group_start? group_end-1: gid-1;
+        const auto rs = params_.ring_size;
+        const auto current_ring = gid/rs;
+        const auto ring_start = rs*current_ring;
+        const auto ring_end = std::min(ring_start+rs, num_cells_);
+        cell_gid_type src = gid==ring_start ? ring_end-1 : gid-1;
         cons.push_back(arb::cell_connection({src, "d"}, {"p"}, event_weight_, min_delay_*U::ms));
+#ifdef COUNT_RINGS_AND_SYNAPSES
+        this->rings_created.insert(current_ring);
+        this->num_syns_created++;
+#endif
 
         // Used to pick source cell for a connection.
         std::uniform_int_distribution<cell_gid_type> dist(0, num_cells_-2);
         // Used to pick delay for a connection.
         std::uniform_real_distribution<float> delay_dist(0, 2*min_delay_);
         auto src_gen = std::mt19937(gid);
-        for (unsigned i=1; i<ncons; ++i) {
+        for (unsigned i=0; i<ncons; ++i) {
             // Make a connection with weight 0.
             // The source is randomly picked, with no self connections.
             src = dist(src_gen);
@@ -105,7 +122,11 @@ public:
             const float delay = min_delay_+delay_dist(src_gen);
             cons.push_back(
                 arb::cell_connection({src, "d"}, {"p"}, 0.f, delay*U::ms));
+#ifdef COUNT_RINGS_AND_SYNAPSES
+            this->num_syns_created++;
+#endif
         }
+
         return cons;
     }
 
@@ -171,12 +192,58 @@ struct cell_stats {
     }
 
     friend std::ostream& operator<<(std::ostream& o, const cell_stats& s) {
-        return o << "cell stats: "
+        return o << "Cell stats: "
                  << s.ncells << " cells; "
                  << s.nbranch << " branches; "
-                 << s.ncomp << " compartments; ";
+                 << s.ncomp << " compartments/rank; ";
     }
 };
+
+std::string get_arbor_config_str() {
+    std::string config_str = "";
+    #ifdef ARB_MPI_ENABLED
+        config_str += std::string("mpi=true, ");
+    #else
+        config_str += std::string("mpi=false, ");
+    #endif
+    #ifdef ARB_NVCC_ENABLED
+        config_str += std::string("cuda=true, ");
+    #endif
+    #ifdef ARB_CUDA_CLANG_ENABLED
+        config_str += std::string("cuda-clang=true, ");
+    #endif
+    #ifdef ARB_HIP_ENABLED
+        config_str += std::string("hip=true, ");
+    #endif
+    #ifndef ARB_GPU_ENABLED
+        config_str += std::string("gpu=false, ");
+    #endif
+    #ifdef ARB_VECTORIZE_ENABLED
+        config_str += std::string("vectorize=true, ");
+    #else
+        config_str += std::string("vectorize=false, ");
+    #endif
+    #ifdef ARB_PROFILE_ENABLED
+        config_str += std::string("profiling=true, ");
+    #else
+        config_str += std::string("profiling=false, ");
+    #endif
+    #ifdef ARB_NEUROML_ENABLED
+        config_str += std::string("neuroml=true, ");
+    #else
+        config_str += std::string("neuroml=false, ");
+    #endif
+    #ifdef ARB_BUNDLED_ENABLED
+        config_str += std::string("bundled=true, ");
+    #else
+        config_str += std::string("bundled=false, ");
+    #endif
+    config_str += std::string("version='") + arb::version + "', " +
+                  std::string("source='") + arb::source_id + "', " +
+                  std::string("build_config='") + arb::build_config + "', " +
+                  std::string("arch='") + arb::arch + "'";
+    return config_str;
+}
 
 int main(int argc, char** argv) {
     try {
@@ -192,7 +259,8 @@ int main(int argc, char** argv) {
         arbenv::with_mpi guard(argc, argv, false);
         resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(resources, MPI_COMM_WORLD);
-        root = arb::rank(context) == 0;
+        auto rank = arb::rank(context);
+        root = rank == 0;
 #else
         resources.gpu_id = arbenv::default_gpu();
         auto context = arb::make_context(resources);
@@ -204,10 +272,13 @@ int main(int argc, char** argv) {
 
         // Print a banner with information about hardware configuration
         if (root) {
-            std::cout << "gpu:      " << (has_gpu(context)? "yes": "no") << "\n";
-            std::cout << "threads:  " << num_threads(context) << "\n";
-            std::cout << "mpi:      " << (has_mpi(context)? "yes": "no") << "\n";
-            std::cout << "ranks:    " << num_ranks(context) << "\n" << std::endl;
+            std::cout << "gpu:      " << (has_gpu(context)? "yes": "no") << "\n"
+                      << "threads:  " << num_threads(context) << "\n"
+                      << "mpi:      " << (has_mpi(context)? "yes": "no") << "\n"
+                      << "ranks:    " << num_ranks(context) << "\n"
+                      << "stdp:     " << (params.cell.stdp  ? "yes": "no") << "\n"
+                      << "config:   " << (get_arbor_config_str()) << "\n"
+                      << std::endl;
         }
 
         arb::profile::meter_manager meters;
@@ -216,11 +287,22 @@ int main(int argc, char** argv) {
         // Create an instance of our recipe.
         ring_recipe recipe(params);
         cell_stats stats(recipe);
-        if (root) std::cout << stats << "\n";
+        if (root)
+            std::cout << stats << "\n";
         // Make decomposition
         auto decomp = arb::partition_load_balance(recipe, context, {{arb::cell_kind::cable, params.hint}});
         // Construct the model.
         arb::simulation sim(recipe, context, decomp);
+        // Output of critical information
+#ifdef COUNT_RINGS_AND_SYNAPSES
+    #ifdef ARB_MPI_ENABLED
+        std::cout << "Number of rings on rank " << rank << ": " << recipe.rings_created.size() << "." << std::endl;
+        std::cout << "Number of synapses on rank " << rank << ": " << recipe.num_syns_created << "." << std::endl;
+    #else
+        std::cout << "Number of rings: " << recipe.rings_created.size() << "." << std::endl;
+        std::cout << "Number of synapses: " << recipe.num_syns_created << "." << std::endl;
+    #endif
+#endif
 
         // Set up the probe that will measure voltage in the cell.
 
@@ -358,7 +440,7 @@ arb::segment_tree generate_morphology(arb::cell_gid_type gid, const cell_paramet
                     auto z = dist_from_soma;
                     auto dz = l/nc;
                     auto p = sec;
-                    for (unsigned k=1; k<nc; ++k) {
+                    for (unsigned k=0; k<nc; ++k) {
                         p = tree.append(p, {0,0,z+(k+1)*dz, dend_radius}, dend_tag);
                     }
                     sec_ids.push_back(p);
@@ -421,8 +503,14 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
     decor.place(cntr, arb::threshold_detector{-20.0*U::mV}, "d");
     decor.place(cntr, arb::synapse("expsyn"), "p");
 
-    if (params.synapses>1) decor.place(syns, arb::synapse("expsyn"), "s");
-
+    if (params.synapses>1) {
+        if (params.stdp) {
+            decor.place(syns, arb::synapse{"expsyn_stdp", {{"max_weight", 0.0}}}, "s");
+        }
+        else {
+            decor.place(syns, arb::synapse{"expsyn"}, "s");
+        }
+    }
     return {arb::morphology(tree), decor, {}, arb::cv_policy_every_segment()};
 }
 
@@ -445,11 +533,16 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     decor.place(arb::mlocation{0,0}, arb::threshold_detector{10*U::mV}, "d");
 
     // Add a synapse to proximal end of first dendrite.
-    decor.place(arb::mlocation{1, 0}, arb::synapse{"expsyn"}, "p");
+    decor.place(arb::mlocation{0, 1}, arb::synapse{"expsyn"}, "p");
 
     // Add additional synapses that will not be connected to anything.
-    if (params.synapses>1) {
-        decor.place(syns, arb::synapse{"expsyn"}, "s");
+    if (params.synapses > 1) {
+        if (params.stdp) {
+            decor.place(syns, arb::synapse{"expsyn_stdp", {{"max_weight", 0.0}}}, "s");
+        }
+        else {
+            decor.place(syns, arb::synapse{"expsyn"}, "s");
+        }
     }
 
     // Make a CV between every sample in the sample tree.
