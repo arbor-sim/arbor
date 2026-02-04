@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <mutex>
-#include <iostream>
+#include <ostream>
+#include <utility>
 
 #include <arbor/context.hpp>
 #include <arbor/profile/profiler.hpp>
@@ -10,7 +11,7 @@
 #include "threading/threading.hpp"
 #include "util/span.hpp"
 #include "util/rangeutil.hpp"
-#include "hardware/memory.hpp"
+
 
 namespace arb {
 namespace profile {
@@ -23,59 +24,52 @@ namespace {
     bool is_valid_region_string(const std::string& s) {
         return (s.size()!=0u) && (s.front()!=':') && (s.back()!=':');
     }
-
-    //
-    // Return a list of the words in the string, using ':' as the delimiter
-    // string, e.g.:
-    //      "communicator"             -> {"communicator"}
-    //      "communicator_events"      -> {"communicator", "events"}
-    //      "communicator_events_sort" -> {"communicator", "events", "sort"}
-    std::vector<std::string> split(const std::string& str) {
-        std::vector<std::string> cont;
-        std::size_t first = 0;
-        std::size_t last = str.find(':');
-        while (last != std::string::npos) {
-            cont.push_back(str.substr(first, last - first));
-            first = last + 1;
-            last = str.find(':', first);
-        }
-        cont.push_back(str.substr(first, last - first));
-        return cont;
-    }
 }
 
-// Holds the accumulated number of calls and time spent in a region.
+// Holds the accumulated number of calls and time spent in a region of a timer stack.
 struct profile_accumulator {
     std::size_t count=0;
     double time=0.;
+    tick_type start_time{};
+    bool running = false;
 };
+
+struct timer_stack_hasher {
+    auto operator()(const timer_stack& key) const noexcept -> uint64_t {
+        return hash_value(key);
+    }
+};
+using accumulators_type = std::unordered_map<timer_stack, profile_accumulator, timer_stack_hasher>;
 
 // Records the accumulated time spent in profiler regions on one thread.
 // There is one recorder for each thread.
 class recorder {
-    // used to mark that the recorder is not currently timing a region.
-    static constexpr region_id_type npos = std::numeric_limits<region_id_type>::max();
+    // Each timer stack has its own profile accumulator to store the time spend in this state
+    accumulators_type accumulators_{};
 
-    // The index of the region being timed.
-    // If set to npos, no region is being timed.
-    region_id_type index_ = npos;
-
-    tick_type start_time_;
-
-    // One accumulator for call count and wall time for each region.
-    std::vector<profile_accumulator> accumulators_;
+    // The current state of nested timers
+    timer_stack current_timer_stack{};
 
 public:
-    // Return a list of the accumulated call count and wall times for each region.
-    const std::vector<profile_accumulator>& accumulators() const;
+    // Return an unordered map that assigns each timer stack its profile accumulator
+    [[nodiscard]] const std::unordered_map<timer_stack, profile_accumulator, timer_stack_hasher>& accumulators() const;
 
     // Start timing the region with index.
     // Throws std::runtime_error if already timing a region.
-    void enter(region_id_type index);
+    void enter(region_id_type index,  const std::vector<std::string>& names);
 
     // Stop timing the current region, and add the time taken to the accumulated time.
     // Throws std::runtime_error if not currently timing a region.
-    void leave();
+    void leave(region_id_type index, const std::vector<std::string>& names);
+
+    // A new thread has been started from the following timer stack
+    void task_started(timer_stack _timer_stack);
+
+    // A thread has been stopped
+    void task_stopped(timer_stack _timer_stack);
+
+    // Get the current timer stack
+    const timer_stack&get_timer_stack() const;
 
     // Reset all of the accumulated call counts and times to zero.
     void clear();
@@ -109,7 +103,11 @@ public:
     void initialize(task_system_handle& ts);
     void enter(region_id_type index);
     void enter(const std::string& name);
-    void leave();
+    void task_started(const timer_stack& timer_stack);
+    void task_stopped(const timer_stack& _timer_stack);
+    const timer_stack& get_current_timer_stack();
+    void leave(region_id_type index);
+    void leave(const std::string& name);
     const std::vector<std::string>& regions() const;
     region_id_type region_index(const std::string& name);
     profile results() const;
@@ -124,6 +122,9 @@ public:
         name_index_.clear();
         region_names_.clear();
     }
+
+  private:
+    timer_stack empty_stack{};
 };
 
 
@@ -133,6 +134,7 @@ struct profile_node {
 
     std::string name;
     double time = 0;
+    double time_childs = 0;
     region_id_type count = npos;
     std::vector<profile_node> children;
 
@@ -145,36 +147,78 @@ struct profile_node {
 
 // recorder implementation
 
-const std::vector<profile_accumulator>& recorder::accumulators() const {
+const accumulators_type& recorder::accumulators() const {
     return accumulators_;
 }
 
-void recorder::enter(region_id_type index) {
-    if (index_!=npos) {
-        throw std::runtime_error("recorder::enter without matching recorder::leave");
+std::string timer_stack_to_string(const timer_stack& ts, const std::vector<std::string>& names) {
+    std::stringstream ss{};
+    for (auto i=0U;i<ts.size();i++) {
+const auto timer = ts[i];
+        ss << names[timer];
+        if (i != ts.size()-1) {
+            ss << ", ";
+        }
     }
-    if (index>=accumulators_.size()) {
-        accumulators_.resize(index+1);
-    }
-    index_ = index;
-    start_time_ = timer::tic();
+    return ss.str();
 }
 
-void recorder::leave() {
-    // calculate the elapsed time before any other steps, to increase accuracy.
-    auto delta = timer::toc(start_time_);
-
-    if (index_==npos) {
-        throw std::runtime_error("recorder::leave without matching recorder::enter");
+void recorder::enter(region_id_type index, const std::vector<std::string>& names) {
+    current_timer_stack.push_back(index);
+    auto& cur_acc = accumulators_[current_timer_stack];
+    if (cur_acc.running) {
+        throw std::runtime_error("recorder::enter you entered the timer twice "+names[index] + " TimerStack: " + timer_stack_to_string(current_timer_stack, names));
     }
-    accumulators_[index_].count++;
-    accumulators_[index_].time += delta;
-    index_ = npos;
+
+    cur_acc.start_time = timer::tic();
+    cur_acc.running = true;
+}
+
+void recorder::leave(region_id_type index, const std::vector<std::string>& names) {
+    if(current_timer_stack[current_timer_stack.size()-1] != index) {
+        throw std::runtime_error("recorder::leave without matching recorder::enter Trying to leave "+names[index] + " but currently in "+names[current_timer_stack[current_timer_stack.size()-1]] + " TimerStack: " + timer_stack_to_string(current_timer_stack, names));
+    }
+    auto& cur_acc = accumulators_[current_timer_stack];
+
+    // calculate the elapsed time before any other steps, to increase accuracy.
+    auto delta = timer::toc(cur_acc.start_time);
+
+    cur_acc.count++;
+    cur_acc.time += delta;
+    cur_acc.running = false;
+
+    current_timer_stack.erase(std::next(current_timer_stack.begin(), current_timer_stack.size()-1));
 }
 
 void recorder::clear() {
-    index_ = npos;
-    accumulators_.resize(0);
+    accumulators_.clear();
+    current_timer_stack.clear();
+}
+
+void recorder::task_started(timer_stack _timer_stack) {
+  current_timer_stack = std::move(_timer_stack);
+  const auto now = timer::tic();
+  for(auto stack_depth=0U;stack_depth < current_timer_stack.size();stack_depth++) {
+    const timer_stack sub_timer_stack(current_timer_stack.begin(), current_timer_stack.begin() + stack_depth+1);
+    auto& acc = accumulators_[sub_timer_stack];
+    acc.running = true;
+    acc.start_time = now;
+  }
+
+}
+
+void recorder::task_stopped(const timer_stack _timer_stack) {
+  current_timer_stack = std::move(_timer_stack);
+  for(auto stack_depth=0U;stack_depth < current_timer_stack.size();stack_depth++) {
+    const timer_stack sub_timer_stack(current_timer_stack.begin(), current_timer_stack.begin() + stack_depth+1);
+    auto& acc = accumulators_[sub_timer_stack];
+    acc.running = false;
+    acc.time +=  timer::toc(acc.start_time);
+  }
+
+}
+const timer_stack &recorder::get_timer_stack() const {
+    return current_timer_stack;
 }
 
 // profiler implementation
@@ -189,18 +233,24 @@ void profiler::initialize(task_system_handle& ts) {
 
 void profiler::enter(region_id_type index) {
     if (!init_) return;
-    recorders_[thread_ids_.at(std::this_thread::get_id())].enter(index);
+    recorders_[thread_ids_.at(std::this_thread::get_id())].enter(index, region_names_);
 }
 
 void profiler::enter(const std::string& name) {
     if (!init_) return;
     const auto index = region_index(name);
-    recorders_[thread_ids_.at(std::this_thread::get_id())].enter(index);
+    recorders_[thread_ids_.at(std::this_thread::get_id())].enter(index, region_names_);
 }
 
-void profiler::leave() {
+void profiler::leave(const std::string& name) {
     if (!init_) return;
-    recorders_[thread_ids_.at(std::this_thread::get_id())].leave();
+    const auto index = region_index(name);
+    recorders_[thread_ids_.at(std::this_thread::get_id())].leave(index, region_names_);
+}
+
+void profiler::leave(region_id_type index) {
+    if (!init_) return;
+    recorders_[thread_ids_.at(std::this_thread::get_id())].leave(index, region_names_);
 }
 
 region_id_type profiler::region_index(const std::string& name) {
@@ -224,10 +274,9 @@ region_id_type profiler::region_index(const std::string& name) {
 double sort_profile_tree(profile_node& n) {
     // accumulate all time taken in children
     if (!n.children.empty()) {
-        n.time = 0;
         for (auto &c: n.children) {
             sort_profile_tree(c);
-            n.time += c.time;
+            n.time_childs += c.time;
         }
     }
 
@@ -238,38 +287,41 @@ double sort_profile_tree(profile_node& n) {
 }
 
 profile profiler::results() const {
-    const auto nregions = region_names_.size();
-
     profile p;
     p.names = region_names_;
 
-    p.times = std::vector<double>(nregions);
-    p.counts = std::vector<region_id_type>(nregions);
     for (auto& r: recorders_) {
         auto& accumulators = r.accumulators();
-        for (auto i: make_span(0, accumulators.size())) {
-            p.times[i]  += accumulators[i].time;
-            p.counts[i] += accumulators[i].count;
+        for (auto &[timer_stack, acc] : accumulators) {
+            auto it = std::find(p.stacks.begin(), p.stacks.end(), timer_stack);
+            auto i=0U;
+            if(p.stacks.end() == it) {
+                i = p.times.size();
+                p.stacks.push_back(timer_stack);
+                p.times.push_back(0);
+                p.counts.push_back(0);
+            } else {
+                i = std::distance(p.stacks.begin(), it);
+            }
+            p.times[i]  += acc.time;
+            p.counts[i] += acc.count;
         }
     }
 
     p.num_threads = recorders_.size();
 
-    // Remove elements with count == 0
-    for(unsigned i=0; i<p.counts.size();) {
-        if (p.counts[i] != 0) {
-            ++i;
-            continue;
-        }
-        std::swap(p.counts[i], p.counts.back());
-        std::swap(p.times[i],  p.times.back());
-        std::swap(p.names[i],  p.names.back());
-        p.counts.pop_back();
-        p.times.pop_back();
-        p.names.pop_back();
-    }
-
     return p;
+}
+
+// Remove all nodes with time == 0 from the profile tree
+void remove_zero_time_nodes(profile_node &node) {
+  node.children.erase(
+      std::remove_if(node.children.begin(), node.children.end(), [](const profile_node &child) { return child.time == 0; }), node.children.end()
+  );
+
+  for (auto& child : node.children) {
+    remove_zero_time_nodes(child);
+  }
 }
 
 profile_node make_profile_tree(const profile& p) {
@@ -277,22 +329,20 @@ profile_node make_profile_tree(const profile& p) {
     using util::assign_from;
     using util::transform_view;
 
-    // Take the name of each region, and split into a sequence of sub-region-strings.
-    // e.g. "advance_integrate_state" -> "advance", "integrate", "state"
-    vector<vector<std::string>> names = assign_from(transform_view(p.names, split));
-
+    const auto& region_names = p.names;
     // Build a tree description of the regions and sub-regions in the profile.
-    profile_node tree("root");
-    for (auto idx: make_span(0, p.names.size())) {
+    profile_node tree("r");
+
+    for (const auto i: make_span(0,p.stacks.size())) {
+        const auto & ids = p.stacks[i];
         profile_node* node = &tree;
-        const auto depth  = names[idx].size();
-        for (auto i: make_span(0, depth-1)) {
-            auto& node_name = names[idx][i];
+        const auto depth  = ids.size();
+        for (auto j: make_span(0, depth)) {
+            auto& node_name = region_names[ids[j]];
             auto& kids = node->children;
 
             // Find child of node that matches node_name
-            auto child = std::find_if(
-                kids.begin(), kids.end(), [&](profile_node& n){return n.name==node_name;});
+            auto child = std::find_if(kids.begin(), kids.end(), [&](profile_node& n){return n.name==node_name;});
 
             if (child==kids.end()) { // Insert an empty node in the tree.
                 node->children.emplace_back(node_name);
@@ -302,9 +352,21 @@ profile_node make_profile_tree(const profile& p) {
                 node = &(*child);
             }
         }
-        node->children.emplace_back(names[idx].back(), p.times[idx], p.counts[idx]);
+        if(node->name == region_names[ids.back()]) {
+            node->time += p.times[i];
+            node->count += p.counts[i];
+        } else {
+            node->children.emplace_back(region_names[ids.back()], p.times[i], p.counts[i]);
+        }
     }
+    if(tree.children.size() != 1) {
+        throw std::invalid_argument("More than one root timer");
+    }
+    tree = tree.children[0];
     sort_profile_tree(tree);
+
+    //Remove timers with time of 0
+    remove_zero_time_nodes(tree);
 
     return tree;
 }
@@ -313,10 +375,27 @@ const std::vector<std::string>& profiler::regions() const {
     return region_names_;
 }
 
+void profiler::task_started(const timer_stack& timer_stack) {
+  if(!init_) return;
+    recorders_[thread_ids_.at(std::this_thread::get_id())].task_started(timer_stack);
+}
+
+void profiler::task_stopped(const timer_stack& _timer_stack) {
+  if(!init_) return;
+  recorders_[thread_ids_.at(std::this_thread::get_id())].task_stopped(_timer_stack);
+}
+
+const timer_stack& profiler::get_current_timer_stack() {
+  if (!init_) return empty_stack;
+    return recorders_[thread_ids_.at(std::this_thread::get_id())].get_timer_stack();
+}
+
 struct prof_line {
     std::string name;
     std::string count;
     std::string time;
+    std::string time_childs;
+    std::string ratio_captured;
     std::string thread;
     std::string percent;
 };
@@ -341,6 +420,10 @@ void print_lines(std::vector<prof_line>& lines,
     res.count = (n.count==profile_node::npos) ? "-" : std::to_string(n.count);
     snprintf(buf, std::size(buf), "%.3f", float(n.time));
     res.time = buf;
+    snprintf(buf, std::size(buf), "%.3f", float(n.time_childs));
+    res.time_childs = buf;
+    snprintf(buf, std::size(buf), "%.1f", float(n.time > 0 ? n.time_childs / n.time * 100.0 : 0));
+    res.ratio_captured = buf;
     snprintf(buf, std::size(buf), "%.3f", float(per_thread_time));
     res.thread = buf;
     snprintf(buf, std::size(buf), "%.1f", float(proportion));
@@ -355,19 +438,23 @@ void print(std::ostream& os,
            float wall_time,
            unsigned nthreads,
            float thresh) {
-    std::vector<prof_line> lines{{"REGION", "CALLS", "THREAD", "WALL", "\%"}};
+    std::vector<prof_line> lines{{"REGION", "CALLS", "WALL", "WALLCHILDS", "WALLCAPTURED\%", "THREAD", "\%"}};
     print_lines(lines, n, wall_time, nthreads, thresh, "");
     // fixing up lengths here
     std::size_t max_len_name = 0;
     std::size_t max_len_count = 0;
     std::size_t max_len_thread = 0;
     std::size_t max_len_time = 0;
+    std::size_t max_len_time_childs = 0;
+    std::size_t max_ratio = 0;
     std::size_t max_len_percent = 0;
     for (const auto& line: lines) {
         max_len_name = std::max(max_len_name, line.name.size());
         max_len_count = std::max(max_len_count, line.count.size());
         max_len_thread = std::max(max_len_thread, line.thread.size());
         max_len_time = std::max(max_len_time, line.time.size());
+        max_len_time_childs = std::max(max_len_time_childs, line.time_childs.size());
+        max_ratio = std::max(max_ratio, line.ratio_captured.size());
         max_len_percent = std::max(max_len_percent, line.percent.size());
     }
 
@@ -376,8 +463,10 @@ void print(std::ostream& os,
 
     for (const auto& line: lines) os << rpad(line.name, max_len_name)
                                      << lpad(line.count, max_len_count)
-                                     << lpad(line.thread, max_len_thread)
                                      << lpad(line.time, max_len_time)
+                                     << lpad(line.time_childs, max_len_time_childs)
+                                     << lpad(line.ratio_captured, max_ratio)
+                                     << lpad(line.thread, max_len_thread)
                                      << lpad(line.percent, max_len_percent)
                                      << '\n';
 };
@@ -386,15 +475,20 @@ void print(std::ostream& os,
 // convenience functions for instrumenting code.
 //
 
-ARB_ARBOR_API void profiler_leave() {
-    profiler::get_global_profiler().leave();
+ARB_ARBOR_API void profiler_leave(region_id_type id) {
+    profiler::get_global_profiler().leave(id);
 }
 
 ARB_ARBOR_API void profiler_clear() {
     profiler::get_global_profiler().clear();
 }
+ARB_ARBOR_API void task_started(const timer_stack& _timer_stack) {
+    profiler::get_global_profiler().task_started(_timer_stack);
+}
 
-
+ARB_ARBOR_API void task_stopped(const timer_stack& _timer_stack) {
+  profiler::get_global_profiler().task_stopped(_timer_stack);
+}
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string& name) {
     if (!is_valid_region_string(name)) {
         throw std::runtime_error(std::string("'")+name+"' is not a valid profiler region name.");
@@ -424,15 +518,23 @@ ARB_ARBOR_API profile profiler_summary() {
 ARB_ARBOR_API std::ostream& print_profiler_summary(std::ostream& os, double limit) {
     auto prof = profiler_summary();
     auto tree = make_profile_tree(prof);
-    print(os, tree, tree.time, prof.num_threads, limit);
+    print(os, tree, tree.time_childs, prof.num_threads, limit);
     return os;
 }
-    
+
+ARB_ARBOR_API const timer_stack& get_current_timer_stack() {
+    return profiler::get_global_profiler().get_current_timer_stack();
+}
+
 #else
 
 ARB_ARBOR_API void profiler_clear() {}
 ARB_ARBOR_API void profiler_leave() {}
 ARB_ARBOR_API void profiler_enter(region_id_type) {}
+ARB_ARBOR_API void task_started(const timer_stack& timer_stack) {}
+ARB_ARBOR_API void task_stopped(const timer_stack& timer_stack) {}
+timer_stack empty_timer_stack{};
+ARB_ARBOR_API const timer_stack& get_current_timer_stack() { return empty_timer_stack; }
 ARB_ARBOR_API profile profiler_summary();
 ARB_ARBOR_API profile profiler_summary() {return profile();}
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string&) {return 0;}
