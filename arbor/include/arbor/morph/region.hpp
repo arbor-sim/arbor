@@ -15,7 +15,6 @@ struct mprovider;
 struct region_tag {};
 
 struct ARB_SYMBOL_VISIBLE region {
-public:
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>
     explicit region(Impl&& impl):

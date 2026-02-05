@@ -11,6 +11,9 @@
 #include "symge.hpp"
 #include "visitor.hpp"
 
+// normalize row iff system is larger than this
+constexpr int normalization_limit = 15;
+
 // Cnexp solver visitor implementation.
 
 void CnexpSolverVisitor::visit(BlockExpression* e) {
@@ -483,8 +486,8 @@ void SparseSolverVisitor::finalize() {
             statements_.push_back(std::move(l.assignment));
         }
 
-        // If size of system > 5 normalize the row updates
-        if (system_.size() > 5) {
+        // If size of system > limit normalize the row updates
+        if (system_.size() > normalization_limit) {
             auto norm_term = system_.generate_normalizing_term(block_scope_, row);
             auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
 
@@ -722,8 +725,8 @@ void LinearSolverVisitor::finalize() {
             statements_.push_back(std::move(l.assignment));
         }
 
-        // If size of system > 5 normalize the row updates
-        if (system_.size() > 5) {
+        // If size of system > limit normalize the row updates
+        if (system_.size() > normalization_limit) {
             auto norm_term = system_.generate_normalizing_term(block_scope_, row);
             auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
 
@@ -945,8 +948,8 @@ void SparseNonlinearSolverVisitor::finalize() {
             S_.push_back(std::move(l.assignment));
         }
 
-        // If size of system > 5 normalize the row updates
-        if (system_.size() > 5) {
+        // If size of system > limit normalize the row updates
+        if (system_.size() > normalization_limit) {
             auto norm_term = system_.generate_normalizing_term(block_scope_, row);
             auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
 
