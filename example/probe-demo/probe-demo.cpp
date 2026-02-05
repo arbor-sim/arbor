@@ -116,7 +116,7 @@ struct cable_recipe: public arb::recipe {
 
         auto decor = arb::decor{}
             .paint(arb::reg::all(), arb::density("hh"))                         // HH mechanism over whole cell.
-            .place(arb::mlocation{0, 0.}, arb::i_clamp{1.*arb::units::nA}, "iclamp")           // Inject a 1 nA current indefinitely.
+            .place(arb::mlocation{0, 0.}, arb::i_clamp{1.*arb::units::nA})      // Inject a 1 nA current indefinitely.
             .place(arb::mlocation{0, 0.}, arb::synapse("expsyn"), "synapse1")   // a synapse
             .place(arb::mlocation{0, 0.5}, arb::synapse("expsyn"), "synapse2"); // another synapse
         return arb::cable_cell(tree, decor);

@@ -78,7 +78,7 @@ Example
       A.decor()
       .set_property(Vm=-40)
       .paint('"soma"', A.density("hh"))
-      .place('"midpoint"', A.iclamp(10*U.ms, 2*U.ms, 0.8*U.nA), "iclamp"))
+      .place('"midpoint"', A.i_clamp(10*U.ms, 2*U.ms, 0.8*U.nA)))
 
    cell = A.cable_cell(tree, decor)
 

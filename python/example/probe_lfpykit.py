@@ -67,7 +67,7 @@ morphology = A.load_swc_arbor(filename).morphology
 clamp_location = A.location(4, 1 / 6)
 
 # define a sinusoid input current
-iclamp = A.iclamp(
+i_clamp = A.i_clamp(
     5 * U.ms,  # stimulation onset
     1e8 * U.ms,  # stimulation duration
     -0.001 * U.nA,  # stimulation amplitude
@@ -87,7 +87,7 @@ decor = (
     # set passive mech w. leak reversal potential (mV)
     .paint("(all)", A.density("pas/e=-65", g=0.0001))
     # attach the stimulus
-    .place(str(clamp_location), iclamp, "iclamp")
+    .place(str(clamp_location), i_clamp)
 )
 
 # use a fixed 3 CVs per branch
@@ -425,7 +425,7 @@ fig.savefig("single_cell_extracellular_potentials.svg", bbox_inches="tight")
 # The spatial discretization is here deliberately coarse with only 3 CVs
 # per branch.
 # Hence the branch receiving input about 1/6 of the way from its root
-# (from `decor.place('(location 4 0.16667)', iclamp, '"iclamp"')`) is treated
+# (from `decor.place('(location 4 0.16667)', i_clamp)`) is treated
 # as 3 separate line sources with inhomogeneous current density per length
 # unit. This inhomogeneity is due to the fact that the total transmembrane
 # current per CV may distributed across multiple segments with varying surface
