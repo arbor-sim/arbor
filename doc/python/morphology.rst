@@ -604,10 +604,28 @@ region.
 
 .. _pyswc:
 
+.. py:class:: loaded_morphology
+
+   .. py:attr:: segment_tree
+
+    Raw segment tree, identical to morphology.
+
+   .. py:attr:: morphology
+
+    Morphology constructed from description.
+
+   .. py:attr:: labels
+
+    Regions and locsets defined in the description as ``label_dict``
+
+   .. py:attr:: metadata
+
+    Loader specific metadata, see below in the individual sections.
+
 SWC
 ---
 
-.. py:function:: load_swc_arbor(filename, raw=False)
+.. py:function:: load_swc_arbor(data)
 
     Loads the :class:`morphology` from an SWC file according to arbor's SWC specifications.
     (See the morphology concepts :ref:`page <morph-formats>` for more details).
@@ -634,19 +652,23 @@ SWC
         SWC files according to the interpretation used by NEURON.
 
 
-    :param str filename: the name of the SWC file.
-    :param bool raw: return segment_tree instead of morphology?
-    :rtype: morphology or segment_tree
+    :param data: string or Path with the name of the SWC file or a handle we can read from
+    :rtype: loaded_morphology
 
-.. py:function:: load_swc_neuron(filename, raw=False)
+.. py:function:: load_swc_neuron(filename, **, allow_non_monotonic_ids=False,
+                                               allow_mismatched_tags=False,
+                                               tags={1: "soma", 2: "axon", 3: "dend", 4: "apic"},
+          )
 
     Loads the :class:`morphology` from an SWC file according to NEURON's ``Import3D``
     interpretation of the SWC specification.
     See :ref:`the SWC file documentation <formatswc-neuron>` for more details.
 
-    :param str filename: the name of the SWC file.
-    :param bool raw: return segment_tree instead of morphology?
-    :rtype: morphology or segment_tree
+    :param data: string or Path with the name of the SWC file or a handle we can read from
+    :param allow_non_monotonic_ids: allow skips in parent/child relations
+    :param allow_mismatched_tags: disable checking for tag congruence between parent and child
+    :param tags: permissible SWC tags as dict of tag -> name
+    :rtype: loaded_morphology
 
 .. _pyneuroml:
 
