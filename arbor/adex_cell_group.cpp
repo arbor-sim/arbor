@@ -54,12 +54,12 @@ cell_kind adex_cell_group::get_cell_kind() const {
 }
 
 void adex_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
-    PE(advance:adex);
+    PE(adex);
     for (auto lid: util::make_span(gids_.size())) {
         // Advance each cell independently.
         advance_cell(ep.t1, dt, lid, event_lanes);
     }
-    PL();
+    PL(adex);
 }
 
 const std::vector<spike>& adex_cell_group::spikes() const {
