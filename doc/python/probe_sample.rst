@@ -78,7 +78,7 @@ Example
       A.decor()
       .set_property(Vm=-40)
       .paint('"soma"', A.density("hh"))
-      .place('"midpoint"', A.iclamp(10*U.ms, 2*U.ms, 0.8*U.nA), "iclamp"))
+      .place('"midpoint"', A.i_clamp(10*U.ms, 2*U.ms, 0.8*U.nA)))
 
    cell = A.cable_cell(tree, decor)
 
@@ -350,6 +350,25 @@ Ionic diffusion concrentration
    sites specified by the location expression string ``where``.
 
    **Metadata**: the list of corresponding :class:`cable` objects.
+
+Reversal potential
+^^^^^^^^^^^^^^^^^^
+
+   .. py:function:: cable_probe_ion_reversal_potential_cell(ion, tag)
+
+   Reversal potential of the given ``ion`` for each cable in each CV.
+
+   **Metadata**: the explicit :class:`location` of the sample site.
+
+   **Kind**: :term:`vector probe`.
+
+   .. py:function:: cable_probe_ion_reversal_potential(where, ion, tag)
+
+   Reversal potential of the given ``ion`` at the sites specified by the
+   location expression string ``where``.
+
+   **Metadata**: the list of corresponding :class:`cable` objects.
+
 
 .. _pycablecell-probesample-lif:
 

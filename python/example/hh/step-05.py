@@ -12,7 +12,7 @@ tree.append(A.mnpos, (-3, 0, 0, 3), (3, 0, 0, 3), tag=1)
 decor = (
     A.decor()
     .paint("(all)", A.density("hh05"))
-    .place("(location 0 0.5)", A.iclamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA), "iclamp")
+    .place("(location 0 0.5)", A.i_clamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA))
 )
 
 # Run the model, extracting the membrane voltage

@@ -365,10 +365,10 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     // Split epoch into equally sized timesteps (last timestep is chosen to match end of epoch)
     timesteps_.reset(ep, dt);
 
-    PE(advance:samplesetup:clear);
+    PE(clear);
     sample_events_.resize(timesteps_.size());
     for (auto& v: sample_events_) v.clear();
-    PL();
+    PL(clear);
 
     // Create sample events and delivery information.
     //
@@ -383,7 +383,7 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     // value as defined below, grouping together all the samples of the
     // same probe for this callback in this association.
 
-    PE(advance:samplesetup);
+    PE(samplesetup);
     std::vector<sampler_call_info> call_info;
 
     sample_size_type n_samples = 0;
@@ -422,7 +422,7 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
             arb_assert(n_samples==call_info.back().end_offset);
         }
     }
-    PL();
+    PL(samplesetup);
 
     // Run integration and collect samples, spikes.
     auto result = lowered_->integrate(timesteps_, event_lanes, sample_events_);
@@ -431,7 +431,7 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     // vector of sample entries from the lowered cell sample times and values
     // and then call the callback.
 
-    PE(advance:sampledeliver);
+    PE(sampledeliver);
     std::vector<sample_record> sample_records;
     sample_records.reserve(max_samples_per_call);
 
@@ -441,14 +441,14 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     for (auto& sc: call_info) {
         run_samples(sc, result.sample_time.data(), result.sample_value.data(), sample_records, scratch);
     }
-    PL();
+    PL(sampledeliver);
 
     // Copy out spike voltage threshold crossings from the back end, then
     // generate spikes with global spike source ids. The threshold crossings
     // record the local spike source index, which must be converted to a
     // global index for spike communication.
 
-    for (auto c: result.crossings) {
+    for (const auto& c: result.crossings) {
         spikes_.emplace_back(spike_sources_[c.index], time_type(c.time));
     }
 }

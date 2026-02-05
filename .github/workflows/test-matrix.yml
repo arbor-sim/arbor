@@ -22,7 +22,7 @@ jobs:
             cc:    "gcc-12",
             cxx:   "g++-12",
             py:    "3.10",
-            cmake: "3.19.x",
+            cmake: "3.25.x",
             mpi:   "ON",
             simd:  "OFF"
           }
@@ -32,17 +32,17 @@ jobs:
             cc:    "clang-13",
             cxx:   "clang++-13",
             py:    "3.10",
-            cmake: "3.19.x",
+            cmake: "3.25.x",
             mpi:   "ON",
             simd:  "OFF"
           }
         - {
             name:  "MacOS Min",
-            os:    "macos-13",
+            os:    "macos-14",
             cc:    "clang",
             cxx:   "clang++",
             py:    "3.10",
-            cmake: "3.19.x",
+            cmake: "3.25.x",
             mpi:   "ON",
             simd:  "OFF"
           }
@@ -52,7 +52,7 @@ jobs:
             cc:    "gcc-14",
             cxx:   "g++-14",
             py:    "3.13",
-            cmake: "3.22.x",
+            cmake: "4.2.x",
             mpi:   "ON",
             simd:  "OFF"
           }
@@ -62,7 +62,7 @@ jobs:
             cc:    "gcc-14",
             cxx:   "g++-14",
             py:    "3.13",
-            cmake: "3.22.x",
+            cmake: "4.2.x",
             mpi:   "OFF",
             simd:  "ON"
           }
@@ -72,17 +72,17 @@ jobs:
             cc:    "clang-18",
             cxx:   "clang++-18",
             py:    "3.13",
-            cmake: "3.22.x",
+            cmake: "4.2.x",
             mpi:   "ON",
             simd:  "OFF"
           }
         - {
             name:  "MacOS Max",
-            os:    "macos-14",
+            os:    "macos-15",
             cc:    "clang",
             cxx:   "clang++",
             py:    "3.13",
-            cmake: "3.22.x",
+            cmake: "4.2.x",
             mpi:   "ON",
             simd:  "OFF"
           }

@@ -420,6 +420,7 @@ public:
 
     decor& paint(region, paintable);
     decor& place(locset, placeable, cell_tag_type);
+    decor& place(locset, i_clamp);
     decor& set_default(defaultable);
 
     cell_tag_type tag_of(hash_type) const;

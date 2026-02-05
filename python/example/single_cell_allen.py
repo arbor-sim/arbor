@@ -127,7 +127,7 @@ def make_cell(base, swc, fit):
         decor.paint(f'"{region}"', A.density(A.mechanism(nm, vs)))
 
     # (9) attach stimulus and detector
-    decor.place('"midpoint"', A.iclamp(0.2 * U.s, 1 * U.s, 150 * U.pA), "ic")
+    decor.place('"midpoint"', A.i_clamp(0.2 * U.s, 1 * U.s, 150 * U.pA))
     decor.place('"midpoint"', A.threshold_detector(-40 * U.mV), "sd")
 
     # (10) discretisation strategy: max compartment length

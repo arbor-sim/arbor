@@ -24,12 +24,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Install MPI dependencies
+        run: sudo apt-get update && sudo apt-get install -y libopenmpi-dev openmpi-bin
       - name: Update pip and setup venv
         run: |
           python -m pip install --upgrade pip
           python -m venv ~/env
           source ~/env/bin/activate
-          pip install numpy scipy pybind11-stubgen
+          pip install numpy scipy pybind11-stubgen mpi4py
       - name: Debug info Python
         run: |
           source ~/env/bin/activate

@@ -6,7 +6,6 @@
 #include <random>
 #include <cmath>
 
-
 #include <nlohmann/json.hpp>
 
 #include <arbor/assert_macro.hpp>
