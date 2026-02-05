@@ -76,20 +76,20 @@ struct recipe: public arb::recipe {
     arb::cell_kind get_cell_kind(arb::cell_gid_type) const override { return arb::cell_kind::adex; }
 
     arb::util::unique_any get_cell_description(arb::cell_gid_type) const override {
-        auto cell = arb::adex_cell{"src", "tgt"};
-        cell.V_m = -1*80.0_mV;
-        cell.E_R = -1*90.0_mV;
-        return cell;
+        return arb::adex_cell{.source="src", .target="tgt"};
     }
 
     std::vector<arb::event_generator> event_generators(arb::cell_size_type) const override {
-        return {arb::regular_generator({"tgt"}, 10, 20_ms, 8_ms, 80_ms)};
+        return {arb::explicit_generator_from_milliseconds({"tgt"}, weight, std::vector{20.0, 28.0, 36.0, 44.0, 52.0, 60.0, 68.0, 76.0})};
     }
+
+    arb::arb_weight_type weight = 10;
 };
 
 int main(int argc, char** argv) {
     options opt = parse_options(argc, argv);
     recipe R;
+    R.weight = opt.syn_weight;
 
     arb::simulation sim(R);
 

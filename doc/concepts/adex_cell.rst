@@ -34,7 +34,7 @@ with the following terms and their default/starting values
 
 and
 
-* adaptivity parameter :math:`w = 0\,nA`
+* adaptivity parameter :math:`w = 5\,pA`
 * decay time :math:`\tau = 144\,ms`
 * dynamics :math:`a = 0.004\,\mu S`
 * spike response :math:`b = 0.08\,nA`

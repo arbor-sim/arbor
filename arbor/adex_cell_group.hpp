@@ -23,7 +23,7 @@ struct ARB_SYMBOL_VISIBLE adex_lowered_cell {
     // Neuronal parameters.
     double delta; // Steepness parameter [mV]
     double V_th;  // Firing threshold [mV]
-    double C_m;   // Membrane capacitance [pF]
+    double C_m;   // Membrane capacitance [nF]
     double E_L;   // Resting potential [mV]
     double E_R;   // Reset potential [mV]
     double V_m;   // Initial value of the Membrane potential [mV]
@@ -42,7 +42,7 @@ struct ARB_SYMBOL_VISIBLE adex_lowered_cell {
 
         delta = units::unit_of(adex.delta, units::mV, "delta");
         V_th  = units::unit_of(adex.V_th,  units::mV, "V_th");
-        C_m   = units::unit_of(adex.C_m,   units::pF, "C_m");
+        C_m   = units::unit_of(adex.C_m,   units::nF, "C_m");
         E_L   = units::unit_of(adex.E_L,   units::mV, "E_L");
         E_R   = units::unit_of(adex.E_R,   units::mV, "E_R");
         V_m   = units::unit_of(adex.V_m,   units::mV, "V_m");

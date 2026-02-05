@@ -197,5 +197,3 @@ constexpr inline quantity operator ""_C(unsigned long long v) { return v*C; }
 } // literals
 } // units
 
-// Allow unary minus on quantities. Seemingly doesn't catch literals such as -10_mV
-inline arb::units::quantity operator-(const arb::units::quantity& q) { return (-1*q); }

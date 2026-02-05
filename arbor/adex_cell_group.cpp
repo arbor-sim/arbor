@@ -8,8 +8,6 @@
 #include "label_resolution.hpp"
 #include "profile/profiler_macro.hpp"
 
-#include <iostream>
-
 using namespace arb;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
@@ -33,12 +31,12 @@ adex_cell_group::adex_cell_group(const std::vector<cell_gid_type>& gids,
         for (const auto& probe: probes) {
             if (probe.address.type() == typeid(adex_probe_voltage)) {
                 cell_address_type addr{gid, probe.tag};
-                if (probes_.count(addr)) throw dup_cell_probe(cell_kind::adex, gid, probe.tag);
+                if (probes_.contains(addr)) throw dup_cell_probe(cell_kind::adex, gid, probe.tag);
                 probes_.insert_or_assign(addr, adex_probe_info{adex_probe_kind::voltage, {}});
             }
             else if (probe.address.type() == typeid(adex_probe_adaption)) {
                 cell_address_type addr{gid, probe.tag};
-                if (probes_.count(addr)) throw dup_cell_probe(cell_kind::adex, gid, probe.tag);
+                if (probes_.contains(addr)) throw dup_cell_probe(cell_kind::adex, gid, probe.tag);
                 probes_.insert_or_assign(addr, adex_probe_info{adex_probe_kind::adaption, {}});
             }
             else {
@@ -101,7 +99,7 @@ void adex_cell_group::reset() {
     spikes_.clear();
 }
 
-// integrate a single cell's state from current time `cur` to final time `end`.
+// integrate a single cell's state from current time `cur` tos final time `end`.
 // Extra parameters
 // * the cell cannot be updated until time `nxt`, which might be in the past or future.
 //
@@ -116,10 +114,15 @@ void integrate_until(adex_lowered_cell& cell, const time_type end, const time_ty
     if (nxt > cur) cur = std::min(nxt, end);
     // if we still have time left, perform the integration.
     if (nxt > end) return;
+    // dT
     auto delta = end - cur;
+    // membrane potential deviation from resting value
     auto dE = cell.V_m - cell.E_L;
+    // leak current 
     auto il = cell.g*dE;
+    // spike current
     auto is = cell.g*cell.delta*exp((cell.V_m - cell.V_th)/cell.delta);
+    // potential delta
     auto dV = (is - il - cell.w)/cell.C_m;
     cell.V_m += delta*dV;
 
@@ -274,9 +277,8 @@ void adex_cell_group::t_deserialize(serializer& ser, const std::string& k) {
 std::vector<probe_metadata> adex_cell_group::get_probe_metadata(const cell_address_type& key) const {
     // SAFETY: Probe associations are fixed after construction, so we do not
     //         need to grab the mutex.
-    if (probes_.count(key)) {
-        return {probe_metadata{key, 0, &probes_.at(key).metadata}};
-    } else {
-        return {};
+    if (auto it = probes_.find(key); it != probes_.end()) {
+        return {probe_metadata{key, 0, &it->second.metadata}};
     }
+    return {};
 }
