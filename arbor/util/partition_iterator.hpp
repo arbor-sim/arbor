@@ -19,9 +19,7 @@ namespace arb {
 namespace util {
 
 template <typename I>
-class partition_iterator: public iterator_adaptor<partition_iterator<I>, I> {
-    // TODO : dirty workaround to make inner_ public by making everything public
-public:
+struct partition_iterator: public iterator_adaptor<partition_iterator<I>, I> {
     using base = iterator_adaptor<partition_iterator<I>, I>;
     friend class iterator_adaptor<partition_iterator<I>, I>;
 
@@ -40,28 +38,18 @@ public:
 
     partition_iterator() = default;
 
-    template <
-        typename J,
-        typename = std::enable_if_t<!std::is_same<std::decay_t<J>, partition_iterator>::value>
-    >
+    template <typename J,
+              typename = std::enable_if_t<!std::is_same<std::decay_t<J>, partition_iterator>::value>>
     explicit partition_iterator(J&& c): inner_{std::forward<J>(c)} {}
 
     // forward and input iterator requirements
-
-    value_type operator*() const {
-        return {*inner_, *std::next(inner_)};
-    }
-
-    util::pointer_proxy<value_type> operator->() const {
-        return **this;
-    }
-
-    value_type operator[](difference_type n) const {
-        return *(*this+n);
-    }
+    value_type operator*() const { return {*inner_, *std::next(inner_)}; }
+    util::pointer_proxy<value_type> operator->() const { return **this; }
+    value_type operator[](difference_type n) const { return *(*this+n); }
 
     // public access to inner iterator
     const I& get() const { return inner_; }
+
 };
 
 } // namespace util
