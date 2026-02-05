@@ -115,7 +115,7 @@ properties can be modified, and we can use :meth:`arbor.decor.paint` and
 * :meth:`arbor.decor.place` is used to add objects on a precise
   :class:`arbor.location` on a cell. Examples of objects that are *placed* are synapses,
   threshold detectors, current stimuli, and probes. In the above example, we place a current stimulus
-  :class:`arbor.iclamp` with a duration of 2 ms and a current of 0.8 nA, starting at 10 ms
+  :class:`arbor.i_clamp` with a duration of 2 ms and a current of 0.8 nA, starting at 10 ms
   on the location we previously labelled ``"midpoint"``. We also place a :class:`arbor.threshold_detector`
   with a threshold of -10 mV on the same location.
 

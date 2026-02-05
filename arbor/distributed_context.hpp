@@ -222,7 +222,7 @@ private:
             return wrapped.gather_gids(local_gids);
         }
         gathered_vector<cell_member_type>
-        all_to_all_gids_domains(const std::vector<std::vector<cell_member_type>>& gids_domains) const {
+        all_to_all_gids_domains(const std::vector<std::vector<cell_member_type>>& gids_domains) const override {
             return wrapped.all_to_all_gids_domains(gids_domains);
         }
         cell_label_range
