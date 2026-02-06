@@ -69,7 +69,7 @@ struct path_recipe: public arb::recipe {
 
     arb::cell_size_type num_cells() const override { return ncells_; }
     arb::cell_kind get_cell_kind(arb::cell_gid_type gid) const override { return arb::cell_kind::adex; }
-    arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override { return arb::adex_cell("src", "tgt"); }
+    arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override { return arb::adex_cell{.source="src", .target="tgt"}; }
 
     std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const override {
         if (gid == 0) return {};
@@ -108,7 +108,7 @@ struct adex_probe_recipe: public arb::recipe {
                  0.005_ms}};
     }
     arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override {
-        auto cell = arb::adex_cell("src", "tgt");
+        auto cell = arb::adex_cell{.source="src", .target="tgt"};
         cell.V_th = 10_mV;
         if (0 == gid) {
             cell.E_R   = -23.0_mV;
