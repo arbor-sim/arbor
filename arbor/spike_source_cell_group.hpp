@@ -40,6 +40,8 @@ public:
     virtual void t_serialize(serializer& ser, const std::string& k) const override;
     virtual void t_deserialize(serializer& ser, const std::string& k) override;
 
+    static bool backend_supported(backend_kind kind) { return kind == backend_kind::multicore; }
+
 private:
     std::vector<spike> spikes_;
     std::vector<cell_gid_type> gids_;

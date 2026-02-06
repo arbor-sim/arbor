@@ -3,10 +3,10 @@
 Probing and Sampling
 ====================
 
-Both cable cells and LIF cells can be probed, see here for more details on cells
-:ref:`modelcells`. The LIF cell, however, has a much smaller set of observable
-quantities and only offers scalar probes. Thus, the following discussion is
-tailored to the cable cell.
+Cable, AdEx and LIF cells can be probed, see here for more details on cells
+:ref:`modelcells`. The AdEx and LIF cells, however, have a much smaller set of
+observable quantities and only offers scalar probes. Thus, the following
+discussion is tailored to the cable cell.
 
 Definitions
 ***********

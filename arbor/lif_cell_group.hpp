@@ -35,26 +35,21 @@ struct ARB_SYMBOL_VISIBLE lif_lowered_cell {
         source = lif.source;
         target = lif.target;
 
-        tau_m = lif.tau_m.value_as(U::ms);
-        V_th = lif.V_th.value_as(U::mV);
-        C_m = lif.C_m.value_as(U::pF);
-        E_L = lif.E_L.value_as(U::mV);
-        E_R = lif.E_R.value_as(U::mV);
-        V_m = lif.V_m.value_as(U::mV);
-        t_ref = lif.t_ref.value_as(U::ms);
+        tau_m = units::unit_of(lif.tau_m, units::ms, "tau_m");
+        V_th  = units::unit_of(lif.V_th,  units::mV, "V_th" );
+        C_m   = units::unit_of(lif.C_m,   units::pF, "C_m"  );
+        E_L   = units::unit_of(lif.E_L,   units::mV, "E_L"  );
+        E_R   = units::unit_of(lif.E_R,   units::mV, "E_R"  );
+        V_m   = units::unit_of(lif.V_m,   units::mV, "V_m"  );
+        t_ref = units::unit_of(lif.t_ref, units::ms, "t_ref");
 
-        if (!std::isfinite(V_th)) throw std::domain_error("V_th must be finite and in [mV]");
-        if (!std::isfinite(tau_m) || tau_m < 0) throw std::domain_error("tau_m must be positive, finite, and in [ms]");
-        if (!std::isfinite(C_m) || C_m < 0) throw std::domain_error("C_m must be positive, finite, and in [pF]");
-        if (!std::isfinite(E_L)) throw std::domain_error("E_L must be finite and in [mV]");
-        if (!std::isfinite(E_R)) throw std::domain_error("E_R must be finite and in [mV]");
-        if (!std::isfinite(V_m)) throw std::domain_error("V_m must be finite and in [mV]");
-        if (!std::isfinite(t_ref) || t_ref < 0) throw std::domain_error("t_ref must be positive, finite, and in [ms]");
+        if (tau_m < 0) throw std::domain_error("tau_m must be positive.");
+        if (C_m < 0)   throw std::domain_error("C_m must be positive.");
+        if (t_ref < 0) throw std::domain_error("t_ref must be positive.");
     }
 
     ARB_SERDES_ENABLE(lif_lowered_cell, source, target, tau_m, V_th, C_m, E_L, E_R, V_m, t_ref);
 };
-
 
 struct ARB_ARBOR_API lif_cell_group: public cell_group {
     lif_cell_group() = default;
@@ -81,6 +76,8 @@ struct ARB_ARBOR_API lif_cell_group: public cell_group {
 
     virtual void t_serialize(serializer& ser, const std::string& k) const override;
     virtual void t_deserialize(serializer& ser, const std::string& k) override;
+
+    static bool backend_supported(backend_kind kind) { return kind == backend_kind::multicore; }
 
 private:
     enum class lif_probe_kind { voltage };

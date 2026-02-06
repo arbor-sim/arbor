@@ -1,7 +1,6 @@
 #pragma once
 
 #include <ostream>
-#include <type_traits>
 #include <functional>
 
 #include <arbor/common_types.hpp>
