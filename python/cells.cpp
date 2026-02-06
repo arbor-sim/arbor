@@ -317,8 +317,11 @@ void register_cells(py::module& m) {
     // arb::adex_cell
     adex_cell
         .def(pybind11::init<>(
-            [](arb::cell_tag_type source_label, arb::cell_tag_type target_label){
-                return arb::adex_cell(std::move(source_label), std::move(target_label));}),
+            [](arb::cell_tag_type source_label, arb::cell_tag_type target_label) {
+                return arb::adex_cell{.source=std::move(source_label),
+                                      .target=std::move(target_label)
+                };
+            }),
             "source_label"_a, "target_label"_a,
             "Construct a adex cell with one source labeled 'source_label', and one target labeled 'target_label'.")
         .def_readwrite("delta", &arb::adex_cell::delta,
