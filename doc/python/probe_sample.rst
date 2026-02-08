@@ -376,8 +376,35 @@ LIF Cell probing
 ================
 
 Membrane voltage
-   .. py:function:: lif_probe_voltage(tag)
+----------------
+
+.. py:function:: lif_probe_voltage(tag)
 
    Current cell membrane potential (mV).
 
-   **Metadata**: none
+   Metadata: none
+
+AdEx cell probing and sampling
+===============================
+
+Membrane voltage
+----------------
+
+   .. py:function:: adex_probe_voltage()
+
+Queries cell membrane potential.
+
+* Sample value: ``double``. Membrane potential (mV).
+
+* Metadata: none
+
+Adaption Variable
+-----------------
+
+   .. py:function:: adex_probe_adaption()
+
+Queries cell adaption variable :math:`w`.
+
+* Sample value: ``double``. (nA).
+
+* Metadata: none

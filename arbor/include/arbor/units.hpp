@@ -4,15 +4,22 @@
 
 namespace arb::units {
 
+
+
+
 using quantity = ::units::precise_measurement;
 
-// Allow unary minus on quantities. Seemingly doesn't catch literals such as -10_mV
-inline quantity operator-(const quantity& q) { return (-1*q); }
 
 using unit = ::units::precise_unit;
 using ::units::to_string;
 using ::units::unit_cast_from_string;
 
+inline double
+unit_of(const quantity& q, const unit& u, const std::string& lbl="quantity") {
+    auto x = q.value_as(u); \
+    if (!std::isfinite(x)) throw std::domain_error(lbl + " must be finite and in [" + to_string(u) + "]");
+    return x;
+}
 
 using ::units::precise::pico;
 using ::units::precise::nano;
@@ -189,3 +196,4 @@ constexpr inline quantity operator ""_mM(unsigned long long v) { return v*mM; }
 constexpr inline quantity operator ""_C(unsigned long long v) { return v*C; }
 } // literals
 } // units
+

@@ -14,6 +14,7 @@
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/adex_cell.hpp>
 #include <arbor/cv_policy.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/morph/cv_data.hpp>
@@ -132,17 +133,19 @@ std::optional<arb::mechanism_desc> maybe_method(py::object method) {
     return {};
 }
 
-//
-// string printers
-//
-
-std::string lif_str(const arb::lif_cell& c){
+    std::string lif_str(const arb::lif_cell& c){
     return util::pprintf(
         "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, E_R {}, V_m {}, t_ref {}>",
         U::to_string(c.tau_m), U::to_string(c.V_th), U::to_string(c.C_m),
         U::to_string(c.E_L), U::to_string(c.E_R), U::to_string(c.V_m), U::to_string(c.t_ref));
 }
 
+std::string adex_str(const arb::adex_cell& c){
+    return util::pprintf(
+        "<arbor.adex_cell: src {}, tgt {}, tau_m {}, V_th {}, C_m {}, E_L {}, E_R {}, V_m {}, t_ref {}, g {}, tau {}, w {}, a {}, b {}>",
+        c.source, c.target,
+        U::to_string(c.delta), U::to_string(c.V_th), U::to_string(c.C_m), U::to_string(c.E_L), U::to_string(c.E_R), U::to_string(c.V_m), U::to_string(c.t_ref), U::to_string(c.g), U::to_string(c.tau), U::to_string(c.w), U::to_string(c.a), U::to_string(c.b));
+}
 
 std::string mechanism_desc_str(const arb::mechanism_desc& md) {
     return util::pprintf("mechanism('{}', {})",
@@ -184,6 +187,7 @@ void register_cells(py::module& m) {
                                                    "for example if realtime_ratio=2, a cell will take 2 seconds of CPU time to\n"
                                                    "simulate 1 second.\n");
     py::class_<arb::lif_cell> lif_cell(m, "lif_cell", "A leaky integrate-and-fire cell.");
+    py::class_<arb::adex_cell> adex_cell(m, "adex_cell", "An adaptive-exponential (AdEx) cell.");
     py::class_<arb::cv_policy> cv_policy(m, "cv_policy", "Describes the rules used to discretize (compartmentalise) a cable cell morphology.");
     py::class_<ion_settings> py_ion_data(m, "ion_settings");
     py::class_<arb::cable_cell_global_properties> gprop(m, "cable_global_properties");
@@ -309,6 +313,47 @@ void register_cells(py::module& m) {
             "Label of the single build-in target on the cell.")
         .def("__repr__", &lif_str)
         .def("__str__",  &lif_str);
+
+    // arb::adex_cell
+    adex_cell
+        .def(pybind11::init<>(
+            [](arb::cell_tag_type source_label, arb::cell_tag_type target_label) {
+                return arb::adex_cell{.source=std::move(source_label),
+                                      .target=std::move(target_label)
+                };
+            }),
+            "source_label"_a, "target_label"_a,
+            "Construct a adex cell with one source labeled 'source_label', and one target labeled 'target_label'.")
+        .def_readwrite("delta", &arb::adex_cell::delta,
+            "Steepness [mV].")
+        .def_readwrite("g", &arb::adex_cell::g,
+            "Leak conductivity [uS].")
+        .def_readwrite("tau", &arb::adex_cell::tau,
+            "Adaption decay time [ms].")
+        .def_readwrite("w", &arb::adex_cell::tau,
+            "Adaption variable [nA].")
+        .def_readwrite("b", &arb::adex_cell::b,
+            "Adaption variable increase on spike [nA].")
+        .def_readwrite("a", &arb::adex_cell::a,
+            "Adaption variable dynamics [uS].")
+        .def_readwrite("V_th", &arb::adex_cell::V_th,
+            "Firing threshold [mV].")
+        .def_readwrite("C_m", &arb::adex_cell::C_m,
+            "Membrane capacitance [pF].")
+        .def_readwrite("E_L", &arb::adex_cell::E_L,
+            "Resting potential [mV].")
+        .def_readwrite("E_R", &arb::adex_cell::E_R,
+            "Reset potential [mV].")
+        .def_readwrite("V_m", &arb::adex_cell::V_m,
+            "Initial value of the Membrane potential [mV].")
+        .def_readwrite("t_ref", &arb::adex_cell::t_ref,
+            "Refractory period [ms].")
+        .def_readwrite("source", &arb::adex_cell::source,
+            "Label of the single build-in source on the cell.")
+        .def_readwrite("target", &arb::adex_cell::target,
+            "Label of the single build-in target on the cell.")
+        .def("__repr__", &adex_str)
+        .def("__str__",  &adex_str);
 
     // arb::cv_policy wrappers
     cv_policy
