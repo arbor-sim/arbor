@@ -33,7 +33,7 @@
 #include <arborenv/with_mpi.hpp>
 #endif
 
-#define COUNT_RINGS_AND_SYNAPSES // may cause prolonged initialization times for larger networks
+#define COUNT_RINGS_AND_SYNAPSES // may cause prolonged initialization times for larger networks, and clobbered input may occur if more than one MPI rank is used
 
 using arb::cell_gid_type;
 using arb::cell_lid_type;
@@ -472,7 +472,7 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
     auto dend = tagged(3);
     auto apic = tagged(4);
     auto cntr = location(0, 0.5);
-    auto syns = arb::ls::uniform(rall, 0, params.synapses-2, gid);
+    auto syns = arb::ls::uniform(rall, 0, params.synapses-1, gid);
 
     arb::decor decor;
 
@@ -503,14 +503,11 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
     decor.place(cntr, arb::threshold_detector{-20.0*U::mV}, "d");
     decor.place(cntr, arb::synapse("expsyn"), "p");
 
-    if (params.synapses>1) {
-        if (params.stdp) {
-            decor.place(syns, arb::synapse{"expsyn_stdp", {{"max_weight", 0.0}}}, "s");
-        }
-        else {
-            decor.place(syns, arb::synapse{"expsyn"}, "s");
-        }
+    if (params.synapses > 0) {
+        auto syn = params.stdp ? arb::synapse{"expsyn_stdp", {{"max_weight", 0.0}}} : arb::synapse{"expsyn"};
+        decor.place(syns, syn, "s");
     }
+    
     return {arb::morphology(tree), decor, {}, arb::cv_policy_every_segment()};
 }
 
@@ -521,7 +518,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
 
     auto soma = tagged(1);
     auto dnds = join(tagged(3), tagged(4));
-    auto syns = arb::ls::uniform(arb::reg::all(), 0, params.synapses-2, gid);
+    auto syns = arb::ls::uniform(arb::reg::all(), 0, params.synapses-1, gid);
 
     arb::decor decor;
 
@@ -536,13 +533,9 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     decor.place(arb::mlocation{0, 1}, arb::synapse{"expsyn"}, "p");
 
     // Add additional synapses that will not be connected to anything.
-    if (params.synapses > 1) {
-        if (params.stdp) {
-            decor.place(syns, arb::synapse{"expsyn_stdp", {{"max_weight", 0.0}}}, "s");
-        }
-        else {
-            decor.place(syns, arb::synapse{"expsyn"}, "s");
-        }
+    if (params.synapses > 0) {
+        auto syn = params.stdp ? arb::synapse{"expsyn_stdp", {{"max_weight", 0.0}}} : arb::synapse{"expsyn"};
+        decor.place(syns, syn, "s");
     }
 
     // Make a CV between every sample in the sample tree.

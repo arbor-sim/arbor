@@ -24,7 +24,7 @@ struct cell_parameters {
     std::array<unsigned,2> compartments = {20, 2};  //  Compartment count on a branch.
     std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
 
-    // The number of synapses per cell.
+    // The number of additional, random synapses per cell.
     unsigned synapses = 1;
 };
 
