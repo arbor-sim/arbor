@@ -199,6 +199,7 @@ struct cell_stats {
     }
 };
 
+// TODO remove this once a general function for the config output from C++ is provided
 std::string get_arbor_config_str() {
     std::string config_str = "";
     #ifdef ARB_MPI_ENABLED
