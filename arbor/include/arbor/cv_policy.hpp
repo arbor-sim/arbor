@@ -2,8 +2,10 @@
 
 #include <memory>
 #include <utility>
+#include <ostream>
 
 #include <arbor/export.hpp>
+#include <arbor/units.hpp>
 #include <arbor/morph/region.hpp>
 #include <arbor/morph/locset.hpp>
 
@@ -130,9 +132,12 @@ ARB_ARBOR_API cv_policy operator|(const cv_policy&, const cv_policy&);
 
 ARB_ARBOR_API cv_policy cv_policy_explicit(locset, region = reg::all());
 
-ARB_ARBOR_API cv_policy cv_policy_max_extent(double, region, cv_policy_flag = cv_policy_flag::none);
-ARB_ARBOR_API cv_policy cv_policy_max_extent(double, cv_policy_flag = cv_policy_flag::none);
+ARB_ARBOR_API cv_policy cv_policy_max_extent(const units::quantity&, region, cv_policy_flag = cv_policy_flag::none);
+ARB_ARBOR_API cv_policy cv_policy_max_extent(const units::quantity&, cv_policy_flag = cv_policy_flag::none);
 
+ARB_ARBOR_API cv_policy cv_policy_max_extent_um(double, region, cv_policy_flag = cv_policy_flag::none);
+ARB_ARBOR_API cv_policy cv_policy_max_extent_um(double, cv_policy_flag = cv_policy_flag::none);
+    
 ARB_ARBOR_API cv_policy cv_policy_fixed_per_branch(unsigned, region, cv_policy_flag = cv_policy_flag::none);
 ARB_ARBOR_API cv_policy cv_policy_fixed_per_branch(unsigned, cv_policy_flag = cv_policy_flag::none);
 
