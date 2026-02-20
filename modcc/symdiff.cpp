@@ -481,6 +481,14 @@ public:
         expression_ptr arg = result();
         result_ = e->clone();
         result_->is_unary()->replace_expression(std::move(arg));
+
+        // fold nested
+        if (auto res = result_->is_unary(); res && res->op() == tok::minus) {
+            if (auto arg = res->expression()->is_unary(); arg && arg->op() == tok::minus) {
+                result_ = arg->expression()->clone();
+            }
+        }
+        
     }
 
     void visit(BinaryExpression* e) override {
@@ -512,6 +520,34 @@ public:
         else if (expr_value(rhs)==1) {
             result_ = std::move(lhs);
         }
+        // -1 * a = -a    
+        else if (expr_value(lhs) == -1.0) {
+            result_ = make_expression<NegUnaryExpression>(loc, std::move(rhs));
+
+        }
+        else if (expr_value(lhs) == -1.0) {
+            result_ = make_expression<NegUnaryExpression>(loc, std::move(lhs));
+        }
+        // -a * -b = a * b
+        else if (auto l = lhs->is_unary(), r = rhs->is_unary(); l && r && l->op() == tok::minus && r->op() == tok::minus) {
+            result_ = make_expression<MulBinaryExpression>(loc,
+                                                           l->expression()->clone(),
+                                                           r->expression()->clone());
+        }            
+        // a * -b = - (a * b)
+        else if (auto r = rhs->is_unary(); r && r->op() == tok::minus) {
+            result_ = make_expression<NegUnaryExpression>(loc,
+                                                          make_expression<MulBinaryExpression>(loc,
+                                                                                               std::move(lhs),
+                                                                                               r->expression()->clone()));
+        }
+        // -a * b = - (a * b)
+        else if (auto l = lhs->is_unary(); l && l->op() == tok::minus) {
+            result_ = make_expression<NegUnaryExpression>(loc,
+                                                          make_expression<MulBinaryExpression>(loc,
+                                                                                               std::move(rhs),
+                                                                                               l->expression()->clone()));
+        }                            
         else {
             result_ = make_expression<MulBinaryExpression>(loc, std::move(lhs), std::move(rhs));
         }
@@ -549,7 +585,7 @@ public:
         expression_ptr rhs = result();
 
         if (is_number(lhs) && is_number(rhs)) {
-            as_number(loc, expr_value(lhs)+expr_value(rhs));
+            as_number(loc, expr_value(lhs) + expr_value(rhs));
         }
         else if (expr_value(lhs)==0) {
             result_ = std::move(rhs);
@@ -557,6 +593,26 @@ public:
         else if (expr_value(rhs)==0) {
             result_ = std::move(lhs);
         }
+        // Peephole optimisations
+        // -a + -b = -(a + b)    
+        else if (auto l = lhs->is_unary(), r = rhs->is_unary(); l && r && l->op() == tok::minus && r->op() == tok::minus) {
+            result_ = make_expression<NegUnaryExpression>(loc,
+                                                          make_expression<AddBinaryExpression>(loc,
+                                                                                               l->expression()->clone(),
+                                                                                               r->expression()->clone()));
+        }
+        // a + -b = a - b
+        else if (auto r = rhs->is_unary(); r && r->op() == tok::minus) {
+            result_ = make_expression<SubBinaryExpression>(loc,
+                                                           std::move(lhs),
+                                                           r->expression()->clone());
+        }
+        // -a + b = b - a
+        else if (auto l = lhs->is_unary(); l && l->op() == tok::minus) {
+            result_ = make_expression<SubBinaryExpression>(loc,
+                                                           std::move(rhs),
+                                                           l->expression()->clone());
+        }                            
         else {
             result_ = make_expression<AddBinaryExpression>(loc, std::move(lhs), std::move(rhs));
         }
@@ -578,6 +634,25 @@ public:
         else if (expr_value(rhs)==0) {
             result_ = std::move(lhs);
         }
+        // -a - -b = b - a
+        else if (auto l = lhs->is_unary(), r = rhs->is_unary(); l && r && l->op() == tok::minus && r->op() == tok::minus) {
+            result_ = make_expression<SubBinaryExpression>(loc,
+                                                           r->expression()->clone(),
+                                                           l->expression()->clone());
+        }            
+        // a - -b = a + b
+        else if (auto r = rhs->is_unary(); r && r->op() == tok::minus) {
+            result_ = make_expression<AddBinaryExpression>(loc,
+                                                           std::move(lhs),
+                                                           r->expression()->clone());
+        }
+        // -a - b = - (a + b)
+        else if (auto l = lhs->is_unary(); l && l->op() == tok::minus) {
+            result_ = make_expression<NegUnaryExpression>(loc,
+                                                          make_expression<AddBinaryExpression>(loc,
+                                                                                               l->expression()->clone(),
+                                                                                               std::move(rhs)));
+        }                                        
         else {
             result_ = make_expression<SubBinaryExpression>(loc, std::move(lhs), std::move(rhs));
         }

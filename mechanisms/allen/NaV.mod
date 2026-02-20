@@ -55,7 +55,9 @@ STATE {
 
 BREAKPOINT {
   SOLVE activation METHOD sparse
-  ina = gbar*O*(v - ena)
+  LOCAL g
+  g = gbar * O         
+  ina = g*(v - ena)
 }
 
 INITIAL {
@@ -64,20 +66,14 @@ INITIAL {
 }
 
 KINETIC activation {
-  LOCAL f01, f02, f03, f04, f0O, f11, f12, f13, f14, fi1, fi2, fi3, fi4, fi5, fin, b01, b02, b03, b04, b0O, b11, b12, b13, b14, bi1, bi2, bi3, bi4, bi5, bin, ibtf
+  LOCAL f04, f0O, f14, fi1, fi2, fi3, fi4, fi5, fin, b01, b0O, b11, bi1, bi2, bi3, bi4, bi5, bin, ibtf
 
   ibtf = 1/btfac 
 
   f04 = qt*alpha*exp(v/x1)
-  f03 = 2*f04
-  f02 = 3*f04
-  f01 = 4*f04
   f0O = qt*gamma
 
   f14 = alfac*f04
-  f13 = 2*f14
-  f12 = 3*f14
-  f11 = 4*f14
 
   fi1 = qt*Con
   fi2 = fi1*alfac
@@ -87,15 +83,9 @@ KINETIC activation {
   fin = qt*Oon
 
   b01 = qt*beta*exp(v/x2)
-  b02 = 2*b01
-  b03 = 3*b01
-  b04 = 4*b01
   b0O = qt*delta
 
   b11 = b01*ibtf
-  b12 = 2*b11
-  b13 = 3*b11
-  b14 = 4*b11
 
   bi1 = qt*Coff
   bi2 = bi1*ibtf
@@ -104,16 +94,16 @@ KINETIC activation {
   bi5 = bi4*ibtf
   bin = qt*Ooff
 
-  ~ C1 <-> C2    (f01, b01)
-  ~ C2 <-> C3    (f02, b02)
-  ~ C3 <-> C4    (f03, b03)
-  ~ C4 <-> C5    (f04, b04)
+  ~ C1 <-> C2    (4*f04, 1*b01)
+  ~ C2 <-> C3    (3*f04, 2*b01)
+  ~ C3 <-> C4    (2*f04, 3*b01)
+  ~ C4 <-> C5    (1*f04, 4*b01)
   ~ C5 <-> O     (f0O, b0O)
   ~ O  <-> I6    (fin, bin)
-  ~ I1 <-> I2    (f11, b11)
-  ~ I2 <-> I3    (f12, b12)
-  ~ I3 <-> I4    (f13, b13)
-  ~ I4 <-> I5    (f14, b14)
+  ~ I1 <-> I2    (4*f14, 1*b11)
+  ~ I2 <-> I3    (3*f14, 2*b11)
+  ~ I3 <-> I4    (2*f14, 3*b11)
+  ~ I4 <-> I5    (1*f14, 4*b11)
   ~ I5 <-> I6    (f0O, b0O)
   ~ C1 <-> I1    (fi1, bi1)
   ~ C2 <-> I2    (fi2, bi2)
