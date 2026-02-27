@@ -226,29 +226,25 @@ struct neon_double2 : implbase<neon_double2> {
 
     static float64x2_t neg(const float64x2_t& a) { return vnegq_f64(a); }
 
-    static float64x2_t add(const float64x2_t& a, const float64x2_t& b) {
-        return vaddq_f64(a, b);
-    }
+    static float64x2_t add(const float64x2_t& a, const float64x2_t& b) { return vaddq_f64(a, b); }
 
-    static float64x2_t sub(const float64x2_t& a, const float64x2_t& b) {
-        return vsubq_f64(a, b);
-    }
+    static float64x2_t sub(const float64x2_t& a, const float64x2_t& b) { return vsubq_f64(a, b); }
 
-    static float64x2_t mul(const float64x2_t& a, const float64x2_t& b) {
-        return vmulq_f64(a, b);
-    }
+    static float64x2_t mul(const float64x2_t& a, const float64x2_t& b) { return vmulq_f64(a, b); }
 
-    static float64x2_t div(const float64x2_t& a, const float64x2_t& b) {
-        return vdivq_f64(a, b);
-    }
+    static float64x2_t fma(const float64x2_t& a, const float64x2_t& b, const float64x2_t& c) { return vfmaq_f64(c, a, b); }
+
+    static float64x2_t fms(const float64x2_t& a, const float64x2_t& b, const float64x2_t& c) { return vfmsq_f64(c, a, b); }
+    
+    static float64x2_t div(const float64x2_t& a, const float64x2_t& b) { return vdivq_f64(a, b); }
 
     static float64x2_t logical_not(const float64x2_t& a) {
         return vreinterpretq_f64_u32(vmvnq_u32(vreinterpretq_u32_f64(a)));
     }
 
     static float64x2_t logical_and(const float64x2_t& a, const float64x2_t& b) {
-        return vreinterpretq_f64_u64(
-            vandq_u64(vreinterpretq_u64_f64(a), vreinterpretq_u64_f64(b)));
+        return vreinterpretq_f64_u64(vandq_u64(vreinterpretq_u64_f64(a),
+                                               vreinterpretq_u64_f64(b)));
     }
 
     static float64x2_t logical_or(const float64x2_t& a, const float64x2_t& b) {
@@ -280,7 +276,8 @@ struct neon_double2 : implbase<neon_double2> {
         return vreinterpretq_f64_u64(vcleq_f64(a, b));
     }
 
-    static float64x2_t ifelse(const float64x2_t& m, const float64x2_t& u,
+    static float64x2_t ifelse(const float64x2_t& m,
+                              const float64x2_t& u,
                               const float64x2_t& v) {
         return vbslq_f64(vreinterpretq_u64_f64(m), u, v);
     }
@@ -289,22 +286,18 @@ struct neon_double2 : implbase<neon_double2> {
         return vreinterpretq_f64_u64(vdupq_n_u64(-(int64)b));
     }
 
-    static bool mask_element(const float64x2_t& u, int i) {
-        return static_cast<bool>(element(u, i));
-    }
+    static bool mask_element(const float64x2_t& u, int i) { return static_cast<bool>(element(u, i)); }
 
     static float64x2_t mask_unpack(unsigned long long k) {
         // Only care about bottom two bits of k.
-        uint8x8_t b = vdup_n_u8((char)k);
-        uint8x8_t bl = vorr_u8(b, vdup_n_u8(0xfe));
-        uint8x8_t bu = vorr_u8(b, vdup_n_u8(0xfd));
-        uint8x16_t blu = vcombine_u8(bl, bu);
-
+        uint8x8_t  b    = vdup_n_u8((char)k);
+        uint8x8_t  bl   = vorr_u8(b, vdup_n_u8(0xfe));
+        uint8x8_t  bu   = vorr_u8(b, vdup_n_u8(0xfd));
+        uint8x16_t blu  = vcombine_u8(bl, bu);
         uint8x16_t ones = vdupq_n_u8(0xff);
-        uint64x2_t r =
-            vceqq_u64(vreinterpretq_u64_u8(ones), vreinterpretq_u64_u8(blu));
-
-        return vreinterpretq_f64_u64(r);
+        uint64x2_t res  = vceqq_u64(vreinterpretq_u64_u8(ones),
+                                    vreinterpretq_u64_u8(blu));
+        return vreinterpretq_f64_u64(res);
     }
 
     static void mask_set_element(float64x2_t& u, int i, bool b) {
