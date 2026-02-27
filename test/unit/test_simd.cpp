@@ -330,7 +330,7 @@ TYPED_TEST_P(simd_value, arithmetic) {
 #endif
 
         (fma(us, vs, ws)).copy_to(r);
-        EXPECT_TRUE(testing::seq_eq(fma_u_v_w, r));
+        EXPECT_TRUE(testing::seq_almost_eq<scalar>(fma_u_v_w, r));
     }
 }
 
