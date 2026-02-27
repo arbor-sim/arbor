@@ -43,7 +43,8 @@ protected:
 enum class simd_expr_constraint{
     constant,
     contiguous,
-    other
+    independent,
+    none,
 };
 
 struct ApiFlags {

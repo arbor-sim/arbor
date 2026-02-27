@@ -48,6 +48,16 @@ void CExprEmitter::emit_as_call(const char* sub, Expression* e1, Expression* e2)
     out_ << ')';
 }
 
+void CExprEmitter::emit_as_call(const char* sub, Expression* e1, Expression* e2, Expression* e3) {
+    out_ << sub << '(';
+    e1->accept(this);
+    out_ << ", ";
+    e2->accept(this);
+    out_ << ", ";
+    e3->accept(this);
+    out_ << ')';
+}
+
 void CExprEmitter::visit(NumberExpression* e) {
     out_ << as_c_double(e->value());
 }
@@ -87,7 +97,7 @@ void CExprEmitter::visit(UnaryExpression* e) {
     if (e->op()==tok::minus) {
         if (auto bin = inner->is_binary(); bin) {
             out_ << op_spelling;
-            bool need_paren = Lexer::binop_precedence(bin->op()) < Lexer::binop_precedence(tok::times);
+            bool need_paren = true; //Lexer::binop_precedence(bin->op()) < Lexer::binop_precedence(tok::times);
             if (need_paren) out_ << '(';
             inner->accept(this);
             if (need_paren) out_ << ')';
@@ -167,6 +177,23 @@ void CExprEmitter::visit(BinaryExpression* e) {
     auto rhs = e->rhs();
     auto lhs = e->lhs();
     const char* op_spelling = binop_tbl.at(e->op());
+
+    if (e->op() == tok::plus) {
+        if (auto l = e->lhs()->is_binary(); l && l->op() == tok::times) {
+            emit_as_call("fma", l->lhs(), l->rhs(), rhs);
+            return;
+        }
+        if (auto r = e->rhs()->is_binary(); r && r->op() == tok::times) {
+            emit_as_call("fma", r->lhs(), r->rhs(), lhs);
+            return;
+        }
+    }
+    else if (e->op() == tok::minus) {
+        if (auto r = e->rhs()->is_binary(); r && r->op() == tok::times) {
+            emit_as_call("fms", r->lhs(), r->rhs(), lhs);
+            return;
+        }
+    }
 
     if (e->is_infix()) {
         associativityKind assoc = Lexer::operator_associativity(e->op());
@@ -281,6 +308,32 @@ std::string id_prefix(IdentifierExpression* id) {
     return id->name();
 }
 
+void SimdExprEmitter::emit_fused(const std::string& name, Expression* a, Expression* b, Expression* c) {
+    auto check_cast = [this](Expression* expr) {
+        return expr->is_number() || (expr->is_identifier() && scalars_.count(expr->is_identifier()->name()));
+    };
+
+    bool need_cast = false;
+    out_ << name << '(';
+    need_cast = check_cast(a);
+    if (need_cast) out_ << "simd_cast<simd_value>(";
+    a->accept(this);
+    if (need_cast) out_ << ')';
+    out_ << ", ";
+
+    need_cast = check_cast(b);
+    if (need_cast) out_ << "simd_cast<simd_value>(";
+    b->accept(this);
+    if (need_cast) out_ << ')';
+    out_ << ", ";
+
+    need_cast = check_cast(c);
+    if (need_cast) out_ << "simd_cast<simd_value>(";
+    c->accept(this);
+    if (need_cast) out_ << ')';
+    out_ << ')';
+}
+
 
 void SimdExprEmitter::visit(BinaryExpression* e) {
     static std::unordered_map<tok, const char *> func_tbl = {
@@ -332,6 +385,24 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
 
     const char *op_spelling = binop_tbl.at(e->op());
     const char *func_spelling = func_tbl.at(e->op());
+
+    if (e->op() == tok::plus) {
+        if (auto l = lhs->is_binary(); l && l->op() == tok::times) {
+            // emit_fused("S::fma", l->lhs(), l->rhs(), rhs);
+            // return;
+        }
+        if (auto r = rhs->is_binary(); r && r->op() == tok::times) {
+            // emit_fused("S::fma", r->lhs(), r->rhs(), lhs);
+            // return;
+        }
+    }
+    else if (e->op() == tok::minus) {
+        if (auto r = rhs->is_binary(); r && r->op() == tok::times) {
+            // emit_fused("S::fms", r->lhs(), r->rhs(), lhs);
+            // return;
+        }
+    }
+
 
     if (auto id = rhs->is_identifier()) {
         rhs_name = id->name();
