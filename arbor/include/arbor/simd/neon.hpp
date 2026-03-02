@@ -233,8 +233,6 @@ struct neon_double2 : implbase<neon_double2> {
     static float64x2_t mul(const float64x2_t& a, const float64x2_t& b) { return vmulq_f64(a, b); }
 
     static float64x2_t fma(const float64x2_t& a, const float64x2_t& b, const float64x2_t& c) { return vfmaq_f64(c, a, b); }
-
-    static float64x2_t fms(const float64x2_t& a, const float64x2_t& b, const float64x2_t& c) { return vfmsq_f64(c, a, b); }
     
     static float64x2_t div(const float64x2_t& a, const float64x2_t& b) { return vdivq_f64(a, b); }
 

@@ -242,10 +242,6 @@ struct implbase {
         return I::add(w, I::mul(u, v));
     }
 
-    static vector_type fms(const vector_type& u, const vector_type& v, const vector_type& w) {
-        return I::sub(w, I::mul(u, v));
-    }
-
     static mask_type cmp_eq(const vector_type& u, const vector_type& v) {
         store a, b;
         mask_store r;

@@ -188,13 +188,6 @@ void CExprEmitter::visit(BinaryExpression* e) {
             return;
         }
     }
-    // there is no FMS in C++
-    // else if (e->op() == tok::minus) {
-        // if (auto r = e->rhs()->is_binary(); r && r->op() == tok::times) {
-            // emit_as_call("fms", r->lhs(), r->rhs(), lhs);
-            // return;
-        // }
-    // }
 
     if (e->is_infix()) {
         associativityKind assoc = Lexer::operator_associativity(e->op());
@@ -379,8 +372,6 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
                 "CExprEmitter: unsupported binary operator " + token_string(e->op()), e->location());
     }
 
-    std::string rhs_name, lhs_name, rhs_pfxd, lhs_pfxd;
-
     auto rhs = e->rhs();
     auto lhs = e->lhs();
 
@@ -397,14 +388,8 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
             return;
         }
     }
-    else if (e->op() == tok::minus) {
-        if (auto r = rhs->is_binary(); r && r->op() == tok::times) {
-            emit_fused("S::fms", r->lhs(), r->rhs(), lhs);
-            return;
-        }
-    }
 
-
+    std::string rhs_name, lhs_name, rhs_pfxd, lhs_pfxd;
     if (auto id = rhs->is_identifier()) {
         rhs_name = id->name();
         rhs_pfxd = id_prefix(id);
