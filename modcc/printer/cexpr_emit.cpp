@@ -188,12 +188,13 @@ void CExprEmitter::visit(BinaryExpression* e) {
             return;
         }
     }
-    else if (e->op() == tok::minus) {
-        if (auto r = e->rhs()->is_binary(); r && r->op() == tok::times) {
-            emit_as_call("fms", r->lhs(), r->rhs(), lhs);
-            return;
-        }
-    }
+    // there is no FMS in C++
+    // else if (e->op() == tok::minus) {
+        // if (auto r = e->rhs()->is_binary(); r && r->op() == tok::times) {
+            // emit_as_call("fms", r->lhs(), r->rhs(), lhs);
+            // return;
+        // }
+    // }
 
     if (e->is_infix()) {
         associativityKind assoc = Lexer::operator_associativity(e->op());
@@ -388,18 +389,18 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
 
     if (e->op() == tok::plus) {
         if (auto l = lhs->is_binary(); l && l->op() == tok::times) {
-            // emit_fused("S::fma", l->lhs(), l->rhs(), rhs);
-            // return;
+            emit_fused("S::fma", l->lhs(), l->rhs(), rhs);
+            return;
         }
         if (auto r = rhs->is_binary(); r && r->op() == tok::times) {
-            // emit_fused("S::fma", r->lhs(), r->rhs(), lhs);
-            // return;
+            emit_fused("S::fma", r->lhs(), r->rhs(), lhs);
+            return;
         }
     }
     else if (e->op() == tok::minus) {
         if (auto r = rhs->is_binary(); r && r->op() == tok::times) {
-            // emit_fused("S::fms", r->lhs(), r->rhs(), lhs);
-            // return;
+            emit_fused("S::fms", r->lhs(), r->rhs(), lhs);
+            return;
         }
     }
 

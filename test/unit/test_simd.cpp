@@ -294,7 +294,7 @@ TYPED_TEST_P(simd_value, arithmetic) {
         for (unsigned i = 0; i<N; ++i) u_divide_v[i] = u[i]/v[i];
 
         scalar fma_u_v_w[N];
-        for (unsigned i = 0; i<N; ++i) fma_u_v_w[i] = compat::fma(u[i],v[i],w[i]);
+        for (unsigned i = 0; i<N; ++i) fma_u_v_w[i] = compat::fma(u[i], v[i], w[i]);
 
         simd us(u), vs(v), ws(w);
 
@@ -318,7 +318,6 @@ TYPED_TEST_P(simd_value, arithmetic) {
         //
         // Unfortunately, we can't check at compile time the floating
         // point dodginess quotient.
-
         if (std::is_floating_point<scalar>::value) {
             EXPECT_TRUE(testing::seq_almost_eq<scalar>(u_divide_v, r));
         }
@@ -329,8 +328,9 @@ TYPED_TEST_P(simd_value, arithmetic) {
         EXPECT_TRUE(testing::seq_eq(u_divide_v, r));
 #endif
 
-        (fma(us, vs, ws)).copy_to(r);
-        EXPECT_TRUE(testing::seq_almost_eq<scalar>(fma_u_v_w, r));
+        fma(us, vs, ws).copy_to(r);
+        // this catches all deviations larger than machine delta
+        EXPECT_TRUE(testing::seq_almost_eq<scalar>(fma_u_v_w, r, 0.0));
     }
 }
 
