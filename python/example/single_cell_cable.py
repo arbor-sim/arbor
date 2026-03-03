@@ -101,7 +101,7 @@ class Cable(A.recipe):
             )
         )
 
-        policy = A.cv_policy_max_extent(self.cv_policy_max_extent)
+        policy = A.cv_policy_max_extent_um(self.cv_policy_max_extent)
 
         return A.cable_cell(tree, decor, labels, policy)
 

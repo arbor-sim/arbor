@@ -33,7 +33,7 @@ decor.place('"soma_center"', A.i_clamp(tstart=295, duration=5, current=1.9))
 decor.place('"soma_center"', A.threshold_detector(-10), "detector")
 
 # Adjust discretization (single CV on soma, default everywhere else)
-cvp = A.cv_policy_max_extent(1.0) | A.cv_policy_single('"soma"')
+cvp = A.cv_policy_max_extent_um(1.0) | A.cv_policy_single('"soma"')
 
 # (4) Create the cell.
 cell = A.cable_cell(morpho, decor, labels, cvp)

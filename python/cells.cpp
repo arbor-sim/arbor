@@ -112,8 +112,12 @@ arb::cv_policy make_cv_policy_fixed_per_branch(unsigned cv_per_branch, const std
     return arb::cv_policy_fixed_per_branch(cv_per_branch, arborio::parse_region_expression(reg).unwrap());
 }
 
-arb::cv_policy make_cv_policy_max_extent(double cv_length, const std::string& reg) {
-    return arb::cv_policy_max_extent(cv_length, arborio::parse_region_expression(reg).unwrap());
+arb::cv_policy make_cv_policy_max_extent_um(double cv_length, const std::string& reg) {
+    return arb::cv_policy_max_extent_um(cv_length, arborio::parse_region_expression(reg).unwrap());
+}
+
+arb::cv_policy make_cv_policy_max_extent(const U::quantity& q, const std::string& reg) {
+    return arb::cv_policy_max_extent(q, arborio::parse_region_expression(reg).unwrap());
 }
 
 // Helper for finding a mechanism description in a Python object.
@@ -380,23 +384,27 @@ void register_cells(py::module& m) {
           "locset"_a, "the locset describing the desired CV boundaries",
           "domain"_a="(all)", "the domain to which the policy is to be applied",
           "Policy to create compartments at explicit locations.");
-
     m.def("cv_policy_single",
           &make_cv_policy_single,
           "domain"_a="(all)", "the domain to which the policy is to be applied",
           "Policy to create one compartment per component of a region.");
-
+    m.def("default_cv_policy",
+          &arb::default_cv_policy,
+          "Default for cv_policy; one CV per branch.");
     m.def("cv_policy_every_segment",
           &make_cv_policy_every_segment,
           "domain"_a="(all)", "the domain to which the policy is to be applied",
           "Policy to create one compartment per component of a region.");
-
+    m.def("cv_policy_max_extent_um",
+          &make_cv_policy_max_extent_um,
+          "length"_a, "the maximum CV length in ㎛",
+          "domain"_a="(all)", "the domain to which the policy is to be applied",
+          "Policy to use as many CVs as required to ensure that no CV has a length longer than a given value.");
     m.def("cv_policy_max_extent",
           &make_cv_policy_max_extent,
           "length"_a, "the maximum CV length",
           "domain"_a="(all)", "the domain to which the policy is to be applied",
           "Policy to use as many CVs as required to ensure that no CV has a length longer than a given value.");
-
     m.def("cv_policy_fixed_per_branch",
           &make_cv_policy_fixed_per_branch,
           "n"_a, "the number of CVs per branch",

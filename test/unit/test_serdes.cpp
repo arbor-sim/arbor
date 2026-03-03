@@ -134,7 +134,7 @@ struct serdes_recipe: public arb::recipe {
     std::any get_global_properties(arb::cell_kind) const override {
         auto prop = arb::cable_cell_global_properties{};
         prop.default_parameters = arb::neuron_parameter_defaults;
-        prop.default_parameters.discretization = arb::cv_policy_max_extent(1.0);
+        prop.default_parameters.discretization = arb::cv_policy_max_extent_um(1.0);
         return prop;
     }
 
