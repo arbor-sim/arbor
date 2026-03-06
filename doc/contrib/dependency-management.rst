@@ -12,8 +12,6 @@ Arbor relies on a (small) number of dependencies. We can distinguish three kinds
 
 Note that the actual dependencies of your build configuration may vary.
 
-In addition, ``spack/package.py`` contains a copy of the Spack package definition `upstream <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/arbor/package.py>`_. Here instructions for both in-repo and configure-time dependencies are defined.
-
 This document contains rules for when and how to update dependencies and what to be mindful of when doing so.
 
 List of dependencies
@@ -55,7 +53,7 @@ Also, build instructions for each of them must be given in the documentation.
 Dependency update rules
 -----------------------
 
-#. ``doc/dependencies.csv``, git submodules and ``spack/package.py`` shall be in sync.
+#. ``doc/dependencies.csv``, CPM installs and the ``spack`` package` shall be in sync.
 #. Dependencies shall be set to a (commit hash corresponding to a) specific version tag. (All current dependencies use semver.)
 #. The version shall be compatible with the user platforms (see above).
 #. The version shall be compatible with the requirements in ``doc/dependencies.csv``.
