@@ -97,4 +97,4 @@ class TestProfiling(unittest.TestCase):
         sim.run(1 * U.ms)
         sum = A.profiler_summary()
         self.assertEqual(str, type(sum), "profiler summary must be str")
-        self.assertTrue(sum, "empty summary")
+        self.asserttrue(len(sum) != 0, "empty summary")
