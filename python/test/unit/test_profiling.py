@@ -90,7 +90,7 @@ class TestProfiling(unittest.TestCase):
 
     @lazy_skipIf(skipWithoutSupport, "run test only with profiling support")
     def test_summary(self):
-        ctx = A.context()
+        ctx = A.context(threads=1)
         A.profiler_initialize(ctx)
         rec = a_recipe()
         sim = A.simulation(rec, ctx)
