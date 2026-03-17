@@ -12,7 +12,6 @@
 #include "cell_group_factory.hpp"
 #include "execution_context.hpp"
 #include "util/maputil.hpp"
-#include "util/partition.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
@@ -29,11 +28,9 @@ struct gid_range {
     cell_gid_type dlt = 1;
 };
 
-bool contains_gid(const gid_range& gids, cell_gid_type gid) {
-    return (gid >= gids.beg) && (gid < gids.end) && (gid % gids.dlt == 0);        
-}
+// a (stepped) range contains all gids lo <= gid < hi that are multiples of the step
+bool contains_gid(const gid_range& gids, cell_gid_type gid) { return (gid >= gids.beg) && (gid < gids.end) && (gid % gids.dlt == 0); }
 
-    
 // Build global GJ connectivity table such that
 // * table[gid] is the set of all gids connected to gid via a GJ
 // * iff A in table[B], then B in table[A]
@@ -193,7 +190,7 @@ auto build_local_components_by_round_robin(const recipe& rec, context ctx) {
     return build_components(global_gj_connection_table, local_gids);
 }
 
-    
+
 } // namespace
 
 ARB_ARBOR_API domain_decomposition_ptr partition_load_balance(const recipe& rec,
