@@ -272,19 +272,20 @@ TEST(domain_decomposition, heterogenous_population)
 
         unsigned num_cells = 10;
         auto R = hetero_recipe(num_cells);
-        const auto D = partition_load_balance(R, ctx);
+        const auto DP = partition_load_balance(R, ctx);
+        const auto DR = round_robin_load_balance(R, ctx);
 
-        EXPECT_EQ(D->num_global_cells(), num_cells);
-        EXPECT_EQ(D->num_local_cells(), num_cells);
+        EXPECT_EQ(DP->num_global_cells(), num_cells);
+        EXPECT_EQ(DP->num_local_cells(), num_cells);
         // one cell group with num_cells/2 on gpu, and num_cells/2 groups on cpu
         auto expected_groups = num_cells/2+1;
-        EXPECT_EQ(D->num_groups(), expected_groups);
+        EXPECT_EQ(DP->num_groups(), expected_groups);
 
         auto grps = make_span(expected_groups);
         unsigned ncells = 0;
         // iterate over each group and test its properties
         for (auto i: grps) {
-            auto& grp = D->group(i);
+            auto& grp = DP->group(i);
             auto k = grp.kind;
             if (k==cell_kind::cable) {
                 EXPECT_EQ(grp.backend, backend_kind::gpu);
@@ -314,35 +315,66 @@ TEST(domain_decomposition, heterogenous_population)
 
         unsigned num_cells = 10;
         auto R = hetero_recipe(num_cells);
-        const auto D = partition_load_balance(R, ctx);
+        const auto DP = partition_load_balance(R, ctx);
+        const auto DR = round_robin_load_balance(R, ctx);
 
-        EXPECT_EQ(D->num_global_cells(), num_cells);
-        EXPECT_EQ(D->num_local_cells(), num_cells);
-        EXPECT_EQ(D->num_groups(), num_cells);
+        EXPECT_EQ(DP->num_global_cells(), num_cells);
+        EXPECT_EQ(DP->num_local_cells(), num_cells);
+        EXPECT_EQ(DP->num_groups(), num_cells);
 
+        EXPECT_EQ(DR->num_global_cells(), num_cells);
+        EXPECT_EQ(DR->num_local_cells(), num_cells);
+        EXPECT_EQ(DR->num_groups(), num_cells);
+
+        
         auto gids = make_span(num_cells);
         for (auto gid: gids) {
-            EXPECT_EQ(0, D->gid_domain(gid));
+            EXPECT_EQ(0, DP->gid_domain(gid));
+            EXPECT_EQ(0, DR->gid_domain(gid));
         }
 
         // Each cell group contains 1 cell of kind cable
         // Each group should also be tagged for cpu execution
-        auto grps = make_span(num_cells);
-        std::map<cell_kind, std::set<cell_gid_type>> kind_lists;
-        for (auto i: grps) {
-            auto& grp = D->group(i);
+        {
+          auto grps = make_span(num_cells);
+          std::map<cell_kind, std::set<cell_gid_type>> kind_lists;
+          for (auto i : grps) {
+            auto &grp = DP->group(i);
             EXPECT_EQ(grp.gids.size(), 1u);
             auto k = grp.kind;
             kind_lists[k].insert(grp.gids.front());
             EXPECT_EQ(grp.backend, backend_kind::multicore);
+          }
+
+          for (auto k : {cell_kind::cable, cell_kind::spike_source}) {
+            const auto &gids = kind_lists[k];
+            EXPECT_EQ(gids.size(), num_cells / 2);
+            for (auto gid : gids) {
+              EXPECT_EQ(k, R.get_cell_kind(gid));
+            }
+          }
         }
 
-        for (auto k: {cell_kind::cable, cell_kind::spike_source}) {
-            const auto& gids = kind_lists[k];
-            EXPECT_EQ(gids.size(), num_cells/2);
-            for (auto gid: gids) {
-                EXPECT_EQ(k, R.get_cell_kind(gid));
+        // Each cell group contains 1 cell of kind cable
+        // Each group should also be tagged for cpu execution
+        {
+          auto grps = make_span(num_cells);
+          std::map<cell_kind, std::set<cell_gid_type>> kind_lists;
+          for (auto i : grps) {
+            auto &grp = DR->group(i);
+            EXPECT_EQ(grp.gids.size(), 1u);
+            auto k = grp.kind;
+            kind_lists[k].insert(grp.gids.front());
+            EXPECT_EQ(grp.backend, backend_kind::multicore);
+          }
+
+          for (auto k : {cell_kind::cable, cell_kind::spike_source}) {
+            const auto &gids = kind_lists[k];
+            EXPECT_EQ(gids.size(), num_cells / 2);
+            for (auto gid : gids) {
+              EXPECT_EQ(k, R.get_cell_kind(gid));
             }
+          }
         }
     }
 }
