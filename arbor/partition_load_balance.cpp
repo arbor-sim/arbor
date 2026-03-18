@@ -88,48 +88,47 @@ auto make_round_robin_gids(context ctx, cell_gid_type num_global_cells) {
 // * all gids w/o GJ connections come first (for historical reasons!?)
 auto build_components(const gj_connection_table& global_gj_connection_table,
                       const gid_range& gids) {
-    // cells connected by gj
-    std::vector<super_cell> super_cells;
     // singular cells
     std::vector<super_cell> res;
+    for (cell_gid_type gid = gids.beg; gid < gids.end; gid += gids.dlt) {
+        if (!global_gj_connection_table.count(gid)) {
+            res.push_back({gid});
+        }
+    }
+
+    // cells connected by gj
     // track visited cells (cells that already belong to a group)
     gj_connection_set visited;
     // Connected components via BFS
     std::vector<cell_gid_type> q;
     for (cell_gid_type gid = gids.beg; gid < gids.end; gid += gids.dlt) {
-        if (global_gj_connection_table.count(gid)) {
-            // If cell hasn't been visited yet, must belong to new component
-            if (visited.insert(gid).second) {
-                // pivot gid: the smallest found in this group; must be at
-                // smaller or equal to `gid`.
-                auto min_gid = gid;
-                q.push_back(gid);
-                super_cell sc;
-                while (!q.empty()) {
-                    auto element = q.back();
-                    q.pop_back();
-                    sc.push_back(element);
-                    min_gid = std::min(element, min_gid);
-                    // queue up conjoined cells
-                    for (const auto& peer: global_gj_connection_table.at(element)) {
-                        if (visited.insert(peer).second) q.push_back(peer);
-                    }
-                }
-                // if the pivot gid belongs to our domain, this group will be part
-                // of our domain, keep it and sort.
-                if (contains_gid(gids, min_gid)) {
-                    std::sort(sc.begin(), sc.end());
-                    super_cells.emplace_back(std::move(sc));
-                }
+        // not in a GJ compound cell, skip
+        if (!global_gj_connection_table.count(gid)) continue;
+        // cell has been visited, skip
+        if (!visited.insert(gid).second) continue;
+        // pivot gid: the smallest found in this group; must be at smaller
+        // or equal to `gid`. We use this to determine whether this
+        // component is ours
+        auto min_gid = gid;
+        q.push_back(gid);
+        super_cell sc;
+        while (!q.empty()) {
+            auto element = q.back();
+            q.pop_back();
+            sc.push_back(element);
+            min_gid = std::min(element, min_gid);
+            // queue up conjoined cells
+            for (const auto& peer: global_gj_connection_table.at(element)) {
+                if (visited.insert(peer).second) q.push_back(peer);
             }
         }
-        else {
-            res.push_back({gid});
+        // if the pivot gid belongs to our domain, this group will be part
+        // of our domain: sort and add to result
+        if (contains_gid(gids, min_gid)) {
+            std::sort(sc.begin(), sc.end());
+            res.emplace_back(std::move(sc));
         }
     }
-    // append super cells to result
-    res.reserve(res.size() + super_cells.size());
-    std::move(super_cells.begin(), super_cells.end(), std::back_inserter(res));
     return res;
 }
 
@@ -190,95 +189,63 @@ auto build_local_components_by_round_robin(const recipe& rec, context ctx) {
     return build_components(global_gj_connection_table, local_gids);
 }
 
+template<typename F>
+domain_decomposition_ptr do_load_balance(const recipe& rec,
+                                         context ctx,
+                                         const partition_hint_map& hint_map,
+                                         F&& component_builder) {
+    const auto components = component_builder(rec, ctx);
 
+    std::vector<cell_gid_type> local_gids;
+    std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
+
+    for (auto idx: util::make_span(components.size())) {
+        const auto& component = components[idx];
+        const auto& first_gid  = component.front();
+        auto kind = rec.get_cell_kind(first_gid);
+        for (auto gid: component) {
+            if (rec.get_cell_kind(gid) != kind) throw gj_kind_mismatch(gid, first_gid);
+            local_gids.push_back(gid);
+        }
+        kind_lists[kind].push_back((cell_gid_type) idx);
+    }
+
+    auto kinds = build_group_parameters(ctx, hint_map, kind_lists);
+
+    std::vector<group_description> groups;
+    for (const auto& params: kinds) {
+        std::vector<cell_gid_type> group_elements;
+        // group_elements are sorted such that the gids of all members of a component are consecutive.
+        for (auto cell_idx: kind_lists[params.kind]) {
+            const auto& component = components[cell_idx];
+            // adding the current group would go beyond alloted size, so add to the list
+            // of groups and start a new one.
+            if (group_elements.size() + component.size() > params.size && !group_elements.empty()) {
+                groups.emplace_back(params.kind, std::move(group_elements), params.backend);
+                group_elements.clear();
+            }
+            // we are clear to add the current component. NOTE this may exceed
+            // the alloted size, but only by the minimal amount manageable
+            group_elements.insert(group_elements.end(), component.begin(), component.end());
+        }
+        // we may have a trailing, incomplete group, so add it.
+        if (!group_elements.empty()) groups.emplace_back(params.kind, std::move(group_elements), params.backend);
+    }
+
+    return std::make_shared<domain_decomposition>(rec, ctx, groups);
+}    
 } // namespace
 
 ARB_ARBOR_API domain_decomposition_ptr partition_load_balance(const recipe& rec,
                                                               context ctx,
                                                               const partition_hint_map& hint_map) {
-    const auto components = build_local_components_by_range(rec, ctx);
-
-    std::vector<cell_gid_type> local_gids;
-    std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
-
-    for (auto idx: util::make_span(components.size())) {
-        const auto& component = components[idx];
-        const auto& first_gid  = component.front();
-        auto kind = rec.get_cell_kind(first_gid);
-        for (auto gid: component) {
-            if (rec.get_cell_kind(gid) != kind) throw gj_kind_mismatch(gid, first_gid);
-            local_gids.push_back(gid);
-        }
-        kind_lists[kind].push_back((cell_gid_type) idx);
-    }
-
-    auto kinds = build_group_parameters(ctx, hint_map, kind_lists);
-
-    std::vector<group_description> groups;
-    for (const auto& params: kinds) {
-        std::vector<cell_gid_type> group_elements;
-        // group_elements are sorted such that the gids of all members of a component are consecutive.
-        for (auto cell: kind_lists[params.kind]) {
-            const auto& component = components[cell];
-            // adding the current group would go beyond alloted size, so add to the list
-            // of groups and start a new one.
-            if (group_elements.size() + component.size() > params.size && !group_elements.empty()) {
-                groups.emplace_back(params.kind, std::move(group_elements), params.backend);
-                group_elements.clear();
-            }
-            // we are clear to add the current component. NOTE this may exceed
-            // the alloted size, but only by the minimal amount manageable
-            group_elements.insert(group_elements.end(), component.begin(), component.end());
-        }
-        // we may have a trailing, incomplete group, so add it.
-        if (!group_elements.empty()) groups.emplace_back(params.kind, std::move(group_elements), params.backend);
-    }
-
-    return std::make_shared<domain_decomposition>(rec, ctx, groups);
+    return do_load_balance(rec, ctx, hint_map, build_local_components_by_range);
 }
 
 ARB_ARBOR_API domain_decomposition_ptr round_robin_load_balance(const recipe& rec,
                                                               context ctx,
-                                                              const partition_hint_map& hint_map) {
-    const auto components = build_local_components_by_round_robin(rec, ctx);
-
-    std::vector<cell_gid_type> local_gids;
-    std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
-
-    for (auto idx: util::make_span(components.size())) {
-        const auto& component = components[idx];
-        const auto& first_gid  = component.front();
-        auto kind = rec.get_cell_kind(first_gid);
-        for (auto gid: component) {
-            if (rec.get_cell_kind(gid) != kind) throw gj_kind_mismatch(gid, first_gid);
-            local_gids.push_back(gid);
-        }
-        kind_lists[kind].push_back((cell_gid_type) idx);
-    }
-
-    auto kinds = build_group_parameters(ctx, hint_map, kind_lists);
-
-    std::vector<group_description> groups;
-    for (const auto& params: kinds) {
-        std::vector<cell_gid_type> group_elements;
-        // group_elements are sorted such that the gids of all members of a component are consecutive.
-        for (auto cell: kind_lists[params.kind]) {
-            const auto& component = components[cell];
-            // adding the current group would go beyond alloted size, so add to the list
-            // of groups and start a new one.
-            if (group_elements.size() + component.size() > params.size && !group_elements.empty()) {
-                groups.emplace_back(params.kind, std::move(group_elements), params.backend);
-                group_elements.clear();
-            }
-            // we are clear to add the current component. NOTE this may exceed
-            // the alloted size, but only by the minimal amount manageable
-            group_elements.insert(group_elements.end(), component.begin(), component.end());
-        }
-        // we may have a trailing, incomplete group, so add it.
-        if (!group_elements.empty()) groups.emplace_back(params.kind, std::move(group_elements), params.backend);
-    }
-
-    return std::make_shared<domain_decomposition>(rec, ctx, groups);
+                                                                const partition_hint_map& hint_map) {
+    return do_load_balance(rec, ctx, hint_map, build_local_components_by_round_robin);    
 }
 
 } // namespace arb
