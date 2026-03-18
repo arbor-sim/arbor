@@ -168,12 +168,12 @@ struct dummy_context {
     cell_labels_and_gids gather_cell_labels_and_gids(const cell_labels_and_gids& local_labels_and_gids) const { throw unimplemented{__FUNCTION__}; }
     template <typename T> std::vector<T> gather(T value, int) const { throw unimplemented{__FUNCTION__}; }
     distributed_request send_recv_nonblocking(std::size_t dest_count,
-        void* dest_data,
-        int dest,
-        std::size_t source_count,
-        const void* source_data,
-        int source,
-        int tag) const {
+                                              void* dest_data,
+                                              int dest,
+                                              std::size_t source_count,
+                                              const void* source_data,
+                                              int source,
+                                              int tag) const {
         throw unimplemented{__FUNCTION__};
     }
 

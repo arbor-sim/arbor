@@ -117,7 +117,7 @@ auto build_components(const gj_connection_table& global_gj_connection_table,
                 }
                 // if the pivot gid belongs to our domain, this group will be part
                 // of our domain, keep it and sort.
-                if (contains_gid(gids, gid)) {
+                if (contains_gid(gids, min_gid)) {
                     std::sort(sc.begin(), sc.end());
                     super_cells.emplace_back(std::move(sc));
                 }
