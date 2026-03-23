@@ -1462,7 +1462,10 @@ make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<
             const auto& set_params = mech.values();
             double* in_param = all_param_values.data() + param_values_offset;
             for (const auto& [name, def]: parameters) {
-                *in_param = set_params.count(name) ? set_params.at(name) : def;
+                *in_param = def;
+                for (const auto& [k, v]: set_params) {
+                    if (k == name) *in_param = v;
+                }
                 ++in_param;
             }
             inst_list.emplace_back((arb_size_type) data.D.geometry.location_cv(data.cell_idx, pm.loc, cv_prefer::cv_nonempty),
@@ -1700,7 +1703,10 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_des
                 config.norm_area.assign(n_cv, 1.);
                 auto parameters = ordered_parameters(info);
                 for (auto& [param, def]: parameters) {
-                    auto val = values.count(param) ? values.at(param) : def;
+                    auto val = def;
+                    for (const auto& [k, v]: values) {
+                        if (k == param) val = v;
+                    }
                     config.param_values.emplace_back(param, std::vector<arb_value_type>(n_cv, val));
                 }
                 if (!config.cv.empty()) result[name] = std::move(config);

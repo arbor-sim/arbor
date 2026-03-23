@@ -255,6 +255,12 @@ struct ARB_SYMBOL_VISIBLE mechanism_desc {
     mechanism_desc(const char* name): name_(name) {
         if (name_.empty()) throw cable_cell_error("mechanism_desc: null name");
     }
+    mechanism_desc(const char* name, std::unordered_map<std::string, double> param):
+        name_(name) {
+        for (const auto& [k, v]: param) set(k, v);
+    }
+    mechanism_desc(const char* name, std::vector<std::pair<std::string, double>> param):
+        name_(name), param_(std::move(param)) {}
 
     mechanism_desc() = default;
     mechanism_desc(const mechanism_desc&) = default;
@@ -264,7 +270,13 @@ struct ARB_SYMBOL_VISIBLE mechanism_desc {
     mechanism_desc& operator=(mechanism_desc&&) = default;
 
     mechanism_desc& set(const std::string& key, double value) {
-        param_[key] = value;
+        for (auto& [k, v]: param_) {
+            if (k == key) {
+                v = value;
+                return *this;
+            }
+        }
+        param_.push_back({key, value});
         return *this;
     }
 
@@ -277,22 +289,19 @@ struct ARB_SYMBOL_VISIBLE mechanism_desc {
     }
 
     double get(const std::string& key) const {
-        auto i = param_.find(key);
-        if (i==param_.end()) {
-            throw std::out_of_range("no field "+key+" set");
+        for (const auto& [k, v]: param_) {
+            if (k == key) return v;
         }
-        return i->second;
+        throw std::out_of_range("no field "+key+" set");
     }
 
-    const std::unordered_map<std::string, double>& values() const {
-        return param_;
-    }
+    const auto& values() const { return param_; }
 
     const std::string& name() const { return name_; }
 
 private:
     std::string name_;
-    std::unordered_map<std::string, double> param_;
+    std::vector<std::pair<std::string, double>> param_;
 };
 
 
@@ -300,41 +309,41 @@ private:
 struct ARB_SYMBOL_VISIBLE junction {
     mechanism_desc mech;
     explicit junction(mechanism_desc m): mech(std::move(m)) {}
-    junction(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
-        for (const auto& [param, value]: params) {
-            mech.set(param, value);
-        }
+    explicit junction(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+        for (const auto& [param, value]: params) mech.set(param, value);
     }
+    junction(const char* m, std::vector<std::pair<std::string, double>> params):
+        mech(m, std::move(params)) {}
 };
 
 struct ARB_SYMBOL_VISIBLE synapse {
     mechanism_desc mech;
     explicit synapse(mechanism_desc m): mech(std::move(m)) {}
-    synapse(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
-        for (const auto& [param, value]: params) {
-            mech.set(param, value);
-        }
+    explicit synapse(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+        for (const auto& [param, value]: params) mech.set(param, value);
     }
+    synapse(const char* m, std::vector<std::pair<std::string, double>> params):
+        mech(m, std::move(params)) {}
 };
 
 struct ARB_SYMBOL_VISIBLE density {
     mechanism_desc mech;
     explicit density(mechanism_desc m): mech(std::move(m)) {}
-    density(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
-        for (const auto& [param, value]: params) {
-            mech.set(param, value);
-        }
+    explicit density(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+        for (const auto& [param, value]: params) mech.set(param, value);
     }
+    density(const char* m, std::vector<std::pair<std::string, double>> params):
+        mech(m, std::move(params)) {}
 };
 
 struct ARB_SYMBOL_VISIBLE voltage_process {
     mechanism_desc mech;
     explicit voltage_process(mechanism_desc m): mech(std::move(m)) {}
-    voltage_process(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
-        for (const auto& [param, value]: params) {
-            mech.set(param, value);
-        }
+    explicit voltage_process(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+        for (const auto& [param, value]: params) mech.set(param, value);
     }
+    voltage_process(const char* m, std::vector<std::pair<std::string, double>> params):
+        mech(m, std::move(params)) {}
 };
 
 struct ARB_SYMBOL_VISIBLE ion_reversal_potential_method {
