@@ -28,6 +28,7 @@
 #include <arbor/util/unique_any.hpp>
 #include <arbor/cv_policy.hpp>
 
+#include "arbor/recipe.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
 #include "label_dict.hpp"
@@ -514,8 +515,11 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::density(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::density(name, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::density(mech, params);}))
+        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::density(mech, params);}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::density(name, util::dict_to_map<double>(parms));}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::density(mech, util::dict_to_map<double>(params));}))
+        .def("__getitem__", [](arb::density& syn, const std::string& k) {return syn.mech.get(k); })
+        .def("__setitem__", [](arb::density& syn, const std::string& k, double v) { syn.mech.set(k, v); })
         .def_readonly("mech", &arb::density::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";})
         .def("__str__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";});
@@ -525,8 +529,11 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::voltage_process(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(name, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(mech, params);}))
+        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::voltage_process(mech, params);}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::voltage_process(mech, util::dict_to_map<double>(params));}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::voltage_process(name, util::dict_to_map<double>(parms));}))
+        .def("__getitem__", [](arb::voltage_process& syn, const std::string& k) {return syn.mech.get(k); })
+        .def("__setitem__", [](arb::voltage_process& syn, const std::string& k, double v) { syn.mech.set(k, v); })
         .def_readonly("mech", &arb::voltage_process::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::voltage_process& d){return "<arbor.voltage_process " + mechanism_desc_str(d.mech) + ">";})
         .def("__str__", [](const arb::voltage_process& d){return "<arbor.voltage_process " + mechanism_desc_str(d.mech) + ">";});
@@ -572,8 +579,11 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::synapse(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::synapse(name, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::synapse(mech, params);}))
+        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::synapse(mech, params);}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::synapse(name, util::dict_to_map<double>(parms));}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::synapse(mech, util::dict_to_map<double>(params));}))
+        .def("__getitem__", [](arb::synapse& syn, const std::string& k) {return syn.mech.get(k); })
+        .def("__setitem__", [](arb::synapse& syn, const std::string& k, double v) { syn.mech.set(k, v); })
         .def_readonly("mech", &arb::synapse::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::synapse& s){return "<arbor.synapse " + mechanism_desc_str(s.mech) + ">";})
         .def("__str__", [](const arb::synapse& s){return "<arbor.synapse " + mechanism_desc_str(s.mech) + ">";});
@@ -583,8 +593,11 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::junction(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::junction(name, params);}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::junction(name, util::dict_to_map<double>(parms));}))
+        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::junction(mech, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::junction(mech, params);}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::junction(mech, util::dict_to_map<double>(params));}))
+        .def("__getitem__", [](arb::junction& syn, const std::string& k) {return syn.mech.get(k); })
+        .def("__setitem__", [](arb::junction& syn, const std::string& k, double v) { syn.mech.set(k, v); })
         .def_readonly("mech", &arb::junction::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::junction& j){return "<arbor.junction " + mechanism_desc_str(j.mech) + ">";})
         .def("__str__", [](const arb::junction& j){return "<arbor.junction " + mechanism_desc_str(j.mech) + ">";});
