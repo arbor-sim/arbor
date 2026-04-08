@@ -114,7 +114,7 @@ public:
         // Used to pick delay for a connection.
         std::uniform_real_distribution<float> delay_dist(0, 2*min_delay_);
         auto src_gen = std::mt19937(gid);
-        for (unsigned i=0; i<ncons; ++i) {
+        for (unsigned i=1; i<ncons; ++i) {
             // Make a connection with weight 0.
             // The source is randomly picked, with no self connections.
             src = dist(src_gen);

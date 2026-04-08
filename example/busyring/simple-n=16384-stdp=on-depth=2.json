@@ -1,7 +1,7 @@
 {
     "name": "with-stdp",
     "num-cells": 16384,
-    "synapses": 1000,
+    "synapses": 1001,
     "min-delay": 5,
     "duration": 200,
     "ring-size": 4,
