@@ -177,6 +177,12 @@ We plot the membrane potential and induced current over time
 and clearly observe the influence of the driving current and non-linearity of
 the HH-mechanism.
 
+If you can -- analytically or otherwise -- determine the value of :math:`\vec
+E(\vec r, t)` at the coordinates of the segment centres without reliance on
+external tools, this approach is sufficient and there is no need for the
+techniques demonstrated in the rest of this tutorial. The same holds for other
+quantities interacting with the simulation.
+
 (Ab)using NMODL to Create Custom Mechanisms
 -------------------------------------------
 
@@ -221,8 +227,8 @@ By using the ``debug`` mode, the intermediate C++ files will be preserved in the
        }
    }
 
-Note that if you have SIMD enabled, this might differently. We recommend
-disabling SIMD for this tutorial.
+Note that if you have SIMD enabled, this might look differently. We recommend
+disabling SIMD for this tutorial, since the C++ is simpler to follow.
 
 We are going to continue, as before, under the assumption that the electric
 field is homogeneous, so we need only to concern ourselves with three ``double``
@@ -388,6 +394,14 @@ ways to use this, examples include driving two simulations exchanging data over
 a shared memory segment, using a network connection to obtain values from
 external sources, and many more. The largest hurdle here is the synchronisation
 between Arbor and the external data source.
+
+It might be prudent to note that this approach will be slow, both in terms of
+setup and execution. We are explicitly adding one point process to each segment
+and setting its coordinates. Also, technically, setting both proximal and distal
+coordinates is redundant as segments (mostly) share their endpoints. The way the
+simulation is set up, the time is stepped at the granularity of the electric
+field evolution. We would much rather use asynchronous simulations and a
+lightweight signalling mechanism.
 
 References and Remarks
 ----------------------
