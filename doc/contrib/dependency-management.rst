@@ -57,7 +57,7 @@ Dependency update rules
 #. The version shall be compatible with the user platforms (see above).
 #. The version shall be compatible with the requirements in ``doc/dependencies.csv``.
 #. The version shall be the lowest possible to facilitate the building of complex environments.
-#. The version shall be compatible with those available in the latest Spack release ("Spack stable"). 
+#. The version shall be compatible with those available in the latest Spack release ("Spack stable").
 #. Actually updating shall remain a manual process. Update may require nontrivial updates to Arbor, and updates to Spack upstream (e.g. make PR for pybind update).
 #. A dependency update shall have a separate PR, and such a PR updates a single dependency at a time, unless the dependency update requires other dependencies to be updated.
 #. This PR requires review by at least two reviewers.
