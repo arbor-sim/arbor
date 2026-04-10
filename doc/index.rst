@@ -6,9 +6,6 @@ Arbor
 .. |ci| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-matrix.yml/badge.svg
     :target: https://github.com/arbor-sim/arbor/actions/workflows/test-matrix.yml
 
-.. |spack| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-spack.yml/badge.svg
-    :target: https://github.com/arbor-sim/arbor/actions/workflows/test-spack.yml
-
 .. |pip| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-pip.yml/badge.svg
     :target: https://github.com/arbor-sim/arbor/actions/workflows/test-pip.yml
 

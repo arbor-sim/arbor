@@ -11,7 +11,7 @@ To install Arbor using Spack, run ``spack install arbor``.
 Build Options
 -------------
 
-Arbor can be built with various options, just like the regular CMake build. For instance, to have Spack build Arbor with MPI enabled, run ``spack install arbor +mpi``. For a full overview of the build options, please refer to the `our Spack package.yml <https://github.com/arbor-sim/arbor/blob/master/spack/package.py>`_.
+Arbor can be built with various options, just like the regular CMake build. For instance, to have Spack build Arbor with MPI enabled, run ``spack install arbor +mpi``.
 
 Why use Spack?
 --------------
