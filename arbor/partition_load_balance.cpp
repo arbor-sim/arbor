@@ -12,7 +12,6 @@
 #include "cell_group_factory.hpp"
 #include "execution_context.hpp"
 #include "util/maputil.hpp"
-#include "util/partition.hpp"
 #include "util/span.hpp"
 #include "util/strprintf.hpp"
 
@@ -21,8 +20,16 @@ namespace arb {
 namespace {
 using gj_connection_set   = std::unordered_set<cell_gid_type>;
 using gj_connection_table = std::unordered_map<cell_gid_type, gj_connection_set>;
-using gid_range           = std::pair<cell_gid_type, cell_gid_type>;
 using super_cell          = std::vector<cell_gid_type>;
+
+struct gid_range {
+    cell_gid_type beg = 0;
+    cell_gid_type end = 0;
+    cell_gid_type dlt = 1;
+};
+
+// a (stepped) range contains all gids lo <= gid < hi that are multiples of the step
+bool contains_gid(const gid_range& gids, cell_gid_type gid) { return (gid >= gids.beg) && (gid < gids.end) && (gid % gids.dlt == 0); }
 
 // Build global GJ connectivity table such that
 // * table[gid] is the set of all gids connected to gid via a GJ
@@ -55,15 +62,23 @@ auto make_local_gid_range(context ctx, cell_gid_type num_global_cells) {
         // all previous domains, incl ours, have an extra element
         auto beg = domain_id*(block + 1);
         auto end = beg + block + 1;
-        return std::make_pair(beg, end);
+        return gid_range { .beg=beg, .end=end, .dlt=1 };
     }
     else {
         // in this case the first `extra` domains added an extra element and the
         // rest has size `block`
         auto beg = extra + domain_id*block;
         auto end = beg + block;
-        return std::make_pair(beg, end);
+        return gid_range { .beg=beg, .end=end, .dlt=1 };
     }
+}
+
+// assign gids round-robin, i.e. on N ranks, rank i gets gids [i, i + N, ...]
+auto make_round_robin_gids(context ctx, cell_gid_type num_global_cells) {
+    const auto& dist = ctx->distributed;
+    unsigned num_domains = dist->size();
+    unsigned domain_id = dist->id();
+    return gid_range { .beg=domain_id, .end=num_global_cells, .dlt=num_domains };
 }
 
 // build the list of components for the local domain, where a component is a list of
@@ -72,49 +87,48 @@ auto make_local_gid_range(context ctx, cell_gid_type num_global_cells) {
 // * all gids that are connected to the smallest gid are also in the list
 // * all gids w/o GJ connections come first (for historical reasons!?)
 auto build_components(const gj_connection_table& global_gj_connection_table,
-                      gid_range local_gid_range) {
-    // cells connected by gj
-    std::vector<super_cell> super_cells;
+                      const gid_range& gids) {
     // singular cells
     std::vector<super_cell> res;
+    for (cell_gid_type gid = gids.beg; gid < gids.end; gid += gids.dlt) {
+        if (!global_gj_connection_table.count(gid)) {
+            res.push_back({gid});
+        }
+    }
+
+    // cells connected by gj
     // track visited cells (cells that already belong to a group)
     gj_connection_set visited;
     // Connected components via BFS
     std::vector<cell_gid_type> q;
-    for (auto gid: util::make_span(local_gid_range)) {
-        if (global_gj_connection_table.count(gid)) {
-            // If cell hasn't been visited yet, must belong to new component
-            if (visited.insert(gid).second) {
-                // pivot gid: the smallest found in this group; must be at
-                // smaller or equal to `gid`.
-                auto min_gid = gid;
-                q.push_back(gid);
-                super_cell sc;
-                while (!q.empty()) {
-                    auto element = q.back();
-                    q.pop_back();
-                    sc.push_back(element);
-                    min_gid = std::min(element, min_gid);
-                    // queue up conjoined cells
-                    for (const auto& peer: global_gj_connection_table.at(element)) {
-                        if (visited.insert(peer).second) q.push_back(peer);
-                    }
-                }
-                // if the pivot gid belongs to our domain, this group will be part
-                // of our domain, keep it and sort.
-                if (min_gid >= local_gid_range.first) {
-                    std::sort(sc.begin(), sc.end());
-                    super_cells.emplace_back(std::move(sc));
-                }
+    for (cell_gid_type gid = gids.beg; gid < gids.end; gid += gids.dlt) {
+        // not in a GJ compound cell, skip
+        if (!global_gj_connection_table.count(gid)) continue;
+        // cell has been visited, skip
+        if (!visited.insert(gid).second) continue;
+        // pivot gid: the smallest found in this group; must be at smaller
+        // or equal to `gid`. We use this to determine whether this
+        // component is ours
+        auto min_gid = gid;
+        q.push_back(gid);
+        super_cell sc;
+        while (!q.empty()) {
+            auto element = q.back();
+            q.pop_back();
+            sc.push_back(element);
+            min_gid = std::min(element, min_gid);
+            // queue up conjoined cells
+            for (const auto& peer: global_gj_connection_table.at(element)) {
+                if (visited.insert(peer).second) q.push_back(peer);
             }
         }
-        else {
-            res.push_back({gid});
+        // if the pivot gid belongs to our domain, this group will be part
+        // of our domain: sort and add to result
+        if (contains_gid(gids, min_gid)) {
+            std::sort(sc.begin(), sc.end());
+            res.emplace_back(std::move(sc));
         }
     }
-    // append super cells to result
-    res.reserve(res.size() + super_cells.size());
-    std::move(super_cells.begin(), super_cells.end(), std::back_inserter(res));
     return res;
 }
 
@@ -163,18 +177,24 @@ auto build_group_parameters(context ctx,
 
 // Build the list of GJ-connected cells local to this domain.
 // NOTE We put this into its own function to avoid increasing RSS.
-auto build_local_components(const recipe& rec, context ctx) {
+auto build_local_components_by_range(const recipe& rec, context ctx) {
     const auto global_gj_connection_table = build_global_gj_connection_table(rec);
-    const auto local_gid_range = make_local_gid_range(ctx, rec.num_cells());
-    return build_components(global_gj_connection_table, local_gid_range);
+    const auto local_gids = make_local_gid_range(ctx, rec.num_cells());
+    return build_components(global_gj_connection_table, local_gids);
 }
 
-} // namespace
+auto build_local_components_by_round_robin(const recipe& rec, context ctx) {
+    const auto global_gj_connection_table = build_global_gj_connection_table(rec);
+    const auto local_gids = make_round_robin_gids(ctx, rec.num_cells());
+    return build_components(global_gj_connection_table, local_gids);
+}
 
-ARB_ARBOR_API domain_decomposition_ptr partition_load_balance(const recipe& rec,
-                                                          context ctx,
-                                                          const partition_hint_map& hint_map) {
-    const auto components = build_local_components(rec, ctx);
+template<typename F>
+domain_decomposition_ptr do_load_balance(const recipe& rec,
+                                         context ctx,
+                                         const partition_hint_map& hint_map,
+                                         F&& component_builder) {
+    const auto components = component_builder(rec, ctx);
 
     std::vector<cell_gid_type> local_gids;
     std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
@@ -196,8 +216,8 @@ ARB_ARBOR_API domain_decomposition_ptr partition_load_balance(const recipe& rec,
     for (const auto& params: kinds) {
         std::vector<cell_gid_type> group_elements;
         // group_elements are sorted such that the gids of all members of a component are consecutive.
-        for (auto cell: kind_lists[params.kind]) {
-            const auto& component = components[cell];
+        for (auto cell_idx: kind_lists[params.kind]) {
+            const auto& component = components[cell_idx];
             // adding the current group would go beyond alloted size, so add to the list
             // of groups and start a new one.
             if (group_elements.size() + component.size() > params.size && !group_elements.empty()) {
@@ -213,5 +233,19 @@ ARB_ARBOR_API domain_decomposition_ptr partition_load_balance(const recipe& rec,
     }
 
     return std::make_shared<domain_decomposition>(rec, ctx, groups);
+}    
+} // namespace
+
+ARB_ARBOR_API domain_decomposition_ptr partition_load_balance(const recipe& rec,
+                                                              context ctx,
+                                                              const partition_hint_map& hint_map) {
+    return do_load_balance(rec, ctx, hint_map, build_local_components_by_range);
 }
+
+ARB_ARBOR_API domain_decomposition_ptr round_robin_load_balance(const recipe& rec,
+                                                              context ctx,
+                                                                const partition_hint_map& hint_map) {
+    return do_load_balance(rec, ctx, hint_map, build_local_components_by_round_robin);    
+}
+
 } // namespace arb

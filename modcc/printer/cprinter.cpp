@@ -62,7 +62,6 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                        const std::vector<LocalVariable*>& indexed_vars,
                                        const std::list<index_prop>& indices,
                                        const simd_expr_constraint& constraint,
-                                       std::string constraint_name,
                                        const ApiFlags&);
 
 struct cprint {
@@ -154,7 +153,6 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
 
     if (with_simd) {
         out << "#include <" << arb_header_prefix() << "simd/simd.hpp>\n";
-        out << "#undef NDEBUG\n";
         out << "#include <cassert>\n";
     }
 
@@ -238,7 +236,6 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
     out << fmt::format(FMT_COMPILE("#define PPACK_IFACE_BLOCK \\\n"
                                    "[[maybe_unused]] auto {0}width                                                 = pp->width;\\\n"
                                    "[[maybe_unused]] auto {0}n_detectors                                           = pp->n_detectors;\\\n"
-                                   "[[maybe_unused]] auto {0}dt                                                    = pp->dt;\\\n"
                                    "[[maybe_unused]] arb_index_type * __restrict__ {0}vec_ci                       = pp->vec_ci;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_v                        = pp->vec_v;\\\n"
                                    "[[maybe_unused]] arb_value_type * __restrict__ {0}vec_i                        = pp->vec_i;\\\n"
@@ -262,9 +259,20 @@ ARB_LIBMODCC_API std::string emit_cpp_source(const Module& module_, const printe
                                    "[[maybe_unused]] arb_index_type* __restrict__ {0}index_constraints_independent = pp->index_constraints.independent;\\\n"
                                    "[[maybe_unused]] arb_index_type* __restrict__ {0}index_constraints_none        = pp->index_constraints.none;\\\n"),
                        pp_var_pfx);
+    if (with_simd) {
+        out << fmt::format(FMT_COMPILE("[[maybe_unused]] auto {0}dt                                                    = simd_cast<simd_value>(pp->dt);\\\n"), pp_var_pfx);
+    }
+    else {
+        out << fmt::format(FMT_COMPILE("[[maybe_unused]] auto {0}dt                                                    = pp->dt;\\\n"), pp_var_pfx);
+    }
     auto global = 0;
     for (const auto& scalar: global_ids) {
-        out << fmt::format("[[maybe_unused]] auto {}{} = pp->globals[{}];\\\n", pp_var_pfx, scalar.name(), global);
+        if (with_simd) {
+            out << fmt::format("[[maybe_unused]] auto {}{} = simd_cast<simd_value>(pp->globals[{}]);\\\n", pp_var_pfx, scalar.name(), global);
+        }
+        else {
+            out << fmt::format("[[maybe_unused]] auto {}{} = pp->globals[{}];\\\n", pp_var_pfx, scalar.name(), global);
+        }
         global++;
     }
     out << fmt::format("[[maybe_unused]] auto const * const * {}random_numbers = pp->random_numbers;\\\n", pp_var_pfx);
@@ -639,10 +647,8 @@ void SimdPrinter::visit(AssignmentExpression* e) {
         out_ << "indirect(" << pfx << lhs->name() << "+" << index << ", simd_width_) = ";
         if (!input_mask_.empty()) out_ << "S::where(" << input_mask_ << ", ";
 
-        // If the rhs is a scalar identifier or a number, it needs to be cast to a vector.
-        auto id = e->rhs()->is_identifier();
-        auto num = e->rhs()->is_number();
-        bool cast = num || (id && scalars_.count(id->name()));
+        // If the rhs is a number it needs to be cast to a vector.
+        bool cast = e->rhs()->is_number();
 
         if (cast) out_ << "simd_cast<simd_value>(";
         e->rhs()->accept(this);
@@ -997,8 +1003,7 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                        const std::vector<LocalVariable*>& indexed_vars,
                                        const std::vector<VariableExpression*>& scalars,
                                        const std::list<index_prop>& indices,
-                                       const simd_expr_constraint& constraint,
-                                       std::string underlying_constraint_name,
+                                       simd_expr_constraint constraint,
                                        const ApiFlags& flags) {
     ENTER(out);
     out << fmt::format("for (auto i_ = 0ul; i_ < {0}index_constraints_n_{1}; i_++) {{\n"
@@ -1010,9 +1015,33 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                        "assign(w_, indirect(({}weight+index_), simd_width_));\n",
                        pp_var_pfx);
 
+    ENTER(out);
+    if (constraint == simd_expr_constraint::contiguous) {
+        out
+         << fmt::format("for (auto i_ = 0ul; i_ < {0}index_constraints_n_{1}; i_ += 2) {{\n",
+                        pp_var_pfx, to_string(constraint))
+         << indent
+         << fmt::format("for (auto index_ = {0}index_constraints_{1}[i_]; index_ < {0}index_constraints_{1}[i_+1]; index_ += simd_width_) {{\n",
+                           pp_var_pfx, to_string(constraint))
+         << indent
+         << fmt::format("simd_value w_;\n"
+                        "assign(w_, indirect(({}weight+index_), simd_width_));\n",
+                        pp_var_pfx);
+    }
+    else {
+        out << fmt::format("for (auto i_ = 0ul; i_ < {0}index_constraints_n_{1}; i_++) {{\n"
+                           "    arb_index_type index_ = {0}index_constraints_{1}[i_];\n",
+                           pp_var_pfx,
+                           to_string(constraint))
+            << indent
+            << fmt::format("simd_value w_;\n"
+                           "assign(w_, indirect(({}weight+index_), simd_width_));\n",
+                           pp_var_pfx);
+    }
     emit_simd_body_for_loop(out, body, indexed_vars, scalars, indices, constraint, flags);
 
     out << popindent << "}\n";
+    if (constraint == simd_expr_constraint::contiguous) out << popindent << "}\n";
     EXIT(out);
 }
 
