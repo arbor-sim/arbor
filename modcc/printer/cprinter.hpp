@@ -47,6 +47,15 @@ enum class simd_expr_constraint{
     none,
 };
 
+inline std::string
+to_string(simd_expr_constraint c) {
+    if (c == simd_expr_constraint::constant)    return "constant";
+    if (c == simd_expr_constraint::contiguous)  return "contiguous";
+    if (c == simd_expr_constraint::independent) return "independent";
+    if (c == simd_expr_constraint::none)        return "none";
+    throw std::runtime_error{"Impossible simd constraint"};
+}
+
 struct ApiFlags {
     bool cv_loop = true;
     bool ppack_iface=true;

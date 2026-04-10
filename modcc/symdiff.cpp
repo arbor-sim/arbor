@@ -478,6 +478,16 @@ public:
             }
         }
 
+        // peephole: neg neg => id
+        if (e->op() == tok::minus) {
+            if (auto inner = e->expression()->is_unary(); inner) {
+                if (inner->op() == tok::minus) {
+                    result_ = inner->expression()->clone();
+                    return;
+                }
+            }
+        }
+
         expression_ptr arg = result();
         result_ = e->clone();
         result_->is_unary()->replace_expression(std::move(arg));
