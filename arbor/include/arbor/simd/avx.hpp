@@ -898,6 +898,10 @@ struct avx2_double4: avx_double4 {
                 r)));
     }
 
+    static __m256d fms(const __m256d& a, const __m256d& b, const __m256d& c) {
+        return _mm256_fmsub_pd(a, b, c);
+    }
+    
 protected:
     static __m128i lo_epi32(__m256i a) {
         a = _mm256_shuffle_epi32(a, 0x08);
@@ -927,10 +931,6 @@ protected:
     template <typename... T>
     static __m256d horner1(__m256d x, double a0, T... tail) {
         return fma(x, horner1(x, tail...), broadcast(a0));
-    }
-
-    static __m256d fms(const __m256d& a, const __m256d& b, const __m256d& c) {
-        return _mm256_fmsub_pd(a, b, c);
     }
 
     // Compute 2.0^n.
