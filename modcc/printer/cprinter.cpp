@@ -1006,16 +1006,6 @@ void emit_simd_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
                                        simd_expr_constraint constraint,
                                        const ApiFlags& flags) {
     ENTER(out);
-    out << fmt::format("for (auto i_ = 0ul; i_ < {0}index_constraints_n_{1}; i_++) {{\n"
-                       "    arb_index_type index_ = {0}index_constraints_{1}[i_];\n",
-                       pp_var_pfx,
-                       underlying_constraint_name)
-        << indent
-        << fmt::format("simd_value w_;\n"
-                       "assign(w_, indirect(({}weight+index_), simd_width_));\n",
-                       pp_var_pfx);
-
-    ENTER(out);
     if (constraint == simd_expr_constraint::contiguous) {
         out
          << fmt::format("for (auto i_ = 0ul; i_ < {0}index_constraints_n_{1}; i_ += 2) {{\n",
@@ -1064,24 +1054,13 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method,
             << "assert(simd_width_ <= (unsigned)S::width(simd_cast<simd_value>(0)));\n";
         if (!indices.empty()) {
             //Generate for loop for all contiguous simd_vectors
-            simd_expr_constraint constraint = simd_expr_constraint::contiguous;
-            std::string underlying_constraint = "contiguous";
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint, flags);
-
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, simd_expr_constraint::contiguous, flags);
             //Generate for loop for all independent simd_vectors
-            constraint = simd_expr_constraint::independent;
-            underlying_constraint = "independent";
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint, flags);
-
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, simd_expr_constraint::independent, flags);
             //Generate for loop for all simd_vectors that have no optimizing constraints
-            constraint = simd_expr_constraint::none;
-            underlying_constraint = "none";
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint, flags);
-
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, simd_expr_constraint::none, flags);
             //Generate for loop for all constant simd_vectors
-            constraint = simd_expr_constraint::constant;
-            underlying_constraint = "constant";
-            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, constraint, underlying_constraint, flags);
+            emit_simd_for_loop_per_constraint(out, body, indexed_vars, scalars, indices, simd_expr_constraint::constant, flags);
         }
         else {
             // We may nonetheless need to read a global scalar indexed variable.

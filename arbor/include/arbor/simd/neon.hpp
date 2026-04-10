@@ -235,10 +235,6 @@ struct neon_double2 : implbase<neon_double2> {
     
     static float64x2_t div(const float64x2_t& a, const float64x2_t& b) { return vdivq_f64(a, b); }
 
-    static float64x2_t fma(const float64x2_t& a, const float64x2_t& b, const float64x2_t& c) {
-        return vfmaq_f64(c, a, b);
-    }
-
     static float64x2_t logical_not(const float64x2_t& a) {
         return vreinterpretq_f64_u32(vmvnq_u32(vreinterpretq_u32_f64(a)));
     }
