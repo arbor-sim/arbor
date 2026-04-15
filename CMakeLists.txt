@@ -336,7 +336,7 @@ endif()
 
 CPMFindPackage(NAME pugixml
                GITHUB_REPOSITORY zeux/pugixml
-               VERSION 1.13
+               VERSION 1.15
                DOWNLOAD_ONLY YES)
 add_library(ext-pugixml INTERFACE)
 if(pugixml_ADDED)
@@ -350,8 +350,8 @@ install(TARGETS ext-pugixml EXPORT arbor-targets)
 
 CPMFindPackage(NAME fmt
               GITHUB_REPOSITORY fmtlib/fmt
-              VERSION 10.0.0
-              GIT_TAG 10.0.0)
+              VERSION 12.1.0
+              GIT_TAG 12.1.0)
 
 add_library(ext-gtest INTERFACE)
 add_library(ext-bench INTERFACE)
