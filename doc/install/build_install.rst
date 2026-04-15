@@ -645,22 +645,53 @@ Heterogeneous systems
 Some HPC clusters offer different types of nodes, with different hardware and
 where some may have GPUs. In order for the compilers to correctly target the
 intended hardware and link to the appropriate libraries it may be necessary to
-load a top-level module for cross-compiling. For example, on the hybrid Piz
-Daint system, one would execute:
+load a top-level module for cross-compiling. For example, on the hybrid Juwels
+Booster system, one would execute:
 
 .. code-block:: bash
 
-    module load daint-gpu
+    module load Stages/2026 CUDA
 
 This loads the required dependencies for the GPU node architecture.
+
+Bull / Atos Systems
+-------------------
+
+We need to add implementations for MPI and some build tools
+
+.. code-block:: bash
+
+   module load OpenMPI GCC CMake
+
+and if the Python interface is desired
+
+.. code-block:: bash
+
+   module load Python SciPy-bundle mpi4py
+
+then, in a proper build directory, we can configure the build. A common
+seltection of options might be
+
+.. code-block:: bash
+
+    cmake .. -DARB_VECTORIZE=ON -DCMAKE_BUILD_TYPE=release     # use SIMD and select production build \
+             -DARB_WITH_MPI=ON                                 # use MPI                              \
+             -DARB_GPU=cuda -DCMAKE_CUDA_ARCHITECTURES="80;90" # enable GPU support for A100 and H100 \
+             -DARB_WITH_PYTHON=ON -DARB_BUILD_PYTHON_STUBS=OFF # enable the Python interface
+
+if GPU support is not required, the third line is omitted and MPI or Python
+support can similarly disabled by setting the relevant options to ``OFF``. These
+options should be correct on JSC systems like JUWELS and JUPITER. Alternatively,
+the ParaStation MPI can be used, likewise available as a module.
+
 
 Cray systems
 ------------
 
-The compiler used by the MPI wrappers is set using a "programming environment" module.
-The first thing to do is change this module, which by default is set to the Cray
-programming environment, to a compiler that can compile Arbor.
-For example, to use the GCC compilers, select the GNU programming environment:
+The compiler used by the MPI wrappers is set using a "programming environment"
+module. The first thing to do is change this module, which by default is set to
+the Cray programming environment, to a compiler that can compile Arbor. For
+example, to use the GCC compilers, select the GNU programming environment:
 
 .. note::
 
@@ -738,14 +769,14 @@ python version, which knows about the Cray system:
 
 .. code-block:: bash
 
-    $ module load cray-python/3.9.4.1 
+    $ module load cray-python/3.9.4.1
 
 Putting it all together, a typical workflow to build Arbor on a Cray system is:
 
 .. code-block:: bash
 
     export CRAYPE_LINK_TYPE=dynamic    # only required if Cray PE version < 19.06
-    
+
     # For GPU setup
     module load daint-gpu/21.09        # system specific
     module load craype-accel-nvidia60  # system specific
@@ -951,41 +982,41 @@ If you hope to install Arbor from source in a virtual environment in order not t
 
 .. code-block:: bash
 
-    #create a virtual environment    
+    #create a virtual environment
     conda create --name arbor_test
     conda activate arbor_test
-    
+
     #go to the folder and clone the Arbor source package from GitHub
     cd ~/miniconda3/envs/arbor_test/
     mkdir src
     cd src
     git clone https://github.com/arbor-sim/arbor.git --recurse-submodules
-    
+
     #install python and numpy in this environment
     conda install python=3.12.2
     conda install numpy
-    
+
     #start the build
     cd arbor
     mkdir build
     cd build
     cmake .. -GNinja -DCMAKE_CXX_COMPILER=$(which g++) -DCMAKE_C_COMPILER=$(which gcc) -DARB_WITH_PYTHON=ON -DARB_VECTORIZE=ON -DPython3_EXECUTABLE=$(which python3) -DARB_USE_BUNDLED_LIBS=ON
-    
+
     #activate ninja to install
     ninja
     sudo ninja install
-    
+
     #correct the path to the site packages and the libc files
     #first request the right Python site package path
     python -c 'import numpy; print(numpy.__path__)'
 
-    #load the right path to the one used for installing    
+    #load the right path to the one used for installing
     #replace <site-packages> with the path you get in the previous operation before ‘/numpy’
     cp -r ~/miniconda3/envs/arbor_test/src/arbor/build/python/arbor <site-packages>
-    
-    #redirect the libc files such that the miniconda environment can access it    
+
+    #redirect the libc files such that the miniconda environment can access it
     ln -sf /lib/x86_64-linux-gnu/libstdc++.so.6 ~/miniconda3/envs/arbor_test/bin/../lib/libstdc++.so.6
-    
+
     #go to any working directory to try if you successfully installed arbor, by starting python and importing arbor.
     #one thing to add here could be testing for the version, i.e.,
     python -c 'import arbor; print(arbor.__version__)'
@@ -996,4 +1027,3 @@ If you hope to install Arbor from source in a virtual environment in order not t
     conda activate arbor_test
     python
     >>>import arbor
-

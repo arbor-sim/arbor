@@ -65,7 +65,7 @@ exclude = [
     "doc/scripts/inputs.py",
     "doc/scripts/make_images.py",
     ".*",
-    "spack/package.py"]
+    ]
 
 line-length = 88
 indent-width = 4
