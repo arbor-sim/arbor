@@ -535,7 +535,7 @@ public:
             result_ = make_expression<NegUnaryExpression>(loc, std::move(rhs));
 
         }
-        else if (expr_value(lhs) == -1.0) {
+        else if (expr_value(rhs) == -1.0) {
             result_ = make_expression<NegUnaryExpression>(loc, std::move(lhs));
         }
         // -a * -b = a * b
