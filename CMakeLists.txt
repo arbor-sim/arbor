@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 4.0.0)
 include(CMakeDependentOption)
 include(CheckIPOSupported)
 
