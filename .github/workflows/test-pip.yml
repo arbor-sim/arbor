@@ -17,11 +17,11 @@ jobs:
         os: [ubuntu-24.04]
         python-version: [3.12]
     steps:
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Clone w/ submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Install MPI dependencies

@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get Arbor
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Create unique version in pyproject.toml
@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Get Arbor
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Delete pyproject.toml
@@ -69,7 +69,7 @@ jobs:
       - name: Get packages
         run: python3 -m pip install build
       - name: Get Arbor
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Delete pyproject.toml
@@ -119,7 +119,7 @@ jobs:
     needs: [build_binary_wheels, build_sdist]
     steps:
       - name: "Clone w/ submodules"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
