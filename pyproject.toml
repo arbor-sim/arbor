@@ -59,6 +59,7 @@ exclude = [
     ".venv",
     ".vscode",
     "build",
+    "spack",
     "dist",
     "ext",
     "install-*",
@@ -69,7 +70,7 @@ exclude = [
 
 line-length = 88
 indent-width = 4
-target-version = "py312"
+target-version = "py314"
 
 [tool.ruff.lint]
 ignore = [ # for black

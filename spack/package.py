@@ -89,7 +89,7 @@ class Arbor(CMakePackage, CudaPackage):
     conflicts("%intel")
 
     depends_on("cmake@3.19:", type="build")
-    depends_on("c", type="build")  # generated 
+    depends_on("c", type="build")  # generated
     depends_on("cxx", type="build")  # generated
 
     # misc dependencies
@@ -126,7 +126,7 @@ class Arbor(CMakePackage, CudaPackage):
         depends_on("python@3.9:", when="@0.9.1:", type=("build", "run"))
         depends_on("python@3.10:", when="@0.10.0:", type=("build", "run"))
         depends_on("python@3.10:", when="@0.11.0:", type=("build", "run"))
-        depends_on("python@3.11:", when="@0.12.0:", type=("build", "run")) # 
+        depends_on("python@3.11:", when="@0.12.0:", type=("build", "run")) #
         depends_on("py-numpy", type=("build", "run"))
         depends_on("py-numpy@2.0.0:", when="@0.12.0:", type=("build", "run"))
         depends_on("py-pybind11@2.6:", type="build")
