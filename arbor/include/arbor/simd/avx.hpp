@@ -897,10 +897,6 @@ struct avx2_double4: avx_double4 {
             ifelse(is_small, broadcast(-HUGE_VAL),
                 r)));
     }
-
-    static __m256d fms(const __m256d& a, const __m256d& b, const __m256d& c) {
-        return _mm256_fmsub_pd(a, b, c);
-    }
     
 protected:
     static __m128i lo_epi32(__m256i a) {
@@ -933,6 +929,10 @@ protected:
         return fma(x, horner1(x, tail...), broadcast(a0));
     }
 
+    static __m256d fms(const __m256d& a, const __m256d& b, const __m256d& c) {
+        return _mm256_fmsub_pd(a, b, c);
+    }
+    
     // Compute 2.0^n.
     // Overrides avx_double4::exp2int.
     static __m256d exp2int(__m128i n) {
