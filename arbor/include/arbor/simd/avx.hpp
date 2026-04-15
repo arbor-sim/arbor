@@ -409,7 +409,7 @@ struct avx_double4: implbase<avx_double4> {
     //     e^g = 1 + 2·g·P(g^2) / (Q(g^2)-g·P(g^2)).
     //
     // Note that the coefficients for R are close to but not the same as those
-    // from the 6,6 Padé approximant to the exponential. 
+    // from the 6,6 Padé approximant to the exponential.
     //
     // The exponents n and g are calculated by:
     //
@@ -420,7 +420,7 @@ struct avx_double4: implbase<avx_double4> {
     //
     //     |g| = |x - n·ln(2)|
     //         = |x - x + α·ln(2)|
-    //  
+    //
     // for some fraction |α| ≤ 0.5, and thus |g| ≤ 0.5ln(2) ≈ 0.347.
     //
     // Tne subtraction x - n·ln(2) is performed in two parts, with
@@ -897,7 +897,7 @@ struct avx2_double4: avx_double4 {
             ifelse(is_small, broadcast(-HUGE_VAL),
                 r)));
     }
-    
+
 protected:
     static __m128i lo_epi32(__m256i a) {
         a = _mm256_shuffle_epi32(a, 0x08);
@@ -932,7 +932,7 @@ protected:
     static __m256d fms(const __m256d& a, const __m256d& b, const __m256d& c) {
         return _mm256_fmsub_pd(a, b, c);
     }
-    
+
     // Compute 2.0^n.
     // Overrides avx_double4::exp2int.
     static __m256d exp2int(__m128i n) {
