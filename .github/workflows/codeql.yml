@@ -61,7 +61,10 @@ jobs:
 
         # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
         # queries: security-extended,security-and-quality
-
+    - name: Set up cmake
+      uses: jwlawson/actions-setup-cmake@v2.2
+      with:
+        cmake-version: 4.x
     - name: Build arbor
       run: |
            mkdir build
