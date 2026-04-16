@@ -9,7 +9,8 @@ import numpy as np
 import arbor as A
 from arbor import units as U
 from .. import fixtures
-if A.config()['mpi']:
+
+if A.config()["mpi"]:
     from mpi4py import MPI
 
 """
@@ -53,7 +54,7 @@ class TestMultipleConnections(unittest.TestCase):
         return syn_mechanism
 
     def gather_all_spikes(self, spikes):
-        if A.config()['mpi']:
+        if A.config()["mpi"]:
             local = list(zip(spikes["source"]["gid"].tolist(), spikes["time"].tolist()))
             all_spikes = MPI.COMM_WORLD.allgather(local)
             flat = [x for sublist in all_spikes for x in sublist]
