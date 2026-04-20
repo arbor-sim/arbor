@@ -177,8 +177,9 @@ df = pd.concat(
 )
 
 sns.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Simulator", errorbar=None)
+spikes = model.spikes[:]
 plt.scatter(
-    model.spikes, [-40] * len(model.spikes), color=sns.color_palette()[2], zorder=20
+    spikes, [-40] * len(spikes), color=sns.color_palette()[2], zorder=20
 )
 plt.bar(
     200,
@@ -190,3 +191,4 @@ plt.bar(
     color="0.9",
 )
 plt.savefig("single_cell_allen_result.pdf")
+assert len(spikes) == 4, f"Expected four spikes, got {spikes}"

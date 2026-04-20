@@ -29,6 +29,7 @@ runpyex single_cell_model.py
 runpyex single_cell_nml.py python/example/morph.nml
 runpyex single_cell_recipe.py
 runpyex single_cell_stdp.py
+runpyex single_cell_allen.py
 runpyex single_cell_swc.py python/example/single_cell_detailed.swc
 runpyex network_ring.py
 # runpyex network_ring_mpi.py # requires MPI

@@ -12,7 +12,7 @@
 #include "visitor.hpp"
 
 // normalize row iff system is larger than this
-constexpr int normalization_limit = 15;
+constexpr int normalization_limit = 5;
 
 // Cnexp solver visitor implementation.
 
