@@ -178,9 +178,7 @@ df = pd.concat(
 
 sns.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Simulator", errorbar=None)
 spikes = model.spikes[:]
-plt.scatter(
-    spikes, [-40] * len(spikes), color=sns.color_palette()[2], zorder=20
-)
+plt.scatter(spikes, [-40] * len(spikes), color=sns.color_palette()[2], zorder=20)
 plt.bar(
     200,
     max(reference) - min(reference),
