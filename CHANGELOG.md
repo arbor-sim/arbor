@@ -1,3 +1,100 @@
+# v0.12.1
+
+A small, but critical fix to avoid brokn wheels and binary build on Macos with
+Apple Clang.
+
+# v0.12.0
+
+This release constitutes a major improvement in terms of parallel performance by
+replacing the underlying MPI algorithm (see our paper at IPDPS'26) and setup
+time by improving label resolution and adding the access to raw labels. On the
+functional side, we introduced AdEx cells, added a new load balancing method,
+and probes for the reversal potential.
+
+## What's Changed
+* V0.11.0 rc by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2454
+* Release finalisation by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2455
+* CSCS CI by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2448
+* Re-factor connection setup and event dispatch. by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2449
+* Add tiled busyring by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2456
+* Fill in a missing part of the docs by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2462
+* Major Optimisations in Label Resolution by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2458
+* Refactor domain decomposition by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2457
+* Add an escape hatch to label resolution by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2459
+* Fix crash on probding elided values by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2466
+* Only store PRNG data if needed by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2467
+* 🐍 Polish `label_dict` by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2451
+* use better builtins for double max/min by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2469
+* Remove typed map and refactor cable cell by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2468
+* Many small refactoring / clean-ups / memory savings by @thorstenhater
+in https://github.com/arbor-sim/arbor/pull/2465
+* Bump pb11 to latest major version by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2475
+* Fix GPU test issues by @ibanezbm in
+https://github.com/arbor-sim/arbor/pull/2479
+* Align versions by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2481
+* Add probing of eX. by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2478
+* Add trivial compiler test by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2488
+* Replace MPI_Allgatherv with MPI_Alltoallv for communication pattern by
+@ibanezbm in https://github.com/arbor-sim/arbor/pull/2460
+* Use CBRNG in schedules. by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2386
+* Update year 🎉 by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2491
+* Don't use deprecated numpy functions by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2490
+* Co-simulation tutorial by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2492
+* Nested timers by @marvinKaster in
+https://github.com/arbor-sim/arbor/pull/2486
+* Clean-up iclamp interface by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2494
+* Fix override by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2493
+* Better use of __restrict__ by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2476
+* Add AdEx cells. by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2230
+* units in cv policy by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2495
+* Flat map in mechanism description for 1.5x speed-up in synapse
+creation by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2501
+* Perf/compress contiguous by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2470
+* Allow more SWC files in the parser by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2471
+* STDP case for busyring benchmark by @jlubo in
+https://github.com/arbor-sim/arbor/pull/2489
+* round robin load balance by @thorstenhater in
+https://github.com/arbor-sim/arbor/pull/2500
+
+## New Contributors
+* @ibanezbm made their first contribution in
+https://github.com/arbor-sim/arbor/pull/2479
+* @marvinKaster made their first contribution in
+https://github.com/arbor-sim/arbor/pull/2486
+
+**Full Changelog**:
+https://github.com/arbor-sim/arbor/compare/v0.11.0...v0.12.0
+
 # v0.11.0 (*22.04.2025* Happy Easter)
 
 Focussing on bug fixes, modernisation and performance improvements.
