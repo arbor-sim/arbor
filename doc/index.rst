@@ -1,7 +1,7 @@
 Arbor
 =====
 
-|ci| |spack| |pip| |pythonwheels| |zlatest| |gitter| |matrix|
+|ci| |pip| |pythonwheels| |zlatest| |gitter| |matrix|
 
 .. |ci| image:: https://github.com/arbor-sim/arbor/actions/workflows/test-matrix.yml/badge.svg
     :target: https://github.com/arbor-sim/arbor/actions/workflows/test-matrix.yml
@@ -51,6 +51,12 @@ The Arbor software can be cited by version via Zenodo or via Arbors introductory
 Latest version
     |zlatest|
 
+Version 0.12.1
+    |z0121|
+
+Version 0.12.0
+    |z0120|
+
 Version 0.11.0
     |z0110|
 
@@ -95,9 +101,15 @@ Cite (Bibtex format)
 .. |intropaper| image:: https://zenodo.org/badge/DOI/10.1109/EMPDP.2019.8671560.svg
     :target: https://doi.org/10.1109/EMPDP.2019.8671560
 
-.. |zlatest| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.15277617.svg
-    :target: https://doi.org/10.5281/zenodo.15277617
+.. |zlatest| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.19705456.svg
+    :target: https://doi.org/10.5281/zenodo.19705456
+             
+.. |z0121| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.19705456.svg
+    :target: https://doi.org/10.5281/zenodo.19705456
 
+.. |z0120| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.19705135.svg
+  :target: https://doi.org/10.5281/zenodo.19705135
+             
 .. |z0110| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.15277617.svg
     :target: https://doi.org/10.5281/zenodo.15277617
 
@@ -106,16 +118,16 @@ Cite (Bibtex format)
 
 .. |z090| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.8233847.svg
     :target: https://doi.org/10.5281/zenodo.8233847
-    
+
 .. |z081| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7473671.svg
     :target: https://doi.org/10.5281/zenodo.7473671
-    
+
 .. |z08| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7323982.svg
     :target: https://doi.org/10.5281/zenodo.7323982
-    
+
 .. |z07| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.6865725.svg
     :target: https://doi.org/10.5281/zenodo.6865725
-    
+
 .. |z06| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.5910151.svg
     :target: https://doi.org/10.5281/zenodo.5910151
 
