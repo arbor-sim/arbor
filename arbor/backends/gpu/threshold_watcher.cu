@@ -22,62 +22,71 @@ namespace kernel {
 ///     values     : values at t_prev
 ///     thresholds : threshold values to watch for crossings
 __global__
-void test_thresholds_impl(
-    int size,
-    arb_value_type t_after,
-    arb_value_type t_before,
-    const arb_index_type* __restrict__ const src_to_spike,
-    arb_value_type* __restrict__ const time_since_spike,
-    stack_storage<threshold_crossing>& stack,
-    arb_index_type* __restrict__ const is_crossed,
-    arb_value_type* __restrict__ const prev_values,
-    const arb_index_type* __restrict__ const cv_index,
-    const arb_value_type* __restrict__ const values,
-    const arb_value_type* __restrict__ const thresholds,
-    bool record_time_since_spike)
-{
-    int i = threadIdx.x + blockIdx.x*blockDim.x;
-
-    bool crossed = false;
-    float crossing_time;
-
-    if (i<size) {
-        // Test for threshold crossing
-        const auto cv     = cv_index[i];
+void test_thresholds_record_impl(int size,
+                                 arb_value_type t_after, arb_value_type t_before,
+                                 const arb_index_type* __restrict__ const src_to_spike,
+                                 arb_value_type* __restrict__ const time_since_spike,
+                                 stack_storage<threshold_crossing>& stack,
+                                 arb_index_type* __restrict__ const is_crossed,
+                                 arb_value_type* __restrict__ const prev_values,
+                                 const arb_index_type* __restrict__ const cv_index,
+                                 const arb_value_type* __restrict__ const values,
+                                 const arb_value_type* __restrict__ const thresholds) {
+    int tid = threadIdx.x + blockIdx.x*blockDim.x;
+    if (tid < size) {
+        const auto thresh = thresholds[tid];
+        const auto cv     = cv_index[tid];
         const auto v_prev = prev_values[cv];
         const auto v      = values[cv];
-        const auto thresh = thresholds[i];
-        arb_index_type spike_idx = 0;
-
-        // Reset all spike times to -1.0 indicating no spike has been recorded on the detector
-        if (record_time_since_spike) {
-            spike_idx = src_to_spike[i];
-            time_since_spike[spike_idx] = -1.0;
-        }
-        if (!is_crossed[i]) {
-            if (v>=thresh) {
-                // The threshold has been passed, so estimate the time using
-                // linear interpolation
-                auto pos = (thresh - v_prev)/(v - v_prev);
-                crossing_time = gpu::lerp(t_before, t_after, pos);
-
-                if (record_time_since_spike) {
-                    time_since_spike[spike_idx] = t_after - crossing_time;
-                }
-
-                is_crossed[i] = 1;
-                crossed = true;
-            }
-        }
-        else if (v<thresh) {
-            is_crossed[i]=0;
-        }
-
+        // reset for the next round
         prev_values[cv] = v;
-    }
+        
+        // Reset all spike times to -1.0 indicating no spike has been recorded
+        // on the detector
+        auto spike_idx = src_to_spike[tid];
+        time_since_spike[spike_idx] = -1.0;
 
-    if (crossed) {
-        push_back(stack, {arb_size_type(i), crossing_time});
+        // do not overwrite previous crossings
+        if (!is_crossed[tid] && v >= thresh) {
+            // The threshold has been passed, so estimate the time using linear
+            // interpolation
+            const auto pos = (thresh - v_prev)/(v - v_prev);
+            const auto crossing_time = gpu::lerp(t_before, t_after, pos);
+            time_since_spike[spike_idx] = t_after - crossing_time;
+            is_crossed[tid] = 1;
+            push_back(stack, {arb_size_type(tid), crossing_time});                
+        }
+        if (v < thresh) is_crossed[tid] = 0;
+    }
+}
+
+__global__
+void test_thresholds_impl(int size,
+                          arb_value_type t_after, arb_value_type t_before,
+                          stack_storage<threshold_crossing>& stack,
+                          arb_index_type* __restrict__ const is_crossed,
+                          arb_value_type* __restrict__ const prev_values,
+                          const arb_index_type* __restrict__ const cv_index,
+                          const arb_value_type* __restrict__ const values,
+                          const arb_value_type* __restrict__ const thresholds) {
+    int tid = threadIdx.x + blockIdx.x*blockDim.x;
+    if (tid < size) {
+        const auto thresh = thresholds[tid];
+        const auto cv     = cv_index[tid];
+        const auto v_prev = prev_values[cv];
+        const auto v      = values[cv];
+        // reset for the next round
+        prev_values[cv] = v;
+        // do not overwrite previous crossings
+        if (!is_crossed[tid] && v >= thresh) {
+            // The threshold has been passed, so estimate the time using linear
+            // interpolation
+            auto pos = (thresh - v_prev)/(v - v_prev);
+            auto crossing_time = gpu::lerp(t_before, t_after, pos);
+            is_crossed[tid] = 1;
+            push_back(stack, {arb_size_type(tid), crossing_time});
+        }
+        if (v < thresh) is_crossed[tid] = 0;
     }
 }
 
@@ -90,36 +99,43 @@ extern void reset_crossed_impl(
     const arb_value_type* __restrict__ const thresholds)
 {
     int i = threadIdx.x + blockIdx.x*blockDim.x;
-    if (i<size) {
+    if (i < size) {
         is_crossed[i] = values[cv_index[i]] >= thresholds[i];
     }
 }
 
 } // namespace kernel
 
-void test_thresholds_impl(
-    int size,
-    const arb_value_type t_after,
-    const arb_value_type t_before,
-    const arb_index_type* src_to_spike,
-    arb_value_type* time_since_spike,
-    stack_storage<threshold_crossing>& stack,
-    arb_index_type* is_crossed,
-    arb_value_type* prev_values,
-    const arb_index_type* cv_index,
-    const arb_value_type* values,
-    const arb_value_type* thresholds,
-    bool record_time_since_spike)
-{
-    launch_1d(size, 128, kernel::test_thresholds_impl,
-        size, t_after, t_before, src_to_spike, time_since_spike,
-        stack, is_crossed, prev_values, cv_index, values, thresholds, record_time_since_spike);
+void test_thresholds_impl(int size,
+                          const arb_value_type t_after,
+                          const arb_value_type t_before,
+                          const arb_index_type* src_to_spike,
+                          arb_value_type* time_since_spike,
+                          stack_storage<threshold_crossing>& stack,
+                          arb_index_type* is_crossed,
+                          arb_value_type* prev_values,
+                          const arb_index_type* cv_index,
+                          const arb_value_type* values,
+                          const arb_value_type* thresholds,
+                          bool record_time_since_spike) {
+    if (record_time_since_spike) {
+        launch_1d(size, 128, kernel::test_thresholds_record_impl,
+                  size, t_after, t_before,
+                  src_to_spike, time_since_spike,
+                  stack, is_crossed, prev_values, cv_index, values, thresholds);
+    }
+    else {
+        launch_1d(size, 128, kernel::test_thresholds_impl,
+                  size, t_after, t_before, 
+                  stack, is_crossed, prev_values, cv_index, values, thresholds);        
+    }
 }
 
-void reset_crossed_impl(
-    int size, arb_index_type* is_crossed,
-    const arb_index_type* cv_index, const arb_value_type* values, const arb_value_type* thresholds)
-{
+void reset_crossed_impl(int size,
+                        arb_index_type* is_crossed,
+                        const arb_index_type* cv_index,
+                        const arb_value_type* values,
+                        const arb_value_type* thresholds) {
     launch_1d(size, 128, kernel::reset_crossed_impl, size, is_crossed, cv_index, values, thresholds);
 }
 

@@ -2,7 +2,7 @@ name: Produce Arbor release artifacts
 
 on:
   push:
-    branches: 
+    branches:
       - ciwheel
     tags:
       - v*
@@ -33,6 +33,11 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            cmake_args: "-DCMAKE_BUILD_TYPE=release -DARB_VECTORIZE=ON -DARB_ARCH=x86–64-v3"
+          - os: macos-latest
+            cmake_args: "-DCMAKE_BUILD_TYPE=release -DARB_VECTORIZE=ON -DARB_ARCH=native"
 
     steps:
       - name: Get Arbor
