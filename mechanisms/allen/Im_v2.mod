@@ -26,16 +26,13 @@ BREAKPOINT {
 }
 
 DERIVATIVE states {
-    LOCAL mAlpha, mBeta, mAlphaBeta, arg
+    LOCAL mAlpha, mBeta, mAlphaBeta
 
-    arg = 6 *      0.4  * (v + 48))/26.12
-                              
-    m_alpha = 0.007*exp(arg)
-    m_beta  = 0.007*exp(-1.5*arg)
-                                           
+    mAlpha     = m_alpha(v)
+    mBeta      = m_beta(v)
     mAlphaBeta = mAlpha + mBeta
 
-    m' = qt*(0.007*exp(arg) - m*mAlphaBeta)/(1 + 15*mAlphaBeta)
+    m' = qt*(mAlpha - m*mAlphaBeta)/(1 + 15*mAlphaBeta)
 }
 
 INITIAL {
