@@ -537,7 +537,7 @@ ARB_ARBOR_API const timer_stack& get_current_timer_stack() { return empty_timer_
 ARB_ARBOR_API profile profiler_summary();
 ARB_ARBOR_API profile profiler_summary() {return profile();}
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string&) {return 0;}
-ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const profile&) {return o;}
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const profile&) { return o; }
 ARB_ARBOR_API std::ostream& profiler_print_summary(std::ostream& os, double limit) { return os; }
 
 
