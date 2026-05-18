@@ -1,3 +1,8 @@
+# v.12.2
+
+* Enable native SIMD for Linux and MacOS wheels.
+* Fix Illegal Instruction in Linux wheels.
+
 # v0.12.1
 
 A small, but critical fix to avoid brokn wheels and binary build on Macos with
