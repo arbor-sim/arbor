@@ -382,7 +382,7 @@ between cells. An example where we're interested in when a threshold of ``-10 mV
 
     # Placing a threshold detector might look like this.
     decor = arbor.decor()
-    decor.place('"root"', arbor.threshold_detector(-10), "detector")
+    decor.place('"root"', arbor.threshold_detector(-10*U.mV), "detector")
 
     # At this point, "detector" could be connected to another cell,
     # and it would transmit events upon the voltage crossing the threshold.

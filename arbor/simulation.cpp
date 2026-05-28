@@ -434,7 +434,12 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         // Present spikes to user-supplied callbacks.
         PE(spikeio);
         if (local_export_callback_) local_export_callback_(all_local_spikes);
-        if (global_export_callback_) global_export_callback_(spikes.from_local.values());
+        // If we are asked to export all spikes, clench your teeth and collate all spikes.
+        // TODO(TH): probably need to deprecate this, then. 
+        if (global_export_callback_) {
+            auto global_spikes = ctx_->distributed->gather_spikes(all_local_spikes);
+            global_export_callback_(global_spikes.values());
+        }
         PL(spikeio);
 
         // Append events formed from global spikes to per-cell pending event queues.
