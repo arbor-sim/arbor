@@ -114,7 +114,7 @@ class ring_recipe(A.recipe):
 
     # (10) Place a probe at the root of each cell.
     def probes(self, gid):
-        return [A.cable_probe_membrane_voltage('"root"', tag='Um')]
+        return [A.cable_probe_membrane_voltage('"root"', tag="Um")]
 
     def global_properties(self, kind):
         return self.props
@@ -139,7 +139,9 @@ sim.record(A.spike_recording.all)
 
 # (15) Attach a sampler to the voltage probe on cell 0. Sample rate of 1 sample every ms.
 # Sampling period increased w.r.t network_ring.py to reduce amount of data
-handles = [sim.sample((gid, 'Um'), A.regular_schedule(1 * U.ms)) for gid in range(ncells)]
+handles = [
+    sim.sample((gid, "Um"), A.regular_schedule(1 * U.ms)) for gid in range(ncells)
+]
 
 # (16) Run simulation
 sim.run(ncells * 5 * U.ms)
