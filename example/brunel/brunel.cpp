@@ -244,8 +244,8 @@ private:
 };
 
 int main(int argc, char** argv) {
+    bool root = true;
     try {
-        bool root = true;
         int rank = 0;
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);
