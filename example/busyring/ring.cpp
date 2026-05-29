@@ -342,7 +342,9 @@ int main(int argc, char** argv) {
         // Write spikes to file
         if (root) {
             std::cout << "\n" << ns << " spikes generated at rate of "
-                      << params.duration/ns << " ms between spikes\n";
+                      << params.duration/ns << " ms between spikes\n"
+                      << recorded_spikes.size() << " where recorded\n"
+;
             if (!recorded_spikes.empty()) {
                 std::ofstream fid(params.odir + "/" + params.name + "_spikes.gdf");
                 if (!fid.good()) {

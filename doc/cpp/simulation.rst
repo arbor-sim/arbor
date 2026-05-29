@@ -89,6 +89,11 @@ Class documentation
         during a simulation. See :cpp:func:`set_local_spike_callback` and
         :cpp:func:`set_global_spike_callback`.
 
+        **Note** This convenience method has non-trivial performance
+        implications as Arbor will collate all spikes on all ranks. Prefer
+        ``local`` unless you are absolutely required otherwise and willing to
+        pay the cost.
+
     **Constructor:**
 
     .. cpp:function:: simulation(const recipe& rec, const domain_decomposition& decomp, const context& ctx, std::uint64_t seed)
