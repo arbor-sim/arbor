@@ -100,7 +100,6 @@ struct simulation_state {
         return tau;
     }
 
-    spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
     epoch_function epoch_callback_;
     label_resolution_map source_resolution_map_;
@@ -434,12 +433,6 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         // Present spikes to user-supplied callbacks.
         PE(spikeio);
         if (local_export_callback_) local_export_callback_(all_local_spikes);
-        // If we are asked to export all spikes, clench your teeth and collate all spikes.
-        // TODO(TH): probably need to deprecate this, then. 
-        if (global_export_callback_) {
-            auto global_spikes = ctx_->distributed->gather_spikes(all_local_spikes);
-            global_export_callback_(global_spikes.values());
-        }
         PL(spikeio);
 
         // Append events formed from global spikes to per-cell pending event queues.
@@ -625,7 +618,7 @@ std::size_t simulation::num_spikes() const {
 }
 
 void simulation::set_global_spike_callback(spike_export_function export_callback) {
-    impl_->global_export_callback_ = std::move(export_callback);
+    throw std::runtime_error("Attempted to call deprecated method: set_global_spike_callback");
 }
 
 void simulation::set_local_spike_callback(spike_export_function export_callback) {

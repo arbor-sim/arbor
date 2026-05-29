@@ -136,16 +136,10 @@ public:
 
         switch (policy) {
         case spike_recording::off:
-            sim_->set_global_spike_callback();
             sim_->set_local_spike_callback();
             break;
         case spike_recording::local:
-            sim_->set_global_spike_callback();
             sim_->set_local_spike_callback(spike_recorder);
-            break;
-        case spike_recording::all:
-            sim_->set_global_spike_callback(spike_recorder);
-            sim_->set_local_spike_callback();
             break;
         }
     }

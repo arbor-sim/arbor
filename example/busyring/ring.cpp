@@ -247,6 +247,7 @@ std::string get_arbor_config_str() {
 }
 
 int main(int argc, char** argv) {
+    int rank = 0;
     try {
         bool root = true;
 
@@ -260,7 +261,7 @@ int main(int argc, char** argv) {
         arbenv::with_mpi guard(argc, argv, false);
         resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(resources, MPI_COMM_WORLD);
-        auto rank = arb::rank(context);
+        rank = arb::rank(context);
         root = rank == 0;
 #else
         resources.gpu_id = arbenv::default_gpu();
@@ -321,11 +322,10 @@ int main(int argc, char** argv) {
 
         // Set up recording of spikes to a vector on the root process.
         std::vector<arb::spike> recorded_spikes;
-        if (root && params.record_spikes) {
-            sim.set_global_spike_callback(
-                [&recorded_spikes](const std::vector<arb::spike>& spikes) {
-                    recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
-                });
+        if (params.record_spikes) {
+            sim.set_local_spike_callback([&recorded_spikes](const std::vector<arb::spike>& spikes) {
+                recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
+            });
         }
 
         meters.checkpoint("model-init", context);
@@ -341,23 +341,19 @@ int main(int argc, char** argv) {
 
         // Write spikes to file
         if (root) {
-            std::cout << "\n" << ns << " spikes generated at rate of "
-                      << params.duration/ns << " ms between spikes\n"
-                      << recorded_spikes.size() << " where recorded\n"
-;
-            if (!recorded_spikes.empty()) {
-                std::ofstream fid(params.odir + "/" + params.name + "_spikes.gdf");
-                if (!fid.good()) {
-                    std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
-                }
-                else {
-                    char linebuf[45];
-                    for (auto spike: recorded_spikes) {
-                        auto n = std::snprintf(
-                            linebuf, sizeof(linebuf), "%u %.4f\n",
-                            unsigned{spike.source.gid}, float(spike.time));
-                        fid.write(linebuf, n);
-                    }
+            std::cout << "\n" << ns << " spikes generated at rate of " << params.duration/ns << " ms between spikes\n";
+        }
+        if (!recorded_spikes.empty()) {
+            std::ofstream fid(params.odir + "/" + params.name + "-" + std::to_string(rank) + "_spikes.gdf");
+            if (!fid.good()) {
+                std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
+            }
+            else {
+                char linebuf[45];
+                for (auto spike: recorded_spikes) {
+                    auto n = std::snprintf(linebuf, sizeof(linebuf),
+                                           "%u %.4f\n", unsigned{spike.source.gid}, float(spike.time));
+                    fid.write(linebuf, n);
                 }
             }
         }
