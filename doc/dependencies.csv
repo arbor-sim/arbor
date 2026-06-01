@@ -1,5 +1,5 @@
 Build option/target,Tool name,Minimum version,Notes,Update criteria
---,CMake,3.25,,"* Is available as a module on HPC systems
+--,CMake,4.0.0,,"* Is available as a module on HPC systems
 * When arbitrary changes in more recently released versions make supported"
 --,C++ compiler,,C++17 support. See below,
 --,GCC,12.0.0,,"* it is supported by the minimum version of CUDA.
@@ -14,11 +14,11 @@ html,     .. literalinclude:: ../requirements.txt,,See ``doc/requirements.txt``,
 unit,googletest,1.12.1,CPM,
 bench,Google-benchmark,1.8.3,CPM,
 --,json,3.12.0,CPM,
---,pugi,1.13,CPM,
+--,pugi,1.15,CPM,
 --,random123,1.14.0,CPM,
---,fmt,10.0.0,CPM,
+--,fmt,12.0.0,CPM,
 --,tinyopt,,CPM,
 --,units,0.13.1,CPM,
 --,unordered_dense,4.5.0,CPM,
-ARB_WITH_PYTHON,pybind11,3.0.0,CPM,
-ARB_WITH_PYTHON,Python,3.10,Python compatiblity is the range between the latest officially released point version and the minimum here specified.,"* it is not more advanced than the version specified by NEP 29."
+ARB_WITH_PYTHON,pybind11,3.0.2,CPM,
+ARB_WITH_PYTHON,Python,3.11,Python compatiblity is the range between the latest officially released point version and the minimum here specified.,"* it is not more advanced than the version specified by NEP 29."

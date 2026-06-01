@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <mutex>
 #include <ostream>
+#include <sstream>
 #include <utility>
 
 #include <arbor/context.hpp>
@@ -152,13 +153,11 @@ const accumulators_type& recorder::accumulators() const {
 }
 
 std::string timer_stack_to_string(const timer_stack& ts, const std::vector<std::string>& names) {
-    std::stringstream ss{};
-    for (auto i=0U;i<ts.size();i++) {
-const auto timer = ts[i];
+    std::stringstream ss;
+    for (auto ix = 0U; ix < ts.size(); ++ix) {
+        const auto timer = ts[ix];
         ss << names[timer];
-        if (i != ts.size()-1) {
-            ss << ", ";
-        }
+        if (ix != ts.size() - 1) ss << ", ";
     }
     return ss.str();
 }
@@ -538,7 +537,7 @@ ARB_ARBOR_API const timer_stack& get_current_timer_stack() { return empty_timer_
 ARB_ARBOR_API profile profiler_summary();
 ARB_ARBOR_API profile profiler_summary() {return profile();}
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string&) {return 0;}
-ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const profile&) {return o;}
+ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const profile&) { return o; }
 ARB_ARBOR_API std::ostream& profiler_print_summary(std::ostream& os, double limit) { return os; }
 
 

@@ -14,7 +14,6 @@ graft mechanisms
 graft modcc
 graft python
 graft scripts
-# graft spack
 graft sup
 graft test
 # graft validation

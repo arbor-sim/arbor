@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 4.0.0)
 include(CMakeDependentOption)
 include(CheckIPOSupported)
 
@@ -59,13 +59,17 @@ mark_as_advanced(FORCE ARBDEV_COLOR)
 #----------------------------------------------------------
 
 # Specify target architecture.
-check_cxx_compiler_flag("-march=native" CXX_HAS_NATIVE)
-if(CXX_HAS_NATIVE)
+if (NOT DEFINED ARB_DEFAULT_ARCH)
+  check_cxx_compiler_flag("-march=native" CXX_HAS_NATIVE)
+  if(CXX_HAS_NATIVE)
     set(ARB_DEFAULT_ARCH "native")
-else()
+  else()
     set(ARB_DEFAULT_ARCH "none")
+  endif()
 endif()
-set(ARB_ARCH ${ARB_DEFAULT_ARCH} CACHE STRING "Target architecture for arbor libraries")
+if (NOT DEFINED ARB_ARCH)
+  set(ARB_ARCH ${ARB_DEFAULT_ARCH} CACHE STRING "Target architecture for arbor libraries")
+endif()
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
@@ -165,7 +169,7 @@ if(ARB_GPU STREQUAL "cuda")
     if(${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 12)
         if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
             # Pascal, Volta, Ampere, Hopper
-            set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
+            set(CMAKE_CUDA_ARCHITECTURES 70 80 90)
         endif()
     else()
         message(FATAL_ERROR "Need at least CUDA 12, got ${CUDAToolkit_VERSION_MAJOR}")
@@ -179,7 +183,7 @@ if(ARB_GPU STREQUAL "cuda")
 elseif(ARB_GPU STREQUAL "cuda-clang")
     include(FindCUDAToolkit)
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
+        set(CMAKE_CUDA_ARCHITECTURES 70 80 90)
     endif()
     set(ARB_WITH_CUDA_CLANG TRUE)
     enable_language(CUDA)
@@ -336,7 +340,7 @@ endif()
 
 CPMFindPackage(NAME pugixml
                GITHUB_REPOSITORY zeux/pugixml
-               VERSION 1.13
+               VERSION 1.15
                DOWNLOAD_ONLY YES)
 add_library(ext-pugixml INTERFACE)
 if(pugixml_ADDED)
@@ -350,8 +354,8 @@ install(TARGETS ext-pugixml EXPORT arbor-targets)
 
 CPMFindPackage(NAME fmt
               GITHUB_REPOSITORY fmtlib/fmt
-              VERSION 10.0.0
-              GIT_TAG 10.0.0)
+              VERSION 12.1.0
+              GIT_TAG 12.1.0)
 
 add_library(ext-gtest INTERFACE)
 add_library(ext-bench INTERFACE)

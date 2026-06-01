@@ -9,7 +9,9 @@ import numpy as np
 import arbor as A
 from arbor import units as U
 from .. import fixtures
-from mpi4py import MPI
+
+if A.config()["mpi"]:
+    from mpi4py import MPI
 
 """
 Tests for multiple connections onto the same postsynaptic label and for one
@@ -52,14 +54,17 @@ class TestMultipleConnections(unittest.TestCase):
         return syn_mechanism
 
     def gather_all_spikes(self, spikes):
-        local = list(zip(spikes["source"]["gid"].tolist(), spikes["time"].tolist()))
-        all_spikes = MPI.COMM_WORLD.allgather(local)
-        flat = [x for sublist in all_spikes for x in sublist]
-        flat = list(set(flat))
-        flat.sort(key=lambda x: x[1])
-        gids = np.array([g for g, _ in flat])
-        times = np.array([t for _, t in flat])
-        return gids, times
+        if A.config()["mpi"]:
+            local = list(zip(spikes["source"]["gid"].tolist(), spikes["time"].tolist()))
+            all_spikes = MPI.COMM_WORLD.allgather(local)
+            flat = [x for sublist in all_spikes for x in sublist]
+            flat = list(set(flat))
+            flat.sort(key=lambda x: x[1])
+            gids = np.array([g for g, _ in flat])
+            times = np.array([t for _, t in flat])
+            return gids, times
+        else:
+            return spikes["source"]["gid"], spikes["time"]
 
     # Method that does the final evaluation for all tests
     def evaluate_outcome(self, sim, handle_mem):
@@ -371,4 +376,3 @@ class TestMultipleConnections(unittest.TestCase):
         # evaluate the outcome
         self.evaluate_outcome(sim, handle_mem)
         self.evaluate_additional_outcome_2_3(sim, handle_mem)
-        MPI.Finalize()
