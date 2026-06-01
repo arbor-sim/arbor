@@ -119,27 +119,27 @@ implementation to produce the current we want. Without further ado
 
 This code formalises what we discussed above, if you are unfamiliar with writing
 mechanisms, please refer to :ref:`tutorial_nmodl_density`. We pass the desired
-amplitude and frequency of the E-field, as well as, the distal and proximal
+amplitude and frequency of the E-field, the axial resistivity, the distal and proximal
 coordinates as parameters
 
 .. literalinclude:: ../../python/example/reading-external-fields/mod/efield.mod
     :linenos:
     :lineno-match:
-    :lines: 7-12
+    :lines: 7-13
 
 The time is modelled via an ODE
 
 .. literalinclude:: ../../python/example/reading-external-fields/mod/efield.mod
     :linenos:
     :lineno-match:
-    :lines: 39
+    :lines: 40
 
 which is solved to compute the induced current as outlined above
 
 .. literalinclude:: ../../python/example/reading-external-fields/mod/efield.mod
     :linenos:
     :lineno-match:
-    :lines: 30-37
+    :lines: 31-38
 
 Compile the catalogue
 
@@ -228,7 +228,7 @@ By using the ``debug`` mode, the intermediate C++ files will be preserved in the
    }
 
 Note that if you have SIMD enabled, this might look differently. We recommend
-disabling SIMD for this tutorial, since the C++ is simpler to follow.
+disabling SIMD for this tutorial, since the generated C++ is simpler to follow.
 
 We are going to continue, as before, under the assumption that the electric
 field is homogeneous, so we need only to concern ourselves with three ``double``
@@ -359,7 +359,7 @@ All that's left to do is to read the field value from the ``reader`` mechanism
     :linenos:
     :lineno-match:
     :language: c++
-    :lines: 89-98
+    :lines: 86-95
 
 First, we cast the floating point value to a double-valued array
 
@@ -367,15 +367,15 @@ First, we cast the floating point value to a double-valued array
     :linenos:
     :lineno-match:
     :language: c++
-    :lines: 91
+    :lines: 88
 
-then we read the first value :math:`E_x`, use it to compute the current ``i`` as :math:`I = \frac{E_x a_x}{|a|}`
+then we read the first value :math:`E_x`, use it to compute the current ``i`` as :math:`I = \frac{E_x a_x}{r_\mathrm{L}|a|}`
 
 .. literalinclude:: ../../python/example/reading-external-fields/mod/reader_cpu.cpp
     :linenos:
     :lineno-match:
     :language: c++
-    :lines: 94-95
+    :lines: 91-92
 
 which is written back the data consumed by Arbor's cable equation solver
 
@@ -383,7 +383,7 @@ which is written back the data consumed by Arbor's cable equation solver
     :linenos:
     :lineno-match:
     :language: c++
-    :lines: 96
+    :lines: 93
 
 Conclusions
 -----------

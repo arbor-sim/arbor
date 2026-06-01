@@ -5,10 +5,6 @@
 #include <arbor/mechanism_abi.h>
 #include <arbor/math.hpp>
 
-#include <iostream>
-
-namespace arb {
-namespace efields_catalogue {
 namespace kernel_reader {
 
 using ::arb::math::exprelr;
@@ -30,7 +26,6 @@ using ::std::log;
 #define PPACK_IFACE_BLOCK \
 [[maybe_unused]] auto _pp_var_width                                                 = pp->width;\
 [[maybe_unused]] auto _pp_var_n_detectors                                           = pp->n_detectors;\
-[[maybe_unused]] auto _pp_var_dt                                                    = pp->dt;\
 [[maybe_unused]] arb_index_type * __restrict__ _pp_var_vec_ci                       = pp->vec_ci;\
 [[maybe_unused]] arb_value_type * __restrict__ _pp_var_vec_v                        = pp->vec_v;\
 [[maybe_unused]] arb_value_type * __restrict__ _pp_var_vec_i                        = pp->vec_i;\
@@ -53,7 +48,9 @@ using ::std::log;
 [[maybe_unused]] arb_index_type* __restrict__ _pp_var_index_constraints_constant    = pp->index_constraints.constant;\
 [[maybe_unused]] arb_index_type* __restrict__ _pp_var_index_constraints_independent = pp->index_constraints.independent;\
 [[maybe_unused]] arb_index_type* __restrict__ _pp_var_index_constraints_none        = pp->index_constraints.none;\
+[[maybe_unused]] auto _pp_var_dt                                                    = pp->dt;\
 [[maybe_unused]] auto _pp_var_field = pp->globals[0];\
+[[maybe_unused]] auto _pp_var_r_axial = pp->globals[1];\
 [[maybe_unused]] auto const * const * _pp_var_random_numbers = pp->random_numbers;\
 [[maybe_unused]] arb_value_type* __restrict__ _pp_var_da = pp->state_vars[0];\
 [[maybe_unused]] arb_value_type* __restrict__ _pp_var_xp = pp->parameters[0];\
@@ -69,11 +66,11 @@ using ::std::log;
 static void init(arb_mechanism_ppack* pp) {
     PPACK_IFACE_BLOCK;
     for (arb_size_type i_ = 0; i_ < _pp_var_width; ++i_) {
-        arb_value_type dy, dz, dx;
+        arb_value_type dz, dy, dx;
         dx = _pp_var_xd[i_]-_pp_var_xp[i_];
         dy = _pp_var_yd[i_]-_pp_var_yp[i_];
         dz = _pp_var_zd[i_]-_pp_var_zp[i_];
-        _pp_var_da[i_] =  1.0/sqrt(dx*dx+dy*dy+dz*dz);
+        _pp_var_da[i_] =  1.0/(_pp_var_r_axial*sqrt(dx*dx+dy*dy+dz*dz));
     }
     if (!_pp_var_multiplicity) return;
     for (arb_size_type ix = 0; ix < 0; ++ix) {
@@ -111,21 +108,19 @@ static void apply_events(arb_mechanism_ppack* pp, arb_deliverable_event_stream* 
 static void post_event(arb_mechanism_ppack*) {}
 #undef PPACK_IFACE_BLOCK
 } // namespace kernel_reader
-} // namespace efields_catalogue
-} // namespace arb
 
 extern "C" {
-  arb_mechanism_interface* make_arb_efields_catalogue_reader_interface_multicore() {
+  arb_mechanism_interface* make__reader_interface_multicore() {
     static arb_mechanism_interface result;
-    result.partition_width = arb::efields_catalogue::kernel_reader::simd_width_;
+    result.partition_width = kernel_reader::simd_width_;
     result.backend = arb_backend_kind_cpu;
-    result.alignment = arb::efields_catalogue::kernel_reader::min_align_;
-    result.init_mechanism = arb::efields_catalogue::kernel_reader::init;
-    result.compute_currents = arb::efields_catalogue::kernel_reader::compute_currents;
-    result.apply_events = arb::efields_catalogue::kernel_reader::apply_events;
-    result.advance_state = arb::efields_catalogue::kernel_reader::advance_state;
-    result.write_ions = arb::efields_catalogue::kernel_reader::write_ions;
-    result.post_event = arb::efields_catalogue::kernel_reader::post_event;
+    result.alignment = kernel_reader::min_align_;
+    result.init_mechanism = kernel_reader::init;
+    result.compute_currents = kernel_reader::compute_currents;
+    result.apply_events = kernel_reader::apply_events;
+    result.advance_state = kernel_reader::advance_state;
+    result.write_ions = kernel_reader::write_ions;
+    result.post_event = kernel_reader::post_event;
     return &result;
   }
 }

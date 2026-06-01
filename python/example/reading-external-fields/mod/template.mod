@@ -8,6 +8,7 @@ PARAMETER {
     field
     xp yp zp : proximal coordinates
     xd yd zd : distal coordinates
+    r_axial  : axial resistivity
 }
 
 ASSIGNED { da }
@@ -21,7 +22,7 @@ INITIAL {
     dy = yd - yp
     dz = zd - zp
     : unit length of the segment
-    da = 1.0/sqrt(dx*dx + dy*dy + dz*dz)
+    da = 1.0/(r_axial * sqrt(dx*dx + dy*dy + dz*dz))
 }
 
 BREAKPOINT {
