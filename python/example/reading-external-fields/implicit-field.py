@@ -32,7 +32,7 @@ for id, seg in enumerate(mrf.segment_tree.segments):
     dec.place(
         loc,
         A.synapse(
-            f"efield/e0={e0},omega={omega}",
+            f"efield/e0={e0},omega={omega},r_axial={1}",
             xp=seg.prox.x,
             xd=seg.dist.x,
             yp=seg.prox.y,

@@ -110,7 +110,7 @@ static void post_event(arb_mechanism_ppack*) {}
 } // namespace kernel_reader
 
 extern "C" {
-  arb_mechanism_interface* make__reader_interface_multicore() {
+  arb_mechanism_interface* make_arb_efields_catalogue_reader_interface_multicore() {
     static arb_mechanism_interface result;
     result.partition_width = kernel_reader::simd_width_;
     result.backend = arb_backend_kind_cpu;

@@ -36,7 +36,7 @@ for id, seg in enumerate(mrf.segment_tree.segments):
     dec.place(
         loc,
         A.synapse(
-            f"reader/field={addr}",
+            f"reader/field={addr},r_axial={1}",
             xp=seg.prox.x,
             xd=seg.dist.x,
             yp=seg.prox.y,

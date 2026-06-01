@@ -168,6 +168,10 @@ field parameters, after loading our catalogue into the model
     :language: python
     :lines: 23-44
 
+Note, that we set the axial resistivity to the unit value here to simplify the
+parameter setup. In production simulations, this needs to be adjusted to the
+electrophysiology, possibly varying in space along the dendrite.
+
 We plot the membrane potential and induced current over time
 
 .. figure:: ../images/external-fields-implicit-field.svg
@@ -243,13 +247,14 @@ rename them to ``mod/reader.hpp`` and ``mod/reader_cpu.hpp``.
     cp tmp/build/generated/efields/template.hpp mod/reader.hpp
     cp tmp/build/generated/efields/template_cpu.cpp mod/reader_cpu.cpp
 
-then, replace the word ``template`` with ``reader`` in both files, either using
-a text editor or
+then we adjust the interface names so we can use them in our catalogue:
 
 .. code-block::
 
     sed -i '' 's/template/reader/g' mod/reader_cpu.cpp
     sed -i '' 's/template/reader/g' mod/reader.hpp
+    sed -i '' 's/make__reader_/make_arb_efields_catalogue_reader/g' mod/reader_cpu.cpp
+    sed -i '' 's/make__reader_/make_arb_efields_catalogue_reader/g' mod/reader.hpp
 
 on MacOS while Linux users drop the ``''``. Now, you should be able to compile
 the catalogue again
