@@ -95,6 +95,9 @@ inline api_error_type device_mem_get_info(ARGS &&... args) {
     return cudaMemGetInfo(std::forward<ARGS>(args)...);
 }
 
+// Lane mask type: 32-bit on CUDA (warp size always 32).
+using lane_mask_type = unsigned;
+
 #ifdef __CUDACC__
 /// Atomics
 

@@ -210,7 +210,7 @@ int main(int argc, char **argv) {
             }
 
             // Load module file and initialize Module object.
-            Module m(io::read_all(modfile), modfile);
+            Module m(io::read_all(modfile.string()), modfile.string());
 
             if (m.empty()) return report_error(fmt::format("Input file is empty: {}", modfile.string()));
 
@@ -238,7 +238,7 @@ int main(int argc, char **argv) {
 
             auto prefix = modfile.filename().replace_extension("").string();
 
-            io::write_all(build_info_header(m, popt, have_cpu, have_gpu), outdir / (mod + ".hpp"));
+            io::write_all(build_info_header(m, popt, have_cpu, have_gpu), (outdir / (mod + ".hpp")).string());
             for (targetKind target: opt.targets) {
                 switch (target) {
                     case targetKind::gpu: {

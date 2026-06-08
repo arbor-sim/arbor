@@ -128,35 +128,49 @@ shfl(T x, int lane) {
 
 __device__ __inline__ double shfl(double x, int lane)
 {
-    auto tmp = static_cast<uint64_t>(x);
+    // Use bit-preserving conversion to shuffle a double as two 32-bit halves.
+    auto tmp = __double_as_longlong(x);
     auto lo = static_cast<unsigned>(tmp);
     auto hi = static_cast<unsigned>(tmp >> 32);
     hi = __shfl(static_cast<int>(hi), lane, warpSize);
     lo = __shfl(static_cast<int>(lo), lane, warpSize);
-    return static_cast<double>(static_cast<uint64_t>(hi) << 32 |
-                               static_cast<uint64_t>(lo));
+    return __longlong_as_double(static_cast<long long>(hi) << 32 |
+                                static_cast<unsigned long long>(lo));
 }
 
-__device__ __inline__ unsigned ballot(unsigned mask, unsigned is_root) {
+// Lane mask type: 64-bit on HIP (wave64 on CDNA, wave32 on RDNA).
+// Always use 64-bit to support wave64 devices.
+using lane_mask_type = unsigned long long;
+
+// On AMD, ballot/activemask return 64-bit on wave64 devices.
+// Use unsigned long long to match HIP's native __ballot return type.
+__device__ __inline__ unsigned long long ballot(unsigned long long mask, unsigned is_root) {
     return __ballot(is_root);
 }
 
-__device__ __inline__ unsigned active_mask() {
+__device__ __inline__ unsigned long long active_mask() {
     return __activemask();
 }
 
-__device__ __inline__ unsigned any(unsigned mask, unsigned width) {
-    return __any(width);
+__device__ __inline__ unsigned any(unsigned long long mask, unsigned width) {
+    // Emulate CUDA's __any_sync: only consider threads in the mask.
+    return (__ballot(width) & mask) != 0;
 }
 
 template<typename T>
-__device__ __inline__ T shfl_up(unsigned mask, T var, unsigned lane_id, unsigned shift) {
-    return shfl(var, (int)lane_id - shift);
+__device__ __inline__ T shfl_up(unsigned long long mask, T var, unsigned lane_id, unsigned shift) {
+    // Use HIP's native __shfl_up which handles boundary conditions:
+    // if (lane_id % width) < shift, returns var unchanged.
+    // The width is the wavefront size (warpSize) for the current arch.
+    return __shfl_up(var, shift, warpSize);
 }
 
 template<typename T>
-__device__ __inline__ T shfl_down(unsigned mask, T var, unsigned lane_id, unsigned shift) {
-    return shfl(var, (int)lane_id + shift);
+__device__ __inline__ T shfl_down(unsigned long long mask, T var, unsigned lane_id, unsigned shift) {
+    // Use HIP's native __shfl_down which handles boundary conditions:
+    // if (lane_id % width) + shift >= width, returns var unchanged.
+    // The width is the wavefront size (warpSize) for the current arch.
+    return __shfl_down(var, shift, warpSize);
 }
 
 } // namespace gpu
