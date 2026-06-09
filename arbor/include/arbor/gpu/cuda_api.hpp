@@ -146,6 +146,16 @@ template<typename T>
 __device__ __inline__ T shfl_down(unsigned mask, T var, unsigned lane_id, unsigned shift) {
     return __shfl_down_sync(mask, var, shift);
 }
+
+// Count leading zeros / find first set on a lane mask. lane_mask_type is 32-bit
+// on CUDA (warp size is always 32), so the 32-bit __clz/__ffs variants are used.
+__device__ __inline__ unsigned count_leading_zeros(lane_mask_type mask) {
+    return __clz(mask);
+}
+
+__device__ __inline__ unsigned find_first_set(lane_mask_type mask) {
+    return __ffs(mask);
+}
 #endif
 
 } // namespace gpu

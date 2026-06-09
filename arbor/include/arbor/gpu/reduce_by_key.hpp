@@ -34,14 +34,12 @@ struct key_set_pos {
     key_set_pos(int idx, lane_mask_type mask) {
         key_mask = mask;
         lane_id = threadIdx.x%impl::threads_per_warp();
-#ifdef ARB_HIP
-        // On HIP, ballot returns 64-bit. Use 64 (bit width of lane_mask_type) not
-        // threads_per_warp() because __clzll counts from bit 63. On wave32, mask
-        // bits are 0-31, so __clzll sees 32 leading zeros; 64-32=32 is correct.
-        unsigned num_lanes = 64-__clzll(key_mask);
-#else
-        unsigned num_lanes = impl::threads_per_warp()-__clz(key_mask);
-#endif
+        // count_leading_zeros counts from the top bit of lane_mask_type, so the
+        // lane count is measured against its full bit width: 64 on HIP (ballot is
+        // wave64-wide on CDNA, wave32 on RDNA) and 32 on CUDA. On a wave32 HIP
+        // mask the upper 32 bits are zero, so 64 - count_leading_zeros still
+        // yields the correct count.
+        unsigned num_lanes = 8*sizeof(lane_mask_type) - count_leading_zeros(key_mask);
 
         // Determine if this thread is the root (i.e. first thread with this key).
         int left_idx  = shfl_up(key_mask, idx, lane_id, lane_id? 1: 0);
@@ -53,11 +51,7 @@ struct key_set_pos {
 
         // Find the distance to the lane id one past the end of the run.
         // Take care if this is the last run in the warp.
-#ifdef ARB_HIP
-        width = __ffsll(roots>>(lane_id+1));
-#else
-        width = __ffs(roots>>(lane_id+1));
-#endif
+        width = find_first_set(roots>>(lane_id+1));
         if (!width) width = num_lanes-lane_id;
     }
 };

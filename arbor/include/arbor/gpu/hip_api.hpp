@@ -173,6 +173,17 @@ __device__ __inline__ T shfl_down(unsigned long long mask, T var, unsigned lane_
     return __shfl_down(var, shift, warpSize);
 }
 
+// Count leading zeros / find first set on a lane mask. lane_mask_type is 64-bit
+// on HIP (ballot returns a wave64-wide mask on CDNA, wave32 on RDNA), so the
+// 64-bit __clzll/__ffsll variants are used to cover the full mask width.
+__device__ __inline__ unsigned count_leading_zeros(lane_mask_type mask) {
+    return __clzll(mask);
+}
+
+__device__ __inline__ unsigned find_first_set(lane_mask_type mask) {
+    return __ffsll(mask);
+}
+
 } // namespace gpu
 } // namespace arb
 
