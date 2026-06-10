@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0.0)
+cmake_minimum_required(VERSION 3.31.0)
 include(CMakeDependentOption)
 include(CheckIPOSupported)
 
@@ -466,23 +466,21 @@ endif()
 set(ARB_SVE_WIDTH "auto" CACHE STRING "Default SVE vector length in bits. Default: auto (detection during configure time).")
 mark_as_advanced(ARB_SVE_WIDTH)
 
-if (ARB_VECTORIZE)
-    if (ARB_SVE_WIDTH STREQUAL "auto")
-        get_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
-        if (ARB_HAS_SVE)
-            message(STATUS "SVE detected with vector size = ${ARB_SVE_BITS} bits")
-            set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
-        else()
-            message(STATUS "NO SVE detected")
-            set(ARB_CXX_SVE_FLAGS "")
-        endif()
-    else()
-        set(ARB_SVE_BITS ${ARB_SVE_WIDTH})
+if (ARB_SVE_WIDTH STREQUAL "auto")
+    get_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
+    if (ARB_HAS_SVE)
+        message(STATUS "SVE detected with vector size = ${ARB_SVE_BITS} bits")
         set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
+    else()
+        message(STATUS "NO SVE detected")
+        set(ARB_CXX_SVE_FLAGS "")
     endif()
-    list(APPEND ARB_CXX_FLAGS_TARGET_FULL
-        "$<$<BUILD_INTERFACE:$<COMPILE_LANGUAGE:CXX>>:${ARB_CXX_SVE_FLAGS}>")
+else()
+    set(ARB_SVE_BITS ${ARB_SVE_WIDTH})
+    set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
 endif()
+list(APPEND ARB_CXX_FLAGS_TARGET_FULL
+    "$<$<BUILD_INTERFACE:$<COMPILE_LANGUAGE:CXX>>:${ARB_CXX_SVE_FLAGS}>")
 
 # Compile with `-fvisibility=hidden` to ensure that the symbols of the generated
 # arbor static libraries are hidden from the dynamic symbol tables of any shared
