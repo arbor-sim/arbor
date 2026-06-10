@@ -340,7 +340,7 @@ fvm_lowered_cell_impl<Backend>::edit_cell(cell_gid_type gid,
             auto new_params = fun(reg, mech, params);
             for (const auto& [nk, nv]: new_params) {
                 auto kv = std::find_if(params.begin(), params.end(),
-                                       [&nk](const auto& it) { return it.first == nk; });
+                                       [nk](const auto& it) { return it.first == nk; });
                 if (kv == params.end()) throw bad_cell_edit{gid, "Unknown parameter '" + std::string{nk} + "' for mechanism '" + mech + "'." };
                 kv->second = nv;                
             }
