@@ -342,7 +342,7 @@ fvm_cv_discretize(const cable_cell& cell,
     msize_t n_branch = D.geometry.n_branch(0);
     auto& ax_res_0 = D.axial_resistivity[0];
     ax_res_0.reserve(n_branch);
-    for (msize_t i = 0; i<n_branch; ++i) {
+    for (msize_t i = 0; i < n_branch; ++i) {
         auto cable = mcable{i, 0., 1.};
         auto scale_param = [&](const auto&,
                                const axial_resistivity& par) -> double {
@@ -455,12 +455,12 @@ fvm_cv_discretize(const cable_cell& cell,
 }
 
 ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells,
-    const cable_cell_parameter_set& global_defaults,
-    const arb::execution_context& ctx)
-{
+                                                      const cable_cell_parameter_set& global_defaults,
+                                                      const arb::execution_context& ctx) {
     std::vector<fvm_cv_discretization> cell_disc(cells.size());
-    threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(),
-          [&] (int i) { cell_disc[i]=fvm_cv_discretize(cells[i], global_defaults);});
+    threading::parallel_for::apply(0, cells.size(),
+                                   ctx.thread_pool.get(),
+                                   [&] (int i) { cell_disc[i] = fvm_cv_discretize(cells[i], global_defaults);});
 
     fvm_cv_discretization combined;
     for (auto cell_idx: count_along(cells)) {
@@ -723,17 +723,15 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
         L.revpot_read    |= R.revpot_read;
     }
 
-    for (const auto& kv: right.mechanisms) {
-        if (!left.mechanisms.count(kv.first)) {
-            fvm_mechanism_config& L = left.mechanisms[kv.first];
-
-            L = kv.second;
+    for (const auto& [k, v]: right.mechanisms) {
+        if (!left.mechanisms.count(k)) {
+            fvm_mechanism_config& L = left.mechanisms[k];
+            L = v;
             for (auto& t: L.target) t += target_offset;
         }
         else {
-            fvm_mechanism_config& L = left.mechanisms[kv.first];
-            const fvm_mechanism_config& R = kv.second;
-
+            fvm_mechanism_config& L = left.mechanisms[k];
+            const fvm_mechanism_config& R = v;
             L.kind = R.kind;
             append(L.cv, R.cv);
             append(L.peer_cv, R.peer_cv);
@@ -741,13 +739,11 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
             append(L.norm_area, R.norm_area);
             append(L.local_weight, R.local_weight);
             append_offset(L.target, target_offset, R.target);
-
             arb_assert(util::equal(L.param_values, R.param_values,
-                [](auto& a, auto& b) { return a.first==b.first; }));
+                                   [](auto& a, auto& b) { return a.first == b.first; }));
             arb_assert(L.param_values.size()==R.param_values.size());
-
             for (auto j: count_along(R.param_values)) {
-                arb_assert(L.param_values[j].first==R.param_values[j].first);
+                arb_assert(L.param_values[j].first == R.param_values[j].first);
                 append(L.param_values[j].second, R.param_values[j].second);
             }
         }
@@ -769,11 +765,10 @@ fvm_mechanism_data& append(fvm_mechanism_data& left, const fvm_mechanism_data& r
     return left;
 }
 
-ARB_ARBOR_API std::unordered_map<cell_member_type, arb_size_type> fvm_build_gap_junction_cv_map(
-    const std::vector<cable_cell>& cells,
-    const std::vector<cell_gid_type>& gids,
-    const fvm_cv_discretization& D)
-{
+ARB_ARBOR_API std::unordered_map<cell_member_type, arb_size_type>
+fvm_build_gap_junction_cv_map(const std::vector<cable_cell>& cells,
+                              const std::vector<cell_gid_type>& gids,
+                              const fvm_cv_discretization& D) {
     arb_assert(cells.size() == gids.size());
     std::unordered_map<cell_member_type, arb_size_type> gj_cvs;
     for (auto cell_idx: util::make_span(0, cells.size())) {
@@ -786,12 +781,11 @@ ARB_ARBOR_API std::unordered_map<cell_member_type, arb_size_type> fvm_build_gap_
     return gj_cvs;
 }
 
-ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
-    const std::vector<cell_gid_type>& gids,
-    const cell_label_range& gj_data,
-    const std::unordered_map<cell_member_type, arb_size_type>& gj_cvs,
-    const recipe& rec)
-{
+ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>>
+fvm_resolve_gj_connections(const std::vector<cell_gid_type>& gids,
+                           const cell_label_range& gj_data,
+                           const std::unordered_map<cell_member_type, arb_size_type>& gj_cvs,
+                           const recipe& rec) {
     // Construct and resolve all gj_connections.
     std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns;
     label_resolution_map resolution_map({gj_data, gids});
@@ -933,7 +927,7 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_des
                              const cell_build_data& data,
                              fvm_mechanism_config_map&);
 
-fvm_mechanism_data
+ARB_ARBOR_API fvm_mechanism_data
 fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
                          const cable_cell& cell,
                          const std::vector<fvm_gap_junction>& gj_conns,
@@ -1468,7 +1462,10 @@ make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<
             const auto& set_params = mech.values();
             double* in_param = all_param_values.data() + param_values_offset;
             for (const auto& [name, def]: parameters) {
-                *in_param = set_params.count(name) ? set_params.at(name) : def;
+                *in_param = def;
+                for (const auto& [k, v]: set_params) {
+                    if (k == name) *in_param = v;
+                }
                 ++in_param;
             }
             inst_list.emplace_back((arb_size_type) data.D.geometry.location_cv(data.cell_idx, pm.loc, cv_prefer::cv_nonempty),
@@ -1706,7 +1703,10 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_des
                 config.norm_area.assign(n_cv, 1.);
                 auto parameters = ordered_parameters(info);
                 for (auto& [param, def]: parameters) {
-                    auto val = values.count(param) ? values.at(param) : def;
+                    auto val = def;
+                    for (const auto& [k, v]: values) {
+                        if (k == param) val = v;
+                    }
                     config.param_values.emplace_back(param, std::vector<arb_value_type>(n_cv, val));
                 }
                 if (!config.cv.empty()) result[name] = std::move(config);

@@ -120,14 +120,29 @@ struct cvp_cv_policy_max_extent {
     region domain() const { return domain_; }
 };
 
-ARB_ARBOR_API cv_policy cv_policy_max_extent(double ext, region reg, cv_policy_flag flag) {
+ARB_ARBOR_API cv_policy cv_policy_max_extent_um(double ext, region reg, cv_policy_flag flag) {
+    if (ext <= 0) throw std::domain_error{"Extent must be positive."};
     return cv_policy{cvp_cv_policy_max_extent{ext, std::move(reg), flag}};
 }
 
-ARB_ARBOR_API cv_policy cv_policy_max_extent(double ext, cv_policy_flag flag) {
+ARB_ARBOR_API cv_policy cv_policy_max_extent_um(double ext, cv_policy_flag flag) {
+    if (ext <= 0) throw std::domain_error{"Extent must be positive."};        
     return cv_policy{cvp_cv_policy_max_extent{ext, reg::all(), flag}};
 }
 
+ARB_ARBOR_API cv_policy cv_policy_max_extent(const units::quantity& q, region reg, cv_policy_flag flag) {
+    auto ext = q.value_as(units::um);
+    if (!std::isfinite(ext)) throw std::domain_error{"Extent must be finite and in [um]."};
+    return cv_policy_max_extent_um(ext, reg, flag);
+}
+
+ARB_ARBOR_API cv_policy cv_policy_max_extent(const units::quantity& q, cv_policy_flag flag) {
+    auto ext = q.value_as(units::um);
+    if (!std::isfinite(ext)) throw std::domain_error{"Extent must be finite and in [um]."};
+    return cv_policy_max_extent_um(ext, reg::all(), flag);
+}
+
+    
 struct cvp_cv_policy_explicit {
     locset locs_;
     region domain_;

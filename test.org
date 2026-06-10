@@ -1,0 +1,43 @@
+#+title: Test
+
+  ibtf = 1/btfac 
+
+  f04 = q*alpha*exp(v/x1)
+  f0O = q*gamma
+
+  f14 = alfac*f04
+
+  fi1 = q*Con
+  fi2 = fi1*alfac
+  fi3 = fi2*alfac
+  fi4 = fi3*alfac
+  fi5 = fi4*alfac
+  fin = q*Oon
+
+  b01 = q*beta*exp(v/x2)
+  b0O = q*delta
+  b11 = b01*ibtf
+
+  bi1 = q*Coff
+  bi2 = bi1*ibtf
+  bi3 = bi2*ibtf
+  bi4 = bi3*ibtf
+  bi5 = bi4*ibtf
+  bin = q*Ooff
+
+C1 C2 f01 b01
+C2 C3 f02 b02
+C3 C4 f03 b03
+C4 C5 f04 b04
+C5 O  f0O b0O
+O  I6 fin bin
+I1 I2 f11 b11
+I2 I3 f12 b12
+I3 I4 f13 b13
+I4 I5 f14 b14
+I5 I6 f0O b0O
+C1 I1 fi1 bi1
+C2 I2 fi2 bi2
+C3 I3 fi3 bi3
+C4 I4 fi4 bi4
+C5 I5 fi5 bi5

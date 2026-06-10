@@ -72,4 +72,7 @@ private:
     /// Descriptions of the cell groups on the local domain
     std::vector<group_description> groups_;
 };
+
+using domain_decomposition_ptr = std::shared_ptr<domain_decomposition>;
+
 } // namespace arb

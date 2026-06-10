@@ -30,7 +30,7 @@ public:
         std::vector<double> diffs;
 
         for (auto i=1ul; i<readings_.size(); ++i) {
-            diffs.push_back(readings_[i]-readings_[i-1]);
+            diffs.push_back(readings_[i] - readings_[i-1]);
         }
 
         return diffs;

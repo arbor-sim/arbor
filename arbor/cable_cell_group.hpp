@@ -52,9 +52,12 @@ struct ARB_ARBOR_API cable_cell_group: public cell_group {
 
     void t_serialize(serializer& ser, const std::string& k) const override;
     void t_deserialize(serializer& ser, const std::string& k) override;
-private:
+
+    static bool backend_supported(backend_kind kind) { return kind == backend_kind::multicore || kind == backend_kind::gpu; }
+ private:    
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
+
 
     // The lowered cell state (e.g. FVM) of the cell.
     fvm_lowered_cell_ptr lowered_;

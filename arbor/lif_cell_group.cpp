@@ -74,7 +74,7 @@ lif_cell_group::edit_cell(cell_gid_type gid, std::any cell_edit) {
         // Write back
         lowered = lif_lowered_cell{tmp};
     }
-    catch (const std::bad_any_cast& ){
+    catch (const std::bad_any_cast&) {
         throw bad_cell_edit(gid, "Not a LIF editor (C++ type-id: '" + std::string{cell_edit.type().name()} + "')");
     }
 }
@@ -82,12 +82,12 @@ lif_cell_group::edit_cell(cell_gid_type gid, std::any cell_edit) {
 cell_kind lif_cell_group::get_cell_kind() const { return cell_kind::lif; }
 
 void lif_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
-    PE(advance:lif);
+    PE(lif);
     for (auto lid: util::make_span(gids_.size())) {
         // Advance each cell independently.
         advance_cell(ep.t1, dt, lid, event_lanes);
     }
-    PL();
+    PL(lif);
 }
 
 const std::vector<spike>& lif_cell_group::spikes() const {

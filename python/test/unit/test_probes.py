@@ -25,7 +25,7 @@ class cc_recipe(A.recipe):
             .set_ion(ion="na", method="nernst/x=na")
             .place("(location 0 0.08)", A.synapse("expsyn"), "syn0")
             .place("(location 0 0.09)", A.synapse("exp2syn"), "syn1")
-            .place("(location 0 0.1)", A.iclamp(20.0 * U.nA), "iclamp")
+            .place("(location 0 0.1)", A.i_clamp(20.0 * U.nA))
             .paint("(all)", A.density("hh"))
         )
 

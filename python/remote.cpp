@@ -84,7 +84,7 @@ void register_remote(pybind11::module& m) {
                       [](const arb::remote::arb_spike& s) { return s.source.gid; },
                       [](arb::remote::arb_spike& s, std::uint32_t t) { s.source.gid = t; },
                       "Source gid of spike event.")
-        .def_property("gid",
+        .def_property("lid",
                       [](const arb::remote::arb_spike& s) { return s.source.lid; },
                       [](arb::remote::arb_spike& s, std::uint32_t t) { s.source.lid = t; },
                       "Source index of spike event.")

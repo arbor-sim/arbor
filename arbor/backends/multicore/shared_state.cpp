@@ -323,7 +323,7 @@ std::size_t extend_width(const arb::mechanism& mech, std::size_t width) {
 void shared_state::update_prng_state(mechanism& m) {
     if (!m.mech_.n_random_variables) return;
     const auto mech_id = m.mechanism_id();
-    auto& store = storage[mech_id];
+    auto& store = storage.at(mech_id);
     const auto counter = store.random_number_update_counter_++;
     const auto cache_idx = cbprng::cache_index(counter);
 
@@ -360,11 +360,10 @@ void shared_state::update_prng_state(mechanism& m) {
 // * For indices in the padded tail of node_index_, set index to last valid CV index.
 // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
-void shared_state::instantiate(arb::mechanism& m,
-                               unsigned id,
-                               const mechanism_overrides& overrides,
-                               const mechanism_layout& pos_data,
-                               const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
+unsigned shared_state::instantiate(arb::mechanism& m,
+                                   const mechanism_overrides& overrides,
+                                   const mechanism_layout& pos_data,
+                                   const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
     // Mechanism indices and data require:
     // * an alignment that is a multiple of the mechansim data_alignment();
     // * a size which is a multiple of partition_width() for SIMD access.
@@ -374,9 +373,13 @@ void shared_state::instantiate(arb::mechanism& m,
 
     util::padded_allocator<> pad(m.data_alignment());
 
-    if (storage.count(id)) throw arbor_internal_error("Duplicate mechanism id in MC shared state.");
-    streams[id] = spike_event_stream{};
-    auto& store = storage[id];
+    // get new id
+    auto id = streams.size();
+    // allocate new slots
+    streams.push_back({});
+    storage.push_back({});
+
+    auto& store = storage.back();
     auto width = pos_data.cv.size();
     // Assign non-owning views onto shared state:
     m.ppack_ = {0};
@@ -425,10 +428,10 @@ void shared_state::instantiate(arb::mechanism& m,
 
     // Initialize state and parameter vectors with default values.
     {
-        // Allocate view pointers for random nubers
+        // Allocate view pointers for random numbers
         std::size_t num_random_numbers_per_cv = m.mech_.n_random_variables;
         std::size_t random_number_storage = num_random_numbers_per_cv*cbprng::cache_size();
-        for (auto& v : store.random_numbers_) v.resize(num_random_numbers_per_cv);
+        for (auto& v: store.random_numbers_) v.resize(num_random_numbers_per_cv);
         m.ppack_.random_numbers = store.random_numbers_[0].data();
 
         // Allocate bulk storage
@@ -527,16 +530,15 @@ void shared_state::instantiate(arb::mechanism& m,
         // to index the voltage at the other side of a gap-junction connection.
         if (peer_indices) m.ppack_.peer_index = writer.append(pos_data.peer_cv, pos_data.peer_cv.back());
     }
+    return id;
 }
 
-void shared_state::update_density_data(cell_gid_type lid, arb_mechanism_ppack& ppack, cell_gid_type pid, arb_value_type val) {
+void shared_state::update_range_parameter(arb_index_type lid, arb_mechanism_ppack& ppack, cell_gid_type pid, const std::vector<arb_value_type>& vals) {
+    auto off = 0;
     for (auto idx = 0ul; idx < ppack.width; ++idx) {
         if (lid != ppack.vec_ci[ppack.node_index[idx]]) continue;
-        std::cerr << "idx=" << idx
-                  << " old=" << ppack.parameters[pid][idx];
-        ppack.parameters[pid][idx] = val;
-        std::cerr << " weight=" << ppack.weight[idx]
-                  << " new=" << ppack.parameters[pid][idx] << '\n';
+        ppack.parameters[pid][idx] = vals[off];
+        ++off;
     }
 }
 

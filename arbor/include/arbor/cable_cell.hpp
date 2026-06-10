@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <type_traits>
 
 #include <arbor/export.hpp>
 #include <arbor/arbexcept.hpp>
@@ -22,6 +23,12 @@
 #include <arbor/util/hash_def.hpp>
 
 namespace arb {
+
+enum class cable_cell_mutability {
+    disabled,
+    enabled,
+};
+
 
 // `cable_sample_range` is simply a pair of `const double*` pointers describing the sequence
 // of double values associated with the cell-wide sample.
@@ -209,6 +216,21 @@ struct ARB_SYMBOL_VISIBLE cable_probe_ion_ext_concentration_cell {
     std::string ion;
 };
 
+// Ion reversal potential [mV] at `location`.
+// Sample value type: `double`
+// Sample metadata type: `mlocation`
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_reversal_potential {
+    locset locations;
+    std::string ion;
+};
+
+// Ion reversal potential [mV] across components of the cell
+// Sample value type: `cable_sample_range`
+// Sample metadata type: `mcable_list`
+struct ARB_SYMBOL_VISIBLE cable_probe_ion_reversal_potential_cell {
+    std::string ion;
+};
+
 // Forward declare the implementation, for PIMPL.
 struct cable_cell_impl;
 
@@ -237,17 +259,22 @@ struct placed {
 template <typename T>
 using mlocation_map = std::vector<placed<T>>;
 
+// map for synapses or junctions, plain vector else
 template <typename T>
-using location_assignment = std::conditional_t<std::is_same<T, synapse>::value || std::is_same<T, junction>::value,
+using location_assignment = std::conditional_t<std::is_same_v<T, synapse> || std::is_same_v<T, junction>,
                                                std::unordered_map<std::string, mlocation_map<T>>,
                                                mlocation_map<T>>;
 
 // Allowed edits on cable cells
+using parameter_map = std::vector<std::pair<std::string, double>>;
 
+using density_editor = std::function<parameter_map(const region&, const std::string&, const parameter_map&)>;
+using synapse_editor = std::function<parameter_map(const locset&, const std::string&, const parameter_map&)>;
+    
 // Overwrite a list of named parameters on a given mechanism
-struct cable_cell_density_editor {
-    std::string mechanism;
-    std::unordered_map<std::string, double> values;
+struct cable_cell_editor {
+    density_editor on_density;
+    synapse_editor on_synapse;
 };
 
 // High-level abstract representation of a cell.
@@ -272,7 +299,8 @@ struct ARB_SYMBOL_VISIBLE cable_cell {
     cable_cell(const class morphology& m,
                const decor& d,
                const label_dict& l={},
-               const std::optional<cv_policy>& = {});
+               const std::optional<cv_policy>& = {},
+               const cable_cell_mutability is_mut=cable_cell_mutability::disabled);
 
     /// Access to labels
     const label_dict& labels() const;
@@ -320,8 +348,11 @@ struct ARB_SYMBOL_VISIBLE cable_cell {
     const lid_range_map& synapse_ranges() const;
     const lid_range_map& junction_ranges() const;
 
+    bool is_editable() const { return is_mutable; }
+
 private:
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
+    bool is_mutable = false;
 };
 
 } // namespace arb

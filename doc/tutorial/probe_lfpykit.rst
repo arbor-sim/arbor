@@ -120,7 +120,7 @@ As a target for a current stimulus we define
 
 Next, we define our cell model, based on the morphology and clamp location. We
 set various attributes (:class:`~arbor.label_dict`, :class:`~arbor.decor`) for
-the cell model, attaches a sinusoid current using :class:`~arbor.iclamp`, and
+the cell model, attaches a sinusoid current using :class:`~arbor.i_clamp`, and
 sets discretization policy ats :class:`~arbor.cv_policy_fixed_per_branch`.
 
 .. literalinclude:: ../../python/example/probe_lfpykit.py
@@ -202,7 +202,7 @@ The stimulus location is denoted by the black marker.
 
     The spatial discretization is here deliberately coarse with only 3 CVs per branch.
     Hence, the branch receiving input about 1/6 of the way from its root
-    (from ``decor.place(str(arbor.location(4, 1/6)), iclamp, '"iclamp"')``) is treated as 3 separate
+    (from ``decor.place(str(arbor.location(4, 1/6)), i_clamp)``) is treated as 3 separate
     line sources with inhomogeneous current density per unit length. This inhomogeneity
     is due to the fact that the total transmembrane current per CV may
     be distributed across multiple segments with varying surface areas. The transmembrane

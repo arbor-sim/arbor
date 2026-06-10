@@ -12,8 +12,6 @@ Arbor relies on a (small) number of dependencies. We can distinguish three kinds
 
 Note that the actual dependencies of your build configuration may vary.
 
-In addition, ``spack/package.py`` contains a copy of the Spack package definition `upstream <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/arbor/package.py>`_. Here instructions for both in-repo and configure-time dependencies are defined.
-
 This document contains rules for when and how to update dependencies and what to be mindful of when doing so.
 
 List of dependencies
@@ -44,27 +42,22 @@ are essential. These environments must be able to build Arbor without issue, if 
 Also, build instructions for each of them must be given in the documentation.
 
 * Ubuntu LTS-latest
-* Ubuntu LTS-latest-1
+* Ubuntu LTS-latest -1
 * MacOS-latest
-* MacOS-latest-1
-* Cray programming environment on Piz Daint
-* Programming environment on Juwels Booster (**todo** CI at JSC)
+* MacOS-latest -1
+* Programming environment on Juwels Booster and Jupiter
 * Github Action venvs, see `list <https://github.com/actions/virtual-environments>`_.
 * Manylinux containers. For compatibility of manylinux tags, see `here <https://github.com/pypa/manylinux#readme>`_.
 
 Dependency update rules
 -----------------------
 
-#. ``doc/dependencies.csv``, git submodules and ``spack/package.py`` shall be in sync.
+#. ``doc/dependencies.csv``, CPM installs and the ``spack`` package` shall be in sync.
 #. Dependencies shall be set to a (commit hash corresponding to a) specific version tag. (All current dependencies use semver.)
 #. The version shall be compatible with the user platforms (see above).
 #. The version shall be compatible with the requirements in ``doc/dependencies.csv``.
 #. The version shall be the lowest possible to facilitate the building of complex environments.
-#. The submodule shall be set to the highest version provided by the latest Spack release ("Spack stable"). Spack CI tests both Spack stable and develop.
-#. Moreover, dependencies shall not be updated past the most recent version of the dependency in Spack.
-
-   * This prevents Spack builds from pulling in ``master``, when a more recent version than available is required. `See here <https://spack.readthedocs.io/en/latest/packaging_guide.html#version-comparison>`_.
-   * This is a manual check, e.g. for pybind: `see pybind package.py <https://github.com/spack/spack/blob/develop/var/spack/repos/builtin/packages/py-pybind11/package.py>`_
+#. The version shall be compatible with those available in the latest Spack release ("Spack stable").
 #. Actually updating shall remain a manual process. Update may require nontrivial updates to Arbor, and updates to Spack upstream (e.g. make PR for pybind update).
 #. A dependency update shall have a separate PR, and such a PR updates a single dependency at a time, unless the dependency update requires other dependencies to be updated.
 #. This PR requires review by at least two reviewers.

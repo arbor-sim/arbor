@@ -127,11 +127,11 @@ def make_cell(base, swc, fit):
         decor.paint(f'"{region}"', A.density(A.mechanism(nm, vs)))
 
     # (9) attach stimulus and detector
-    decor.place('"midpoint"', A.iclamp(0.2 * U.s, 1 * U.s, 150 * U.pA), "ic")
+    decor.place('"midpoint"', A.i_clamp(0.2 * U.s, 1 * U.s, 150 * U.pA))
     decor.place('"midpoint"', A.threshold_detector(-40 * U.mV), "sd")
 
     # (10) discretisation strategy: max compartment length
-    cvp = A.cv_policy_max_extent(20)
+    cvp = A.cv_policy_max_extent(20 * U.um)
 
     # (11) Create cell
     return A.cable_cell(morphology, decor, labels, cvp), offset
@@ -177,9 +177,8 @@ df = pd.concat(
 )
 
 sns.relplot(data=df, kind="line", x="t/ms", y="U/mV", hue="Simulator", errorbar=None)
-plt.scatter(
-    model.spikes, [-40] * len(model.spikes), color=sns.color_palette()[2], zorder=20
-)
+spikes = model.spikes[:]
+plt.scatter(spikes, [-40] * len(spikes), color=sns.color_palette()[2], zorder=20)
 plt.bar(
     200,
     max(reference) - min(reference),
@@ -190,3 +189,4 @@ plt.bar(
     color="0.9",
 )
 plt.savefig("single_cell_allen_result.pdf")
+assert len(spikes) == 4, f"Expected four spikes, got {spikes}"

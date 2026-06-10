@@ -122,6 +122,7 @@ struct network_selection_source_cell_kind_impl: public network_selection_impl {
         case arb::cell_kind::cable: os << "cable"; break;
         case arb::cell_kind::lif: os << "lif"; break;
         case arb::cell_kind::benchmark: os << "benchmark"; break;
+        case cell_kind::adex: os << "adex"; break;
         }
         os << "-cell))";
     }
@@ -152,6 +153,7 @@ struct network_selection_target_cell_kind_impl: public network_selection_impl {
         case arb::cell_kind::cable: os << "cable"; break;
         case arb::cell_kind::lif: os << "lif"; break;
         case arb::cell_kind::benchmark: os << "benchmark"; break;
+        case cell_kind::adex: os << "adex"; break;
         }
         os << "-cell))";
     }

@@ -229,10 +229,26 @@ std::string dictionary_csv(const std::unordered_map<Key, T>& dict) {
     std::string format = pprintf("{}: {}", string_key? "\"{}\"": "{}", string_value? "\"{}\"": "{}");
     std::string s = "{";
     bool first = true;
-    for (auto& p: dict) {
+    for (const auto& [k, v]: dict) {
         if (!first) s += ", ";
         first = false;
-        s += pprintf(format.c_str(), p.first, p.second);
+        s += pprintf(format.c_str(), k, v);
+    }
+    s += "}";
+    return s;
+}
+
+template <typename Key, typename T>
+std::string dictionary_csv(const std::vector<std::pair<Key, T>>& dict) {
+    constexpr bool string_key   = std::is_same<std::string, std::decay_t<Key>>::value;
+    constexpr bool string_value = std::is_same<std::string, std::decay_t<T>>::value;
+    std::string format = pprintf("{}: {}", string_key? "\"{}\"": "{}", string_value? "\"{}\"": "{}");
+    std::string s = "{";
+    bool first = true;
+    for (const auto& [k, v]: dict) {
+        if (!first) s += ", ";
+        first = false;
+        s += pprintf(format.c_str(), k, v);
     }
     s += "}";
     return s;

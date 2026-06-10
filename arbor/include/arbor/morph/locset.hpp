@@ -107,7 +107,7 @@ private:
     };
 };
 
-class region;
+struct region;
 
 namespace ls {
 

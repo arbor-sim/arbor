@@ -23,6 +23,7 @@ set(arbor_sources
     iexpr.cpp
     label_resolution.cpp
     lif_cell_group.cpp
+    adex_cell_group.cpp
     cable_cell_group.cpp
     mechcat.cpp
     mechinfo.cpp

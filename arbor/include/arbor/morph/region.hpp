@@ -14,8 +14,7 @@ namespace arb {
 struct mprovider;
 struct region_tag {};
 
-class ARB_SYMBOL_VISIBLE region {
-public:
+struct ARB_SYMBOL_VISIBLE region {
     template <typename Impl,
               typename = std::enable_if_t<std::is_base_of<region_tag, std::decay_t<Impl>>::value>>
     explicit region(Impl&& impl):
@@ -96,7 +95,7 @@ private:
     };
 };
 
-class locset;
+struct locset;
 
 namespace reg {
 

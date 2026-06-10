@@ -80,9 +80,10 @@ struct shared_state_base {
         }
     }
 
-    void update_density_data(cell_gid_type gid, arb_mechanism_ppack& ppack, cell_gid_type pid, arb_value_type val) {
+    // overwrite a RANGE-type parameter in the mechanism `ppack` is attached to.
+    void update_range_parameter(cell_gid_type lid, arb_mechanism_ppack& ppack, cell_gid_type pid, const std::vector<arb_value_type>& vals) {
         auto d = static_cast<D*>(this);
-        d->update_density_data(gid, ppack, pid, val);
+        d->update_range_parameter(lid, ppack, pid, vals);
     }
 
     arb_value_type* mechanism_state_data(const mechanism& m,
@@ -101,17 +102,15 @@ struct shared_state_base {
     void mark_events() {
         auto d = static_cast<D*>(this);
         auto& streams = d->streams;
-        for (auto& stream: streams) stream.second.mark();
+        for (auto& stream: streams) stream.mark();
     }
 
     void deliver_events(mechanism& m) {
         auto d = static_cast<D*>(this);
-        auto& streams = d->streams;
-        if (auto it = streams.find(m.mechanism_id()); it != streams.end()) {
-            if (auto& deliverable_events = it->second; !deliverable_events.empty()) {
-                auto state = deliverable_events.marked_events();
-                m.deliver_events(state);
-            }
+        auto& stream = d->streams.at(m.mechanism_id());
+        if (!stream.empty()) {
+            auto state = stream.marked_events();
+            m.deliver_events(state);
         }
     }
 

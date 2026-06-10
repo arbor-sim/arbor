@@ -57,9 +57,7 @@ public:
         }
     }
 
-    const std::vector<threshold_crossing>& crossings() const {
-        return crossings_;
-    }
+    const std::vector<threshold_crossing>& crossings() const { return crossings_; }
 
     /// Tests each target for changed threshold state
     /// Crossing events are recorded for each threshold that

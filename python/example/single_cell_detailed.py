@@ -67,9 +67,9 @@ decor = (
     .paint('"custom"', A.density("hh"))
     .paint('"dend"', A.density("Ih", gbar=0.001))
     # Place stimuli and detectors.
-    .place('"root"', A.iclamp(10 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp0")
-    .place('"root"', A.iclamp(30 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp1")
-    .place('"root"', A.iclamp(50 * U.ms, 1 * U.ms, current=2 * U.nA), "iclamp2")
+    .place('"root"', A.i_clamp(10 * U.ms, 1 * U.ms, current=2 * U.nA))
+    .place('"root"', A.i_clamp(30 * U.ms, 1 * U.ms, current=2 * U.nA))
+    .place('"root"', A.i_clamp(50 * U.ms, 1 * U.ms, current=2 * U.nA))
     .place('"axon_terminal"', A.threshold_detector(-10 * U.mV), "detector")
 )
 

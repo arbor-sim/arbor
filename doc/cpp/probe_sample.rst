@@ -268,8 +268,8 @@ Ionic diffusion concrentration.
         std::string ion;
     };
 
-Diffusive ionic concentration of the given ``ion`` at the
-sites specified by ``locations``.
+Diffusive ionic concentration of the given ``ion`` at the sites specified by
+``locations``.
 
 .. code::
 
@@ -279,6 +279,24 @@ sites specified by ``locations``.
 
 Ionic diffusion concrentration attributed to a particular ``ion`` across CVs of the cell.
 
+Ionic reversal potential.
+
+.. code::
+
+    struct cable_probe_ion_reversal_potential {
+        locset locations;
+        std::string ion;
+    };
+
+Reversal potential of the given ``ion`` at the sites specified by ``locations``.
+
+.. code::
+
+    struct cable_probe_ion_reversal_potential_cell {
+        std::string ion;
+    };
+
+Reversal potential attributed to a particular ``ion`` across CVs of the cell.
 
 Mechanism state
 ^^^^^^^^^^^^^^^
@@ -685,5 +703,34 @@ Membrane voltage
 Queries cell membrane potential.
 
 * Sample value: ``double``. Membrane potential (mV).
+
+* Metadata: none
+
+AdEx cell probing and sampling
+===============================
+
+Membrane voltage
+----------------
+
+.. code::
+
+    struct adex_probe_voltage {};
+
+Queries cell membrane potential.
+
+* Sample value: ``double``. Membrane potential (mV).
+
+* Metadata: none
+
+Adaption Variable
+-----------------
+
+.. code::
+
+    struct adex_probe_adaption {};
+
+Queries cell adaption variable :math:`w`.
+
+* Sample value: ``double``. (nA).
 
 * Metadata: none

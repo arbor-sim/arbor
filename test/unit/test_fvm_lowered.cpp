@@ -573,14 +573,18 @@ TEST(fvm_lowered, ionic_concentrations) {
     std::vector<arb_index_type> src_to_spike = {};
 
     fvm_ion_config ion_config;
-    mechanism_layout layout;
+
+
+    std::vector<arb_index_type> cv;
+    for (arb_size_type i = 0; i<ncv; ++i) {
+        cv.push_back(i);
+        ion_config.cv.push_back(i);
+    }
+
+    mechanism_layout layout { .cv=cv, };
     mechanism_overrides overrides;
 
     layout.weight.assign(ncv, 1.);
-    for (arb_size_type i = 0; i<ncv; ++i) {
-        layout.cv.push_back(i);
-        ion_config.cv.push_back(i);
-    }
     ion_config.econc_written  = true;
     ion_config.iconc_written  = true;
     ion_config.revpot_written = true;
@@ -604,8 +608,8 @@ TEST(fvm_lowered, ionic_concentrations) {
                                                                          read_cai_mech->data_alignment());
     shared_state->add_ion("ca", ion_config);
 
-    shared_state->instantiate(*read_cai_mech, 0, overrides, layout, {});
-    shared_state->instantiate(*write_cai_mech, 1, overrides, layout, {});
+    shared_state->instantiate(*read_cai_mech, overrides, layout, {});
+    shared_state->instantiate(*write_cai_mech, overrides, layout, {});
 
     shared_state->reset();
 

@@ -23,15 +23,13 @@ cell_json, morpho, decor, labels = ephys.create_acc.read_acc(cell_json_filename)
 labels["soma_center"] = "(location 0 0.5)"
 
 # (3) Define stimulus and spike detector, adjust discretization
-decor.place(
-    '"soma_center"', A.iclamp(tstart=100, duration=50, current=0.05), "soma_iclamp"
-)
+decor.place('"soma_center"', A.i_clamp(tstart=100, duration=50, current=0.05))
 
 # Add spike detector
 decor.place('"soma_center"', A.threshold_detector(-10), "detector")
 
 # Adjust discretization (single CV on soma, default everywhere else)
-cvp = A.cv_policy_max_extent(1.0) | A.cv_policy_single('"soma"')
+cvp = A.cv_policy_max_extent_um(1.0) | A.cv_policy_single('"soma"')
 
 # (4) Create the cell.
 cell = A.cable_cell(morpho, decor, labels, cvp)

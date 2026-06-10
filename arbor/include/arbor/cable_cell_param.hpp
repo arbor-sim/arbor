@@ -137,9 +137,9 @@ struct ARB_SYMBOL_VISIBLE init_membrane_potential {
 
     init_membrane_potential() = default;
     init_membrane_potential(const U::quantity& m, iexpr scale=1):
-      value(m.value_as(U::mV)), scale{scale} {
-        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [mV]."};
-    }
+        value(U::unit_of(m, U::mV, "membrane potential")),
+        scale{scale}
+    {}
 };
 
 
@@ -149,9 +149,9 @@ struct ARB_SYMBOL_VISIBLE temperature {
 
     temperature() = default;
     temperature(const U::quantity& m, iexpr scale=1):
-      value(m.value_as(U::Kelvin)), scale{scale} {
-        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [K]."};
-    }
+        value(U::unit_of(m, U::Kelvin, "Temperature")),
+        scale{scale}
+    {}
 };
 
 struct ARB_SYMBOL_VISIBLE axial_resistivity {
@@ -160,9 +160,9 @@ struct ARB_SYMBOL_VISIBLE axial_resistivity {
 
     axial_resistivity() = default;
     axial_resistivity(const U::quantity& m, iexpr scale=1):
-      value(m.value_as(U::cm*U::Ohm)), scale{scale} {
-        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [Ω·cm]."};
-    }
+        value(U::unit_of(m, U::cm*U::Ohm, "Resistivity")),
+        scale{scale}
+    {}
 };
 
 struct ARB_SYMBOL_VISIBLE membrane_capacitance {
@@ -171,9 +171,9 @@ struct ARB_SYMBOL_VISIBLE membrane_capacitance {
 
     membrane_capacitance() = default;
     membrane_capacitance(const U::quantity& m, iexpr scale=1):
-      value(m.value_as(U::F/U::m2)), scale{scale} {
-        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [F/m²]."};
-    }
+        value(U::unit_of(m, U::F/U::m2, "Capacitance")),
+        scale{scale}
+    {}
 };
 
 struct ARB_SYMBOL_VISIBLE init_int_concentration {
@@ -183,9 +183,10 @@ struct ARB_SYMBOL_VISIBLE init_int_concentration {
 
     init_int_concentration() = default;
     init_int_concentration(const std::string& ion, const U::quantity& m, iexpr scale=1):
-      ion{ion}, value(m.value_as(U::mM)), scale{scale} {
-        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [mM]."};
-    }
+        ion{ion},
+        value(U::unit_of(m, U::mM, "Concentration")),
+        scale{scale}
+    {}
 };
 
 struct ARB_SYMBOL_VISIBLE ion_diffusivity {
@@ -195,9 +196,10 @@ struct ARB_SYMBOL_VISIBLE ion_diffusivity {
 
     ion_diffusivity() = default;
     ion_diffusivity(const std::string& ion, const U::quantity& m, iexpr scale=1):
-      ion{ion}, value(m.value_as(U::m2/U::s)), scale{scale} {
-        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [m²/s]."};
-    }
+        ion{ion},
+        value(U::unit_of(m, U::m2/U::s, "Diffusivity")),
+        scale{scale}
+    {}
 };
 
 struct ARB_SYMBOL_VISIBLE init_ext_concentration {
@@ -207,9 +209,10 @@ struct ARB_SYMBOL_VISIBLE init_ext_concentration {
 
     init_ext_concentration() = default;
     init_ext_concentration(const std::string& ion, const U::quantity& m, iexpr scale=1):
-      ion{ion}, value(m.value_as(U::mM)), scale{scale} {
-        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [mM]."};
-    }
+        ion{ion},
+        value(U::unit_of(m, U::mM, "Concentration")),
+        scale{scale}
+    {}
 };
 
 struct ARB_SYMBOL_VISIBLE init_reversal_potential {
@@ -219,9 +222,10 @@ struct ARB_SYMBOL_VISIBLE init_reversal_potential {
 
     init_reversal_potential() = default;
     init_reversal_potential(const std::string& ion, const U::quantity& m, iexpr scale=1):
-      ion{ion}, value(m.value_as(U::mV)), scale{scale} {
-        if (!std::isfinite(value)) throw std::domain_error{"Value must be finite and in [mV]."};
-    }
+        ion{ion},
+        value(U::unit_of(m, U::mV, "Reversal potential")),
+        scale{scale}
+    {}
 };
 
 // Mechanism description, viz. mechanism name and
@@ -251,6 +255,12 @@ struct ARB_SYMBOL_VISIBLE mechanism_desc {
     mechanism_desc(const char* name): name_(name) {
         if (name_.empty()) throw cable_cell_error("mechanism_desc: null name");
     }
+    mechanism_desc(const char* name, std::unordered_map<std::string, double> param):
+        name_(name) {
+        for (const auto& [k, v]: param) set(k, v);
+    }
+    mechanism_desc(const char* name, std::vector<std::pair<std::string, double>> param):
+        name_(name), param_(std::move(param)) {}
 
     mechanism_desc() = default;
     mechanism_desc(const mechanism_desc&) = default;
@@ -260,7 +270,13 @@ struct ARB_SYMBOL_VISIBLE mechanism_desc {
     mechanism_desc& operator=(mechanism_desc&&) = default;
 
     mechanism_desc& set(const std::string& key, double value) {
-        param_[key] = value;
+        for (auto& [k, v]: param_) {
+            if (k == key) {
+                v = value;
+                return *this;
+            }
+        }
+        param_.push_back({key, value});
         return *this;
     }
 
@@ -273,22 +289,19 @@ struct ARB_SYMBOL_VISIBLE mechanism_desc {
     }
 
     double get(const std::string& key) const {
-        auto i = param_.find(key);
-        if (i==param_.end()) {
-            throw std::out_of_range("no field "+key+" set");
+        for (const auto& [k, v]: param_) {
+            if (k == key) return v;
         }
-        return i->second;
+        throw std::out_of_range("no field "+key+" set");
     }
 
-    const std::unordered_map<std::string, double>& values() const {
-        return param_;
-    }
+    const auto& values() const { return param_; }
 
     const std::string& name() const { return name_; }
 
 private:
     std::string name_;
-    std::unordered_map<std::string, double> param_;
+    std::vector<std::pair<std::string, double>> param_;
 };
 
 
@@ -296,41 +309,41 @@ private:
 struct ARB_SYMBOL_VISIBLE junction {
     mechanism_desc mech;
     explicit junction(mechanism_desc m): mech(std::move(m)) {}
-    junction(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
-        for (const auto& [param, value]: params) {
-            mech.set(param, value);
-        }
+    explicit junction(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+        for (const auto& [param, value]: params) mech.set(param, value);
     }
+    junction(const char* m, std::vector<std::pair<std::string, double>> params):
+        mech(m, std::move(params)) {}
 };
 
 struct ARB_SYMBOL_VISIBLE synapse {
     mechanism_desc mech;
     explicit synapse(mechanism_desc m): mech(std::move(m)) {}
-    synapse(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
-        for (const auto& [param, value]: params) {
-            mech.set(param, value);
-        }
+    explicit synapse(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+        for (const auto& [param, value]: params) mech.set(param, value);
     }
+    synapse(const char* m, std::vector<std::pair<std::string, double>> params):
+        mech(m, std::move(params)) {}
 };
 
 struct ARB_SYMBOL_VISIBLE density {
     mechanism_desc mech;
     explicit density(mechanism_desc m): mech(std::move(m)) {}
-    density(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
-        for (const auto& [param, value]: params) {
-            mech.set(param, value);
-        }
+    explicit density(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+        for (const auto& [param, value]: params) mech.set(param, value);
     }
+    density(const char* m, std::vector<std::pair<std::string, double>> params):
+        mech(m, std::move(params)) {}
 };
 
 struct ARB_SYMBOL_VISIBLE voltage_process {
     mechanism_desc mech;
     explicit voltage_process(mechanism_desc m): mech(std::move(m)) {}
-    voltage_process(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
-        for (const auto& [param, value]: params) {
-            mech.set(param, value);
-        }
+    explicit voltage_process(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+        for (const auto& [param, value]: params) mech.set(param, value);
     }
+    voltage_process(const char* m, std::vector<std::pair<std::string, double>> params):
+        mech(m, std::move(params)) {}
 };
 
 struct ARB_SYMBOL_VISIBLE ion_reversal_potential_method {
@@ -414,12 +427,13 @@ class ARB_ARBOR_API decor {
     std::unordered_map<hash_type, cell_tag_type> hashes_;
 
 public:
-    const auto& paintings()  const {return paintings_;  }
-    const auto& placements() const {return placements_; }
-    const auto& defaults()   const {return defaults_;   }
+    const auto& paintings()  const { return paintings_;  }
+    const auto& placements() const { return placements_; }
+    const auto& defaults()   const { return defaults_;   }
 
     decor& paint(region, paintable);
     decor& place(locset, placeable, cell_tag_type);
+    decor& place(locset, i_clamp);
     decor& set_default(defaultable);
 
     cell_tag_type tag_of(hash_type) const;
@@ -456,16 +470,14 @@ struct ARB_SYMBOL_VISIBLE cable_cell_global_properties {
                  const U::quantity& init_revpot,
                  const U::quantity& diffusivity=0.0*U::m2/U::s) {
         ion_species[ion_name] = charge;
-
         auto &ion_data = default_parameters.ion_data[ion_name];
-        ion_data.init_int_concentration = init_iconc.value_as(U::mM);
-        if (!std::isfinite(*ion_data.init_int_concentration)) throw std::domain_error("init_int_concentration must be finite and convertible to mM");
-        ion_data.init_ext_concentration = init_econc.value_as(U::mM);
-        if (!std::isfinite(*ion_data.init_ext_concentration)) throw std::domain_error("init_ext_concentration must be finite and convertible to mM");
-        ion_data.init_reversal_potential = init_revpot.value_as(U::mV);
-        if (!std::isfinite(*ion_data.init_reversal_potential)) throw std::domain_error("init_reversal_potential must be finite and convertible to mV");
-        ion_data.diffusivity = diffusivity.value_as(U::m2/U::s);
-        if (!std::isfinite(*ion_data.diffusivity) || *ion_data.diffusivity < 0) throw std::domain_error("diffusivity must be positive, finite, and convertible to m2/s");
+        ion_data.init_int_concentration  = U::unit_of(init_iconc,  U::mM,      "init_int_concentration");
+        ion_data.init_ext_concentration  = U::unit_of(init_econc,  U::mM,      "init_ext_concentration");
+        ion_data.init_reversal_potential = U::unit_of(init_revpot, U::mV,      "init_reversal_potential");
+        ion_data.diffusivity             = U::unit_of(diffusivity, U::m2/U::s, "diffusivity");
+        if (*ion_data.diffusivity < 0)            throw std::domain_error("diffusivity must be positive");
+        if (*ion_data.init_ext_concentration < 0) throw std::domain_error("external concentration must be positive");
+        if (*ion_data.init_int_concentration < 0) throw std::domain_error("internal concentration must be positive");
     }
 
     void add_ion(const std::string& ion_name,

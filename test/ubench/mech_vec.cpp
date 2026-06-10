@@ -3,6 +3,7 @@
 // Start with pas (passive dendrite) mechanism
 
 #include <any>
+#include <random>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/segment_tree.hpp>
@@ -71,7 +72,7 @@ public:
             decor.place(arb::mlocation{0, distribution(gen)}, arb::synapse("expsyn"), "syn");
         }
 
-        return arb::cable_cell{arb::morphology(tree), decor, {}, arb::cv_policy_max_extent((dend_length+soma_radius*2)/num_comp_)};
+        return arb::cable_cell{arb::morphology(tree), decor, {}, arb::cv_policy_max_extent_um((dend_length+soma_radius*2)/num_comp_)};
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
@@ -110,7 +111,7 @@ public:
 
         arb::decor decor;
         decor.paint(arb::reg::all(), arb::density("pas"));
-        return arb::cable_cell {arb::morphology(tree), decor, {}, arb::cv_policy_max_extent((dend_length+soma_radius*2)/num_comp_)};
+        return arb::cable_cell {arb::morphology(tree), decor, {}, arb::cv_policy_max_extent_um((dend_length+soma_radius*2)/num_comp_)};
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
@@ -152,7 +153,7 @@ public:
         arb::decor decor;
         decor.paint(arb::reg::all(), arb::density("pas"));
 
-        return arb::cable_cell{arb::morphology(tree), decor, {}, arb::cv_policy_max_extent((dend_length*3+soma_radius*2)/num_comp_)};
+        return arb::cable_cell{arb::morphology(tree), decor, {}, arb::cv_policy_max_extent_um((dend_length*3+soma_radius*2)/num_comp_)};
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
@@ -192,7 +193,7 @@ public:
         arb::decor decor;
         decor.paint(arb::reg::all(), arb::density("hh"));
 
-        return arb::cable_cell{arb::morphology(tree), decor, {}, arb::cv_policy_max_extent((dend_length+soma_radius*2)/num_comp_)};
+        return arb::cable_cell{arb::morphology(tree), decor, {}, arb::cv_policy_max_extent_um((dend_length+soma_radius*2)/num_comp_)};
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
@@ -234,7 +235,7 @@ public:
         arb::decor decor;
         decor.paint(arb::reg::all(), arb::density("hh"));
 
-        return arb::cable_cell{arb::morphology(tree), decor, {}, arb::cv_policy_max_extent((dend_length*3+soma_radius*2)/num_comp_)};
+        return arb::cable_cell{arb::morphology(tree), decor, {}, arb::cv_policy_max_extent_um((dend_length*3+soma_radius*2)/num_comp_)};
     }
 
     virtual cell_kind get_cell_kind(cell_gid_type) const override {

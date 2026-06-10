@@ -12,12 +12,16 @@
         }
 
     // leave a profling region
-    #define PL arb::profile::profiler_leave
+    #define PL(name) \
+        { \
+            static std::size_t region_id_ = arb::profile::profiler_region_id(#name); \
+            arb::profile::profiler_leave(region_id_); \
+        }
 
 #else
 
     #define PE(name)
-    #define PL()
+    #define PL(name)
 
 #endif
 

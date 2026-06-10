@@ -7,8 +7,6 @@
 #include <arbor/morph/primitives.hpp>
 
 #include "util/piecewise.hpp"
-#include "util/range.hpp"
-#include "util/rangeutil.hpp"
 #include "util/ratelem.hpp"
 #include "util/span.hpp"
 

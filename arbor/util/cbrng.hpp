@@ -7,6 +7,35 @@
 namespace arb {
 namespace util {
 
+struct uniform_t {
+    typedef r123::Threefry2x64 rng;
+    rng::key_type key_{{0}};
+    rng::ctr_type ctr_{{0,0}};
+    rng g;
+    double cache_ = -1;
+
+    uniform_t(std::uint64_t seed, std::uint64_t discard=0):
+        key_{{seed}}, ctr_{{discard/2, 0}} {
+        // discard was odd, so we prime the cache by generating one pair, discarding the first
+        if (discard % 2) (*this)();
+    }
+
+    double operator()() {
+        // have one value cached, so return that and invalidate
+        if (cache_ > 0) {
+            return std::exchange(cache_, -1);
+        }
+        // nothing in cache, so generate two new numbers caching the second
+        else {
+            auto rand = g(ctr_, key_);
+            ctr_[0] += 1;
+            cache_ = r123::u01<double>(rand[1]);
+            return r123::u01<double>(rand[0]);
+        }
+    }
+};
+
+inline
 std::vector<double> uniform(uint64_t seed, unsigned left, unsigned right) {
     typedef r123::Threefry2x64 cbrng;
     std::vector<double> r;

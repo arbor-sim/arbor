@@ -35,7 +35,8 @@ TEST(morph, stitch_none_or_one) {
     EXPECT_EQ(p1, seg0.prox);
     EXPECT_EQ(p2, seg0.dist);
 
-    mprovider p(m1, sm1.labels("stitch:"));
+    auto labels = sm1.labels("stitch:");
+    mprovider p(m1, labels);
     EXPECT_TRUE(region_eq(p, "stitch:first"_lab, reg::segment(0)));
 }
 
@@ -63,7 +64,8 @@ TEST(morph, stitch_two) {
         EXPECT_EQ(p2, seg1.prox);
         EXPECT_EQ(p3, seg1.dist);
 
-        mprovider p(m, sm.labels("stitch:"));
+        auto labels = sm.labels("stitch:");
+        mprovider p(m, labels);
         EXPECT_TRUE(region_eq(p, "stitch:0"_lab, reg::segment(0)));
         EXPECT_TRUE(region_eq(p, "stitch:1"_lab, reg::segment(1)));
     }
@@ -95,7 +97,8 @@ TEST(morph, stitch_two) {
         EXPECT_EQ(p1, seg0.prox);
         EXPECT_EQ(p1, seg1.prox);
 
-        mprovider p(m, sm.labels("stitch:"));
+        auto labels = sm.labels("stitch:");
+        mprovider p(m, labels);
         // Branch ordering is arbitrary, so check both possibilities:
         if (seg0.dist == p2) {
             EXPECT_TRUE(region_eq(p, "stitch:0"_lab, reg::segment(0)));
@@ -138,7 +141,8 @@ TEST(morph, stitch_two) {
         EXPECT_EQ(x, seg1.prox);
         EXPECT_EQ(x, seg2.prox);
 
-        mprovider p(m, sm.labels("stitch:"));
+        auto labels = sm.labels("stitch:");
+        mprovider p(m, labels);
         // Branch ordering is arbitrary, so check both possibilities:
         if (seg2.dist == p2) {
             EXPECT_TRUE(region_eq(p, "stitch:0"_lab, join(reg::segment(0), reg::segment(2))));
@@ -200,7 +204,8 @@ TEST(morph, stitch_complex) {
 
     stitched_morphology sm(std::move(B));
     morphology m = sm.morphology();
-    mprovider P(m, sm.labels());
+    auto labels = sm.labels();
+    mprovider P(m, labels);
 
     EXPECT_EQ(10u, m.num_branches());
 

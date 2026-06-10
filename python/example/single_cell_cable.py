@@ -95,14 +95,13 @@ class Cable(A.recipe):
             .paint('"cable"', A.density(f"pas/e={self.Vm}", g=self.g))
             .place(
                 '"start"',
-                A.iclamp(
+                A.i_clamp(
                     self.stimulus_start, self.stimulus_duration, self.stimulus_amplitude
                 ),
-                "iclamp",
             )
         )
 
-        policy = A.cv_policy_max_extent(self.cv_policy_max_extent)
+        policy = A.cv_policy_max_extent_um(self.cv_policy_max_extent)
 
         return A.cable_cell(tree, decor, labels, policy)
 

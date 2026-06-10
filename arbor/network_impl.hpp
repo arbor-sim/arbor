@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <ostream>
-#include <string_view>
 #include <vector>
 
 #include <arbor/arbexcept.hpp>
@@ -38,8 +37,9 @@ struct network_selection_impl {
     virtual ~network_selection_impl() = default;
 };
 
-inline std::shared_ptr<network_selection_impl> thingify(network_selection s,
-    const network_label_dict& dict) {
+inline std::shared_ptr<network_selection_impl>
+thingify(network_selection s,
+         const network_label_dict& dict) {
     s.impl_->initialize(dict);
     return s.impl_;
 }
@@ -61,7 +61,7 @@ inline std::shared_ptr<network_value_impl> thingify(network_value v,
 }
 
 std::vector<connection> generate_connections(const recipe& rec,
-    const context& ctx,
-    const domain_decomposition& dom_dec);
+                                             const context& ctx,
+                                             const domain_decomposition_ptr dom_dec);
 
 }  // namespace arb
