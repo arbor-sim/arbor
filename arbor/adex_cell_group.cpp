@@ -130,6 +130,7 @@ adex_cell_group::edit_cell(cell_gid_type gid, std::any cell_edit) {
         //         - what should probes return
         //       * V_m is the _initial state_ only
         if (tmp.V_m.value_as(U::mV) != lowered.V_m) throw bad_cell_edit(gid, "Initial voltage is not editable.");
+        if (tmp.w.value_as(U::pA) != lowered.w) throw bad_cell_edit(gid, "Adaption parameter is not editable.");
         if (tmp.source != lowered.source) throw bad_cell_edit(gid, "Source is not editable.");
         if (tmp.target != lowered.target) throw bad_cell_edit(gid, "Target is not editable.");
         // Write back
