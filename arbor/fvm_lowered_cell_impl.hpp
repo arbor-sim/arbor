@@ -13,8 +13,6 @@
 #include <vector>
 #include <string>
 
-#include <iostream>
-
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/cable_cell.hpp>

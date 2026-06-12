@@ -1,4 +1,6 @@
 #include <memory>
+#include <any>
+
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -7,6 +9,12 @@
 #include <arbor/common_types.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/simulation.hpp>
+#include <arbor/adex_cell.hpp>
+#include <arbor/benchmark_cell.hpp>
+#include <arbor/spike_source_cell.hpp>
+#include <arbor/lif_cell.hpp>
+#include <arbor/cable_cell.hpp>
+#include <arbor/cable_cell_param.hpp>
 
 #include "context.hpp"
 #include "error.hpp"
@@ -22,14 +30,10 @@ namespace py = pybind11;
 namespace pyarb {
 
 // Argument type for simulation_shim::record() (see below).
-
-enum class spike_recording {
-    off, local, all
-};
+enum class spike_recording { off, local, all };
 
 // Wraps an arb::simulation object and in addition manages a set of
 // sampler callbacks for retrieving probe data.
-
 class simulation_shim {
     std::unique_ptr<arb::simulation> sim_;
     std::vector<arb::spike> spike_record_;
@@ -121,6 +125,70 @@ public:
     arb::time_type run(const arb::units::quantity& tfinal, const arb::units::quantity& dt) {
         return sim_->run(tfinal, dt);
     }
+
+    void edit_cell(arb::cell_gid_type gid, arb::cell_kind kind, py::object fun) {
+        switch (kind) {
+        case arb::cell_kind::adex: {
+            sim_->edit_cell(gid,
+                            arb::adex_cell_editor(
+                                                  [fun](arb::adex_cell& cell) -> void {
+                                                      py::gil_scoped_acquire gil;
+                                                      fun(py::cast(&cell, py::return_value_policy::reference));
+                                                  }));
+            break;
+        }
+        case arb::cell_kind::cable: {
+            if (!py::isinstance<py::dict>(fun)) throw std::runtime_error{"Wrong argument type: need dict, got " + std::string(py::str(py::type::of(fun)))};
+            // this is now ok
+            auto dict = fun.cast<py::dict>();
+            auto edit = arb::cable_cell_editor {};
+            if (dict.contains("on_density")) {
+                edit.on_density = arb::density_editor(
+                                                      [dict] (const arb::region&, const std::string&, const arb::parameter_map&) {
+                                                          return arb::parameter_map{};
+                                                      });
+            }
+            sim_->edit_cell(gid, edit);
+            break;
+        }
+        case arb::cell_kind::lif: {
+            sim_->edit_cell(gid,
+                            arb::lif_cell_editor(
+                                                 [fun](arb::lif_cell& x) {
+                                                     py::gil_scoped_acquire gil;
+                                                     fun(py::cast(&x, py::return_value_policy::reference));
+                                                 }));
+
+            break;
+        }
+        case arb::cell_kind::spike_source: {
+            sim_->edit_cell(gid,
+                            arb::spike_source_cell_editor(
+                                                          [fun](arb::spike_source_cell& x) {
+                                                              py::gil_scoped_acquire gil;
+                                                              fun(py::cast(&x, py::return_value_policy::reference));
+                                                          }));
+
+            break;
+        }
+
+        case arb::cell_kind::benchmark: {
+            sim_->edit_cell(gid,
+                            arb::benchmark_cell_editor(
+                                                       [fun](arb::benchmark_cell& x) {
+                                                           py::gil_scoped_acquire gil;
+                                                           fun(py::cast(&x, py::return_value_policy::reference));
+                                                       }));
+            break;
+        }
+        default:
+            ARB_UNREACHABLE;
+        }
+    }
+    void edit_adex_cell(arb::cell_gid_type gid, std::function<void(arb::adex_cell&)> fun) { sim_->edit_cell(gid, fun); }
+    void edit_lif_cell(arb::cell_gid_type gid, arb::lif_cell_editor fun) { sim_->edit_cell(gid, fun); }
+    void edit_source_cell(arb::cell_gid_type gid, arb::spike_source_cell_editor fun) { sim_->edit_cell(gid, fun); }
+    void edit_benchmark_cell(arb::cell_gid_type gid, arb::benchmark_cell_editor fun) { sim_->edit_cell(gid, fun); }
 
     void record(spike_recording policy) {
         auto spike_recorder = [this](const std::vector<arb::spike>& spikes) {
@@ -282,7 +350,15 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
                  return sim.get_probe_metadata({std::get<0>(addr), std::get<1>(addr)});
              },
             "Retrieve metadata associated with given probe id.",
-            "addr"_a)
+             "addr"_a)
+        .def("edit_cell",
+             &simulation_shim::edit_cell,
+             "Edit cell with gid and kind, passing a function (lif, adex, ...) that mutates its argument.\n"
+             "Cable cells expect a dictionary with function values:\n"
+             "   {'on_density': f, 'on_synapse': g}\n"
+             "where each function `f`, `g` receives a location expression (region|locset), a mechanism name,\n"
+             "and the list of parameters [(key, value)] to edit. It is expected to return the _updated_ parameters.",
+             "gid"_a, "kind"_a, "lambda"_a)
         .def("probe_metadata",
              [](const simulation_shim& sim,
                 arb::cell_gid_type gid, const arb::cell_tag_type& tag) {
@@ -321,4 +397,4 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
 
 }
 
-} // namespace pyarb
+} // namespace pyar

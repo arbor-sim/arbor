@@ -7,6 +7,7 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/adex_cell.hpp>
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/spike_source_cell.hpp>
 
@@ -168,6 +169,153 @@ TEST(edit_lif, errors) {
     EXPECT_THROW(sim.edit_cell( 0, arb::lif_cell_editor([](auto& cell) { cell.target = "foo"; })), arb::bad_cell_edit);
     EXPECT_THROW(sim.edit_cell( 0, 42), arb::bad_cell_edit);
     EXPECT_THROW(sim.edit_cell(42, arb::lif_cell_editor([](arb::lif_cell& cell) { cell.C_m = 40_pF; })), std::range_error);
+}
+
+struct adex_recipe: arb::recipe {
+
+    struct param_t {
+        double weight = 0;
+        double cm_pF = 0;
+        size_t n_100 = 0;
+        size_t n_200 = 0;
+    };
+
+    adex_recipe(double w, double cm_pf): weight(w), C_m(cm_pf*arb::units::pF) {}
+
+    arb::cell_size_type num_cells() const override { return N; }
+    arb::cell_kind get_cell_kind(arb::cell_gid_type) const override { return arb::cell_kind::adex; }
+    arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override {
+        auto cell = arb::adex_cell{"src", "tgt"};
+        cell.C_m = C_m;
+        return cell;
+    }
+
+    std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override {
+        return {arb::regular_generator({"tgt"}, weight, 0_ms, 0.5_ms)};
+    }
+
+    arb::cell_size_type N = 10;
+
+    double weight = 100;
+    arb::units::quantity C_m = 20_pF;
+};
+
+TEST(edit_adex, no_edit) {
+    using  param_t = adex_recipe::param_t;
+    // check base case at 20pF
+    //                               weight  c_m  t=100 200
+    for (const auto& param: {param_t{ 1.5, 20.0, 210, 300 },
+                             param_t{ 2.5, 20.0, 360, 630 },
+                             param_t{ 3.0, 20.0, 370, 710 }}) {
+        auto rec = adex_recipe{param.weight, param.cm_pF};
+        auto sim = arb::simulation{rec};
+        sim.run(100_ms, 0.1_ms);
+        EXPECT_EQ(sim.num_spikes(), param.n_100);
+        sim.run(200_ms, 0.1_ms);
+        EXPECT_EQ(sim.num_spikes(), param.n_200);
+    }
+    // check base case at 40pF
+    //                               weight  c_m  t=100 200
+    for (const auto& param: {param_t{ 1.5, 40.0, 130, 170 },
+                             param_t{ 2.5, 40.0, 310, 520 },
+                             param_t{ 3.0, 40.0, 340, 620 }}) {
+        auto rec = adex_recipe{param.weight, param.cm_pF};
+        auto sim = arb::simulation{rec};
+        sim.run(100_ms, 0.1_ms);
+        EXPECT_EQ(sim.num_spikes(), param.n_100);
+        sim.run(200_ms, 0.1_ms);
+        EXPECT_EQ(sim.num_spikes(), param.n_200);
+    }
+}
+
+TEST(edit_adex, edit) {
+    using  param_t = adex_recipe::param_t;
+
+    arb::adex_cell_editor edit = [](arb::adex_cell& cell) { cell.C_m = 40_pF; };
+
+    auto ctx = arb::make_context();
+    // scan group sizes
+    for (auto group: arb::util::make_span(1, 10)) {
+        auto phm = arb::partition_hint_map{
+            {arb::cell_kind::lif,
+             arb::partition_hint{
+                 .cpu_group_size=std::size_t(group),
+                 .gpu_group_size=std::size_t(group),
+                 .prefer_gpu=true,
+             }
+             }
+        };
+        // check transition from 20pF -> 40pF for cell gid=0
+        //                               weight c_m   t=100 200
+        for (const auto& param: {param_t{ 1.5,  20.0, 210,  304},
+                                 param_t{ 2.5,  20.0, 360,  634},
+                                 param_t{ 3.0,  20.0, 370,  709}}) {
+            auto rec = adex_recipe{param.weight, param.cm_pF};
+            auto ddc = arb::partition_load_balance(rec, ctx, phm);
+            auto sim = arb::simulation{rec, ctx, ddc};
+            sim.run(100_ms, 0.1_ms);
+            EXPECT_EQ(sim.num_spikes(), param.n_100);
+            sim.edit_cell(0, edit);
+            sim.run(200_ms, 0.1_ms);
+            EXPECT_EQ(sim.num_spikes(), param.n_200);
+        }
+        // check transition from 20pF -> 40pF for half of cells
+        //                               weight  c_m   t=100 200
+        for (const auto& param: {param_t{ 1.5,  20.0, 210,  320},
+                                 param_t{ 2.5,  20.0, 360,  650},
+                                 param_t{ 3.0,  20.0, 370,  705}}) {
+            auto rec = adex_recipe{param.weight, param.cm_pF};
+            auto ddc = arb::partition_load_balance(rec, ctx, phm);
+            auto sim = arb::simulation{rec, ctx, ddc};
+            sim.run(100_ms, 0.1_ms);
+            EXPECT_EQ(sim.num_spikes(), param.n_100);
+            for (arb::cell_gid_type gid = 0; gid < rec.num_cells(); gid += 2) sim.edit_cell(gid, edit);
+            sim.run(200_ms, 0.1_ms);
+            EXPECT_EQ(sim.num_spikes(), param.n_200);
+        }
+        // check transition from 20pF -> 40pF for all cells
+        //                               weight  c_m   t=100 200
+        for (const auto& param: {param_t{ 1.5,  20.0, 210,  340},
+                                 param_t{ 2.5,  20.0, 360,  670},
+                                 param_t{ 3.0,  20.0, 370,  700}}) {
+            auto rec = adex_recipe{param.weight, param.cm_pF};
+            auto ddc = arb::partition_load_balance(rec, ctx, phm);
+            auto sim = arb::simulation{rec, ctx, ddc};
+            sim.run(100_ms, 0.1_ms);
+            EXPECT_EQ(sim.num_spikes(), param.n_100);
+            for (arb::cell_gid_type gid = 0; gid < rec.num_cells(); ++gid) sim.edit_cell(gid, edit);
+            sim.run(200_ms, 0.1_ms);
+            EXPECT_EQ(sim.num_spikes(), param.n_200);
+        }
+        // edits are idempotent
+        // check transition from 20pF -> 40pF for all cells
+        //                               weight  c_m   t=100 200
+        for (const auto& param: {param_t{ 1.5,  20.0, 210,  340},
+                                 param_t{ 2.5,  20.0, 360,  670},
+                                 param_t{ 3.0,  20.0, 370,  700}}) {
+            auto rec = adex_recipe{param.weight, param.cm_pF};
+            auto ddc = arb::partition_load_balance(rec, ctx, phm);
+            auto sim = arb::simulation{rec, ctx, ddc};
+            sim.run(100_ms, 0.1_ms);
+            EXPECT_EQ(sim.num_spikes(), param.n_100);
+            for (arb::cell_gid_type gid = 0; gid < rec.num_cells(); ++gid) sim.edit_cell(gid, edit);
+            for (arb::cell_gid_type gid = 0; gid < rec.num_cells(); ++gid) sim.edit_cell(gid, edit);
+            sim.run(200_ms, 0.1_ms);
+            EXPECT_EQ(sim.num_spikes(), param.n_200);
+        }
+        break;
+    }
+}
+
+TEST(edit_adex, errors) {
+    auto rec = adex_recipe{0, 0};
+    auto sim = arb::simulation{rec};
+    // Check that errors are actually thrown.
+    EXPECT_THROW(sim.edit_cell( 0, arb::adex_cell_editor([](auto& cell) { cell.V_m = 42_mV; })), arb::bad_cell_edit);
+    EXPECT_THROW(sim.edit_cell( 0, arb::adex_cell_editor([](auto& cell) { cell.source = "foo"; })), arb::bad_cell_edit);
+    EXPECT_THROW(sim.edit_cell( 0, arb::adex_cell_editor([](auto& cell) { cell.target = "foo"; })), arb::bad_cell_edit);
+    EXPECT_THROW(sim.edit_cell( 0, 42), arb::bad_cell_edit);
+    EXPECT_THROW(sim.edit_cell(42, arb::adex_cell_editor([](auto&& cell) { cell.C_m = 40_pF; })), std::range_error);
 }
 
 struct bench_recipe: arb::recipe {
@@ -806,9 +954,7 @@ TEST(edit_cable, expsyn) {
             // now check the edited ones
             EXPECT_TRUE(all_near(exp_20, samples_40, gid, eps));
             EXPECT_TRUE(all_near(exp_40, samples_20, gid, eps));            
-            break;
         }
-        break;
     }
 }
 

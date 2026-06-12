@@ -348,11 +348,10 @@ struct ARB_SYMBOL_VISIBLE cable_cell {
     const lid_range_map& synapse_ranges() const;
     const lid_range_map& junction_ranges() const;
 
-    bool is_editable() const { return is_mutable; }
+    bool is_editable() const;
 
 private:
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;
-    bool is_mutable = false;
 };
 
 } // namespace arb

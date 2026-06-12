@@ -28,7 +28,6 @@
 #include <arbor/util/unique_any.hpp>
 #include <arbor/cv_policy.hpp>
 
-#include "arbor/recipe.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
 #include "label_dict.hpp"
@@ -39,7 +38,6 @@
 namespace pyarb {
 
 namespace U = arb::units;
-
 namespace py = pybind11;
 
 template <typename T>
@@ -179,8 +177,7 @@ std::tuple<Q, arb::iexpr> value_and_scale(const paintable_arg& arg) {
 
 void register_cells(py::module& m) {
     using namespace py::literals;
-    using std::optional;
-
+    using std::optional;    
     py::class_<arb::spike_source_cell> spike_source_cell(m, "spike_source_cell",
         "A spike source cell, that generates a user-defined sequence of spikes that act as inputs for other cells in the network.");
     py::class_<arb::cell_cv_data> cell_cv_data(m, "cell_cv_data",
@@ -987,22 +984,28 @@ void register_cells(py::module& m) {
             "The group of spike detectors has the label 'label', used for forming connections between cells.");
     cable_cell
         .def(py::init(
-            [](const arb::morphology& m, const arb::decor& d, const std::optional<::pyarb::label_dict>& l, const std::optional<arb::cv_policy>& p) {
-                if (l) return arb::cable_cell(m, d, l->dict, p);
-                return arb::cable_cell(m, d, {}, p);
-            }),
-            "morphology"_a, "decor"_a, "labels"_a=py::none(), "discretization"_a=py::none(),
-            "Construct with a morphology, decor, label dictionary, and cv policy.")
+                      [](const arb::morphology& m, const arb::decor& d, const std::optional<::pyarb::label_dict>& l, const std::optional<arb::cv_policy>& p, bool editable) {
+                          auto is_mut = editable ? arb::cable_cell_mutability::enabled : arb::cable_cell_mutability::disabled;
+                          if (l) return arb::cable_cell(m, d, l->dict, p, is_mut);
+                          return arb::cable_cell(m, d, {}, p, is_mut);
+                      }),
+             "morphology"_a, "decor"_a, "labels"_a=py::none(), "discretization"_a=py::none(), "editable"_a=false,
+             "Construct with a morphology, decor, label dictionary, and cv policy.")
         .def(py::init(
-            [](const arb::segment_tree& t, const arb::decor& d, const std::optional<::pyarb::label_dict>& l, const std::optional<arb::cv_policy>& p) {
-                if (l) return arb::cable_cell({t}, d, l->dict, p);
-                return arb::cable_cell({t}, d, {}, p);
-            }),
-            "segment_tree"_a, "decor"_a, "labels"_a=py::none(), "discretization"_a=py::none(),
-            "Construct with a morphology derived from a segment tree, decor, label dictionary, and cv policy.")
+                      [](const arb::segment_tree& t, const arb::decor& d, const std::optional<::pyarb::label_dict>& l, const std::optional<arb::cv_policy>& p, bool editable) {
+                          auto is_mut = editable ? arb::cable_cell_mutability::enabled : arb::cable_cell_mutability::disabled;
+                          if (l) return arb::cable_cell({t}, d, l->dict, p, is_mut);
+                          return arb::cable_cell({t}, d, {}, p, is_mut);
+                      }),
+             "segment_tree"_a, "decor"_a, "labels"_a=py::none(), "discretization"_a=py::none(), "editable"_a=false,
+             "Construct with a morphology derived from a segment tree, decor, label dictionary, and cv policy.")
+        .def_property_readonly("is_editable",
+                               &arb::cable_cell::is_editable,
+                               "Editing allowed?.")
         .def_property_readonly("num_branches",
             [](const arb::cable_cell& c) {return c.morphology().num_branches();},
             "The number of unbranched cable sections in the morphology.")
+
         // Get locations associated with a locset label.
         .def("locations",
             [](arb::cable_cell& c, const char* label) {return c.concrete_locset(arborio::parse_locset_expression(label).unwrap());},

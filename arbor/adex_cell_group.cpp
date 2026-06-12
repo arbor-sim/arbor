@@ -134,6 +134,7 @@ adex_cell_group::edit_cell(cell_gid_type gid, std::any cell_edit) {
         if (tmp.target != lowered.target) throw bad_cell_edit(gid, "Target is not editable.");
         // Write back
         lowered = adex_lowered_cell{tmp};
+
     }
     catch (const std::bad_any_cast& ){
         throw bad_cell_edit(gid, "Not an AdEx editor (C++ type-id: '" + std::string{cell_edit.type().name()} + "')");
@@ -160,7 +161,7 @@ void integrate_until(adex_lowered_cell& cell, const time_type end, const time_ty
     auto delta = end - cur;
     // membrane potential deviation from resting value
     auto dE = cell.V_m - cell.E_L;
-    // leak current 
+    // leak current
     auto il = cell.g*dE;
     // spike current
     auto is = cell.g*cell.delta*exp((cell.V_m - cell.V_th)/cell.delta);
