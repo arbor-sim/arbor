@@ -505,7 +505,11 @@ cable_cell_group::edit_cell(cell_gid_type gid, std::any cell_edit) {
     }
     catch (std::bad_any_cast& ex) {
         std::cerr << ex.what() << '\n';
-        throw bad_cell_edit(gid, "Not a Cable Cell editor (C++ type-id: '" + std::string{cell_edit.type().name()} + "')");
+        throw bad_cell_edit(gid, "Not a Cable Cell editor (C++ type-id: '"
+                                 + std::string{cell_edit.type().name()}
+                                 + " ./. "
+                                 + std::string{typeid(cable_cell_editor).name()}
+                                 + "')");
     }
 }
     
