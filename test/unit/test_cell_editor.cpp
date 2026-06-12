@@ -781,10 +781,10 @@ TEST(edit_cable, hh) {
             // now re-write the gkbar parameter
             sim_0008.edit_cell(gid,
                                arb::cable_cell_editor {
-                                   .on_density = [] (const auto&, const auto& what, const auto&) -> arb::parameter_map {
+                                   .on_density = arb::density_editor([] (const auto&, const auto& what, const auto&) -> arb::parameter_map {
                                        if (what == "hh") return {{"gkbar", 0.036}};
                                        return {};
-                                   }});
+                                   })});
             sim_0008.run(T*arb::units::ms, dt*arb::units::ms);
             auto samples_0008 = sample_values;
             for (auto& row: sample_values) std::fill(row.begin(), row.end(), 0.0);
@@ -800,10 +800,10 @@ TEST(edit_cable, hh) {
             // now re-write the gkbar parameter
             sim_0036.edit_cell(gid,
                                arb::cable_cell_editor {
-                                   .on_density = [] (const auto&, const auto& what, const auto&) -> arb::parameter_map {
+                                   .on_density = arb::density_editor([] (const auto&, const auto& what, const auto&) -> arb::parameter_map {
                                        if (what == "hh") return {{"gkbar", 0.008}};
                                        return {};
-                                   }});            
+                                   })});            
             sim_0036.run(T*arb::units::ms, dt*arb::units::ms);
             auto samples_0036 = sample_values;
             for (auto& row: sample_values) std::fill(row.begin(), row.end(), 0.0);
