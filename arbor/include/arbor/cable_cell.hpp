@@ -272,7 +272,7 @@ using density_editor = std::function<parameter_map(const region&, const std::str
 using synapse_editor = std::function<parameter_map(const locset&, const std::string&, const parameter_map&)>;
     
 // Overwrite a list of named parameters on a given mechanism
-struct cable_cell_editor {
+struct ARB_SYMBOL_VISIBLE cable_cell_editor {
     density_editor on_density;
     synapse_editor on_synapse;
 };
