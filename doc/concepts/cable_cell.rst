@@ -49,6 +49,25 @@ Once constructed, the cable cell can be queried for specific information about t
     * 3 decors (1 for each of purkinje, granule and pyramidal).
     * 1 label dictionary that defines the region types.
 
+Certain parameters on cable cells can be updated ('edited') in between calls to
+``simulation::run``. Currently, this covers
+
+* Density mechanism paramters (*not* ``iexpr``)
+* Point mechanism paramters (*not* ``iexpr``)
+
+and needs to be enabled per cell.
+
+.. Note::
+
+   1. We do offer this functionality, however, it comes at comes at a cost.
+      Largely, this concerns runtime performance and memory usage as storing and
+      updating the information incurs non-trivial bookkeeping cost. If you want
+      to adapt ion channels over time, consider adding a ``time`` parameter to
+      the appropriate ``.mod`` files and dispatch behaviour based on that.
+   2. This is an experimental feature. More types of parameters may be covered
+      in the future, please feel encouraged to make requests accordingly to your
+      needs.
+
 .. toctree::
    :maxdepth: 2
 

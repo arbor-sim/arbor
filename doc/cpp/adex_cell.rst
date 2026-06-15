@@ -71,7 +71,7 @@ AdEx cells
 
        Increase in :math:`w` after emitted spike :math:`b = 0.08\,nA` [nA]
 
-.. cpp:type:: adex_cell_editor std::function<void(adex_cell&)>
+.. cpp:type:: adex_cell_editor = std::function<void(adex_cell&)>
 
     Callback function to update setting of AdEx cells in place via the
     ``simulation::edit_cell`` interace. All values are changeable, except:
