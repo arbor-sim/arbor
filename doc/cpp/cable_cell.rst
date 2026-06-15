@@ -329,7 +329,7 @@ callback object. For cable cells, this is a structure
 .. cpp:class:: cable_cell_editor
 
     .. cpp:type:: map = std::vector<std::tuple<std::string, double>>
-               
+
     .. cpp:member:: std::function<map(region where, std::string what, const map& param) on_density
 
        Given the current values ``param`` on mechanims ``what`` on region
