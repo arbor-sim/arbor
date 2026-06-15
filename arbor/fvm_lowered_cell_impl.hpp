@@ -55,9 +55,6 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
 
     value_type time() const override { return state_->time; }
 
-    //Exposed for testing purposes
-    std::vector<mechanism_ptr>& mechanisms() { return mechanisms_; }
-
     ARB_SERDES_ENABLE(fvm_lowered_cell_impl<Backend>, seed_, state_);
 
     void t_serialize(serializer& ser, const std::string& k) const override { serialize(ser, k, *this); }
