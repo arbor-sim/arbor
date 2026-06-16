@@ -1503,6 +1503,8 @@ make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<
              });
 
         auto config = make_mechanism_config(info, arb_mechanism_kind_point);
+        config.has_post_event = info.post_events;
+
         // Do coalesce?
         if (!info.random_variables.size() && info.linear && data.coalesce) {
             for (auto& [k, _v]: parameters) {
