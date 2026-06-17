@@ -101,8 +101,6 @@ private:
     // Parameter dt is ignored, since we make jumps between two consecutive spikes.
     void advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, const event_lane_subrange& event_lane);
 
-
-
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
 
@@ -123,6 +121,7 @@ private:
     // Time of next possible update to model refractory periods.
     std::vector<time_type> next_update_;
     std::vector<time_type> current_time_;
+    size_t sample_count = 0;
 };
 
 } // namespace arb

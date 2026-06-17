@@ -324,8 +324,6 @@ void cable_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange
     // vector of sample entries from the lowered cell sample times and values
     // and then call the callback.
     PE(sampledeliver);
-    std::vector<sample_record> sample_records;
-    sample_records.reserve(max_samples_per_call);
 
     fvm_probe_scratch scratch;
     scratch.reserve(max_samples_per_call);

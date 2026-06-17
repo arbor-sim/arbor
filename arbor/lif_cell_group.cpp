@@ -122,7 +122,6 @@ void lif_cell_group::advance_cell(time_type tfinal,
                        std::unordered_map<cell_address_type,
                                           lif_samples>> sampled;
     // samples to process
-    std::size_t n_values = 0;
     std::vector<std::pair<time_type, sampler_association_handle>> samples;
     if (!samplers_.empty()) {
         auto tlast = last_time_sampled_[lid];
@@ -145,7 +144,6 @@ void lif_cell_group::advance_cell(time_type tfinal,
                 delta += n_times;
             }
             if (delta == 0) continue;
-            n_values += delta;
             for (auto t: times) samples.emplace_back(t, hdl);
         }
     }

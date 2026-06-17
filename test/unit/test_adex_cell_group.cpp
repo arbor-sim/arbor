@@ -220,13 +220,13 @@ struct Um_type {
 TEST(adex_cell_group, probe) {
     auto ums = std::unordered_map<arb::cell_address_type, std::vector<Um_type>>{};
     auto fun = [&ums](arb::probe_metadata pm,
-                      std::size_t n,
-                      const arb::sample_record* samples) {
-        for (std::size_t ix = 0; ix < n; ++ix) {
-            const auto& [t, v] = samples[ix];
-            EXPECT_NE(arb::util::any_cast<const double*>(v), nullptr);
-            double u = *arb::util::any_cast<const double*>(v);
-            ums[pm.id].push_back({t, u});
+                      const arb::sample_records& recs) {
+        using meta_t = arb::adex_probe_voltage::meta_type;
+        auto reader = arb::sample_reader<meta_t>(pm.meta, recs);
+        for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+            auto time = reader.time(ix);
+            auto value = reader.value(ix);
+            ums[pm.id].push_back({time, value});
         }
     };
     auto rec = adex_probe_recipe{};
@@ -642,6 +642,7 @@ TEST(adex_cell_group, probe) {
                                 { 9.9500000, -21.5782603 },
                                 { 9.9750000, -21.5648636 },};
     
+    EXPECT_EQ((ums[{0, "a"}].size()), exp.size());
     ASSERT_TRUE(testing::seq_eq(ums[{0, "a"}], exp));
     // gid == 1 is different, but of same size
     EXPECT_EQ((ums[{1, "a"}].size()), exp.size());
@@ -656,17 +657,18 @@ TEST(adex_cell_group, probe) {
 TEST(adex_cell_group, probe_with_connections) {
     auto ums = std::unordered_map<arb::cell_address_type, std::vector<Um_type>>{};
     auto fun = [&ums](arb::probe_metadata pm,
-                      std::size_t n,
-                      const arb::sample_record* samples) {
-        for (std::size_t ix = 0; ix < n; ++ix) {
-            const auto& [t, v] = samples[ix];
-            double u = *arb::util::any_cast<const double*>(v);
-            ums[pm.id].push_back({t, u});
+                      const arb::sample_records& recs) {
+        using meta_t = arb::adex_probe_voltage::meta_type;
+        auto reader = arb::sample_reader<meta_t>(pm.meta, recs);
+        for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+            auto time = reader.time(ix);
+            auto value = reader.value(ix);
+            ums[pm.id].push_back({time, value});
         }
     };
     auto rec = adex_probe_recipe{5};
     auto sim = arb::simulation(rec);
-
+    
     sim.add_sampler(arb::all_probes, arb::regular_schedule(0.025_ms), fun);
 
     std::vector<arb::spike> spikes;

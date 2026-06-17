@@ -71,20 +71,17 @@ struct recorder_lif: recorder_base<arb::lif_probe_metadata> {
 struct recorder_adex: recorder_base<arb::adex_probe_metadata> {
     using recorder_base<arb::adex_probe_metadata>::sample_raw_;
 
-    void record(any_ptr, std::size_t n_sample, const arb::sample_record* records) override {
-        for (std::size_t i = 0; i<n_sample; ++i) {
-            if (auto* v_ptr = any_cast<const double*>(records[i].data)) {
-                sample_raw_.push_back(records[i].time);
-                sample_raw_.push_back(*v_ptr);
-            }
-            else {
-                std::string ty = records[i].data.type().name();
-                throw arb::arbor_internal_error("ADEX recorder: unexpected sample type " + ty);
-            }
+    void record(any_ptr pm, const arb::sample_records& records) override {
+        auto reader = arb::sample_reader<arb::lif_probe_voltage::meta_type>(pm, records);
+        for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+            auto t = reader.time(ix);
+            sample_raw_.push_back(t);
+            auto v = reader.value(ix);
+            sample_raw_.push_back(v);
         }
     }
 
-    recorder_adex(const arb::adex_probe_metadata* meta_ptr): recorder_base<arb::adex_probe_metadata>(meta_ptr, 1) {}
+    recorder_adex(const arb::adex_probe_metadata* meta_ptr, std::size_t): recorder_base<arb::adex_probe_metadata>(meta_ptr, 1) {}
 };
 
 template <typename Meta>

@@ -4,7 +4,6 @@
 #include <arbor/common_types.hpp>
 #include <arbor/export.hpp>
 #include <arbor/units.hpp>
-
 #include <arbor/util/extra_traits.hpp>
 
 namespace arb {
