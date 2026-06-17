@@ -51,6 +51,8 @@ const char* help_msg =
     "    j_k         potassium ion membrane current density [A/m²] at X\n"
     "    c_na        internal sodium concentration [mmol/L] at X\n"
     "    c_k         internal potassium concentration [mmol/L] at X\n"
+    "    E_na        sodium reversal potential [mV] at X\n"
+    "    E_k         potassium reversal potential [mV] at X\n"
     "    hh_m        HH state variable m at X\n"
     "    hh_h        HH state variable h at X\n"
     "    hh_n        HH state variable n at X\n"
@@ -65,6 +67,8 @@ const char* help_msg =
     "    all_i       total membrane current [nA] in each CV\n"
     "    all_c_na    internal sodium concentration [mmol/L] in each CV\n"
     "    all_c_k     internal potassium concentration [mmol/L] in each CV\n"
+    "    all_E_na    sodium reversal potential [mV] in each CV\n"
+    "    all_E_k     potassium reversal potential [mV] in each CV\n"
     "    all_hh_m    HH state variable m in each CV\n"
     "    all_hh_h    HH state variable h in each CV\n"
     "    all_hh_n    HH state variable n in each CV\n"
@@ -164,9 +168,8 @@ int main(int argc, char** argv) {
         options opt;
         if (!parse_options(opt, argc, argv)) return -1;
 
-        cable_recipe R(opt.probe_addr, opt.n_cv);
-
-        arb::simulation sim(R);
+        auto rec = cable_recipe(opt.probe_addr, opt.n_cv);
+        auto sim = arb::simulation(rec);
 
         switch (opt.kind) {
         case probe_kind::cell:
@@ -202,6 +205,7 @@ int main(int argc, char** argv) {
         return -2;
     }
 }
+
 
 static auto any2loc(std::any a) -> arb::mlocation {
     auto pos = 0.5;

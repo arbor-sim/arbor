@@ -176,11 +176,11 @@ bool Module::semantic() {
 
     // Add built in function that approximate exp use pade polynomials
     callables_.push_back(
-        Parser{"FUNCTION exp_pade_11(z) { exp_pade_11=(1+0.5*z)/(1-0.5*z) }"}.parse_function());
+        Parser{"FUNCTION exp_pade_11(z) { exp_pade_11 = (2.0 + z)/(2.0 - z) }"}.parse_function());
     callables_.push_back(
         Parser{
             "FUNCTION exp_pade_22(z)"
-            "{ exp_pade_22=(1+0.5*z+0.08333333333333333*z*z)/(1-0.5*z+0.08333333333333333*z*z) }"
+            "{ exp_pade_22 = (12 + 6*z + z*z)/(12 - 6*z + z*z) }"
         }.parse_function());
 
     // move functions and procedures to the symbol table

@@ -83,6 +83,7 @@ Advanced
    plasticity
    connectivity
    full-feature-diffusion
+   cosim
 
 Demonstrations
 --------------

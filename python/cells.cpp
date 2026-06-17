@@ -14,6 +14,7 @@
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/cable_cell.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/adex_cell.hpp>
 #include <arbor/cv_policy.hpp>
 #include <arbor/cable_cell_param.hpp>
 #include <arbor/morph/cv_data.hpp>
@@ -27,6 +28,7 @@
 #include <arbor/util/unique_any.hpp>
 #include <arbor/cv_policy.hpp>
 
+#include "arbor/recipe.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
 #include "label_dict.hpp"
@@ -111,8 +113,12 @@ arb::cv_policy make_cv_policy_fixed_per_branch(unsigned cv_per_branch, const std
     return arb::cv_policy_fixed_per_branch(cv_per_branch, arborio::parse_region_expression(reg).unwrap());
 }
 
-arb::cv_policy make_cv_policy_max_extent(double cv_length, const std::string& reg) {
-    return arb::cv_policy_max_extent(cv_length, arborio::parse_region_expression(reg).unwrap());
+arb::cv_policy make_cv_policy_max_extent_um(double cv_length, const std::string& reg) {
+    return arb::cv_policy_max_extent_um(cv_length, arborio::parse_region_expression(reg).unwrap());
+}
+
+arb::cv_policy make_cv_policy_max_extent(const U::quantity& q, const std::string& reg) {
+    return arb::cv_policy_max_extent(q, arborio::parse_region_expression(reg).unwrap());
 }
 
 // Helper for finding a mechanism description in a Python object.
@@ -132,17 +138,19 @@ std::optional<arb::mechanism_desc> maybe_method(py::object method) {
     return {};
 }
 
-//
-// string printers
-//
-
-std::string lif_str(const arb::lif_cell& c){
+    std::string lif_str(const arb::lif_cell& c){
     return util::pprintf(
         "<arbor.lif_cell: tau_m {}, V_th {}, C_m {}, E_L {}, E_R {}, V_m {}, t_ref {}>",
         U::to_string(c.tau_m), U::to_string(c.V_th), U::to_string(c.C_m),
         U::to_string(c.E_L), U::to_string(c.E_R), U::to_string(c.V_m), U::to_string(c.t_ref));
 }
 
+std::string adex_str(const arb::adex_cell& c){
+    return util::pprintf(
+        "<arbor.adex_cell: src {}, tgt {}, tau_m {}, V_th {}, C_m {}, E_L {}, E_R {}, V_m {}, t_ref {}, g {}, tau {}, w {}, a {}, b {}>",
+        c.source, c.target,
+        U::to_string(c.delta), U::to_string(c.V_th), U::to_string(c.C_m), U::to_string(c.E_L), U::to_string(c.E_R), U::to_string(c.V_m), U::to_string(c.t_ref), U::to_string(c.g), U::to_string(c.tau), U::to_string(c.w), U::to_string(c.a), U::to_string(c.b));
+}
 
 std::string mechanism_desc_str(const arb::mechanism_desc& md) {
     return util::pprintf("mechanism('{}', {})",
@@ -184,6 +192,7 @@ void register_cells(py::module& m) {
                                                    "for example if realtime_ratio=2, a cell will take 2 seconds of CPU time to\n"
                                                    "simulate 1 second.\n");
     py::class_<arb::lif_cell> lif_cell(m, "lif_cell", "A leaky integrate-and-fire cell.");
+    py::class_<arb::adex_cell> adex_cell(m, "adex_cell", "An adaptive-exponential (AdEx) cell.");
     py::class_<arb::cv_policy> cv_policy(m, "cv_policy", "Describes the rules used to discretize (compartmentalise) a cable cell morphology.");
     py::class_<ion_settings> py_ion_data(m, "ion_settings");
     py::class_<arb::cable_cell_global_properties> gprop(m, "cable_global_properties");
@@ -209,7 +218,7 @@ void register_cells(py::module& m) {
     py::class_<arb::threshold_detector> detector(m, "threshold_detector", "A spike detector, generates a spike when voltage crosses a threshold. Can be used as source endpoint for an arbor.connection.");
     py::class_<arb::synapse> synapse(m, "synapse", "For placing a synaptic mechanism on a locset.");
     py::class_<arb::junction> junction(m, "junction", "For placing a gap-junction mechanism on a locset.");
-    py::class_<arb::i_clamp> i_clamp(m, "iclamp", "A current clamp for injecting a DC or fixed frequency current governed by a piecewise linear envelope.");
+    py::class_<arb::i_clamp> i_clamp(m, "i_clamp", "A current clamp for injecting a DC or fixed frequency current governed by a piecewise linear envelope.");
 
     spike_source_cell
         .def(py::init<>(
@@ -310,6 +319,47 @@ void register_cells(py::module& m) {
         .def("__repr__", &lif_str)
         .def("__str__",  &lif_str);
 
+    // arb::adex_cell
+    adex_cell
+        .def(pybind11::init<>(
+            [](arb::cell_tag_type source_label, arb::cell_tag_type target_label) {
+                return arb::adex_cell{.source=std::move(source_label),
+                                      .target=std::move(target_label)
+                };
+            }),
+            "source_label"_a, "target_label"_a,
+            "Construct a adex cell with one source labeled 'source_label', and one target labeled 'target_label'.")
+        .def_readwrite("delta", &arb::adex_cell::delta,
+            "Steepness [mV].")
+        .def_readwrite("g", &arb::adex_cell::g,
+            "Leak conductivity [uS].")
+        .def_readwrite("tau", &arb::adex_cell::tau,
+            "Adaption decay time [ms].")
+        .def_readwrite("w", &arb::adex_cell::tau,
+            "Adaption variable [nA].")
+        .def_readwrite("b", &arb::adex_cell::b,
+            "Adaption variable increase on spike [nA].")
+        .def_readwrite("a", &arb::adex_cell::a,
+            "Adaption variable dynamics [uS].")
+        .def_readwrite("V_th", &arb::adex_cell::V_th,
+            "Firing threshold [mV].")
+        .def_readwrite("C_m", &arb::adex_cell::C_m,
+            "Membrane capacitance [pF].")
+        .def_readwrite("E_L", &arb::adex_cell::E_L,
+            "Resting potential [mV].")
+        .def_readwrite("E_R", &arb::adex_cell::E_R,
+            "Reset potential [mV].")
+        .def_readwrite("V_m", &arb::adex_cell::V_m,
+            "Initial value of the Membrane potential [mV].")
+        .def_readwrite("t_ref", &arb::adex_cell::t_ref,
+            "Refractory period [ms].")
+        .def_readwrite("source", &arb::adex_cell::source,
+            "Label of the single build-in source on the cell.")
+        .def_readwrite("target", &arb::adex_cell::target,
+            "Label of the single build-in target on the cell.")
+        .def("__repr__", &adex_str)
+        .def("__str__",  &adex_str);
+
     // arb::cv_policy wrappers
     cv_policy
         .def(py::init([](const std::string& expression) { return arborio::parse_cv_policy_expression(expression).unwrap(); }),
@@ -335,23 +385,27 @@ void register_cells(py::module& m) {
           "locset"_a, "the locset describing the desired CV boundaries",
           "domain"_a="(all)", "the domain to which the policy is to be applied",
           "Policy to create compartments at explicit locations.");
-
     m.def("cv_policy_single",
           &make_cv_policy_single,
           "domain"_a="(all)", "the domain to which the policy is to be applied",
           "Policy to create one compartment per component of a region.");
-
+    m.def("default_cv_policy",
+          &arb::default_cv_policy,
+          "Default for cv_policy; one CV per branch.");
     m.def("cv_policy_every_segment",
           &make_cv_policy_every_segment,
           "domain"_a="(all)", "the domain to which the policy is to be applied",
           "Policy to create one compartment per component of a region.");
-
+    m.def("cv_policy_max_extent_um",
+          &make_cv_policy_max_extent_um,
+          "length"_a, "the maximum CV length in ㎛",
+          "domain"_a="(all)", "the domain to which the policy is to be applied",
+          "Policy to use as many CVs as required to ensure that no CV has a length longer than a given value.");
     m.def("cv_policy_max_extent",
           &make_cv_policy_max_extent,
           "length"_a, "the maximum CV length",
           "domain"_a="(all)", "the domain to which the policy is to be applied",
           "Policy to use as many CVs as required to ensure that no CV has a length longer than a given value.");
-
     m.def("cv_policy_fixed_per_branch",
           &make_cv_policy_fixed_per_branch,
           "n"_a, "the number of CVs per branch",
@@ -461,8 +515,11 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::density(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::density(name, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::density(mech, params);}))
+        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::density(mech, params);}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::density(name, util::dict_to_map<double>(parms));}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::density(mech, util::dict_to_map<double>(params));}))
+        .def("__getitem__", [](arb::density& syn, const std::string& k) {return syn.mech.get(k); })
+        .def("__setitem__", [](arb::density& syn, const std::string& k, double v) { syn.mech.set(k, v); })
         .def_readonly("mech", &arb::density::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";})
         .def("__str__", [](const arb::density& d){return "<arbor.density " + mechanism_desc_str(d.mech) + ">";});
@@ -472,8 +529,11 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::voltage_process(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(name, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(mech, params);}))
+        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::voltage_process(mech, params);}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::voltage_process(mech, util::dict_to_map<double>(params));}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::voltage_process(name, util::dict_to_map<double>(parms));}))
+        .def("__getitem__", [](arb::voltage_process& syn, const std::string& k) {return syn.mech.get(k); })
+        .def("__setitem__", [](arb::voltage_process& syn, const std::string& k, double v) { syn.mech.set(k, v); })
         .def_readonly("mech", &arb::voltage_process::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::voltage_process& d){return "<arbor.voltage_process " + mechanism_desc_str(d.mech) + ">";})
         .def("__str__", [](const arb::voltage_process& d){return "<arbor.voltage_process " + mechanism_desc_str(d.mech) + ">";});
@@ -519,8 +579,11 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::synapse(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::synapse(name, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::synapse(mech, params);}))
+        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::synapse(mech, params);}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::synapse(name, util::dict_to_map<double>(parms));}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::synapse(mech, util::dict_to_map<double>(params));}))
+        .def("__getitem__", [](arb::synapse& syn, const std::string& k) {return syn.mech.get(k); })
+        .def("__setitem__", [](arb::synapse& syn, const std::string& k, double v) { syn.mech.set(k, v); })
         .def_readonly("mech", &arb::synapse::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::synapse& s){return "<arbor.synapse " + mechanism_desc_str(s.mech) + ">";})
         .def("__str__", [](const arb::synapse& s){return "<arbor.synapse " + mechanism_desc_str(s.mech) + ">";});
@@ -530,8 +593,11 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::junction(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::junction(name, params);}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::junction(name, util::dict_to_map<double>(parms));}))
+        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::junction(mech, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::junction(mech, params);}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::junction(mech, util::dict_to_map<double>(params));}))
+        .def("__getitem__", [](arb::junction& syn, const std::string& k) {return syn.mech.get(k); })
+        .def("__setitem__", [](arb::junction& syn, const std::string& k, double v) { syn.mech.set(k, v); })
         .def_readonly("mech", &arb::junction::mech, "The underlying mechanism.")
         .def("__repr__", [](const arb::junction& j){return "<arbor.junction " + mechanism_desc_str(j.mech) + ">";})
         .def("__str__", [](const arb::junction& j){return "<arbor.junction " + mechanism_desc_str(j.mech) + ">";});
@@ -580,9 +646,9 @@ void register_cells(py::module& m) {
         .def_readonly("frequency", &arb::i_clamp::frequency, "Oscillation frequency (kHz), zero implies DC stimulus.")
         .def_readonly("phase", &arb::i_clamp::phase, "Oscillation initial phase (rad)")
         .def("__repr__", [](const arb::i_clamp& c) {
-            return util::pprintf("<arbor.iclamp: frequency {} kHz>", c.frequency);})
+            return util::pprintf("<arbor.i_clamp: frequency {} kHz>", c.frequency);})
         .def("__str__", [](const arb::i_clamp& c) {
-            return util::pprintf("<arbor.iclamp: frequency {} kHz>", c.frequency);});
+            return util::pprintf("<arbor.i_clamp: frequency {} kHz>", c.frequency);});
 
     detector
         .def(py::init(
@@ -905,10 +971,10 @@ void register_cells(py::module& m) {
             "The group of junctions has the label 'label', used for forming gap-junction connections between cells.")
         // Place current clamp stimulus.
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::i_clamp& stim, const char* label_name) {
-                return dec.place(arborio::parse_locset_expression(locset).unwrap(), stim, label_name);
+            [](arb::decor& dec, const char* locset, const arb::i_clamp& stim) {
+                return dec.place(arborio::parse_locset_expression(locset).unwrap(), stim);
             },
-            "locations"_a, "iclamp"_a, "label"_a,
+            "locations"_a, "i_clamp"_a, 
             "Add a current stimulus at each location in locations."
             "The group of current stimuli has the label 'label'.")
         // Place spike detector.

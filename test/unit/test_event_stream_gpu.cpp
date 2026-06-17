@@ -14,7 +14,8 @@ void cpy_d2h(T* dst, const T* src, std::size_t n) {
 template<typename Result>
 void check(Result result) {
     for (std::size_t step=0; step<result.steps.size(); ++step) {
-        for (auto& [mech_id, stream] :  result.streams) {
+        unsigned mech_id = 0;
+        for (auto& stream :  result.streams) {
             stream.mark();
             auto marked = stream.marked_events();
             std::vector<arb_deliverable_event_data> host_data(marked.end - marked.begin);
@@ -23,6 +24,7 @@ void check(Result result) {
                 cpy_d2h(host_data.data(), marked.begin, host_data.size());
                 check_result(host_data.data(), result.expected[mech_id][step]);
             }
+            ++mech_id;
         }
     }
 }

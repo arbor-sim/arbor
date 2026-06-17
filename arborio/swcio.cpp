@@ -7,6 +7,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <unordered_set>
+#include <set>
 #include <vector>
 
 #include <arbor/morph/segment_tree.hpp>
@@ -24,8 +25,12 @@ swc_error::swc_error(const std::string& msg, int record_id):
     record_id(record_id)
 {}
 
-swc_no_such_parent::swc_no_such_parent(int record_id):
-    swc_error("Missing SWC parent record", record_id)
+swc_no_such_parent::swc_no_such_parent(int record_id, int parent):
+    swc_error("Missing SWC parent record " + std::to_string(parent), record_id)
+{}
+
+swc_cycle_in_tree::swc_cycle_in_tree(int id):
+    swc_error("Found cycle in SWC tree", id)
 {}
 
 swc_record_precedes_parent::swc_record_precedes_parent(int record_id):
@@ -44,8 +49,8 @@ swc_mismatched_tags::swc_mismatched_tags(int record_id):
     swc_error("Every record not attached to a soma sample must have the same tag as its parent", record_id)
 {}
 
-swc_unsupported_tag::swc_unsupported_tag(int record_id):
-    swc_error("Unsupported SWC record identifier.", record_id)
+swc_unsupported_tag::swc_unsupported_tag(int record_id, int tag):
+    swc_error("Unsupported SWC record identifier tag=" + std::to_string(tag), record_id)
 {}
 
 // Record I/O:
@@ -80,52 +85,85 @@ ARB_ARBORIO_API std::istream& operator>>(std::istream& in, swc_record& record) {
     return in;
 }
 
-// Parse SWC format data (comments and sequence of SWC records).
+// topological sort after Cormen
+std::vector<swc_record> topo_sort(const std::vector<swc_record>& records) {
+    // build adjencency matrix id -> child indices
+    std::unordered_map<int, std::set<std::size_t>> children(records.size());
+    for (std::size_t idx = 0; idx < records.size(); ++idx) {
+        const auto& rec = records[idx];
+        children[rec.parent_id].insert(idx);
+    }
 
-static std::vector<swc_record> sort_and_validate_swc(std::vector<swc_record> records) {
+    // bookkeeping: temporary and permanent marks
+    auto temp = std::unordered_set<std::size_t>();
+    auto perm = std::unordered_set<std::size_t>();
+
+    std::vector<swc_record> result;
+    result.reserve(records.size());
+
+    std::function<void(const swc_record&)> visit = [&] (const auto& rec) {
+        if (perm.contains(rec.id)) return;
+        if (temp.contains(rec.id)) throw swc_cycle_in_tree{rec.id};
+        temp.insert(rec.id);
+        for (auto idx: children[rec.id]) visit(records[idx]);
+        perm.insert(rec.id);
+        result.push_back(rec);
+    };
+
+    while (perm.size() < records.size()) {
+        for (const auto& rec: records) {
+            if (!perm.contains(rec.id)) visit(rec);
+        }
+    }
+
+    std::reverse(result.begin(), result.end());
+    return result;
+}
+
+// Parse SWC format data (comments and sequence of SWC records).
+static std::vector<swc_record> sort_and_validate_swc(std::vector<swc_record> records, bool lax_ordering=false) {
     if (records.empty()) return {};
 
     std::unordered_set<int> seen;
-    std::size_t n_rec = records.size();
 
-    for (std::size_t i = 0; i<n_rec; ++i) {
-        swc_record& r = records[i];
-
-        if (r.parent_id>=r.id) {
-            throw swc_record_precedes_parent(r.id);
+    bool need_topo_sort = false;
+    for (const auto& rec: records) {
+        if (rec.parent_id >= rec.id) {
+            need_topo_sort = true;
+            if (!lax_ordering) throw swc_record_precedes_parent{rec.id};
         }
-
-        if (!seen.insert(r.id).second) {
-            throw swc_duplicate_record_id(r.id);
-        }
+        if (!seen.insert(rec.id).second) throw swc_duplicate_record_id(rec.id);
     }
 
-    std::sort(records.begin(), records.end(), [](const auto& lhs, const auto& rhs) { return lhs.id < rhs.id; });
 
-    for (std::size_t i = 0; i<n_rec; ++i) {
-        const swc_record& r = records[i];
-        if ((i==0 && r.parent_id!=-1) || (i>0 && !seen.count(r.parent_id))) {
-            throw swc_no_such_parent(r.id);
-        }
-    }
+    std::sort(records.begin(), records.end(),
+              [](const auto& lhs, const auto& rhs) { return lhs.id < rhs.id; });
 
+    // we know at least one entry exists, so check if it is the root
+    if (const auto& rec = records.front(); rec.parent_id != -1) throw swc_no_such_parent(rec.id, rec.parent_id);
+
+    // if needed, re-order to sanitize parent/child relations
+    if (need_topo_sort) records = topo_sort(records);
+
+    // if any more entries exist, their parents must be known
+    std::for_each(records.begin() + 1, records.end(),
+                  [&seen](const auto& rec) { if (!seen.count(rec.parent_id)) throw swc_no_such_parent(rec.id, rec.parent_id); });
     return records;
 }
 
 // swc_data
-swc_data::swc_data(std::vector<arborio::swc_record> recs) :
+swc_data::swc_data(std::vector<arborio::swc_record> recs, bool lax):
     metadata_(),
-    records_(sort_and_validate_swc(std::move(recs))) {};
+    records_(sort_and_validate_swc(std::move(recs), lax)) {};
 
-swc_data::swc_data(std::string meta, std::vector<arborio::swc_record> recs) :
-    metadata_(meta),
-    records_(sort_and_validate_swc(std::move(recs))) {};
+swc_data::swc_data(std::string meta, std::vector<arborio::swc_record> recs, bool lax):
+    metadata_(std::move(meta)),
+    records_(sort_and_validate_swc(std::move(recs), lax)) {};
 
 // Parse and validate swc data
 
-ARB_ARBORIO_API swc_data parse_swc(std::istream& in) {
+ARB_ARBORIO_API swc_data parse_swc(std::istream& in, bool lax_ordering) {
     // Collect any initial comments (lines beginning with '#').
-
     std::string metadata;
     std::vector<swc_record> records;
     std::string line;
@@ -135,9 +173,7 @@ ARB_ARBORIO_API swc_data parse_swc(std::istream& in) {
         if (c=='#') {
             getline(in, line, '\n');
             auto from = line.find_first_not_of(" \t");
-            if (from != std::string::npos) {
-                metadata.append(line, from);
-            }
+            if (from != std::string::npos) metadata.append(line, from);
             metadata += '\n';
         }
         else {
@@ -147,16 +183,14 @@ ARB_ARBORIO_API swc_data parse_swc(std::istream& in) {
     }
 
     swc_record r;
-    while (in && (in.peek() != '\n') && in >> r) {
-        records.push_back(r);
-    }
+    while (in && (in.peek() != '\n') && in >> r) records.push_back(r);
 
-    return swc_data(metadata, std::move(records));
+    return swc_data(std::move(metadata), std::move(records), lax_ordering);
 }
 
-ARB_ARBORIO_API swc_data parse_swc(const std::string& text) {
+ARB_ARBORIO_API swc_data parse_swc(const std::string& text, bool lax_ordering) {
     std::istringstream is(text);
-    return parse_swc(is);
+    return parse_swc(is, lax_ordering);
 }
 
 arb::segment_tree load_swc_arbor_raw(const swc_data& data) {
@@ -183,7 +217,7 @@ arb::segment_tree load_swc_arbor_raw(const swc_data& data) {
         first_tag_match |= dist.parent_id==first_id && dist.tag==first_tag;
 
         auto iter = id_to_index.find(dist.parent_id);
-        if (iter==id_to_index.end()) throw swc_no_such_parent{dist.id};
+        if (iter == id_to_index.end()) throw swc_no_such_parent{dist.id, dist.parent_id};
         auto parent_idx = iter->second;
 
         const auto& prox = records[parent_idx];
@@ -204,24 +238,22 @@ arb::segment_tree load_swc_arbor_raw(const swc_data& data) {
     return tree;
 }
 
-arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
+arb::segment_tree load_swc_neuron_raw(const swc_data& data, const swc_loader_options& opts) {
     constexpr int soma_tag = 1;
 
     const auto n_samples = data.records().size();
 
-    if (n_samples==0) {
-        return {};
-    }
+    if (n_samples==0) return {};
 
     // The NEURON interpretation is only applied when the cell has a soma.
     if (data.records()[0].tag != soma_tag) {
         const auto& R = data.records();
         // Search for other soma samples
-        if (auto it=std::find_if(R.begin(), R.end(), [](auto& r) {return r.tag==soma_tag;}); it!=R.end()) {
+        if (auto it = std::find_if(R.begin(), R.end(), [](auto& r) {return r.tag == soma_tag;}); it!=R.end()) {
             // The presence of a soma tag when there is a non-soma tag at the root
             // violates the requirement that the parent of a soma sample is also a
             // soma sample.
-            throw swc_mismatched_tags(it->id);
+            if (!opts.allow_mismatched_tags) throw swc_mismatched_tags(it->id);
         }
 
         return load_swc_arbor_raw(data);
@@ -229,18 +261,23 @@ arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
 
     // Make a copy of the records and canonicalise them.
     auto records = data.records();
-    std::unordered_map<int, int> record_index = {{-1, -1}};
-    std::vector<int> old_record_index(n_samples);
+    // remember the offset for the original id
+    std::unordered_map<int, int> id_to_index = {{-1, -1}};
+    // remember the old id for a given offset
+    std::vector<int> index_to_id(n_samples);
 
-    for (std::size_t i=0; i<n_samples; ++i) {
+    // map new id to be the index in the record array and remember
+    for (std::size_t i = 0; i < n_samples; ++i) {
         auto& r = records[i];
-        record_index[r.id] = i;
-        old_record_index[i] = r.id;
+        id_to_index[r.id] = i;
+        index_to_id[i] = r.id;
         r.id = i;
-        if (!record_index.count(r.parent_id)) {
-            throw swc_no_such_parent(r.parent_id);
-        }
-        r.parent_id = record_index[r.parent_id];
+    }
+
+    for (std::size_t i=0; i < n_samples; ++i) {
+        auto& r = records[i];
+        if (!id_to_index.contains(r.parent_id)) throw swc_no_such_parent(r.id, r.parent_id);
+        r.parent_id = id_to_index.at(r.parent_id);
     }
 
     // Calculate meta-data
@@ -250,20 +287,14 @@ arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
     for (std::size_t i=0; i<n_samples; ++i) {
         auto& r = records[i];
         // Only accept soma, axon, dend and apic samples.
-        if (!(r.tag>=0 && r.tag<=4)) {
-            throw swc_unsupported_tag(old_record_index[i]);
-        }
-        if (r.tag==soma_tag) {
-            ++n_soma_samples;
-        }
+        if (!opts.tags.contains(r.tag)) throw swc_unsupported_tag(index_to_id[i], r.tag);
+        if (r.tag==soma_tag) ++n_soma_samples;
         int pid = r.parent_id;
         if (pid!=-1) {
             ++child_count[pid];
             const int ptag = records[pid].tag;
             // Assert that sample has the same tag as its parent, or the parent is tagged soma.
-            if (r.tag!=ptag && ptag!=soma_tag) {
-                throw swc_mismatched_tags(old_record_index[i]);
-            }
+            if (!opts.allow_mismatched_tags && r.tag != ptag && ptag != soma_tag) throw swc_mismatched_tags(index_to_id[i]);
         }
     }
 
@@ -323,9 +354,10 @@ arb::segment_tree load_swc_neuron_raw(const swc_data& data) {
     return tree;
 }
 
-ARB_ARBORIO_API loaded_morphology load_swc_neuron(const swc_data& data) {
-    auto raw = load_swc_neuron_raw(data);
-    arb::label_dict ld; ld.add_swc_tags();
+ARB_ARBORIO_API loaded_morphology load_swc_neuron(const swc_data& data, const swc_loader_options& opts) {
+    auto raw = load_swc_neuron_raw(data, opts);
+    arb::label_dict ld;
+    for (const auto& [k, v]: opts.tags) ld.set(v, arb::reg::tagged(k));
     return {raw, {raw}, ld, swc_metadata{}};
 }
 
@@ -341,11 +373,10 @@ ARB_ARBORIO_API loaded_morphology load_swc_arbor(const std::filesystem::path& pa
     return load_swc_arbor(parse_swc(fd));
 }
 
-ARB_ARBORIO_API loaded_morphology load_swc_neuron(const std::filesystem::path& path) {
+ARB_ARBORIO_API loaded_morphology load_swc_neuron(const std::filesystem::path& path, const swc_loader_options& opts) {
     std::ifstream fd(path);
     if (!fd) throw arb::file_not_found_error("unable to open SWC file: "+path.string());
-    return load_swc_neuron(parse_swc(fd));
+    return load_swc_neuron(parse_swc(fd, opts.allow_non_monotonic_ids), opts);
 }
 
 } // namespace arborio
-

@@ -34,9 +34,9 @@ public:
     mechanism(const arb_mechanism_type& m,
               const arb_mechanism_interface& i): mech_{m}, iface_{i}, ppack_{} {
         if (mech_.abi_version != ARB_MECH_ABI_VERSION) throw unsupported_abi_error{mech_.abi_version};
-        state_prof_id   = profile::profiler_region_id("advance:integrate:state:"+internal_name());
-        current_prof_id = profile::profiler_region_id("advance:integrate:current:"+internal_name());
-        deliver_prof_id = profile::profiler_region_id("advance:integrate:event:"+internal_name());
+        state_prof_id   = profile::profiler_region_id("state_"+internal_name());
+        current_prof_id = profile::profiler_region_id("current_"+internal_name());
+        deliver_prof_id = profile::profiler_region_id("event_"+internal_name());
     }
     mechanism() = default;
     mechanism(const mechanism&) = delete;
@@ -69,13 +69,13 @@ public:
     void update_current() {
         prof_enter(current_prof_id);
         iface_.compute_currents(&ppack_);
-        prof_exit();
+        prof_exit(current_prof_id);
     }
 
     void update_state() {
         prof_enter(state_prof_id);
         iface_.advance_state(&ppack_);
-        prof_exit();
+        prof_exit(state_prof_id);
     }
 
     void update_ions() {
@@ -89,7 +89,7 @@ public:
     void deliver_events(arb_deliverable_event_stream& stream) {
         prof_enter(deliver_prof_id);
         iface_.apply_events(&ppack_, &stream);
-        prof_exit();
+        prof_exit(deliver_prof_id);
     }
 
     // Per-cell group identifier for an instantiated mechanism.
@@ -104,12 +104,12 @@ private:
     void prof_enter(profile::region_id_type id) {
         profile::profiler_enter(id);
     }
-    void prof_exit() {
-        profile::profiler_leave();
+    void prof_exit(profile::region_id_type id) {
+      profile::profiler_leave(id);
     }
 #else
     void prof_enter(profile::region_id_type) {}
-    void prof_exit() {}
+    void prof_exit(profile::region_id_type id) {}
 #endif
     profile::region_id_type state_prof_id;
     profile::region_id_type current_prof_id;

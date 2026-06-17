@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.31.0)
 include(CMakeDependentOption)
 include(CheckIPOSupported)
 
@@ -59,13 +59,17 @@ mark_as_advanced(FORCE ARBDEV_COLOR)
 #----------------------------------------------------------
 
 # Specify target architecture.
-check_cxx_compiler_flag("-march=native" CXX_HAS_NATIVE)
-if(CXX_HAS_NATIVE)
+if (NOT DEFINED ARB_DEFAULT_ARCH)
+  check_cxx_compiler_flag("-march=native" CXX_HAS_NATIVE)
+  if(CXX_HAS_NATIVE)
     set(ARB_DEFAULT_ARCH "native")
-else()
+  else()
     set(ARB_DEFAULT_ARCH "none")
+  endif()
 endif()
-set(ARB_ARCH ${ARB_DEFAULT_ARCH} CACHE STRING "Target architecture for arbor libraries")
+if (NOT DEFINED ARB_ARCH)
+  set(ARB_ARCH ${ARB_DEFAULT_ARCH} CACHE STRING "Target architecture for arbor libraries")
+endif()
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
@@ -165,7 +169,7 @@ if(ARB_GPU STREQUAL "cuda")
     if(${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 12)
         if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
             # Pascal, Volta, Ampere, Hopper
-            set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
+            set(CMAKE_CUDA_ARCHITECTURES 70 80 90)
         endif()
     else()
         message(FATAL_ERROR "Need at least CUDA 12, got ${CUDAToolkit_VERSION_MAJOR}")
@@ -179,7 +183,7 @@ if(ARB_GPU STREQUAL "cuda")
 elseif(ARB_GPU STREQUAL "cuda-clang")
     include(FindCUDAToolkit)
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
+        set(CMAKE_CUDA_ARCHITECTURES 70 80 90)
     endif()
     set(ARB_WITH_CUDA_CLANG TRUE)
     enable_language(CUDA)
@@ -302,17 +306,22 @@ else()
 endif()
 install(TARGETS ext-hwloc EXPORT arbor-targets)
 
-CPMFindPackage(NAME json
-              GITHUB_REPOSITORY nlohmann/json
-              VERSION 3.12.0
-              OPTIONS "CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON")
-install(TARGETS nlohmann_json EXPORT arbor-targets)
+CPMFindPackage(NAME nlohmann_json
+               GITHUB_REPOSITORY nlohmann/json
+               VERSION 3.12.0)
+add_library(ext-json INTERFACE)
+target_link_libraries(ext-json INTERFACE nlohmann_json::nlohmann_json)
+install(TARGETS ext-json EXPORT arbor-targets)
+if(nlohmann_json_ADDED)
+    install(TARGETS nlohmann_json EXPORT arbor-targets)
+endif()
+
 
 add_library(ext-random123 INTERFACE)
 CPMFindPackage(NAME random123
-              DOWNLOAD_ONLY YES
-              GITHUB_REPOSITORY DEShawResearch/random123
-              VERSION 1.14.0)
+               DOWNLOAD_ONLY YES
+               GITHUB_REPOSITORY DEShawResearch/random123
+               VERSION 1.14.0)
 if(random123_ADDED)
     target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${random123_SOURCE_DIR}/include>)
 else()
@@ -322,17 +331,17 @@ install(TARGETS ext-random123 EXPORT arbor-targets)
 
 if (ARB_WITH_PYTHON)
     CPMFindPackage(NAME pybind11
-                  GITHUB_REPOSITORY pybind/pybind11
-                  VERSION 2.13.6
-                  OPTIONS "PYBIND11_CPP_STANDARD -std=c++20")
+                   GITHUB_REPOSITORY pybind/pybind11
+                   VERSION 3.0.0
+                   OPTIONS "PYBIND11_CPP_STANDARD -std=c++20")
     # required for find_python_module
     include(FindPythonModule)
 endif()
 
 CPMFindPackage(NAME pugixml
-              GITHUB_REPOSITORY zeux/pugixml
-              VERSION 1.13
-              DOWNLOAD_ONLY YES)
+               GITHUB_REPOSITORY zeux/pugixml
+               VERSION 1.15
+               DOWNLOAD_ONLY YES)
 add_library(ext-pugixml INTERFACE)
 if(pugixml_ADDED)
     target_compile_definitions(ext-pugixml INTERFACE PUGIXML_HEADER_ONLY)
@@ -345,8 +354,8 @@ install(TARGETS ext-pugixml EXPORT arbor-targets)
 
 CPMFindPackage(NAME fmt
               GITHUB_REPOSITORY fmtlib/fmt
-              VERSION 10.0.0
-              GIT_TAG 10.0.0)
+              VERSION 12.1.0
+              GIT_TAG 12.1.0)
 
 add_library(ext-gtest INTERFACE)
 add_library(ext-bench INTERFACE)
@@ -357,8 +366,7 @@ if (BUILD_TESTING)
                   OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "CMAKE_BUILD_TYPE release" "BUILD_SHARED_LIBS OFF")
     CPMFindPackage(NAME googletest
                   GITHUB_REPOSITORY google/googletest
-                  GIT_TAG release-1.12.1
-                  VERSION 1.12.1
+                  VERSION 1.17.0
                   OPTIONS "INSTALL_GTEST OFF" "BUILD_GMOCK OFF")
     if(benchmark_ADDED)
         target_link_libraries(ext-bench INTERFACE benchmark)
@@ -447,27 +455,32 @@ else()
     set(ARB_CXX_FLAGS_TARGET_FULL_CPU ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH_CPU})
 endif()
 
+try_compile(arb_can_compile_cxx
+            SOURCES ${PROJECT_SOURCE_DIR}/cmake/dummy.cpp
+            COMPILE_DEFINITIONS ${ARB_CXX_FLAGS_TARGET_FULL_CPU})
+if(NOT arb_can_compile_cxx)
+  message(FATAL_ERROR "Cannot compile a trivial CXX program using the final compiler flags: ${ARB_CXX_FLAGS_TARGET_FULL_CPU}")
+endif()
+
 # Add SVE compiler flags if detected/desired
 set(ARB_SVE_WIDTH "auto" CACHE STRING "Default SVE vector length in bits. Default: auto (detection during configure time).")
 mark_as_advanced(ARB_SVE_WIDTH)
 
-if (ARB_VECTORIZE)
-    if (ARB_SVE_WIDTH STREQUAL "auto")
-        get_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
-        if (ARB_HAS_SVE)
-            message(STATUS "SVE detected with vector size = ${ARB_SVE_BITS} bits")
-            set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
-        else()
-            message(STATUS "NO SVE detected")
-            set(ARB_CXX_SVE_FLAGS "")
-        endif()
-    else()
-        set(ARB_SVE_BITS ${ARB_SVE_WIDTH})
+if (ARB_SVE_WIDTH STREQUAL "auto")
+    get_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
+    if (ARB_HAS_SVE)
+        message(STATUS "SVE detected with vector size = ${ARB_SVE_BITS} bits")
         set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
+    else()
+        message(STATUS "NO SVE detected")
+        set(ARB_CXX_SVE_FLAGS "")
     endif()
-    list(APPEND ARB_CXX_FLAGS_TARGET_FULL
-        "$<$<BUILD_INTERFACE:$<COMPILE_LANGUAGE:CXX>>:${ARB_CXX_SVE_FLAGS}>")
+else()
+    set(ARB_SVE_BITS ${ARB_SVE_WIDTH})
+    set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
 endif()
+list(APPEND ARB_CXX_FLAGS_TARGET_FULL
+    "$<$<BUILD_INTERFACE:$<COMPILE_LANGUAGE:CXX>>:${ARB_CXX_SVE_FLAGS}>")
 
 # Compile with `-fvisibility=hidden` to ensure that the symbols of the generated
 # arbor static libraries are hidden from the dynamic symbol tables of any shared

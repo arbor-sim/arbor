@@ -103,20 +103,36 @@ void register_domain_decomposition(pybind11::module& m) {
     // Partition load balancer
     // The Python recipe has to be shimmed for passing to the function that takes a C++ recipe.
     m.def("partition_load_balance",
-        [](std::shared_ptr<recipe>& recipe, const context_shim& ctx, arb::partition_hint_map hint_map) {
-            try {
-                return arb::partition_load_balance(recipe_shim(recipe), ctx.context, std::move(hint_map));
-            }
-            catch (...) {
-                py_reset_and_throw();
-                throw;
-            }
-        },
-        "Construct a domain_decomposition that distributes the cells in the model described by recipe\n"
-        "over the distributed and local hardware resources described by context.\n"
-        "Optionally, provide a dictionary of partition hints for certain cell kinds, by default empty.",
-        "recipe"_a, "context"_a, "hints"_a=arb::partition_hint_map{});
+          [](std::shared_ptr<recipe>& recipe, const context_shim& ctx, arb::partition_hint_map hint_map) {
+              try {
+                  return arb::partition_load_balance(recipe_shim(recipe), ctx.context, std::move(hint_map));
+              }
+              catch (...) {
+                  py_reset_and_throw();
+                  throw;
+              }
+          },
+          "Construct a domain_decomposition that distributes the cells in the model described by recipe\n"
+          "over the distributed and local hardware resources described by context in consecutive blocks.\n"          
+          "Optionally, provide a dictionary of partition hints for certain cell kinds, by default empty.",
+          "recipe"_a, "context"_a, "hints"_a=arb::partition_hint_map{});
 
+    // Round-robin load balancer
+    m.def("round_robin_load_balance",
+          [](std::shared_ptr<recipe>& recipe, const context_shim& ctx, arb::partition_hint_map hint_map) {
+              try {
+                  return arb::round_robin_load_balance(recipe_shim(recipe), ctx.context, std::move(hint_map));
+              }
+              catch (...) {
+                  py_reset_and_throw();
+                  throw;
+              }
+          },
+          "Construct a domain_decomposition that distributes the cells in the model described by recipe\n"
+          "over the distributed and local hardware resources described by context by round-robin assignment.\n"
+          "Optionally, provide a dictionary of partition hints for certain cell kinds, by default empty.",
+          "recipe"_a, "context"_a, "hints"_a=arb::partition_hint_map{});
+    
     m.def("partition_by_group",
           [](std::shared_ptr<recipe>& recipe, const context_shim& ctx, const std::vector<arb::group_description>& groups) {
               try {

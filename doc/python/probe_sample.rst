@@ -61,7 +61,7 @@ Example
       A.decor()
       .set_property(Vm=-40)
       .paint('"soma"', A.density("hh"))
-      .place('"midpoint"', A.iclamp(10*U.ms, 2*U.ms, 0.8*U.nA), "iclamp"))
+      .place('"midpoint"', A.i_clamp(10*U.ms, 2*U.ms, 0.8*U.nA)))
 
    cell = A.cable_cell(tree, decor)
 
@@ -311,14 +311,60 @@ Ionic diffusion concrentration
 
    **Metadata**: the list of corresponding :class:`cable` objects.
 
+Reversal potential
+^^^^^^^^^^^^^^^^^^
+
+   .. py:function:: cable_probe_ion_reversal_potential_cell(ion, tag)
+
+   Reversal potential of the given ``ion`` for each cable in each CV.
+
+   **Metadata**: the explicit :class:`location` of the sample site.
+
+   **Kind**: :term:`vector probe`.
+
+   .. py:function:: cable_probe_ion_reversal_potential(where, ion, tag)
+
+   Reversal potential of the given ``ion`` at the sites specified by the
+   location expression string ``where``.
+
+   **Metadata**: the list of corresponding :class:`cable` objects.
+
+
 .. _pycablecell-probesample-lif:
 
 LIF Cell probing
 ================
 
 Membrane voltage
-   .. py:function:: lif_probe_voltage(tag)
+----------------
+
+.. py:function:: lif_probe_voltage(tag)
 
    Current cell membrane potential (mV).
 
-   **Metadata**: none
+   Metadata: none
+
+AdEx cell probing and sampling
+===============================
+
+Membrane voltage
+----------------
+
+   .. py:function:: adex_probe_voltage()
+
+Queries cell membrane potential.
+
+* Sample value: ``double``. Membrane potential (mV).
+
+* Metadata: none
+
+Adaption Variable
+-----------------
+
+   .. py:function:: adex_probe_adaption()
+
+Queries cell adaption variable :math:`w`.
+
+* Sample value: ``double``. (nA).
+
+* Metadata: none

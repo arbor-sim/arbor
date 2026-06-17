@@ -16,11 +16,12 @@ public:
 
     gathered_vector(std::vector<value_type>&& v, std::vector<count_type>&& p) :
         values_(std::move(v)),
-        partition_(std::move(p))
-    {
+        partition_(std::move(p)) {
         arb_assert(std::is_sorted(partition_.begin(), partition_.end()));
         arb_assert(partition_.back() == values_.size());
     }
+    gathered_vector(gathered_vector<T>&&) = default;
+    gathered_vector<T>& operator=(gathered_vector<T>&&) = default;
 
     /// the partition of distribution
     const std::vector<count_type>& partition() const {

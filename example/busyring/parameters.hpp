@@ -1,9 +1,7 @@
 #include <iostream>
 
 #include <array>
-#include <cmath>
 #include <fstream>
-#include <random>
 
 #include <sup/json_params.hpp>
 #include <arbor/load_balance.hpp>
@@ -14,7 +12,8 @@ struct cell_parameters {
 
     // Use complex cell or generic cell
     bool complex_cell = false;
-
+    // Use STDP synapse
+    bool stdp = false;
     //  Maximum number of levels in the cell (not including the soma)
     unsigned max_depth = 5;
 
@@ -25,7 +24,7 @@ struct cell_parameters {
     std::array<unsigned,2> compartments = {20, 2};  //  Compartment count on a branch.
     std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
 
-    // The number of synapses per cell.
+    // The number of additional, random synapses per cell.
     unsigned synapses = 1;
 };
 
@@ -47,7 +46,8 @@ struct ring_params {
     cell_parameters cell;
 };
 
-ring_params read_options(int argc, char** argv) {
+inline ring_params
+read_options(int argc, char** argv) {
     const char* usage = "Usage:  arbor-busyring [params [opath]]\n\n"
                         "Driver for the Arbor busyring benchmark\n\n"
                         "Options:\n"
@@ -57,6 +57,7 @@ ring_params read_options(int argc, char** argv) {
 
     ring_params params;
     if (argc<2) {
+        std::cerr << "Using defaults\n";
         return params;
     }
     if (argc>3) {
@@ -90,6 +91,7 @@ ring_params read_options(int argc, char** argv) {
     param_from_json(params.cell.compartments, "compartments", json);
     param_from_json(params.cell.lengths, "lengths", json);
     param_from_json(params.cell.synapses, "synapses", json);
+    param_from_json(params.cell.stdp, "stdp", json);
     param_from_json(params.bind_threads, "bind-threads", json);
     param_from_json(params.hint.cpu_group_size, "cpu-group-size", json);
     param_from_json(params.hint.gpu_group_size, "gpu-group-size", json);

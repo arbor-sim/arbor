@@ -7,8 +7,7 @@ LIF cells
 
 .. py:class:: lif_cell
 
-    A benchmarking cell (leaky integrate-and-fire), used by Arbor developers to test communication performance,
-    with neuronal parameters:
+    A leaky integrate-and-fire cell
 
     .. function:: lif_cell(source, target, **, tau_m, V_th, C_m, E_L, E_R, V_m, t_ref)
 

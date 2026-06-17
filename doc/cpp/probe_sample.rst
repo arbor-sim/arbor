@@ -689,3 +689,66 @@ probe in *probe set*, with *n* sample values.
    samples will be taken at the closest possible point in time. In particular,
    any sample times :math:`t_s \in \left( t_i - dt/2,~ t_i + dt/2\right]` are
    attributed to simulation time step :math:`t_i = t_0 + i\,dt`.
+
+LIF cell probing and sampling
+===============================
+
+Membrane voltage
+----------------
+
+.. code::
+
+    struct lif_probe_voltage {};
+
+Queries cell membrane potential.
+
+* Sample value: ``double``. Membrane potential (mV).
+
+* Metadata: none
+=======
+
+
+LIF cell probing and sampling
+===============================
+
+Membrane voltage
+----------------
+
+.. code::
+
+    struct lif_probe_voltage {};
+
+Queries cell membrane potential.
+
+* Sample value: ``double``. Membrane potential (mV).
+
+* Metadata: none
+
+AdEx cell probing and sampling
+===============================
+
+Membrane voltage
+----------------
+
+.. code::
+
+    struct adex_probe_voltage {};
+
+Queries cell membrane potential.
+
+* Sample value: ``double``. Membrane potential (mV).
+
+* Metadata: none
+
+Adaption Variable
+-----------------
+
+.. code::
+
+    struct adex_probe_adaption {};
+
+Queries cell adaption variable :math:`w`.
+
+* Sample value: ``double``. (nA).
+
+* Metadata: none

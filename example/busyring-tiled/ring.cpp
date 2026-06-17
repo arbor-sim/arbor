@@ -1,6 +1,8 @@
 #include <iostream>
 #include <algorithm>
 #include <array>
+#include <random>
+#include <cmath>
 
 #include <nlohmann/json.hpp>
 
@@ -79,7 +81,7 @@ struct ring_recipe: public arb::recipe {
             const auto group = gid/s;
             const auto group_start = s*group;
             const auto group_end = std::min(group_start+s, num_cells_);
-            cell_gid_type src = gid==group_start? group_end-1: gid-1;
+            cell_gid_type src = gid==group_start ? group_end-1: gid-1;
             cons.push_back({{src, "d"}, {"p"}, event_weight_, min_delay_*U::ms});
         }
         return cons;

@@ -37,6 +37,8 @@ public:
     void t_serialize(serializer& ser, const std::string& k) const override;
     void t_deserialize(serializer& ser, const std::string& k) override;
 
+    static bool backend_supported(backend_kind kind) { return kind == backend_kind::multicore; }
+
 private:
     std::vector<benchmark_cell> cells_;
     std::vector<spike> spikes_;

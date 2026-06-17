@@ -13,10 +13,16 @@ namespace profile {
 // type used for region identifiers
 using region_id_type = std::size_t;
 
+// type that saves the state of nested timers
+using timer_stack = std::vector<std::uint32_t>;
+
 // The results of a profiler run.
 struct profile {
     // the name of each profiled region.
     std::vector<std::string> names;
+
+    // the timer stacks
+    std::vector<timer_stack> stacks{};
 
     // the number of times each region was called.
     std::vector<std::size_t> counts;
@@ -34,7 +40,10 @@ struct profile {
 ARB_ARBOR_API void profiler_clear();
 ARB_ARBOR_API void profiler_initialize(context ctx);
 ARB_ARBOR_API void profiler_enter(std::size_t region_id);
-ARB_ARBOR_API void profiler_leave();
+ARB_ARBOR_API void profiler_leave(std::size_t region_id);
+ARB_ARBOR_API void task_started(const timer_stack& timer_stack);
+ARB_ARBOR_API void task_stopped(const timer_stack& timer_stack);
+ARB_ARBOR_API const timer_stack& get_current_timer_stack();
 
 ARB_ARBOR_API profile profiler_summary();
 

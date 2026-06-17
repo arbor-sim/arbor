@@ -98,7 +98,7 @@ TEST(simulation, spike_global_callback) {
     simulation sim(rec, ctx, decomp);
 
     std::vector<spike> collected;
-    sim.set_global_spike_callback([&](const std::vector<spike>& spikes) {
+    sim.set_local_spike_callback([&](const std::vector<spike>& spikes) {
         collected.insert(collected.end(), spikes.begin(), spikes.end());
     });
 

@@ -56,6 +56,13 @@ BSL 1.0
 
 https://github.com/skarupke/ska_sort
 
+# unordered_dense
+A fast & densely stored hashmap and hashset by Martin Leitner-Ankerl
+MIT
+
+https://github.com/martinus/unordered_dense
+
+
 ## Sphinx module for CMake
 
 The CMake script cmake/FindSphinx.cmake is a modified version of a script from the LLVM

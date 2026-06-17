@@ -2,6 +2,7 @@
 #include <cassert>
 #include <vector>
 #include <iostream>
+#include <numeric>
 
 #include <nlohmann/json.hpp>
 

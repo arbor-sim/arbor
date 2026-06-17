@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <string_view>
 #include <functional>
+#include <ranges>
 
 // Helpers for forming hash values of compounds objects.
 namespace arb {
@@ -53,7 +54,7 @@ inline constexpr std::size_t internal_hash(T&& data) {
         }
         return hash;
     }
-    if constexpr (std::is_integral_v<D>) {
+    else if constexpr (std::is_integral_v<D>) {
         unsigned long long bytes = data;
         std::size_t hash = offset_basis;
         for (std::size_t ix = 0; ix < sizeof(data); ++ix) {
@@ -64,7 +65,7 @@ inline constexpr std::size_t internal_hash(T&& data) {
         }
         return hash;
     }
-    if constexpr (std::is_pointer_v<D>) {
+    else if constexpr (std::is_pointer_v<D>) {
         unsigned long long bytes = reinterpret_cast<unsigned long long>(data);
         std::size_t hash = offset_basis;
         for (std::size_t ix = 0; ix < sizeof(data); ++ix) {
@@ -75,7 +76,17 @@ inline constexpr std::size_t internal_hash(T&& data) {
         }
         return hash;
     }
-    return std::hash<D>{}(data);
+    else if constexpr (std::ranges::range<std::remove_reference_t<T>>) {
+        std::size_t hash = offset_basis;
+        for (auto&& elem: data) {
+            hash ^= internal_hash(elem);
+            hash *= prime;
+        }
+        return hash;
+    }
+    else {
+        return std::hash<D>{}(data);
+    }
 }
 
 inline
