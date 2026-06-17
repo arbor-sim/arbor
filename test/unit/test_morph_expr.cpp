@@ -979,3 +979,136 @@ TEST(region, thingify_complex_morphologies) {
         EXPECT_TRUE(region_eq(mp, join(z_dist_from_root_le(50), z_dist_from_root_gt(50)), all()));
     }
 }
+
+TEST(region, eq) {
+    std::vector regs {
+        arb::reg::nil(),
+        arb::reg::cable(42, 0.50, 0.85),
+        arb::reg::cable(41, 0.50, 0.85),
+        arb::reg::cable(42, 0.25, 0.85),
+        arb::reg::cable(42, 0.25, 0.90),
+        arb::reg::branch(13),
+        arb::reg::branch(12),
+        arb::reg::tagged(1),
+        arb::reg::tagged(2),
+        arb::reg::segment(23),
+        arb::reg::segment(31),
+        arb::reg::all(),
+        arb::reg::distal_interval(arb::ls::root(), 0.50),
+        arb::reg::distal_interval(arb::ls::root(), 0.25),
+        arb::reg::distal_interval(arb::ls::terminal(), 0.25),
+        arb::reg::proximal_interval(arb::ls::root(), 0.50),
+        arb::reg::proximal_interval(arb::ls::root(), 0.25),
+        arb::reg::proximal_interval(arb::ls::terminal(), 0.25),
+        arb::reg::radius_lt(arb::reg::all(), 0.42),
+        arb::reg::radius_le(arb::reg::all(), 0.42),
+        arb::reg::radius_gt(arb::reg::all(), 0.42),
+        arb::reg::radius_ge(arb::reg::all(), 0.42),
+        arb::reg::radius_lt(arb::reg::all(), 0.23),
+        arb::reg::radius_le(arb::reg::all(), 0.23),
+        arb::reg::radius_gt(arb::reg::all(), 0.23),
+        arb::reg::radius_ge(arb::reg::all(), 0.23),
+        arb::reg::radius_lt(arb::reg::nil(), 0.42),
+        arb::reg::radius_le(arb::reg::nil(), 0.42),
+        arb::reg::radius_gt(arb::reg::nil(), 0.42),
+        arb::reg::radius_ge(arb::reg::nil(), 0.42),
+        arb::reg::radius_lt(arb::reg::nil(), 0.23),
+        arb::reg::radius_le(arb::reg::nil(), 0.23),
+        arb::reg::radius_gt(arb::reg::nil(), 0.23),
+        arb::reg::radius_ge(arb::reg::nil(), 0.23),
+        arb::reg::z_dist_from_root_lt(0.42),
+        arb::reg::z_dist_from_root_le(0.42),
+        arb::reg::z_dist_from_root_gt(0.42),
+        arb::reg::z_dist_from_root_ge(0.42),
+        arb::reg::z_dist_from_root_lt(0.23),
+        arb::reg::z_dist_from_root_le(0.23),
+        arb::reg::z_dist_from_root_gt(0.23),
+        arb::reg::z_dist_from_root_ge(0.23),
+        arb::reg::named("foo"),
+        arb::reg::named("bar"),
+        arb::reg::complete(arb::reg::all()),
+        arb::reg::complete(arb::reg::nil()),
+        intersect(arb::reg::all(), arb::reg::all()),
+        intersect(arb::reg::nil(), arb::reg::nil()),
+        join(arb::reg::all(), arb::reg::all()),
+        join(arb::reg::nil(), arb::reg::nil()),
+        complement(arb::reg::nil()),
+        complement(arb::reg::all()),
+        difference(arb::reg::all(), arb::reg::all()),
+        difference(arb::reg::nil(), arb::reg::nil()),
+    };
+
+    for (size_t ix = 0; ix < regs.size(); ++ix) {
+        for (size_t iy = 0; iy < regs.size(); ++iy) {
+            if (ix == iy) {
+                EXPECT_EQ(regs[ix], regs[iy]);
+            }
+            else {
+                EXPECT_NE(regs[ix], regs[iy]);
+            }
+
+        }
+    }
+}
+
+TEST(locset, eq) {
+    std::vector locs = {
+        arb::ls::nil(),
+        arb::ls::root(),
+        arb::ls::terminal(),
+        arb::ls::segment_boundaries(),
+        arb::ls::location(0, 0.25),
+        arb::ls::location(1, 0.25),
+        arb::ls::location(0, 0.45),
+        arb::ls::location(1, 0.45),
+        arb::ls::proximal_translate(arb::ls::terminal(), 0.35),
+        arb::ls::proximal_translate(arb::ls::terminal(), 0.25),
+        arb::ls::proximal_translate(arb::ls::nil(), 0.35),
+        arb::ls::proximal_translate(arb::ls::nil(), 0.25),
+        arb::ls::named("foo"),
+        arb::ls::named("bar"),
+        arb::ls::boundary(arb::reg::all()),
+        arb::ls::boundary(arb::reg::nil()),
+        arb::ls::cboundary(arb::reg::all()),
+        arb::ls::cboundary(arb::reg::nil()),
+        intersect(arb::ls::nil(), arb::ls::nil()),
+        intersect(arb::ls::root(), arb::ls::root()),
+        join(arb::ls::nil(), arb::ls::nil()),
+        join(arb::ls::root(), arb::ls::root()),
+        sum(arb::ls::nil(), arb::ls::nil()),
+        sum(arb::ls::root(), arb::ls::root()),
+        arb::ls::distal_translate(arb::ls::nil(), 0.25),
+        arb::ls::distal_translate(arb::ls::nil(), 0.45),
+        arb::ls::distal_translate(arb::ls::root(), 0.25),
+        arb::ls::distal_translate(arb::ls::root(), 0.45),
+        arb::ls::most_distal(arb::reg::nil()),
+        arb::ls::most_distal(arb::reg::all()),
+        arb::ls::most_proximal(arb::reg::nil()),
+        arb::ls::most_proximal(arb::reg::all()),
+        arb::ls::on_branches(0.24),
+        arb::ls::on_branches(0.42),
+        arb::ls::on_components(0.25, arb::reg::all()),
+        arb::ls::on_components(0.45, arb::reg::all()),
+        arb::ls::on_components(0.25, arb::reg::nil()),
+        arb::ls::on_components(0.45, arb::reg::nil()),
+        arb::ls::support(arb::ls::nil()),
+        arb::ls::support(arb::ls::root()),
+        arb::ls::restrict_to(arb::ls::nil(),  arb::reg::all()),
+        arb::ls::restrict_to(arb::ls::root(), arb::reg::all()),
+        arb::ls::restrict_to(arb::ls::nil(),  arb::reg::nil()),
+        arb::ls::restrict_to(arb::ls::root(), arb::reg::nil()),
+        arb::ls::uniform(arb::reg::all(), 23, 43, 1234),
+    };
+
+    for (size_t ix = 0; ix < locs.size(); ++ix) {
+        for (size_t iy = 0; iy < locs.size(); ++iy) {
+            if (ix == iy) {
+                EXPECT_EQ(locs[ix], locs[iy]);
+            }
+            else {
+                EXPECT_NE(locs[ix], locs[iy]);
+            }
+
+        }
+    }
+}

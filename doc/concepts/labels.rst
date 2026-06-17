@@ -368,8 +368,25 @@ Locset expressions
 
         (restrict-to (terminal) (tag 3))
 
-
 .. label:: (join lhs:locset rhs:locset [...locset])
+
+    Union of two locsets, where A and B are multisets of locations. This is
+    equivalent to concatenating the two lists, with duplicates removed and
+    results sorted.
+
+    .. code-block:: lisp
+
+        (join
+            (join (location 1 0.5) (location 2 0.1) (location 1 0.2))
+            (join (location 1 0.5) (location 4 0)))
+
+    Gives the following:
+
+    .. code-block:: lisp
+
+        (join (location 1 0.5) (location 2 0.1) (location 1 0.2) (location 4 0))
+
+.. label:: (interset lhs:locset rhs:locset [...locset])
 
     Set intersection for two locsets, with duplicates removed and results sorted.
     For example, the following:
@@ -687,7 +704,7 @@ Inhomogeneous Expressions
 
 .. label:: (distance scale:real loc:locset)
 
-    The minimum distance to points within the locset ``loc``. The scaling parameter  ``scale`` has unit :math:`{\mu m}^{-1}` 
+    The minimum distance to points within the locset ``loc``. The scaling parameter  ``scale`` has unit :math:`{\mu m}^{-1}`
     and is multiplied by the distance, such that the result is unitless.
 
     .. figure:: ../images/iexpr_distance.svg
@@ -703,7 +720,7 @@ Inhomogeneous Expressions
 
 .. label:: (distance scale:real reg:region)
 
-    The minimum distance to the region ``reg``. Evaluates to zero within the region. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
+    The minimum distance to the region ``reg``. Evaluates to zero within the region. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}`
     and is multiplied by the distance, such that the result is unitless.
 
 .. label:: (distance reg:region)
@@ -712,7 +729,7 @@ Inhomogeneous Expressions
 
 .. label:: (proximal-distance scale:real loc:locset)
 
-    The minimum distance in proximal direction from the points within the locset ``loc``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
+    The minimum distance in proximal direction from the points within the locset ``loc``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}`
     and is multiplied by the distance, such that the result is unitless.
 
     .. figure:: ../gen-images/iexpr_prox_dis.svg
@@ -727,7 +744,7 @@ Inhomogeneous Expressions
 
 .. label:: (proximal-distance scale:real reg:region)
 
-    The minimum distance in proximal direction from the region ``reg``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
+    The minimum distance in proximal direction from the region ``reg``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}`
     and is multiplied by the distance, such that the result is unitless.
 
 .. label:: (proximal-distance reg:region)
@@ -736,7 +753,7 @@ Inhomogeneous Expressions
 
 .. label:: (distal-distance scale:real loc:locset)
 
-    The minimum distance in the distal direction from the points within the locset ``loc``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
+    The minimum distance in the distal direction from the points within the locset ``loc``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}`
     and is multiplied by the distance, such that the result is unitless.
 
     .. figure:: ../gen-images/iexpr_dist_dis.svg
@@ -751,7 +768,7 @@ Inhomogeneous Expressions
 
 .. label:: (distal-distance scale:real reg:region)
 
-    The minimum distance in distal direction from the region ``reg``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}` 
+    The minimum distance in distal direction from the region ``reg``. The scaling parameter ``scale`` has unit :math:`{\mu m}^{-1}`
     and is multiplied by the distance, such that the result is unitless.
 
 .. label:: (distal-distance reg:region)
@@ -760,7 +777,7 @@ Inhomogeneous Expressions
 
 .. label:: (interpolation prox_value:real prox_loc:locset dist_value:real dist_loc:locset)
 
-    Interpolates between the closest point in the proximal direction in locset ``prox_loc`` and the closest point in 
+    Interpolates between the closest point in the proximal direction in locset ``prox_loc`` and the closest point in
     distal direction ``dist_loc`` with the assosiated unitless values ``prox_value`` and ``dist_value``.
     Evaluates to zero if no point is located in each required direction.
 

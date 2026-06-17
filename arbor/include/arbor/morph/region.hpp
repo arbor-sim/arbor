@@ -58,8 +58,9 @@ struct ARB_SYMBOL_VISIBLE region {
     region(mcable_list);
 
     friend mextent thingify(const region& r, const mprovider& m) { return r.impl_->thingify(m); }
-
     friend std::ostream& operator<<(std::ostream& o, const region& p) { return p.impl_->print(o); }
+    friend bool operator==(const region& lhs, const region& rhs) { return lhs.impl_->eq(*rhs.impl_.get()); }
+
 
     // The union of regions.
     friend region join(region, region);
@@ -76,9 +77,10 @@ struct ARB_SYMBOL_VISIBLE region {
 private:
     struct interface {
         virtual ~interface() {}
-        virtual std::unique_ptr<interface> clone() = 0;
-        virtual std::ostream& print(std::ostream&) = 0;
-        virtual mextent thingify(const mprovider&) = 0;
+        virtual std::unique_ptr<interface> clone() const = 0;
+        virtual std::ostream& print(std::ostream&) const = 0;
+        virtual mextent thingify(const mprovider&) const = 0;
+        virtual bool eq(const interface&)          const = 0;
     };
 
     std::unique_ptr<interface> impl_;
@@ -87,9 +89,14 @@ private:
     struct wrap: interface {
         explicit wrap(const Impl& impl): wrapped(impl) {}
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
-        virtual std::unique_ptr<interface> clone() override { return std::make_unique<wrap<Impl>>(wrapped); }
-        virtual mextent thingify(const mprovider& m) override { return thingify_(wrapped, m); }
-        virtual std::ostream& print(std::ostream& o) override { return o << wrapped; }
+
+        virtual std::unique_ptr<interface> clone()   const override final { return std::make_unique<wrap<Impl>>(wrapped); }
+        virtual mextent thingify(const mprovider& m) const override final { return thingify_(wrapped, m); }
+        virtual std::ostream& print(std::ostream& o) const override final { return o << wrapped; }
+        virtual bool eq(const interface& other)      const override final {
+            if (auto ptr = dynamic_cast<const wrap*>(&other)) return wrapped == ptr->wrapped;
+            return false;
+        }
 
         Impl wrapped;
     };
