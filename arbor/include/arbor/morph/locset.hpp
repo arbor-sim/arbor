@@ -71,6 +71,7 @@ struct ARB_SYMBOL_VISIBLE locset {
 private:
     struct interface {
         virtual ~interface() {}
+        virtual const void* type()                        const = 0;
         virtual std::unique_ptr<interface> clone()        const = 0;
         virtual std::ostream& print(std::ostream&)        const = 0;
         virtual mlocation_list thingify(const mprovider&) const = 0;
@@ -84,11 +85,17 @@ private:
         explicit wrap(const Impl& impl): wrapped(impl) {}
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
 
-        virtual std::unique_ptr<interface> clone()          const override final { return std::make_unique<wrap<Impl>>(wrapped); }
-        virtual mlocation_list thingify(const mprovider& m) const override final { return thingify_(wrapped, m); }
-        virtual std::ostream& print(std::ostream& o)        const override final { return o << wrapped; }
-        virtual bool eq(const interface& other)      const override final {
-            if (auto ptr = dynamic_cast<const wrap*>(&other)) return wrapped == ptr->wrapped;
+        // we keep this instead of using RTTI
+        static inline const int tag{};
+        const void* type()                          const override final { return &tag; }
+        std::unique_ptr<interface> clone()          const override final { return std::make_unique<wrap<Impl>>(wrapped); }
+        mlocation_list thingify(const mprovider& m) const override final { return thingify_(wrapped, m); }
+        std::ostream& print(std::ostream& o)        const override final { return o << wrapped; }
+        bool eq(const interface& other)             const override final {
+            if (other.type() == type()) {
+                auto ptr = dynamic_cast<const wrap*>(&other);
+                return wrapped == ptr->wrapped;
+            }
             return false;
         }
 
