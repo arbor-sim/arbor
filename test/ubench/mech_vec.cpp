@@ -37,7 +37,7 @@ using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 //     ACCESS_BIND(int foo::*, secret_mptr, &foo::secret)
 //
 //     int seven = foo{}.*secret_mptr;
-namespace access {
+namespace arb_access {
     template <typename V, V& store, V value>
     struct bind {
         static struct binder {
@@ -51,7 +51,7 @@ namespace access {
 
 #define ACCESS_BIND(type, global, value)\
 namespace { using global ## _type_ = type; global ## _type_ global; }\
-template struct access::bind<type, global, value>;
+template struct arb_access::bind<type, global, value>;
 
 ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_pp_mechanisms_ptr, &fvm_cell::point_mechanisms_)
 ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_de_mechanisms_ptr, &fvm_cell::density_mechanisms_)
