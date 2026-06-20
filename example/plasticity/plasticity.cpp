@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
     auto ctx = arb::make_context(arb::proc_allocation{8, -1});
     auto sim = arb::simulation(rec, ctx);
     sim.add_sampler(arb::all_probes, arb::regular_schedule(dt*arb::units::ms), sampler);
-    sim.set_global_spike_callback(spike_cb);
+    sim.set_local_spike_callback(spike_cb);
     print_header(0, 1);
     sim.run(1.0*arb::units::ms, dt*arb::units::ms);
     rec.add_connection(2);

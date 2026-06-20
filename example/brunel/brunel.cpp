@@ -245,14 +245,15 @@ private:
 
 int main(int argc, char** argv) {
     bool root = true;
-
     try {
+        int rank = 0;
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);
         unsigned num_threads = arbenv::default_concurrency();
         int gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(arb::proc_allocation{num_threads, gpu_id}, MPI_COMM_WORLD);
-        root = arb::rank(context) == 0;
+        rank = arb::rank(context);
+        root = rank == 0;
 #else
         auto context = arb::make_context(arbenv::default_allocation());
 #endif
@@ -277,8 +278,8 @@ int main(int argc, char** argv) {
 
         std::fstream spike_out;
         auto spike_file_output = options.spike_file_output;
-        if (spike_file_output != "" && root) {
-            spike_out = sup::open_or_throw(spike_file_output, std::ios_base::out, false);
+        if (spike_file_output != "") {
+            spike_out = sup::open_or_throw(spike_file_output + "-" + std::to_string(rank) + ".gdf", std::ios_base::out, false);
         }
 
         meters.checkpoint("setup", context);
@@ -326,9 +327,9 @@ int main(int argc, char** argv) {
         // Set up spike recording.
         std::vector<arb::spike> recorded_spikes;
         if (spike_out) {
-            sim.set_global_spike_callback([&recorded_spikes](auto& spikes) {
-                    recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
-                });
+            sim.set_local_spike_callback([&recorded_spikes](auto& spikes) {
+                recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
+            });
         }
 
         meters.checkpoint("model-init", context);

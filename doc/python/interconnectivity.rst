@@ -58,7 +58,7 @@ Interconnectivity
             # Place 'expsyn' mechanism on "synapse_site", and a threshold detector at "root"
             decor = A.decor()
             decor.place('"synapse_site"', 'expsyn', 'syn')
-            decor.place('"root"', arbor.threshold_detector(-10), 'detector')
+            decor.place('"root"', arbor.threshold_detector(-10*U.mV), 'detector')
 
             # Implement the connections_on() function on a recipe as follows:
             def connections_on(gid):
