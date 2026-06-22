@@ -33,7 +33,7 @@
 #include "util/transform.hpp"
 
 namespace arb {
-    
+
 template <class Backend>
 struct fvm_lowered_cell_impl: public fvm_lowered_cell {
     using backend = Backend;
@@ -73,7 +73,7 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
     std::unique_ptr<shared_state> state_; // Cell state shared across mechanisms.
 
     std::unordered_map<std::string, mechanism*> mechptr_by_name_;
-    
+
     std::vector<mechanism_ptr> mechanisms_; // excludes reversal potential calculators.
     std::vector<mechanism_ptr> revpot_mechanisms_;
     std::vector<mechanism_ptr> voltage_mechanisms_;
@@ -82,7 +82,7 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
     std::unordered_map<cell_gid_type, fvm_mutable_data> mutable_cell_data_;
     // _needed_ for mutable cells
     cable_cell_global_properties gprop;
-    
+
     // Handles for accessing event targets.
     std::vector<target_handle> target_handles_;
     // Lookup table for target ids -> local target handle indices.
@@ -102,7 +102,7 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
 
     // Throw if absolute value of membrane voltage exceeds bounds.
     void assert_voltage_bounded(arb_value_type bound);
-    
+
     // Sets the GPU used for CUDA calls from the thread that calls it.
     // The GPU will be the one in the execution context context_.
     // If not called, the thread may attempt to launch on a different GPU,
@@ -337,10 +337,15 @@ fvm_lowered_cell_impl<Backend>::edit_cell(cell_gid_type gid,
         for (auto& [reg, mech, params]: mut_data.density_overrides_) {
             auto new_params = fun(reg, mech, params);
             for (const auto& [nk, nv]: new_params) {
-                auto kv = std::find_if(params.begin(), params.end(),
-                                       [nk](const auto& it) { return it.first == nk; });
-                if (kv == params.end()) throw bad_cell_edit{gid, "Unknown parameter '" + std::string{nk} + "' for mechanism '" + mech + "'." };
-                kv->second = nv;                
+                bool found = false;
+                for (auto& [ok, ov]: params) {
+                    if (ok == nk) {
+                        ov = nv;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) throw bad_cell_edit{gid, "Unknown parameter '" + std::string{nk} + "' for mechanism '" + mech + "'." };
             }
             // found all new values. add mech to decor
             new_dec.paint(reg, density(mech.c_str(), params));
@@ -350,16 +355,23 @@ fvm_lowered_cell_impl<Backend>::edit_cell(cell_gid_type gid,
         for (auto& [loc, mech, tag, params]: mut_data.synapse_overrides_) {
             auto new_params = fun(loc, mech, params);
             for (const auto& [nk, nv]: new_params) {
-                auto kv = std::find_if(params.begin(), params.end(),
-                                       [&nk](const auto& it) { return it.first == nk; });
-                if (kv == params.end()) throw bad_cell_edit{gid, "Unknown parameter '" + std::string{nk} + "' for mechanism '" + mech + "'." };
-                kv->second = nv;                
+                // TODO: Using STL patterns here trips up older compilers
+                //       due to capturing from a structured binding.
+                bool found = false;
+                for (auto& [ok, ov]: params) {
+                    if (ok == nk) {
+                        ov = nv;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) throw bad_cell_edit{gid, "Unknown parameter '" + std::string{nk} + "' for mechanism '" + mech + "'." };
             }
             // found all new values. add mech to decor
             new_dec.place(loc, synapse(mech.c_str(), params), tag);
         }
     }
-    
+
     auto new_cell = cable_cell{mut_data.morph, new_dec, mut_data.lbl, mut_data.cvp};
 
     auto D =  fvm_cv_discretize(new_cell, gprop.default_parameters);
@@ -377,7 +389,7 @@ fvm_lowered_cell_impl<Backend>::edit_cell(cell_gid_type gid,
         }
     }
 }
-    
+
 inline auto
 get_cable_cell_global_properties(const recipe& rec) {
     try {
@@ -440,7 +452,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
 
     // TODO think about (how) making this optional.
     gprop = std::any_cast<cable_cell_global_properties>(rec.get_global_properties(cell_kind::cable));
-    
+
     // extract and verify global settings
     auto global_props = get_cable_cell_global_properties(rec);
     // fetch backend specific mechanism data
@@ -625,7 +637,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
             };
 
             const auto& dec = cell.decorations();
-            
+
             for (const auto& [reg, it]: dec.paintings()) {
                 if (std::holds_alternative<density>(it)) {
                     const auto& mech  = std::get<density>(it);
@@ -665,12 +677,12 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                     }
                     mutable_cell_data_[gid].synapse_overrides_.emplace_back(loc, name, tag, params);
                 }
-            }            
+            }
         }
     }
 
 
-    
+
     add_probes(gids, cells, rec, D, mech_data, target_handles_, fvm_info.probe_map);
 
     // Create lookup structure for target ids.
@@ -678,7 +690,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
         util::transform_view(gids,
                              [&](cell_gid_type i) { return fvm_info.num_targets[i]; }));
 
-    
+
     reset();
     return fvm_info;
 }
@@ -1073,7 +1085,7 @@ void resolve_probe(const cable_probe_point_state_cell& p, probe_resolution_data<
         ++lid;
     }
 
-    
+
     result.metadata = std::move(metadata);
     result.shrink_to_fit();
     R.result.push_back(std::move(result));
