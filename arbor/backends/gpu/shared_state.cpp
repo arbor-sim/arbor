@@ -388,14 +388,15 @@ void shared_state::update_range_parameter(unsigned mid,
                                           const std::vector<arb_value_type>& vals) {
     auto off = 0;
     auto& store = storage[mid];
-    auto& param = store.parameters_[pid];
+    auto& param_d = store.parameters_[pid];
+    auto param_h = memory::on_host(memory::device_view<arb_value_type>(param_d, ppack.width));
     for (auto idx = 0ul; idx < ppack.width; ++idx) {
         if (lid != ppack.vec_ci[ppack.node_index[idx]]) continue;
-        param[idx] = vals[off];
+        param_h[idx] = vals[off];
         ++off;
     }
     // conservative copy of the _full_ array...
-    memory::copy(store.parameters_, store.parameters_d_);
+    memory::copy(param_h.data(), param_d);
 }
 
 void shared_state::take_samples() {
