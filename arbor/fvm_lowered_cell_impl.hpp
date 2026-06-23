@@ -385,7 +385,7 @@ fvm_lowered_cell_impl<Backend>::edit_cell(cell_gid_type gid,
             auto pset = std::find_if(data.param_values.begin(), data.param_values.end(),
                                      [&pname] (const auto& it) { return it.first == pname; });
             if (pset == data.param_values.end()) arbor_internal_error{"Cannot find parameter by name? Expected " + std::string{pname}};
-            state_->update_range_parameter(mut_data.lid, ptr->ppack_, off, pset->second);
+            state_->update_range_parameter(ptr->mechanism_id(), mut_data.lid, ptr->ppack_, off, pset->second);
         }
     }
 }

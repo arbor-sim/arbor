@@ -381,6 +381,23 @@ std::pair<arb_value_type, arb_value_type> shared_state::voltage_bounds() const {
     return minmax_value_impl(n_cv, voltage.data());
 }
 
+void shared_state::update_range_parameter(unsigned mid,
+                                          arb_index_type lid,
+                                          arb_mechanism_ppack& ppack,
+                                          cell_gid_type pid,
+                                          const std::vector<arb_value_type>& vals) {
+    auto off = 0;
+    auto& store = storage[mid];
+    auto& param = store.parameters_[pid];
+    for (auto idx = 0ul; idx < ppack.width; ++idx) {
+        if (lid != ppack.vec_ci[ppack.node_index[idx]]) continue;
+        param[idx] = vals[off];
+        ++off;
+    }
+    // conservative copy of the _full_ array...
+    memory::copy(store.parameters_, store.parameters_d_);
+}
+
 void shared_state::take_samples() {
     sample_events.mark();
     if (!sample_events.empty()) {

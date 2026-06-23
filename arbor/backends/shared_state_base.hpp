@@ -42,8 +42,8 @@ struct shared_state_base {
         // samples
         auto n_samples = util::sum_by(samples, [] (const auto& s) {return s.size();});
         if (d->sample_time.size() < n_samples) {
-            d->sample_time.resize(n_samples);
-            d->sample_value.resize(n_samples);
+            d->sample_time  = array(n_samples);
+            d->sample_value = array(n_samples);
         }
         initialize(samples, d->sample_events);
         // thresholds

@@ -241,7 +241,11 @@ struct ARB_ARBOR_API shared_state:
 
     bool mechanism_matches();
 
-    void update_range_parameter(arb_index_type lid, arb_mechanism_ppack& ppack, cell_gid_type pid, const std::vector<arb_value_type>& val);
+    void update_range_parameter(unsigned mid,                              // mechanism id
+                                arb_index_type cell_id,                    // to filter CVs of the cell we are editing
+                                arb_mechanism_ppack& ppack,                // ppack, used to read from CV -> cell_id
+                                cell_gid_type pid,                         // index of parameter
+                                const std::vector<arb_value_type>& val);   // values we are writing
 };
 
 // For debugging only:

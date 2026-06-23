@@ -533,11 +533,16 @@ unsigned shared_state::instantiate(arb::mechanism& m,
     return id;
 }
 
-void shared_state::update_range_parameter(arb_index_type lid, arb_mechanism_ppack& ppack, cell_gid_type pid, const std::vector<arb_value_type>& vals) {
+void shared_state::update_range_parameter(unsigned mid,
+                                          arb_index_type lid,
+                                          arb_mechanism_ppack& ppack,
+                                          cell_gid_type pid,
+                                          const std::vector<arb_value_type>& vals) {
     auto off = 0;
+    auto param = storage[mid].parameters_[pid];
     for (auto idx = 0ul; idx < ppack.width; ++idx) {
         if (lid != ppack.vec_ci[ppack.node_index[idx]]) continue;
-        ppack.parameters[pid][idx] = vals[off];
+        param[idx] = vals[off];
         ++off;
     }
 }
