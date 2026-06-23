@@ -1,8 +1,6 @@
 #include <variant>
 #include <vector>
 
-#include <iostream>
-
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/cable_cell.hpp>
@@ -504,7 +502,6 @@ cable_cell_group::edit_cell(cell_gid_type gid, std::any cell_edit) {
         lowered_->edit_cell(gid, *lid, cc_edit);
     }
     catch (std::bad_any_cast& ex) {
-        std::cerr << ex.what() << '\n';
         throw bad_cell_edit(gid, "Not a Cable Cell editor (C++ type-id: '"
                                  + std::string{cell_edit.type().name()}
                                  + " ./. "
