@@ -254,7 +254,7 @@ install(TARGETS arborio-private-deps EXPORT arbor-targets)
 # of arbor's PUBLIC interface.
 add_library(arbor-public-deps INTERFACE)
 install(TARGETS arbor-public-deps EXPORT arbor-targets)
-iif(ARB_GPU STREQUAL "cuda")
+if(ARB_GPU STREQUAL "cuda")
   target_link_libraries(arbor-public-deps INTERFACE CUDA::cudart)
 endif()
 
