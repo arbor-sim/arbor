@@ -35,7 +35,7 @@ include(CheckCXXCompilerFlag)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Have LTO where possible, ie add -flto
-check_ipo_supported(RESULT HAVE_LTO OUTPUT ERR_LTO)
+check_ipo_supported(RESULT HAVE_LTO OUTPUT ERR_LTO) #
 if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
   if(HAVE_LTO)
     message (VERBOSE "LTO support found, enabling")
@@ -174,12 +174,6 @@ if(ARB_GPU STREQUAL "cuda")
     else()
         message(FATAL_ERROR "Need at least CUDA 12, got ${CUDAToolkit_VERSION_MAJOR}")
     endif()
-
-    # We _still_ need this otherwise CUDA symbols will not be exported
-    # from libarbor.a leading to linker errors when link external clients.
-    # Unit tests are NOT external enough. Re-review this somewhere in the
-    # future.
-    find_package(CUDA ${CUDAToolkit_VERSION_MAJOR} REQUIRED)
 elseif(ARB_GPU STREQUAL "cuda-clang")
     include(FindCUDAToolkit)
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
@@ -234,7 +228,6 @@ set(ARB_INSTALL_DATADIR ${CMAKE_INSTALL_DATAROOTDIR}/arbor)
 # Interface library `arbor-config-defs` collects configure-time defines
 # for arbor, arborenv, arborio, of the form ARB_HAVE_XXX. These
 # defines should _not_ be used in any installed public headers.
-
 add_library(arbor-config-defs INTERFACE)
 install(TARGETS arbor-config-defs EXPORT arbor-targets)
 
@@ -246,14 +239,12 @@ install(TARGETS arbor-private-deps EXPORT arbor-targets)
 
 # Interface library `arborenv-private-deps` collects dependencies, options etc.
 # for the arborenv library.
-
 add_library(arborenv-private-deps INTERFACE)
 target_link_libraries(arborenv-private-deps INTERFACE arbor-config-defs)
 install(TARGETS arborenv-private-deps EXPORT arbor-targets)
 
 # Interface library `arborio-private-deps` collects dependencies, options etc.
 # for the arborio library.
-
 add_library(arborio-private-deps INTERFACE)
 target_link_libraries(arborio-private-deps INTERFACE arbor-config-defs)
 install(TARGETS arborio-private-deps EXPORT arbor-targets)
@@ -261,19 +252,19 @@ install(TARGETS arborio-private-deps EXPORT arbor-targets)
 # Interface library `arbor-public-deps` collects requirements for the
 # users of the arbor library (e.g. mpi) that will become part
 # of arbor's PUBLIC interface.
-
 add_library(arbor-public-deps INTERFACE)
 install(TARGETS arbor-public-deps EXPORT arbor-targets)
+iif(ARB_GPU STREQUAL "cuda")
+  target_link_libraries(arbor-public-deps INTERFACE CUDA::cudart)
+endif()
 
 # Interface library `arborio-public-deps` collects requirements for the
 # users of the arborio library (e.g. xml libs) that will become part
 # of arborio's PUBLIC interface.
-
 add_library(arborio-public-deps INTERFACE)
 install(TARGETS arborio-public-deps EXPORT arborio-targets)
 
 # Add scripts and supporting CMake for setting up external catalogues
-
 install(PROGRAMS scripts/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 
@@ -282,7 +273,6 @@ install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
 set(arbor_export_dependencies)
-
 
 # First make ourselves less chatty
 set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
