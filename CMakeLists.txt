@@ -191,7 +191,7 @@ elseif(ARB_GPU STREQUAL "hip")
     set(ARB_WITH_HIP_CLANG TRUE)
     # Specify AMD architecture using a (user provided) list.
     # Note: CMake native HIP architectures are introduced with version 3.21.
-    set(ARB_HIP_ARCHITECTURES gfx906 gfx900 CACHE STRING "AMD offload architectures (semicolon separated)")
+    set(ARB_HIP_ARCHITECTURES gfx90a CACHE STRING "AMD offload architectures (semicolon separated)")
 endif()
 
 if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
@@ -589,6 +589,12 @@ if(ARB_WITH_GPU)
         set(clang_options_ -DARB_HIP -xhip ${HIP_ARCH_STR})
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
         target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
+        # On Windows the clang driver does not auto-add the HIP runtime library when linking
+        # shared libraries; link it explicitly so HIP launch symbols resolve.
+        if(WIN32)
+            find_library(AMDHIP64_LIB amdhip64 REQUIRED HINTS "${CMAKE_PREFIX_PATH}/lib")
+            target_link_libraries(arbor-private-deps INTERFACE "${AMDHIP64_LIB}")
+        endif()
     endif()
 endif()
 

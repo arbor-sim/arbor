@@ -6,6 +6,16 @@
 
 #include <iostream>
 
+#ifdef _WIN32
+#  include <malloc.h>
+#  include <errno.h>
+static inline int _arb_posix_memalign(void** p, std::size_t a, std::size_t s) {
+    *p = _aligned_malloc(s, a);
+    return *p ? 0 : ENOMEM;
+}
+#  define posix_memalign _arb_posix_memalign
+#endif
+
 // Allocator with run-time alignment and padding guarantees.
 //
 // With an alignment value of `n`, any allocations will be
@@ -69,7 +79,11 @@ struct padded_allocator {
     }
 
     void deallocate(pointer p, std::size_t n) {
+#ifdef _WIN32
+        _aligned_free(p);
+#else
         std::free(p);
+#endif
     }
 
     bool operator==(const padded_allocator& a) const { return alignment_==a.alignment_; }

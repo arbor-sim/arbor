@@ -302,6 +302,8 @@ TEST(test_exception, post_exception_state) {
     }
 }
 
+// testing::KilledBySignal is POSIX-only; not available on Windows.
+#ifndef _WIN32
 TEST(test_exception, terminate_if_no_wait_DeathTest) {
     testing::FLAGS_gtest_death_test_style = "threadsafe";
 
@@ -319,3 +321,4 @@ TEST(test_exception, terminate_if_no_wait_DeathTest) {
         ASSERT_EXIT(run_terminate_test(n), ::testing::KilledBySignal(SIGABRT), "");
     }
 }
+#endif // !_WIN32

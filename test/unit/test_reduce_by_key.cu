@@ -14,7 +14,7 @@ __global__
 void reduce_kernel(const T* src, T* dst, const I* index, int n) {
     unsigned tid = threadIdx.x + blockIdx.x*blockDim.x;
 
-    unsigned mask = gpu::ballot(0xffffffff, tid<n);
+    gpu::lane_mask_type mask = gpu::ballot(gpu::lane_mask_type(-1), tid<n);
     if (tid<n) {
         gpu::reduce_by_key(src[tid], dst, index[tid], mask);
     }
@@ -114,7 +114,7 @@ __global__
 void reduce_twice_kernel(const T* src, T* dst, const I* index, int n) {
     unsigned tid = threadIdx.x + blockIdx.x*blockDim.x;
 
-    unsigned mask = gpu::ballot(0xffffffff, tid<n);
+    gpu::lane_mask_type mask = gpu::ballot(gpu::lane_mask_type(-1), tid<n);
     if (tid<n) {
         gpu::reduce_by_key(src[tid], dst, index[tid], mask);
         gpu::reduce_by_key(src[tid], dst, index[tid], mask);
