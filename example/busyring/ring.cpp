@@ -473,7 +473,7 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
     auto dend = tagged(3);
     auto apic = tagged(4);
     auto cntr = location(0, 0.5);
-    auto syns = arb::ls::uniform(rall, 0, params.synapses-1, gid);
+    auto syns = arb::ls::uniform(rall, 0, params.synapses-2, gid);
 
     arb::decor decor;
 
@@ -519,7 +519,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
 
     auto soma = tagged(1);
     auto dnds = join(tagged(3), tagged(4));
-    auto syns = arb::ls::uniform(arb::reg::all(), 0, params.synapses-1, gid);
+    auto syns = arb::ls::uniform(arb::reg::all(), 0, params.synapses-2, gid);
 
     arb::decor decor;
 

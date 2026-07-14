@@ -76,6 +76,9 @@ commit.msg
 # Mac default files
 .DS_Store
 
+# Mac default files
+.vscode
+
 # generated documentation images
 doc/gen-images
 
