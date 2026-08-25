@@ -136,6 +136,7 @@ def make_cell(base, swc, fit):
     # (11) Create cell
     return A.cable_cell(morphology, decor, labels, cvp), offset
 
+
 context = A.context()
 if A.config()["profiling"]:
     A.profiler_initialize(context)
