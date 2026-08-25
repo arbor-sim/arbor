@@ -136,6 +136,10 @@ def make_cell(base, swc, fit):
     # (11) Create cell
     return A.cable_cell(morphology, decor, labels, cvp), offset
 
+context = A.context()
+if A.config()["profiling"]:
+    A.profiler_initialize(context)
+
 
 # (12) Create cell, model
 cell, offset = make_cell(here, "single_cell_allen.swc", "single_cell_allen_fit.json")
@@ -149,6 +153,9 @@ model.properties.catalogue.extend(A.allen_catalogue())
 
 # (15) Run simulation
 model.run(tfinal=1.4 * U.s, dt=5 * U.us)
+
+if A.config()["profiling"]:
+    print(A.profiler_summary(1.0))
 
 # (16) Load and scale reference
 reference = (
