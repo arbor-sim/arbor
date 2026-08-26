@@ -144,17 +144,17 @@ std::string timer_stack_to_string(const timer_stack& ts, const std::vector<std::
 void recorder::enter(region_id_type index, const std::vector<std::string>& names) {
     current_timer_stack.push_back(index);
     auto& cur_acc = accumulators_[current_timer_stack];
-    if (cur_acc.running) throw std::runtime_error(std::format("recorder::enter you entered the timer twice {}. TimerStack:",
-                                                              names[index], timer_stack_to_string(current_timer_stack, names)));
+    if (cur_acc.running) throw std::runtime_error("recorder::enter you entered the timer twice "+ names[index] +
+        ". TimerStack:" + timer_stack_to_string(current_timer_stack, names));
     cur_acc.start_time = timer::tic();
     cur_acc.running = true;
 }
 
 void recorder::leave(region_id_type index, const std::vector<std::string>& names) {
     auto last = current_timer_stack.size() - 1;
-    if(current_timer_stack[last] != index) throw std::runtime_error(std::format("recorder::leave without matching recorder::enter Trying to leave {} but currently in {}."
-                                                                                " TimerStack: {}",
-                                                                                names[index], names[current_timer_stack[last]], timer_stack_to_string(current_timer_stack, names)));
+    if(current_timer_stack[last] != index) throw std::runtime_error(
+        "recorder::leave without matching recorder::enter Trying to leave " +  names[index] + " but currently in "
+        + names[current_timer_stack[last]] +". TimerStack: "+ timer_stack_to_string(current_timer_stack, names));
     auto& cur_acc = accumulators_[current_timer_stack];
     // calculate the elapsed time before any other steps, to increase accuracy.
     auto delta = timer::toc(cur_acc.start_time);
@@ -433,7 +433,7 @@ ARB_ARBOR_API void task_started(const timer_stack& _timer_stack) { profiler::get
 ARB_ARBOR_API void task_stopped(const timer_stack& _timer_stack) { profiler::get_global_profiler().task_stopped(_timer_stack); }
 
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string& name) {
-    if (name.empty() || name.front() == ':' || name.back() ==':') throw std::runtime_error(std::format("'{}' is not a valid profiler region name.", name));
+    if (name.empty() || name.front() == ':' || name.back() ==':') throw std::runtime_error("'" + name + "' is not a valid profiler region name.");
     return profiler::get_global_profiler().region_index(name);
 }
 
