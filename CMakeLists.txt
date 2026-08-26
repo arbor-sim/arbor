@@ -158,7 +158,7 @@ if(ARB_GPU STREQUAL "cuda")
     include(FindCUDAToolkit)
     set(ARB_WITH_NVCC TRUE)
     # CMake 3.18 and later set the default CUDA architecture for
-    # each target according to CMAKE_CUDA_ARCHITECTURES. 
+    # each target according to CMAKE_CUDA_ARCHITECTURES.
 
     # This fixes nvcc picking up a wrong host compiler for linking, causing
     # issues with outdated libraries, eg libstdc++ and std::filesystem. Must
@@ -308,21 +308,22 @@ endif()
 
 
 add_library(ext-random123 INTERFACE)
-CPMFindPackage(NAME random123
+CPMFindPackage(NAME Random123
                DOWNLOAD_ONLY YES
                GITHUB_REPOSITORY DEShawResearch/random123
                VERSION 1.14.0)
-if(random123_ADDED)
-    target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${random123_SOURCE_DIR}/include>)
+if(Random123_ADDED)
+    target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${Random123_SOURCE_DIR}/include>)
 else()
     target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
 endif()
 install(TARGETS ext-random123 EXPORT arbor-targets)
 
 if (ARB_WITH_PYTHON)
+    set(PYBIND11_FINDPYTHON ON)
     CPMFindPackage(NAME pybind11
                    GITHUB_REPOSITORY pybind/pybind11
-                   VERSION 3.0.0
+                   VERSION 3.1.0
                    OPTIONS "PYBIND11_CPP_STANDARD -std=c++20")
     # required for find_python_module
     include(FindPythonModule)
