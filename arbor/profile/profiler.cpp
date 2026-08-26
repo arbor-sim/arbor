@@ -1,5 +1,4 @@
 #include <cstdio>
-#include <format>
 #include <mutex>
 #include <ostream>
 #include <sstream>
@@ -274,7 +273,7 @@ profile profiler::results() const {
     for (auto& rec: recorders_) {
         auto& accs = rec.accumulators();
         for (auto &[timer_stack, acc]: accs) {
-            if (acc.running) throw std::runtime_error(std::format("Accumulator still running at reporting. TimerStack: {}", timer_stack_to_string(timer_stack, region_names_)));
+            if (acc.running) throw std::runtime_error("Accumulator still running at reporting. TimerStack: " + timer_stack_to_string(timer_stack, region_names_));
             auto it = std::find(prof.stacks.begin(), prof.stacks.end(), timer_stack);
             auto ix = std::distance(prof.stacks.begin(), it);
             if(prof.stacks.end() == it) {
