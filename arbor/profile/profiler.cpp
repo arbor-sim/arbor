@@ -302,12 +302,8 @@ profile_node make_profile_tree(const profile& p) {
                 node = &(*child);
             }
         }
-        if(node->name == region_names[ids.back()]) {
-            node->time += p.times[ix];
-            node->count += p.counts[ix];
-        } else {
-            node->children.emplace_back(region_names[ids.back()], p.times[ix], p.counts[ix]);
-        }
+        node->time += p.times[ix];
+        node->count = (node->count == profile_node::npos) ? p.counts[ix] : node->count + p.counts[ix];
     }
     if(tree.children.size() != 1) throw std::invalid_argument("More than one root timer");
     tree = tree.children[0];
