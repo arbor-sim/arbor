@@ -42,6 +42,9 @@ class recorder {
     accumulators_type accumulators_{};
     // The current state of nested timers
     timer_stack current_timer_stack{};
+    // For each task_started() on this thread remembers the depth from which ancestor accumulators were freshly
+    // opened by that call, so the  matching task_stopped() closes exactly those
+    std::vector<std::pair<timer_stack, std::size_t>> task_starts_{};
 
 public:
     // Return an unordered map that assigns each timer stack its profile accumulator
@@ -107,7 +110,7 @@ public:
         for (auto& r: recorders_) r.clear();
         name_index_.clear();
         region_names_.clear();
-    }    
+    }
 };
 
 
@@ -164,27 +167,41 @@ void recorder::leave(region_id_type index, const std::vector<std::string>& names
 void recorder::clear() {
     accumulators_.clear();
     current_timer_stack.clear();
+    task_starts_.clear();
 }
 
 void recorder::task_started(timer_stack _timer_stack) {
-    current_timer_stack = std::move(_timer_stack);
+    current_timer_stack = _timer_stack;
     const auto now = timer::tic();
-    for(auto stack_depth = 0U; stack_depth < current_timer_stack.size(); ++stack_depth) {
-        const timer_stack sub_timer_stack(current_timer_stack.begin(), current_timer_stack.begin() + stack_depth + 1);
+
+    // Only open accumulators that are not already running
+    std::size_t first_new = 0;
+    while (first_new < _timer_stack.size()) {
+        const timer_stack sub_timer_stack(_timer_stack.begin(), _timer_stack.begin() + first_new + 1);
+        if (!accumulators_[sub_timer_stack].running) break;
+        ++first_new;
+    }
+    for(auto stack_depth = first_new; stack_depth < _timer_stack.size(); ++stack_depth) {
+        const timer_stack sub_timer_stack(_timer_stack.begin(), _timer_stack.begin() + stack_depth + 1);
         auto& acc = accumulators_[sub_timer_stack];
         acc.running = true;
         acc.start_time = now;
     }
+    task_starts_.emplace_back(std::move(_timer_stack), first_new);
 }
 
-void recorder::task_stopped(const timer_stack _timer_stack) {
-    current_timer_stack = std::move(_timer_stack);
-    for(auto stack_depth = 0U; stack_depth < current_timer_stack.size(); ++stack_depth) {
-        const timer_stack sub_timer_stack(current_timer_stack.begin(), current_timer_stack.begin() + stack_depth + 1);
+void recorder::task_stopped(timer_stack _timer_stack) {
+    // Only stop accumulators that were opened by this task
+    auto [started_stack, first_new] = std::move(task_starts_.back());
+    task_starts_.pop_back();
+    const auto now = timer::tic();
+    for(auto stack_depth = first_new; stack_depth < started_stack.size(); ++stack_depth) {
+        const timer_stack sub_timer_stack(started_stack.begin(), started_stack.begin() + stack_depth + 1);
         auto& acc = accumulators_[sub_timer_stack];
         acc.running = false;
-        acc.time += timer::toc(acc.start_time);
+        acc.time += timer::scale*std::chrono::duration_cast<std::chrono::nanoseconds>(now - acc.start_time).count();
     }
+    current_timer_stack = std::move(_timer_stack);
 }
 
 const timer_stack &recorder::get_timer_stack() const { return current_timer_stack; }
