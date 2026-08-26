@@ -359,12 +359,12 @@ void hh_3_branches_current(benchmark::State& state) {
     }
 }
 
-void run_custom_arguments(benchmark::internal::Benchmark* b) {
+void run_custom_arguments(::benchmark::Benchmark* b) {
     for (auto ncomps: {10, 100, 1000, 10000, 100000}) {
         b->Args({ncomps});
     }
 }
-void run_exp_custom_arguments(benchmark::internal::Benchmark* b) {
+void run_exp_custom_arguments(::benchmark::Benchmark* b) {
     for (auto ncomps: {10, 100, 1000, 10000}) {
         b->Args({ncomps, ncomps*10});
     }

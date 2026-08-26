@@ -97,7 +97,7 @@ void yes_hash(benchmark::State& state) {
     }
 }
 
-void run_custom_arguments(benchmark::internal::Benchmark* b) {
+void run_custom_arguments(::benchmark::Benchmark* b) {
     for (auto ncells: {1, 10, 100, 1000, 10000}) {
         for (auto ev_per_cell: {128, 256, 512, 1024, 2048, 4096}) {
             b->Args({ncells, ev_per_cell});
