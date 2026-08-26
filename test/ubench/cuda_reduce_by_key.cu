@@ -24,7 +24,7 @@ using namespace arb;
 // This corresponds to a range from a single 100 compartment cell with 1 synapse
 // per compartment to 100k cells with 10 compartments and 10k synapses each.
 
-void run_custom_arguments(benchmark::internal::Benchmark* b) {
+void run_custom_arguments(::benchmark::Benchmark* b) {
     for (auto n_comp: {100, 1000, 10000, 100000, 1000000}) {
         for (auto syn_per_comp: {1, 10, 100, 1000}) {
             b->Args({n_comp, syn_per_comp});

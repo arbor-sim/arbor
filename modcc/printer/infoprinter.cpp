@@ -1,4 +1,3 @@
-#include <ostream>
 #include <string>
 #include <regex>
 
@@ -63,7 +62,7 @@ ARB_LIBMODCC_API std::string build_info_header(const Module& m, const printer_op
     auto print_array_head = [&](char const * type, char const * name, auto size) {
         out << "    static " << type;
         if (size) out << " " << name << "[] = {";
-        else out << "* " << name << " = NULL;";
+        else out << "* " << name << " = nullptr;";
     };
     auto print_array_tail = [&](char const * type, char const * name, auto size) {
         if (size) out << " };";

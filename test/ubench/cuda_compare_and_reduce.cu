@@ -183,7 +183,7 @@ void bench_custom_cuda_compare_noalloc(benchmark::State& state) {
 //  200       `a` and `b` differ circa 1 in 200 places.
 //    4       `a` and `b` differ circa 1 in 4 places.
 
-void run_custom_arguments(benchmark::internal::Benchmark* b) {
+void run_custom_arguments(::benchmark::Benchmark* b) {
     for (int n=1<<8; n<=1<<20; n*=2) {
         for (int oop: {0, 200, 4}) {
             // Uncomment to set fixed iteration count (for e.g. profiling):

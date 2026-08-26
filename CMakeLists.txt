@@ -352,11 +352,11 @@ add_library(ext-bench INTERFACE)
 if (BUILD_TESTING)
     CPMFindPackage(NAME benchmark
                   GITHUB_REPOSITORY google/benchmark
-                  VERSION 1.8.3
+                  VERSION 1.9.5
                   OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "CMAKE_BUILD_TYPE release" "BUILD_SHARED_LIBS OFF")
     CPMFindPackage(NAME googletest
                   GITHUB_REPOSITORY google/googletest
-                  VERSION 1.17.0
+                  VERSION 1.18.0
                   OPTIONS "INSTALL_GTEST OFF" "BUILD_GMOCK OFF")
     if(benchmark_ADDED)
         target_link_libraries(ext-bench INTERFACE benchmark)
