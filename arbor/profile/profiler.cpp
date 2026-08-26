@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <format>
 #include <mutex>
 #include <ostream>
 #include <sstream>
