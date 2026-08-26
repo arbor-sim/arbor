@@ -278,38 +278,30 @@ double sort_profile_tree(profile_node& n) {
             n.time_childs += c.time;
         }
     }
-
     // sort the children in descending order of time taken
     util::sort_by(n.children, [](const profile_node& n){return -n.time;});
-
     return n.time;
 }
 
 profile profiler::results() const {
-    profile p;
-    p.names = region_names_;
-
-    for (auto& r: recorders_) {
-        auto& accumulators = r.accumulators();
-        for (auto &[timer_stack, acc] : accumulators) {
-            auto it = std::find(p.stacks.begin(), p.stacks.end(), timer_stack);
-            auto i=0U;
-            if(p.stacks.end() == it) {
-                i = p.times.size();
-                p.stacks.push_back(timer_stack);
-                p.times.push_back(0);
-                p.counts.push_back(0);
-            } else {
-                i = std::distance(p.stacks.begin(), it);
+    profile prof;
+    prof.names = region_names_;
+    for (auto& rec: recorders_) {
+        auto& accs = rec.accumulators();
+        for (auto &[timer_stack, acc] : accs) {
+            auto it = std::find(prof.stacks.begin(), prof.stacks.end(), timer_stack);
+            auto ix = std::distance(prof.stacks.begin(), it);
+            if(prof.stacks.end() == it) {
+                prof.stacks.push_back(timer_stack);
+                prof.times.push_back(0);
+                prof.counts.push_back(0);
             }
-            p.times[i]  += acc.time;
-            p.counts[i] += acc.count;
+            prof.times[ix]  += acc.time;
+            prof.counts[ix] += acc.count;
         }
     }
-
-    p.num_threads = recorders_.size();
-
-    return p;
+    prof.num_threads = recorders_.size();
+    return prof;
 }
 
 // Remove all nodes with time == 0 from the profile tree
@@ -324,10 +316,6 @@ void remove_zero_time_nodes(profile_node &node) {
 }
 
 profile_node make_profile_tree(const profile& p) {
-    using std::vector;
-    using util::assign_from;
-    using util::transform_view;
-
     const auto& region_names = p.names;
     // Build a tree description of the regions and sub-regions in the profile.
     profile_node tree("r");
@@ -335,7 +323,7 @@ profile_node make_profile_tree(const profile& p) {
     for (const auto i: make_span(0,p.stacks.size())) {
         const auto & ids = p.stacks[i];
         profile_node* node = &tree;
-        const auto depth  = ids.size();
+        const auto depth = ids.size();
         for (auto j: make_span(0, depth)) {
             auto& node_name = region_names[ids[j]];
             auto& kids = node->children;
@@ -358,34 +346,27 @@ profile_node make_profile_tree(const profile& p) {
             node->children.emplace_back(region_names[ids.back()], p.times[i], p.counts[i]);
         }
     }
-    if(tree.children.size() != 1) {
-        throw std::invalid_argument("More than one root timer");
-    }
+    if(tree.children.size() != 1) throw std::invalid_argument("More than one root timer");
     tree = tree.children[0];
     sort_profile_tree(tree);
-
-    //Remove timers with time of 0
     remove_zero_time_nodes(tree);
-
     return tree;
 }
 
-const std::vector<std::string>& profiler::regions() const {
-    return region_names_;
-}
+const std::vector<std::string>& profiler::regions() const { return region_names_; }
 
 void profiler::task_started(const timer_stack& timer_stack) {
-  if(!init_) return;
+    if(!init_) return;
     recorders_[thread_ids_.at(std::this_thread::get_id())].task_started(timer_stack);
 }
 
 void profiler::task_stopped(const timer_stack& _timer_stack) {
-  if(!init_) return;
-  recorders_[thread_ids_.at(std::this_thread::get_id())].task_stopped(_timer_stack);
+    if(!init_) return;
+    recorders_[thread_ids_.at(std::this_thread::get_id())].task_stopped(_timer_stack);
 }
 
 const timer_stack& profiler::get_current_timer_stack() {
-  if (!init_) return empty_stack;
+    if (!init_) return empty_stack;
     return recorders_[thread_ids_.at(std::this_thread::get_id())].get_timer_stack();
 }
 
