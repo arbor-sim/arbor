@@ -199,53 +199,6 @@ struct cell_stats {
     }
 };
 
-// TODO remove this once a general function for the config output from C++ is provided
-std::string get_arbor_config_str() {
-    std::string config_str = "";
-    #ifdef ARB_MPI_ENABLED
-        config_str += std::string("mpi=true, ");
-    #else
-        config_str += std::string("mpi=false, ");
-    #endif
-    #ifdef ARB_NVCC_ENABLED
-        config_str += std::string("cuda=true, ");
-    #endif
-    #ifdef ARB_CUDA_CLANG_ENABLED
-        config_str += std::string("cuda-clang=true, ");
-    #endif
-    #ifdef ARB_HIP_ENABLED
-        config_str += std::string("hip=true, ");
-    #endif
-    #ifndef ARB_GPU_ENABLED
-        config_str += std::string("gpu=false, ");
-    #endif
-    #ifdef ARB_VECTORIZE_ENABLED
-        config_str += std::string("vectorize=true, ");
-    #else
-        config_str += std::string("vectorize=false, ");
-    #endif
-    #ifdef ARB_PROFILE_ENABLED
-        config_str += std::string("profiling=true, ");
-    #else
-        config_str += std::string("profiling=false, ");
-    #endif
-    #ifdef ARB_NEUROML_ENABLED
-        config_str += std::string("neuroml=true, ");
-    #else
-        config_str += std::string("neuroml=false, ");
-    #endif
-    #ifdef ARB_BUNDLED_ENABLED
-        config_str += std::string("bundled=true, ");
-    #else
-        config_str += std::string("bundled=false, ");
-    #endif
-    config_str += std::string("version='") + arb::version + "', " +
-                  std::string("source='") + arb::source_id + "', " +
-                  std::string("build_config='") + arb::build_config + "', " +
-                  std::string("arch='") + arb::arch + "'";
-    return config_str;
-}
-
 int main(int argc, char** argv) {
     try {
         bool root = true;
@@ -278,7 +231,7 @@ int main(int argc, char** argv) {
                       << "mpi:      " << (has_mpi(context)? "yes": "no") << "\n"
                       << "ranks:    " << num_ranks(context) << "\n"
                       << "stdp:     " << (params.cell.stdp  ? "yes": "no") << "\n"
-                      << "config:   " << (get_arbor_config_str()) << "\n"
+                      << "config:   " << (arb::get_arbor_config_str()) << "\n"
                       << std::endl;
         }
 
@@ -473,7 +426,7 @@ arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& para
     auto dend = tagged(3);
     auto apic = tagged(4);
     auto cntr = location(0, 0.5);
-    auto syns = arb::ls::uniform(rall, 0, params.synapses-1, gid);
+    auto syns = arb::ls::uniform(rall, 0, params.synapses-2, gid);
 
     arb::decor decor;
 
@@ -519,7 +472,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
 
     auto soma = tagged(1);
     auto dnds = join(tagged(3), tagged(4));
-    auto syns = arb::ls::uniform(arb::reg::all(), 0, params.synapses-1, gid);
+    auto syns = arb::ls::uniform(arb::reg::all(), 0, params.synapses-2, gid);
 
     arb::decor decor;
 
