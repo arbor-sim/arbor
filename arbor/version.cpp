@@ -1,6 +1,8 @@
 #include <arbor/version.hpp>
 #include <arbor/export.hpp>
 #include <string>
+#include <map>
+#include <variant>
 
 namespace arb {
 ARB_ARBOR_API const char* source_id = ARB_SOURCE_ID;
@@ -14,49 +16,87 @@ ARB_ARBOR_API const char* version_dev = "";
 #endif
 ARB_ARBOR_API const char* full_build_id = ARB_FULL_BUILD_ID;
 
-ARB_ARBOR_API std::string get_arbor_config_str() {
-    std::string config_str = "";
+using config_map = std::map<std::string, std::variant<std::string, bool, int>>;
+
+// returns Arbor config map
+ARB_ARBOR_API config_map get_arbor_config() {
+    config_map config;
+
     #ifdef ARB_MPI_ENABLED
-        config_str += std::string("mpi=true, ");
+        config["mpi"] = true;
     #else
-        config_str += std::string("mpi=false, ");
+        config["mpi"] = false;
     #endif
     #ifdef ARB_NVCC_ENABLED
-        config_str += std::string("cuda=true, ");
+        config["cuda"] = true;
     #endif
     #ifdef ARB_CUDA_CLANG_ENABLED
-        config_str += std::string("cuda-clang=true, ");
+        config["cuda-clang"] = true;
     #endif
     #ifdef ARB_HIP_ENABLED
-        config_str += std::string("hip=true, ");
+        config["hip"] = true;
     #endif
     #ifndef ARB_GPU_ENABLED
-        config_str += std::string("gpu=false, ");
+        config["gpu"] = true;
     #endif
     #ifdef ARB_VECTORIZE_ENABLED
-        config_str += std::string("vectorize=true, ");
+        config["vectorize"] = true;
     #else
-        config_str += std::string("vectorize=false, ");
+        config["vectorize"] = false;
     #endif
     #ifdef ARB_PROFILE_ENABLED
-        config_str += std::string("profiling=true, ");
+        config["profiiling"] = true;
     #else
-        config_str += std::string("profiling=false, ");
+        config["profiiling"] = false;
     #endif
     #ifdef ARB_NEUROML_ENABLED
-        config_str += std::string("neuroml=true, ");
+        config["neuroml"] = true;
     #else
-        config_str += std::string("neuroml=false, ");
+        config["neuroml"] = false;
     #endif
     #ifdef ARB_BUNDLED_ENABLED
-        config_str += std::string("bundled=true, ");
+        config["bundled"] = true;
     #else
-        config_str += std::string("bundled=false, ");
+        config["bundled"] = true;
     #endif
-    config_str += std::string("version='") + arb::version + "', " +
-                  std::string("source='") + arb::source_id + "', " +
-                  std::string("build_config='") + arb::build_config + "', " +
-                  std::string("arch='") + arb::arch + "'";
+    config["version"] = arb::version;
+    config["source"] = arb::source_id;
+    config["build_config"] = arb::build_config;
+    config["arch"] = arb::arch;
+
+    return config;
+}
+
+// pretty-print function for the Arbor config map
+ARB_ARBOR_API std::string get_arbor_config_str() {
+    config_map config = get_arbor_config();
+    std::string config_str = "";
+
+    struct value_str {
+        std::string operator()(const std::string& value) const {
+            return "'" + value + "'";
+        }
+
+        std::string operator()(bool value) const {
+            if (value)
+                return "true";
+            else
+                return "false";
+        }
+
+        std::string operator()(int value) const {
+            return std::to_string(value);
+        }
+    };
+
+    for (auto it = config.begin(); it != config.end(); ++it) {
+        config_str += it->first + "=" + std::visit(value_str{}, it->second);
+
+        if (std::next(it) != config.end()) {
+            config_str += ", ";
+        }
+    }
+
     return config_str;
 }
 }
