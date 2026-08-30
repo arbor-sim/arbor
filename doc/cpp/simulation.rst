@@ -130,6 +130,13 @@ Class documentation
        :ref:`sampling_api` documentation.
 
 
+    .. cpp:function:: void edit_cell(cell_gid_type gid, std::any editor)
+
+      Execute an editing operation ``editor`` against the cell with the given
+      ``gid``. The operation is a function operating on the interface type of
+      the cell in most cases, see the individual cell types' documentation for
+      the options and manner of changes.
+
     .. cpp:function:: void remove_sampler(sampler_association_handle)
 
         Remove a sampler.

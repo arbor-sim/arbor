@@ -54,3 +54,9 @@ LIF cells
     .. cpp:member:: const arb::units::quantity& t_ref
 
         Refractory period [ms]. Must be finite and positive.
+
+.. cpp:type:: lif_cell_editor std::function<void(lif_cell&)>
+
+    Callback function to update setting of LIF cells in place via the
+    ``simulation::edit_cell`` interace. All values are changeable, except:
+    ``source``, ``target``, and ``V_m``.

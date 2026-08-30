@@ -81,6 +81,8 @@ struct cable_cell_impl {
     using index_type = cable_cell::index_type;
     using size_type  = cable_cell::size_type;
 
+    bool is_mut_ = false;
+
     // The label dictionary.
     label_dict dictionary;
 
@@ -117,7 +119,8 @@ struct cable_cell_impl {
 
     // Discretization
     std::optional<cv_policy> discretization_;
-    cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations, const std::optional<cv_policy>& cvp):
+    cable_cell_impl(const arb::morphology& m, const label_dict& labels, const decor& decorations, const std::optional<cv_policy>& cvp, cable_cell_mutability is_mut=cable_cell_mutability::disabled):
+        is_mut_(is_mut == cable_cell_mutability::enabled),
         dictionary(labels),
         provider(m, dictionary),
         decorations(decorations),
@@ -239,8 +242,12 @@ void cable_cell_impl::init() {
     }
 }
 
-cable_cell::cable_cell(const arb::morphology& m, const decor& decorations, const label_dict& dictionary, const std::optional<cv_policy>& cvp):
-    impl_(make_impl(new cable_cell_impl(m, dictionary, decorations, cvp)))
+cable_cell::cable_cell(const arb::morphology& m,
+                       const decor& decorations,
+                       const label_dict& dictionary,
+                       const std::optional<cv_policy>& cvp,
+                       cable_cell_mutability is_mut):
+    impl_(make_impl(new cable_cell_impl(m, dictionary, decorations, cvp, is_mut)))
 {}
 
 cable_cell::cable_cell(): impl_(make_impl(new cable_cell_impl())) {}
@@ -248,6 +255,8 @@ cable_cell::cable_cell(): impl_(make_impl(new cable_cell_impl())) {}
 cable_cell::cable_cell(const cable_cell& other):
     impl_(make_impl(new cable_cell_impl(*other.impl_)))
 {}
+
+bool cable_cell::is_editable() const { return impl_->is_mut_; }
 
 const label_dict& cable_cell::labels() const { return impl_->dictionary; }
 const concrete_embedding& cable_cell::embedding() const { return impl_->provider.embedding(); }

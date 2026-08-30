@@ -230,8 +230,22 @@ struct fvm_initialization_data {
     }
 };
 
-// Common base class for FVM implementation on host or gpu back-end.
 
+struct fvm_mutable_data {
+    // densities :: (where, derived-mech-name)      -> parameters
+    std::vector<std::tuple<region, std::string, parameter_map>> density_overrides_;
+    // synapses  :: (where, derived-mech-name, tag) -> parameters
+    std::vector<std::tuple<locset, std::string, std::string, parameter_map>> synapse_overrides_;
+    // morphology and CVP (needed for re-discretisation)
+    morphology morph;
+    std::optional<cv_policy> cvp;
+    decor dec;
+    label_dict lbl;
+    // local cell index
+    arb_index_type lid;
+};
+    
+// Common base class for FVM implementation on host or gpu back-end.
 struct fvm_lowered_cell {
     virtual void reset() = 0;
 
@@ -242,18 +256,20 @@ struct fvm_lowered_cell {
                                              const event_lane_subrange& event_lanes,
                                              const std::vector<std::vector<sample_event>>& staged_samples) = 0;
 
+    virtual void edit_cell(cell_gid_type gid, cell_gid_type lid, const cable_cell_editor& edit) = 0;
+
     virtual arb_value_type time() const = 0;
 
     virtual ~fvm_lowered_cell() {}
 
     virtual void t_serialize(serializer& ser, const std::string& k) const = 0;
     virtual void t_deserialize(serializer& ser, const std::string& k) = 0;
+    
 };
 
 using fvm_lowered_cell_ptr = std::unique_ptr<fvm_lowered_cell>;
 
-ARB_ARBOR_API fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_context& ctx,
-        std::uint64_t seed = 0);
+ARB_ARBOR_API fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_context& ctx, std::uint64_t seed = 0);
 
 inline
 void serialize(serializer& s, const std::string& k, const fvm_lowered_cell& v) { v.t_serialize(s, k); }

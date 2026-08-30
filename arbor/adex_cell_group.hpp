@@ -89,6 +89,8 @@ struct ARB_ARBOR_API adex_cell_group: public cell_group {
 
     static bool backend_supported(backend_kind kind) { return kind == backend_kind::multicore; }
 
+    void edit_cell(cell_gid_type gid, std::any edit) override;
+
 private:
     enum class adex_probe_kind { voltage, adaption };
 

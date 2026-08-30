@@ -1,7 +1,6 @@
 include(ExternalProject)
 
 # List of micro benchmarks to build.
-
 set(bench_sources
     accumulate_functor_values.cpp
     default_construct.cpp
@@ -10,18 +9,15 @@ set(bench_sources
     fvm_discretize.cpp
     mech_vec.cpp
     task_system.cpp
-    merge.cpp
-)
+    merge.cpp)
 
 if(ARB_WITH_GPU)
-list(APPEND bench_sources
-    cuda_compare_and_reduce.cu
-    cuda_reduce_by_key.cu
-)
+  list(APPEND bench_sources
+       cuda_compare_and_reduce.cu
+       cuda_reduce_by_key.cu)
 endif()
 
 # Build benches.
-
 foreach(bench_src ${bench_sources})
     string(REGEX REPLACE "\\.[^.]*$" "" bench_exe ${bench_src})
     add_executable(${bench_exe} EXCLUDE_FROM_ALL "${bench_src}")

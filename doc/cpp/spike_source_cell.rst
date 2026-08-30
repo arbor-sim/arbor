@@ -18,3 +18,9 @@ Spike source cells
 
         :param source: label of the source on the cell.
         :param schedule: User-defined sequence of time points
+
+.. cpp:type:: spike_source_cell_editor = std::function<void(spike_source_cell&)>
+
+    Callback function to update setting of LIF cells in place via the
+    ``simulation::edit_cell`` interace. All values are changeable, except:
+    ``source``.

@@ -18,6 +18,7 @@
 #include "util/partition.hpp"
 #include "util/range.hpp"
 #include "util/span.hpp"
+#include "util/maputil.hpp"
 
 namespace arb {
 
@@ -491,4 +492,22 @@ std::vector<probe_metadata> cable_cell_group::get_probe_metadata(const cell_addr
     }
     return result;
 }
+
+void
+cable_cell_group::edit_cell(cell_gid_type gid, std::any cell_edit) {
+    auto lid = util::binary_search_index(gids_, gid);
+    if (!lid) throw arb::arbor_internal_error{"gid " + std::to_string(gid) + " erroneuosly dispatched to cell group."};    
+    try {
+        auto cc_edit = std::any_cast<cable_cell_editor>(cell_edit);
+        lowered_->edit_cell(gid, *lid, cc_edit);
+    }
+    catch (std::bad_any_cast& ex) {
+        throw bad_cell_edit(gid, "Not a Cable Cell editor (C++ type-id: '"
+                                 + std::string{cell_edit.type().name()}
+                                 + " ./. "
+                                 + std::string{typeid(cable_cell_editor).name()}
+                                 + "')");
+    }
+}
+    
 } // namespace arb

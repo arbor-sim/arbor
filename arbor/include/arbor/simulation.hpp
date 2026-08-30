@@ -3,7 +3,6 @@
 #include <memory>
 #include <vector>
 #include <functional>
-#include <unordered_set>
 
 #include <arbor/export.hpp>
 #include <arbor/arb_types.hpp>
@@ -28,7 +27,7 @@ using balancer_function = std::function<domain_decomposition_ptr(const recipe&, 
 struct simulation_state;
 
 class simulation_builder;
-
+    
 struct ARB_ARBOR_API simulation {
     simulation(const recipe& rec, context ctx,
                const domain_decomposition_ptr decomp,
@@ -38,7 +37,8 @@ struct ARB_ARBOR_API simulation {
                context ctx = make_context(),
                balancer_function balancer = [](auto& r, auto c) { return partition_load_balance(r, c); },
                arb_seed_type seed = 0):
-        simulation(rec, ctx, balancer(rec, ctx)) {}
+                   simulation(rec, ctx, balancer(rec, ctx)) {
+    }
 
     simulation(simulation const&) = delete;
     simulation(simulation&&);
@@ -46,6 +46,8 @@ struct ARB_ARBOR_API simulation {
     static simulation_builder create(recipe const &);
 
     void update(const recipe& rec);
+
+    void edit_cell(cell_gid_type gid, std::any cell_edit);
 
     void reset();
 

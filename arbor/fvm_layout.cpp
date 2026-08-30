@@ -455,12 +455,12 @@ fvm_cv_discretize(const cable_cell& cell,
 }
 
 ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells,
-    const cable_cell_parameter_set& global_defaults,
-    const arb::execution_context& ctx)
-{
+                                                      const cable_cell_parameter_set& global_defaults,
+                                                      const arb::execution_context& ctx) {
     std::vector<fvm_cv_discretization> cell_disc(cells.size());
-    threading::parallel_for::apply(0, cells.size(), ctx.thread_pool.get(),
-          [&] (int i) { cell_disc[i]=fvm_cv_discretize(cells[i], global_defaults);});
+    threading::parallel_for::apply(0, cells.size(),
+                                   ctx.thread_pool.get(),
+                                   [&] (int i) { cell_disc[i] = fvm_cv_discretize(cells[i], global_defaults);});
 
     fvm_cv_discretization combined;
     for (auto cell_idx: count_along(cells)) {
@@ -927,7 +927,7 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_des
                              const cell_build_data& data,
                              fvm_mechanism_config_map&);
 
-fvm_mechanism_data
+ARB_ARBOR_API fvm_mechanism_data
 fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
                          const cable_cell& cell,
                          const std::vector<fvm_gap_junction>& gj_conns,

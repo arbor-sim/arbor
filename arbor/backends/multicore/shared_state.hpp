@@ -238,6 +238,14 @@ struct ARB_ARBOR_API shared_state:
         sample_time_host = util::range_pointer_view(sample_time);
         sample_value_host = util::range_pointer_view(sample_value);
     }
+
+    bool mechanism_matches();
+
+    void update_range_parameter(unsigned mid,                              // mechanism id
+                                arb_index_type cell_id,                    // to filter CVs of the cell we are editing
+                                arb_mechanism_ppack& ppack,                // ppack, used to read from CV -> cell_id
+                                cell_gid_type pid,                         // index of parameter
+                                const std::vector<arb_value_type>& val);   // values we are writing
 };
 
 // For debugging only:
