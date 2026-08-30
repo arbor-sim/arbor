@@ -44,8 +44,8 @@ struct linear: public recipe {
         // Setup
         decor decor;
         decor.set_default(init_int_concentration{"na", i*U::mM});
-        decor.set_default(ion_diffusivity{"na", b*U::mM});
-        decor.paint("(tag 1)"_reg, ion_diffusivity{"na", b*U::mM});
+        decor.set_default(ion_diffusivity{"na", b*U::m2/U::s});
+        decor.paint("(tag 1)"_reg, ion_diffusivity{"na", b*U::m2/U::s});
         decor.place("(location 0 0.5)"_ls, synapse("inject/x=bla", {{"alpha", 200.0*l}}), "Zap");
         decor.paint("(all)"_reg, density("decay/x=bla"));
         return cable_cell({tree}, decor);
@@ -57,17 +57,15 @@ struct linear: public recipe {
 
 std::ofstream out;
 
-void sampler(probe_metadata pm, std::size_t n, const sample_record* samples) {
-    auto ptr = util::any_cast<const mcable_list*>(pm.meta);
-    assert(ptr);
-    auto n_cable = ptr->size();
-    out << "time,prox,dist,Xd\n"
-        << std::fixed << std::setprecision(4);
-    for (std::size_t i = 0; i<n; ++i) {
-        const auto& [val, _ig] = *util::any_cast<const cable_sample_range*>(samples[i].data);
-        for (unsigned j = 0; j<n_cable; ++j) {
-            mcable loc = (*ptr)[j];
-            out << samples[i].time << ',' << loc.prox_pos << ',' << loc.dist_pos << ',' << val[j] << '\n';
+void sampler(probe_metadata pm, const sample_records& samples) {
+    out << "time,prox,dist,Xd\n" << std::fixed << std::setprecision(4);
+    auto reader = arb::sample_reader<arb::cable_state_cell_meta_type>(pm.meta, samples);
+    for (std::size_t ix= 0; ix < reader.n_row(); ++ix) {
+        auto time = reader.time(ix);
+        for (std::size_t iy = 0; iy < reader.n_column(); ++iy) {
+            auto loc = reader.metadata(iy);
+            auto val = reader.value(ix, iy);
+            out << time << ',' << loc.prox_pos << ',' << loc.dist_pos << ',' << val << '\n';
         }
     }
     out << '\n';

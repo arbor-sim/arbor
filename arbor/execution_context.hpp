@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-
 #include <arbor/export.hpp>
 #include <arbor/context.hpp>
 

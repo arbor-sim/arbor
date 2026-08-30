@@ -6,7 +6,6 @@
  */
 
 #include <iterator>
-#include <memory>
 #include <type_traits>
 #include <utility>
 
@@ -150,13 +149,7 @@ public:
         return c;
     }
 
-    bool operator==(const Derived& x) const {
-        return inner()==x.inner();
-    }
-
-    bool operator!=(const Derived& x) const {
-        return !(derived()==x);
-    }
+    bool operator==(const iterator_adaptor& x) const noexcept { return inner()==x.inner(); }
 
     // bidirectional iterator requirements
 

@@ -1,11 +1,10 @@
 #include <any>
-#include <fstream>
 #include <iostream>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include <arborio/label_parse.hpp>
+#include <arborio/swcio.hpp>
 
 #include <arbor/load_balance.hpp>
 #include <arbor/cable_cell.hpp>
@@ -14,11 +13,13 @@
 #include <arbor/simulation.hpp>
 #include <arbor/simple_sampler.hpp>
 
-#include <arborio/swcio.hpp>
-
+#include <fmt/format.h>
 #include <tinyopt/tinyopt.h>
 
 using namespace arborio::literals;
+
+// result of simple sampler for probe type
+using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type>;
 
 struct options {
     std::string swc_file;
@@ -95,20 +96,32 @@ int main(int argc, char** argv) {
         arb::simulation sim(R);
 
         // Attach a sampler to the probe described in the recipe, sampling every 0.1 ms.
-        arb::trace_vector<double> traces;
+        sample_result traces;
         sim.add_sampler(arb::all_probes,
                         arb::regular_schedule(0.1*arb::units::ms),
                         arb::make_simple_sampler(traces));
 
         sim.run(opt.t_end*arb::units::ms, opt.dt*arb::units::ms);
 
-        for (auto entry: traces.at(0)) {
-            std::cout << entry.t << ", " << entry.v << "\n";
+        std::cout << "Membrane Potential\n"
+                     "==================\n\n"
+                     "      t";
+        for (std::size_t iy = 0; iy < traces.width; ++iy) {
+            arb::mlocation loc = traces.metadata.at(iy);
+            std::cout << fmt::format(", Um@(location {} {})\n", loc.branch, loc.pos);
+        }
+
+        for (std::size_t ix = 0; ix < traces.n_sample; ++ix) {{}
+            std::cout << fmt::format("{:7.3f}", traces.time.at(ix));
+            for (std::size_t iy = 0; iy < traces.width; ++iy) {
+                std::cout << fmt::format(", {:-8.4f}", traces.values[iy][ix]);
+            }
+            std::cout  << '\n';
         }
     }
     catch (std::exception& e) {
         std::cerr << "caught exception: " << e.what() << "\n";
-        return 2;
+        return -2;
     }
 }
 

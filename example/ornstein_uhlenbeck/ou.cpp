@@ -13,8 +13,7 @@
 #include <arbor/common_types.hpp>
 
 // a single-cell recipe with probes
-class recipe: public arb::recipe {
-public:
+struct recipe: public arb::recipe {
     recipe(unsigned ncvs) {
         using namespace arb;
         using namespace arborio::literals;
@@ -61,17 +60,12 @@ struct sampler {
         data_.resize(n_cvs*n_steps);
     }
 
-    void operator()(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
-        const auto* m = arb::util::any_cast<const arb::mcable_list*>(pm.meta);
-        arb_assert(n_cvs_ == m->size());
-        arb_assert(n_steps_ == n);
-
-        for (std::size_t i=0; i<n; ++i) {
-            const auto* data = arb::util::any_cast<const arb::cable_sample_range*>(samples[i].data);
-            auto [lo, hi] = *data;
-            arb_assert(static_cast<std::size_t>(hi-lo) == n_cvs_);
-            for (std::size_t j=0; j<n_cvs_; ++j) {
-                data_[i*n_cvs_ + j] = lo[j];
+    void operator()(arb::probe_metadata pm, const arb::sample_records& samples) {
+        auto reader = arb::sample_reader<arb::cable_state_cell_meta_type>(pm.meta, samples);
+        auto width = reader.n_column();
+        for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+            for (std::size_t iy = 0; iy < reader.n_column(); ++iy) {
+                data_[ix*width + iy] = reader.value(ix, iy);
             }
         }
     }

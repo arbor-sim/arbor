@@ -8,7 +8,6 @@
  */
 
 #include <iterator>
-#include <memory>
 #include <type_traits>
 #include <utility>
 
@@ -35,6 +34,8 @@ struct partition_iterator: public iterator_adaptor<partition_iterator<I>, I> {
     using value_type = std::pair<inner_value_type, inner_value_type>;
     using pointer = const value_type*;
     using reference = const value_type&;
+
+    using base::operator==;
 
     partition_iterator() = default;
 

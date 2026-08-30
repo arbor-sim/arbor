@@ -1,7 +1,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <algorithm>
+#include <sstream>
 #include <array>
 #include <random>
 #include <cmath>
@@ -45,26 +45,27 @@ using arb::cable_probe_membrane_voltage;
 using namespace arborio::literals;
 namespace U = arb::units;
 
+// result of simple sampler for probe type
+using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type>;
+
 // Writes voltage trace as a json file.
-void write_trace_json(std::string fname, const arb::trace_data<double>& trace);
+void write_trace_json(const std::string& path, const sample_result&);
 
 // Generate a cell.
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params);
 arb::cable_cell complex_cell(arb::cell_gid_type gid, const cell_parameters& params);
 
-class ring_recipe: public arb::recipe {
+struct ring_recipe: public arb::recipe {
 public:
 #ifdef COUNT_RINGS_AND_SYNAPSES
     mutable unsigned int num_syns_created;
     mutable std::set<unsigned int> rings_created;
 #endif
-
     ring_recipe(ring_params params):
         num_cells_(params.num_cells),
         min_delay_(params.min_delay),
         event_weight_(params.event_weight),
-        params_(params)
-    {
+        params_(params) {
         gprop.default_parameters = arb::neuron_parameter_defaults;
         gprop.catalogue.extend(arb::global_allen_catalogue());
 
@@ -85,24 +86,23 @@ public:
     cell_size_type num_cells() const override { return num_cells_; }
     cell_kind get_cell_kind(cell_gid_type gid) const override { return cell_kind::cable; }
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        if (params_.cell.complex_cell) {
-            return complex_cell(gid, params_.cell);
-        }
+        if (params_.cell.complex_cell) return complex_cell(gid, params_.cell);
         return branch_cell(gid, params_.cell);
     }
 
     // Each cell has one incoming connection, from cell with gid-1,
     // and fan_in-1 random connections with very low weight.
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
-        std::vector<arb::cell_connection> cons;
         const auto ncons = params_.cell.synapses;
+        std::vector<arb::cell_connection> cons;
         cons.reserve(ncons);
-
+        cons.reserve(ncons);
         const auto rs = params_.ring_size;
         const auto current_ring = gid/rs;
         const auto ring_start = rs*current_ring;
         const auto ring_end = std::min(ring_start+rs, num_cells_);
         cell_gid_type src = gid==ring_start ? ring_end-1 : gid-1;
+
         cons.push_back(arb::cell_connection({src, "d"}, {"p"}, event_weight_, min_delay_*U::ms));
 #ifdef COUNT_RINGS_AND_SYNAPSES
         this->rings_created.insert(current_ring);
@@ -114,10 +114,10 @@ public:
         // Used to pick delay for a connection.
         std::uniform_real_distribution<float> delay_dist(0, 2*min_delay_);
         auto src_gen = std::mt19937(gid);
-        for (unsigned i=1; i<ncons; ++i) {
+        for (unsigned i = 1; i < ncons; ++i) {
             // Make a connection with weight 0.
             // The source is randomly picked, with no self connections.
-            src = dist(src_gen);
+            auto src = dist(src_gen);
             if (src==gid) ++src;
             const float delay = min_delay_+delay_dist(src_gen);
             cons.push_back(
@@ -133,18 +133,12 @@ public:
     // Return one event generator on the first cell of each ring.
     // This generates a single event that will kick start the spiking on the sub-ring.
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
-        if (gid%params_.ring_size == 0) {
-            return {arb::explicit_generator_from_milliseconds({"p"}, event_weight_, std::vector{1.0})};
-        } else {
-            return {};
-        }
+        if (gid % params_.ring_size == 0) return {arb::explicit_generator_from_milliseconds({"p"}, event_weight_, std::vector{1.0})};
+        return {};
     }
 
-    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
-        // Measure at the soma.
-        arb::mlocation loc{0, 0.0};
-        return {{cable_probe_membrane_voltage{loc}, "Um"}};
-    }
+    // Measure at the soma.
+    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override { return {{cable_probe_membrane_voltage{arb::mlocation {0, 0.0}}, "Um"}}; }
 
 private:
     cell_size_type num_cells_;
@@ -260,8 +254,8 @@ int main(int argc, char** argv) {
 
         // Set up the probe that will measure voltage in the cell.
 
-        // This is where the voltage samples will be stored as (time, value) pairs
-        arb::trace_vector<double> voltage;
+        // This is where the voltage samples will be stored
+        sample_result voltage;
         if (params.record_voltage) {
             // The id of the only probe on the cell:
             // the cell_member type points to (cell 0, probe 0)
@@ -314,15 +308,12 @@ int main(int argc, char** argv) {
         }
 
         // Write the samples to a json file samples were stored on this rank.
-        if (voltage.size()>0u) {
-            std::string fname = params.odir + "/" + params.name + "_voltages.json";
-            write_trace_json(fname, voltage.at(0));
-        }
+        write_trace_json(params.odir + "/" + params.name + "_voltages.json", voltage);
 
         auto report = arb::profile::make_meter_report(meters, context);
         if (root) {
             std::cout << report << '\n'
-                      << arb::profile::profiler_summary() << "\n";
+                      << arb::profile::profiler_summary() << '\n';
         }
     }
     catch (std::exception& e) {
@@ -333,22 +324,20 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void write_trace_json(std::string fname, const arb::trace_data<double>& trace) {
+void write_trace_json(const std::string& path, const sample_result& result) {
+    if ((result.n_sample == 0) || (result.width == 0)) return;
     nlohmann::json json;
-    json["name"] = "ring demo";
+    json["name"] = "busyring_demo";
     json["units"] = "mV";
-    json["cell"] = "0.0";
-    json["probe"] = "0";
+    json["cell"] = "0";
+    json["probe"] = "Um";
+    std::stringstream loc;
+    loc << result.metadata.at(0);
+    json["location"] = loc.str();
+    json["data"]["time"] = result.time;
+    json["data"]["voltage"] = result.values.at(0);
 
-    auto& jt = json["data"]["time"];
-    auto& jy = json["data"]["voltage"];
-
-    for (const auto& sample: trace) {
-        jt.push_back(sample.t);
-        jy.push_back(sample.v);
-    }
-
-    std::ofstream file(fname);
+    std::ofstream file(path);
     file << std::setw(1) << json << "\n";
 }
 
