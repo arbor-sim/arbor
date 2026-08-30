@@ -55,9 +55,6 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
 
     value_type time() const override { return state_->time; }
 
-    //Exposed for testing purposes
-    std::vector<mechanism_ptr>& mechanisms() { return mechanisms_; }
-
     ARB_SERDES_ENABLE(fvm_lowered_cell_impl<Backend>, seed_, state_);
 
     void t_serialize(serializer& ser, const std::string& k) const override { serialize(ser, k, *this); }
@@ -71,9 +68,15 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
 
     std::unique_ptr<shared_state> state_; // Cell state shared across mechanisms.
 
-    std::vector<mechanism_ptr> mechanisms_; // excludes reversal potential calculators.
+    std::vector<mechanism_ptr> density_mechanisms_;
+    std::vector<mechanism_ptr> junction_mechanisms_;
+    std::vector<mechanism_ptr> point_mechanisms_;
     std::vector<mechanism_ptr> revpot_mechanisms_;
     std::vector<mechanism_ptr> voltage_mechanisms_;
+
+    // mechs with POST_EVENTS, contains subset(s) from all above.
+    // NOTE: these are non-owning!
+    std::vector<mechanism*> post_event_mechanisms_;
 
     // Handles for accessing event targets.
     std::vector<target_handle> target_handles_;
@@ -85,9 +88,6 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
 
     // random number generator seed value
     arb_seed_type seed_;
-
-    // Flag indicating that at least one of the mechanisms implements the post_events procedure
-    bool post_events_ = false;
 
     // Reset concentrations for timestep, then have all mechanisms run their update
     void update_ion_state();
@@ -126,18 +126,22 @@ template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::reset() {
     state_->reset();
 
-    for (auto& m: voltage_mechanisms_) m->initialize();
-    for (auto& m: revpot_mechanisms_)  m->initialize();
-    for (auto& m: mechanisms_)         m->initialize();
+    for (auto& m: voltage_mechanisms_)  m->initialize();
+    for (auto& m: revpot_mechanisms_)   m->initialize();
+    for (auto& m: point_mechanisms_)    m->initialize();
+    for (auto& m: density_mechanisms_)  m->initialize();
+    for (auto& m: junction_mechanisms_) m->initialize();
 
     update_ion_state();
     state_->zero_currents();
 
     // Note: mechanisms must be initialized again after the ion state is updated,
     // as mechanisms can read/write the ion_state within the initialize block
-    for (auto& m: revpot_mechanisms_)  m->initialize();
-    for (auto& m: mechanisms_)         m->initialize();
-    for (auto& m: voltage_mechanisms_) m->initialize();
+    for (auto& m: revpot_mechanisms_)   m->initialize();
+    for (auto& m: point_mechanisms_)    m->initialize();
+    for (auto& m: voltage_mechanisms_)  m->initialize();
+    for (auto& m: density_mechanisms_)  m->initialize();
+    for (auto& m: junction_mechanisms_) m->initialize();
 
     // NOTE: Threshold watcher reset must come after the voltage values are set,
     //       as voltage is implicitly read by watcher to set initial state.
@@ -164,28 +168,29 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
         arb_assert(state_->time == ts.t_begin());
 
         // Update integration step time information visible to mechanisms.
-        for (auto& m: mechanisms_)         m->set_dt(state_->dt);
-        for (auto& m: revpot_mechanisms_)  m->set_dt(state_->dt);
-        for (auto& m: voltage_mechanisms_) m->set_dt(state_->dt);
+        const auto dt = state_->dt;
+        for (auto& m: density_mechanisms_)  m->set_dt(dt);
+        for (auto& m: point_mechanisms_)    m->set_dt(dt);
+        for (auto& m: revpot_mechanisms_)   m->set_dt(dt);
+        for (auto& m: voltage_mechanisms_)  m->set_dt(dt);
+        for (auto& m: junction_mechanisms_) m->set_dt(dt);
 
         // Update any required reversal potentials based on ionic concentrations
-        for (auto& m: revpot_mechanisms_) {
-            m->update_current();
-        }
+        for (auto& m: revpot_mechanisms_) m->update_current();
 
         PE(zero);
         state_->zero_currents();
         PL(zero);
 
         // Deliver events and accumulate mechanism current contributions.
-
         // Mark all events due before (but not including) the end of this time step (state_->time_to) for delivery
         state_->mark_events();
-        for (auto& m: mechanisms_) {
-            // apply the events and drop them afterwards
-            state_->deliver_events(*m);
-            m->update_current();
-        }
+        for (auto& m: point_mechanisms_) state_->deliver_events(*m);
+
+        // Now we are fre to update currents.
+        for (auto& m: density_mechanisms_)  m->update_current();
+        for (auto& m: point_mechanisms_)    m->update_current();
+        for (auto& m: junction_mechanisms_) m->update_current();
 
         // Add stimulus current contributions.
         // NOTE: performed after dt, time_to calculation, in case we want to
@@ -204,11 +209,16 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
         state_->integrate_cable_state();
         PL(cable);
 
-        // Integrate mechanism state for density
-        for (auto& m: mechanisms_) {
-            state_->update_prng_state(*m);
-            m->update_state();
-        }
+        // advance PRNG states.
+        for (auto& m: density_mechanisms_)  state_->update_prng_state(*m);
+        for (auto& m: point_mechanisms_)    state_->update_prng_state(*m);
+        for (auto& m: voltage_mechanisms_)  state_->update_prng_state(*m);
+        for (auto& m: junction_mechanisms_) state_->update_prng_state(*m);
+
+        // Integrate mechanism state
+        for (auto& m: density_mechanisms_)  m->update_state();
+        for (auto& m: point_mechanisms_)    m->update_state();
+        for (auto& m: junction_mechanisms_) m->update_state();
 
         // Update ion concentrations.
         PE(ionupdate);
@@ -218,10 +228,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
         // voltage mechs run now; after the cable_solver, but before the
         // threshold test
         for (auto& m: voltage_mechanisms_) m->update_current();
-        for (auto& m: voltage_mechanisms_) {
-            state_->update_prng_state(*m);
-            m->update_state();
-        }
+        for (auto& m: voltage_mechanisms_) m->update_state();
 
         // Update time and test for spike threshold crossings.
         PE(threshold);
@@ -229,9 +236,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
         PL(threshold);
 
         PE(post);
-        if (post_events_) {
-            for (auto& m: mechanisms_) m->post_event();
-        }
+        for (auto& m: post_event_mechanisms_) m->post_event();
         PL(post);
 
         // Advance epoch
@@ -251,7 +256,11 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
 template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::update_ion_state() {
     state_->ions_init_concentration();
-    for (auto& m: mechanisms_) m->update_ions();
+    // NOTE neither voltage nor revpot mechanisms can alter ions
+    // TODO Can junction/point?
+    for (auto& m: point_mechanisms_)    m->update_ions();
+    for (auto& m: density_mechanisms_)  m->update_ions();
+    for (auto& m: junction_mechanisms_) m->update_ions();
 }
 
 template <typename Backend>
@@ -398,10 +407,9 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     fvm_mechanism_data mech_data = fvm_build_mechanism_data(global_props, cells, gids, gj_conns, D, context_);
 
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
-    post_events_ = mech_data.post_events;
     auto max_detector = 0;
     std::vector<arb_index_type> src_to_spike, cv_to_cell;
-    if (post_events_) {
+    if (mech_data.post_events) {
         max_detector = util::max_element_by(fvm_info.num_sources, [](const auto& elem) { return util::second(elem); })->second;
         for (auto cell_idx: util::make_span(ncell)) {
             for (auto lid: util::make_span(fvm_info.num_sources[gids[cell_idx]])) {
@@ -487,7 +495,8 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                 }
             }
             mechptr_by_name[name] = mech.get();
-            mechanisms_.emplace_back(mech.release());
+            if (config.has_post_event) post_event_mechanisms_.push_back(mech.get());
+            point_mechanisms_.emplace_back(mech.release());
             break;
         }
         case arb_mechanism_kind_gap_junction: {
@@ -500,7 +509,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
             auto [mech, over] = mech_instance(name);
             state_->instantiate(*mech, over, layout, config.param_values);
             mechptr_by_name[name] = mech.get();
-            mechanisms_.emplace_back(mech.release());
+            junction_mechanisms_.emplace_back(mech.release());
             break;
         }
         case arb_mechanism_kind_voltage: {
@@ -532,7 +541,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
             auto [mech, over] = mech_instance(name);
             state_->instantiate(*mech, over, layout, config.param_values);
             mechptr_by_name[name] = mech.get();
-            mechanisms_.emplace_back(mech.release());
+            density_mechanisms_.emplace_back(mech.release());
             break;
         }
         case arb_mechanism_kind_reversal_potential: {
@@ -555,7 +564,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
         util::transform_view(gids,
                              [&](cell_gid_type i) { return fvm_info.num_targets[i]; }));
 
-    
+
     reset();
     return fvm_info;
 }
@@ -950,7 +959,7 @@ void resolve_probe(const cable_probe_point_state_cell& p, probe_resolution_data<
         ++lid;
     }
 
-    
+
     result.metadata = std::move(metadata);
     result.shrink_to_fit();
     R.result.push_back(std::move(result));

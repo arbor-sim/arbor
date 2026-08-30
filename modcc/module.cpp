@@ -249,7 +249,6 @@ bool Module::semantic() {
     };
 
     // ... except for write_ions(), which we construct by hand here.
-
     expr_list_type ion_assignments;
 
     auto sym_to_id = [](Symbol* sym) -> expression_ptr {
@@ -568,6 +567,9 @@ bool Module::semantic() {
             error(pprintf("NET_RECEIVE takes at most one argument (Arbor limitation!)"), net_rec_api.first->location());
         }
         net_rec_api.first->body(net_rec_api.second->body()->clone());
+        if (kind_ != moduleKind::point) {
+            error("NET_RECEIVE only allowed on POINT_PROCESS", net_rec_api.first->location());
+        }
         if (net_rec_api.second) {
             for (auto &s: net_rec_api.second->body()->statements()) {
                 if (s->is_assignment()) {
@@ -600,6 +602,9 @@ bool Module::semantic() {
     if (post_events_) {
         auto post_events_api = make_empty_api_method("post_event_api", "post_event");
         post_events_api.first->body(post_events_api.second->body()->clone());
+        if (kind_ != moduleKind::point) {
+            error("POST_EVENT only allowed on POINT_PROCESS", post_events_api.first->location());
+        }
     }
 
     // check voltage mechanisms before rev pot ... otherwise we are in trouble

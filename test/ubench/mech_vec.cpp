@@ -21,15 +21,58 @@ using namespace arb;
 using backend = arb::multicore::backend;
 using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 
-mechanism_ptr& find_mechanism(const std::string& name, fvm_cell& cell) {
-    auto &mechs = cell.mechanisms();
-    auto it = std::find_if(mechs.begin(),
-                           mechs.end(),
+// Subvert class access protections. Demo:
+//
+//     class foo {
+//         int secret = 7;
+//     };
+//
+//     int foo::* secret_mptr;
+//     template class access::bind<int foo::*, secret_mptr, &foo::secret>;
+//
+//     int seven = foo{}.*secret_mptr;
+//
+// Or with shortcut define (places global in anonymous namespace):
+//
+//     ACCESS_BIND(int foo::*, secret_mptr, &foo::secret)
+//
+//     int seven = foo{}.*secret_mptr;
+namespace arb_access {
+    template <typename V, V& store, V value>
+    struct bind {
+        static struct binder {
+            binder() { store = value; }
+        } init;
+    };
+
+    template <typename V, V& store, V value>
+    typename bind<V, store, value>::binder bind<V, store, value>::init;
+} // namespace access
+
+#define ACCESS_BIND(type, global, value)\
+namespace { using global ## _type_ = type; global ## _type_ global; }\
+template struct arb_access::bind<type, global, value>;
+
+ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_pp_mechanisms_ptr, &fvm_cell::point_mechanisms_)
+ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_de_mechanisms_ptr, &fvm_cell::density_mechanisms_)
+
+
+const mechanism_ptr& find_mechanism(const std::string& name, fvm_cell& cell) {
+    auto& pp = cell.*private_pp_mechanisms_ptr;
+    auto it = std::find_if(pp.begin(),
+                           pp.end(),
                            [&](mechanism_ptr& m){return m->internal_name()==name;});
-    if (it==mechs.end()) {
+    auto& de = cell.*private_de_mechanisms_ptr;
+    if (it == pp.end()) {
+        it = std::find_if(de.begin(),
+                          de.end(),
+                          [&](mechanism_ptr& m){return m->internal_name()==name;});
+    }
+    if (it==de.end()) {
         std::cerr << "couldn't find mechanism with name " << name << "\n";
         exit(1);
     }
+    return *it;
     return *it;
 }
 
@@ -103,7 +146,7 @@ public:
 
         // Add soma.
         auto s0 = tree.append(arb::mnpos, {0,0,-soma_radius,soma_radius}, {0,0,soma_radius,soma_radius}, 1);
-        // Add dendrite
+        // Add  dendrite
         auto s1 = tree.append(s0, {0,0,soma_radius,dend_radius}, 3);
         tree.append(s1, {0,0,soma_radius+dend_length,dend_radius}, 3);
 
