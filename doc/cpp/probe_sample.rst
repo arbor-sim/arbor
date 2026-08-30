@@ -18,7 +18,7 @@ The sample data associated with a cable cell probe will either be a ``double``
 for scalar probes, or a ``cable_sample_range`` describing a half-open range of
 ``double`` values:
 
-.. code::
+.. code:: c++
 
    using cable_sample_range = std::pair<const double*, const double*>
 
@@ -34,7 +34,7 @@ The probe metadata passed to the sampler will be a const pointer to:
 
 The type ``cable_probe_point_info`` holds metadata for a single target on a cell:
 
-.. code::
+.. code:: c++
 
     struct cable_probe_point_info {
         // Target number of point process instance on cell.
