@@ -229,7 +229,6 @@ void binary_search_aos(benchmark::State& state) {
 }
 
 void hashtable_aos(benchmark::State& state) {
-
     size_t n_cell        = state.range(0);
     size_t conn_per_cell = state.range(1);
     size_t evt_per_cell  = state.range(2);

@@ -90,6 +90,7 @@ public:
     // TODO: This is public for now.
     struct connection_list {
 
+        size_t size_ = 0;
         std::vector<cell_size_type> idx_on_domain;
         std::vector<cell_lid_type> dests;
         std::vector<cell_member_type> srcs;
@@ -99,19 +100,19 @@ public:
         std::vector<ankerl::unordered_dense::map<std::uint64_t, std::pair<std::size_t, std::size_t>>> first_occurence;
 
         void make(std::vector<connection>& cons) {
+            arb_assert(std::is_sorted(cons.begin(), cons.end()));
             first_occurence.emplace_back();
             auto& lut = first_occurence.back();
-            std::size_t n = delays.size();
             for (const auto& con: cons) {
                 auto key = std::bit_cast<std::uint64_t>(con.source);
-                if (!lut.contains(key)) lut.emplace(key, std::make_pair(n, n));
+                if (!lut.contains(key)) lut.emplace(key, std::make_pair(size_, size_));
                 lut[key].second += 1;
                 idx_on_domain.push_back(con.index_on_domain);
                 dests.push_back(con.target);
                 srcs.push_back(con.source);
                 weights.push_back(con.weight);
                 delays.push_back(con.delay);
-                ++n;
+                ++size_;
             }
         }
 
@@ -132,13 +133,15 @@ public:
         }
 
         void clear() {
+            srcs.clear();
             idx_on_domain.clear();
             dests.clear();
             weights.clear();
             delays.clear();
+            size_ = 0;
         }
 
-        size_t size() const { return delays.size(); }
+        size_t size() const { return size_; }
     };
 
     const connection_list& connections() const;

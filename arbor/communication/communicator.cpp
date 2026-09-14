@@ -329,6 +329,7 @@ void append_events_from_domain(const communicator::connection_list& cons, size_t
     const auto& lut = cons.first_occurence[dom];
     auto send = spikes.end();
     auto scur = spikes.begin();
+    arb_assert(std::is_sorted(scur, send));
     while (scur < send) {
         auto sfst = scur;
         auto src = scur->source;
