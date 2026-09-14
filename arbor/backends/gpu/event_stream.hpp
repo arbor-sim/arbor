@@ -31,10 +31,7 @@ private: // device memory
 
     template<typename D>
     static void resize(D& d, std::size_t size) {
-        // resize if necessary
-        if (d.size() < size) {
-            d = D(size);
-        }
+        if (d.size() != size) d = D(size);
     }
 };
 

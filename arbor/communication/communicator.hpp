@@ -15,6 +15,7 @@
 #include "epoch.hpp"
 #include "execution_context.hpp"
 #include "util/partition.hpp"
+#include "util/rangeutil.hpp"
 
 namespace arb {
 
@@ -100,7 +101,7 @@ public:
         std::vector<ankerl::unordered_dense::map<std::uint64_t, std::pair<std::size_t, std::size_t>>> first_occurence;
 
         void make(std::vector<connection>& cons) {
-            arb_assert(std::is_sorted(cons.begin(), cons.end()));
+            arb_assert(util::is_sorted(cons));
             first_occurence.emplace_back();
             auto& lut = first_occurence.back();
             for (const auto& con: cons) {
