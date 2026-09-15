@@ -72,7 +72,7 @@ void make_remote_connections(const std::vector<cell_gid_type>& gids,
                              const domain_decomposition_ptr dom_dec,
                              resolver& target_resolver,
                              resolver& source_resolver,
-                             communicator::connection_list& out) {
+                             connections_list& out) {
     PE(connections);
     std::vector<connection> ext_connections;
     std::size_t n_ext = 0;
@@ -225,6 +225,7 @@ void communicator::update_connections(const recipe& rec,
     PL(sort_unique);
 
     PE(gids);
+    src_ranks_.reset();
     src_ranks_.num_domains = num_domains_;
     auto srcs_by_rank = ctx_->distributed->all_to_all_gids_domains(gids_domains);
     const auto& part = srcs_by_rank.partition();
@@ -236,6 +237,11 @@ void communicator::update_connections(const recipe& rec,
             const auto& src = srcs[idx];
             src_ranks_.insert(src, domain);
         }
+    }
+    // TODO unique _should_ never trigger.
+    for (auto& [k, vs]: src_ranks_.source_to_ranks) {
+        util::sort(vs);
+        util::unique_in_place(vs);
     }
     PL(gids);
 
@@ -323,7 +329,7 @@ void communicator::remote_ctrl_send_done() { ctx_->distributed->remote_ctrl_send
 // 2. queues[i] <- (o, t + d, w) .forall. found connections
 // Note: both connections _and_ spikes contain duplicates in the source field.
 template<typename S>
-void append_events_from_domain(const communicator::connection_list& cons, size_t dom,
+void append_events_from_domain(const connections_list& cons, size_t dom,
                                const S& spikes,
                                std::vector<pse_vector>& queues) {
     const auto& lut = cons.first_occurence[dom];
@@ -350,7 +356,7 @@ void append_events_from_domain(const communicator::connection_list& cons, size_t
 // Remote connections might not terminate here, so provide a specialisd method
 // catching this.
 template<typename S>
-void append_events_from_external(const communicator::connection_list& cons,
+void append_events_from_external(const connections_list& cons,
                                const S& spikes,
                                std::vector<pse_vector>& queues) {
     // there's only one remote domain
@@ -402,11 +408,12 @@ std::uint64_t communicator::num_spikes() const { return num_spikes_; }
 std::uint64_t communicator::num_local_spikes() const { return num_local_spikes_; }
 void communicator::set_num_spikes(std::uint64_t n) { num_spikes_ = n; }
 cell_size_type communicator::num_local_cells() const { return num_local_cells_; }
-const communicator::connection_list& communicator::connections() const { return connections_; }
+const connections_list& communicator::connections() const { return connections_; }
 
 void communicator::reset() {
     num_spikes_ = 0;
     num_local_spikes_ = 0;
+    
 }
 
 } // namespace arb

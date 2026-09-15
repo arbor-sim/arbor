@@ -51,6 +51,11 @@ struct sources_to_target_ranks {
         }
         return {std::move(spikes_per_rank), std::move(offsets)};
     }
+
+    void reset() {
+        num_domains = 0;
+        source_to_ranks.clear();
+    }
     
 };
 
