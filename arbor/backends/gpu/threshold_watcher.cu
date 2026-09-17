@@ -143,8 +143,7 @@ void test_thresholds_impl(int size,
                           arb_value_type* prev_values,
                           const arb_index_type* cv_index,
                           const arb_value_type* values,
-                          const arb_value_type* thresholds,
-                          bool record_time_since_spike) {
+                          const arb_value_type* thresholds) {
     launch_1d(size, 128, kernel::test_thresholds_impl,
               size, t_after, t_before, stack, is_crossed, prev_values, cv_index, values, thresholds);
 }
