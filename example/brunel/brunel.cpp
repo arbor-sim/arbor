@@ -350,7 +350,7 @@ int main(int argc, char** argv) {
         }
 
         // output profile and diagnostic feedback
-        std::cout << "There were " << sim.num_spikes() << sim.num_local_spikes() << " spikes\n";
+        std::cout << "There were " << sim.num_spikes() << " spikes\n";
 #ifdef ARB_PROFILE_ENABLED
         profile::print_profiler_summary(std::cout, 1.0);
 #endif
