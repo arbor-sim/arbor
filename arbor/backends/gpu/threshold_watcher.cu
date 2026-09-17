@@ -160,7 +160,7 @@ void test_thresholds_record_impl(int size,
                                  const arb_index_type* cv_index,
                                  const arb_value_type* values,
                                  const arb_value_type* thresholds) {
-    launch_1d(size, 128, kernel::test_thresholds_impl,
+    launch_1d(size, 128, kernel::test_thresholds_record_impl,
               size, t_after, t_before, src_to_spike, time_since_spike, stack, is_crossed, prev_values, cv_index, values, thresholds);
 }
 
