@@ -82,6 +82,9 @@ public:
         }
     }
 
+    auto num_spikes() const { return sim_->num_spikes(); }
+    auto num_local_spikes() const { return sim_->num_local_spikes(); }
+
 
     std::string serialize() {
         arborio::json_serdes writer;
@@ -317,7 +320,11 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
         .def("remove_all_samplers", &simulation_shim::remove_sampler,
             "Remove all sampling on the simulatr.")
         .def("progress_banner", &simulation_shim::progress_banner,
-            "Show a text progress bar during simulation.");
+            "Show a text progress bar during simulation.")
+        .def("num_spikes", &simulation_shim::num_spikes,
+        "Return simulation-wide spike count since last reset.")
+        .def("num_local_spikes", &simulation_shim::num_local_spikes,
+            "Return spike count on local rank since last reset.");
 
 }
 

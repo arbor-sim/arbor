@@ -68,8 +68,9 @@ public:
 
     /// Returns the total number of global spikes over the duration of the simulation
     std::uint64_t num_spikes() const;
-    void set_num_spikes(std::uint64_t n);
+    /// Returns the total number of spikes on this rank over the duration of the simulation
     std::uint64_t num_local_spikes() const;
+    void set_num_spikes(std::uint64_t n);
 
     cell_size_type num_local_cells() const;
 
