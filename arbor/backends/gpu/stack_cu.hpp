@@ -17,9 +17,8 @@ void push_back(stack_storage<T>& s, const T& value) {
     // It is possible that stores>capacity. In this case, only capacity
     // entries are stored, and additional values are lost. The stores
     // contains the total number of attempts to push.
-    if (position<s.capacity) {
-        s.data[position] = value;
-    }
+    if (position >= s.capacity) asm("trap;");
+    s.data[position] = value;
 
     // Note: there are no guards against s.stores overflowing: in which
     // case the stores counter would start again from 0, and values would
