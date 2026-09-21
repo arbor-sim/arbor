@@ -48,15 +48,25 @@ void CExprEmitter::emit_as_call(const char* sub, Expression* e1, Expression* e2)
     out_ << ')';
 }
 
+void CExprEmitter::emit_as_call(const char* sub, Expression* e1, Expression* e2, Expression* e3) {
+    out_ << sub << '(';
+    e1->accept(this);
+    out_ << ", ";
+    e2->accept(this);
+    out_ << ", ";
+    e3->accept(this);
+    out_ << ')';
+}
+
 void CExprEmitter::visit(NumberExpression* e) {
-    out_ << " " << as_c_double(e->value());
+    out_ << as_c_double(e->value());
 }
 
 void CExprEmitter::visit(UnaryExpression* e) {
     // Place a space in front of minus sign to avoid invalid
     // expressions of the form: (v[i]--67)
     static std::unordered_map<tok, const char*> unaryop_tbl = {
-        {tok::minus,      " -"},
+        {tok::minus,      "-"},
         {tok::exp,        "exp"},
         {tok::cos,        "cos"},
         {tok::sin,        "sin"},
@@ -84,9 +94,17 @@ void CExprEmitter::visit(UnaryExpression* e) {
 
     // No need to use parenthesis for unary minus if inner expression is
     // not binary.
-    if (e->op()==tok::minus && !inner->is_binary()) {
-        out_ << op_spelling;
-        inner->accept(this);
+    if (e->op()==tok::minus) {
+        if (auto bin = inner->is_binary(); bin) {
+            out_ << op_spelling;
+            bool need_paren = true; //Lexer::binop_precedence(bin->op()) < Lexer::binop_precedence(tok::times);
+            if (need_paren) out_ << '(';
+            inner->accept(this);
+            if (need_paren) out_ << ')';
+        } else {
+            out_ << op_spelling;
+            inner->accept(this);
+        }
     }
     else if (e->op()==tok::step_right) {
         out_ << "((arb_value_type)((";
@@ -134,18 +152,18 @@ void CExprEmitter::visit(AssignmentExpression* e) {
 
 void CExprEmitter::visit(BinaryExpression* e) {
     static std::unordered_map<tok, const char*> binop_tbl = {
-        {tok::minus,    "-"},
-        {tok::plus,     "+"},
+        {tok::minus,    " - "},
+        {tok::plus,     " + "},
         {tok::times,    "*"},
         {tok::divide,   "/"},
-        {tok::lt,       "<"},
-        {tok::lte,      "<="},
-        {tok::gt,       ">"},
-        {tok::gte,      ">="},
-        {tok::equality, "=="},
-        {tok::land,     "&&"},
-        {tok::lor,      "||"},
-        {tok::ne,       "!="},
+        {tok::lt,       " < "},
+        {tok::lte,      " <= "},
+        {tok::gt,       " > "},
+        {tok::gte,      " >= "},
+        {tok::equality, " == "},
+        {tok::land,     " && "},
+        {tok::lor,      " || "},
+        {tok::ne,       " != "},
         {tok::min,      "min"},
         {tok::max,      "max"},
         {tok::pow,      "pow"},
@@ -160,6 +178,17 @@ void CExprEmitter::visit(BinaryExpression* e) {
     auto lhs = e->lhs();
     const char* op_spelling = binop_tbl.at(e->op());
 
+    if (e->op() == tok::plus) {
+        if (auto l = e->lhs()->is_binary(); l && l->op() == tok::times) {
+            emit_as_call("fma", l->lhs(), l->rhs(), rhs);
+            return;
+        }
+        if (auto r = e->rhs()->is_binary(); r && r->op() == tok::times) {
+            emit_as_call("fma", r->lhs(), r->rhs(), lhs);
+            return;
+        }
+    }
+
     if (e->is_infix()) {
         associativityKind assoc = Lexer::operator_associativity(e->op());
         int op_prec = Lexer::binop_precedence(e->op());
@@ -167,7 +196,7 @@ void CExprEmitter::visit(BinaryExpression* e) {
         auto need_paren = [op_prec](Expression* subexpr, bool assoc_side) -> bool {
             if (auto b = subexpr->is_binary()) {
                 int sub_prec = Lexer::binop_precedence(b->op());
-                return sub_prec<op_prec || (!assoc_side && sub_prec==op_prec);
+                return sub_prec < op_prec || (!assoc_side && sub_prec==op_prec);
             }
             return false;
         };
@@ -249,7 +278,7 @@ void SimdExprEmitter::visit(UnaryExpression* e) {
     Expression* inner = e->expression();
 
     auto iden = inner->is_identifier();
-    bool is_scalar = iden && scalars_.count(iden->name()); 
+    bool is_scalar = iden && scalars_.count(iden->name());
     if (e->op()==tok::minus && is_scalar) {
         out_ << "simd_cast<simd_value>(-";
         inner->accept(this);
@@ -271,6 +300,32 @@ std::string id_prefix(IdentifierExpression* id) {
         }
     }
     return id->name();
+}
+
+void SimdExprEmitter::emit_fused(const std::string& name, Expression* a, Expression* b, Expression* c) {
+    auto check_cast = [this](Expression* expr) {
+        return expr->is_number() || (expr->is_identifier() && scalars_.count(expr->is_identifier()->name()));
+    };
+
+    bool need_cast = false;
+    out_ << name << '(';
+    need_cast = check_cast(a);
+    if (need_cast) out_ << "simd_cast<simd_value>(";
+    a->accept(this);
+    if (need_cast) out_ << ')';
+    out_ << ", ";
+
+    need_cast = check_cast(b);
+    if (need_cast) out_ << "simd_cast<simd_value>(";
+    b->accept(this);
+    if (need_cast) out_ << ')';
+    out_ << ", ";
+
+    need_cast = check_cast(c);
+    if (need_cast) out_ << "simd_cast<simd_value>(";
+    c->accept(this);
+    if (need_cast) out_ << ')';
+    out_ << ')';
 }
 
 
@@ -317,14 +372,24 @@ void SimdExprEmitter::visit(BinaryExpression* e) {
                 "CExprEmitter: unsupported binary operator " + token_string(e->op()), e->location());
     }
 
-    std::string rhs_name, lhs_name, rhs_pfxd, lhs_pfxd;
-
     auto rhs = e->rhs();
     auto lhs = e->lhs();
 
     const char *op_spelling = binop_tbl.at(e->op());
     const char *func_spelling = func_tbl.at(e->op());
 
+    if (e->op() == tok::plus) {
+        if (auto l = lhs->is_binary(); l && l->op() == tok::times) {
+            emit_fused("S::fma", l->lhs(), l->rhs(), rhs);
+            return;
+        }
+        if (auto r = rhs->is_binary(); r && r->op() == tok::times) {
+            emit_fused("S::fma", r->lhs(), r->rhs(), lhs);
+            return;
+        }
+    }
+
+    std::string rhs_name, lhs_name, rhs_pfxd, lhs_pfxd;
     if (auto id = rhs->is_identifier()) {
         rhs_name = id->name();
         rhs_pfxd = id_prefix(id);

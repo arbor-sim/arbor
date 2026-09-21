@@ -1,9 +1,7 @@
 #pragma once
 
 // (Possibly augmented) matrix implementation, represented as a vector of sparse rows.
-
 #include <algorithm>
-#include <utility>
 #include <initializer_list>
 #include <iterator>
 #include <stdexcept>
@@ -47,14 +45,12 @@ public:
     row(const row&) = default;
 
     row(std::initializer_list<entry> il): data_(il) {
-        if (!check_invariant())
-            throw msparse_error("improper row element list");
+        if (!check_invariant()) throw msparse_error("improper row element list");
     }
 
     template <typename InIter>
     row(InIter b, InIter e): data_(b, e) {
-        if (!check_invariant())
-            throw msparse_error("improper row element list");
+        if (!check_invariant()) throw msparse_error("improper row element list");
     }
 
     unsigned size() const { return data_.size(); }
@@ -67,22 +63,18 @@ public:
     auto end() const -> decltype(data_.cend()) { return data_.cend(); }
 
     // Return column of first (left-most) entry.
-    unsigned mincol() const {
-        return empty()? npos: data_.front().col;
-    }
+    unsigned mincol() const { return empty()? npos: data_.front().col; }
 
     // Return column of first entry with column greater than `c`.
     unsigned mincol_after(unsigned c) const {
-        auto i = std::upper_bound(data_.begin(), data_.end(), c,
-            [](unsigned a, const entry& b) { return a<b.col; });
-
+        auto i = std::upper_bound(data_.begin(), data_.end(),
+                                  c,
+                                  [](unsigned a, const entry& b) { return a<b.col; });
         return i==data_.end()? npos: i->col;
     }
 
     // Return column of last (right-most) entry.
-    unsigned maxcol() const {
-        return empty()? npos: data_.back().col;
-    }
+    unsigned maxcol() const { return empty()? npos: data_.back().col; }
 
     // As opposed to [] indexing (see below), retrieve `i'th entry from
     // the list of entries.
@@ -91,27 +83,25 @@ public:
     }
 
     void push_back(const entry& e) {
-        if (!empty() && e.col <= data_.back().col)
-            throw msparse_error("cannot push_back row elements out of order");
+        if (!empty() && e.col <= data_.back().col) throw msparse_error("cannot push_back row elements out of order");
         data_.push_back(e);
     }
 
-    void clear() {
-        data_.clear();
-    }
+    void clear() { data_.clear();}
 
     // Return index into entry list which has column `c`.
     unsigned index(unsigned c) const {
-        auto i = std::lower_bound(data_.begin(), data_.end(), c,
-            [](const entry& a, unsigned b) { return a.col<b; });
-
+        auto i = std::lower_bound(data_.begin(), data_.end(),
+                                  c,
+                                  [](const entry& a, unsigned b) { return a.col<b; });
         return (i==data_.end() || i->col!=c)? npos: std::distance(data_.begin(), i);
     }
 
     // Remove all entries from column `c` onwards.
     void truncate(unsigned c) {
-        auto i = std::lower_bound(data_.begin(), data_.end(), c,
-            [](const entry& a, unsigned b) { return a.col<b; });
+        auto i = std::lower_bound(data_.begin(), data_.end(),
+                                  c,
+                                  [](const entry& a, unsigned b) { return a.col<b; });
         data_.erase(i, data_.end());
     }
 
@@ -130,10 +120,11 @@ public:
         assign_proxy(row<X>& r, unsigned c): row_(r), c(c) {}
 
         operator X() const { return const_cast<const row<X>&>(row_)[c]; }
+        
         assign_proxy& operator=(const X& x) {
-            auto i = std::lower_bound(row_.data_.begin(), row_.data_.end(), c,
-                [](const entry& a, unsigned b) { return a.col<b; });
-
+            auto i = std::lower_bound(row_.data_.begin(), row_.data_.end(),
+                                      c,
+                                      [](const entry& a, unsigned b) { return a.col<b; });
             if (i==row_.data_.end() || i->col!=c) {
                 row_.data_.insert(i, {c, x});
             }
@@ -143,14 +134,11 @@ public:
             else {
                 i->value = x;
             }
-
             return *this;
         }
     };
 
-    assign_proxy operator[](unsigned c) {
-        return assign_proxy{*this, c};
-    }
+    assign_proxy operator[](unsigned c) { return assign_proxy{*this, c}; }
 };
 
 // `msparse::matrix` represents a matrix by a size (number of rows,
