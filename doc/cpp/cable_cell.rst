@@ -151,13 +151,13 @@ Electrical properties and ion values
 -------------------------------------
 
 On each cell segment, electrical and ion properties can be specified by the
-:cpp:expr:`parameters` field, of type :cpp:type:`cable_cell_local_parameter_set`.
+:cpp:expr:`parameters` field, of type :cpp:type:`cable_cell_parameter_set`.
 
-The :cpp:type:`cable_cell_local_parameter_set` has the following members,
+The :cpp:type:`cable_cell_parameter_set` has the following members,
 where an empty optional value or missing map key indicates that the corresponding
 value should be taken from the cell or global parameter set.
 
-.. cpp:class:: cable_cell_local_parameter_set
+.. cpp:class:: cable_cell_parameter_set
 
    .. cpp:member:: std::unordered_map<std::string, cable_cell_ion_data> ion_data
 
@@ -192,10 +192,10 @@ value should be taken from the cell or global parameter set.
 
 Default parameters for a cell are given by the :cpp:expr:`default_parameters`
 field in the :cpp:type:`cable_cell` object. This is a value of type :cpp:type:`cable_cell_parameter_set`,
-which extends :cpp:type:`cable_cell_local_parameter_set` by adding an additional
+which extends :cpp:type:`cable_cell_parameter_set` by adding an additional
 field describing reversal potential computation:
 
-.. cpp:class:: cable_cell_parameter_set: public cable_cell_local_parameter_set
+.. cpp:class:: cable_cell_parameter_set: public cable_cell_parameter_set
 
    .. cpp:member:: std::unordered_map<std::string, mechanism_desc> reversal_potential_method
 
@@ -254,10 +254,11 @@ Global properties
    for reversal potential calculation.
 
 
-For convenience, :cpp:expr:`neuron_parameter_defaults` is a predefined :cpp:type:`cable_cell_local_parameter_set`
-value that holds values that correspond to NEURON defaults. To use these values,
-assign them to the :cpp:expr:`default_parameters` field of the global properties
-object returned in the recipe.
+For convenience, :cpp:expr:`neuron_parameter_defaults` is a predefined
+:cpp:type:`cable_cell_parameter_set` value that holds values that correspond to
+NEURON defaults. To use these values, assign them to the
+:cpp:expr:`default_parameters` field of the global properties object returned in
+the recipe.
 
 
 .. _cppcablecell-revpot:
@@ -316,3 +317,36 @@ Overriding properties locally
 
    TODO: using ``paint`` to specify electrical properties on subsections of
    the morphology.
+
+Editing Cell Parameters
+-----------------------
+
+Whenever control is given to the user, i.e. between calls to
+``simulation::run``, certain parameters oon the cell model may be altered.
+Thisis done using ``simulation::edit_cell``, passing the cell's ``gid`` and a
+callback object. For cable cells, this is a structure
+
+.. cpp:class:: cable_cell_editor
+
+    .. cpp:type:: map = std::vector<std::tuple<std::string, double>>
+
+    .. cpp:member:: std::function<map(region where, std::string what, const map& param) on_density
+
+       Given the current values ``param`` on mechanims ``what`` on region
+       ``where``, return the list of updated parameters.
+
+    .. cpp:member:: std::function<map(locset where, std::string what, const map& param) on_synapse
+
+       Given the current values ``param`` on mechanims ``what`` on locset
+       ``where``, return the list of updated parameters.
+
+in other words, a list of callbacks, that, after inspecting the mechanims on the
+cell, returns sets of updated parameters. Those not mentioned in the returned
+sets will remain unchanged.
+
+.. note::
+
+   1. For this to work, this specific cable cell must have been constructed with
+      mutability enabled.
+   2. This is costly in terms of memory (upfront) and time (when updating), use
+      judiciously.

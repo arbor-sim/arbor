@@ -1,5 +1,7 @@
 #include <memory>
 #include <vector>
+#include <optional>
+#include <unordered_map>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/context.hpp>
@@ -73,6 +75,8 @@ struct simulation_state {
     simulation_state(const recipe& rec, const domain_decomposition_ptr decomp, context ctx, arb_seed_type seed);
 
     void update(const recipe& rec);
+
+    void edit_cell(cell_gid_type gid, std::any edit);
 
     void reset();
 
@@ -565,9 +569,7 @@ std::vector<probe_metadata> simulation_state::get_probe_metadata(const cell_addr
     if (auto lidx = util::value_by_key(gid_to_cell_index_, probeset_id.gid)) {
         return cell_groups_.at(*lidx)->get_probe_metadata(probeset_id);
     }
-    else {
-        return {};
-    }
+    return {};
 }
 
 // Simulation class implementations forward to implementation class.
@@ -581,11 +583,18 @@ simulation::simulation(const recipe& rec,
     impl_.reset(new simulation_state(rec, decomp, ctx, seed));
 }
 
-void simulation::reset() {
-    impl_->reset();
-}
+void simulation::reset() { impl_->reset(); }
 
 void simulation::update(const recipe& rec) { impl_->update(rec); }
+
+// facilitate cell editig
+void simulation::edit_cell(cell_gid_type gid, std::any edit) { impl_->edit_cell(gid, edit); }
+void simulation_state::edit_cell(cell_gid_type gid, std::any edit) {
+    if (gid >= ddc_->num_global_cells()) throw std::range_error{"Not a valid gid: " + std::to_string(gid)};
+    if (auto gidx = util::value_by_key(gid_to_cell_index_, gid)) {
+        cell_groups_[*gidx]->edit_cell(gid, edit);
+    }
+}
 
 time_type simulation::run(const units::quantity& tfinal, const units::quantity& dt) {
     auto dt_ms = dt.value_as(units::ms);

@@ -42,7 +42,7 @@ struct shared_state_base {
         // samples
         auto n_samples = util::sum_by(samples, [] (const auto& s) {return s.size();});
         if (d->sample_time.size() < n_samples) {
-            d->sample_time = array(n_samples);
+            d->sample_time  = array(n_samples);
             d->sample_value = array(n_samples);
         }
         initialize(samples, d->sample_events);
@@ -78,6 +78,12 @@ struct shared_state_base {
                                                                           disc.cv_volume);
             d->add_ion(ion, data, std::move(solver));
         }
+    }
+
+    // overwrite a RANGE-type parameter in the mechanism `ppack` is attached to.
+    void update_range_parameter(cell_gid_type lid, arb_mechanism_ppack& ppack, cell_gid_type pid, const std::vector<arb_value_type>& vals) {
+        auto d = static_cast<D*>(this);
+        d->update_range_parameter(lid, ppack, pid, vals);
     }
 
     arb_value_type* mechanism_state_data(const mechanism& m,

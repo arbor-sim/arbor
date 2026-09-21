@@ -2,9 +2,6 @@
 //
 // Start with pas (passive dendrite) mechanism
 
-// NOTE: This targets an earlier version of the Arbor API and
-// will need to be reworked in order to compile.
-
 #include <any>
 #include <random>
 
@@ -21,8 +18,28 @@ using namespace arb;
 using backend = arb::multicore::backend;
 using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 
+namespace arb_bench_access {
+    template <typename V, V& store, V value>
+    struct bind {
+        static struct binder {
+            binder() { store = value; }
+        } init;
+    };
+
+    template <typename V, V& store, V value>
+    typename bind<V, store, value>::binder bind<V, store, value>::init;
+} // namespace access
+
+#define ARB_BENCH_ACCESS_BIND(type, global, value)\
+namespace { using global ## _type_ = type; global ## _type_ global; }\
+template struct arb_bench_access::bind<type, global, value>;
+
+ARB_BENCH_ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_mechanisms_ptr, &fvm_cell::mechanisms_)
+
+#undef ARB_BENCH_ACCESS_BIND
+
 mechanism_ptr& find_mechanism(const std::string& name, fvm_cell& cell) {
-    auto &mechs = cell.mechanisms();
+    auto &mechs = cell.*private_mechanisms_ptr;
     auto it = std::find_if(mechs.begin(),
                            mechs.end(),
                            [&](mechanism_ptr& m){return m->internal_name()==name;});

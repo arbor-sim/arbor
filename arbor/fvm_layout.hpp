@@ -320,6 +320,13 @@ struct fvm_mechanism_data {
     bool post_events = false;
 };
 
+ARB_ARBOR_API fvm_mechanism_data
+fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
+                         const cable_cell& cell,
+                         const std::vector<fvm_gap_junction>& gj_conns,
+                         const fvm_cv_discretization& D,
+                         arb_size_type cell_idx);
+    
 ARB_ARBOR_API fvm_mechanism_data fvm_build_mechanism_data(
     const cable_cell_global_properties& gprop,
     const std::vector<cable_cell>& cells,

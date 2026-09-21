@@ -47,6 +47,12 @@ struct ARB_SYMBOL_VISIBLE resolution_disabled: arbor_exception {
     {}
 };
 
+struct ARB_SYMBOL_VISIBLE bad_cell_edit: arbor_exception {
+    bad_cell_edit(cell_gid_type gid, std::string why):
+        arbor_exception("Cannot edit cell gid=" + std::to_string(gid) + ": " + why)
+    {}
+    std::string why;
+};
 
 struct ARB_SYMBOL_VISIBLE dup_cell_probe: arbor_exception {
     dup_cell_probe(cell_kind kind, cell_gid_type gid, cell_tag_type tag);

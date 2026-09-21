@@ -49,4 +49,6 @@ struct ARB_SYMBOL_VISIBLE adex_probe_voltage {};
 // Sample value type: `double`
 struct ARB_SYMBOL_VISIBLE adex_probe_adaption {};
 
+using adex_cell_editor = std::function<void(adex_cell&)>;
+    
 } // namespace arb

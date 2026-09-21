@@ -44,6 +44,8 @@ struct ARB_ARBOR_API cable_cell_group: public cell_group {
 
     void remove_all_samplers() override;
 
+    void edit_cell(cell_gid_type gid, std::any edit) override;
+
     std::vector<probe_metadata> get_probe_metadata(const cell_address_type&) const override;
 
     ARB_SERDES_ENABLE(cable_cell_group, gids_, spikes_, lowered_);
@@ -52,9 +54,10 @@ struct ARB_ARBOR_API cable_cell_group: public cell_group {
     void t_deserialize(serializer& ser, const std::string& k) override;
 
     static bool backend_supported(backend_kind kind) { return kind == backend_kind::multicore || kind == backend_kind::gpu; }
-private:
+ private:    
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
+
 
     // The lowered cell state (e.g. FVM) of the cell.
     fvm_lowered_cell_ptr lowered_;

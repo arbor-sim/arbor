@@ -35,14 +35,17 @@ public:
 
     void remove_all_samplers() override {}
 
-    ARB_SERDES_ENABLE(spike_source_cell_group, spikes_, gids_, time_sequences_);
+    ARB_SERDES_ENABLE(spike_source_cell_group, sources_, spikes_, gids_, time_sequences_);
 
-    virtual void t_serialize(serializer& ser, const std::string& k) const override;
-    virtual void t_deserialize(serializer& ser, const std::string& k) override;
+    void t_serialize(serializer& ser, const std::string& k) const override;
+    void t_deserialize(serializer& ser, const std::string& k) override;
+
+    void edit_cell(cell_gid_type gid, std::any edit) override;
 
     static bool backend_supported(backend_kind kind) { return kind == backend_kind::multicore; }
 
 private:
+    std::vector<cell_tag_type> sources_;
     std::vector<spike> spikes_;
     std::vector<cell_gid_type> gids_;
     std::vector<std::vector<schedule>> time_sequences_;
