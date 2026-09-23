@@ -44,14 +44,12 @@ adex_cell_group::adex_cell_group(const std::vector<cell_gid_type>& gids,
             }
         }
         // set up the internal state
-        next_update_.push_back(0);
-        current_time_.push_back(0);
+        next_update_.push_back(0.0);
+        current_time_.push_back(0.0);
     }
 }
 
-cell_kind adex_cell_group::get_cell_kind() const {
-    return cell_kind::adex;
-}
+cell_kind adex_cell_group::get_cell_kind() const { return cell_kind::adex; }
 
 void adex_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
     PE(adex);
@@ -62,13 +60,11 @@ void adex_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange&
     PL(adex);
 }
 
-const std::vector<spike>& adex_cell_group::spikes() const {
-    return spikes_;
-}
+const std::vector<spike>& adex_cell_group::spikes() const { return spikes_; }
 
-void adex_cell_group::clear_spikes() {
-    spikes_.clear();
-}
+void adex_cell_group::clear_spikes() { spikes_.clear(); }
+
+void adex_cell_group::reset() { spikes_.clear(); }
 
 void adex_cell_group::add_sampler(sampler_association_handle h,
                                   cell_member_predicate probeset_ids,
@@ -95,9 +91,6 @@ void adex_cell_group::remove_all_samplers() {
     samplers_.clear();
 }
 
-void adex_cell_group::reset() {
-    spikes_.clear();
-}
 
 // integrate a single cell's state from current time `cur` tos final time `end`.
 // Extra parameters
@@ -142,72 +135,49 @@ void check_spike(adex_lowered_cell& cell, const time_type time, time_type& nxt, 
     }
 }
 
+struct adex_samples {
+    std::vector<double> times;
+    std::vector<double> values;
+};
+
+
 void adex_cell_group::advance_cell(time_type t_fin,
                                    time_type dt,
                                    cell_gid_type lid,
                                    const event_lane_subrange& event_lanes) {
     auto time = current_time_[lid];
     auto gid = gids_[lid];
-    // Flattened sampler map
-    std::vector<probe_metadata> sample_metadata;
-    std::vector<sampler_association_handle> sample_callbacks;
-    std::vector<std::vector<sample_record>> sample_records;
 
-    struct sample_event {
-        time_type time;
-        adex_probe_kind kind;
-        double* data;
-    };
-
-    std::vector<sample_event> sample_events;
-    std::vector<double> sample_data;
-
+    std::unordered_map<sampler_association_handle,
+                       std::unordered_map<cell_address_type,
+                                          adex_samples>> sampled;
+    // samples to process
+    std::vector<std::pair<time_type, sampler_association_handle>> samples;
     if (!samplers_.empty()) {
-        auto tlast = time;
-        std::vector<size_t> sample_sizes;
-        std::size_t total_size = 0;
-        {
-            std::lock_guard<std::mutex> guard(sampler_mex_);
-            for (auto& [hdl, assoc]: samplers_) {
-                // No need to generate events
-                if (assoc.probeset_ids.empty()) continue;
-                // Construct sampling times, might give us the last time we sampled, so skip that.
-                auto times = util::make_range(assoc.sched.events(tlast, t_fin));
-                // while (!times.empty() && times.front() == tlast) times.left++;
-                if (times.empty()) continue;
-                for (unsigned idx = 0; idx < assoc.probeset_ids.size(); ++idx) {
-                    const auto& pid = assoc.probeset_ids[idx];
-                    if (pid.gid != gid) continue;
-                    const auto& probe = probes_.at(pid);
-                    sample_metadata.push_back({pid, idx, util::any_ptr{&probe.metadata}});
-                    sample_callbacks.push_back(hdl);
-                    sample_records.emplace_back();
-                    auto& records = sample_records.back();
-                    sample_sizes.push_back(times.size());
-                    total_size += times.size();
-                    for (auto t: times) {
-                        records.push_back(sample_record{t, nullptr});
-                        sample_events.push_back(sample_event{t, probe.kind, nullptr});
-                    }
-                }
+        std::lock_guard<std::mutex> guard(sampler_mex_);
+        for (auto& [hdl, assoc]: samplers_) {
+             // No need to generate events
+             if (assoc.probeset_ids.empty()) continue;
+             auto times = util::make_range(assoc.sched.events(time, t_fin));
+             if (times.empty()) continue;
+             const auto n_times = times.size();
+             // Count up the samplers touching _our_ gid
+             int delta = 0;
+             for (const auto& pid: assoc.probeset_ids) {
+                if (pid.gid != gid) continue;
+                arb_assert (0 == sampled[hdl].count(pid));
+                sampled[hdl][pid].times.reserve(n_times);
+                sampled[hdl][pid].values.reserve(n_times);
+                delta += n_times;
             }
-        }
-        // Flat list of things to sample
-        // NOTE: Need to allocate in one go, else reallocation will mess up the pointers!
-        sample_data.resize(total_size);
-        auto rx = 0;
-        for (unsigned ix = 0; ix < sample_sizes.size(); ++ix) {
-            auto size = sample_sizes[ix];
-            for (size_t kx = 0; kx < size; ++kx) {
-                sample_records[ix][kx].data = const_cast<const double*>(sample_data.data() + rx);
-                sample_events[rx].data = sample_data.data() + rx;
-                ++rx;
-            }
+            if (delta == 0) continue;
+            for (auto t: times) samples.emplace_back(t, hdl);
         }
     }
-    util::sort_by(sample_events, [](const auto& s) { return s.time; });
-    auto n_samples = sample_events.size();
+    std::sort(samples.begin(), samples.end());
 
+    auto n_samples = samples.size();
+        
     auto& cell = cells_[lid];
     auto n_events = static_cast<int>(!event_lanes.empty() ? event_lanes[lid].size() : 0);
     auto evt_idx = 0;
@@ -236,14 +206,29 @@ void adex_cell_group::advance_cell(time_type t_fin,
         check_spike(cell, t_end, next_update_[lid], gid, spikes_);
 
         // now process the sampling events
-        for (;; ++spl_idx) {
-            if (spl_idx >= n_samples) break;
-            const auto& evt = sample_events[spl_idx];
-            if (evt.time > t_end) break;
-            // interpolation paramter
-            auto t = (evt.time - time)/dt;
-            if (evt.kind == adex_probe_kind::voltage)  *evt.data = math::lerp(V_0, cell.V_m, t);
-            if (evt.kind == adex_probe_kind::adaption) *evt.data = math::lerp(W_0, cell.w, t);
+        for (; spl_idx < n_samples && samples[spl_idx].first < t_end; ++spl_idx) {
+            const auto& [s_time, hdl] = samples[spl_idx];
+            for (const auto& key: samplers_[hdl].probeset_ids) {
+                const auto& kind = probes_.at(key).kind;
+                auto t = (s_time - time)/dt;
+                switch (kind) {
+                case adex_probe_kind::voltage: {
+                    auto U = math::lerp(V_0, cell.V_m, t);
+                    sampled[hdl][key].times.push_back(s_time);
+                    sampled[hdl][key].values.push_back(U);
+                    break;
+                }
+                case adex_probe_kind::adaption: {
+                    auto W = math::lerp(W_0, cell.w, t);
+                    sampled[hdl][key].times.push_back(s_time);
+                    sampled[hdl][key].values.push_back(W);
+                    break;
+                }                    
+                default:
+                    throw arbor_internal_error{"Invalid Adex probe kind"};
+                }
+            }
+            sample_count += 1;
         }
 
         time = t_end;
@@ -253,32 +238,32 @@ void adex_cell_group::advance_cell(time_type t_fin,
     arb_assert(evt_idx == n_events);
     arb_assert(spl_idx == n_samples);
 
-    auto n_samplers = sample_callbacks.size();
+    // Now we need to call all sampler callbacks with the data we have collected
     {
-        std::lock_guard<std::mutex> guard{sampler_mex_};
-        for (size_t s_idx = 0; s_idx < n_samplers; ++s_idx) {
-            const auto& sd = sample_records[s_idx];
-            auto hdl = sample_callbacks[s_idx];
-            const auto& fun = samplers_[hdl].sampler;
-            arb_assert(fun);
-            fun(sample_metadata[s_idx], sd.size(), sd.data());
+        std::lock_guard<std::mutex> guard(sampler_mex_);
+        for (auto& [k, vs]: sampled) {
+            const auto& fun = samplers_[k].sampler;
+            for (auto& [id, us]: vs) {
+                auto meta = get_probe_metadata(id)[0];
+                fun(meta, sample_records{.n_sample=us.times.size(),
+                                         .width=1,
+                                         .time=us.times.data(),
+                                         .values=const_cast<const double*>(us.values.data())});
+            }
         }
-    }
+    }    
 }
 
-void adex_cell_group::t_serialize(serializer& ser, const std::string& k) const {
-    serialize(ser, k, *this);
-}
-
-void adex_cell_group::t_deserialize(serializer& ser, const std::string& k) {
-    deserialize(ser, k, *this);
-}
+void adex_cell_group::t_serialize(serializer& ser, const std::string& k) const { serialize(ser, k, *this); }
+void adex_cell_group::t_deserialize(serializer& ser, const std::string& k) { deserialize(ser, k, *this); }
 
 std::vector<probe_metadata> adex_cell_group::get_probe_metadata(const cell_address_type& key) const {
     // SAFETY: Probe associations are fixed after construction, so we do not
     //         need to grab the mutex.
-    if (auto it = probes_.find(key); it != probes_.end()) {
-        return {probe_metadata{key, 0, &it->second.metadata}};
+    if (probes_.contains(key)) {
+        return {probe_metadata{key, 0, 1, &probes_.at(key).metadata}};
+    } else {
+        return {};
     }
-    return {};
+    
 }

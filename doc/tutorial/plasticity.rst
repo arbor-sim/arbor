@@ -222,7 +222,6 @@ recipe:
   :language: python
   :lines: 70
 
-<<<<<<< HEAD
 .. note::
 
    As it is the central point here, it is worth emphasizing why this yields a
@@ -249,41 +248,8 @@ recipe:
      requires some thought and synchronization when dealing with random numbers
      and updating data *inside* ``connections_on``.
 
-Changes are based on the difference from the current rate we compute from the spikes
-during the last interval,
-||||||| parent of df94162f (Final thoughts and warnings.)
-Changes are based on the difference of current rate we compute from the spikes
-during the last interval
-=======
-.. note::
-
-   As it is the central point here, it is worth emphasizing why this yields a
-   changed network. The call to ``sim.update(rec)`` causes Arbor to internally
-   re-build the connection table from scratch based on the data returned by
-   ``rec.connections_on``. However, here, this method just inspects the matrix
-   in ``rec.connections`` and converts the data into a ``arbor.connection``.
-   Thus, changing this matrix before ``update`` will build a different network.
-
-   Important caveats:
-
-   - without ``update``, changes to the recipe have no effect
-   - vice versa ``update`` has no effect if the recipe doesn't return different
-     data than before
-   - ``update`` will delete all existing connections and their parameters, so
-     all connections to be kept must be explicitly re-instantiated
-   - ``update`` will **not** delete synapses or their state, e.g. ODEs will
-     still be integrated even if not connected and currents might be produced
-   - neither synapses/targets nor detectors/sources can be altered. Create all
-     endpoints up front.
-   - only the network is updated (this might change in future versions!)
-   - be very aware that ``connections_on`` might be called in arbitrary order
-     and by multiples (potentially different) threads and processes! This
-     requires some thought and synchronization when dealing with random numbers
-     and updating data *inside* ``connections_on``.
-
-Changes are based on the difference of current rate we compute from the spikes
-during the last interval
->>>>>>> df94162f (Final thoughts and warnings.)
+Changes are based on the difference from the current rate we compute from the
+spikes during the last interval,
 
 .. literalinclude:: ../../python/example/plasticity/homeostasis.py
   :language: python

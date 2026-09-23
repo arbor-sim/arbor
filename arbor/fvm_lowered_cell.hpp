@@ -34,27 +34,9 @@ namespace arb {
 // a sample value (possibly non-scalar) presented to a sampler
 // function, and one or more probe handles that reference data
 // in the FVM back-end.
-
-struct fvm_probe_scalar {
-    probe_handle raw_handles[1] = {nullptr};
-    std::variant<mlocation, cable_probe_point_info> metadata;
-
-    util::any_ptr get_metadata_ptr() const {
-        return std::visit([](const auto& x) -> util::any_ptr { return &x; }, metadata);
-    }
-};
-
-struct fvm_probe_interpolated {
-    probe_handle raw_handles[2] = {nullptr, nullptr};
-    double coef[2] = {};
-    mlocation metadata;
-
-    util::any_ptr get_metadata_ptr() const { return &metadata; }
-};
-
 struct fvm_probe_multi {
     std::vector<probe_handle> raw_handles;
-    std::variant<mcable_list, std::vector<cable_probe_point_info>> metadata;
+    std::variant<mcable_list, mlocation_list, std::vector<cable_probe_point_info>> metadata;
 
     void shrink_to_fit() {
         raw_handles.shrink_to_fit();
@@ -62,8 +44,13 @@ struct fvm_probe_multi {
     }
 
     util::any_ptr get_metadata_ptr() const {
-        return std::visit([](const auto& x) -> util::any_ptr { return &x; }, metadata);
+        return std::visit([](const auto& x) -> util::any_ptr { return x.data(); }, metadata);
     }
+
+    std::size_t get_width() const {
+        return std::visit([](const auto& x) -> std::size_t { return x.size(); }, metadata);
+    }
+
 };
 
 struct fvm_probe_weighted_multi {
@@ -76,29 +63,36 @@ struct fvm_probe_weighted_multi {
         weight.shrink_to_fit();
         metadata.shrink_to_fit();
     }
-
-    util::any_ptr get_metadata_ptr() const { return &metadata; }
+    std::size_t get_width() const { return metadata.size(); }
+    util::any_ptr get_metadata_ptr() const { return metadata.data(); }
 };
 
 struct fvm_probe_interpolated_multi {
     std::vector<probe_handle> raw_handles; // First half take coef[0], second half coef[1].
     std::vector<double> coef[2];
-    mcable_list metadata;
+    std::variant<mcable_list, mlocation_list> metadata;
 
     void shrink_to_fit() {
         raw_handles.shrink_to_fit();
         coef[0].shrink_to_fit();
         coef[1].shrink_to_fit();
-        metadata.shrink_to_fit();
+        std::visit([](auto& v) { v.shrink_to_fit(); }, metadata);
     }
 
-    util::any_ptr get_metadata_ptr() const { return &metadata; }
+    util::any_ptr get_metadata_ptr() const {
+        return std::visit([](const auto& x) -> util::any_ptr { return x.data(); }, metadata);
+    }
+
+    std::size_t get_width() const {
+        return std::visit([](const auto& x) -> std::size_t { return x.size(); }, metadata);
+    }
+
 };
 
 // Trans-membrane currents require special handling!
 struct fvm_probe_membrane_currents {
     std::vector<probe_handle> raw_handles; // Voltage per CV, followed by stim current densities.
-    std::vector<mcable> metadata;          // Cables from each CV, in CV order.
+    mcable_list metadata;                  // Cables from each CV, in CV order.
 
     std::vector<unsigned> cv_parent;       // Parent CV index for each CV.
     std::vector<double> cv_parent_cond;    // Face conductance between CV and parent.
@@ -119,7 +113,8 @@ struct fvm_probe_membrane_currents {
         stim_cv.shrink_to_fit();
     }
 
-    util::any_ptr get_metadata_ptr() const { return &metadata; }
+    std::size_t get_width() const { return metadata.size(); }
+    util::any_ptr get_metadata_ptr() const { return metadata.data(); }
 };
 
 struct missing_probe_info {
@@ -127,21 +122,18 @@ struct missing_probe_info {
     std::array<probe_handle, 0> raw_handles;
     void* metadata = nullptr;
 
-    util::any_ptr get_metadata_ptr() const { return util::any_ptr{}; }
+    std::size_t get_width() const { return 0; }
+    util::any_ptr get_metadata_ptr() const { return nullptr; }
 };
 
 struct fvm_probe_data {
     fvm_probe_data() = default;
-    fvm_probe_data(fvm_probe_scalar p): info(std::move(p)) {}
-    fvm_probe_data(fvm_probe_interpolated p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_multi p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_weighted_multi p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_interpolated_multi p): info(std::move(p)) {}
     fvm_probe_data(fvm_probe_membrane_currents p): info(std::move(p)) {}
 
     std::variant<missing_probe_info,
-                 fvm_probe_scalar,
-                 fvm_probe_interpolated,
                  fvm_probe_multi,
                  fvm_probe_weighted_multi,
                  fvm_probe_interpolated_multi,
@@ -160,6 +152,10 @@ struct fvm_probe_data {
 
     util::any_ptr get_metadata_ptr() const {
         return std::visit([](const auto& i) -> util::any_ptr { return i.get_metadata_ptr(); }, info);
+    }
+
+    std::size_t get_width() const {
+        return std::visit([](const auto& i) -> std::size_t { return i.get_width(); }, info);
     }
 
     sample_size_type n_raw() const { return raw_handle_range().size(); }

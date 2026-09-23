@@ -28,34 +28,28 @@ std::vector<double> times;
 std::vector<double> Um;
 std::vector<double> w;
 
-void sampler(const arb::probe_metadata& pm, std::size_t n, const arb::sample_record* samples) {
-    auto* meta = arb::util::any_cast<const arb::adex_probe_metadata*>(pm.meta);
-    if(meta == nullptr) {
-        std::cerr << "Hey metadata is not ADEX metadata!\n";
-        throw std::runtime_error{"ADEX metadata type mismatch"};
-    }
-
+void sampler(const arb::probe_metadata& pm, const arb::sample_records& recs) {
     if (pm.id.tag == "Um") {
-        for (std::size_t ix = 0; ix < n; ++ix) {
-            auto* value = arb::util::any_cast<const double*>(samples[ix].data);
-            if(value == nullptr) {
-                std::cerr << "Hey payload is not const double* at index " << ix << "\n";
-                throw std::runtime_error{"ADEX payload type mismatch"};
-            }
-            times.push_back(samples[ix].time);
-            Um.push_back(*value);
+        using meta_t = arb::adex_probe_voltage::meta_type;
+        auto reader = arb::sample_reader<meta_t>(pm.meta, recs);
+        for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+            auto time = reader.time(ix);
+            auto value = reader.value(ix);
+            times.push_back(time);
+            Um.push_back(value);            
         }
+    }
+    else if (pm.id.tag == "w") {
+        using meta_t = arb::adex_probe_voltage::meta_type;
+        auto reader = arb::sample_reader<meta_t>(pm.meta, recs);
+        for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+            auto value = reader.value(ix);
+            w.push_back(value);
+        }        
     }
     else {
-        for (std::size_t ix = 0; ix < n; ++ix) {
-            auto* value = arb::util::any_cast<const double*>(samples[ix].data);
-            if(value == nullptr) {
-                std::cerr << "Hey payload is not const double* at index " << ix << "\n";
-                throw std::runtime_error{"ADEX payload type mismatch"};
-            }
-            w.push_back(*value);
-        }
-    }
+        std::cerr << "Unexpected tag '" << pm.id.tag << "'!\n";
+    }    
 }
 
 void print() {

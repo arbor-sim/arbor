@@ -13,14 +13,11 @@
 #include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
-#include <arbor/util/any_cast.hpp>
 
 #include "event_generator.hpp"
 #include "error.hpp"
 #include "strprintf.hpp"
 #include "label_dict.hpp"
-
-using arb::util::any_cast;
 
 namespace pyarb {
 
@@ -55,18 +52,18 @@ struct trace_callback {
 
     trace_callback(std::vector<trace>& ts, const std::unordered_map<arb::mlocation, size_t>& ls): traces_(ts), locmap_(ls) {}
 
-    void operator()(arb::probe_metadata md, std::size_t n, const arb::sample_record* recs) {
-        // Push each (time, value) pair from the last epoch into trace_.
-        auto* loc = any_cast<const arb::mlocation*>(md.meta);
-        if (locmap_.count(*loc)) {
-            auto& trace = traces_[locmap_.at(*loc)];
-            for (std::size_t i=0; i<n; ++i) {
-                if (auto p = any_cast<const double*>(recs[i].data)) {
-                    trace.t.push_back(recs[i].time);
-                    trace.v.push_back(*p);
-                }
-                else {
-                    throw std::runtime_error("unexpected sample type");
+    void operator()(arb::probe_metadata pm, const arb::sample_records& recs) {
+        auto reader = arb::sample_reader<arb::cable_state_meta_type>(pm.meta, recs);
+
+        for (std::size_t j = 0; j < reader.n_column(); ++j) {
+            const auto& loc = reader.metadata(j);
+            if (locmap_.count(loc)) {
+                auto& trace = traces_[locmap_.at(loc)];
+                for (std::size_t i = 0; i < reader.n_row(); ++i) {
+                    auto time = reader.time(i);
+                    auto value = reader.value(i, j);
+                    trace.t.push_back(time);
+                    trace.v.push_back(value);
                 }
             }
         }
