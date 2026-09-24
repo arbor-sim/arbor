@@ -7,7 +7,6 @@
 #include <cmath>
 #include <cstdint>
 
-#include <iostream>
 #include <arbor/simd/approx.hpp>
 #include <arbor/simd/implbase.hpp>
 
@@ -226,29 +225,23 @@ struct neon_double2 : implbase<neon_double2> {
 
     static float64x2_t neg(const float64x2_t& a) { return vnegq_f64(a); }
 
-    static float64x2_t add(const float64x2_t& a, const float64x2_t& b) {
-        return vaddq_f64(a, b);
-    }
+    static float64x2_t add(const float64x2_t& a, const float64x2_t& b) { return vaddq_f64(a, b); }
 
-    static float64x2_t sub(const float64x2_t& a, const float64x2_t& b) {
-        return vsubq_f64(a, b);
-    }
+    static float64x2_t sub(const float64x2_t& a, const float64x2_t& b) { return vsubq_f64(a, b); }
 
-    static float64x2_t mul(const float64x2_t& a, const float64x2_t& b) {
-        return vmulq_f64(a, b);
-    }
+    static float64x2_t mul(const float64x2_t& a, const float64x2_t& b) { return vmulq_f64(a, b); }
 
-    static float64x2_t div(const float64x2_t& a, const float64x2_t& b) {
-        return vdivq_f64(a, b);
-    }
+    static float64x2_t fma(const float64x2_t& a, const float64x2_t& b, const float64x2_t& c) { return vfmaq_f64(c, a, b); }
+    
+    static float64x2_t div(const float64x2_t& a, const float64x2_t& b) { return vdivq_f64(a, b); }
 
     static float64x2_t logical_not(const float64x2_t& a) {
         return vreinterpretq_f64_u32(vmvnq_u32(vreinterpretq_u32_f64(a)));
     }
 
     static float64x2_t logical_and(const float64x2_t& a, const float64x2_t& b) {
-        return vreinterpretq_f64_u64(
-            vandq_u64(vreinterpretq_u64_f64(a), vreinterpretq_u64_f64(b)));
+        return vreinterpretq_f64_u64(vandq_u64(vreinterpretq_u64_f64(a),
+                                               vreinterpretq_u64_f64(b)));
     }
 
     static float64x2_t logical_or(const float64x2_t& a, const float64x2_t& b) {
@@ -280,7 +273,8 @@ struct neon_double2 : implbase<neon_double2> {
         return vreinterpretq_f64_u64(vcleq_f64(a, b));
     }
 
-    static float64x2_t ifelse(const float64x2_t& m, const float64x2_t& u,
+    static float64x2_t ifelse(const float64x2_t& m,
+                              const float64x2_t& u,
                               const float64x2_t& v) {
         return vbslq_f64(vreinterpretq_u64_f64(m), u, v);
     }
@@ -289,22 +283,18 @@ struct neon_double2 : implbase<neon_double2> {
         return vreinterpretq_f64_u64(vdupq_n_u64(-(int64)b));
     }
 
-    static bool mask_element(const float64x2_t& u, int i) {
-        return static_cast<bool>(element(u, i));
-    }
+    static bool mask_element(const float64x2_t& u, int i) { return static_cast<bool>(element(u, i)); }
 
     static float64x2_t mask_unpack(unsigned long long k) {
         // Only care about bottom two bits of k.
-        uint8x8_t b = vdup_n_u8((char)k);
-        uint8x8_t bl = vorr_u8(b, vdup_n_u8(0xfe));
-        uint8x8_t bu = vorr_u8(b, vdup_n_u8(0xfd));
-        uint8x16_t blu = vcombine_u8(bl, bu);
-
+        uint8x8_t  b    = vdup_n_u8((char)k);
+        uint8x8_t  bl   = vorr_u8(b, vdup_n_u8(0xfe));
+        uint8x8_t  bu   = vorr_u8(b, vdup_n_u8(0xfd));
+        uint8x16_t blu  = vcombine_u8(bl, bu);
         uint8x16_t ones = vdupq_n_u8(0xff);
-        uint64x2_t r =
-            vceqq_u64(vreinterpretq_u64_u8(ones), vreinterpretq_u64_u8(blu));
-
-        return vreinterpretq_f64_u64(r);
+        uint64x2_t res  = vceqq_u64(vreinterpretq_u64_u8(ones),
+                                    vreinterpretq_u64_u8(blu));
+        return vreinterpretq_f64_u64(res);
     }
 
     static void mask_set_element(float64x2_t& u, int i, bool b) {
@@ -391,10 +381,8 @@ struct neon_double2 : implbase<neon_double2> {
     // precision
     // attributable to catastrophic rounding. C1 comprises the first
     // 32-bits of mantissa, C2 the remainder.
-
     static float64x2_t exp(const float64x2_t& x) {
         // Masks for exceptional cases.
-
         auto is_large = cmp_gt(x, broadcast(exp_maxarg));
         auto is_small = cmp_lt(x, broadcast(exp_minarg));
         auto is_not_nan = cmp_eq(x, x);
@@ -402,32 +390,31 @@ struct neon_double2 : implbase<neon_double2> {
         // Compute n and g.
 
         // floor: round toward negative infinity
-        auto n = vcvtmq_s64_f64(add(mul(broadcast(ln2inv), x), broadcast(0.5)));
+        auto n = vcvtmq_s64_f64(fma(broadcast(ln2inv), x, broadcast(0.5)));
 
+        // x - a.b
         auto g = sub(x, mul(vcvtq_f64_s64(n), broadcast(ln2C1)));
         g = sub(g, mul(vcvtq_f64_s64(n), broadcast(ln2C2)));
-
         auto gg = mul(g, g);
 
         // Compute the g*P(g^2) and Q(g^2).
-
         auto odd = mul(g, horner(gg, P0exp, P1exp, P2exp));
         auto even = horner(gg, Q0exp, Q1exp, Q2exp, Q3exp);
 
         // Compute R(g)/R(-g) = 1 + 2*g*P(g^2) / (Q(g^2)-g*P(g^2))
-
-        auto expg =
-            add(broadcast(1), mul(broadcast(2), div(odd, sub(even, odd))));
+        auto expg = fma(broadcast(2),
+                        div(odd, sub(even, odd)),
+                        broadcast(1));
 
         // Finally, compute product with 2^n.
         // Note: can only achieve full range using the ldexp implementation,
         // rather than multiplying by 2^n directly.
-
         auto result = ldexp_positive(expg, vmovn_s64(n));
 
         return ifelse(is_large, broadcast(HUGE_VAL),
                       ifelse(is_small, broadcast(0),
-                             ifelse(is_not_nan, result, broadcast(NAN))));
+                             ifelse(is_not_nan, result,
+                                    broadcast(NAN))));
     }
 
     // Use same rational polynomial expansion as for exp(x), without
@@ -468,11 +455,13 @@ struct neon_double2 : implbase<neon_double2> {
         // Otherwise, compute result 2^n * expgm1 + (2^n-1) by:
         //     result = 2 * ( 2^(n-1)*expgm1 + (2^(n-1)+0.5) )
         // to avoid overflow when n=1024.
-
         auto nm1 = vmovn_s64(vcvtmq_s64_f64(sub(vcvtq_f64_s64(n), one)));
 
-        auto scaled =
-            mul(add(sub(exp2int(nm1), half), ldexp_normal(expgm1, nm1)), two);
+        auto scaled = mul(add(sub(exp2int(nm1),
+                                  half),
+                              ldexp_normal(expgm1,
+                                           nm1)),
+                          two);
 
         return ifelse(is_large, broadcast(HUGE_VAL),
                       ifelse(is_small, broadcast(-1),
@@ -525,14 +514,12 @@ struct neon_double2 : implbase<neon_double2> {
         auto z3 = mul(z2, z);
 
         auto r = div(mul(z3, pz), qz);
-        r = add(r, mul(g, broadcast(ln2C4)));
+        r = fma(g, broadcast(ln2C4), r);
         r = sub(r, mul(z2, half));
         r = add(r, z);
-        r = add(r, mul(g, broadcast(ln2C3)));
-
+        r = fma(g, broadcast(ln2C3), r);
         // Return NaN if x is NaN or negarive, +inf if x is +inf,
         // or -inf if zero or (positive) denormal.
-
         return ifelse(is_domainerr, broadcast(NAN),
                       ifelse(is_large, broadcast(HUGE_VAL),
                              ifelse(is_small, broadcast(-HUGE_VAL), r)));
@@ -561,20 +548,19 @@ struct neon_double2 : implbase<neon_double2> {
 
     template <typename... T>
     static float64x2_t horner(float64x2_t x, double a0, T... tail) {
-        return add(mul(x, horner(x, tail...)), broadcast(a0));
+        return fma(x, horner(x, tail...), broadcast(a0));
     }
 
     // horner1(x, a0, ..., an) computes the degree n+1 monic polynomial A(x)
     // with coefficients
     // a0, ..., an, 1 by by a0+x·(a1+x·(a2+...+x·(an+x)...).
-
     static inline float64x2_t horner1(float64x2_t x, double a0) {
         return add(x, broadcast(a0));
     }
 
     template <typename... T>
     static float64x2_t horner1(float64x2_t x, double a0, T... tail) {
-        return add(mul(x, horner1(x, tail...)), broadcast(a0));
+        return fma(x, horner1(x, tail...), broadcast(a0));
     }
 
     // Compute 2.0^n.

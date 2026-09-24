@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.31.0)
 include(CMakeDependentOption)
 include(CheckIPOSupported)
 
@@ -48,7 +48,7 @@ endif()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Have LTO where possible, ie add -flto
-check_ipo_supported(RESULT HAVE_LTO OUTPUT ERR_LTO)
+check_ipo_supported(RESULT HAVE_LTO OUTPUT ERR_LTO) #
 if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
   if(HAVE_LTO)
     message (VERBOSE "LTO support found, enabling")
@@ -71,13 +71,17 @@ mark_as_advanced(FORCE ARBDEV_COLOR)
 # Configure-time build options for Arbor:
 #----------------------------------------------------------
 # Specify target architecture.
-check_cxx_compiler_flag("-march=native" CXX_HAS_NATIVE)
-if(CXX_HAS_NATIVE)
+if (NOT DEFINED ARB_DEFAULT_ARCH)
+  check_cxx_compiler_flag("-march=native" CXX_HAS_NATIVE)
+  if(CXX_HAS_NATIVE)
     set(ARB_DEFAULT_ARCH "native")
-else()
+  else()
     set(ARB_DEFAULT_ARCH "none")
+  endif()
 endif()
-set(ARB_ARCH ${ARB_DEFAULT_ARCH} CACHE STRING "Target architecture for arbor libraries")
+if (NOT DEFINED ARB_ARCH)
+  set(ARB_ARCH ${ARB_DEFAULT_ARCH} CACHE STRING "Target architecture for arbor libraries")
+endif()
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
@@ -166,7 +170,7 @@ if(ARB_GPU STREQUAL "cuda")
     include(FindCUDAToolkit)
     set(ARB_WITH_NVCC TRUE)
     # CMake 3.18 and later set the default CUDA architecture for
-    # each target according to CMAKE_CUDA_ARCHITECTURES. 
+    # each target according to CMAKE_CUDA_ARCHITECTURES.
 
     # This fixes nvcc picking up a wrong host compiler for linking, causing
     # issues with outdated libraries, eg libstdc++ and std::filesystem. Must
@@ -177,21 +181,15 @@ if(ARB_GPU STREQUAL "cuda")
     if(${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 12)
         if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
             # Pascal, Volta, Ampere, Hopper
-            set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
+            set(CMAKE_CUDA_ARCHITECTURES 70 80 90)
         endif()
     else()
         message(FATAL_ERROR "Need at least CUDA 12, got ${CUDAToolkit_VERSION_MAJOR}")
     endif()
-
-    # We _still_ need this otherwise CUDA symbols will not be exported
-    # from libarbor.a leading to linker errors when link external clients.
-    # Unit tests are NOT external enough. Re-review this somewhere in the
-    # future.
-    find_package(CUDA ${CUDAToolkit_VERSION_MAJOR} REQUIRED)
 elseif(ARB_GPU STREQUAL "cuda-clang")
     include(FindCUDAToolkit)
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        set(CMAKE_CUDA_ARCHITECTURES 60 70 80 90)
+        set(CMAKE_CUDA_ARCHITECTURES 70 80 90)
     endif()
     set(ARB_WITH_CUDA_CLANG TRUE)
     enable_language(CUDA)
@@ -199,7 +197,7 @@ elseif(ARB_GPU STREQUAL "hip")
     set(ARB_WITH_HIP_CLANG TRUE)
     # Specify AMD architecture using a (user provided) list.
     # Note: CMake native HIP architectures are introduced with version 3.21.
-    set(ARB_HIP_ARCHITECTURES gfx906 gfx900 CACHE STRING "AMD offload architectures (semicolon separated)")
+    set(ARB_HIP_ARCHITECTURES gfx90a CACHE STRING "AMD offload architectures (semicolon separated)")
 endif()
 
 if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
@@ -242,7 +240,6 @@ set(ARB_INSTALL_DATADIR ${CMAKE_INSTALL_DATAROOTDIR}/arbor)
 # Interface library `arbor-config-defs` collects configure-time defines
 # for arbor, arborenv, arborio, of the form ARB_HAVE_XXX. These
 # defines should _not_ be used in any installed public headers.
-
 add_library(arbor-config-defs INTERFACE)
 install(TARGETS arbor-config-defs EXPORT arbor-targets)
 
@@ -254,14 +251,12 @@ install(TARGETS arbor-private-deps EXPORT arbor-targets)
 
 # Interface library `arborenv-private-deps` collects dependencies, options etc.
 # for the arborenv library.
-
 add_library(arborenv-private-deps INTERFACE)
 target_link_libraries(arborenv-private-deps INTERFACE arbor-config-defs)
 install(TARGETS arborenv-private-deps EXPORT arbor-targets)
 
 # Interface library `arborio-private-deps` collects dependencies, options etc.
 # for the arborio library.
-
 add_library(arborio-private-deps INTERFACE)
 target_link_libraries(arborio-private-deps INTERFACE arbor-config-defs)
 install(TARGETS arborio-private-deps EXPORT arbor-targets)
@@ -269,19 +264,19 @@ install(TARGETS arborio-private-deps EXPORT arbor-targets)
 # Interface library `arbor-public-deps` collects requirements for the
 # users of the arbor library (e.g. mpi) that will become part
 # of arbor's PUBLIC interface.
-
 add_library(arbor-public-deps INTERFACE)
 install(TARGETS arbor-public-deps EXPORT arbor-targets)
+if(ARB_GPU STREQUAL "cuda")
+  target_link_libraries(arbor-public-deps INTERFACE CUDA::cudart)
+endif()
 
 # Interface library `arborio-public-deps` collects requirements for the
 # users of the arborio library (e.g. xml libs) that will become part
 # of arborio's PUBLIC interface.
-
 add_library(arborio-public-deps INTERFACE)
 install(TARGETS arborio-public-deps EXPORT arborio-targets)
 
 # Add scripts and supporting CMake for setting up external catalogues
-
 install(PROGRAMS scripts/arbor-build-catalogue DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 
@@ -290,7 +285,6 @@ install(FILES mechanisms/BuildModules.cmake DESTINATION ${ARB_INSTALL_DATADIR})
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.
 set(arbor_export_dependencies)
-
 
 # First make ourselves less chatty
 set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
@@ -326,21 +320,22 @@ endif()
 
 
 add_library(ext-random123 INTERFACE)
-CPMFindPackage(NAME random123
+CPMFindPackage(NAME Random123
                DOWNLOAD_ONLY YES
                GITHUB_REPOSITORY DEShawResearch/random123
                VERSION 1.14.0)
-if(random123_ADDED)
-    target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${random123_SOURCE_DIR}/include>)
+if(Random123_ADDED)
+    target_include_directories(ext-random123 INTERFACE $<BUILD_INTERFACE:${Random123_SOURCE_DIR}/include>)
 else()
     target_include_directories(ext-random123 INTERFACE ${RANDOM123_INCLUDE_DIR})
 endif()
 install(TARGETS ext-random123 EXPORT arbor-targets)
 
 if (ARB_WITH_PYTHON)
+    set(PYBIND11_FINDPYTHON ON)
     CPMFindPackage(NAME pybind11
                    GITHUB_REPOSITORY pybind/pybind11
-                   VERSION 3.0.0
+                   VERSION 3.1.0
                    OPTIONS "PYBIND11_CPP_STANDARD -std=c++20")
     # required for find_python_module
     include(FindPythonModule)
@@ -348,7 +343,7 @@ endif()
 
 CPMFindPackage(NAME pugixml
                GITHUB_REPOSITORY zeux/pugixml
-               VERSION 1.13
+               VERSION 1.15
                DOWNLOAD_ONLY YES)
 add_library(ext-pugixml INTERFACE)
 if(pugixml_ADDED)
@@ -362,19 +357,19 @@ install(TARGETS ext-pugixml EXPORT arbor-targets)
 
 CPMFindPackage(NAME fmt
               GITHUB_REPOSITORY fmtlib/fmt
-              VERSION 10.0.0
-              GIT_TAG 10.0.0)
+              VERSION 12.1.0
+              GIT_TAG 12.1.0)
 
 add_library(ext-gtest INTERFACE)
 add_library(ext-bench INTERFACE)
 if (BUILD_TESTING)
     CPMFindPackage(NAME benchmark
                   GITHUB_REPOSITORY google/benchmark
-                  VERSION 1.8.3
+                  VERSION 1.9.5
                   OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "CMAKE_BUILD_TYPE release" "BUILD_SHARED_LIBS OFF")
     CPMFindPackage(NAME googletest
                   GITHUB_REPOSITORY google/googletest
-                  VERSION 1.17.0
+                  VERSION 1.18.0
                   OPTIONS "INSTALL_GTEST OFF" "BUILD_GMOCK OFF")
     if(benchmark_ADDED)
         target_link_libraries(ext-bench INTERFACE benchmark)
@@ -463,27 +458,32 @@ else()
     set(ARB_CXX_FLAGS_TARGET_FULL_CPU ${ARB_CXX_FLAGS_TARGET} ${ARB_CXXOPT_ARCH_CPU})
 endif()
 
+try_compile(arb_can_compile_cxx
+            SOURCES ${PROJECT_SOURCE_DIR}/cmake/dummy.cpp
+            COMPILE_DEFINITIONS ${ARB_CXX_FLAGS_TARGET_FULL_CPU})
+if(NOT arb_can_compile_cxx)
+  message(FATAL_ERROR "Cannot compile a trivial CXX program using the final compiler flags: ${ARB_CXX_FLAGS_TARGET_FULL_CPU}")
+endif()
+
 # Add SVE compiler flags if detected/desired
 set(ARB_SVE_WIDTH "auto" CACHE STRING "Default SVE vector length in bits. Default: auto (detection during configure time).")
 mark_as_advanced(ARB_SVE_WIDTH)
 
-if (ARB_VECTORIZE)
-    if (ARB_SVE_WIDTH STREQUAL "auto")
-        get_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
-        if (ARB_HAS_SVE)
-            message(STATUS "SVE detected with vector size = ${ARB_SVE_BITS} bits")
-            set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
-        else()
-            message(STATUS "NO SVE detected")
-            set(ARB_CXX_SVE_FLAGS "")
-        endif()
-    else()
-        set(ARB_SVE_BITS ${ARB_SVE_WIDTH})
+if (ARB_SVE_WIDTH STREQUAL "auto")
+    get_sve_length(ARB_HAS_SVE ARB_SVE_BITS)
+    if (ARB_HAS_SVE)
+        message(STATUS "SVE detected with vector size = ${ARB_SVE_BITS} bits")
         set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
+    else()
+        message(STATUS "NO SVE detected")
+        set(ARB_CXX_SVE_FLAGS "")
     endif()
-    list(APPEND ARB_CXX_FLAGS_TARGET_FULL
-        "$<$<BUILD_INTERFACE:$<COMPILE_LANGUAGE:CXX>>:${ARB_CXX_SVE_FLAGS}>")
+else()
+    set(ARB_SVE_BITS ${ARB_SVE_WIDTH})
+    set(ARB_CXX_SVE_FLAGS " -msve-vector-bits=${ARB_SVE_BITS}")
 endif()
+list(APPEND ARB_CXX_FLAGS_TARGET_FULL
+    "$<$<BUILD_INTERFACE:$<COMPILE_LANGUAGE:CXX>>:${ARB_CXX_SVE_FLAGS}>")
 
 # Compile with `-fvisibility=hidden` to ensure that the symbols of the generated
 # arbor static libraries are hidden from the dynamic symbol tables of any shared
@@ -592,6 +592,12 @@ if(ARB_WITH_GPU)
         set(clang_options_ -DARB_HIP -xhip ${HIP_ARCH_STR})
         target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
         target_compile_options(arborenv-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${clang_options_}>)
+        # On Windows the clang driver does not auto-add the HIP runtime library when linking
+        # shared libraries; link it explicitly so HIP launch symbols resolve.
+        if(WIN32)
+            find_library(AMDHIP64_LIB amdhip64 REQUIRED HINTS "${CMAKE_PREFIX_PATH}/lib")
+            target_link_libraries(arbor-private-deps INTERFACE "${AMDHIP64_LIB}")
+        endif()
     endif()
 endif()
 

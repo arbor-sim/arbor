@@ -32,6 +32,7 @@ protected:
 
     void emit_as_call(const char* sub, Expression*);
     void emit_as_call(const char* sub, Expression*, Expression*);
+    void emit_as_call(const char* sub, Expression*, Expression*, Expression*);
 };
 
 inline void cexpr_emit(Expression* e, std::ostream& out, Visitor* fallback) {
@@ -41,13 +42,13 @@ inline void cexpr_emit(Expression* e, std::ostream& out, Visitor* fallback) {
 
 class ARB_LIBMODCC_API SimdExprEmitter: public CExprEmitter {
 public:
-    SimdExprEmitter(
-        std::ostream& out,
-        bool is_indirect,
-        std::string input_mask,
-        const std::unordered_set<std::string>& scalars,
-        Visitor* fallback):
-            CExprEmitter(out, fallback), is_indirect_(is_indirect), input_mask_(input_mask), scalars_(scalars), fallback_(fallback) {}
+    SimdExprEmitter(std::ostream& out,
+                    bool is_indirect,
+                    std::string input_mask,
+                    const std::unordered_set<std::string>& scalars,
+                    Visitor* fallback):
+            CExprEmitter(out, fallback), is_indirect_(is_indirect), input_mask_(input_mask), scalars_(scalars), fallback_(fallback)
+    {}
     using CExprEmitter::visit;
     void visit(BlockExpression *e) override;
     void visit(CallExpression *e) override;
@@ -67,6 +68,8 @@ protected:
     Visitor* fallback_;
 
 private:
+    void emit_fused(const std::string&, Expression*, Expression*, Expression*);
+
     std::string make_unique_var(scope_ptr scope, std::string prefix) {
         for (int i = 0;; ++i) {
             std::string name = prefix + std::to_string(i) + "_";

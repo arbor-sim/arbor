@@ -59,17 +59,18 @@ exclude = [
     ".venv",
     ".vscode",
     "build",
+    "spack",
     "dist",
     "ext",
     "install-*",
     "doc/scripts/inputs.py",
     "doc/scripts/make_images.py",
     ".*",
-    "spack/package.py"]
+    ]
 
 line-length = 88
 indent-width = 4
-target-version = "py312"
+target-version = "py314"
 
 [tool.ruff.lint]
 ignore = [ # for black
@@ -124,16 +125,17 @@ build-frontend = "build"
 build = ["*linux*","*macosx*"]
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
-skip = ["cp36*", "cp37*", "cp38*", "cp39*", "*musllinux*", "pp*"]
+skip = ["cp38*", "cp39*", "cp310*", "*musllinux*", "pp*"]
 test-command = "python -m unittest discover -v -s {project}/python"
 dependency-versions = "latest"
 
 [tool.cibuildwheel.macos]
 archs = ["arm64"]
-environment = { MACOSX_DEPLOYMENT_TARGET = "14.0" }
+environment = { MACOSX_DEPLOYMENT_TARGET = "14.0",  CMAKE_ARGS="-DCMAKE_BUILD_TYPE=release -DARB_VECTORIZE=ON -DARB_ARCH=native"}
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
+environment = { CMAKE_ARGS="-DCMAKE_BUILD_TYPE=release -DARB_VECTORIZE=ON -DARB_ARCH=x86-64-v3" }
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"

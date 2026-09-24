@@ -151,15 +151,14 @@ Cable cell decoration
         :type junction: :py:class:`junction`
         :param str label: the label of the group of gap junction sites on the locset.
 
-    .. method:: place(locations, stim, label)
+    .. method:: place(locations, stim)
         :noindex:
 
         Add a current stimulus at each location in ``locations`` and label the group of stimuli with ``label``.
 
         :param str locations: description of the locset.
         :param stim: the current stim.
-        :type stim: :py:class:`iclamp`
-        :param str label: the label of the group of stimuli on the locset.
+        :type stim: :py:class:`i_clamp`
 
     .. method:: place(locations, d, label)
         :noindex:

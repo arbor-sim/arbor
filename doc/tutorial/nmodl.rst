@@ -199,7 +199,7 @@ polish. Variables declared in ``PARAMETER`` blocks can be set in the call to
     decor = (
         A.decor()
         .paint('(all)', A.density('hh03', g=0.0005, el=-70))
-        .place('(location 0 0.5)', A.iclamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA), "iclamp")
+        .place('(location 0 0.5)', A.i_clamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA))
     )
 
 To enable this, we need to tell NMODL that each CV will have its own value of
@@ -216,7 +216,7 @@ set by writing
     decor = (
         A.decor()
         .paint('(all)', A.density('hh03/el=-70,gl=0.0005'))
-        .place('(location 0 0.5)', A.iclamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA), "iclamp")
+        .place('(location 0 0.5)', A.i_clamp(10 * U.ms, 2 * U.ms, 0.8 * U.nA))
     )
 
 instead. Parameters are either ``GLOBAL`` or ``RANGE``, never both. The

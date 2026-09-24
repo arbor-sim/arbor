@@ -523,7 +523,7 @@ TEST(regloc, round_tripping) {
 
 TEST(regloc, comments) {
     EXPECT_EQ("(all)",  round_trip_region("(all) ; a comment"));
-    const char *multi_line = 
+    const char *multi_line =
         "; comment at start\n"
         "(radius-lt\n"
         "    (join\n"
@@ -893,9 +893,9 @@ TEST(decor_literals, round_tripping) {
     EXPECT_EQ("kamt", mech.name());
     EXPECT_EQ(3u, mech.values().size());
 
-    EXPECT_EQ(50, mech.values().at("gbar"));
-    EXPECT_EQ(0.1, mech.values().at("zetam"));
-    EXPECT_EQ(5, mech.values().at("q10"));
+    EXPECT_EQ(50, mech.get("gbar"));
+    EXPECT_EQ(0.1, mech.get("zetam"));
+    EXPECT_EQ(5, mech.get("q10"));
 
 }
 

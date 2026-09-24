@@ -31,6 +31,8 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, arb::cell_kind k) {
         return o << "lif";
     case arb::cell_kind::benchmark:
         return o << "benchmark_cell";
+    case arb::cell_kind::adex:
+        return o << "adex_cell";
     }
     return o;
 }

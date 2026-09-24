@@ -46,12 +46,12 @@ cell_kind lif_cell_group::get_cell_kind() const {
 }
 
 void lif_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
-    PE(advance:lif);
+    PE(lif);
     for (auto lid: util::make_span(gids_.size())) {
         // Advance each cell independently.
         advance_cell(ep.t1, dt, lid, event_lanes);
     }
-    PL();
+    PL(lif);
 }
 
 const std::vector<spike>& lif_cell_group::spikes() const {

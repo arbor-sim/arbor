@@ -43,8 +43,8 @@ sym_row row_reduce(unsigned c, const sym_row& p, const sym_row& q, DefineSym def
             ++qiter;
             qj = qiter==q.end()? q.npos: qiter->col;
         }
-        if (j!=c) {
-            u.push_back({j, define_sym(t1-t2)});
+        if (j != c) {
+            u.push_back({j, define_sym(t1 - t2)});
         }
     }
     return u;
@@ -117,12 +117,12 @@ ARB_LIBMODCC_API std::vector<std::vector<symge::symbol>> gj_reduce(sym_matrix& A
     while (true) {
         auto pivots = get_pivots(remaining_rows);
 
-        for (unsigned i = 0; i<pivots.size(); ++i) {
+        for (unsigned i = 0; i < pivots.size(); ++i) {
             cost[pivots[i].row] = estimate_cost(A, pivots[i]);
         }
 
         std::sort(pivots.begin(), pivots.end(),
-                  [&](pivot r1, pivot r2) { return cost[r1.row]>cost[r2.row]; });
+                  [&](pivot r1, pivot r2) { return cost[r1.row] > cost[r2.row]; });
 
         pivot p = pivots.back();
         remaining_rows.erase(std::lower_bound(remaining_rows.begin(), remaining_rows.end(), p.row));

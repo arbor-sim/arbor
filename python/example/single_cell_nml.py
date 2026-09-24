@@ -54,10 +54,10 @@ decor = (
     # Increase resistivity on dendrites.
     .paint('"dend"', rL=500 * U.Ohm * U.cm)
     # Attach stimuli that inject 4 nA current for 1 ms, starting at 3 and 8 ms.
-    .place('"root"', A.iclamp(10 * U.ms, 1 * U.ms, current=5 * U.nA), "iclamp0")
-    .place('"stim_site"', A.iclamp(3 * U.ms, 1 * U.ms, current=0.5 * U.nA), "iclamp1")
-    .place('"stim_site"', A.iclamp(10 * U.ms, 1 * U.ms, current=0.5 * U.nA), "iclamp2")
-    .place('"stim_site"', A.iclamp(8 * U.ms, 1 * U.ms, current=4 * U.nA), "iclamp3")
+    .place('"root"', A.i_clamp(10 * U.ms, 1 * U.ms, current=5 * U.nA))
+    .place('"stim_site"', A.i_clamp(3 * U.ms, 1 * U.ms, current=0.5 * U.nA))
+    .place('"stim_site"', A.i_clamp(10 * U.ms, 1 * U.ms, current=0.5 * U.nA))
+    .place('"stim_site"', A.i_clamp(8 * U.ms, 1 * U.ms, current=4 * U.nA))
     # Detect spikes at the soma with a voltage threshold of -10 mV.
     .place('"axon_end"', A.threshold_detector(-10 * U.mV), "detector")
 )

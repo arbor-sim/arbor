@@ -1,4 +1,3 @@
-#include <array>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -10,7 +9,6 @@
 #include <arborio/swcio.hpp>
 
 #include <gtest/gtest.h>
-
 
 // Path to data directory can be overriden at compile time.
 #if !defined(DATADIR)
@@ -796,10 +794,28 @@ TEST(swc_parser, not_neuron_compliant) {
     }
 }
 
+TEST(swc_parser, drosophilia) {
+    // Parse data from the drosophilia project
+    // https://codex.flywire.ai/api/download?dataset=fafb
+    auto parse = [](const auto& fn) {
+        return load_swc_neuron(std::string{DATADIR} + "/" + fn,
+                               swc_loader_options{.allow_non_monotonic_ids=true,
+                                                  .allow_mismatched_tags=true,
+                                                  .tags={{0, "undefined"}, {1, "soma"}, {5, "fork point"}, {6, "end point"}}});
+    };
+    for (const auto& fn: {"720575940661139073.swc",
+                          "720575940661205633.swc",
+                          "720575940661214849.swc",
+                          "720575940661234561.swc",
+                          "720575940661235585.swc"}) {
+        EXPECT_NO_THROW(parse(fn));
+    }
+}
+
+
 // hipcc bug in reading DATADIR
 #ifndef ARB_HIP
-TEST(swc_parser, from_neuromorpho)
-{
+TEST(swc_parser, from_neuromorpho) {
     std::string datadir{DATADIR};
     auto fname = datadir + "/pyramidal.swc";
     std::ifstream fid(fname);

@@ -21,6 +21,7 @@
 #include <arborenv/default_env.hpp>
 #include <arborenv/gpu_env.hpp>
 
+#include <random>
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
 #include <sup/json_params.hpp>
