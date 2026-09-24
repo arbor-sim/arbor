@@ -92,23 +92,19 @@ behaviour, can be specified for cells or the whole model.
         print(ions['k'].read_rev_pot)
         # True
 
-    .. cpp:attribute:: write_int_con
-        :type: bool
+    .. cpp:member:: bool write_int_con
 
         If the mechanism contributes to the internal concentration of the ion species.
 
-    .. cpp:attribute:: write_ext_con
-        :type: bool
+    .. cpp:member:: bool write_ext_con
 
         If the mechanism contributes to the external concentration of the ion species.
 
-    .. cpp:attribute:: write_rev_pot
-        :type: bool
+    .. cpp:member:: bool write_rev_pot
 
         If the mechanism calculates the reversal potential of the ion species.
 
-    .. cpp:attribute:: read_rev_pot
-        :type: bool
+    .. cpp:member:: bool read_rev_pot
 
         If the mechanism depends on the reversal potential of the ion species.
 
@@ -117,23 +113,19 @@ behaviour, can be specified for cells or the whole model.
 
     Metadata about a specific field of a mechanism is presented as read-only attributes.
 
-    .. cpp:attribute:: units
-        :type: string
+    .. cpp:member:: std::string units
 
         The units of the field.
 
-    .. cpp:attribute:: default
-        :type: float
+    .. cpp:member:: float default_value
 
         The default value of the field.
 
-    .. cpp:attribute:: min
-        :type: float
+    .. cpp:member:: float min
 
         The minimum permissible value of the field.
 
-    .. cpp:attribute:: max
-        :type: float
+    .. cpp:member:: float max
 
         The maximum permissible value of the field.
 
@@ -145,7 +137,7 @@ Mechanism catalogues
 
 .. cpp:namespace:: arb
 
-.. cpp:class:: catalogue
+.. cpp:class:: mechanism_catalogue
 
     A *mechanism catalogue* is a collection of mechanisms that maintains:
 
@@ -157,33 +149,33 @@ Mechanism catalogues
 
         Create an empty, copied or moved catalogue.
 
-    .. cpp:method:: bool has(const std::string& name)
+    .. cpp:function:: bool has(const std::string& name)
 
         Test if mechanism with *name* is in the catalogue.
 
-    .. cpp:method:: is_derived(name)
+    .. cpp:function:: bool is_derived(const std::string& name)
 
         Is *name* a derived mechanism or can it be implicitly derived?
 
-    .. cpp:method:: mechanism_info operator[](const std::string& name)
+    .. cpp:function:: mechanism_info operator[](const std::string& name)
 
         Look up mechanism metadata with *name*.
 
-    .. cpp:method:: void add(const std::string& name, mechanism_info)
+    .. cpp:function:: void add(const std::string& name, mechanism_info)
 
          Add mechanism metadata with *name*.
 
 
-    .. cpp:method:: std::vector<std::string> mechanism_names() const
+    .. cpp:function:: std::vector<std::string> mechanism_names() const
 
         Return a list of names of all the mechanisms in the catalogue.
 
-   .. cpp:method:: extend(other, prefix="")
+    .. cpp:function:: void extend(const mechanism_catalogue& other, std::string prefix="")
 
         Import another catalogue, possibly with a prefix. Will raise an exception
         in case of name collisions.
 
-    .. cpp:method:: void derive(const std::string& name, const std::string& parent, const std::vector<std::pair<std::string, double>>& global_params, const std::vector<std::pair<std::string, std::string>>& ion_remap = {});
+    .. cpp:function:: void derive(const std::string& name, const std::string& parent, const std::vector<std::pair<std::string, double>>& global_params, const std::vector<std::pair<std::string, std::string>>& ion_remap = {});
 
         Derive a new mechanism with *name* from the mechanism *parent*.
 

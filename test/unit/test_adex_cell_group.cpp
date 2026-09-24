@@ -177,7 +177,7 @@ TEST(adex_cell_group, ring)
 
     std::vector<arb::spike> spike_buffer;
 
-    sim.set_global_spike_callback(
+    sim.set_local_spike_callback(
         [&spike_buffer](const std::vector<arb::spike>& spikes) {
             spike_buffer.insert(spike_buffer.end(), spikes.begin(), spikes.end());
         }
@@ -236,7 +236,7 @@ TEST(adex_cell_group, probe) {
 
     std::vector<arb::spike> spikes;
 
-    sim.set_global_spike_callback([&spikes](const std::vector<arb::spike>& spk) {
+    sim.set_local_spike_callback([&spikes](const std::vector<arb::spike>& spk) {
         for (const auto& s: spk) spikes.push_back(s);
     });
 
@@ -648,8 +648,8 @@ TEST(adex_cell_group, probe) {
     ASSERT_FALSE(testing::seq_eq(ums[{1, "a"}], exp));
     // now check the spikes
     std::sort(spikes.begin(), spikes.end());
-    EXPECT_EQ(spikes.size(), 0u);
-    std::vector<arb::spike> sexp{};
+    EXPECT_EQ(spikes.size(), 6u);
+    std::vector<arb::spike> sexp{{{0, 0}, 2}, {{0, 0}, 3}, {{0, 0}, 4}, {{0, 0}, 5}, {{1, 0}, 2}, {{1, 0}, 5}};
     ASSERT_EQ(spikes, sexp);
 }
 
@@ -671,7 +671,7 @@ TEST(adex_cell_group, probe_with_connections) {
 
     std::vector<arb::spike> spikes;
 
-    sim.set_global_spike_callback(
+    sim.set_local_spike_callback(
         [&spikes](const std::vector<arb::spike>& spk) { for (const auto& s: spk) spikes.push_back(s); }
     );
 
@@ -1085,7 +1085,7 @@ TEST(adex_cell_group, probe_with_connections) {
     ASSERT_FALSE(testing::seq_eq(ums[{1, "a"}], exp));
     // now check the spikes
     std::sort(spikes.begin(), spikes.end());
-    EXPECT_EQ(spikes.size(), 4u);
-    std::vector<arb::spike> sexp{{{0, 0}, 2}, {{0, 0}, 3}, {{0, 0}, 4}, {{0, 0}, 5},};
+    EXPECT_EQ(spikes.size(), 6u);
+    std::vector<arb::spike> sexp{{{0, 0}, 2}, {{0, 0}, 3}, {{0, 0}, 4}, {{0, 0}, 5}, {{1, 0}, 2}, {{1, 0}, 5}};
     ASSERT_EQ(spikes, sexp);
 }

@@ -2,6 +2,7 @@
 
 import arbor as A
 from arbor import units as U
+
 import pandas
 import seaborn
 import sys
@@ -38,7 +39,7 @@ decor.place(
 decor.place('"soma_center"', A.threshold_detector(-10 * U.mV), "detector")
 
 # Adjust discretization (single CV on soma, default everywhere else)
-cvp = A.cv_policy_max_extent_um(1.0) | A.cv_policy_single('"soma"')
+cvp = A.cv_policy_max_extent_um(1.0 * U.um) | A.cv_policy_single('"soma"')
 
 # (4) Create the cell.
 cell = A.cable_cell(morpho, decor, labels, cvp)

@@ -200,6 +200,10 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
         Record all generated spikes from cells on all MPI ranks.
 
+        **Note** This convenience method has non-trivial performance
+         implications as Arbor will collate all spikes on all ranks. Prefer
+         ``local`` unless you are absolutely required otherwise and willing to
+         pay the cost.
 
 Recording spikes
 ----------------
