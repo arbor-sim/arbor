@@ -10,6 +10,7 @@
 #include <arbor/util/pp_util.hpp>
 
 #include "communication/gathered_vector.hpp"
+#include "communication/source_rank_map.hpp"
 #include "epoch.hpp"
 #include "label_resolution.hpp"
 
@@ -97,8 +98,8 @@ public:
         return impl_->gather_spikes(local_spikes);
     }
     
-    gathered_vector<spike> all_to_all_spikes(const gathered_vector<spike>& local_spikes) const {
-        return impl_->all_to_all_spikes(local_spikes);
+    gathered_vector<spike> all_to_all_spikes(const std::vector<spike>& local_spikes, const sources_to_target_ranks& lut) const {
+        return impl_->all_to_all_spikes(local_spikes, lut);
     }
 
     gathered_vector<cell_gid_type> gather_gids(const gid_vector& local_gids) const {
@@ -168,7 +169,7 @@ private:
         virtual gathered_vector<spike>
         gather_spikes(const spike_vector& local_spikes) const = 0;
         virtual gathered_vector<spike> 
-        all_to_all_spikes(const gathered_vector<spike>& local_spikes) const = 0;
+        all_to_all_spikes(const std::vector<spike>& local_spikes, const sources_to_target_ranks&) const = 0;
         virtual spike_vector
         remote_gather_spikes(const spike_vector& local_spikes) const = 0;
         virtual gathered_vector<cell_gid_type>
@@ -214,8 +215,8 @@ private:
             return wrapped.gather_spikes(local_spikes);
         }
         gathered_vector<spike>
-        all_to_all_spikes(const gathered_vector<spike>& local_spikes) const override {
-            return wrapped.all_to_all_spikes(local_spikes);
+        all_to_all_spikes(const std::vector<spike>& local_spikes, const sources_to_target_ranks& lut) const override {
+            return wrapped.all_to_all_spikes(local_spikes, lut);
         }
         gathered_vector<cell_gid_type>
         gather_gids(const gid_vector& local_gids) const override {
@@ -280,7 +281,8 @@ struct local_context {
             {0u, static_cast<count_type>(local_spikes.size())}
         );
     }
-    gathered_vector<spike> all_to_all_spikes(const gathered_vector<spike>& local) const {
+    gathered_vector<spike> all_to_all_spikes(const std::vector<spike>& raw, const sources_to_target_ranks& lut) const {
+        auto local = lut.generate_all_to_all_vector(raw);
         using count_type = typename gathered_vector<spike>::count_type;
         std::vector<count_type> partition{0, local.count(0)};
         const auto& spikes = local.values();

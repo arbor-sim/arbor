@@ -72,7 +72,10 @@ struct ARB_ARBOR_API simulation {
     // or an empty vector if no local match for probe id.
     std::vector<probe_metadata> get_probe_metadata(const cell_address_type& probeset_id) const;
 
+    // Number of spikes since last reset, network-wide
     std::size_t num_spikes() const;
+    // Number of spikes since last reset, on local rank
+    std::size_t num_local_spikes() const;
 
     // Register a callback that will perform a export of the global
     // spike vector.

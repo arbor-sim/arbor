@@ -159,19 +159,26 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
     PL(setup);
 
     // loop over timesteps
-    for (const auto& ts : dts) {
+    PE(steps);
+    for (const auto& ts: dts) {
+        PE(get_dt);
         state_->update_time_to(ts);
         arb_assert(state_->time == ts.t_begin());
+        PL(get_dt);
 
         // Update integration step time information visible to mechanisms.
+        PE(set_dt);
         for (auto& m: mechanisms_)         m->set_dt(state_->dt);
         for (auto& m: revpot_mechanisms_)  m->set_dt(state_->dt);
         for (auto& m: voltage_mechanisms_) m->set_dt(state_->dt);
+        PL(set_dt);
 
         // Update any required reversal potentials based on ionic concentrations
+        PE(revpot);
         for (auto& m: revpot_mechanisms_) {
             m->update_current();
         }
+        PL(revpot);
 
         PE(zero);
         state_->zero_currents();
@@ -180,12 +187,14 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
         // Deliver events and accumulate mechanism current contributions.
 
         // Mark all events due before (but not including) the end of this time step (state_->time_to) for delivery
+        PE(deliver);
         state_->mark_events();
         for (auto& m: mechanisms_) {
             // apply the events and drop them afterwards
             state_->deliver_events(*m);
             m->update_current();
         }
+        PL(deliver);
 
         // Add stimulus current contributions.
         // NOTE: performed after dt, time_to calculation, in case we want to
@@ -205,10 +214,12 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
         PL(cable);
 
         // Integrate mechanism state for density
+        PE(state);
         for (auto& m: mechanisms_) {
             state_->update_prng_state(*m);
             m->update_state();
         }
+        PL(state);
 
         // Update ion concentrations.
         PE(ionupdate);
@@ -217,11 +228,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
 
         // voltage mechs run now; after the cable_solver, but before the
         // threshold test
+        PE(v_process);
         for (auto& m: voltage_mechanisms_) m->update_current();
         for (auto& m: voltage_mechanisms_) {
             state_->update_prng_state(*m);
             m->update_state();
         }
+        PL(v_process);
 
         // Update time and test for spike threshold crossings.
         PE(threshold);
@@ -235,17 +248,19 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
         PL(post);
 
         // Advance epoch
+        PE(next_epoch);
         state_->next_time_step();
+        PL(next_epoch);
 
         // Check for non-physical solutions:
-        if (check_voltage_mV_) {
-            PE(physicalcheck);
-            assert_voltage_bounded(check_voltage_mV_.value());
-            PL(physicalcheck);
-        }
+        PE(physicalcheck);
+        if (check_voltage_mV_) assert_voltage_bounded(check_voltage_mV_.value());
+        PL(physicalcheck);
     }
+    PL(steps);
+    auto res = state_->get_integration_result();
     PL(integrate);
-    return state_->get_integration_result();
+    return res;
 }
 
 template <typename Backend>
@@ -555,7 +570,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
         util::transform_view(gids,
                              [&](cell_gid_type i) { return fvm_info.num_targets[i]; }));
 
-    
+
     reset();
     return fvm_info;
 }
@@ -950,7 +965,7 @@ void resolve_probe(const cable_probe_point_state_cell& p, probe_resolution_data<
         ++lid;
     }
 
-    
+
     result.metadata = std::move(metadata);
     result.shrink_to_fit();
     R.result.push_back(std::move(result));

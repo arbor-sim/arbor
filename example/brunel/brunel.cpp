@@ -3,7 +3,6 @@
 #include <iomanip>
 #include <iostream>
 #include <optional>
-#include <set>
 #include <vector>
 #include <random>
 
@@ -61,6 +60,8 @@ struct cl_options {
     std::string spike_file_output = "";
     // Be more verbose with informational messages.
     bool verbose = false;
+    // use round-robin load-balance
+    bool round_robin = false;
 };
 
 std::ostream& operator<<(std::ostream& o, const cl_options& opt);
@@ -319,7 +320,8 @@ int main(int argc, char** argv) {
         hints[cell_kind::cable].cpu_group_size = group_size;
         hints[cell_kind::lif].gpu_group_size = group_size;
         hints[cell_kind::cable].gpu_group_size = group_size;
-        auto dec = partition_load_balance(recipe, context, hints);
+        auto dec = options.round_robin ? round_robin_load_balance(recipe, context, hints)
+                                       : partition_load_balance(recipe, context, hints);
 
         simulation sim(recipe, context, dec);
 
@@ -348,9 +350,10 @@ int main(int argc, char** argv) {
         }
 
         // output profile and diagnostic feedback
-        std::cout << profile::profiler_summary() << "\n"
-                  << "\nThere were " << sim.num_spikes() << " spikes\n";
-
+        std::cout << "There were " << sim.num_spikes() << " spikes\n";
+#ifdef ARB_PROFILE_ENABLED
+        profile::print_profiler_summary(std::cout, 1.0);
+#endif
         auto report = profile::make_meter_report(meters, context);
         std::cout << report;
         if (root) {
@@ -397,6 +400,7 @@ std::optional<cl_options> read_options(int argc, char** argv) {
                      "-S|--seed                [Seed for poisson spike generators]\n"
                      "-f|--write-spikes        [Save spikes to file]\n"
                      "-c|--use-cable-cells     [Use a cable cell model]\n"
+                     "-b|--cyclic-load-balance [Distribute cell round-robin]\n"
                      "-r|--use-raw-connections [Disable connection resolution]\n"
                      "-v|--verbose             [Print more verbose information to stdout]\n";
 
@@ -406,23 +410,24 @@ std::optional<cl_options> read_options(int argc, char** argv) {
     };
 
     to::option options[] = {
-            { opt.nexc,                        "-n", "--n-excitatory" },
-            { opt.ninh,                        "-m", "--n-inhibitory" },
-            { opt.next,                        "-e", "--n-external" },
-            { opt.syn_per_cell_prop,           "-p", "--in-degree-prop" },
-            { opt.weight,                      "-w", "--weight" },
-            { opt.delay,                       "-d", "--delay" },
-            { opt.rel_inh_strength,            "-g", "--rel-inh-w" },
-            { opt.poiss_lambda,                "-l", "--lambda" },
-            { opt.tfinal,                      "-t", "--tfinal" },
-            { opt.dt,                          "-s", "--dt" },
-            { opt.group_size,                  "-G", "--group-size" },
-            { opt.seed,                        "-S", "--seed" },
-            { opt.spike_file_output,           "-f", "--write-spikes" },
-            { to::set(opt.use_cc),   to::flag, "-c", "--use-cable-cells" },
-            { to::set(opt.use_raw),  to::flag, "-r", "--use-raw-connections" },
-            { to::set(opt.verbose),  to::flag, "-v", "--verbose" },
-            { to::action(help),      to::flag, to::exit, "-h", "--help" }
+        { opt.nexc,                           "-n", "--n-excitatory" },
+        { opt.ninh,                           "-m", "--n-inhibitory" },
+        { opt.next,                           "-e", "--n-external" },
+        { opt.syn_per_cell_prop,              "-p", "--in-degree-prop" },
+        { opt.weight,                         "-w", "--weight" },
+        { opt.delay,                          "-d", "--delay" },
+        { opt.rel_inh_strength,               "-g", "--rel-inh-w" },
+        { opt.poiss_lambda,                   "-l", "--lambda" },
+        { opt.tfinal,                         "-t", "--tfinal" },
+        { opt.dt,                             "-s", "--dt" },
+        { opt.group_size,                     "-G", "--group-size" },
+        { opt.seed,                           "-S", "--seed" },
+        { opt.spike_file_output,              "-f", "--write-spikes" },
+        { to::set(opt.round_robin), to::flag, "-b", "--cyclic-load-balance"},
+        { to::set(opt.use_cc),      to::flag, "-c", "--use-cable-cells" },
+        { to::set(opt.use_raw),     to::flag, "-r", "--use-raw-connections" },
+        { to::set(opt.verbose),     to::flag, "-v", "--verbose" },
+        { to::action(help),         to::flag, to::exit, "-h", "--help" }
     };
 
     if (!to::run(options, argc, argv+1)) return {};
@@ -447,6 +452,7 @@ std::optional<cl_options> read_options(int argc, char** argv) {
 std::ostream& operator<<(std::ostream& o, const cl_options& options) {
     o << "Simulation options:\n"
       << "  Cell kind                                                  : " << (options.use_cc ? "cable" : "lif") << "\n"
+      << "  Cell distribution                                          : " << (options.round_robin ? "cyclic" : "linear") << "\n"
       << "  Excitatory cells                                           : " << options.nexc << "\n"
       << "  Inhibitory cells                                           : " << options.ninh << "\n"
       << "  Poisson connections per cell                               : " << options.next << "\n"

@@ -11,6 +11,7 @@ set(bench_sources
     mech_vec.cpp
     task_system.cpp
     merge.cpp
+    make_queues.cpp
 )
 
 if(ARB_WITH_GPU)

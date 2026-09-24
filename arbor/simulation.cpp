@@ -88,9 +88,8 @@ struct simulation_state {
 
     std::vector<probe_metadata> get_probe_metadata(const cell_address_type&) const;
 
-    std::size_t num_spikes() const {
-        return communicator_.num_spikes();
-    }
+    std::size_t num_spikes() const { return communicator_.num_spikes(); }
+    std::size_t num_local_spikes() const { return communicator_.num_local_spikes(); }
 
     void set_remote_spike_filter(const spike_predicate& p) { return communicator_.set_remote_spike_filter(p); }
 
@@ -615,9 +614,8 @@ std::vector<probe_metadata> simulation::get_probe_metadata(const cell_address_ty
     return impl_->get_probe_metadata(probeset_id);
 }
 
-std::size_t simulation::num_spikes() const {
-    return impl_->num_spikes();
-}
+std::size_t simulation::num_spikes() const { return impl_->num_spikes(); }
+std::size_t simulation::num_local_spikes() const { return impl_->num_local_spikes(); }
 
 void simulation::set_global_spike_callback(spike_export_function export_callback) {
     impl_->global_export_callback_ = std::move(export_callback);
