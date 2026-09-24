@@ -63,7 +63,8 @@ struct parse_error {
 
 template <typename T>
 using parse_hopefully = arb::util::expected<T, parse_error>;
-using arb::util::unexpected;
+// Alias to avoid conflict with MSVC's ::unexpected() from <eh.h> on Windows.
+namespace arb_util = arb::util;
 using asc::tok;
 
 #define PARSE_ERROR(msg, loc) parse_error(msg, loc, {__FILE__, __LINE__})
@@ -76,7 +77,7 @@ using asc::tok;
 parse_hopefully<tok> expect_token(asc::lexer& l, tok kind) {
     auto& t = l.current();
     if (t.kind != kind) {
-        return unexpected(PARSE_ERROR("unexpected symbol '"+t.spelling+"'", t.loc));
+        return arb_util::unexpected(PARSE_ERROR("unexpected symbol '"+t.spelling+"'", t.loc));
     }
     l.next();
     return kind;
@@ -89,7 +90,7 @@ parse_hopefully<tok> expect_token(asc::lexer& l, tok kind) {
 parse_hopefully<double> parse_double(asc::lexer& L) {
     auto t = L.current();
     if (!(t.kind==tok::integer || t.kind==tok::real)) {
-        return unexpected(PARSE_ERROR("missing real number", L.current().loc));
+        return arb_util::unexpected(PARSE_ERROR("missing real number", L.current().loc));
     }
     L.next(); // consume the number
     return std::stod(t.spelling);
@@ -101,13 +102,13 @@ parse_hopefully<double> parse_double(asc::lexer& L) {
 parse_hopefully<std::uint8_t> parse_uint8(asc::lexer& L) {
     auto t = L.current();
     if (t.kind!=tok::integer) {
-        return unexpected(PARSE_ERROR("missing uint8 number", L.current().loc));
+        return arb_util::unexpected(PARSE_ERROR("missing uint8 number", L.current().loc));
     }
 
     // convert to large integer and test
     auto value = std::stoll(t.spelling);
     if (value<0 || value>255) {
-        return unexpected(PARSE_ERROR("value out of range [0, 255]", L.current().loc));
+        return arb_util::unexpected(PARSE_ERROR("value out of range [0, 255]", L.current().loc));
     }
     L.next(); // consume token
     return static_cast<std::uint8_t>(value);
@@ -195,7 +196,7 @@ std::unordered_map<std::string, asc_color> color_map = {
 parse_hopefully<asc_color> parse_color(asc::lexer& L) {
     EXPECT_TOKEN(L, tok::lparen);
     if (!symbol_matches("Color", L.current())) {
-        return unexpected(PARSE_ERROR("expected Color symbol missing", L.current().loc));
+        return arb_util::unexpected(PARSE_ERROR("expected Color symbol missing", L.current().loc));
     }
     // consume Color symbol
     auto t = L.next();
@@ -226,11 +227,11 @@ parse_hopefully<asc_color> parse_color(asc::lexer& L) {
             return it->second;
         }
         else {
-            return unexpected(PARSE_ERROR("unknown color value '"+t.spelling+"'", t.loc));
+            return arb_util::unexpected(PARSE_ERROR("unknown color value '"+t.spelling+"'", t.loc));
         }
     }
 
-    return unexpected(PARSE_ERROR("unexpected symbol in Color description \'"+t.spelling+"\'", t.loc));
+    return arb_util::unexpected(PARSE_ERROR("unexpected symbol in Color description \'"+t.spelling+"\'", t.loc));
 }
 
 #define PARSE_COLOR(L, X) {if (auto rval__ = parse_color(L)) X=*rval__; else return FORWARD_PARSE_ERROR(rval__.error());}
@@ -265,7 +266,7 @@ parse_hopefully<zsmear> parse_zsmear(asc::lexer& L) {
     EXPECT_TOKEN(L, tok::lparen);
 
     if (!symbol_matches("zSmear", L.current())) {
-        return unexpected(PARSE_ERROR("expected zSmear symbol missing", L.current().loc));
+        return arb_util::unexpected(PARSE_ERROR("expected zSmear symbol missing", L.current().loc));
     }
     // consume zSmear symbol
     auto t = L.next();
@@ -330,13 +331,13 @@ parse_hopefully<asc_spine> parse_spine(asc::lexer& L) {
 parse_hopefully<std::string> parse_name(asc::lexer& L) {
     EXPECT_TOKEN(L, tok::lparen);
     if (!symbol_matches("Name", L.current())) {
-        return unexpected(PARSE_ERROR("expected Name symbol missing", L.current().loc));
+        return arb_util::unexpected(PARSE_ERROR("expected Name symbol missing", L.current().loc));
     }
 
     // consume Name symbol
     auto t = L.next();
     if (t.kind != tok::string) {
-        return unexpected(PARSE_ERROR("expected a string in name description", t.loc));
+        return arb_util::unexpected(PARSE_ERROR("expected a string in name description", t.loc));
     }
     std::string name = t.spelling;
 
@@ -364,7 +365,7 @@ parse_hopefully<asc_marker_set> parse_markers(asc::lexer& L) {
     // parse marker kind keyword
     auto t = L.current();
     if (!is_marker_symbol(t)) {
-        return unexpected(PARSE_ERROR("expected a valid marker type", t.loc));
+        return arb_util::unexpected(PARSE_ERROR("expected a valid marker type", t.loc));
     }
     if (t.spelling == "Dot") {
         markers.marker = asc_marker::dot;
@@ -469,7 +470,7 @@ parse_hopefully<branch> parse_branch(asc::lexer& L) {
         else if (is_branch_end_symbol(t)) {
             L.next(); // Consume symbol
             if (!branch_end(t)) {
-                return unexpected(PARSE_ERROR("Incomplete, Normal, High, Low or Generated not at a branch terminal", t.loc));
+                return arb_util::unexpected(PARSE_ERROR("Incomplete, Normal, High, Low or Generated not at a branch terminal", t.loc));
             }
             finished = true;
         }
@@ -481,7 +482,7 @@ parse_hopefully<branch> parse_branch(asc::lexer& L) {
             finished = true;
         }
         else {
-            return unexpected(PARSE_ERROR("Unexpected input '"+t.spelling+"'", t.loc));
+            return arb_util::unexpected(PARSE_ERROR("Unexpected input '"+t.spelling+"'", t.loc));
         }
     }
 
@@ -583,23 +584,23 @@ parse_hopefully<sub_tree> parse_sub_tree(asc::lexer& L) {
                 break;
             }
             else {
-                return unexpected(PARSE_ERROR("Unexpected input'"+t.spelling+"'", t.loc));
+                return arb_util::unexpected(PARSE_ERROR("Unexpected input'"+t.spelling+"'", t.loc));
             }
         }
         else if (t.kind == tok::rparen) {
             // The end of the sub-tree expression was reached while parsing the header.
             // Implies that there were no samples in the sub-tree, which we will treat
             // as an error.
-            return unexpected(PARSE_ERROR("Empty sub-tree", t.loc));
+            return arb_util::unexpected(PARSE_ERROR("Empty sub-tree", t.loc));
         }
         else {
             // An unexpected token was encountered.
-            return unexpected(PARSE_ERROR("Unexpected input '"+t.spelling+"'", t.loc));
+            return arb_util::unexpected(PARSE_ERROR("Unexpected input '"+t.spelling+"'", t.loc));
         }
     }
 
     if (tree.tag==tree.no_tag) {
-        return unexpected(PARSE_ERROR("Missing sub-tree label (CellBody, Axon, Dendrite or Apical)", L.current().loc));
+        return arb_util::unexpected(PARSE_ERROR("Missing sub-tree label (CellBody, Axon, Dendrite or Apical)", L.current().loc));
     }
 
     // Now that the meta data has been read, process the samples.

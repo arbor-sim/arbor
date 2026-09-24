@@ -239,15 +239,7 @@ struct implbase {
     }
 
     static vector_type fma(const vector_type& u, const vector_type& v, const vector_type& w) {
-        store a, b, c, r;
-        I::copy_to(u, a);
-        I::copy_to(v, b);
-        I::copy_to(w, c);
-
-        for (unsigned i = 0; i<width; ++i) {
-            r[i] = compat::fma(a[i], b[i], c[i]);
-        }
-        return I::copy_from(r);
+        return I::add(w, I::mul(u, v));
     }
 
     static mask_type cmp_eq(const vector_type& u, const vector_type& v) {

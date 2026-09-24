@@ -125,10 +125,13 @@ TEST(partition, make_partition_in_place) {
     ASSERT_EQ(0u, p.size());
     ASSERT_TRUE(p.empty());
 
+// std::array<T,0> iterators are not raw pointers on MSVC; skip this conversion test on Windows.
+#ifndef _WIN32
     std::array<unsigned,0> part_store_zero;
     p = util::make_partition(util::partition_in_place, part_store_zero, sizes, 10u);
     ASSERT_EQ(0u, p.size());
     ASSERT_TRUE(p.empty());
+#endif
 }
 
 TEST(partition, make_partition) {

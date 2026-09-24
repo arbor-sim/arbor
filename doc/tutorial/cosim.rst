@@ -12,7 +12,7 @@ tutorial, we are assuming you are comfortable with the basics of Arbor (cells,
 recipes, and networks), Python package management, and MPI, as wells as
 installing software on your system. All source code for all intermediate steps
 can be in the directory
-`python/example/cosim <https://github.com/arbor-sim/arbor/tree/master/python/example/brunel>`__
+`python/example/cosim <https://github.com/arbor-sim/arbor/tree/master/python/example/cosim>`__
 of the Arbor source tree.
 
 Setup

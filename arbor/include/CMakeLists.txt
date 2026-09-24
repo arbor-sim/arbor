@@ -22,7 +22,7 @@ target_include_directories(arbor-public-headers INTERFACE
 
 add_custom_command(
     OUTPUT _always_rebuild
-    COMMAND true
+    COMMAND ${CMAKE_COMMAND} -E echo "" > ${CMAKE_CURRENT_BINARY_DIR}/_always_rebuild
 )
 
 set(arb_features)
@@ -59,10 +59,15 @@ endif()
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" arb_config_str)
 
+if(WIN32)
+    find_program(BASH_EXECUTABLE bash HINTS "C:/Program Files/Git/bin" REQUIRED)
+else()
+    set(BASH_EXECUTABLE bash)
+endif()
 add_custom_command(
     OUTPUT version.hpp-test
     DEPENDS _always_rebuild
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/git-source-id ${FULL_VERSION_STRING} ${ARB_ARCH} ${arb_config_str} ${arb_features} > version.hpp-test
+    COMMAND ${BASH_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/git-source-id ${FULL_VERSION_STRING} ${ARB_ARCH} ${arb_config_str} ${arb_features} > version.hpp-test
 )
 
 set(version_hpp_path arbor/version.hpp)
