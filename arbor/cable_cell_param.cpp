@@ -123,6 +123,11 @@ decor& decor::place(locset where, placeable what, cell_tag_type label) {
     return *this;
 }
 
+decor& decor::place(locset where, i_clamp what) {
+    placements_.emplace_back(std::move(where), std::move(what), hash_type(-1));
+    return *this;
+}
+    
 decor& decor::set_default(defaultable what) {
     std::visit(
             [this] (auto&& p) {

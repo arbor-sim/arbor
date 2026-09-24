@@ -53,13 +53,20 @@ struct cell_connection_base {
     L source;
     cell_local_label_type target;
 
-    float weight; // [()]
-    float delay;  // [ms]
+    float weight = 0; // [()]
+    float delay = 0;  // [ms]
+
+    cell_connection_base() = default;
+    cell_connection_base(const cell_connection_base&) = default;
+    cell_connection_base(cell_connection_base&&) = default;
+
+    cell_connection_base& operator=(const cell_connection_base&) = default;
+    cell_connection_base& operator=(cell_connection_base&&) = default;
 
     cell_connection_base(L src, cell_local_label_type dst, float w, const U::quantity& d):
-        source(std::move(src)), target(std::move(dst)), weight(w), delay(d.value_as(U::ms)) {
+        source(std::move(src)), target(std::move(dst)), weight(w), delay(U::unit_of(d, U::ms, "Delay")) {
         if (!std::isfinite(weight)) throw std::domain_error("Connection weight must be finite.");
-        if (!std::isfinite(delay) || delay <= 0)  throw std::domain_error("Connection delay must be positive, finite, and given in units of [ms].");
+        if (delay < 0) throw std::domain_error("Connection delay must be positive.");
     }
 };
 

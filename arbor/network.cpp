@@ -2,6 +2,12 @@
 #include <arbor/network.hpp>
 #include <arbor/util/hash_def.hpp>
 
+// On HIP, sincosf/sincos are device-only; use the sin+cos fallback in Random123.
+#if defined(__HIP_PLATFORM_AMD__) || defined(__HIP__)
+#  ifndef R123_NO_SINCOS
+#    define R123_NO_SINCOS 1
+#  endif
+#endif
 #include <Random123/threefry.h>
 #include <Random123/boxmuller.hpp>
 #include <Random123/uniform.hpp>
@@ -122,6 +128,7 @@ struct network_selection_source_cell_kind_impl: public network_selection_impl {
         case arb::cell_kind::cable: os << "cable"; break;
         case arb::cell_kind::lif: os << "lif"; break;
         case arb::cell_kind::benchmark: os << "benchmark"; break;
+        case cell_kind::adex: os << "adex"; break;
         }
         os << "-cell))";
     }
@@ -152,6 +159,7 @@ struct network_selection_target_cell_kind_impl: public network_selection_impl {
         case arb::cell_kind::cable: os << "cable"; break;
         case arb::cell_kind::lif: os << "lif"; break;
         case arb::cell_kind::benchmark: os << "benchmark"; break;
+        case cell_kind::adex: os << "adex"; break;
         }
         os << "-cell))";
     }

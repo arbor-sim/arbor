@@ -130,7 +130,7 @@ Step **(8)** assigns the regional mechanisms.
 
 Now that the electro-physiology is all set up, let's move on to the experimental setup.
 
-Step **(9)** configures the :class:`stimulus <arbor.iclamp>` of 150 nA for a
+Step **(9)** configures the :class:`stimulus <arbor.i_clamp>` of 150 nA for a
 duration of 1 s, starting after 200 ms of the start of the simulation. We'll
 also install a :class:`arbor.threshold_detector` that triggers at -40 mV. (The
 location is usually the soma, as is confirmed by coordinates found in the

@@ -41,7 +41,6 @@ public:
 };
 
 // A `symbol_term` is either zero or a product of symbols.
-
 struct symbol_term {
     symbol left, right;
 
@@ -62,17 +61,12 @@ struct symbol_term_diff {
 
 inline symbol_term operator*(symbol a, symbol b) { return symbol_term{a, b}; }
 
-inline symbol_term_diff operator-(symbol_term l, symbol_term r) {
-    return symbol_term_diff{l, r};
-}
+inline symbol_term_diff operator-(symbol_term l, symbol_term r) { return symbol_term_diff{l, r}; }
 
-inline symbol_term_diff operator-(symbol_term r) {
-    return symbol_term_diff{symbol_term{}, r};
-}
+inline symbol_term_diff operator-(symbol_term r) { return symbol_term_diff{symbol_term{}, r}; }
 
 // Symbols are not re-assignable; they are created as primitive, or
 // have a definition in terms of a `symbol_term_diff`.
-
 class symbol_table {
 private:
     struct table_entry {
@@ -98,9 +92,7 @@ public:
         return s;
     }
 
-    symbol define(const symbol_term_diff& def) {
-        return define("", def);
-    }
+    symbol define(const symbol_term_diff& def) { return define("", def); }
 
     symbol_term_diff get(symbol s) const {
         if (!defined(s)) throw symbol_error("symbol is primitive");
@@ -134,9 +126,7 @@ public:
     void clear() { entries_.clear(); }
 };
 
-inline std::string name(symbol s) {
-    return s? s.table()->name(s): "";
-}
+inline std::string name(symbol s) { return s? s.table()->name(s): ""; }
 
 inline symbol_term_diff definition(symbol s) {
     if (!s) throw symbol_error("invalid symbol");

@@ -1,4 +1,3 @@
-#include <map>
 #include <string>
 #include <vector>
 
@@ -33,13 +32,28 @@ TEST(mechanism_desc, setting) {
     auto p = m.values();
     EXPECT_EQ(3u, p.size());
 
-    EXPECT_TRUE(p.count("a"));
-    EXPECT_TRUE(p.count("b"));
-    EXPECT_TRUE(p.count("d"));
+    auto count = [](const auto& nm, const auto& kvs) {
+        int res = 0;
+        for (const auto& [k,v]: kvs) {
+            if (nm == k) res += 1;
+        }
+        return res;
+    };
 
-    EXPECT_EQ(p["a"], m["a"]);
-    EXPECT_EQ(p["b"], m["b"]);
-    EXPECT_EQ(p["d"], m["d"]);
+    EXPECT_TRUE(count("a", p));
+    EXPECT_TRUE(count("b", p));
+    EXPECT_TRUE(count("d", p));
+
+    auto find = [](const auto& nm, const auto& kvs) -> double {
+        for (const auto& [k,v]: kvs) {
+            if (nm == k) return v;
+        }
+        return std::nan("");
+    };
+
+    EXPECT_EQ(find("a", p), m["a"]);
+    EXPECT_EQ(find("b", p), m["b"]);
+    EXPECT_EQ(find("d", p), m["d"]);
 }
 
 TEST(mechanism_desc, linearity) {
@@ -52,5 +66,4 @@ TEST(mechanism_desc, linearity) {
         auto cat = make_unit_test_catalogue();
         EXPECT_FALSE(cat["non_linear"].linear);
     }
-
 }

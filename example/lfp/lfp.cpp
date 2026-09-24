@@ -2,6 +2,7 @@
 #include <cassert>
 #include <vector>
 #include <iostream>
+#include <numeric>
 
 #include <arbor/cable_cell.hpp>
 #include <arbor/morph/morphology.hpp>
