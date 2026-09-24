@@ -329,7 +329,6 @@ TEST(cv_policy, domain) {
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_max_extent(3_um, reg1).domain()));
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_max_extent(3_um, reg1, interior_forks).domain()));    
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_every_segment(reg1).domain()));
-
     EXPECT_TRUE(region_eq(cell.provider(), join(reg1, reg2), (cv_policy_single(reg1)+cv_policy_single(reg2)).domain()));
     EXPECT_TRUE(region_eq(cell.provider(), join(reg1, reg2), (cv_policy_single(reg1)|cv_policy_single(reg2)).domain()));
 }
