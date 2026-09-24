@@ -120,28 +120,30 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
                    const fvm_mechanism_data& mech_data,
                    const std::vector<target_handle>& target_handles,
                    probe_association_map& probe_map);
+
+    // helper to iterate _all_ mech pointers
+    template<typename F>
+    void forall_mechanisms(F&& func) {
+        for (auto& m: voltage_mechanisms_)  func(m);
+        for (auto& m: revpot_mechanisms_)   func(m);
+        for (auto& m: point_mechanisms_)    func(m);
+        for (auto& m: density_mechanisms_)  func(m);
+        for (auto& m: junction_mechanisms_) func(m);
+    }
 };
 
 template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::reset() {
     state_->reset();
 
-    for (auto& m: voltage_mechanisms_)  m->initialize();
-    for (auto& m: revpot_mechanisms_)   m->initialize();
-    for (auto& m: point_mechanisms_)    m->initialize();
-    for (auto& m: density_mechanisms_)  m->initialize();
-    for (auto& m: junction_mechanisms_) m->initialize();
+    forall_mechanisms([](auto& m) { m->initialize(); });
 
     update_ion_state();
     state_->zero_currents();
 
     // Note: mechanisms must be initialized again after the ion state is updated,
     // as mechanisms can read/write the ion_state within the initialize block
-    for (auto& m: revpot_mechanisms_)   m->initialize();
-    for (auto& m: point_mechanisms_)    m->initialize();
-    for (auto& m: voltage_mechanisms_)  m->initialize();
-    for (auto& m: density_mechanisms_)  m->initialize();
-    for (auto& m: junction_mechanisms_) m->initialize();
+    forall_mechanisms([](auto& m) { m->initialize(); });
 
     // NOTE: Threshold watcher reset must come after the voltage values are set,
     //       as voltage is implicitly read by watcher to set initial state.
@@ -169,11 +171,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
 
         // Update integration step time information visible to mechanisms.
         const auto dt = state_->dt;
-        for (auto& m: density_mechanisms_)  m->set_dt(dt);
-        for (auto& m: point_mechanisms_)    m->set_dt(dt);
-        for (auto& m: revpot_mechanisms_)   m->set_dt(dt);
-        for (auto& m: voltage_mechanisms_)  m->set_dt(dt);
-        for (auto& m: junction_mechanisms_) m->set_dt(dt);
+        forall_mechanisms([](auto& m) { m->set_dt(dt); });
 
         // Update any required reversal potentials based on ionic concentrations
         for (auto& m: revpot_mechanisms_) m->update_current();

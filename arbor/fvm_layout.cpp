@@ -1143,6 +1143,7 @@ auto make_mechanism_config(const mechanism_info& info,
     }
     fvm_mechanism_config result;
     result.kind = expected;
+    result.has_post_event = info.post_events;
     return result;
 }
 
@@ -1503,7 +1504,6 @@ make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<
              });
 
         auto config = make_mechanism_config(info, arb_mechanism_kind_point);
-        config.has_post_event = info.post_events;
 
         // Do coalesce?
         if (!info.random_variables.size() && info.linear && data.coalesce) {
