@@ -86,8 +86,7 @@ Class documentation
     .. cpp:type:: spike_export_function = std::function<void(const std::vector<spike>&)>
 
         User-supplied callback function used as a sink for spikes generated
-        during a simulation. See :cpp:func:`set_local_spike_callback` and
-        :cpp:func:`set_global_spike_callback`.
+        during a simulation. See :cpp:func:`set_local_spike_callback`.
 
     **Constructor:**
 
@@ -113,10 +112,9 @@ Class documentation
 
     **I/O:**
 
-    .. cpp:function:: sampler_association_handle add_sampler(\
-                        cell_member_predicate probeset_ids,\
-                        schedule sched,\
-                        sampler_function f)
+    .. cpp:function:: sampler_association_handle add_sampler(cell_member_predicate probeset_ids,\
+                                                             schedule sched,\
+                                                             sampler_function f)
 
         Note: sampler functions may be invoked from a different thread than that
         which is called :cpp:func:`run`.
@@ -144,13 +142,6 @@ Class documentation
 
         The total number of spikes generated since either construction or
         the last call to :cpp:func:`reset`.
-
-    .. cpp:function:: void set_global_spike_callback(spike_export_function export_callback)
-
-        Register a callback that will periodically be passed a vector with all of
-        the spikes generated over all domains (the global spike vector) since
-        the last call.
-        Will be called on the MPI rank/domain with id 0.
 
     .. cpp:function:: void set_local_spike_callback(spike_export_function export_callback)
 
