@@ -171,7 +171,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
 
         // Update integration step time information visible to mechanisms.
         const auto dt = state_->dt;
-        forall_mechanisms([](auto& m) { m->set_dt(dt); });
+        forall_mechanisms([dt](auto& m) { m->set_dt(dt); });
 
         // Update any required reversal potentials based on ionic concentrations
         for (auto& m: revpot_mechanisms_) m->update_current();
@@ -185,7 +185,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
         state_->mark_events();
         for (auto& m: point_mechanisms_) state_->deliver_events(*m);
 
-        // Now we are fre to update currents.
+        // Now we are free to update currents.
         for (auto& m: density_mechanisms_)  m->update_current();
         for (auto& m: point_mechanisms_)    m->update_current();
         for (auto& m: junction_mechanisms_) m->update_current();
@@ -255,7 +255,6 @@ template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::update_ion_state() {
     state_->ions_init_concentration();
     // NOTE neither voltage nor revpot mechanisms can alter ions
-    // TODO Can junction/point?
     for (auto& m: point_mechanisms_)    m->update_ions();
     for (auto& m: density_mechanisms_)  m->update_ions();
     for (auto& m: junction_mechanisms_) m->update_ions();
