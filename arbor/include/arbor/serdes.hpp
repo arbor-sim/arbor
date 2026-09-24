@@ -180,6 +180,11 @@ ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, const std::shar
 }
 
 template<typename K>
+ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, long long v) {
+    ser.write(arb::to_serdes_key(k), v);
+}
+
+template<typename K>
 ARB_ARBOR_API void serialize(::arb::serializer& ser, const K& k, long v) {
     ser.write(arb::to_serdes_key(k), static_cast<long long>(v));
 }
@@ -277,6 +282,11 @@ template<typename K, typename P>
 ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, std::shared_ptr<P>& p) {
     if (!p) throw arb::null_error{k};
     deserialize(ser, k, *p);
+}
+
+template<typename K>
+ARB_ARBOR_API void deserialize(::arb::serializer& ser, const K& k, long long& v) {
+    ser.read(arb::to_serdes_key(k), v);
 }
 
 template<typename K>

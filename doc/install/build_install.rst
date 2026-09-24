@@ -127,7 +127,7 @@ GPU support
 ~~~~~~~~~~~
 
 Arbor has full support for NVIDIA GPUs, for which the NVIDIA CUDA toolkit version 11 is required.
-And experimental support for AMD GPUs when compiled with hip-clang (non-release compiler).
+And support for AMD GPUs when compiled with hipcc (ROCm), on CDNA (gfx9xx) and RDNA (gfx10xx/gfx11xx) GPUs.
 
 Distributed
 ~~~~~~~~~~~

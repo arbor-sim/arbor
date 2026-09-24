@@ -2,6 +2,12 @@
 
 #include <limits>
 
+#ifdef _WIN32
+#  include <malloc.h>
+#  define posix_memalign(p, a, s) ((*p = _aligned_malloc((s), (a))), ((*p) ? 0 : ENOMEM))
+#  include <errno.h>
+#endif
+
 #include "gpu_wrappers.hpp"
 #include "definitions.hpp"
 #include "util.hpp"
@@ -78,7 +84,11 @@ namespace impl {
         }
 
         void free_policy(void *ptr) {
+#ifdef _WIN32
+            _aligned_free(ptr);
+#else
             free(ptr);
+#endif
         }
 
         static constexpr size_type alignment() {

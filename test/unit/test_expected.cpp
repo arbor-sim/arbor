@@ -3,7 +3,11 @@
 #include <utility>
 #include <arbor/util/expected.hpp>
 
-using namespace arb::util;
+using arb::util::expected;
+using arb::util::unexpect;
+// Qualify arb::util::unexpected explicitly to avoid conflict with
+// the legacy ::unexpected() from MSVC's <eh.h> on Windows.
+namespace arb_util = arb::util;
 using std::in_place;
 
 TEST(expected, ctors) {
@@ -50,17 +54,17 @@ TEST(expected, ctors) {
 
         int3 v;
         v.v = 19;
-        expected<int3, int3> x{unexpected(v)};
+        expected<int3, int3> x{arb_util::unexpected(v)};
         EXPECT_FALSE(x);
         EXPECT_EQ(19, x.error().v);
-        EXPECT_THROW(x.value(), bad_expected_access<int3>);
+        EXPECT_THROW(x.value(), arb_util::bad_expected_access<int3>);
     }
     {
         // From-unexpected void construction.
 
         int3 v;
         v.v = 19;
-        expected<void, int3> x{unexpected(v)};
+        expected<void, int3> x{arb_util::unexpected(v)};
         EXPECT_FALSE(x);
         EXPECT_EQ(19, x.error().v);
     }
@@ -70,7 +74,7 @@ TEST(expected, ctors) {
         expected<int3, int3> x(unexpect, 1, 2, 3);
         EXPECT_FALSE(x);
         EXPECT_EQ(6, x.error().v);
-        EXPECT_THROW(x.value(), bad_expected_access<int3>);
+        EXPECT_THROW(x.value(), arb_util::bad_expected_access<int3>);
     }
     {
         // In-place void unexpected construction.
@@ -139,12 +143,12 @@ TEST(expected, assignment) {
         EXPECT_EQ(30, (y=a).value().v);
 
         expected<int, X> z;
-        EXPECT_EQ(20, (z=unexpected(1)).error().v);
-        unexpected<int> b(3);
+        EXPECT_EQ(20, (z=arb_util::unexpected(1)).error().v);
+        arb_util::unexpected<int> b(3);
         EXPECT_EQ(30, (z=b).error().v);
 
         expected<void, X> v;
-        EXPECT_EQ(20, (v=unexpected(1)).error().v);
+        EXPECT_EQ(20, (v=arb_util::unexpected(1)).error().v);
         EXPECT_EQ(30, (v=b).error().v);
     }
 }
@@ -215,22 +219,22 @@ TEST(expected, equality) {
         EXPECT_FALSE(x!=10);
         EXPECT_FALSE(10!=x);
 
-        EXPECT_FALSE(x==unexpected(10));
-        EXPECT_FALSE(unexpected(10)==x);
-        EXPECT_TRUE(x!=unexpected(10));
-        EXPECT_TRUE(unexpected(10)!=x);
+        EXPECT_FALSE(x==arb_util::unexpected(10));
+        EXPECT_FALSE(arb_util::unexpected(10)==x);
+        EXPECT_TRUE(x!=arb_util::unexpected(10));
+        EXPECT_TRUE(arb_util::unexpected(10)!=x);
 
-        x = unexpected(10);
+        x = arb_util::unexpected(10);
 
         EXPECT_FALSE(x==10);
         EXPECT_FALSE(10==x);
         EXPECT_TRUE(x!=10);
         EXPECT_TRUE(10!=x);
 
-        EXPECT_TRUE(x==unexpected(10));
-        EXPECT_TRUE(unexpected(10)==x);
-        EXPECT_FALSE(x!=unexpected(10));
-        EXPECT_FALSE(unexpected(10)!=x);
+        EXPECT_TRUE(x==arb_util::unexpected(10));
+        EXPECT_TRUE(arb_util::unexpected(10)==x);
+        EXPECT_FALSE(x!=arb_util::unexpected(10));
+        EXPECT_FALSE(arb_util::unexpected(10)!=x);
     }
     {
         // void value expected comparisons:
@@ -278,18 +282,18 @@ TEST(expected, equality) {
         expected<void, int> x;
 
         EXPECT_TRUE(x);
-        EXPECT_FALSE(x==unexpected(10));
-        EXPECT_FALSE(unexpected(10)==x);
-        EXPECT_TRUE(x!=unexpected(10));
-        EXPECT_TRUE(unexpected(10)!=x);
+        EXPECT_FALSE(x==arb_util::unexpected(10));
+        EXPECT_FALSE(arb_util::unexpected(10)==x);
+        EXPECT_TRUE(x!=arb_util::unexpected(10));
+        EXPECT_TRUE(arb_util::unexpected(10)!=x);
 
-        x = unexpected<int>(10);
+        x = arb_util::unexpected<int>(10);
 
         EXPECT_FALSE(x);
-        EXPECT_TRUE(x==unexpected(10));
-        EXPECT_TRUE(unexpected(10)==x);
-        EXPECT_FALSE(x!=unexpected(10));
-        EXPECT_FALSE(unexpected(10)!=x);
+        EXPECT_TRUE(x==arb_util::unexpected(10));
+        EXPECT_TRUE(arb_util::unexpected(10)==x);
+        EXPECT_FALSE(x!=arb_util::unexpected(10));
+        EXPECT_FALSE(arb_util::unexpected(10)!=x);
     }
 }
 
@@ -334,12 +338,12 @@ TEST(expected, swap) {
     EXPECT_EQ(0, swaps); // Xswap is moved, not swapped.
 
     swaps = 0;
-    unexpected<Xswap> u1(in_place, -1, swaps), u2(in_place, -2, swaps);
+    arb_util::unexpected<Xswap> u1(in_place, -1, swaps), u2(in_place, -2, swaps);
     swap(u1, u2);
     EXPECT_EQ(-2, u1.value().val);
     EXPECT_EQ(-1, u2.value().val);
     EXPECT_EQ(1, swaps);
 
-    EXPECT_TRUE(std::is_nothrow_swappable<unexpected<Xswap>>::value);
-    EXPECT_FALSE(std::is_nothrow_swappable<unexpected<swap_can_throw>>::value);
+    EXPECT_TRUE(std::is_nothrow_swappable<arb_util::unexpected<Xswap>>::value);
+    EXPECT_FALSE(std::is_nothrow_swappable<arb_util::unexpected<swap_can_throw>>::value);
 }
