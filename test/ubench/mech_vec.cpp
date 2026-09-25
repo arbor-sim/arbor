@@ -68,11 +68,7 @@ const mechanism_ptr& find_mechanism(const std::string& name, fvm_cell& cell) {
                           de.end(),
                           [&](mechanism_ptr& m){return m->internal_name()==name;});
     }
-    if (it==de.end()) {
-        std::cerr << "couldn't find mechanism with name " << name << "\n";
-        exit(1);
-    }
-    return *it;
+    if (it == de.end()) throw std::runtime_error("Couldn't find mechanism with name " + name);
     return *it;
 }
 
