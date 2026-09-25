@@ -475,8 +475,8 @@ The set of boundary points used by the simulator is determined by a
    .. py:function:: boundary_points(cell: arbor.cable_cell)
 
       Return the points delimiting the CVs of the given ``cell`` after
-      discretisation using this ``cv_policy``. 
-       
+      discretisation using this ``cv_policy``.
+
    CV policies can be :ref:`composed <morph-cv-composition>` with
    ``+`` and ``|`` operators.
 
