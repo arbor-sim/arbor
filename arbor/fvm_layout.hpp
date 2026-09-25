@@ -147,7 +147,7 @@ struct fvm_diffusion_info {
     fvm_diffusion_info(value_type d): default_value(d) {}
     fvm_diffusion_info(): fvm_diffusion_info{0.0} {}
 };
-    
+
 struct fvm_cv_discretization {
     using size_type = arb_size_type;
     using index_type = arb_index_type;
@@ -208,6 +208,8 @@ struct fvm_mechanism_config {
     using index_type = arb_index_type;
 
     arb_mechanism_kind kind;
+
+    bool has_post_event = false;
 
     // Ordered CV indices where mechanism is present; may contain
     // duplicates for point mechanisms.
