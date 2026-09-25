@@ -30,7 +30,9 @@ labels["dend1"] = (
 
 # (3) Define stimulus and spike detector, adjust discretization
 decor.place(
-    '"soma_center"', A.i_clamp(tstart=295 * U.ms, duration=5 * U.ms, current=1.9 * U.nA)
+    '"soma_center"',
+    A.iclamp(tstart=295 * U.ms, duration=5 * U.ms, current=1.9 * U.nA),
+    "soma_iclamp",
 )
 
 # Add spike detector
