@@ -47,20 +47,17 @@ ACCESS_BIND(std::unique_ptr<shared_state> fvm_cell::*, private_state_ptr, &fvm_c
 
 using matrix = arb::multicore::cable_solver;
 
-ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_mechanisms_ptr, &fvm_cell::mechanisms_)
+ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_pp_mechanisms_ptr, &fvm_cell::point_mechanisms_)
+ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_de_mechanisms_ptr, &fvm_cell::density_mechanisms_)
 
 arb::mechanism* find_mechanism(fvm_cell& fvcell, const std::string& name) {
-    for (auto& mech: fvcell.*private_mechanisms_ptr) {
-        if (mech->internal_name()==name) {
-            return mech.get();
-        }
+    for (auto& mech: fvcell.*private_de_mechanisms_ptr) {
+        if (mech->internal_name() == name) return mech.get();
+    }
+    for (auto& mech: fvcell.*private_pp_mechanisms_ptr) {
+        if (mech->internal_name() == name) return mech.get();
     }
     return nullptr;
-}
-
-arb::mechanism* find_mechanism(fvm_cell& fvcell, int index) {
-    auto& mechs = fvcell.*private_mechanisms_ptr;
-    return index<(int)mechs.size()? mechs[index].get(): nullptr;
 }
 
 using namespace arb;
@@ -438,18 +435,15 @@ TEST(fvm_lowered, derived_mechs) {
 
     {
         // Test initialization and global parameter values.
-
         fvm_cell fvcell(*context);
         fvcell.initialize({0, 1, 2}, rec);
 
         // Both mechanisms will have the same internal name, "test_kin1".
-
         using fvec = std::vector<arb_value_type>;
         fvec tau_values;
-        for (auto& mech: fvcell.*private_mechanisms_ptr) {
+        for (auto& mech: fvcell.*private_de_mechanisms_ptr) {
             ASSERT_TRUE(mech);
             EXPECT_EQ("test_kin1"s, mech->internal_name());
-
             tau_values.push_back(mechanism_global(mech, "tau"));
         }
         util::sort(tau_values);
@@ -550,7 +544,9 @@ TEST(fvm_lowered, read_valence) {
         fvm_cell fvcell(*context);
         fvcell.initialize({0}, rec);
 
-        auto cr_mech_ptr = find_mechanism(fvcell, 0);
+        // NOTE: the intternal name is not changed, so use the _base_ name here
+        auto cr_mech_ptr = find_mechanism(fvcell, "test_ca_read_valence");
+        ASSERT_NE(cr_mech_ptr, nullptr);
         auto cr_record_z = mechanism_field(cr_mech_ptr, "record_z");
         ASSERT_EQ(7.0, cr_record_z.at(0));
     }
