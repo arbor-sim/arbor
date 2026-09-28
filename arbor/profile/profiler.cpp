@@ -134,7 +134,7 @@ const accumulators_type& recorder::accumulators() const { return accumulators_; 
 std::string timer_stack_to_string(const timer_stack& ts, const std::vector<std::string>& names) {
     std::stringstream ss;
     for (auto ix = 0U; ix < ts.size(); ++ix) {
-        const auto timer = ts[ix];
+        const auto& timer = ts[ix];
         ss << names[timer];
         if (ix != ts.size() - 1) ss << ", ";
     }
