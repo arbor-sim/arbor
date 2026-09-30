@@ -409,7 +409,7 @@ struct avx_double4: implbase<avx_double4> {
     //     e^g = 1 + 2·g·P(g^2) / (Q(g^2)-g·P(g^2)).
     //
     // Note that the coefficients for R are close to but not the same as those
-    // from the 6,6 Padé approximant to the exponential. 
+    // from the 6,6 Padé approximant to the exponential.
     //
     // The exponents n and g are calculated by:
     //
@@ -420,7 +420,7 @@ struct avx_double4: implbase<avx_double4> {
     //
     //     |g| = |x - n·ln(2)|
     //         = |x - x + α·ln(2)|
-    //  
+    //
     // for some fraction |α| ≤ 0.5, and thus |g| ≤ 0.5ln(2) ≈ 0.347.
     //
     // Tne subtraction x - n·ln(2) is performed in two parts, with

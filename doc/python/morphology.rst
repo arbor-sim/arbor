@@ -606,19 +606,19 @@ region.
 
 .. py:class:: loaded_morphology
 
-   .. py:attr:: segment_tree
+   .. py:attribute:: segment_tree
 
     Raw segment tree, identical to morphology.
 
-   .. py:attr:: morphology
+   .. py:attribute:: morphology
 
     Morphology constructed from description.
 
-   .. py:attr:: labels
+   .. py:attribute:: labels
 
     Regions and locsets defined in the description as ``label_dict``
 
-   .. py:attr:: metadata
+   .. py:attribute:: metadata
 
     Loader specific metadata, see below in the individual sections.
 

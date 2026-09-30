@@ -1,10 +1,9 @@
-
 .. _tutorial:
 
 Tutorials
 =========
 
-Grouped loosely by primary (but not exclusive!) focus, we have a set of tutorials to help you learn by doing. 
+Grouped loosely by primary (but not exclusive!) focus, we have a set of tutorials to help you learn by doing.
 
 You can find some examples of full Arbor simulations in the ``python/examples`` directory of the
 `Arbor repository <https://github.com/arbor-sim/arbor>`_.
@@ -33,7 +32,7 @@ Recipes
 
 .. toctree::
    :maxdepth: 1
-   
+
    single_cell_recipe
    single_cell_detailed_recipe
 
@@ -47,7 +46,7 @@ Networks
    network_two_cells_gap_junctions
    brunel
 
-   
+
 Probes
 ------
 
@@ -84,6 +83,7 @@ Advanced
    connectivity
    full-feature-diffusion
    cosim
+   reading_external_fields
 
 Demonstrations
 --------------

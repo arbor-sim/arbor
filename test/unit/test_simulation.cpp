@@ -76,7 +76,7 @@ TEST(simulation, null_builder) {
     }
 }
 
-TEST(simulation, spike_global_callback) {
+TEST(simulation, spike_local_callback) {
     constexpr unsigned n = 5;
     double t_max = 10.;
 
@@ -175,7 +175,7 @@ TEST(simulation, restart) {
     simulation sim(rec, ctx, decomp);
 
     std::vector<spike> collected;
-    sim.set_global_spike_callback([&](const std::vector<spike>& spikes) {
+    sim.set_local_spike_callback([&](const std::vector<spike>& spikes) {
         collected.insert(collected.end(), spikes.begin(), spikes.end());
     });
 

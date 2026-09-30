@@ -21,29 +21,21 @@ namespace arb {
 namespace reg {
 
 std::optional<mcable> intersect(const mcable& a, const mcable& b) {
-    if (a.branch!=b.branch) return std::nullopt;
-
+    if (a.branch != b.branch) return std::nullopt;
     double prox = std::max(a.prox_pos, b.prox_pos);
     double dist = std::min(a.dist_pos, b.dist_pos);
     return prox<=dist? std::optional(mcable{a.branch, prox, dist}): std::nullopt;
 }
 
-// Empty region.
+bool operator==(const region_tag&, const region_tag&) { return false; }
 
+// Empty region.
 struct nil_: region_tag {};
 
-ARB_ARBOR_API region nil() {
-    return region{nil_{}};
-}
-
-mextent thingify_(const nil_& x, const mprovider&) {
-    return mextent{};
-}
-
-std::ostream& operator<<(std::ostream& o, const nil_& x) {
-    return o << "(region-nil)";
-}
-
+ARB_ARBOR_API region nil() { return region{nil_{}}; }
+mextent thingify_(const nil_& x, const mprovider&) { return mextent{}; }
+std::ostream& operator<<(std::ostream& o, const nil_& x) { return o << "(region-nil)"; }
+bool operator==(const nil_&, const nil_&) { return true; }
 
 // Explicit cable section.
 
@@ -54,26 +46,19 @@ struct cable_: region_tag {
 
 ARB_ARBOR_API region cable(msize_t id, double prox, double dist) {
     mcable c{id, prox, dist};
-    if (!test_invariants(c)) {
-        throw invalid_mcable(c);
-    }
+    if (!test_invariants(c)) throw invalid_mcable(c);
     return region(cable_{c});
 }
 
-ARB_ARBOR_API region branch(msize_t bid) {
-    return cable(bid, 0, 1);
-}
+ARB_ARBOR_API region branch(msize_t bid) { return cable(bid, 0, 1); }
 
 mextent thingify_(const cable_& reg, const mprovider& p) {
-    if (reg.cable.branch>=p.morphology().num_branches()) {
-        throw no_such_branch(reg.cable.branch);
-    }
+    if (reg.cable.branch>=p.morphology().num_branches()) throw no_such_branch(reg.cable.branch);
     return mextent(mcable_list{{reg.cable}});
 }
 
-std::ostream& operator<<(std::ostream& o, const cable_& c) {
-    return o << c.cable;
-}
+std::ostream& operator<<(std::ostream& o, const cable_& c) { return o << c.cable; }
+bool operator==(const cable_& lhs, const cable_& rhs) { return lhs.cable == rhs.cable; }
 
 // Exlicit list of cables.
 // (Not part of front-end API: used by region ctor.)
@@ -89,14 +74,9 @@ region cable_list(mcable_list cs) {
 }
 
 mextent thingify_(const cable_list_& reg, const mprovider& p) {
-    if (reg.cables.empty()) {
-        return mextent{};
-    }
-
+    if (reg.cables.empty()) return mextent{};
     auto last_branch = reg.cables.back().branch;
-    if (last_branch>=p.morphology().num_branches()) {
-        throw no_such_branch(last_branch);
-    }
+    if (last_branch >= p.morphology().num_branches()) throw no_such_branch(last_branch);
     return mextent(reg.cables);
 }
 
@@ -106,9 +86,16 @@ std::ostream& operator<<(std::ostream& o, const cable_list_& x) {
     return o << ')';
 }
 
+bool operator==(const cable_list_& lhs, const cable_list_& rhs) {
+    if (lhs.cables.size() != rhs.cables.size()) return false;
+    for (size_t ix = 0; ix < lhs.cables.size(); ++ix) {
+        if (lhs.cables[ix] != rhs.cables[ix]) return false;
+    }
+    return true;
+}
+
 // Explicit extent.
 // (Not part of front-end API: used by region ctor.)
-
 struct extent_: region_tag {
     explicit extent_(mextent x): extent(std::move(x)) {}
     mextent extent;
@@ -130,16 +117,15 @@ std::ostream& operator<<(std::ostream& o, const extent_& x) {
     return o << ')';
 }
 
-// Region with all segments with the same numeric tag.
+bool operator==(const extent_& lhs, const extent_& rhs) { return lhs.extent == rhs.extent; }
 
+// Region with all segments with the same numeric tag.
 struct tagged_: region_tag {
     explicit tagged_(int tag): tag(tag) {}
     int tag;
 };
 
-ARB_ARBOR_API region tagged(int id) {
-    return region(tagged_{id});
-}
+ARB_ARBOR_API region tagged(int id) { return region(tagged_{id}); }
 
 mextent thingify_(const tagged_& reg, const mprovider& p) {
     const auto& e = p.embedding();
@@ -160,20 +146,16 @@ mextent thingify_(const tagged_& reg, const mprovider& p) {
     return mextent(cables);
 }
 
-std::ostream& operator<<(std::ostream& o, const tagged_& t) {
-    return o << "(tag " << t.tag << ")";
-}
+std::ostream& operator<<(std::ostream& o, const tagged_& t) { return o << "(tag " << t.tag << ")"; }
+bool operator==(const tagged_& lhs, const tagged_& rhs) { return lhs.tag == rhs.tag; }
 
 // Region comprising a single segment.
-
 struct segment_: region_tag {
     explicit segment_(int id): id(id) {}
     int id;
 };
 
-ARB_ARBOR_API region segment(int id) {
-    return region(segment_{id});
-}
+ARB_ARBOR_API region segment(int id) { return region(segment_{id}); }
 
 mextent thingify_(const segment_& reg, const mprovider& p) {
     const auto& e = p.embedding();
@@ -187,17 +169,13 @@ mextent thingify_(const segment_& reg, const mprovider& p) {
     return mextent(cables);
 }
 
-std::ostream& operator<<(std::ostream& o, const segment_& reg) {
-    return o << "(segment " << reg.id << ")";
-}
+std::ostream& operator<<(std::ostream& o, const segment_& reg) { return o << "(segment " << reg.id << ")"; }
+bool operator==(const segment_& lhs, const segment_& rhs) { return lhs.id == rhs.id; }
 
 // Region comprising whole morphology.
-
 struct all_: region_tag {};
 
-ARB_ARBOR_API region all() {
-    return region(all_{});
-}
+ARB_ARBOR_API region all() { return region(all_{}); }
 
 mextent thingify_(const all_&, const mprovider& p) {
     auto nb = p.morphology().num_branches();
@@ -209,9 +187,8 @@ mextent thingify_(const all_&, const mprovider& p) {
     return mextent(branches);
 }
 
-std::ostream& operator<<(std::ostream& o, const all_& t) {
-    return o << "(all)";
-}
+std::ostream& operator<<(std::ostream& o, const all_& t) { return o << "(all)"; }
+bool operator==(const all_&, const all_&) { return true; }
 
 // Region comprising points up to `distance` distal to a point in `start`.
 
@@ -221,9 +198,11 @@ struct distal_interval_: region_tag {
     double distance; //um
 };
 
-ARB_ARBOR_API region distal_interval(locset start, double distance) {
-    return region(distal_interval_{std::move(start), distance});
+bool operator==(const distal_interval_& lhs, const distal_interval_& rhs) {
+    return (lhs.start == rhs.start) && (lhs.distance == rhs.distance);
 }
+
+ARB_ARBOR_API region distal_interval(locset start, double distance) { return region(distal_interval_{std::move(start), distance}); }
 
 mextent thingify_(const distal_interval_& reg, const mprovider& p) {
     const auto& m = p.morphology();
@@ -296,8 +275,10 @@ struct proximal_interval_: region_tag {
     double distance; //um
 };
 
-ARB_ARBOR_API region proximal_interval(locset end, double distance) {
-    return region(proximal_interval_{std::move(end), distance});
+ARB_ARBOR_API region proximal_interval(locset end, double distance) { return region(proximal_interval_{std::move(end), distance}); }
+
+bool operator==(const proximal_interval_& lhs, const proximal_interval_& rhs) {
+    return (lhs.end == rhs.end) && (lhs.distance == rhs.distance);
 }
 
 mextent thingify_(const proximal_interval_& reg, const mprovider& p) {
@@ -366,17 +347,10 @@ struct radius_lt_: region_tag {
     double val; //um
 };
 
-ARB_ARBOR_API region radius_lt(region reg, double val) {
-    return region(radius_lt_{std::move(reg), val});
-}
-
-mextent thingify_(const radius_lt_& r, const mprovider& p) {
-    return radius_cmp(p, r.reg, r.val, comp_op::lt);
-}
-
-std::ostream& operator<<(std::ostream& o, const radius_lt_& r) {
-    return o << "(radius-lt " << r.reg << " " << r.val << ")";
-}
+bool operator==(const radius_lt_& lhs, const radius_lt_& rhs) { return (lhs.reg == rhs.reg) && (lhs.val == rhs.val); }
+ARB_ARBOR_API region radius_lt(region reg, double val) { return region(radius_lt_{std::move(reg), val}); }
+mextent thingify_(const radius_lt_& r, const mprovider& p) { return radius_cmp(p, r.reg, r.val, comp_op::lt); }
+std::ostream& operator<<(std::ostream& o, const radius_lt_& r) { return o << "(radius-lt " << r.reg << " " << r.val << ")"; }
 
 // Region with all segments with radius less than r
 struct radius_le_: region_tag {
@@ -385,17 +359,10 @@ struct radius_le_: region_tag {
     double val; //um
 };
 
-ARB_ARBOR_API region radius_le(region reg, double val) {
-    return region(radius_le_{std::move(reg), val});
-}
-
-mextent thingify_(const radius_le_& r, const mprovider& p) {
-    return radius_cmp(p, r.reg, r.val, comp_op::le);
-}
-
-std::ostream& operator<<(std::ostream& o, const radius_le_& r) {
-    return o << "(radius-le " << r.reg << " " << r.val << ")";
-}
+bool operator==(const radius_le_& lhs, const radius_le_& rhs) { return (lhs.reg == rhs.reg) && (lhs.val == rhs.val); }
+ARB_ARBOR_API region radius_le(region reg, double val) { return region(radius_le_{std::move(reg), val}); }
+mextent thingify_(const radius_le_& r, const mprovider& p) { return radius_cmp(p, r.reg, r.val, comp_op::le); }
+std::ostream& operator<<(std::ostream& o, const radius_le_& r) { return o << "(radius-le " << r.reg << " " << r.val << ")"; }
 
 // Region with all segments with radius greater than r
 struct radius_gt_: region_tag {
@@ -404,17 +371,10 @@ struct radius_gt_: region_tag {
     double val; //um
 };
 
-ARB_ARBOR_API region radius_gt(region reg, double val) {
-    return region(radius_gt_{std::move(reg), val});
-}
-
-mextent thingify_(const radius_gt_& r, const mprovider& p) {
-    return radius_cmp(p, r.reg, r.val, comp_op::gt);
-}
-
-std::ostream& operator<<(std::ostream& o, const radius_gt_& r) {
-    return o << "(radius-gt " << r.reg << " " << r.val << ")";
-}
+ARB_ARBOR_API region radius_gt(region reg, double val) { return region(radius_gt_{std::move(reg), val}); }
+mextent thingify_(const radius_gt_& r, const mprovider& p) { return radius_cmp(p, r.reg, r.val, comp_op::gt); }
+std::ostream& operator<<(std::ostream& o, const radius_gt_& r) { return o << "(radius-gt " << r.reg << " " << r.val << ")"; }
+bool operator==(const radius_gt_& lhs, const radius_gt_& rhs) { return (lhs.reg == rhs.reg) && (lhs.val == rhs.val); }
 
 // Region with all segments with radius greater than or equal to r
 struct radius_ge_: region_tag {
@@ -423,17 +383,10 @@ struct radius_ge_: region_tag {
     double val; //um
 };
 
-ARB_ARBOR_API region radius_ge(region reg, double val) {
-    return region(radius_ge_{std::move(reg), val});
-}
-
-mextent thingify_(const radius_ge_& r, const mprovider& p) {
-    return radius_cmp(p, r.reg, r.val, comp_op::ge);
-}
-
-std::ostream& operator<<(std::ostream& o, const radius_ge_& r) {
-    return o << "(radius-ge " << r.reg << " " << r.val << ")";
-}
+ARB_ARBOR_API region radius_ge(region reg, double val) { return region(radius_ge_{std::move(reg), val}); }
+mextent thingify_(const radius_ge_& r, const mprovider& p) { return radius_cmp(p, r.reg, r.val, comp_op::ge); }
+std::ostream& operator<<(std::ostream& o, const radius_ge_& r) { return o << "(radius-ge " << r.reg << " " << r.val << ")"; }
+bool operator==(const radius_ge_& lhs, const radius_ge_& rhs) { return (lhs.reg == rhs.reg) && (lhs.val == rhs.val); }
 
 mextent projection_cmp(const mprovider& p, double v, comp_op op) {
     const auto& m = p.morphology();
@@ -453,17 +406,10 @@ struct projection_lt_: region_tag {
     double val; //um
 };
 
-region projection_lt(double val) {
-    return region(projection_lt_{val});
-}
-
-mextent thingify_(const projection_lt_& r, const mprovider& p) {
-    return projection_cmp(p, r.val, comp_op::lt);
-}
-
-std::ostream& operator<<(std::ostream& o, const projection_lt_& r) {
-    return o << "(projection-lt " << r.val << ")";
-}
+region projection_lt(double val) { return region(projection_lt_{val}); }
+mextent thingify_(const projection_lt_& r, const mprovider& p) { return projection_cmp(p, r.val, comp_op::lt); }
+std::ostream& operator<<(std::ostream& o, const projection_lt_& r) { return o << "(projection-lt " << r.val << ")"; }
+bool operator==(const projection_lt_& lhs, const projection_lt_& rhs) { return lhs.val == rhs.val; }
 
 // Region with all segments with projection less than or equal to val
 struct projection_le_: region_tag {
@@ -471,17 +417,10 @@ struct projection_le_: region_tag {
     double val; //um
 };
 
-region projection_le(double val) {
-    return region(projection_le_{val});
-}
-
-mextent thingify_(const projection_le_& r, const mprovider& p) {
-    return projection_cmp(p, r.val, comp_op::le);
-}
-
-std::ostream& operator<<(std::ostream& o, const projection_le_& r) {
-    return o << "(projection-le " << r.val << ")";
-}
+region projection_le(double val) { return region(projection_le_{val}); }
+mextent thingify_(const projection_le_& r, const mprovider& p) {return projection_cmp(p, r.val, comp_op::le); }
+std::ostream& operator<<(std::ostream& o, const projection_le_& r) { return o << "(projection-le " << r.val << ")"; }
+bool operator==(const projection_le_& lhs, const projection_le_& rhs) { return lhs.val == rhs.val; }
 
 // Region with all segments with projection greater than val
 struct projection_gt_: region_tag {
@@ -489,17 +428,10 @@ struct projection_gt_: region_tag {
     double val; //um
 };
 
-region projection_gt(double val) {
-    return region(projection_gt_{val});
-}
-
-mextent thingify_(const projection_gt_& r, const mprovider& p) {
-    return projection_cmp(p, r.val, comp_op::gt);
-}
-
-std::ostream& operator<<(std::ostream& o, const projection_gt_& r) {
-    return o << "(projection-gt " << r.val << ")";
-}
+region projection_gt(double val) { return region(projection_gt_{val}); }
+mextent thingify_(const projection_gt_& r, const mprovider& p) { return projection_cmp(p, r.val, comp_op::gt); }
+std::ostream& operator<<(std::ostream& o, const projection_gt_& r) { return o << "(projection-gt " << r.val << ")"; }
+bool operator==(const projection_gt_& lhs, const projection_gt_& rhs) { return lhs.val == rhs.val; }
 
 // Region with all segments with projection greater than val
 struct projection_ge_: region_tag {
@@ -507,22 +439,13 @@ struct projection_ge_: region_tag {
     double val; //um
 };
 
-region projection_ge(double val) {
-    return region(projection_ge_{val});
-}
-
-mextent thingify_(const projection_ge_& r, const mprovider& p) {
-    return projection_cmp(p, r.val, comp_op::ge);
-}
-
-std::ostream& operator<<(std::ostream& o, const projection_ge_& r) {
-    return o << "(projection-ge " << r.val << ")";
-}
+region projection_ge(double val) { return region(projection_ge_{val}); }
+mextent thingify_(const projection_ge_& r, const mprovider& p) { return projection_cmp(p, r.val, comp_op::ge); }
+std::ostream& operator<<(std::ostream& o, const projection_ge_& r) { return o << "(projection-ge " << r.val << ")"; }
+bool operator==(const projection_ge_& lhs, const projection_ge_& rhs) { return lhs.val == rhs.val; }
 
 ARB_ARBOR_API region z_dist_from_root_lt(double r0) {
-    if (r0 == 0) {
-        return {};
-    }
+    if (r0 == 0) return {};
     region lt = reg::projection_lt(r0);
     region gt = reg::projection_gt(-r0);
     return intersect(lt, gt);
@@ -552,17 +475,10 @@ struct named_: region_tag {
     std::string name;
 };
 
-ARB_ARBOR_API region named(std::string name) {
-    return region(named_{std::move(name)});
-}
-
-mextent thingify_(const named_& n, const mprovider& p) {
-    return p.region(n.name);
-}
-
-std::ostream& operator<<(std::ostream& o, const named_& x) {
-    return o << "(region \"" << x.name << "\")";
-}
+bool operator==(const named_& lhs, const named_& rhs) { return lhs.name == rhs.name; }
+ARB_ARBOR_API region named(std::string name) { return region(named_{std::move(name)}); }
+mextent thingify_(const named_& n, const mprovider& p) { return p.region(n.name); }
+std::ostream& operator<<(std::ostream& o, const named_& x) { return o << "(region \"" << x.name << "\")"; }
 
 // Adds all cover points to a region.
 // Ensures that all valid representations of all fork points in the region are included.
@@ -571,9 +487,8 @@ struct super_: region_tag {
     region reg;
 };
 
-ARB_ARBOR_API region complete(region r) {
-    return region(super_{std::move(r)});
-}
+ARB_ARBOR_API region complete(region r) { return region(super_{std::move(r)}); }
+bool operator==(const super_& lhs, const super_& rhs) { return lhs.reg == rhs.reg; }
 
 mextent thingify_(const super_& r, const mprovider& p) {
     const auto& m = p.morphology();
@@ -584,12 +499,8 @@ mextent thingify_(const super_& r, const mprovider& p) {
     for (auto& c: cables) {
         mcable* prev = cs.empty()? nullptr: &cs.back();
 
-        if (c.prox_pos==0) {
-            branch_tails.insert(m.branch_parent(c.branch));
-        }
-        if (c.dist_pos==1) {
-            branch_tails.insert(c.branch);
-        }
+        if (c.prox_pos==0) branch_tails.insert(m.branch_parent(c.branch));
+        if (c.dist_pos==1) branch_tails.insert(c.branch);
 
         if (prev && prev->branch==c.branch && prev->dist_pos>=c.prox_pos) {
             prev->dist_pos = std::max(prev->dist_pos, c.dist_pos);
@@ -615,7 +526,7 @@ mextent thingify_(const super_& r, const mprovider& p) {
         a.swap(cs);
 
         for (auto c: util::merge_view(a, fork_covers)) {
-            mcable* prev = cs.empty()? nullptr: &cs.back();
+            mcable* prev = cs.empty() ? nullptr : &cs.back();
 
             if (prev && prev->branch==c.branch && prev->dist_pos>=c.prox_pos) {
                 prev->dist_pos = std::max(prev->dist_pos, c.dist_pos);
@@ -629,51 +540,39 @@ mextent thingify_(const super_& r, const mprovider& p) {
     return {cs};
 }
 
-std::ostream& operator<<(std::ostream& o, const super_& r) {
-    return o << "(complete " << r.reg << ")";
-}
-
+std::ostream& operator<<(std::ostream& o, const super_& r) { return o << "(complete " << r.reg << ")"; }
 
 // Intersection of two regions.
-
 struct reg_and: region_tag {
     region lhs;
     region rhs;
     reg_and(region lhs, region rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mextent thingify_(const reg_and& P, const mprovider& p) {
-    return intersect(thingify(P.lhs, p), thingify(P.rhs, p));
-}
-
-std::ostream& operator<<(std::ostream& o, const reg_and& x) {
-    return o << "(intersect " << x.lhs << " " << x.rhs << ")";
-}
-
+mextent thingify_(const reg_and& P, const mprovider& p) { return intersect(thingify(P.lhs, p), thingify(P.rhs, p)); }
+std::ostream& operator<<(std::ostream& o, const reg_and& x) { return o << "(intersect " << x.lhs << " " << x.rhs << ")"; }
+bool operator==(const reg_and& lhs, const reg_and& rhs) { return (lhs.lhs == rhs.lhs) && (lhs.rhs == rhs.rhs); }
 
 // Union of two regions.
-
 struct reg_or: region_tag {
     region lhs;
     region rhs;
     reg_or(region lhs, region rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mextent thingify_(const reg_or& P, const mprovider& p) {
-    return join(thingify(P.lhs, p), thingify(P.rhs, p));
+mextent thingify_(const reg_or& P, const mprovider& p) { return join(thingify(P.lhs, p), thingify(P.rhs, p)); }
+bool operator==(const reg_or& lhs, const reg_or& rhs) {
+    return (lhs.lhs == rhs.lhs) && (lhs.rhs == rhs.rhs);
 }
-
-std::ostream& operator<<(std::ostream& o, const reg_or& x) {
-    return o << "(join " << x.lhs << " " << x.rhs << ")";
-}
-
+std::ostream& operator<<(std::ostream& o, const reg_or& x) { return o << "(join " << x.lhs << " " << x.rhs << ")"; }
 
 // Complement of a region.
-
 struct reg_not: region_tag {
     region r;
     explicit reg_not(region r): r(std::move(r)) {}
 };
+
+bool operator==(const reg_not& lhs, const reg_not& rhs) { return lhs.r == rhs.r; }
 
 mextent thingify_(const reg_not& P, const mprovider& p) {
     auto nb = p.morphology().num_branches();
@@ -704,65 +603,34 @@ mextent thingify_(const reg_not& P, const mprovider& p) {
     return mextent(result);
 }
 
-std::ostream& operator<<(std::ostream& o, const reg_not& x) {
-    return o << "(complement " << x.r << ")";
-}
-
+std::ostream& operator<<(std::ostream& o, const reg_not& x) { return o << "(complement " << x.r << ")"; }
 
 // Closed set difference of two regions.
-
 struct reg_minus: region_tag {
     region lhs;
     region rhs;
     reg_minus(region lhs, region rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mextent thingify_(const reg_minus& P, const mprovider& p) {
-    return thingify(intersect(P.lhs, complement(P.rhs)), p);
-}
-
-std::ostream& operator<<(std::ostream& o, const reg_minus& x) {
-    return o << "(difference " << x.lhs << " " << x.rhs << ")";
-}
+mextent thingify_(const reg_minus& P, const mprovider& p) { return thingify(intersect(P.lhs, complement(P.rhs)), p); }
+std::ostream& operator<<(std::ostream& o, const reg_minus& x) { return o << "(difference " << x.lhs << " " << x.rhs << ")"; }
+bool operator==(const reg_minus& lhs, const reg_minus& rhs) { return (lhs.lhs == rhs.lhs) && (lhs.rhs == rhs.rhs); }
 
 } // namespace reg
 
 // The intersect, join, complement and difference operations are in the arb::
 // namespace with region so that ADL allows for construction of expressions
 // with regions without having to namespace qualify these operations.
+ARB_ARBOR_API region intersect(region l, region r) { return region{reg::reg_and(std::move(l), std::move(r))}; }
+ARB_ARBOR_API region join(region l, region r) { return region{reg::reg_or(std::move(l), std::move(r))}; }
+ARB_ARBOR_API region complement(region r) { return region{reg::reg_not(std::move(r))}; }
+ARB_ARBOR_API region difference(region l, region r) { return region{reg::reg_minus(std::move(l), std::move(r))}; }
 
-ARB_ARBOR_API region intersect(region l, region r) {
-    return region{reg::reg_and(std::move(l), std::move(r))};
-}
-
-ARB_ARBOR_API region join(region l, region r) {
-    return region{reg::reg_or(std::move(l), std::move(r))};
-}
-
-ARB_ARBOR_API region complement(region r) {
-    return region{reg::reg_not(std::move(r))};
-}
-
-ARB_ARBOR_API region difference(region l, region r) {
-    return region{reg::reg_minus(std::move(l), std::move(r))};
-}
-
-region::region() {
-    *this = reg::nil();
-}
+region::region() { *this = reg::nil(); }
 
 // Implicit constructors/converters.
-
-region::region(mcable c) {
-    *this = reg::cable(c.branch, c.prox_pos, c.dist_pos);
-}
-
-region::region(mcable_list cl) {
-    *this = reg::cable_list(std::move(cl));
-}
-
-region::region(mextent x) {
-    *this = reg::extent(std::move(x));
-}
+region::region(mcable c) { *this = reg::cable(c.branch, c.prox_pos, c.dist_pos); }
+region::region(mcable_list cl) { *this = reg::cable_list(std::move(cl)); }
+region::region(mextent x) { *this = reg::extent(std::move(x)); }
 
 } // namespace arb

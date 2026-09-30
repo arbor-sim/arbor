@@ -113,7 +113,8 @@ std::unordered_multimap<std::string, evaluator> eval_map {
                  "'join' with at least 2 arguments: (locset locset [...locset])")},
     {"sum", make_fold<arb::locset>(static_cast<arb::locset(*)(arb::locset, arb::locset)>(arb::sum),
                 "'sum' with at least 2 arguments: (locset locset [...locset])")},
-
+    {"intersect", make_fold<arb::locset>(static_cast<arb::locset(*)(arb::locset, arb::locset)>(arb::intersect),
+                      "'intersect' with at least 2 arguments: (locset locset [...locset])")},
 
     // iexpr
     {"iexpr", make_call<std::string>(arb::iexpr::named, "iexpr with 1 argument: (value:string)")},

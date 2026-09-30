@@ -8,6 +8,16 @@ Cable cell probing and sampling
 Cable cell probes
 -----------------
 
+Various properties of a cable cell can be sampled, such as the membrane voltage
+or mechanism state value at a particular location or on all compartments of the
+cell. The sample data associated with a cable cell probe will either be a
+``double`` for scalar probes, or a ``cable_sample_range`` describing a half-open
+range of ``double`` values:
+
+.. code:: c++
+
+   using cable_sample_range = std::pair<const double*, const double*>
+
 The probe metadata passed to the sampler will be a const pointer to:
 
 * ``cable_probe_point_info`` for point mechanism state queries,
@@ -17,7 +27,7 @@ The probe metadata passed to the sampler will be a const pointer to:
 where the type ``cable_probe_point_info`` holds metadata for a point process
 state variable
 
-.. code::
+.. code:: c++
 
     struct cable_probe_point_info {
         // Target number of point process instance on cell.
@@ -491,8 +501,14 @@ data into ``simple_sampler_result`` and can be attached to probes like this
 
 Then,
 
-.. cpp:class:: simple_sampler_result
+.. cpp:class:: template<typename M> simple_sampler_result
 
+    .. cpp:type:: time_type = double
+
+    .. cpp:type:: value_type = double
+
+        This can be overriden by a type definition in the probe metadata, but
+        currently all probes define this as ``double``.
 
     .. cpp:member:: std::size_t n_sample
 
@@ -515,6 +531,8 @@ Then,
         values, one entry per row, each entry is a vector with one entry per column
 
 can be used to retrieve the data.
+
+
 
 Model and cell group interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -607,11 +625,11 @@ A ``schedule`` object has two methods:
 
        time_event_span events(time_type t0, time_type t1)
 
-A ``time_event_span`` is a ``std::pair`` of pointers `const time_type*`,
+A ``time_event_span`` is a ``std::pair`` of pointers ``const time_type*``,
 representing a view into an internally maintained collection of generated time
 values.
 
-The ``events(t0, t1)`` method returns a view of monotonically increasing time
+The ```events(t0, t1)`` method returns a view of monotonically increasing time
 values in the half-open interval ``[t0, t1)``. Successive calls to ``events`` —
 without an intervening call to ``reset()`` — must request strictly subsequent
 intervals.
@@ -705,8 +723,6 @@ Queries cell membrane potential.
 * Sample value: ``double``. Membrane potential (mV).
 
 * Metadata: none
-=======
-
 
 LIF cell probing and sampling
 ===============================

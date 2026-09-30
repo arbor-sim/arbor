@@ -51,7 +51,7 @@ struct run_params {
 using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type>;
 
 // Writes voltage trace as a json file.
-void write_trace_json(const sample_result&);
+void write_trace_json(int rank, const sample_result&);
 
 run_params read_options(int argc, char** argv);
 
@@ -116,6 +116,7 @@ private:
 };
 
 int main(int argc, char** argv) {
+    int rank = 0;
     try {
 #ifdef ARB_MPI_ENABLED
         arbenv::with_mpi guard(argc, argv, false);
@@ -133,7 +134,8 @@ int main(int argc, char** argv) {
         else {
             ctx = arb::make_context(resources, MPI_COMM_WORLD);
             if (params.defaulted) params.num_ranks = arb::num_ranks(ctx);
-            root = arb::rank(ctx)==0;
+            rank = arb::rank(ctx);        
+            root = rank == 0;
         }
 #endif
 
@@ -173,12 +175,9 @@ int main(int argc, char** argv) {
 
         // Set up recording of spikes to a vector on the root process.
         std::vector<arb::spike> recorded_spikes;
-        if (root) {
-            sim.set_global_spike_callback(
-                    [&recorded_spikes](const std::vector<arb::spike>& spikes) {
-                        recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
-                    });
-        }
+        sim.set_local_spike_callback([&recorded_spikes](const std::vector<arb::spike>& spikes) {
+            recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
+        });
 
         meters.checkpoint("model-init", ctx);
 
@@ -192,23 +191,20 @@ int main(int argc, char** argv) {
                   << params.duration/ns << " ms between spikes\n\n";
 
         // Write spikes to file
-        if (root) {
-            std::ofstream fid("spikes.gdf");
-            if (!fid.good()) {
-                std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
-            }
-            else {
-                char linebuf[45];
-                for (auto spike: recorded_spikes) {
-                    auto n = std::snprintf(
-                            linebuf, sizeof(linebuf), "%u %.4f\n",
-                            unsigned{spike.source.gid}, float(spike.time));
-                    fid.write(linebuf, n);
-                }
-            }
-            // Write the samples to a json file.
-            write_trace_json(voltage);
+        std::ofstream fid("spikes" + std::to_string(rank) + ".gdf");
+        if (!fid.good()) {
+            std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
         }
+        else {
+            char linebuf[45];
+            for (auto spike: recorded_spikes) {
+                auto n = std::snprintf(linebuf, sizeof(linebuf),
+                                       "%u %.4f\n", unsigned{spike.source.gid}, float(spike.time));
+                fid.write(linebuf, n);
+            }
+        }
+        // Write the samples to a json file.
+        write_trace_json(rank, voltage);
 
         auto profile = arb::profile::profiler_summary();
         std::cout << profile << "\n";
@@ -224,8 +220,8 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void write_trace_json(const sample_result& result) {
-    std::string path = "./voltages.json";
+void write_trace_json(int rank, const sample_result& result) {
+    std::string path = "./voltages-rank=" + std::to_string(rank) + ".json";
 
     nlohmann::json json;
     json["name"] = "ring_demo";

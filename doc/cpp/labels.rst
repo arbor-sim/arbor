@@ -17,15 +17,15 @@ Cable cell labels
 
       Add all definitions from ``other``, optionally adding a prefix.
           
-   .. cpp:function:: const std::unordered_map<std::string, arb::region>& regions() const
+   .. cpp:function:: const std::unordered_map<std::string, region>& regions() const
 
       The region definitions in the dictionary.
 
-   .. cpp:function:: const std::unordered_map<std::string, arb::locset>& locsets() const
+   .. cpp:function:: const std::unordered_map<std::string, locset>& locsets() const
 
       The locset definitions in the dictionary.
 
-   .. cpp:function:: const std::unordered_map<std::string, arb::iexpr>& iexpressions() const
+   .. cpp:function:: const std::unordered_map<std::string, iexpr>& iexpressions() const
 
       The iexpr definitions in the dictionary.
 
@@ -41,7 +41,7 @@ Cable cell labels
 
       Add iexpr under ``name``.
 
-   .. cpp:function:: add_swc_tags
+   .. cpp:function:: void add_swc_tags()
 
       Add SWC default regions
 
@@ -137,7 +137,8 @@ two labels refer to one another:
    applied to a morphology, and the cyclic dependency is detected when
    thingifying the locations in the locsets and the cable segments in the
    regions.
-=======
+   
+
 Cable Cell Morphology Expressions
 =================================
 
