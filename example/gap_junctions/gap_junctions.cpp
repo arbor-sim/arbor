@@ -145,7 +145,6 @@ int main(int argc, char** argv) {
         int gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(arb::proc_allocation{nt, gpu_id}, MPI_COMM_WORLD);
         root = arb::rank(context) == 0;
->>>>>>> origin/master
 #else
         auto context = arb::make_context(arbenv::default_allocation());
 #endif
