@@ -232,24 +232,29 @@ int main(int argc, char** argv) {
 
         meters.checkpoint("model-run", context);
 
-        // Print generated connections
+        auto ns = sim.num_spikes();
+
+        // Print diagnostics on rank zero
         if (root) {
+            // Generated connections
             const auto connections = arb::generate_network_connections(recipe);
             std::cout << "Connections:" << std::endl;
             for (const auto& c: connections) {
                 std::cout << "(" << c.source.gid << ", \"" << c.source.label << "\") ->";
                 std::cout << "(" << c.target.gid << ", \"" << c.target.label << "\")" << std::endl;
             }
-        }
-
-        auto ns = sim.num_spikes();
-
-        // Write spikes to file
-        if (root) {
+            // Spike counts
             std::cout << "\n"
                       << ns << " spikes generated at rate of " << params.duration / ns
                       << " ms between spikes\n";
+            auto profile = arb::profile::profiler_summary();
+            std::cout << profile << "\n";
+            // Checkpoints
+            auto report = arb::profile::make_meter_report(meters, context);
+            std::cout << report;
         }
+
+        // Write local spikes to file
         std::ofstream fid("spikes-" + std::to_string(rank) + ".gdf");
         if (!fid.good()) std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
         char linebuf[45];
@@ -261,12 +266,6 @@ int main(int argc, char** argv) {
 
         // Write the samples to a json file.
         write_trace_json(rank, voltage);
-
-        auto profile = arb::profile::profiler_summary();
-        std::cout << profile << "\n";
-
-        auto report = arb::profile::make_meter_report(meters, context);
-        std::cout << report;
     }
     catch (std::exception& e) {
         std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";
