@@ -55,6 +55,11 @@ struct probe_value_type_of<cable_point_meta_type> {
     using type = cable_sample_type;
 };
 
+enum struct sampling_mode {
+    none,
+    interpolated,
+};
+    
 // Each kind of probe has its own type for representing its address, as below.
 // The metadata associated with a probe is also passed to a sampler via an `any_ptr`;
 // the underlying pointer will be a const pointer to the associated metadata type.
@@ -64,41 +69,58 @@ struct probe_value_type_of<cable_point_meta_type> {
 struct ARB_SYMBOL_VISIBLE cable_probe_membrane_voltage {
     using value_type = cable_sample_type;
     using meta_type = cable_state_meta_type;
-    locset locations;
-};
-
-// Voltage estimate [mV], reported against each cable in each control volume.
-// Not interpolated.
-struct ARB_SYMBOL_VISIBLE cable_probe_membrane_voltage_cell {
-    using value_type = cable_sample_type;
-    using meta_type = cable_state_cell_meta_type;
+    locset locations = ls::nil();
+    sampling_mode mode = sampling_mode::interpolated;
 };
 
 // Axial current estimate [nA] at `location`,
-// interpolated.
+// not (really) interpolated; while this is a linear combination of data from two
+// CVs this is to understood as I_axial = ΔU/R_axial
 struct ARB_SYMBOL_VISIBLE cable_probe_axial_current {
     using value_type = cable_sample_type;
     using meta_type = cable_state_meta_type;
-    locset locations;
+    locset locations = ls::nil();
 };
 
 // Total current density [A/m²] across membrane _excluding_ capacitive and
 // stimulus current at `location`.
+// not (really) interpolated; while this is a linear combination of two
+// values, these are used to compute the difference between stimulus and
+// 'real' ion current
 struct ARB_SYMBOL_VISIBLE cable_probe_total_ion_current_density {
     using value_type = cable_sample_type;
     using meta_type = cable_state_meta_type;
-    locset locations;
+    locset locations = ls::nil();
 };
 
-// Total ionic current [nA] across membrane _excluding_ capacitive current across components of the cell.
-// Sample value type: `cable_sample_range`
-// Sample metadata type: `mcable_list`
+// Value of state variable `state` in density mechanism `mechanism` in CV at
+// `location`.
+// not interpolated
+struct ARB_SYMBOL_VISIBLE cable_probe_density_state {
+    using value_type = cable_sample_type;
+    using meta_type = cable_state_meta_type;
+    locset locations;
+    std::string mechanism;
+    std::string state;
+};
+
+// Cell-wide probes
+    
+// Voltage estimate [mV], reported against each cable in each control volume.
+struct ARB_SYMBOL_VISIBLE cable_probe_membrane_voltage_cell {
+    using value_type = cable_sample_type;
+    using meta_type = cable_state_cell_meta_type;
+};
+    
+// Total ionic current [nA] across membrane _excluding_ capacitive current
+// across components of the cell.
 struct ARB_SYMBOL_VISIBLE cable_probe_total_ion_current_cell {
     using value_type = cable_sample_type;
     using meta_type = cable_state_cell_meta_type;
 };
 
-// Total membrane current [nA] across components of the cell _excluding_ stimulus currents.
+// Total membrane current [nA] across components of the cell _excluding_
+// stimulus currents.
 struct ARB_SYMBOL_VISIBLE cable_probe_total_current_cell {
     using value_type = cable_sample_type;
     using meta_type = cable_state_cell_meta_type;
@@ -110,16 +132,8 @@ struct ARB_SYMBOL_VISIBLE cable_probe_stimulus_current_cell {
     using meta_type = cable_state_cell_meta_type;
 };
 
-// Value of state variable `state` in density mechanism `mechanism` in CV at `location`.
-struct ARB_SYMBOL_VISIBLE cable_probe_density_state {
-    using value_type = cable_sample_type;
-    using meta_type = cable_state_meta_type;
-    locset locations;
-    std::string mechanism;
-    std::string state;
-};
-
-// Value of state variable `state` in density mechanism `mechanism` across components of the cell.
+// Value of state variable `state` in density mechanism `mechanism` across
+// components of the cell.
 struct ARB_SYMBOL_VISIBLE cable_probe_density_state_cell {
     using value_type = cable_sample_type;
     using meta_type = cable_state_cell_meta_type;

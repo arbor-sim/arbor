@@ -660,34 +660,6 @@ void fvm_lowered_cell_impl<Backend>::resolve_probe_address(std::vector<fvm_probe
 }
 
 template <typename B>
-void resolve_probe(const cable_probe_membrane_voltage& p, probe_resolution_data<B>& res) {
-    const arb_value_type* data = res.state->voltage.data();
-
-    std::vector<probe_handle> handles_p, handles_d;
-    std::vector<double> coef_p, coef_d;
-    mlocation_list meta;
-    for (const mlocation& loc: thingify(p.locations, res.cell.provider())) {
-        const auto& in = fvm_interpolate_voltage(res.cell, res.D, res.cell_idx, loc);
-        handles_p.push_back(data + in.proximal_cv);
-        handles_d.push_back(data + in.distal_cv);
-        coef_p.push_back(in.proximal_coef);
-        coef_d.push_back(in.distal_coef);
-        meta.push_back(loc);
-    }
-    util::append(handles_p, handles_d);
-    handles_p.shrink_to_fit();
-    meta.shrink_to_fit();
-    coef_p.shrink_to_fit();
-    coef_d.shrink_to_fit();
-    if (meta.empty()) return;
-    res.result.push_back(fvm_probe_interpolated_multi{
-        .raw_handles=std::move(handles_p),
-        .coef={std::move(coef_p), std::move(coef_d)},
-        .metadata=std::move(meta),
-    });
-}
-
-template <typename B>
 void resolve_probe(const cable_probe_membrane_voltage_cell& p, probe_resolution_data<B>& R) {
     mcable_list meta;
     std::vector<probe_handle> handles;
@@ -702,17 +674,22 @@ void resolve_probe(const cable_probe_membrane_voltage_cell& p, probe_resolution_
     meta.shrink_to_fit();
     handles.shrink_to_fit();
     if (meta.empty()) return;
-    R.result.push_back(fvm_probe_multi{.raw_handles=std::move(handles), .metadata=std::move(meta)});
+    R.result.push_back(fvm_probe_multi{
+        .raw_handles=std::move(handles),
+        .metadata=std::move(meta)
+    });
 }
 
-template <typename B>
-void resolve_probe(const cable_probe_axial_current& p, probe_resolution_data<B>& res) {
-    const arb_value_type* data = res.state->voltage.data();
+template<typename Interpolator, typename Backend>
+void resolve_interpolated(const arb_value_type* data,
+                          const locset& locations,
+                          Interpolator&& interpolate,
+                          probe_resolution_data<Backend>& res) {
     std::vector<probe_handle> handles_p, handles_d;
     std::vector<double> coef_p, coef_d;
     mlocation_list meta;
-    for (const mlocation& loc: thingify(p.locations, res.cell.provider())) {
-        const auto& in = fvm_axial_current(res.cell, res.D, res.cell_idx, loc);
+    for (const mlocation& loc: thingify(locations, res.cell.provider())) {
+        const auto& in = interpolate(res.cell, res.D, res.cell_idx, loc);
         handles_p.push_back(data + in.proximal_cv);
         handles_d.push_back(data + in.distal_cv);
         coef_p.push_back(in.proximal_coef);
@@ -724,12 +701,56 @@ void resolve_probe(const cable_probe_axial_current& p, probe_resolution_data<B>&
     meta.shrink_to_fit();
     coef_p.shrink_to_fit();
     coef_d.shrink_to_fit();
-    if (meta.empty()) return;
+    if (meta.empty()) return;    
     res.result.push_back(fvm_probe_interpolated_multi{
-            .raw_handles=std::move(handles_p),
-            .coef={std::move(coef_p), std::move(coef_d)},
-            .metadata=std::move(meta),
-    });
+        .raw_handles = std::move(handles_p),
+        .coef = {std::move(coef_p), std::move(coef_d)},
+        .metadata = std::move(meta),
+    });    
+}
+
+template<typename Backend>
+void resolve_non_interpolated(const arb_value_type* data,
+                              const locset& locations,
+                              probe_resolution_data<Backend>& res) {
+    mcable_list meta;
+    std::vector<probe_handle> handles;
+    for (const mlocation& loc: thingify(locations, res.cell.provider())) {
+        auto cv = res.D.geometry.location_cv(res.cell_idx, loc, cv_prefer::type::cv_nonempty);
+        const double* ptr = data + cv;
+        for (auto cable: res.D.geometry.cables(cv)) {
+            if (cable.prox_pos == cable.dist_pos) continue;
+            handles.push_back(ptr);
+            meta.push_back(cable);
+        }
+    }
+    meta.shrink_to_fit();
+    handles.shrink_to_fit();
+    if (meta.empty()) return;
+    res.result.push_back(fvm_probe_multi{
+        .raw_handles=std::move(handles),
+        .metadata=std::move(meta)
+    });        
+}
+    
+template <typename B>
+void resolve_probe(const cable_probe_membrane_voltage& p, probe_resolution_data<B>& res) {
+    const arb_value_type* data = res.state->voltage.data();
+    if (p.mode == sampling_mode::interpolated) {
+        resolve_interpolated(data, p.locations, fvm_interpolate_voltage, res);
+    }
+    else if (p.mode == sampling_mode::none) {
+        resolve_non_interpolated(data, p.locations, res);
+    }
+    else {
+        throw arbor_internal_error("Unknown sampling mode");
+    }
+}
+    
+template <typename B>
+void resolve_probe(const cable_probe_axial_current& p, probe_resolution_data<B>& res) {
+    const arb_value_type* data = res.state->voltage.data();
+    resolve_interpolated(data, p.locations, fvm_axial_current, res);
 }
 
 template <typename B>
