@@ -142,7 +142,11 @@ void register_probe_meta_maps(pyarb_global_ptr g) {
 // Wrapper functions around cable_cell probe types that return arb::probe_info values:
 // (Probe tag value is implicitly left at zero.)
 arb::probe_info cable_probe_membrane_voltage(const char* where, const std::string& tag) {
-    return {arb::cable_probe_membrane_voltage{arborio::parse_locset_expression(where).unwrap()}, tag};
+    return {arb::cable_probe_membrane_voltage{arborio::parse_locset_expression(where).unwrap(), arb::sampling_mode::interpolated}, tag};
+}
+
+arb::probe_info cable_probe_membrane_voltage_uninterpolated(const char* where, const std::string& tag) {
+    return {arb::cable_probe_membrane_voltage{arborio::parse_locset_expression(where).unwrap(), arb::sampling_mode::none}, tag};
 }
 
 arb::probe_info cable_probe_membrane_voltage_cell(const std::string& tag) {
@@ -289,6 +293,9 @@ void register_cable_probes(pybind11::module& m, pyarb_global_ptr global_ptr) {
           "tag"_a);
     m.def("cable_probe_membrane_voltage", &cable_probe_membrane_voltage,
           "Probe specification for cable cell membrane voltage interpolated at points in a location set.",
+          "where"_a, "tag"_a);
+    m.def("cable_probe_membrane_voltage_uninterpolated", &cable_probe_membrane_voltage_uninterpolated,
+          "Probe specification for cable cell membrane voltage interpolated to the nearest CV.",
           "where"_a, "tag"_a);
     m.def("cable_probe_membrane_voltage_cell", &cable_probe_membrane_voltage_cell,
           "Probe specification for cable cell membrane voltage associated with each cable in each CV.",

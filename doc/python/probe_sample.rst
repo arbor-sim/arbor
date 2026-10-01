@@ -121,7 +121,8 @@ API
 
 .. class:: probe
 
-    An opaque object that is the Python representation of :cpp:class:`probe_info`.
+    An opaque object that is the Python representation of
+    :cpp:class:`arb::probe_info`.
     
     See below for ways to create probes. In general, all probes are named via
     the ``tag`` argument, as seen above. This tag is later used to retrieve the
@@ -319,8 +320,6 @@ Reversal potential
    Reversal potential of the given ``ion`` for each cable in each CV.
 
    **Metadata**: the explicit :class:`location` of the sample site.
-
-   **Kind**: :term:`vector probe`.
 
    .. py:function:: cable_probe_ion_reversal_potential(where, ion, tag)
 
