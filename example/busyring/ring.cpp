@@ -306,7 +306,7 @@ int main(int argc, char** argv) {
         }
 
         // Write the samples to a json file samples were stored on this rank.
-        write_trace_json(params.odir + "/" + params.name + "_voltages.json", voltage);
+        write_trace_json(params.odir + "/" + params.name + "_voltages" + std::to_string(rank) + ".json", voltage);
 
         auto report = arb::profile::make_meter_report(meters, context);
         if (root) {
@@ -323,21 +323,21 @@ int main(int argc, char** argv) {
 }
 
 void write_trace_json(const std::string& path, const sample_result& result) {
-    if ((result.n_sample == 0) || (result.width == 0)) return;
     nlohmann::json json;
-    json["name"] = "busyring_demo";
+    json["name"] = "network demo";
     json["units"] = "mV";
     json["cell"] = "0";
     json["probe"] = "Um";
-    std::stringstream loc;
-    loc << result.metadata.at(0);
-    json["location"] = loc.str();
     json["data"]["time"] = result.time;
-    json["data"]["voltage"] = result.values.at(0);
-
+    for (std::size_t idx = 0; idx < result.width; ++idx) {
+        std::stringstream loc;
+        loc << result.metadata.at(idx);
+        json["data"]["voltages"][loc.str()] = result.values.at(idx); 
+    }
     std::ofstream file(path);
     file << std::setw(1) << json << "\n";
 }
+
 
 // Helper used to interpolate in branch_cell.
 template <typename T>

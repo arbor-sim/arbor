@@ -153,19 +153,17 @@ int main() {
 
 void write_trace_json(const sample_result& result) {
     std::string path = "./voltages.json";
-
     nlohmann::json json;
-    json["name"] = "event_gen_demo";
+    json["name"] = "network demo";
     json["units"] = "mV";
     json["cell"] = "0";
     json["probe"] = "Um";
-    std::stringstream loc;
-    loc << result.metadata.at(0);
-    json["location"] = loc.str();
     json["data"]["time"] = result.time;
-    json["data"]["voltage"] = result.values.at(0);
-
+    for (std::size_t idx = 0; idx < result.width; ++idx) {
+        std::stringstream loc;
+        loc << result.metadata.at(idx);
+        json["data"]["voltages"][loc.str()] = result.values.at(idx); 
+    }
     std::ofstream file(path);
     file << std::setw(1) << json << "\n";
 }
-

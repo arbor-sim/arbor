@@ -57,7 +57,7 @@ using arb::time_type;
 using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type>;
 
 // Writes voltage trace as a json file.
-void write_trace_json(const sample_result&);
+void write_trace_json(int rank, const sample_result&);
 
 // Generate a cell.
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params);
@@ -104,6 +104,7 @@ private:
 
 int main(int argc, char** argv) {
     try {
+        int rank = 0;
         bool root = true;
 
         arb::proc_allocation resources;
@@ -113,7 +114,8 @@ int main(int argc, char** argv) {
         arbenv::with_mpi guard(argc, argv, false);
         resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(resources, MPI_COMM_WORLD);
-        root = arb::rank(context) == 0;
+        rank = arb::rank(context);
+        root = rank == 0;
 #else
         resources.gpu_id = arbenv::default_gpu();
         auto context = arb::make_context(resources);
@@ -161,9 +163,8 @@ int main(int argc, char** argv) {
 
         meters.checkpoint("model-init", context);
 
-        if (root) {
-            sim.set_epoch_callback(arb::epoch_progress_bar());
-        }
+        if (root) sim.set_epoch_callback(arb::epoch_progress_bar());
+
         std::cout << "running simulation\n" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
         sim.run(params.duration*arb::units::ms, 0.025*arb::units::ms);
@@ -192,7 +193,7 @@ int main(int argc, char** argv) {
         }
 
         // Write the samples to a json file.
-        if (root) write_trace_json(voltage);
+        write_trace_json(rank, voltage);
 
         auto profile = arb::profile::profiler_summary();
         std::cout << profile << "\n";
@@ -204,24 +205,21 @@ int main(int argc, char** argv) {
         std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";
         return 1;
     }
-
-    return 0;
 }
 
-void write_trace_json(const sample_result& result) {
-    std::string path = "./voltages.json";
-
+void write_trace_json(int rank, const sample_result& result) {
+    std::string path = "./voltages-rank=" + std::to_string(rank) + ".json";
     nlohmann::json json;
-    json["name"] = "ring_demo";
+    json["name"] = "network demo";
     json["units"] = "mV";
     json["cell"] = "0";
     json["probe"] = "Um";
-    std::stringstream loc;
-    loc << result.metadata.at(0);
-    json["location"] = loc.str();
     json["data"]["time"] = result.time;
-    json["data"]["voltage"] = result.values.at(0);
-
+    for (std::size_t idx = 0; idx < result.width; ++idx) {
+        std::stringstream loc;
+        loc << result.metadata.at(idx);
+        json["data"]["voltages"][loc.str()] = result.values.at(idx); 
+    }
     std::ofstream file(path);
     file << std::setw(1) << json << "\n";
 }

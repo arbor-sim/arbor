@@ -225,7 +225,7 @@ int main(int argc, char** argv) {
 
         meters.checkpoint("model-init", context);
 
-        if (root) { sim.set_epoch_callback(arb::epoch_progress_bar()); }
+        if (root) sim.set_epoch_callback(arb::epoch_progress_bar());
         std::cout << "running simulation\n" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
         sim.run(params.duration*arb::units::ms, 0.025*arb::units::ms);
@@ -247,13 +247,13 @@ int main(int argc, char** argv) {
             std::cout << "\n"
                       << ns << " spikes generated at rate of " << params.duration / ns
                       << " ms between spikes\n";
-            auto profile = arb::profile::profiler_summary();
-            std::cout << profile << "\n";
-            // Checkpoints
-            auto report = arb::profile::make_meter_report(meters, context);
-            std::cout << report;
         }
 
+        auto report = arb::profile::make_meter_report(meters, context);
+        std::cout << report;
+        auto profile = arb::profile::profiler_summary();
+        std::cout << profile << "\n";
+        
         // Write local spikes to file
         std::ofstream fid("spikes-" + std::to_string(rank) + ".gdf");
         if (!fid.good()) std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
@@ -271,8 +271,6 @@ int main(int argc, char** argv) {
         std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";
         return 1;
     }
-
-    return 0;
 }
 
 ring_params read_options(int argc, char** argv) {
@@ -319,12 +317,12 @@ void write_trace_json(int rank, const sample_result& result) {
     json["units"] = "mV";
     json["cell"] = "0";
     json["probe"] = "Um";
-    std::stringstream loc;
-    loc << result.metadata.at(0);
-    json["location"] = loc.str();
     json["data"]["time"] = result.time;
-    json["data"]["voltage"] = result.values.at(0);
-
+    for (std::size_t idx = 0; idx < result.width; ++idx) {
+        std::stringstream loc;
+        loc << result.metadata.at(idx);
+        json["data"]["voltages"][loc.str()] = result.values.at(idx); 
+    }
     std::ofstream file(path);
     file << std::setw(1) << json << "\n";
 }
