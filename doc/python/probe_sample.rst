@@ -11,14 +11,14 @@ Cable cell probing and sampling
     :align: center
 
     A schematic view of how :term:`handles <handle>` let you access sampled data measured at a :term:`probeset`.
-    A probeset is a probe placed on a locset (which may describe more than one point). 
+    A probeset is a probe placed on a locset (which may describe more than one point).
     When setting a probe on a locset a :term:`sampler` is created.
     When this sampler is set to sampling (at a certain schedule), a handle is returned.
     This figure demonstrates how sampling data can be accessed through the handle associated with the probeset.
     See below for a possible result for ``data``.
 
 .. code-block:: python
-   
+
    print(data) # The probe data printed, as found in single_cell_recipe.py
    [[ 0.00000000e+00 -4.00000000e+01]
     [ 1.00000000e-01 -5.40211646e+01]
@@ -33,15 +33,15 @@ expression and will describe zero, one, or more probes, one per site. They are
 evaluated in the context of the cell to which the probe is attached. Each
 location corresponds to a column.
 
-Each of the functions described below generates an opaque :class:`probe` object
-for use in the recipe :py:func:`recipe.probes` method. More information on
-probes, probe metadata, and sampling can be found in the documentation for the
-class :class:`simulation`.
+Each of the functions described below generates an opaque
+:py:class:`~arbor.probe` object for use in the recipe :py:func:`~arbor.recipe.probes`
+method. More information on probes, probe metadata, and sampling can be found in
+the documentation for the class :py:class:`~arbor.simulation`.
 
 .. note::
 
    Cable cell probesets are defined analogously to their counterparts in the C++
-   API (see :ref:`cablecell-probes` for details). Some details like `probe_tag`
+   API (see :ref:`cablecell-probes` for details). Some details like ``probe_tag``
    are not exposed in Python, as having Python probe callbacks has proven to be
    too slow.
 
@@ -49,7 +49,7 @@ Example
 -------
 
 .. code-block:: python
-   
+
    import arbor as A
 
    tree = A.segment_tree()
@@ -123,7 +123,7 @@ API
 
     An opaque object that is the Python representation of
     :cpp:class:`arb::probe_info`.
-    
+
     See below for ways to create probes. In general, all probes are named via
     the ``tag`` argument, as seen above. This tag is later used to retrieve the
     data collected by the associated probes.
@@ -131,19 +131,28 @@ API
 Membrane voltage
 ^^^^^^^^^^^^^^^^
 
-   .. py:function:: cable_probe_membrane_voltage(where, tag)
+   .. function:: cable_probe_membrane_voltage(where, tag)
 
    Cell membrane potential (mV) at the sites specified by the location
    expression string ``where``. This value is spatially interpolated.
 
    **Metadata**: the list of :class:`location` of the sample sites.
 
-   .. py:function:: cable_probe_membrane_voltage_cell(tag)
+   .. function:: cable_probe_membrane_voltage_uninterpolated(where, tag)
+
+   Cell membrane potential (mV) at the sites specified by the location
+   expression string ``where``. This value is taken at the nearest CV, if
+   available.
+
+   **Metadata**: the list of :class:`location` of the sample sites.
+
+
+   .. function:: cable_probe_membrane_voltage_cell(tag)
 
    Cell membrane potential (mV) associated with each cable in each CV of
    the cell discretization.
 
-   **Metadata**: the list of corresponding :class:`cable` objects.
+   **Metadata**: the list of corresponding :py:class:`~arbor.cable` objects.
 
 Axial current
 ^^^^^^^^^^^^^

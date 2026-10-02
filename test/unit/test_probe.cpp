@@ -217,15 +217,24 @@ void run_v_cell_probe_test(context ctx) {
 
         cable1d_recipe rec(cell, false);
         rec.add_probe(0, "U_m", cable_probe_membrane_voltage_cell{});
+        rec.add_probe(0, "U_m_0_0.5_i", cable_probe_membrane_voltage{ls::location(0, 0.5), sampling_mode::interpolated});
+        rec.add_probe(0, "U_m_0_0.5_n", cable_probe_membrane_voltage{ls::location(0, 0.5), sampling_mode::none});
 
         fvm_cell lcell(*ctx);
         auto fvm_info = lcell.initialize({0}, rec);
 
-        ASSERT_EQ(1u, fvm_info.probe_map.size());
+        ASSERT_EQ(3u, fvm_info.probe_map.size());
 
         const fvm_probe_multi* h_ptr = std::get_if<fvm_probe_multi>(&fvm_info.probe_map.data_on({0, "U_m"}).front()->info);
         ASSERT_TRUE(h_ptr);
         auto& h = *h_ptr;
+
+        const fvm_probe_interpolated_multi* ui_ptr = std::get_if<fvm_probe_interpolated_multi>(&fvm_info.probe_map.data_on({0, "U_m_0_0.5_i"}).front()->info);
+        ASSERT_TRUE(ui_ptr);
+
+        const fvm_probe_multi* un_ptr = std::get_if<fvm_probe_multi>(&fvm_info.probe_map.data_on({0, "U_m_0_0.5_n"}).front()->info);
+        ASSERT_TRUE(un_ptr);
+        auto& un = *un_ptr;
 
         const mcable_list* cl_ptr = std::get_if<mcable_list>(&h_ptr->metadata);
         ASSERT_TRUE(cl_ptr);
@@ -234,21 +243,27 @@ void run_v_cell_probe_test(context ctx) {
         ASSERT_EQ(h.raw_handles.size(), cl.size());
 
         // Independetly discretize the cell so we can follow cable–CV relationship.
-
         cv_geometry geom(cell, policy.cv_boundary_points(cell));
 
-        // For each cable in metadata, get CV from geom and confirm raw handle is
-        // state voltage + CV.
-
+        // For each cable in metadata, get CV from geom and confirm raw handle
+        // is state voltage + CV.
         auto& state = backend_access<Backend>::state(lcell);
         auto& voltage = state.voltage;
 
-        for (auto i: util::count_along(*cl_ptr)) {
-            mlocation cable_mid{cl[i].branch, 0.5*(cl[i].prox_pos+cl[i].dist_pos)};
+        arb_value_type* exp_loc_0_05 = nullptr;
+        for (auto ix: util::count_along(*cl_ptr)) {
+            const auto& loc = cl[ix];
+            mlocation cable_mid{loc.branch, 0.5*(loc.prox_pos + loc.dist_pos)};
             auto cv = geom.location_cv(0, cable_mid, cv_prefer::cv_empty);
 
-            EXPECT_EQ(voltage.data()+cv, h.raw_handles[i]);
+            auto val = voltage.data() + cv;
+            EXPECT_EQ(val, h.raw_handles[ix]);
+            // Remember the value we see at (location 0 0.5)
+            if ((loc.branch == 0) && (loc.prox_pos <= 0.5) && (loc.dist_pos > 0.5)) {
+                exp_loc_0_05 = val;
+            }
         }
+        EXPECT_EQ(exp_loc_0_05, un.raw_handles[0]);
     }
 }
 
@@ -1105,7 +1120,7 @@ void run_total_current_probe_test(context ctx) {
             for (unsigned j: util::make_span(2)) {
                 double max_abs_current = 0;
                 double sum_current = 0;
-                
+
                 for (auto k: util::make_span(trace.width)) {
                     double current = trace.values[k][j] + stim_trace.values[k][j];
                     EXPECT_NE(0.0, current);

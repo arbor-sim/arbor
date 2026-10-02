@@ -59,7 +59,7 @@ enum struct sampling_mode {
     none,
     interpolated,
 };
-    
+
 // Each kind of probe has its own type for representing its address, as below.
 // The metadata associated with a probe is also passed to a sampler via an `any_ptr`;
 // the underlying pointer will be a const pointer to the associated metadata type.
@@ -105,13 +105,13 @@ struct ARB_SYMBOL_VISIBLE cable_probe_density_state {
 };
 
 // Cell-wide probes
-    
+
 // Voltage estimate [mV], reported against each cable in each control volume.
 struct ARB_SYMBOL_VISIBLE cable_probe_membrane_voltage_cell {
     using value_type = cable_sample_type;
     using meta_type = cable_state_cell_meta_type;
 };
-    
+
 // Total ionic current [nA] across membrane _excluding_ capacitive current
 // across components of the cell.
 struct ARB_SYMBOL_VISIBLE cable_probe_total_ion_current_cell {

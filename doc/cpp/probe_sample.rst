@@ -54,14 +54,29 @@ Membrane voltage
 
 .. code::
 
+   enum struct sampling_mode {
+       none,
+       interpolated,
+    };
+
     struct cable_probe_membrane_voltage {
         locset locations;
+        sampling_mode mode = sampling_mode::interpolated;
     };
 
 Queries cell membrane potential at each site in ``locations``.
 
 *  Sample value: ``double``. Membrane potential in millivolts.
 *  Metadata: ``mlocation``. Locations of probe.
+
+If ``mode`` is set to ``interpolated`` samples will be formed by considering the
+CVs adjacent to each discrete location in ``locations`` and interpolating
+between to the actual location. Near the ends of the neural geometry, this can
+yield somewhat surprising discrepancies from the values on the CV (returned by
+``cable_probe_membrane_voltage_cell`` below) and/or unphysical values. Mode
+``none`` will return the value(s) on the CVs containing ``locations``, this
+might be multiple values _even_ if ``locations`` is a single point, e.g. at
+branch points.
 
 .. code::
 
@@ -424,10 +439,9 @@ types, e.g.
 
     .. code-block:: cpp
 
-        struct cable_probe_membrane_voltage {
+        struct cable_probe_membrane_voltage_cell {
             using value_type = cable_sample_type;
-            using meta_type = cable_state_meta_type;
-            locset locations;
+            using meta_type = cable_state_cell_meta_type;
         };
 
 Access is made much more convenient through ``sample_reader``, see next section.
