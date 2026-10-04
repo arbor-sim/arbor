@@ -28,7 +28,6 @@
 #include <arbor/util/unique_any.hpp>
 #include <arbor/cv_policy.hpp>
 
-#include "arbor/recipe.hpp"
 #include "conversion.hpp"
 #include "error.hpp"
 #include "label_dict.hpp"
@@ -165,9 +164,27 @@ std::string scaled_density_desc_str(const arb::scaled_mechanism<arb::density>& p
 // Argument to construct a paintable object.
 using Q = U::quantity;
 using QnS = std::tuple<U::quantity, std::string>;
-using paintable_arg = std::variant<Q, QnS>;
 
-std::tuple<Q, arb::iexpr> value_and_scale(const paintable_arg& arg) {
+template<typename T>
+using paintable_arg = std::variant<T, Q, QnS>;
+
+template<typename T>
+T to_paintable(const paintable_arg<T>& arg) {
+    if (std::holds_alternative<T>(arg)) {
+        return std::get<T>(arg);
+    }
+    else if (std::holds_alternative<Q>(arg)) {
+        return T{std::get<Q>(arg), 1};
+    }
+    else {
+        const auto& [val, scale] = std::get<QnS>(arg);
+        return T{val, arborio::parse_iexpr_expression(scale).unwrap()};
+    }
+}
+
+using ion_arg = std::variant<Q, QnS>;
+
+std::tuple<U::quantity, arb::iexpr> value_and_scale(const ion_arg& arg) {
     if (std::holds_alternative<Q>(arg)) {
         return {std::get<Q>(arg), 1};
     }
@@ -177,6 +194,21 @@ std::tuple<Q, arb::iexpr> value_and_scale(const paintable_arg& arg) {
     }
 }
 
+    
+template<typename T>
+T to_ion_paintable(const std::string& ion, const paintable_arg<T>& arg) {
+    if (std::holds_alternative<T>(arg)) {
+        return std::get<T>(arg);
+    }
+    else if (std::holds_alternative<Q>(arg)) {
+        return T{ion, std::get<Q>(arg), 1};
+    }
+    else {
+        const auto& [val, scale] = std::get<QnS>(arg);
+        return T{ion, val, arborio::parse_iexpr_expression(scale).unwrap()};
+    }
+}
+    
 void register_cells(py::module& m) {
     using namespace py::literals;
     using std::optional;
@@ -485,46 +517,276 @@ void register_cells(py::module& m) {
     );
 
     membrane_potential
-        .def(py::init([](const U::quantity& v) -> arb::init_membrane_potential { return {v }; }))
-        .def("__repr__",
-             [](const arb::init_membrane_potential& d){
-                 return "Vm=" + to_string(d.value) + " scale=" + to_string(d.scale);});
+        .def(py::init([](const U::quantity& v) -> arb::init_membrane_potential { return {v}; }))
+        .def_property_readonly("value", [](const arb::init_membrane_potential& d){ return d.value;})
+        .def_property_readonly("quantity", [](const arb::init_membrane_potential& d){ return d.value * arb::init_membrane_potential::unit;})
+        .def("__mul__", [](const arb::init_membrane_potential& v, float s) {
+            return arb::init_membrane_potential{v.value * s * arb::init_membrane_potential::unit, v.scale};
+        }, py::is_operator())
+        .def("__mul__", [](const arb::init_membrane_potential& v, const std::string& s) {
+            return arb::init_membrane_potential{v.value * arb::init_membrane_potential::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
+        .def("__imul__", [](arb::init_membrane_potential& v, double s) {
+            v.value *= s;
+            return v;
+        }, py::is_operator())
+        .def("__imul__", [](arb::init_membrane_potential& v, const std::string& s) {
+            v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
+            return v;            
+        }, py::is_operator())                
+        .def("__add__", [](const arb::init_membrane_potential& v, const U::quantity& q) {
+            return  arb::init_membrane_potential{(v.value + q.value_as(arb::init_membrane_potential::unit)) * arb::init_membrane_potential::unit};
+        }, py::is_operator())
+        .def("__iadd__", [](arb::init_membrane_potential& v, const U::quantity& q) {
+            v.value += q.value_as(arb::init_membrane_potential::unit);
+            return v;
+        }, py::is_operator())                
+        .def("__str__", [](const arb::init_membrane_potential& d){
+            return "(membrane-potential value=" + to_string(d.value) + "mV scale=" + to_string(d.scale) + ")";
+        })
+        .def("__repr__", [](const arb::init_membrane_potential& d){
+            return "(membrane-potential value=" + to_string(d.value) + "mV scale=" + to_string(d.scale) + ")";
+        });        
 
     revpot_method
         .def(py::init([](const std::string& ion,
                          const arb::mechanism_desc& d) -> arb::ion_reversal_potential_method {
             return {ion, d};
         }))
-        .def("__repr__", [](const arb::ion_reversal_potential_method& d) {
-            return "ion" + d.ion + " method=" + d.method.name();});
+        .def("__str__", [](const arb::ion_reversal_potential_method& d){
+            return "(reversal-potential-method ion=" + d.ion + " method=" + d.method.name() + ")";
+        })
+        .def("__repr__", [](const arb::ion_reversal_potential_method& d){
+            return "(reversal-potential-method ion=" + d.ion + " method=" + d.method.name() + ")";
+        });        
 
     membrane_capacitance
         .def(py::init([](const U::quantity& v) -> arb::membrane_capacitance { return {v}; }))
-        .def("__repr__", [](const arb::membrane_capacitance& d){return "Cm=" + to_string(d.value);});
+        .def_property_readonly("value", [](const arb::membrane_capacitance& d){ return d.value;})
+        .def_property_readonly("quantity", [](const arb::membrane_capacitance& d){ return d.value * arb::membrane_capacitance::unit;})
+        .def("__mul__", [](const arb::membrane_capacitance& v, float s) {
+            return arb::membrane_capacitance{v.value * s * arb::membrane_capacitance::unit, v.scale};
+        }, py::is_operator())
+        .def("__mul__", [](const arb::membrane_capacitance& v, const std::string& s) {
+            return arb::membrane_capacitance{v.value * arb::membrane_capacitance::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
+        .def("__imul__", [](arb::membrane_capacitance& v, double s) {
+            v.value *= s;
+            return v;
+        }, py::is_operator())
+        .def("__imul__", [](arb::membrane_capacitance& v, const std::string& s) {
+            v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
+            return v;            
+        }, py::is_operator())                
+        .def("__add__", [](const arb::membrane_capacitance& v, const U::quantity& q) {
+            return  arb::membrane_capacitance{(v.value + q.value_as(arb::membrane_capacitance::unit)) * arb::membrane_capacitance::unit};
+        }, py::is_operator())
+        .def("__iadd__", [](arb::membrane_capacitance& v, const U::quantity& q) {
+            v.value += q.value_as(arb::membrane_capacitance::unit);
+            return v;
+        }, py::is_operator())                
+        .def("__str__", [](const arb::membrane_capacitance& d){
+            return "(membrane-capacitance value=" + to_string(d.value) + "F/m2 scale=" + to_string(d.scale) + ")";
+        })
+        .def("__repr__", [](const arb::membrane_capacitance& d){
+            return "(membrane-capacitance value=" + to_string(d.value) + "F/m2 scale=" + to_string(d.scale) + ")";
+        });
 
     temperature_K
         .def(py::init([](const U::quantity& v) -> arb::temperature { return {v}; }))
-        .def("__repr__", [](const arb::temperature& d){return "T=" + to_string(d.value);});
+        .def_property_readonly("value", [](const arb::temperature& d){ return d.value;})
+        .def_property_readonly("quantity", [](const arb::temperature& d){ return d.value * arb::temperature::unit;})
+        .def("__mul__", [](const arb::temperature& v, float s) {
+            return arb::temperature{v.value * s * arb::temperature::unit, v.scale};
+        }, py::is_operator())
+        .def("__mul__", [](const arb::temperature& v, const std::string& s) {
+            return arb::temperature{v.value * arb::temperature::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
+        .def("__imul__", [](arb::temperature& v, double s) {
+            v.value *= s;
+            return v;
+        }, py::is_operator())
+        .def("__imul__", [](arb::temperature& v, const std::string& s) {
+            v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
+            return v;            
+        }, py::is_operator())                
+        .def("__add__", [](const arb::temperature& v, const U::quantity& q) {
+            return  arb::temperature{(v.value + q.value_as(arb::temperature::unit)) * arb::temperature::unit};
+        }, py::is_operator())
+        .def("__iadd__", [](arb::temperature& v, const U::quantity& q) {
+            v.value += q.value_as(arb::temperature::unit);
+            return v;
+        }, py::is_operator())                
+        .def("__str__", [](const arb::temperature& d){
+            return "(temperature value=" + to_string(d.value) + "K scale=" + to_string(d.scale) + ")";
+        })
+        .def("__repr__", [](const arb::temperature& d){
+            return "(temperature value=" + to_string(d.value) + "K scale=" + to_string(d.scale) + ")";
+        });
 
     axial_resistivity
         .def(py::init([](const U::quantity& v) -> arb::axial_resistivity { return {v}; }))
-        .def("__repr__", [](const arb::axial_resistivity& d){return "Ra" + to_string(d.value);});
+        .def_property_readonly("value", [](const arb::axial_resistivity& d){ return d.value;})
+        .def_property_readonly("quantity", [](const arb::axial_resistivity& d){ return d.value * arb::axial_resistivity::unit;})
+        .def("__mul__", [](const arb::axial_resistivity& v, float s) {
+            return arb::axial_resistivity{v.value * s * arb::axial_resistivity::unit, v.scale};
+        }, py::is_operator())
+        .def("__mul__", [](const arb::axial_resistivity& v, const std::string& s) {
+            return arb::axial_resistivity{v.value * arb::axial_resistivity::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
+        .def("__imul__", [](arb::axial_resistivity& v, double s) {
+            v.value *= s;
+            return v;
+        }, py::is_operator())
+        .def("__imul__", [](arb::axial_resistivity& v, const std::string& s) {
+            v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
+            return v;            
+        }, py::is_operator())                
+        .def("__add__", [](const arb::axial_resistivity& v, const U::quantity& q) {
+            return  arb::axial_resistivity{(v.value + q.value_as(arb::axial_resistivity::unit)) * arb::axial_resistivity::unit};
+        }, py::is_operator())
+        .def("__iadd__", [](arb::axial_resistivity& v, const U::quantity& q) {
+            v.value += q.value_as(arb::axial_resistivity::unit);
+            return v;
+        }, py::is_operator())                
+        .def("__str__", [](const arb::axial_resistivity& d){
+            return "(axial-resistivity value=" + to_string(d.value) + "Ω·cm scale=" + to_string(d.scale) + ")";
+        })
+        .def("__repr__", [](const arb::axial_resistivity& d){
+            return "(axial-resistivity value=" + to_string(d.value) + "Ω·cm scale=" + to_string(d.scale) + ")";
+        });
 
     reversal_potential
-        .def(py::init([](const std::string& i, const U::quantity& v) -> arb::init_reversal_potential { return {i, v}; }))
-        .def("__repr__", [](const arb::init_reversal_potential& d){return "e" + d.ion + "=" + to_string(d.value);});
+        .def(py::init([](const std::string& ion, const U::quantity& v) -> arb::init_reversal_potential { return {ion, v}; }))
+        .def_property_readonly("value", [](const arb::init_reversal_potential& d){ return d.value; })
+        .def_property_readonly("quantity", [](const arb::init_reversal_potential& d){ return d.value * arb::init_reversal_potential::unit; })
+        .def_property_readonly("ion",  [](const arb::init_reversal_potential& d){ return d.ion; })
+        .def("__mul__", [](const arb::init_reversal_potential& v, float s) {
+            return arb::init_reversal_potential{v.ion, v.value * s * arb::init_reversal_potential::unit, v.scale};
+        }, py::is_operator())
+        .def("__mul__", [](const arb::init_reversal_potential& v, const std::string& s) {
+            return arb::init_reversal_potential{v.ion, v.value * arb::init_reversal_potential::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
+        .def("__imul__", [](arb::init_reversal_potential& v, double s) {
+            v.value *= s;
+            return v;
+        }, py::is_operator())
+        .def("__imul__", [](arb::init_reversal_potential& v, const std::string& s) {
+            v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
+            return v;            
+        }, py::is_operator())                
+        .def("__add__", [](const arb::init_reversal_potential& v, const U::quantity& q) {
+            return  arb::init_reversal_potential{v.ion, (v.value + q.value_as(arb::init_reversal_potential::unit)) * arb::init_reversal_potential::unit};
+        }, py::is_operator())
+        .def("__iadd__", [](arb::init_reversal_potential& v, const U::quantity& q) {
+            v.value += q.value_as(arb::init_reversal_potential::unit);
+            return v;
+        }, py::is_operator())                
+        .def("__str__", [](const arb::init_reversal_potential& d) {
+            return "(reversal-potential ion=" + d.ion + " value=" + to_string(d.value) + "mV scale=" + to_string(d.scale) + ")";
+        })
+        .def("__repr__", [](const arb::init_reversal_potential& d) {
+            return "(reversal-potential ion=" + d.ion + " value=" + to_string(d.value) + "mV scale=" + to_string(d.scale) + ")";
+        });
 
     int_concentration
-        .def(py::init([](const std::string& i, const U::quantity& v) -> arb::init_int_concentration { return {i, v}; }))
-        .def("__repr__", [](const arb::init_int_concentration& d){return d.ion + "i" + "=" + to_string(d.value);});
+        .def(py::init([](const std::string& ion, const U::quantity& v) -> arb::init_int_concentration { return {ion, v}; }))
+        .def_property_readonly("value", [](const arb::init_int_concentration& d){ return d.value; })
+        .def_property_readonly("quantity", [](const arb::init_int_concentration& d){ return d.value * arb::init_int_concentration::unit; })
+        .def_property_readonly("ion",  [](const arb::init_int_concentration& d){ return d.ion; })
+        .def("__mul__", [](const arb::init_int_concentration& v, float s) {
+            return arb::init_int_concentration{v.ion, v.value * s * arb::init_int_concentration::unit, v.scale};
+        }, py::is_operator())
+        .def("__mul__", [](const arb::init_int_concentration& v, const std::string& s) {
+            return arb::init_int_concentration{v.ion, v.value * arb::init_int_concentration::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
+        .def("__imul__", [](arb::init_int_concentration& v, double s) {
+            v.value *= s;
+            return v;
+        }, py::is_operator())
+        .def("__imul__", [](arb::init_int_concentration& v, const std::string& s) {
+            v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
+            return v;            
+        }, py::is_operator())                
+        .def("__add__", [](const arb::init_int_concentration& v, const U::quantity& q) {
+            return  arb::init_int_concentration{v.ion, (v.value + q.value_as(arb::init_int_concentration::unit)) * arb::init_int_concentration::unit};
+        }, py::is_operator())
+        .def("__iadd__", [](arb::init_int_concentration& v, const U::quantity& q) {
+            v.value += q.value_as(arb::init_int_concentration::unit);
+            return v;
+        }, py::is_operator())                
+        .def("__str__", [](const arb::init_int_concentration& d) {
+            return "(int-concentration ion=" + d.ion + " value=" + to_string(d.value) + "mM scale=" + to_string(d.scale) + ")";
+        })
+        .def("__repr__", [](const arb::init_int_concentration& d) {
+            return "(int-concentration ion=" + d.ion + " value=" + to_string(d.value) + "mM scale=" + to_string(d.scale) + ")";
+        });
 
     ext_concentration
-        .def(py::init([](const std::string& i, const U::quantity& v) -> arb::init_ext_concentration { return {i, v}; }))
-        .def("__repr__", [](const arb::init_ext_concentration& d){return d.ion + "o" + "=" + to_string(d.value);});
+        .def(py::init([](const std::string& ion, const U::quantity& v) -> arb::init_ext_concentration { return {ion, v}; }))
+        .def_property_readonly("value", [](const arb::init_ext_concentration& d){ return d.value; })
+        .def_property_readonly("quantity", [](const arb::init_ext_concentration& d){ return d.value * arb::init_ext_concentration::unit; })
+        .def_property_readonly("ion",  [](const arb::init_ext_concentration& d){ return d.ion; })
+        .def("__mul__", [](const arb::init_ext_concentration& v, float s) {
+            return arb::init_ext_concentration{v.ion, v.value * s * arb::init_ext_concentration::unit, v.scale};
+        }, py::is_operator())
+        .def("__mul__", [](const arb::init_ext_concentration& v, const std::string& s) {
+            return arb::init_ext_concentration{v.ion, v.value * arb::init_ext_concentration::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
+        .def("__imul__", [](arb::init_ext_concentration& v, double s) {
+            v.value *= s;
+            return v;
+        }, py::is_operator())
+        .def("__imul__", [](arb::init_ext_concentration& v, const std::string& s) {
+            v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
+            return v;            
+        }, py::is_operator())                
+        .def("__add__", [](const arb::init_ext_concentration& v, const U::quantity& q) {
+            return  arb::init_ext_concentration{v.ion, (v.value + q.value_as(arb::init_ext_concentration::unit)) * arb::init_ext_concentration::unit};
+        }, py::is_operator())
+        .def("__iadd__", [](arb::init_ext_concentration& v, const U::quantity& q) {
+            v.value += q.value_as(arb::init_ext_concentration::unit);
+            return v;
+        }, py::is_operator())                
+        .def("__str__", [](const arb::init_ext_concentration& d) {
+            return "(ext-concentration ion=" + d.ion + " value=" + to_string(d.value) + "mM scale=" + to_string(d.scale) + ")";
+        })
+        .def("__repr__", [](const arb::init_ext_concentration& d) {
+            return "(ext-concentration ion=" + d.ion + " value=" + to_string(d.value) + "mM scale=" + to_string(d.scale) + ")";
+        });
 
     ion_diffusivity
-        .def(py::init([](const std::string& i, const U::quantity& v) -> arb::ion_diffusivity { return {i, v}; }))
-        .def("__repr__", [](const arb::ion_diffusivity& d){return "D" + d.ion + "=" + to_string(d.value);});
+        .def(py::init([](const std::string&ion, const U::quantity& v) -> arb::ion_diffusivity { return {ion, v}; }))
+        .def_property_readonly("value", [](const arb::ion_diffusivity& d){ return d.value; })
+        .def_property_readonly("quantity", [](const arb::ion_diffusivity& d){ return d.value * arb::ion_diffusivity::unit; })
+        .def_property_readonly("ion",  [](const arb::ion_diffusivity& d){ return d.ion; })
+        .def("__mul__", [](const arb::ion_diffusivity& v, float s) {
+            return arb::ion_diffusivity{v.ion, v.value * s * arb::ion_diffusivity::unit, v.scale};
+        }, py::is_operator())
+        .def("__mul__", [](const arb::ion_diffusivity& v, const std::string& s) {
+            return arb::ion_diffusivity{v.ion, v.value * arb::ion_diffusivity::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
+        .def("__imul__", [](arb::ion_diffusivity& v, double s) {
+            v.value *= s;
+            return v;
+        }, py::is_operator())
+        .def("__imul__", [](arb::ion_diffusivity& v, const std::string& s) {
+            v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
+            return v;            
+        }, py::is_operator())                
+        .def("__add__", [](const arb::ion_diffusivity& v, const U::quantity& q) {
+            return  arb::ion_diffusivity{v.ion, (v.value + q.value_as(arb::ion_diffusivity::unit)) * arb::ion_diffusivity::unit};
+        }, py::is_operator())
+        .def("__iadd__", [](arb::ion_diffusivity& v, const U::quantity& q) {
+            v.value += q.value_as(arb::ion_diffusivity::unit);
+            return v;
+        }, py::is_operator())                
+        .def("__str__", [](const arb::ion_diffusivity& d) {
+            return "(diffusivity ion=" + d.ion + " value=" + to_string(d.value) + "mM scale=" + to_string(d.scale) + ")";
+        })
+        .def("__repr__", [](const arb::ion_diffusivity& d) {
+            return "(diffusivity ion=" + d.ion + " value=" + to_string(d.value) + "mM scale=" + to_string(d.scale) + ")";
+        });
 
     density
         .def(py::init([](const std::string& name) {return arb::density(name);}))
@@ -908,25 +1170,15 @@ void register_cells(py::module& m) {
         .def("paint",
             [](arb::decor& dec,
                const char* region,
-               optional<paintable_arg> Vm, optional<paintable_arg> cm,
-               optional<paintable_arg> rL, optional<paintable_arg> tempK) {
+               optional<paintable_arg<arb::init_membrane_potential>> Vm,
+               optional<paintable_arg<arb::membrane_capacitance>> cm,
+               optional<paintable_arg<arb::axial_resistivity>> rL,
+               optional<paintable_arg<arb::temperature>> TK) {
                 auto reg = arborio::parse_region_expression(region).unwrap();
-                if (Vm) {
-                    const auto& [v, s] = value_and_scale(*Vm);
-                    dec.paint(reg, arb::init_membrane_potential{v, s});
-                }
-                if (cm) {
-                    const auto& [v, s] = value_and_scale(*cm);
-                    dec.paint(reg, arb::membrane_capacitance{v, s});
-                }
-                if (rL) {
-                    const auto& [v, s] = value_and_scale(*rL);
-                    dec.paint(reg, arb::axial_resistivity{v, s});
-                }
-                if (tempK) {
-                    const auto& [v, s] = value_and_scale(*tempK);
-                    dec.paint(reg, arb::temperature{v, s});
-                }
+                if (Vm) dec.paint(reg, to_paintable(*Vm));
+                if (cm) dec.paint(reg, to_paintable(*cm));
+                if (rL) dec.paint(reg, to_paintable(*rL));
+                if (TK) dec.paint(reg, to_paintable(*TK));
                 return dec;
             },
             "region"_a, py::kw_only(), "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
@@ -936,12 +1188,33 @@ void register_cells(py::module& m) {
              " * cm:    membrane capacitance [F/m²].\n"
              " * rL:    axial resistivity [Ω·cm].\n"
              " * tempK: temperature [Kelvin].\n"
-             "Each value can be given as a plain quantity or a tuple of (quantity, 'scale') where scale is an iexpr.")
+             "Each value can be given as a plain quantity, a tuple of (quantity, 'scale') where scale is an iexpr, or a wrapper object.")
         // Paint ion species initial conditions on a region.
         .def("paint",
             [](arb::decor& dec, const char* region, const char* name,
-               optional<paintable_arg> int_con, optional<paintable_arg> ext_con,
-               optional<paintable_arg> rev_pot, optional<paintable_arg> diff) {
+               optional<arb::init_int_concentration> int_con,
+               optional<arb::init_ext_concentration> ext_con,
+               optional<arb::init_reversal_potential> rev_pot,
+               optional<arb::ion_diffusivity> diff) {
+                auto r = arborio::parse_region_expression(region).unwrap();
+                if (int_con) dec.paint(r, *int_con);
+                if (ext_con) dec.paint(r, *ext_con);
+                if (rev_pot) dec.paint(r, *rev_pot);
+                if (diff)    dec.paint(r, *diff);
+                return dec;
+            },
+            "region"_a, py::kw_only(), "ion"_a, "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "diff"_a=py::none(),
+            "Set ion species properties conditions on a region.\n"
+             " * int_con: initial internal concentration [mM].\n"
+             " * ext_con: initial external concentration [mM].\n"
+             " * rev_pot: reversal potential [mV].\n"
+             " * method:  mechanism for calculating reversal potential.\n"
+             " * diff:   diffusivity [m^2/s].\n"
+             "Each value can be given as a plain quantity or a tuple of (quantity, 'scale') where scale is an iexpr.\n")
+        .def("paint",
+            [](arb::decor& dec, const char* region, const char* name,
+               optional<ion_arg> int_con, optional<ion_arg> ext_con,
+               optional<ion_arg> rev_pot, optional<ion_arg> diff) {
                 auto r = arborio::parse_region_expression(region).unwrap();
                 if (int_con) {
                     const auto& [v, s] = value_and_scale(*int_con);
