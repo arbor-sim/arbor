@@ -148,7 +148,7 @@ Event generator and schedules
 
 .. class:: event_generator
 
-    .. function:: event_generator(target, weight, schedule)
+    .. function:: __init___(target, weight, schedule)
 
         Construct an event generator for a :attr:`target` synapse with :attr:`weight` of the events to
         deliver based on a schedule (i.e., :class:`arbor.regular_schedule`, :class:`arbor.explicit_schedule`,

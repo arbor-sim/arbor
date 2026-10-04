@@ -25,13 +25,13 @@ Cable cell decoration
         the values onto regions.
 
         :param Vm: Initial membrane voltage [mV].
-        :type Vm: float or None
+        :type Vm: float or ``None``
         :param cm: Membrane capacitance [F/m²].
-        :type cm: float or None
+        :type cm: float or ``None``
         :param rL: Axial resistivity of cable [Ω·cm].
-        :type rL: float or None
+        :type rL: float or ``None``
         :param tempK: Temperature [Kelvin].
-        :type tempK: float or None
+        :type tempK: float or ``None``
 
         .. code-block:: Python
 
@@ -51,13 +51,13 @@ Cable cell decoration
 
         :param str ion: description of the ion species.
         :param float int_con: initial internal concentration [mM].
-        :type int_con: float or None.
+        :type int_con: float or ``None``.
         :param float ext_con: initial external concentration [mM].
-        :type ext_con: float or None.
+        :type ext_con: float or ``None``.
         :param float rev_pot: reversal potential [mV].
-        :type rev_pot: float or None
+        :type rev_pot: float or ``None``
         :param method: method for calculating reversal potential.
-        :type method: :py:class:`mechanism` or None
+        :type method: :py:class:`mechanism` or ``None``
 
         .. code-block:: Python
 
@@ -81,13 +81,13 @@ Cable cell decoration
 
         :param str region: description of the region.
         :param Vm: Initial membrane voltage [mV].
-        :type Vm: float, str, or None
+        :type Vm: float, str, or ``None``
         :param cm: Membrane capacitance [F/m²].
-        :type cm: float, str, or None
+        :type cm: float, str, or ``None``
         :param rL: Axial resistivity of cable [Ω·cm].
-        :type rL: float, str, or None
+        :type rL: float, str, or ``None``
         :param tempK: Temperature [Kelvin].
-        :type tempK: float, str, or None
+        :type tempK: float, str, or ``None``
 
         .. code-block:: Python
 
@@ -110,11 +110,11 @@ Cable cell decoration
 
         :param str name: name of the ion species.
         :param int_con: initial internal concentration [mM].
-        :type int_con: float, str, or None.
+        :type int_con: float, str, or ``None``.
         :param ext_con: initial external concentration [mM].
-        :type ext_con: float, str, or None.
+        :type ext_con: float, str, or ``None``.
         :param rev_pot: reversal potential [mV].
-        :type rev_pot: float, str, or None
+        :type rev_pot: float, str, or ``None``
 
     .. method:: paint(region, density)
         :noindex:
@@ -158,7 +158,7 @@ Cable cell decoration
 
         :param str locations: description of the locset.
         :param stim: the current stim.
-        :type stim: :py:class:`i_clamp`
+        :type stim: :py:class:`~arbor.i_clamp`
 
     .. method:: place(locations, d, label)
         :noindex:
@@ -183,3 +183,28 @@ Cable cell decoration
     .. method:: defaults()
 
         Returns a list of all set defaults for inspection.
+
+.. class:: i_clamp
+
+    .. method:: __init__()_
+
+       A default constructor, with an empty envelope, describes a trivial
+       stimulus, providing no current at all.
+
+    .. method:: __init___(amplitude, frequency=0*kHz, phase=0*rad)
+
+      Constant amplitude stimulus starting at t = 0.
+
+      :param quantity amplitude: must be convertible to current
+      :param quantity frequency: must be convertible to frequency; gives a sine current if not zero
+      :param quantity phase: must be convertible to radians, phase shift of sine.
+
+    .. method:: __init___(envelope: [(time: double, I: quantity)], f: quantity = 0*U::kHz, phi: qunatity = 0*U::rad)
+
+      Current described by piecewise linear amplitude from ``(time,
+      amplitude)``. If ``frequency`` is non-zero, the sine's amplitude will be
+      modulated by the envelope.
+
+      :param quantity f: must be convertible to frequency; gives a sine current if not zero
+      :param quantity phase: must be convertible to radians, phase shift of sine.
+        

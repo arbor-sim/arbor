@@ -22,7 +22,7 @@ Properties shared by all cable cells, as returned by the recipe
 The :cpp:type:`cable_cell` object
 ---------------------------------
 
-Cable cells are minimally constructed from a :cpp:type:`morphology.` To add
+Cable cells are minimally constructed from a :cpp:type:`morphology`. To add
 dynamics (ion channels, synapses, ...) a :ref:`decor <cablecell-decoration>` may
 be added and an :cpp:type:`label_dict` that associates names with particular
 points (:cpp:type:`locset` objects) or subsets (:cpp:type:`region` objects) of
