@@ -523,13 +523,20 @@ void register_cells(py::module& m) {
         .def("__mul__", [](const arb::init_membrane_potential& v, float s) {
             return arb::init_membrane_potential{v.value * s * arb::init_membrane_potential::unit, v.scale};
         }, py::is_operator())
-        .def("__mul__", [](const arb::init_membrane_potential& v, const std::string& s) {
-            return arb::init_membrane_potential{v.value * arb::init_membrane_potential::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
-        }, py::is_operator())        
         .def("__imul__", [](arb::init_membrane_potential& v, double s) {
             v.value *= s;
             return v;
         }, py::is_operator())
+        .def("__truediv__", [](const arb::init_membrane_potential& v, float s) {
+            return arb::init_membrane_potential{v.value / s * arb::init_membrane_potential::unit, v.scale};
+        }, py::is_operator())
+        .def("__itruediv__", [](arb::init_membrane_potential& v, double s) {
+            v.value /= s;
+            return v;
+        }, py::is_operator())        
+        .def("__mul__", [](const arb::init_membrane_potential& v, const std::string& s) {
+            return arb::init_membrane_potential{v.value * arb::init_membrane_potential::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
         .def("__imul__", [](arb::init_membrane_potential& v, const std::string& s) {
             v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
             return v;            
@@ -567,13 +574,20 @@ void register_cells(py::module& m) {
         .def("__mul__", [](const arb::membrane_capacitance& v, float s) {
             return arb::membrane_capacitance{v.value * s * arb::membrane_capacitance::unit, v.scale};
         }, py::is_operator())
-        .def("__mul__", [](const arb::membrane_capacitance& v, const std::string& s) {
-            return arb::membrane_capacitance{v.value * arb::membrane_capacitance::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
-        }, py::is_operator())        
         .def("__imul__", [](arb::membrane_capacitance& v, double s) {
             v.value *= s;
             return v;
+        }, py::is_operator())        
+        .def("__truediv__", [](const arb::membrane_capacitance& v, float s) {
+            return arb::membrane_capacitance{v.value / s * arb::membrane_capacitance::unit, v.scale};
         }, py::is_operator())
+        .def("__itruediv__", [](arb::membrane_capacitance& v, float s) {
+            v.value /= s;
+            return v;
+        }, py::is_operator())
+        .def("__mul__", [](const arb::membrane_capacitance& v, const std::string& s) {
+            return arb::membrane_capacitance{v.value * arb::membrane_capacitance::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
         .def("__imul__", [](arb::membrane_capacitance& v, const std::string& s) {
             v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
             return v;            
@@ -599,13 +613,20 @@ void register_cells(py::module& m) {
         .def("__mul__", [](const arb::temperature& v, float s) {
             return arb::temperature{v.value * s * arb::temperature::unit, v.scale};
         }, py::is_operator())
-        .def("__mul__", [](const arb::temperature& v, const std::string& s) {
-            return arb::temperature{v.value * arb::temperature::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
-        }, py::is_operator())        
         .def("__imul__", [](arb::temperature& v, double s) {
             v.value *= s;
             return v;
+        }, py::is_operator())        
+        .def("__truediv__", [](const arb::temperature& v, float s) {
+            return arb::temperature{v.value / s * arb::temperature::unit, v.scale};
         }, py::is_operator())
+        .def("__itruediv__", [](arb::temperature& v, double s) {
+            v.value /= s;
+            return v;
+        }, py::is_operator())
+        .def("__mul__", [](const arb::temperature& v, const std::string& s) {
+            return arb::temperature{v.value * arb::temperature::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
         .def("__imul__", [](arb::temperature& v, const std::string& s) {
             v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
             return v;            
@@ -631,13 +652,21 @@ void register_cells(py::module& m) {
         .def("__mul__", [](const arb::axial_resistivity& v, float s) {
             return arb::axial_resistivity{v.value * s * arb::axial_resistivity::unit, v.scale};
         }, py::is_operator())
-        .def("__mul__", [](const arb::axial_resistivity& v, const std::string& s) {
-            return arb::axial_resistivity{v.value * arb::axial_resistivity::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
-        }, py::is_operator())        
         .def("__imul__", [](arb::axial_resistivity& v, double s) {
             v.value *= s;
             return v;
         }, py::is_operator())
+        .def("__truediv__", [](const arb::axial_resistivity& v, float s) {
+            return arb::axial_resistivity{v.value / s * arb::axial_resistivity::unit, v.scale};
+        }, py::is_operator())
+        .def("__itruediv__", [](arb::axial_resistivity& v, double s) {
+            v.value /= s;
+            return v;
+        }, py::is_operator())
+        
+        .def("__mul__", [](const arb::axial_resistivity& v, const std::string& s) {
+            return arb::axial_resistivity{v.value * arb::axial_resistivity::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
         .def("__imul__", [](arb::axial_resistivity& v, const std::string& s) {
             v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
             return v;            
@@ -664,13 +693,20 @@ void register_cells(py::module& m) {
         .def("__mul__", [](const arb::init_reversal_potential& v, float s) {
             return arb::init_reversal_potential{v.ion, v.value * s * arb::init_reversal_potential::unit, v.scale};
         }, py::is_operator())
-        .def("__mul__", [](const arb::init_reversal_potential& v, const std::string& s) {
-            return arb::init_reversal_potential{v.ion, v.value * arb::init_reversal_potential::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
-        }, py::is_operator())        
-        .def("__imul__", [](arb::init_reversal_potential& v, double s) {
+        .def("__imul__", [](arb::init_reversal_potential& v, float s) {
             v.value *= s;
             return v;
         }, py::is_operator())
+        .def("__truediv__", [](const arb::init_reversal_potential& v, float s) {
+            return arb::init_reversal_potential{v.ion, v.value / s * arb::init_reversal_potential::unit, v.scale};
+        }, py::is_operator())
+        .def("__itruediv__", [](arb::init_reversal_potential& v, float s) {
+            v.value /= s;
+            return v;
+        }, py::is_operator())                
+        .def("__mul__", [](const arb::init_reversal_potential& v, const std::string& s) {
+            return arb::init_reversal_potential{v.ion, v.value * arb::init_reversal_potential::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
         .def("__imul__", [](arb::init_reversal_potential& v, const std::string& s) {
             v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
             return v;            
@@ -697,13 +733,20 @@ void register_cells(py::module& m) {
         .def("__mul__", [](const arb::init_int_concentration& v, float s) {
             return arb::init_int_concentration{v.ion, v.value * s * arb::init_int_concentration::unit, v.scale};
         }, py::is_operator())
-        .def("__mul__", [](const arb::init_int_concentration& v, const std::string& s) {
-            return arb::init_int_concentration{v.ion, v.value * arb::init_int_concentration::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
-        }, py::is_operator())        
-        .def("__imul__", [](arb::init_int_concentration& v, double s) {
+        .def("__imul__", [](arb::init_int_concentration& v, float s) {
             v.value *= s;
             return v;
         }, py::is_operator())
+        .def("__truediv__", [](const arb::init_int_concentration& v, float s) {
+            return arb::init_int_concentration{v.ion, v.value / s * arb::init_int_concentration::unit, v.scale};
+        }, py::is_operator())
+        .def("__itruediv__", [](arb::init_int_concentration& v, float s) {
+            v.value /= s;
+            return v;
+        }, py::is_operator())                
+        .def("__mul__", [](const arb::init_int_concentration& v, const std::string& s) {
+            return arb::init_int_concentration{v.ion, v.value * arb::init_int_concentration::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
         .def("__imul__", [](arb::init_int_concentration& v, const std::string& s) {
             v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
             return v;            
@@ -730,13 +773,20 @@ void register_cells(py::module& m) {
         .def("__mul__", [](const arb::init_ext_concentration& v, float s) {
             return arb::init_ext_concentration{v.ion, v.value * s * arb::init_ext_concentration::unit, v.scale};
         }, py::is_operator())
-        .def("__mul__", [](const arb::init_ext_concentration& v, const std::string& s) {
-            return arb::init_ext_concentration{v.ion, v.value * arb::init_ext_concentration::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
-        }, py::is_operator())        
-        .def("__imul__", [](arb::init_ext_concentration& v, double s) {
+        .def("__imul__", [](arb::init_ext_concentration& v, float s) {
             v.value *= s;
             return v;
         }, py::is_operator())
+        .def("__truediv__", [](const arb::init_ext_concentration& v, float s) {
+            return arb::init_ext_concentration{v.ion, v.value / s * arb::init_ext_concentration::unit, v.scale};
+        }, py::is_operator())
+        .def("__itruediv__", [](arb::init_ext_concentration& v, float s) {
+            v.value /= s;
+            return v;
+        }, py::is_operator())                
+        .def("__mul__", [](const arb::init_ext_concentration& v, const std::string& s) {
+            return arb::init_ext_concentration{v.ion, v.value * arb::init_ext_concentration::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
         .def("__imul__", [](arb::init_ext_concentration& v, const std::string& s) {
             v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
             return v;            
@@ -763,13 +813,20 @@ void register_cells(py::module& m) {
         .def("__mul__", [](const arb::ion_diffusivity& v, float s) {
             return arb::ion_diffusivity{v.ion, v.value * s * arb::ion_diffusivity::unit, v.scale};
         }, py::is_operator())
-        .def("__mul__", [](const arb::ion_diffusivity& v, const std::string& s) {
-            return arb::ion_diffusivity{v.ion, v.value * arb::ion_diffusivity::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
-        }, py::is_operator())        
-        .def("__imul__", [](arb::ion_diffusivity& v, double s) {
+        .def("__imul__", [](arb::ion_diffusivity& v, float s) {
             v.value *= s;
             return v;
         }, py::is_operator())
+        .def("__truediv__", [](const arb::ion_diffusivity& v, float s) {
+            return arb::ion_diffusivity{v.ion, v.value / s * arb::ion_diffusivity::unit, v.scale};
+        }, py::is_operator())
+        .def("__itruediv__", [](arb::ion_diffusivity& v, float s) {
+            v.value /= s;
+            return v;
+        }, py::is_operator())        
+        .def("__mul__", [](const arb::ion_diffusivity& v, const std::string& s) {
+            return arb::ion_diffusivity{v.ion, v.value * arb::ion_diffusivity::unit, v.scale * arborio::parse_iexpr_expression(s).unwrap()};
+        }, py::is_operator())        
         .def("__imul__", [](arb::ion_diffusivity& v, const std::string& s) {
             v.scale = v.scale * arborio::parse_iexpr_expression(s).unwrap();
             return v;            
