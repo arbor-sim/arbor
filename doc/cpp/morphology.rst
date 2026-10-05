@@ -5,9 +5,8 @@ Cable cell morphology
 .. cpp:namespace:: arb
 
 Cell morphologies are required to describe a :ref:`cppcablecell`. Morphologies
-can be constructed from a :cpp:type:`segment_tree`, or read from a number of file
-formats; see :ref:`cppcablecell-morphology-construction` for details.
-
+can be constructed from a :cpp:type:`segment_tree`, or read from a number of
+file formats; see :ref:`cppcablecell-morphology-construction` for details.
 
 Segment tree
 ------------
@@ -191,6 +190,8 @@ positions along them.
 
        The relative position on the branch ∈ [0,1].
 
+.. cpp:type:: mlocation_list = std::vector<mlocation>
+       
 .. cpp:class:: mcable
                
     .. cpp:member:: msize_t branch
@@ -366,13 +367,57 @@ for concrete objects
 
     mprovider(const arb::morphology& m, const label_dict& dict)
 
-    const mextent& region(const std::string& name) const
-    const mlocation_list& locset(const std::string& name) const
-    const iexpr_ptr& iexpr(const std::string& name) const
+    .. cpp:function:: const mextent& region(const std::string& name) const
+    .. cpp:function:: const mlocation_list& locset(const std::string& name) const
+    .. cpp:function:: const iexpr_ptr& iexpr(const std::string& name) const
 
-    const auto& morphology() const
-    const auto& embedding() const
+    .. cpp:function:: const morphology& morphology() const
+    .. cpp:function:: const auto& embedding() const
 
+The following class is helpful to query geometric information of a morphology
+
+.. cpp:class:: embed_pwlin
+               
+    .. cpp:function:: embed_pwlin(const morphology& m)
+
+    .. cpp:function:: msize_t num_segments() const
+
+    .. cpp:function:: mcable segment(msize_t seg_id) const
+
+    .. cpp:function:: const mlocation_list& segment_ends() const
+
+    .. cpp:function:: double radius(mlocation) const
+
+        Interpolated radius in ㎛ at location.
+
+    .. cpp:function:: double directed_projection(mlocation) const;
+
+    .. cpp:function:: double integrate_length(const mcable& c) const
+
+        Compute length of cable
+        
+    .. cpp:function:: double integrate_length(mlocation proxmal, mlocation distal) const
+    
+        Compute length between two points.
+        
+    .. cpp:function:: double integrate_area(const mcable& c) const
+    
+       Membrane surface area of given cable.
+       
+    .. cpp:function:: double integrate_area(mlocation proxmal, mlocation distal) const
+    
+       Membrane surface area between points.
+
+    .. cpp:function:: double integrate_ixa(const mcable& c) const
+    
+        Integrated inverse cross-sectional area of given mcable.
+
+    .. cpp:function:: double branch_length(msize_t bid) const
+    
+        Length of whole branch.
+    
+.. cpp:type:: concrete_embedding = embed_pwlin
+    
 From morphologies to points and segments
 ----------------------------------------
 

@@ -70,7 +70,7 @@ Class documentation
             *   an :cpp:class:`arb::domain_decomposition` that describes how the
                 cells in the model are assigned to hardware resources;
             *   an :cpp:class:`arb::context` which is used to execute the simulation.
-            *   a :cpp:class:`uint64_t` in order to seed the pseudo random number generator (optional)
+            *   a :cpp:class:`std::uint64_t` in order to seed the pseudo random number generator (optional)
         * **Experimental inputs** that can change between model runs, such
           as external spike trains.
 

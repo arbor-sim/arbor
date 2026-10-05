@@ -34,7 +34,7 @@ The requested hardware is given as
 
     .. cpp:member:: bool bind_procs = false
     .. cpp:member:: bool bind_threads = false
-    .. cpp:member:: bool has_gpu() const
+    .. cpp:function:: bool has_gpu() const
 
 
 

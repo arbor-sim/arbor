@@ -19,13 +19,13 @@ LIF cells
 
         The label of the single built-in source on the cell. Used for forming
         connections from the cell in the :cpp:class:`recipe` by creating a
-        :cpp:class:`connection`.
+        :cpp:class:`cell_connection`.
 
     .. cpp:member:: cell_tag_type target
 
         The label of the single built-in target on the cell. Used for forming
         connections to the cell in the :cpp:class:`recipe` by creating a
-        :cpp:class:`connection`.
+        :cpp:class:`cell_connection`.
 
     .. cpp:member:: const arb::units::quantity& tau_m
 

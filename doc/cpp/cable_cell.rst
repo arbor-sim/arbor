@@ -53,7 +53,6 @@ the ``place`` method. See :ref:`cppcablecell-dynamics`, below.
 
     .. cpp:function:: cable_cell()
 
-
     .. cpp:function:: cable_cell(const class morphology& m, const decor& d, const label_dict& l={}, const std::optional<cv_policy>& = {});
 
         Construct from morphology, label and decoration descriptions.
@@ -130,16 +129,22 @@ thin wrappers around a :cpp:type:`mechanism_desc`, needed for *painting* and
 *placing* mechanisms on a :cpp:type:`decor`:
 
 .. cpp:class:: density
+               
+    :no-index:
 
-   Construct a density wrapper from the mechanism `mech`.
+    Construct a density wrapper from the mechanism `mech`.
 
 .. cpp:class:: synapse
+               
+    :no-index:
 
-   Construct a synapse wrapper from the mechanism `mech`.
+    Construct a synapse wrapper from the mechanism `mech`.
 
 .. cpp:class:: junction
+               
+    :no-index:
 
-   Construct a junction wrapper from the mechanism `mech`.
+    Construct a junction wrapper from the mechanism `mech`.
 
 The decor collects mechanisms and other settings
 
@@ -231,7 +236,7 @@ The current clamp provides a convenience constructor
 
 Default values for the whole cell are set via
 
-.. cpp:function:: decor& set_default(defaultable)
+.. cpp:function:: decor& decor::set_default(defaultable)
 
 where ``defaultable`` is one of
 
@@ -244,6 +249,10 @@ where ``defaultable`` is one of
 - :cpp:expr:`ion_diffusivity` Diffusivity [m²/s]
 - :cpp:expr:`init_reversal_potential` Initial reversal potential [mV].
 
+in short
+  
+.. cpp:type:: defaultable = std::variant<init_membrane_potential, temperature, axial_resistivity, membrane_capacitance, init_int_concentration, init_ext_concentration, ion_diffusivity, init_reversal_potential>
+              
 see below for more details.
 
 .. _cppcablecell-electrical-properties:
@@ -319,6 +328,10 @@ via :cpp:func:`decor::set_default`.
 
         m²/s
 
+Arbor provides a predefined parameter set that holds values that correspond to
+NEURON defaults
+
+.. cpp:function:: cable_cell_parameter_set neuron_parameter_defaults()
 
 Global properties
 -----------------
@@ -370,8 +383,8 @@ Global properties
 
 For convenience, :cpp:expr:`neuron_parameter_defaults` is a predefined
 :cpp:type:`cable_cell_parameter_set` value that holds values that correspond to
-NEURON defaults. To use these values, assign them to the
-:cpp:expr:`default_parameters` field of the global properties object returned in
+NEURON defaults. To use these values, assign them to 
+:cpp:expr:`cable_cell_global_properties::default_parameters` field of the global properties object returned in
 the recipe.
 
 .. _cppcablecell-revpot:
