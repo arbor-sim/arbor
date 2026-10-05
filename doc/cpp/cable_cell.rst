@@ -10,14 +10,16 @@ Cable cells
    probe_sample
    cable_cell_format
 
-Cable cells, which use the :cpp:enum:`cell_kind` :cpp:expr:`cable`, represent
-morphologically-detailed neurons as 1-d trees, with electrical and biophysical
-properties mapped onto those trees.
+.. cpp:namespace:: arb
+
+Cable cells, which use the :cpp:enum:`cell_kind` :cpp:expr:`cell_kind::cable`,
+represent morphologically-detailed neurons as 1-d trees, with electrical and
+biophysical properties mapped onto those trees.
 
 A single cell is represented by an object of type :cpp:type:`cable_cell`.
 Properties shared by all cable cells, as returned by the recipe
-:cpp:expr:`get_global_properties` method, are described by an object of type
-:cpp:type:`cable_cell_global_properties`.
+:cpp:expr:`recipe::get_global_properties` method, are described by an object of
+type :cpp:type:`cable_cell_global_properties`.
 
 The :cpp:type:`cable_cell` object
 ---------------------------------
@@ -46,6 +48,41 @@ Ion channels and other distributed dynamical processes are also specified on the
 decor via the ``paint`` method; while synapses, current clamps, gap junction
 mechanisms, and the site for testing the threshold potential are specified via
 the ``place`` method. See :ref:`cppcablecell-dynamics`, below.
+
+.. cpp:class:: cable_cell
+
+    .. cpp:function:: cable_cell()
+
+
+    .. cpp:function:: cable_cell(const class morphology& m, const decor& d, const label_dict& l={}, const std::optional<cv_policy>& = {});
+
+        Construct from morphology, label and decoration descriptions.
+
+    .. cpp:function:: const label_dict& labels() const
+
+    .. cpp:function:: const concrete_embedding& embedding() const
+    .. cpp:function:: const morphology& morphology() const
+    .. cpp:function:: const mprovider& provider() const
+
+    .. cpp:function:: mlocation_list concrete_locset(const locset&) const
+
+        Turn a ``locset`` into a list of locations on this cell using the set ``cv_policy``.
+
+    .. cpp:function:: mextent concrete_region(const region&) const
+
+        Turn a ``locset`` into a list of ``extents`` on this cell using the set ``cv_policy``.
+
+    .. cpp:function:: const decor& decorations() const
+
+    .. cpp:function:: const std::optional<cv_policy>& discretization() const
+
+        Get the discretization policy, if set.
+
+    .. cpp:function:: void discretization(cv_policy)
+
+        Set the discretization policy.
+
+    .. cpp:function:: const cable_cell_parameter_set& default_parameters() const
 
 .. _cppcablecell-dynamics:
 
@@ -145,7 +182,7 @@ where
     Record a spike when the rising edge of the membrane potential crosses a
     limit.
 
-    .. cpp:function:: threshold_detector(quantity limit)
+    .. cpp:function:: threshold_detector(units::quantity limit)
 
         Construct from limit in [mV]
 
@@ -169,7 +206,7 @@ where
        A default constructor, with an empty envelope, describes a trivial
        stimulus, providing no current at all.
 
-    .. cpp:function:: i_clamp(const quantity& amplitude, const quantity& frequency=0*U::kHz, const quantity& phase=0*U::rad)
+    .. cpp:function:: i_clamp(const quantity& amplitude, const quantity& frequency=0*units::kHz, const quantity& phase=0*units::rad)
 
       Constant amplitude stimulus starting at t = 0.
 
@@ -177,7 +214,7 @@ where
       - **Frequency**, must be convertible to frequency; gives a sine current if not zero
       - **Phase**, must be convertible to radians, phase shift of sine.
 
-    .. cpp:function:: i_clamp(std::vector<envelope_point> envelope, const quantity& f = 0*U::kHz, const quantity& phi = 0*U::rad)
+    .. cpp:function:: i_clamp(std::vector<envelope_point> envelope, const quantity& f = 0*units::kHz, const quantity& phi = 0*units::rad)
 
       Current described by piecewise linear amplitude from ``(time,
       amplitude)``. If ``frequency`` is non-zero, the sine's amplitude will be
