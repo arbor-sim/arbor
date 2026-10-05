@@ -241,6 +241,7 @@ bool parse_options(options& opt, int& argc, char** argv) {
     std::pair<const char*, probe_spec_t> probe_tbl[] {
         // located probes
         {"v",            {"v",        probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_membrane_voltage{any2loc(a)}; }}},
+        {"v_raw",        {"v",        probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_membrane_voltage_noninterpolated{any2loc(a)}; }}},        
         {"i_axial",      {"i_axial",  probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_axial_current{any2loc(a)}; }}},
         {"j_ion",        {"j_ion",    probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_total_ion_current_density{any2loc(a)}; }}},
         {"j_na",         {"j_na",     probe_kind::state, [](std::any a) -> std::any { return arb::cable_probe_ion_current_density{any2loc(a), "na"}; }}},

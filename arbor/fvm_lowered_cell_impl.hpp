@@ -634,6 +634,7 @@ void fvm_lowered_cell_impl<Backend>::resolve_probe_address(std::vector<fvm_probe
     };
 
     using V = util::any_visitor<cable_probe_membrane_voltage,
+                                cable_probe_membrane_voltage_noninterpolated,
                                 cable_probe_membrane_voltage_cell,
                                 cable_probe_axial_current,
                                 cable_probe_total_ion_current_density,
@@ -651,7 +652,9 @@ void fvm_lowered_cell_impl<Backend>::resolve_probe_address(std::vector<fvm_probe
                                 cable_probe_ion_diff_concentration,
                                 cable_probe_ion_diff_concentration_cell,
                                 cable_probe_ion_ext_concentration,
-                                cable_probe_ion_ext_concentration_cell>;
+                                cable_probe_ion_ext_concentration_cell,
+                                cable_probe_ion_reversal_potential,
+                                cable_probe_ion_reversal_potential_cell>;
 
     auto visitor = util::overload([&prd](auto& probe_addr) { resolve_probe(probe_addr, prd); },
                                   [] { throw cable_cell_error("unrecognized probe type"), fvm_probe_data{}; });
@@ -701,28 +704,25 @@ void resolve_interpolated(const arb_value_type* data,
     meta.shrink_to_fit();
     coef_p.shrink_to_fit();
     coef_d.shrink_to_fit();
-    if (meta.empty()) return;    
+    if (meta.empty()) return;
     res.result.push_back(fvm_probe_interpolated_multi{
         .raw_handles = std::move(handles_p),
         .coef = {std::move(coef_p), std::move(coef_d)},
         .metadata = std::move(meta),
-    });    
+    });
 }
 
 template<typename Backend>
 void resolve_non_interpolated(const arb_value_type* data,
                               const locset& locations,
                               probe_resolution_data<Backend>& res) {
-    mcable_list meta;
+    mlocation_list meta;
     std::vector<probe_handle> handles;
     for (const mlocation& loc: thingify(locations, res.cell.provider())) {
         auto cv = res.D.geometry.location_cv(res.cell_idx, loc, cv_prefer::type::cv_nonempty);
         const double* ptr = data + cv;
-        for (auto cable: res.D.geometry.cables(cv)) {
-            if (cable.prox_pos == cable.dist_pos) continue;
-            handles.push_back(ptr);
-            meta.push_back(cable);
-        }
+        handles.push_back(ptr);
+        meta.push_back(loc);
     }
     meta.shrink_to_fit();
     handles.shrink_to_fit();
@@ -730,23 +730,21 @@ void resolve_non_interpolated(const arb_value_type* data,
     res.result.push_back(fvm_probe_multi{
         .raw_handles=std::move(handles),
         .metadata=std::move(meta)
-    });        
+    });
 }
-    
+
 template <typename B>
 void resolve_probe(const cable_probe_membrane_voltage& p, probe_resolution_data<B>& res) {
     const arb_value_type* data = res.state->voltage.data();
-    if (p.mode == sampling_mode::interpolated) {
-        resolve_interpolated(data, p.locations, fvm_interpolate_voltage, res);
-    }
-    else if (p.mode == sampling_mode::none) {
-        resolve_non_interpolated(data, p.locations, res);
-    }
-    else {
-        throw arbor_internal_error("Unknown sampling mode");
-    }
+    resolve_interpolated(data, p.locations, fvm_interpolate_voltage, res);
 }
-    
+
+template <typename B>
+void resolve_probe(const arb::cable_probe_membrane_voltage_noninterpolated& p, probe_resolution_data<B>& res) {
+    const arb_value_type* data = res.state->voltage.data();
+    resolve_non_interpolated(data, p.locations, res);
+}
+
 template <typename B>
 void resolve_probe(const cable_probe_axial_current& p, probe_resolution_data<B>& res) {
     const arb_value_type* data = res.state->voltage.data();
@@ -1082,10 +1080,10 @@ void resolve_probe(const cable_probe_ion_current_cell& p, probe_resolution_data<
 }
 
 template <typename B>
-void resolve_ion_conc_common(const locset& ls,
-                             const std::string& ion,
-                             const typename B::array& values,
-                             probe_resolution_data<B>& R) {
+void resolve_ion_common(const locset& ls,
+                        const std::string& ion,
+                        const typename B::array& values,
+                        probe_resolution_data<B>& R) {
     if (values.empty()) return;
     auto src = values.data();
     mlocation_list meta;
@@ -1109,19 +1107,25 @@ void resolve_ion_conc_common(const locset& ls,
 template <typename B>
 void resolve_probe(const cable_probe_ion_int_concentration& p, probe_resolution_data<B>& R) {
     if (!R.state->ion_data.count(p.ion)) return;
-    resolve_ion_conc_common(p.locations, p.ion, R.state->ion_data.at(p.ion).Xi_, R);
+    resolve_ion_common(p.locations, p.ion, R.state->ion_data.at(p.ion).Xi_, R);
 }
 
 template <typename B>
 void resolve_probe(const cable_probe_ion_ext_concentration& p, probe_resolution_data<B>& R) {
     if (!R.state->ion_data.count(p.ion)) return;
-    resolve_ion_conc_common(p.locations, p.ion, R.state->ion_data.at(p.ion).Xo_, R);
+    resolve_ion_common(p.locations, p.ion, R.state->ion_data.at(p.ion).Xo_, R);
 }
 
 template <typename B>
 void resolve_probe(const cable_probe_ion_diff_concentration& p, probe_resolution_data<B>& R) {
     if (!R.state->ion_data.count(p.ion)) return;
-    resolve_ion_conc_common(p.locations, p.ion, R.state->ion_data.at(p.ion).Xd_, R);
+    resolve_ion_common(p.locations, p.ion, R.state->ion_data.at(p.ion).Xd_, R);
+}
+
+template <typename B>
+void resolve_probe(const cable_probe_ion_reversal_potential& p, probe_resolution_data<B>& R) {
+    if (!R.state->ion_data.count(p.ion)) return;
+    resolve_ion_common<B>(p.locations, p.ion, R.state->ion_data.at(p.ion).eX_, R);
 }
 
 // Common implementation for int and ext concentrations across whole cell:
@@ -1129,7 +1133,7 @@ template <typename B>
 void resolve_ion_conc_cell_common(const std::vector<arb_index_type>& ion_cvs,
                                   const typename B::array& values,
                                   probe_resolution_data<B>& R) {
-    
+
     if (values.empty()) return;
     auto src = values.data();
     mcable_list meta;
@@ -1168,5 +1172,12 @@ void resolve_probe(const cable_probe_ion_diff_concentration_cell& p, probe_resol
     if (!R.state->ion_data.count(p.ion)) return;
     resolve_ion_conc_cell_common<B>(R.M.ions.at(p.ion).cv, R.state->ion_data.at(p.ion).Xd_, R);
 }
+
+template <typename B>
+void resolve_probe(const cable_probe_ion_reversal_potential_cell& p, probe_resolution_data<B>& R) {
+    if (!R.state->ion_data.count(p.ion)) return;
+    resolve_ion_conc_cell_common<B>(R.M.ions.at(p.ion).cv, R.state->ion_data.at(p.ion).eX_, R);
+}
+
 
 } // namespace arb

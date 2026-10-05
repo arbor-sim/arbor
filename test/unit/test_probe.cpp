@@ -217,8 +217,8 @@ void run_v_cell_probe_test(context ctx) {
 
         cable1d_recipe rec(cell, false);
         rec.add_probe(0, "U_m", cable_probe_membrane_voltage_cell{});
-        rec.add_probe(0, "U_m_0_0.5_i", cable_probe_membrane_voltage{ls::location(0, 0.5), sampling_mode::interpolated});
-        rec.add_probe(0, "U_m_0_0.5_n", cable_probe_membrane_voltage{ls::location(0, 0.5), sampling_mode::none});
+        rec.add_probe(0, "U_m_0_0.5_i", cable_probe_membrane_voltage{ls::location(0, 0.5)});
+        rec.add_probe(0, "U_m_0_0.5_n", cable_probe_membrane_voltage_noninterpolated{ls::location(0, 0.5)});
 
         fvm_cell lcell(*ctx);
         auto fvm_info = lcell.initialize({0}, rec);

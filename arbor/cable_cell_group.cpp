@@ -99,6 +99,7 @@ void do_run_sampler(const sampler_call_info& sc,
     arb_assert(scratch.times.size() == n_sample);
     sc.sampler(probe_metadata { .id=sc.probeset_id,
                                 .index=sc.index,
+                                .width=width,
                                 .meta=probe.get_metadata_ptr() },
                sample_records { .n_sample=n_sample,
                                 .width=width,

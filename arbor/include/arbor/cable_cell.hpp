@@ -55,11 +55,6 @@ struct probe_value_type_of<cable_point_meta_type> {
     using type = cable_sample_type;
 };
 
-enum struct sampling_mode {
-    none,
-    interpolated,
-};
-
 // Each kind of probe has its own type for representing its address, as below.
 // The metadata associated with a probe is also passed to a sampler via an `any_ptr`;
 // the underlying pointer will be a const pointer to the associated metadata type.
@@ -70,7 +65,12 @@ struct ARB_SYMBOL_VISIBLE cable_probe_membrane_voltage {
     using value_type = cable_sample_type;
     using meta_type = cable_state_meta_type;
     locset locations = ls::nil();
-    sampling_mode mode = sampling_mode::interpolated;
+};
+
+struct ARB_SYMBOL_VISIBLE cable_probe_membrane_voltage_noninterpolated {
+    using value_type = cable_sample_type;
+    using meta_type = cable_state_meta_type;
+    locset locations = ls::nil();
 };
 
 // Axial current estimate [nA] at `location`,

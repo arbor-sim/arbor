@@ -72,7 +72,7 @@ struct recorder_adex: recorder_base<arb::adex_probe_metadata> {
     using recorder_base<arb::adex_probe_metadata>::sample_raw_;
 
     void record(any_ptr pm, const arb::sample_records& records) override {
-        auto reader = arb::sample_reader<arb::lif_probe_voltage::meta_type>(pm, records);
+        auto reader = arb::sample_reader<arb::adex_meta_type>(pm, records);
         for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
             auto t = reader.time(ix);
             sample_raw_.push_back(t);
@@ -142,11 +142,11 @@ void register_probe_meta_maps(pyarb_global_ptr g) {
 // Wrapper functions around cable_cell probe types that return arb::probe_info values:
 // (Probe tag value is implicitly left at zero.)
 arb::probe_info cable_probe_membrane_voltage(const char* where, const std::string& tag) {
-    return {arb::cable_probe_membrane_voltage{arborio::parse_locset_expression(where).unwrap(), arb::sampling_mode::interpolated}, tag};
+    return {arb::cable_probe_membrane_voltage{arborio::parse_locset_expression(where).unwrap()}, tag};
 }
 
 arb::probe_info cable_probe_membrane_voltage_uninterpolated(const char* where, const std::string& tag) {
-    return {arb::cable_probe_membrane_voltage{arborio::parse_locset_expression(where).unwrap(), arb::sampling_mode::none}, tag};
+    return {arb::cable_probe_membrane_voltage_noninterpolated{arborio::parse_locset_expression(where).unwrap()}, tag};
 }
 
 arb::probe_info cable_probe_membrane_voltage_cell(const std::string& tag) {

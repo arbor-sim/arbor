@@ -138,7 +138,7 @@ Membrane voltage
 
    **Metadata**: the list of :class:`location` of the sample sites.
 
-   .. function:: cable_probe_membrane_voltage_uninterpolated(where, tag)
+   .. function:: cable_probe_membrane_voltage_noninterpolated(where, tag)
 
    Cell membrane potential (mV) at the sites specified by the location
    expression string ``where``. This value is taken at the nearest CV, if
