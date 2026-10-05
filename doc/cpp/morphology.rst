@@ -2,10 +2,12 @@
 
 Cable cell morphology
 =====================
+.. cpp:namespace:: arb
 
 Cell morphologies are required to describe a :ref:`cppcablecell`. Morphologies
-can be constructed from :cpp:type:`segment_trees`, or read from a number of file
+can be constructed from a :cpp:type:`segment_tree`, or read from a number of file
 formats; see :ref:`cppcablecell-morphology-construction` for details.
+
 
 Segment tree
 ------------
@@ -26,8 +28,7 @@ at ``0`` in the order that they are added, with the first segment getting id
 before its parent, hence the first segment is always at the root. In this
 manner, a segment tree is always guaranteed to be in a correct state, with
 consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
-``n-1``. The first parent must be :data:`mnpos`, indicating 'no parent'.
-
+``n-1``. The first parent must be :cpp:expr:`mnpos`, indicating 'no parent'.
 
 .. cpp:class:: segment_tree
 
@@ -46,7 +47,7 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
         parent's id.
 
         This version of append can't be used for a segment at the root of the
-        tree, that is, when ``parent`` is :data:`mnpos`, in which case both
+        tree, that is, when ``parent`` is :cpp:expr:`mnpos`, in which case both
         proximal and distal ends of the segment must be specified.
 
     .. cpp:function:: bool empty()
@@ -65,7 +66,7 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
 
         A list of the segments.
 
-.. cpp:function:: std::string show(const arb::segment_tree&)
+.. cpp:function:: std::string show(const segment_tree&)
 
     Return a string representation of the tree.
 
@@ -82,8 +83,9 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
 
 .. cpp:function:: std::vector<msize_t> tag_roots(const segment_tree& t, int tag)
 
-    Get ids of roots of a region with specific tags in the segment tree, i.e., segments whose
-    parent is either :data:`mnpos` or a segment with a different tag.
+    Get ids of roots of a region with specific tags in the segment tree, i.e.,
+    segments whose parent is either :cpp:expr:`mnpos` or a segment with a different
+    tag.
 
 .. cpp:function:: bool equivalent(const segment_tree& l, const segment_tree& r)
 
@@ -100,8 +102,42 @@ consistent parent-child indexing, and with ``n`` segments numbered from ``0`` to
     be instantiated using ``isometry::translate`` and ``isometry::rotate`` and combined
     using the ``*`` operator.
 
+We use
+
+.. cpp:type:: msize_t = std::uint32_t
+.. cpp:var:: msize_t mnpos = -1
+
+to define sizes and indices. Segments
+
+.. cpp:class:: msegment
+               
+    .. cpp:member:: msize_t id
+
+       Unique identifier for this segment.
+
+    .. cpp:member:: mpoint prox
+    .. cpp:member:: mpoint dist
+
+    .. cpp:member:: int tag
+
+       User defined tag, allows for marking subsets of the tree.
+
+are defined between two
+
+.. cpp:class:: mpoint
+
+    .. cpp:member:: double x
+    .. cpp:member:: double y
+    .. cpp:member:: double z
+    .. cpp:member:: double radius
+
+where all coordinates are in `µm`.
+
 Morphology API
 --------------
+
+Morphologies are a higher level representation of the information in a segment tree,
+where unbranched segments are merged into ``branches``.
 
 .. cpp:class:: morphology
 
@@ -141,16 +177,40 @@ Morphology API
 
         Range of segments in a branch.
 
-.. cpp:function:: std::string show(const arb::morphology&)
+.. cpp:function:: std::string show(const morphology&)
 
     Return a string representation of the tree underlying the morphology.
 
+On morphologies, coordinates are given in terms of branches and fractional
+positions along them.
+
+.. cpp:class:: mlocation
+               
+    .. cpp:member:: msize_t branch
+    .. cpp:member:: double pos = 0.0
+
+       The relative position on the branch ∈ [0,1].
+
+.. cpp:class:: mcable
+               
+    .. cpp:member:: msize_t branch
+    .. cpp:member:: double prox_pos
+
+       Relative location of the start point on the branch ∈ [0,1]
+       
+    .. cpp:member:: double dist_pos
+
+       Relative location of the end point on the branch ∈ [0,1]
+       ``0 ≤ prox_pos ≤ dist_pos ≤ 1``
+
+.. cpp:type:: mcable_list = std::vector<mcable>
+       
 .. _cppcablecell-morphology-construction:
 
 The stitch-builder interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Like the segment tree, the :cpp:type:`stich_builder` class constructs morphologies
+Like the segment tree, the :cpp:type:`stitch_builder` class constructs morphologies
 through attaching simple components described by a pair of :cpp:type:`mpoint` values,
 proximal and distal. These components are :cpp:type:`mstitch` objects, and
 they differ from segments in two regards:
@@ -167,22 +227,20 @@ the proximal and distal points.
 
 The required header file is ``arbor/morph/stitch.hpp``.
 
-:cpp:type:`mstitch` has two constructors:
+.. cpp:class:: mstitch
 
-.. code::
-
-   mstitch::mstitch(std::string id, mpoint prox, mpoint dist, int tag = 0)
-   mstitch::mstitch(std::string id, mpoint dist, int tag = 0)
+   mstitch(std::string id, mpoint prox, mpoint dist, int tag = 0)
+   mstitch(std::string id, mpoint dist, int tag = 0)
 
 If the proximal point is omitted, it will be inferred from the point at which
 the stitch is attached to its parent.
 
-The :cpp:type:`stitch_builder` class collects the stitches with the ``add`` method:
+.. cpp:class:: stitch_builder
 
-.. code::
+    collects the stitches with the ``add`` method:
 
-   stitch_builder::add(mstitch, const std::string& parent_id, double along = 1.)
-   stitch_builder::add(mstitch, double along = 1.)
+   .. cpp:function:: add(mstitch, const std::string& parent_id, double along = 1.)
+   .. cpp:function:: add(mstitch, double along = 1.)
 
 The first stitch will have no parent. If no parent id is specified for a subsequent
 stitch, the last stitch added will be used as the parent. The ``along`` parameter
@@ -202,7 +260,7 @@ for querying the extent of individual stitches.
    rvalue is more efficient, as it avoids making a copy of the underlying
    tree structure.
 
-   .. cpp:function:: arb::morphology morphology() const
+   .. cpp:function:: morphology morphology() const
 
    Return the constructed morphology object.
 
@@ -277,10 +335,43 @@ Identifying sites and subsets of the morphology
 Translating regions and locsets to cables and locations
 -------------------------------------------------------
 
-.. todo::
+.. cpp:class:: mextent
 
-   TODO: ``mprovider``, ``mextent`` and ``thingify``.
+  Represents a (possibly empty or disconnected) region on a morphology.
 
+  Wraps an :cpp:type:`mcable_list`, and satisfies the additional constraint that
+  any two cables on the same branch are strictly disjoint, i.e.
+  for cables p and q on the same branch, either `p.prox_pos > q.dist_pos`
+  or `p.dist_pos < q.prox_pos`.
+
+  .. cpp:function:: mextent(const mcable_list&);
+
+  Union, intersection, and location membership operations can be performed
+  without a morphology.
+  A morphology is required to assert the invariant that an mextent does
+  not contain branches not in the morphology.
+
+  .. cpp:function:: bool intersects(const mcable_list& a) const
+  .. cpp:function:: bool intersects(const mcable& a) const
+  .. cpp:function:: bool intersects(const mextent& a) const
+  .. cpp:function:: bool intersects(mlocation loc) const
+
+.. cpp:function:: mextent intersect(const mextent& a, const mextent& b)
+.. cpp:function:: mextent join(const mextent& a, const mextent& b)
+
+The ``mprovider`` class can be used to query terms from a ``label_dict``
+for concrete objects
+
+.. cpp:class:: mprovider
+
+    mprovider(const arb::morphology& m, const label_dict& dict)
+
+    const mextent& region(const std::string& name) const
+    const mlocation_list& locset(const std::string& name) const
+    const iexpr_ptr& iexpr(const std::string& name) const
+
+    const auto& morphology() const
+    const auto& embedding() const
 
 From morphologies to points and segments
 ----------------------------------------
@@ -544,16 +635,16 @@ The ingestion of these formats is described below, but each returns a structure
 
 .. cpp:class:: loaded_morphology
 
-   .. cpp:member:: arb::segment_tree segment_tree
+   .. cpp:member:: segment_tree segment_tree
 
     Raw segment tree, identical to morphology.
 
-   .. cpp:member:: arb::morphology morphology
+   .. cpp:member:: morphology morphology
 
     Morphology constructed from description.
 
 
-   .. cpp:member:: arb::label_dict labels
+   .. cpp:member:: label_dict labels
 
     Regions and locsets defined in the description.
 
@@ -662,6 +753,7 @@ basic checks performed on them. The :cpp:type:`swc_data` object can then be used
    Returns a :cpp:type:`morphology` constructed according to NEURON's
    :ref:`SWC specifications <formatswc-neuron>`.
 
+.. cpp:class:: swc_metadata
 
 .. _cppasc:
 
@@ -671,7 +763,8 @@ Neurolucida ASCII
 Arbor supports reading morphologies described using the
 :ref:`Neurolucida ASCII file format <formatasc>`.
 
-The :cpp:func:`parse_asc()` function is used to parse the SWC file and generate a :cpp:type:`loaded_morphology` object:
+The :cpp:func:`load_asc` function is used to parse the SWC file and generate a
+:cpp:type:`loaded_morphology` object:
 
 .. cpp:function:: loaded_morphology load_asc(const std::filesystem::path& filename)
 
@@ -692,7 +785,7 @@ The :cpp:func:`parse_asc()` function is used to parse the SWC file and generate 
 
     .. cpp:member:: std::string name
 
-    .. cpp:member:: arb::mpoint location
+    .. cpp:member:: mpoint location
 
 .. cpp:class:: asc_marker_set
 
@@ -702,10 +795,24 @@ The :cpp:func:`parse_asc()` function is used to parse the SWC file and generate 
 
     .. cpp:member:: std::string name
 
-    .. cpp:member:: std::vector<arb::mpoint> locations
+    .. cpp:member:: std::vector<mpoint> locations
 
 where ``asc_marker`` is an enum of ``dot``, ``circle``, ``cross``, or ``none``,
+
+.. cpp:enum:: asc_marker
+
+    .. cpp:enumerator:: dot
+    .. cpp:enumerator:: circle
+    .. cpp:enumerator:: cross
+    .. cpp:enumerator:: none
+
 and ``asc_color`` an RGB triple.
+
+.. cpp:class:: asc_color
+               
+    .. cpp:member:: std::uint8_t r
+    .. cpp:member:: std::uint8_t g
+    .. cpp:member:: std::uint8_t b                
 
 .. _cppneuroml:
 
@@ -772,7 +879,7 @@ namespace.
 
    All child segments will connect to the centre of this cylinder, no matter the value of any ``fractionAlong`` attribute.
 
-The morphology representation contains the corresponding Arbor ``arb::morphology`` object,
+The morphology representation contains the corresponding Arbor ``morphology`` object,
 label dictionaries for regions corresponding to its segments and segment groups by name
 and id, and a map providing the explicit list of segments contained within each defined
 segment group.
@@ -787,16 +894,16 @@ segment group.
 
    The id attribute of the morphology.
 
-   .. cpp:member:: arb::label_dict segments
+   .. cpp:member:: label_dict segments
 
    A label dictionary with a region entry for each segment, keyed by the segment id (as a string).
 
-   .. cpp:member:: arb::label_dict named_segments
+   .. cpp:member:: label_dict named_segments
 
    A label dictionary with a region entry for each name attribute given to one or more segments.
    The region corresponds to the union of all segments sharing the same name attribute.
 
-   .. cpp:member:: arb::label_dict groups
+   .. cpp:member:: label_dict groups
 
    A label dictionary with a region entry for each defined segment group
 

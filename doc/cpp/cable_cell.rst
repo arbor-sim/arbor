@@ -259,42 +259,42 @@ should be taken from the cell or global parameter set.
 
    .. cpp:member:: std::unordered_map<std::string, cable_cell_ion_data> ion_data
 
-   The keys of this map are names of ions, whose parameters will be locally overridden.
-   The struct :cpp:type:`cable_cell_ion_data` has three fields:
+   The keys of this map are names of ions, whose parameters will be locally
+   overridden. The struct :cpp:type:`cable_cell_ion_data` has three fields:
    :cpp:type:`init_int_concentration`, :cpp:type:`init_ext_concentration`, and
    :cpp:type:`init_reversal_potential`.
 
    Internal and external concentrations are given in millimolars, i.e. mol/m³.
    Reversal potential is given in millivolts.
 
-   .. cpp:member:: util::optional<units::quantity> init_membrane_potential
+   .. cpp:member:: std::optional<units::quantity> init_membrane_potential
 
    Initial membrane potential in millivolts.
 
-   .. cpp:member:: util::optional<units::quantity> temperature
+   .. cpp:member:: std::optional<units::quantity> temperature
 
    Local temperature in Kelvin.
 
-   .. cpp:member:: util::optional<units::quantity> axial_resistivity
+   .. cpp:member:: std::optional<units::quantity> axial_resistivity
 
    Local resistivity of the intracellular medium, in ohm-centimetres.
 
-   .. cpp:member:: util::optional<units::quantity> membrane_capacitance
+   .. cpp:member:: std::optional<units::quantity> membrane_capacitance
 
    Local areal capacitance of the cell membrane, in Farads per square metre.
 
-   .. cpp:member:: util::optional<cv_policy> discretisation
+   .. cpp:member:: std::optional<cv_policy> discretisation
 
    Method by which CV boundaries are determined when the cell is discretised.
    See :ref:`cv-policies`.
 
-Default parameters for a cell are returned by the :cpp:expr:`default_parameters`
+Default parameters for a cell are returned by the :cpp:func:`cable_cell::default_parameters`
 member in the :cpp:type:`cable_cell` object. This is a value of type
 :cpp:type:`cable_cell_parameter_set`, which extends
 :cpp:type:`cable_cell_parameter_set` by adding an additional field describing
 reversal potential computation:
 
-   .. cpp:member:: cable_cell_parameter_set::std::unordered_map<std::string, mechanism_desc> reversal_potential_method
+   .. cpp:member:: std::unordered_map<std::string, mechanism_desc> reversal_potential_method
 
    Maps the name of an ion to a 'reversal potential' mechanism that describes
    how it should be computed. When no mechanism is provided for an ionic
@@ -302,7 +302,23 @@ reversal potential computation:
 
 Default parameters for all cells are supplied in the
 :cpp:type:`cable_cell_global_properties` struct, while per-cell defaults are set
-via :cpp:expr:`decor::set_default`.
+via :cpp:func:`decor::set_default`.
+
+.. cpp:class:: cable_cell_ion_data
+               
+    .. cpp:member:: std::optional<double> init_int_concentration
+
+        mM
+    .. cpp:member:: std::optional<double> init_ext_concentration
+
+        mM
+    .. cpp:member:: std::optional<double> init_reversal_potential
+
+        mV
+    .. cpp:member:: std::optional<double> diffusivity
+
+        m²/s
+
 
 Global properties
 -----------------

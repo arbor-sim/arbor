@@ -5,26 +5,53 @@ Hardware context
 
 Arbor provides two library APIs for working with hardware resources:
 
-* The core *libarbor* is used to *describe* the hardware resources
+* The core ``libarbor`` is used to *describe* the hardware resources
   and their contexts for use in Arbor simulations.
-* The *libarborenv* provides an API for querying available hardware
+* The ``libarborenv`` provides an API for querying available hardware
   resources (e.g., the number of available GPUs), and initializing MPI.
+
+A lot of internal functionality is built upon MPI and will be using
+communicators
+
+.. cpp:class:: MPI_Comm
+  
+libarbor
+--------
+.. cpp:namespace:: arbenv
+
+The requested hardware is given as 
+
+.. cpp:class:: proc_allocation
+
+    .. cpp:member:: unsigned long num_threads = 1
+
+    .. cpp:member:: int gpu_id = -1
+                    
+        The gpu id corresponds to the `int device` parameter used by
+        CUDA/HIP API calls to identify gpu devices.
+        A gpud id of gpu_nil_id indicates no GPU device is to be used.
+        See documenation for cuda[/hip]SetDevice and cuda[/hip]DeviceGetAttribute.
+
+    .. cpp:member:: bool bind_procs = false
+    .. cpp:member:: bool bind_threads = false
+    .. cpp:member:: bool has_gpu() const
+
 
 
 libarborenv
--------------------
+-----------
+.. cpp:namespace:: arbenv
 
-The *libarborenv* API for querying and managing hardware resources is in the
-:cpp:any:`arbenv` namespace.
+The ``libarborenv`` API for querying and managing hardware resources is in the
+``arbenv`` namespace.
 This functionality is kept in a separate library to enforce
 separation of concerns, so that users have full control over how hardware resources
 are selected, either using the functions and types in *libarborenv*, or writing their
 own code for managing MPI, GPUs, and thread counts.
 
 Functions for determining environment defaults based on system information and
-user-supplied values in environment values are in the header ``arborenv/default_env.hpp``.
+user-supplied values in environment values are in the header ```arborenv/default_env.hpp``.
 
-.. cpp:namespace:: arbenv
 
 .. cpp:function:: unsigned long get_env_num_threads()
 
@@ -38,7 +65,9 @@ user-supplied values in environment values are in the header ``arborenv/default_
 
     Throws:
 
-    * Throws :cpp:any:`arbenv::invalid_env_value` if ARBENV_NUM_THREADS is set, non-empty, and not a valid representation of a positive unsigned long value.
+    * Throws :cpp:type:`invalid_env_value` if ``ARBENV_NUM_THREADS`` is set,
+      non-empty, and not a valid representation of a positive unsigned long
+      value.
 
     .. container:: example-code
 
@@ -52,16 +81,16 @@ user-supplied values in environment values are in the header ``arborenv/default_
          else {
             std::cout << "environment variable empty or unset\n";
          }
-
+         
 .. cpp:function:: arb::proc_allocation default_allocation()
 
-    Return a :cpp:any:`proc_allocation` with thread count from :cpp:any:`default_concurrency()`
-    and gpu id from :cpp:any:`default_gpu()`.
+    Return a :cpp:type:`arb::proc_allocation` with thread count from
+    :cpp:func:`default_concurrency()` and GPU id from :cpp:func:`default_gpu()`.
 
 .. cpp:function:: unsigned long default_concurrency()
 
-    Returns number of threads to use from :cpp:any:`get_env_num_threads()`, or else from
-    :cpp:any:`thread_concurrency()` if :cpp:any:`get_env_num_threads()` returns zero.
+    Returns number of threads to use from :cpp:func:`get_env_num_threads()`, or else from
+    :cpp:func:`thread_concurrency()` if :cpp:func:`get_env_num_threads()` returns zero.
 
 .. cpp:function:: int default_gpu()
 
@@ -75,8 +104,8 @@ user-supplied values in environment values are in the header ``arborenv/default_
 
     Throws:
 
-    * Throws :cpp:any:`arbenv::invalid_env_value` if ARBENV_GPU_ID contains a non-integer value.
-    * Throws :cpp:any:`arbenv::no_such_gpu` if ARBENV_GPU_ID contains a non-negative integer that does not correspond to a detected GPU.
+    * Throws :cpp:type:`invalid_env_value` if ARBENV_GPU_ID contains a non-integer value.
+    * Throws :cpp:type:`no_such_gpu` if ARBENV_GPU_ID contains a non-negative integer that does not correspond to a detected GPU.
 
 The header ``arborenv/concurrency.hpp`` supplies lower-level functions for querying the threading environment.
 
@@ -119,7 +148,7 @@ The header ``arborenv/gpu_env.hpp`` supplies lower-level functions for querying 
 
     Throws:
 
-    * :cpp:any:`arbenv::gpu_uuid_error`: if there was an error in the CUDA runtime
+    * :cpp:type:`gpu_uuid_error`: if there was an error in the CUDA runtime
         on the local or remote MPI ranks, i.e., if one rank throws, all ranks
         will throw.
 
@@ -129,16 +158,16 @@ and handling exceptions on MPI exit.
 .. cpp:class:: with_mpi
 
     The :cpp:class:`with_mpi` type is a simple RAII scoped guard for MPI initialization
-    and finalization. On creation :cpp:class:`with_mpi` will call :cpp:any:`MPI_Init_thread`
+    and finalization. On creation :cpp:class:`with_mpi` will call ``MPI_Init_thread``
     to initialize MPI with the minimum level thread support required by Arbor, that is
     ``MPI_THREAD_SERIALIZED``. When it goes out of scope, it will automatically call
-    :cpp:any:`MPI_Finalize`.
+    ``MPI_Finalize``.
 
     .. cpp:function:: with_mpi(int& argcp, char**& argvp, bool fatal_errors = true)
 
-        The constructor takes the :cpp:any:`argc` and :cpp:any:`argv` arguments
+        The constructor takes the ``argc`` and ``argv`` arguments
         passed to the ``main`` function of the calling application, and an additional flag
-        :cpp:any:`fatal_errors` that toggles whether errors in MPI API calls
+        ``fatal_errors`` that toggles whether errors in MPI API calls
         should return error codes or terminate.
 
     .. Warning::
@@ -149,18 +178,18 @@ and handling exceptions on MPI exit.
         The :cpp:class:`with_mpi` scope guard attempts to facilitate error reporting of
         uncaught exceptions, particularly in the case where one rank throws an exception,
         while the other ranks continue executing. In this case there would be a deadlock
-        if the rank with the exception attempts to call :cpp:any:`MPI_Finalize` and
+        if the rank with the exception attempts to call ``MPI_Finalize`` and
         other ranks are waiting in other MPI calls. If this happens inside a try-catch
         block, the deadlock stops the exception from being handled.
         For this reason, the destructor of :cpp:class:`with_mpi` only calls
-        :cpp:any:`MPI_Finalize` if there are no uncaught exceptions.
+        ``MPI_Finalize``` if there are no uncaught exceptions.
         This isn't perfect because the other MPI ranks can still deadlock,
         however, it gives the exception handling code to report the error for debugging.
 
     An example workflow that uses the MPI scope guard. Note that this code will
     print the exception error message in the case where only one MPI rank threw
     an exception, though it would either then deadlock or exit with an error code
-    that one or more MPI ranks exited without calling :cpp:any:`MPI_Finalize`.
+    that one or more MPI ranks exited without calling ``MPI_Finalize``.
 
     .. container:: example-code
 
@@ -296,9 +325,9 @@ with and without distributed computation with MPI, respectively.
 
 .. cpp:function:: context make_context(proc_allocation alloc=proc_allocation())
 
-    Create a local :cpp:class:`context`, with no distributed/MPI,
-    that uses local resources described by :cpp:any:`alloc`.
-    By default it will create a context with :cpp:func:`thread_concurrency` threads and no GPU.
+    Create a local :cpp:class:`context`, with no distributed/MPI, that uses
+    local resources described by :cpp:any:`alloc`. By default it will create a
+    context with :cpp:func:`arbenv::thread_concurrency` threads and no GPU.
 
 .. cpp:function:: context make_context(proc_allocation alloc, MPI_Comm comm)
 
@@ -329,13 +358,13 @@ whether it has a GPU, how many threads are in its thread pool, using helper func
 .. cpp:function:: unsigned num_ranks(const context&)
 
    Query the number of distributed ranks. If the context has an MPI
-   communicator, the return value is equivalent to :cpp:any:`MPI_Comm_size`.
+   communicator, the return value is equivalent to ``MPI_Comm_size``.
    If the communicator has no MPI, returns 1.
 
 .. cpp:function:: unsigned rank(const context&)
 
    Query the rank of the calling rank. If the context has an MPI
-   communicator, the return value is equivalent to :cpp:any:`MPI_Comm_rank`.
+   communicator, the return value is equivalent to ``MPI_Comm_rank``.
    If the communicator has no MPI, returns 0.
 
 Here are some simple examples of how to create a :cpp:class:`arb::context` using
@@ -554,28 +583,28 @@ Class documentation
         Overload for gathering a string from each domain into a vector
         of strings on domain :cpp:any:`root`.
 
-    .. cpp:function:: T min(T value) const
+    .. cpp:function:: template<typename T> T min(T value) const
 
         Reduction operation over all processes.
 
         The type ``T`` is one of ``float``, ``double``, ``int``,
         ``std::uint32_t``, ``std::uint64_t``.
 
-    .. cpp:function:: T max(T value) const
+    .. cpp:function:: template<typename T> T max(T value) const
 
         Reduction operation over all processes.
 
         The type ``T`` is one of ``float``, ``double``, ``int``,
         ``std::uint32_t``, ``std::uint64_t``.
 
-    .. cpp:function:: T sum(T value) const
+    .. cpp:function:: template<typename T> T sum(T value) const
 
         Reduction operation over all processes.
 
         The type ``T`` is one of ``float``, ``double``, ``int``,
         ``std::uint32_t``, ``std::uint64_t``.
 
-    .. cpp:function:: std::vector<T> gather(T value, int root) const
+    .. cpp:function:: template<typename T> std::vector<T> gather(T value, int root) const
 
         Gather operation. Returns a vector with one entry for each process.
 
@@ -680,7 +709,7 @@ To support dry-run mode we use the following classes:
         Duplicates the vector of strings from local domain, :cpp:member:`num_ranks_` times.
         Returns the concatenated vector.
 
-    .. cpp:function:: gathered_vector<arb::spike>  gather_spikes(const std::vector<arb::spike>& local_spikes) const
+    .. cpp:function:: gathered_vector<spike> gather_spikes(const std::vector<spike>& local_spikes) const
 
         The vector of :cpp:any:`local_spikes` represents the spikes obtained from running a
         simulation of :cpp:member:`num_cells_per_tile_` on the local domain.
@@ -696,22 +725,21 @@ To support dry-run mode we use the following classes:
 
 .. cpp:class:: tile: public recipe
 
-    .. Note::
-        While this class inherits from :cpp:class:`arb::recipe`, it breaks one of its implicit
-        rules: it allows connection from gids greater than the total number of cells in a recipe,
-        :cpp:any:`ncells`.
+    .. Note:: While this class inherits from :cpp:class:`recipe`, it breaks one
+        of its implicit rules: it allows connection from gids greater than the
+        total number of cells in a recipe.
 
-    :cpp:class:`arb::tile` describes the model on a single domain containing :cpp:expr:`num_cells =
-    num_cells_per_tile` cells, which is to be duplicated over :cpp:any:`num_ranks`
-    domains in dry-run mode. It contains information about :cpp:any:`num_ranks` which is provided
-    by the following function:
+    :cpp:class:`tile` describes the model on a single domain containing
+    ``num_cells = num_cells_per_tile`` cells, which is to be duplicated
+    over ``num_ranks`` domains in dry-run mode. It contains information
+    about ``num_ranks`` which is provided by the following function:
 
     .. cpp:function:: cell_size_type num_tiles() const
 
-    Most of the overloaded functions in :cpp:class:`arb::tile` describe a recipe on the local
-    domain, as if it was the only domain in the simulation, except for the following two
-    functions that accept :cpp:any:`gid` arguments in the half open interval
-    ``[0, num_cells*num_tiles)``:
+    Most of the overloaded functions in :cpp:class:`tile` describe a recipe on
+    the local domain, as if it was the only domain in the simulation, except for
+    the following two functions that accept ``gid`` arguments in the half
+    open interval ``[0, num_cells*num_tiles)``:
 
     .. cpp:function:: std::vector<cell_connection> connections_on(cell_gid_type gid) const
 
@@ -719,8 +747,8 @@ To support dry-run mode we use the following classes:
 
 .. cpp:class:: symmetric_recipe: public recipe
 
-    A symmetric_recipe mimics having a model containing :cpp:var:`num_tiles()`
-    instances of :cpp:class:`arb::tile` in a simulation of one tile per domain.
+    A symmetric_recipe mimics having a model containing ``num_tiles``
+    instances of :cpp:class:`tile` in a simulation of one tile per domain.
 
     .. cpp:member:: std::unique_ptr<tile> tiled_recipe_
 
@@ -738,7 +766,7 @@ To support dry-run mode we use the following classes:
                 return tiled_recipe_->get_cell_kind(i % tiled_recipe_->num_cells());
             }
 
-    The exception is again the following 2 functions:
+    The exception is again the following two functions:
 
     .. cpp:function:: std::vector<cell_connection> connections_on(cell_gid_type i) const
 
@@ -754,3 +782,16 @@ To support dry-run mode we use the following classes:
         Calls on the domain gid without the modulo operation, because the function has a
         knowledge of the entire network.
 
+Exceptions
+----------
+
+.. cpp:namespace:: arbenv
+
+.. cpp:class:: arborenv_exception: std::runtime_error
+
+.. cpp:class:: invalid_env_value: arborenv_exception
+
+     Environment variable parsing errors.
+
+.. cpp:class:: no_such_gpu: arborenv_exception
+.. cpp:class:: gpu_uuid_error: arborenv_exception

@@ -99,22 +99,22 @@ Cable cell morphology
     the :attr:`radius` of the cable.
 
     .. attribute:: x
-        :type: real
+        :type: float
 
         X coordinate (μm)
 
     .. attribute:: y
-        :type: real
+        :type: float
 
         Y coordinate (μm)
 
     .. attribute:: z
-        :type: real
+        :type: float
 
         x coordinate (μm)
 
     .. attribute:: radius
-        :type: real
+        :type: float
 
         The radius of the cable (μm)
 
@@ -303,7 +303,7 @@ Cable cell morphology
 
         Return a string containing an ASCII rendering of the tree.
 
-        :return: string
+        :return: str
 
 .. py:class:: morphology
 
@@ -362,12 +362,13 @@ Cable cell morphology
 
         Return a string containing an ASCII rendering of the morphology.
 
-        :return: string
+        :return: str
 
 .. py:class:: place_pwlin
 
-    A :class:`place_pwlin` object allows the querying of the 3-d location of locations and cables
-    in a morphology. Refer to the C++ documentation for :cpp:type:`place_pwlin` for more details.
+    A :class:`place_pwlin` object allows the querying of the 3-d location of
+    locations and cables in a morphology. Refer to the C++ documentation for
+    :cpp:type:`arb::place_pwlin` for more details.
 
     .. py:function:: place_pwlin(morphology, isometry)
     .. py:function:: place_pwlin(morphology)
@@ -398,7 +399,7 @@ Cable cell morphology
        union is coterminous with the sub-region of the morphology covered by
        the given cables in the placement.
 
-    .. py:method:: closest(x: real, y: real, z: real) -> tuple[mpoint, real]
+    .. py:method:: closest(x: float, y: float, z: float) -> tuple[mpoint, float]
 
         Find the closest location to p. Returns the location and its distance from the input coordinates.
 
@@ -406,7 +407,7 @@ Cable cell morphology
 
     Isometries represent rotations and translations in space, and can be used with
     :class:`place_pwlin` to position a morphology in an arbitrary spatial location
-    and orientation. Refer to the C++ documentation for :cpp:type:`isometry` for
+    and orientation. Refer to the C++ documentation for :cpp:type:`arb::isometry` for
     more details.
 
     .. py::function:: isometry()
@@ -463,7 +464,7 @@ Discretisation and CV policies
 
 The set of boundary points used by the simulator is determined by a
 :ref:`CV policy <morph-cv-policies>`. These are objects of type
-:cpp:class:`cv_policy`, which has the following public methods:
+:cpp:class:`arb::cv_policy`, which has the following public methods:
 
 .. py:class:: cv_policy
 
@@ -563,15 +564,15 @@ region.
    Stores the discretisation data of a cable-cell in terms of CVs and the :py:class:`cables <cable>`
    comprising each of these CVs.
 
-   .. py:method:: cables(idx) -> list[cable]
+   .. py:method:: cables(idx: int) -> list[cable]
 
       Returns a list of :py:class:`cable` representing the CV at a given index ``idx``.
 
-   .. py:method:: children(idx) -> list[int]
+   .. py:method:: children(idx: int) -> list[int]
 
       Returns a list of the indices of the CVs representing the children of the CV at index ``idx``.
 
-   .. py:method:: parent(idx) -> int
+   .. py:method:: parent(idx: int) -> int
 
       Returns the index of the CV representing the parent of the CV at index ``idx``.
 
@@ -579,7 +580,7 @@ region.
 
       Returns the total number of CVs on the cell.
 
-.. py:function:: cv_data(cell) -> optional<cell_cv_data>
+.. py:function:: cv_data(cell) -> Optional[cell_cv_data]
 
    Constructs a :py:class:`cell_cv_data` object representing the CVs comprising the cable-cell according
    to the :py:class:`cv_policy` provided in the :py:class:`decor` of the cell. Returns ``None`` if no
@@ -588,7 +589,7 @@ region.
    :param cable_cell cell: The cable-cell.
    :rtype: optional<:py:class:`cell_cv_data`>
 
-.. py:function:: intersect_region(reg, cv_data, integrate_along) -> list[idx, proportion]
+.. py:function:: intersect_region(reg, cv_data, integrate_along) -> list[int, float]
 
    Returns a list of tuples ``[idx, proportion]`` identifying the indices (``idx``) of the CVs from the
    ``cv_data`` argument that lie in the provided region ``reg``, and how much of each CV belongs to that
@@ -598,9 +599,9 @@ region.
    :param str reg: The region on the cable-cell represented as s-expression or a label from the
        label-dictionary of the cell.
    :param cell_cv_data cv_data: The cv_data of a cell.
-   :param string integrate_along: Either "area" or "length". Decides whether the proportion of a
+   :param str integrate_along: Either "area" or "length". Decides whether the proportion of a
        CV is measured according to the area or length of the CV.
-   :rtype: list[idx, proportion]
+   :rtype: list[int, float]
 
 .. _pyswc:
 
@@ -680,7 +681,7 @@ NeuroML
     A :class:`nml_metadata` object contains extra information specific to NeuroML.
 
     .. py:attribute:: cell_id
-       :type: optional<str>
+       :type: Optional[str]
 
        The id attribute of the cell that was used to find the morphology in the NeuroML document, if any.
 
@@ -690,7 +691,7 @@ NeuroML
        The id attribute of the morphology.
 
     .. py:attribute:: group_segments
-       :type: dict[str, list[long]]
+       :type: dict[str, list[int]]
 
        A map from each segment group id to its corresponding collection of segments.
 
@@ -750,7 +751,7 @@ NeuroML
 
       :param str morph_id: ID of the top-level morphology.
       :param bool allow_spherical_root: Treat zero-length root segments especially.
-      :rtype: optional(loaded_morphology)
+      :rtype: Optional[loaded_morphology]
 
    .. py:method:: cell_morphology(cell_id, allow_spherical_root=false)
 
@@ -759,7 +760,7 @@ NeuroML
 
       :param str morph_id: ID of the cell.
       :param bool allow_spherical_root: Treat zero-length root segments especially.
-      :rtype: optional(loaded_morphology)
+      :rtype: Optional[loaded_morphology]
 
 .. _pyasc:
 
