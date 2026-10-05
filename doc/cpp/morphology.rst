@@ -883,7 +883,7 @@ the underlying XML library reports a problem that cannot be handled by the ``arb
 library. Otherwise, exceptions derived from ``aborio::neuroml_exception`` can be thrown
 when encountering problems interpreting the NeuroML document (see :ref:`cppneuromlexceptions` below).
 
-Special parsing behaviour can be invoked through the use of an enum value in the `neuroml_options`
+Special parsing behaviour can be invoked through the use of an enum value in the :cpp:type:`neuroml_options`
 namespace.
 
 .. cpp:class:: neuroml
@@ -900,17 +900,17 @@ namespace.
 
    Return the id of each top-level ``<morphology>`` element defined in the NeuroML document.
 
-   .. cpp:function:: std::optional<loaded_morphology> morphology(const std::string&, enum neuroml_options::value = neuroml_options::none) const
+   .. cpp:function:: std::optional<loaded_morphology> morphology(const std::string&, neuroml_options = neuroml_options::none) const
 
    Return a representation of the top-level morphology with the supplied identifier, or
    ``std::nullopt`` if no such morphology could be found.
 
-   .. cpp:function:: std::optional<loaded_morphology> cell_morphology(const std::string&, enum neuroml_options::value = neuroml_options::none) const
+   .. cpp:function:: std::optional<loaded_morphology> cell_morphology(const std::string&, neuroml_options = neuroml_options::none) const
 
    Return a representation of the morphology associated with the cell with the supplied identifier,
    or ``std::nullopt`` if the cell or its morphology could not be found.
 
-.. cpp:enum:: neuroml_options::value
+.. cpp:enum:: neuroml_options
 
    .. cpp:enumerator:: none
 
@@ -966,6 +966,8 @@ All NeuroML-specific exceptions are defined in ``arborio/neuroml.hpp``, and are
 derived from ``arborio::neuroml_exception`` which in turn is derived from ``std::runtime_error``.
 With the exception of the ``nml_no_document`` exception, all contain an unsigned member ``line``
 which is intended to identify the problematic construct within the document.
+
+.. cpp:class:: neuroml_exception: std::runtime_error
 
 .. cpp:class:: nml_no_document: neuroml_exception
 

@@ -78,7 +78,7 @@ std::vector<std::string> neuroml::morphology_ids() const {
     return result;
 }
 
-optional<loaded_morphology> neuroml::morphology(const std::string& morph_id, enum neuroml_options::values options) const {
+optional<loaded_morphology> neuroml::morphology(const std::string& morph_id, neuroml_options options) const {
     auto id = xpath_escape(morph_id);
     auto query = "//neuroml/morphology[@id=" + id + "]";
     auto match = impl_->doc.select_node(query.data()).node();
@@ -86,7 +86,7 @@ optional<loaded_morphology> neuroml::morphology(const std::string& morph_id, enu
     return nml_parse_morphology_element(match, options);
 }
 
-optional<loaded_morphology> neuroml::cell_morphology(const std::string& cell_id, enum neuroml_options::values options) const {
+optional<loaded_morphology> neuroml::cell_morphology(const std::string& cell_id, neuroml_options options) const {
     auto id =  "//neuroml/cell[@id=" + xpath_escape(cell_id) + "]";
     auto query = "(//neuroml/morphology[@id=string((" + id + "/@morphology)[1])] | " + id + "/morphology)[1]";
     auto match = impl_->doc.select_node(query.data()).node();
