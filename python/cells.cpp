@@ -518,6 +518,7 @@ void register_cells(py::module& m) {
 
     membrane_potential
         .def(py::init([](const U::quantity& v) -> arb::init_membrane_potential { return {v}; }))
+        .def_property_readonly_static("unit", [](py::object){ return arb::init_reversal_potential::unit; })
         .def_property_readonly("value", [](const arb::init_membrane_potential& d){ return d.value;})
         .def_property_readonly("quantity", [](const arb::init_membrane_potential& d){ return d.value * arb::init_membrane_potential::unit;})
         .def("__mul__", [](const arb::init_membrane_potential& v, float s) {
@@ -576,6 +577,7 @@ void register_cells(py::module& m) {
 
     membrane_capacitance
         .def(py::init([](const U::quantity& v) -> arb::membrane_capacitance { return {v}; }))
+        .def_property_readonly_static("unit", [](py::object){ return arb::membrane_capacitance::unit; })
         .def_property_readonly("value", [](const arb::membrane_capacitance& d){ return d.value;})
         .def_property_readonly("quantity", [](const arb::membrane_capacitance& d){ return d.value * arb::membrane_capacitance::unit;})
         .def("__mul__", [](const arb::membrane_capacitance& v, float s) {
@@ -622,6 +624,7 @@ void register_cells(py::module& m) {
 
     temperature_K
         .def(py::init([](const U::quantity& v) -> arb::temperature { return {v}; }))
+        .def_property_readonly_static("unit", [](py::object){ return arb::temperature::unit; })
         .def_property_readonly("value", [](const arb::temperature& d){ return d.value;})
         .def_property_readonly("quantity", [](const arb::temperature& d){ return d.value * arb::temperature::unit;})
         .def("__mul__", [](const arb::temperature& v, float s) {
@@ -668,6 +671,7 @@ void register_cells(py::module& m) {
 
     axial_resistivity
         .def(py::init([](const U::quantity& v) -> arb::axial_resistivity { return {v}; }))
+        .def_property_readonly_static("unit", [](py::object){ return arb::axial_resistivity::unit; })
         .def_property_readonly("value", [](const arb::axial_resistivity& d){ return d.value;})
         .def_property_readonly("quantity", [](const arb::axial_resistivity& d){ return d.value * arb::axial_resistivity::unit;})
         .def("__mul__", [](const arb::axial_resistivity& v, float s) {
@@ -714,6 +718,7 @@ void register_cells(py::module& m) {
 
     reversal_potential
         .def(py::init([](const std::string& ion, const U::quantity& v) -> arb::init_reversal_potential { return {ion, v}; }))
+        .def_property_readonly_static("unit", [](py::object){ return arb::init_reversal_potential::unit; })
         .def_property_readonly("value", [](const arb::init_reversal_potential& d){ return d.value; })
         .def_property_readonly("quantity", [](const arb::init_reversal_potential& d){ return d.value * arb::init_reversal_potential::unit; })
         .def_property_readonly("ion",  [](const arb::init_reversal_potential& d){ return d.ion; })
@@ -761,6 +766,7 @@ void register_cells(py::module& m) {
 
     int_concentration
         .def(py::init([](const std::string& ion, const U::quantity& v) -> arb::init_int_concentration { return {ion, v}; }))
+        .def_property_readonly_static("unit", [](py::object){ return arb::init_int_concentration::unit; })
         .def_property_readonly("value", [](const arb::init_int_concentration& d){ return d.value; })
         .def_property_readonly("quantity", [](const arb::init_int_concentration& d){ return d.value * arb::init_int_concentration::unit; })
         .def_property_readonly("ion",  [](const arb::init_int_concentration& d){ return d.ion; })
@@ -808,6 +814,7 @@ void register_cells(py::module& m) {
 
     ext_concentration
         .def(py::init([](const std::string& ion, const U::quantity& v) -> arb::init_ext_concentration { return {ion, v}; }))
+        .def_property_readonly_static("unit", [](py::object){ return arb::init_ext_concentration::unit; })
         .def_property_readonly("value", [](const arb::init_ext_concentration& d){ return d.value; })
         .def_property_readonly("quantity", [](const arb::init_ext_concentration& d){ return d.value * arb::init_ext_concentration::unit; })
         .def_property_readonly("ion",  [](const arb::init_ext_concentration& d){ return d.ion; })
@@ -855,6 +862,7 @@ void register_cells(py::module& m) {
 
     ion_diffusivity
         .def(py::init([](const std::string&ion, const U::quantity& v) -> arb::ion_diffusivity { return {ion, v}; }))
+        .def_property_readonly_static("unit", [](py::object){ return arb::ion_diffusivity::unit; })
         .def_property_readonly("value", [](const arb::ion_diffusivity& d){ return d.value; })
         .def_property_readonly("quantity", [](const arb::ion_diffusivity& d){ return d.value * arb::ion_diffusivity::unit; })
         .def_property_readonly("ion",  [](const arb::ion_diffusivity& d){ return d.ion; })
