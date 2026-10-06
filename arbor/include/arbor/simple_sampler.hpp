@@ -67,7 +67,7 @@ template <typename M>
 auto make_simple_sampler(simple_sampler_result<M>& trace) {
     return [&trace](const probe_metadata& pm, const sample_records& recs) {
         auto reader = sample_reader<M>(pm.meta, recs);
-        trace.from_reader(reader);
+        trace.append_reader(reader);
     };
 }
 

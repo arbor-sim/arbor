@@ -49,7 +49,7 @@ struct sample_records {
     std::size_t n_sample = 0;         // count of sample _rows_
     std::size_t width = 0;            // count of sample _columns_
     const time_type* time = nullptr;  // pointer to time data
-    std::any values;                  // resolves to pointer of probe-specific payload data D of layout D[n_sample][width]
+    util::any_ptr values;                  // resolves to pointer of probe-specific payload data D of layout D[n_sample][width]
 };
 
 template<typename M>

@@ -965,7 +965,7 @@ void resolve_probe(const cable_probe_point_state& p, probe_resolution_data<B>& R
             auto cg = lid + cg_lo;
             if (cg >= cg_hi) continue;
             const auto& handle = R.handles.at(cg);
-            if (handle.mech_id != mech_id) return;
+            if (handle.mech_id != mech_id) continue;
             auto mech_index = handle.mech_index;
             meta.push_back(point_info_of(target,
                                          lid,
@@ -1075,6 +1075,7 @@ void resolve_probe(const cable_probe_ion_current_cell& p, probe_resolution_data<
             r.metadata.push_back(cable);
         }
     }
+    if (r.metadata.empty()) return;
     r.shrink_to_fit();
     R.result.push_back(std::move(r));
 }
