@@ -135,7 +135,6 @@ public:
     iterator_adaptor() = default;
 
     // forward and input iterator requirements
-
     I operator->() { return inner(); }
     I operator->() const { return inner(); }
 
@@ -150,16 +149,9 @@ public:
         return c;
     }
 
-    bool operator==(const Derived& x) const {
-        return inner()==x.inner();
-    }
-
-    bool operator!=(const Derived& x) const {
-        return !(derived()==x);
-    }
+    friend bool operator==(const iterator_adaptor& it, const iterator_adaptor& x) { return it.inner()==x.inner(); }
 
     // bidirectional iterator requirements
-
     Derived& operator--() {
         --inner();
         return derived();
