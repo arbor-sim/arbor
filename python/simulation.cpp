@@ -24,7 +24,7 @@ namespace pyarb {
 // Argument type for simulation_shim::record() (see below).
 
 enum class spike_recording {
-    off, local, all
+    off, local
 };
 
 // Wraps an arb::simulation object and in addition manages a set of
@@ -202,8 +202,7 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
 
     py::enum_<spike_recording>(m, "spike_recording")
        .value("off", spike_recording::off)
-       .value("local", spike_recording::local)
-       .value("all", spike_recording::all);
+       .value("local", spike_recording::local);
 
     // Simulation
     py::class_<simulation_shim> simulation(m, "simulation",

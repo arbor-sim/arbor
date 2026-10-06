@@ -68,7 +68,7 @@ sim = A.simulation(recipe)
 # (7) Create and run simulation and set up 10 kHz (every 0.1 ms) sampling on the
 # probe. The probe is located on cell 0, and is the 0th probe on that cell, thus
 # has probeset_id (0, 0).
-sim.record(A.spike_recording.all)
+sim.record(A.spike_recording.local)
 handle = sim.sample((0, "Um"), A.regular_schedule(0.1 * U.ms))
 sim.run(tfinal=30 * U.ms)
 

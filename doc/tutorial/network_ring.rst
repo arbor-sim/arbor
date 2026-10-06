@@ -149,7 +149,7 @@ those arguments can be left out. Without further arguments Arbor will use all
 locally available threads.
 
 Step **(13)** sets all spike generators to record using the
-:py:class:`arbor.spike_recording.all` policy. This means the timestamps of the
+:py:class:`arbor.spike_recording.local` policy. This means the timestamps of the
 generated events will be kept in memory. Be default, these are discarded.
 
 In addition to having the timestamps of spikes, we want to extract the voltage as a function of time.

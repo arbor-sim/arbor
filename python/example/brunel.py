@@ -266,7 +266,7 @@ if __name__ == "__main__":
     meters.checkpoint("load-balance", context)
 
     sim = A.simulation(recipe, context, decomp)
-    sim.record(A.spike_recording.all)
+    sim.record(A.spike_recording.local)
 
     meters.checkpoint("simulation-init", context)
 

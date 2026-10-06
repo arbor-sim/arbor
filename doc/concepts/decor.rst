@@ -389,7 +389,7 @@ between cells. An example where we're interested in when a threshold of ``-10 mV
 
     # Just printing those spike times goes as follows.
     sim = arbor.simulation(...)
-    sim.record(arbor.spike_recording.all)
+    sim.record(arbor.spike_recording.local)
     sim.run(...)
     print("spikes:")
     for sp in sim.spikes():

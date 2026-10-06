@@ -103,5 +103,5 @@ if __name__ == "__main__":
         rec = corecipe(n_cell=16)
         ctx = A.context(mpi=group, inter=inter)
         sim = A.simulation(rec, context=ctx)
-        sim.record(A.spike_recording.all)
+        sim.record(A.spike_recording.local)
         sim.run(T * U.ms, dt_arb * U.ms)

@@ -80,7 +80,7 @@ def run(dT, n_pairs=1, do_plots=False):
 
     sim = A.simulation(recipe)
 
-    sim.record(A.spike_recording.all)
+    sim.record(A.spike_recording.local)
 
     reg_sched = A.regular_schedule(0.1 * U.ms)
     handles = {

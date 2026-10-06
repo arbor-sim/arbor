@@ -128,7 +128,7 @@ handles = [
     for gid in range(len(stdp_dt))
 ]
 
-sim.record(A.spike_recording.all)
+sim.record(A.spike_recording.local)
 
 # Run simulation
 sim.run(tfinal, dt)

@@ -40,7 +40,7 @@ sch = A.regular_schedule(dt)
 hUm = sim.sample((0, "Um"), sch)
 hw = sim.sample((0, "w"), sch)
 
-sim.record(A.spike_recording.all)
+sim.record(A.spike_recording.local)
 
 sim.run(T, dt)
 

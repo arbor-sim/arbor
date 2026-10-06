@@ -94,7 +94,7 @@ recipe = single_recipe(cell, [probe])
 sim = A.simulation(recipe)
 
 # Instruct the simulation to record the spikes and sample the probe
-sim.record(A.spike_recording.all)
+sim.record(A.spike_recording.local)
 
 probe_id = A.cell_member(0, "Um")
 handle = sim.sample(probe_id, A.regular_schedule(0.02 * U.ms))

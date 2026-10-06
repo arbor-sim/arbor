@@ -135,7 +135,7 @@ print(context)
 sim = A.simulation(recipe, context)
 
 # (14) Set spike generators to record
-sim.record(A.spike_recording.all)
+sim.record(A.spike_recording.local)
 
 # (15) Attach a sampler to the voltage probe on cell 0. Sample rate of 1 sample every ms.
 # Sampling period increased w.r.t network_ring.py to reduce amount of data
