@@ -111,7 +111,7 @@ void integrate_until(adex_lowered_cell& cell, const time_type end, const time_ty
     auto delta = end - cur;
     // membrane potential deviation from resting value
     auto dE = cell.V_m - cell.E_L;
-    // leak current 
+    // leak current
     auto il = cell.g*dE;
     // spike current
     auto is = cell.g*cell.delta*exp((cell.V_m - cell.V_th)/cell.delta);
@@ -177,7 +177,7 @@ void adex_cell_group::advance_cell(time_type t_fin,
     std::sort(samples.begin(), samples.end());
 
     auto n_samples = samples.size();
-        
+
     auto& cell = cells_[lid];
     auto n_events = static_cast<int>(!event_lanes.empty() ? event_lanes[lid].size() : 0);
     auto evt_idx = 0;
@@ -209,6 +209,7 @@ void adex_cell_group::advance_cell(time_type t_fin,
         for (; spl_idx < n_samples && samples[spl_idx].first < t_end; ++spl_idx) {
             const auto& [s_time, hdl] = samples[spl_idx];
             for (const auto& key: samplers_[hdl].probeset_ids) {
+                if (key.gid != gid) continue;
                 const auto& kind = probes_.at(key).kind;
                 auto t = (s_time - time)/dt;
                 switch (kind) {
@@ -223,7 +224,7 @@ void adex_cell_group::advance_cell(time_type t_fin,
                     sampled[hdl][key].times.push_back(s_time);
                     sampled[hdl][key].values.push_back(W);
                     break;
-                }                    
+                }
                 default:
                     throw arbor_internal_error{"Invalid Adex probe kind"};
                 }
@@ -251,7 +252,7 @@ void adex_cell_group::advance_cell(time_type t_fin,
                                          .values=const_cast<const double*>(us.values.data())});
             }
         }
-    }    
+    }
 }
 
 void adex_cell_group::t_serialize(serializer& ser, const std::string& k) const { serialize(ser, k, *this); }
@@ -265,5 +266,5 @@ std::vector<probe_metadata> adex_cell_group::get_probe_metadata(const cell_addre
     } else {
         return {};
     }
-    
+
 }

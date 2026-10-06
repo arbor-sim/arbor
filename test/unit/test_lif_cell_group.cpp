@@ -1115,3 +1115,58 @@ TEST(lif_cell_group, probe_with_connections) {
     std::vector<double> sexp{2, 4, 5};
     ASSERT_TRUE(testing::seq_almost_eq<double>(spikes, sexp));
 }
+
+
+struct lif_mixing_recipe: public arb::recipe {
+
+    lif_mixing_recipe(std::size_t n): n_(n) {}
+
+    arb::cell_size_type num_cells() const override { return n_; }
+    arb::cell_kind get_cell_kind(arb::cell_gid_type gid) const override { return arb::cell_kind::lif; }
+    arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override {
+        auto cell = arb::lif_cell{.source="src", .target="tgt"};
+        // set potential
+        auto E = -10.0_mV * (gid + 1);
+        cell.V_m = E;
+        cell.E_L = E;
+        cell.E_R = E;
+        return cell;
+    }
+    std::vector<arb::probe_info> get_probes(arb::cell_gid_type gid) const override {
+        return {{arb::lif_probe_voltage{}, "a"}};
+    }
+
+    std::size_t n_ = 0;
+};
+
+TEST(lif_cell_group, probe_mixing) {
+    auto ums = std::unordered_map<arb::cell_address_type, std::vector<Um_type>>{};
+    auto fun = [&ums](arb::probe_metadata pm,
+                      const arb::sample_records& recs) {
+        using meta_t = arb::lif_probe_voltage::meta_type;
+        auto reader = arb::sample_reader<meta_t>(pm.meta, recs);
+        for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+            auto time = reader.time(ix);
+            auto value = reader.value(ix);
+            ums[pm.id].push_back({time, value});
+        }
+    };
+    auto rec = lif_mixing_recipe{5};
+    auto ctx = arb::make_context();
+    // Shove all cells into one group. This exposes the issue of crossing datastreams.
+    auto dec = arb::partition_load_balance(rec, ctx,
+                                           {{arb::cell_kind::lif, {.cpu_group_size=1000}}});
+    auto sim = arb::simulation(rec, ctx, dec);
+
+    sim.add_sampler(arb::all_probes, arb::regular_schedule(0.025_ms), fun);
+
+    sim.run(10.0_ms, 0.0025_ms);
+    double tol = 1e-6;
+    for (const auto& [addr, vs]: ums) {
+        double val = -10.0*(addr.gid + 1);
+        for (int ix = 0; ix < 10; ++ix) {
+            EXPECT_GE(vs[ix].u, val - tol);
+            EXPECT_LE(vs[ix].u, val + tol);
+        }
+    }
+}

@@ -197,6 +197,7 @@ void lif_cell_group::advance_cell(time_type tfinal,
             for (; sample_idx < n_samples && samples[sample_idx].first <= time; ++sample_idx) {
                 const auto& [s_time, hdl] = samples[sample_idx];
                 for (const auto& key: samplers_[hdl].probeset_ids) {
+                    if (key.gid != gid) continue;
                     const auto& kind = probes_.at(key).kind;
                     // This is the only thing we know how to do: Probing U(t)
                     switch (kind) {
