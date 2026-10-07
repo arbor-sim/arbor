@@ -272,8 +272,9 @@ public:
         return c;
     }
 
-    bool operator==(const Derived& x) const { return index_==x.index_; }
-    bool operator!=(const Derived& x) const { return !(derived()==x); }
+    friend bool operator==(const generating_view_iterator_adaptor& lhs,
+                           const generating_view_iterator_adaptor& rhs) { return lhs.index_==rhs.index_; }
+
     auto operator<=>(const Derived& x) const { return derived().index_ <=> x.index_; }
 
     // bidirectional iterator requirements
