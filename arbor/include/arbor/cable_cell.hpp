@@ -31,6 +31,7 @@ struct ARB_SYMBOL_VISIBLE cable_probe_point_info {
     cell_lid_type lid;      // Target lid of point process instance on cell.
     unsigned multiplicity;  // Number of combined instances at this site.
     mlocation loc;          // Point on cell morphology where instance is placed.
+    bool operator==(const cable_probe_point_info&) const noexcept = default;
 };
 
 // Cable cell type definitions
