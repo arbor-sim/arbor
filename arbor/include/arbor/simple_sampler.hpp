@@ -21,6 +21,8 @@ struct simple_sampler_result {
     std::vector<std::vector<std::remove_const_t<value_type>>> values;
     std::vector<std::remove_const_t<M>> metadata;
 
+    bool empty() { return (n_sample == 0) && (width == 0); }
+
     void clear() {
         n_sample = 0;
         width = 0;
@@ -51,6 +53,8 @@ struct simple_sampler_result {
     }
 
     void append_reader(const sample_reader<M>& reader) {
+        // catch trivial case.
+        if (empty()) return from_reader(reader);
         if (width != reader.n_column()) {
             throw std::invalid_argument("Expected reader of width " + std::to_string(width) + " but received " + std::to_string(reader.n_column()));
         }
