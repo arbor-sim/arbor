@@ -214,54 +214,50 @@ see below for more details.
 Electrical properties and ion values
 -------------------------------------
 
-The :cpp:type:`cable_cell_parameter_set` has the following members, where an
+Default parameters for a cell are returned by the :cpp:expr:`default_parameters`
+member in the :cpp:type:`cable_cell` object. The return value --
+:cpp:type:`cable_cell_parameter_set` -- has the following members, where an
 empty optional value or missing map key indicates that the corresponding value
-should be taken from the cell or global parameter set.
+should be taken from the global parameter set. All physical quantities are given
+units, with the canonical unit documented below.
 
 .. cpp:class:: cable_cell_parameter_set
 
    .. cpp:member:: std::unordered_map<std::string, cable_cell_ion_data> ion_data
 
-   The keys of this map are names of ions, whose parameters will be locally overridden.
-   The struct :cpp:type:`cable_cell_ion_data` has three fields:
-   :cpp:type:`init_int_concentration`, :cpp:type:`init_ext_concentration`, and
-   :cpp:type:`init_reversal_potential`.
-
-   Internal and external concentrations are given in millimolars, i.e. mol/m³.
-   Reversal potential is given in millivolts.
+       The keys of this map are names of ions, whose parameters will be locally
+       overridden. The struct :cpp:type:`cable_cell_ion_data` has three fields:
+       :cpp:type:`init_int_concentration`, :cpp:type:`init_ext_concentration`,
+       and :cpp:type:`init_reversal_potential`. Internal and external
+       concentrations are given in millimolars, i.e. mol/m³. Reversal potential
+       is given in millivolts.
 
    .. cpp:member:: util::optional<units::quantity> init_membrane_potential
 
-   Initial membrane potential in millivolts.
+      Initial membrane potential in millivolts.
 
    .. cpp:member:: util::optional<units::quantity> temperature
 
-   Local temperature in Kelvin.
+      Local temperature in Kelvin.
 
    .. cpp:member:: util::optional<units::quantity> axial_resistivity
 
-   Local resistivity of the intracellular medium, in ohm-centimetres.
+      Local resistivity of the intracellular medium, in ohm-centimetres.
 
    .. cpp:member:: util::optional<units::quantity> membrane_capacitance
 
-   Local areal capacitance of the cell membrane, in Farads per square metre.
+      Local areal capacitance of the cell membrane, in Farads per square metre.
 
    .. cpp:member:: util::optional<cv_policy> discretisation
 
-   Method by which CV boundaries are determined when the cell is discretised.
-   See :ref:`cv-policies`.
-
-Default parameters for a cell are returned by the :cpp:expr:`default_parameters`
-member in the :cpp:type:`cable_cell` object. This is a value of type
-:cpp:type:`cable_cell_parameter_set`, which extends
-:cpp:type:`cable_cell_parameter_set` by adding an additional field describing
-reversal potential computation:
+       Method by which CV boundaries are determined when the cell is discretised.
+       See :ref:`cv-policies`.
 
    .. cpp:member:: cable_cell_parameter_set::std::unordered_map<std::string, mechanism_desc> reversal_potential_method
 
-   Maps the name of an ion to a 'reversal potential' mechanism that describes
-   how it should be computed. When no mechanism is provided for an ionic
-   reversal potential, the reversal potential will be kept at its initial value.
+       Maps the name of an ion to a 'reversal potential' mechanism that describes
+       how it should be computed. When no mechanism is provided for an ionic
+       reversal potential, the reversal potential will be kept at its initial value.
 
 Default parameters for all cells are supplied in the
 :cpp:type:`cable_cell_global_properties` struct, while per-cell defaults are set
@@ -270,11 +266,15 @@ via :cpp:expr:`decor::set_default`.
 Global properties
 -----------------
 
+Global properties serve as a fallback in cases where neither a per-region nor a
+cell-level default is found.
+
+
 .. cpp:class:: cable_cell_global_properties
 
    .. cpp:member:: mechanism_catalogue catalogue
 
-   all mechanism names refer to mechanism instances in this mechanism catalogue.
+   All mechanism names refer to mechanism instances in this mechanism catalogue.
    by default, this is set to `global_default_catalogue()`, the
    catalogue that contains all mechanisms bundled with arbor.
 
@@ -365,8 +365,15 @@ order to use, for example, older values of these physical constants.
 Overriding properties locally
 -----------------------------
 
-Physical properties can be set per :cpp:type:`region` using ``decor::paint``.
-these are constructed using typed wrappers
+Physical properties can be set per :cpp:type:`region` using ``decor::paint(region, item)``.
+Here, ``item`` is one of the following typed wrappers
+
+.. note::
+
+   1. For this to work, this specific cable cell must have been constructed with
+      mutability enabled.
+   2. This is costly in terms of memory (upfront) and time (when updating), use
+      judiciously.
 
 .. cpp:class:: init_membrane_potential
 
@@ -401,9 +408,37 @@ addition
 
 .. cpp:class:: init_reversal_potential
 
-        Initial reversal potential [mV].
+    Initial reversal potential [mV].
 
 .. note::
 
-   All bio-phyiscale parameters can be scaled using :ref:`inhomogeneous
+   All bio-physical parameters can be scaled using :ref:`inhomogeneous
    expressions <labels-iexpr>` and supplied as an ``iexpr`` to ``paint``.
+   
+   
+Editing Cell Parameters
+-----------------------
+
+Whenever control is given to the user, i.e. between calls to
+``simulation::run``, certain parameters oon the cell model may be altered. This
+is done using ``simulation::edit_cell(gid, editor)``, passing the cell's ``gid`` and a
+callback object. For cable cells, this is a structure
+
+.. cpp:class:: cable_cell_editor
+
+    .. cpp:type:: map = std::vector<std::tuple<std::string, double>>
+
+    .. cpp:member:: std::function<map(region where, std::string what, const map& param) on_density
+
+       Given the current values ``param`` on mechanims ``what`` on region
+       ``where``, return the list of updated parameters.
+
+    .. cpp:member:: std::function<map(locset where, std::string what, const map& param) on_synapse
+
+       Given the current values ``param`` on mechanims ``what`` on locset
+       ``where``, return the list of updated parameters.
+
+in other words, a list of callbacks, that, after inspecting the mechanims on the
+cell, returns sets of updated parameters. Those not mentioned in the returned
+sets will remain unchanged.
+

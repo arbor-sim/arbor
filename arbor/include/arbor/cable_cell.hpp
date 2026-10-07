@@ -24,6 +24,12 @@
 
 namespace arb {
 
+enum class cable_cell_mutability {
+    disabled,
+    enabled,
+};
+
+
 // `cable_sample_range` is simply a pair of `const double*` pointers describing the sequence
 // of double values associated with the cell-wide sample.
 
@@ -259,6 +265,18 @@ using location_assignment = std::conditional_t<std::is_same_v<T, synapse> || std
                                                std::unordered_map<std::string, mlocation_map<T>>,
                                                mlocation_map<T>>;
 
+// Allowed edits on cable cells
+using parameter_map = std::vector<std::pair<std::string, double>>;
+
+using density_editor = std::function<parameter_map(const region&, const std::string&, const parameter_map&)>;
+using synapse_editor = std::function<parameter_map(const locset&, const std::string&, const parameter_map&)>;
+    
+// Overwrite a list of named parameters on a given mechanism
+struct ARB_SYMBOL_VISIBLE cable_cell_editor {
+    density_editor on_density;
+    synapse_editor on_synapse;
+};
+
 // High-level abstract representation of a cell.
 struct ARB_SYMBOL_VISIBLE cable_cell {
     using lid_range_map = std::unordered_multimap<hash_type, lid_range>;
@@ -281,7 +299,8 @@ struct ARB_SYMBOL_VISIBLE cable_cell {
     cable_cell(const class morphology& m,
                const decor& d,
                const label_dict& l={},
-               const std::optional<cv_policy>& = {});
+               const std::optional<cv_policy>& = {},
+               const cable_cell_mutability is_mut=cable_cell_mutability::disabled);
 
     /// Access to labels
     const label_dict& labels() const;
@@ -292,10 +311,10 @@ struct ARB_SYMBOL_VISIBLE cable_cell {
     const mprovider& provider() const;
 
     // Convenience access to placed items.
-    const std::unordered_map<std::string, mlocation_map<synapse>>& synapses() const;
-    const std::unordered_map<std::string, mlocation_map<junction>>& junctions() const;
-    const mlocation_map<threshold_detector>& detectors() const;
-    const mlocation_map<i_clamp>& stimuli() const;
+    const location_assignment<synapse>& synapses() const;
+    const location_assignment<junction>& junctions() const;
+    const location_assignment<threshold_detector>& detectors() const;
+    const location_assignment<i_clamp>& stimuli() const;
 
     // Convenience access to painted items.
     const region_assignment<density> densities() const;
@@ -328,6 +347,8 @@ struct ARB_SYMBOL_VISIBLE cable_cell {
     const lid_range_map& detector_ranges() const;
     const lid_range_map& synapse_ranges() const;
     const lid_range_map& junction_ranges() const;
+
+    bool is_editable() const;
 
 private:
     std::unique_ptr<cable_cell_impl, void (*)(cable_cell_impl*)> impl_;

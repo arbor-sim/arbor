@@ -33,11 +33,18 @@ Simulation execution and interaction
 
 Simulations provide an interface for executing and interacting with the model:
 
-* The simulation is executed/*run* by advancing the model state from the current simulation time to another
-  with maximum time step size.
-* The model state can be *reset* to its initial state before the simulation was started.
-* *Sampling* of the simulation state can be performed during execution with samplers and probes
-  and spike output with the total number of spikes generated since either construction or reset.
+* The simulation is executed/*run* by advancing the model state from the current
+  simulation time to another with maximum time step size.
+* The model state can be *reset* to its initial state before the simulation was
+  started.
+* *Sampling* of the simulation state can be performed during execution with
+  samplers and probes and spike output with the total number of spikes generated
+  since either construction or reset.
+* *Updating the (biological) network*, whenever control is passed to the user,
+  i.e. when the current execution step is finished, the connections between cells
+  can be altered.
+* *Tweaking cell settings*, similarly, at synchronisation points, some cell
+  parameters can be changed.
 
 API
 ---

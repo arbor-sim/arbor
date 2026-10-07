@@ -95,7 +95,7 @@ public:
     // Per-cell group identifier for an instantiated mechanism.
     unsigned mechanism_id() const { return ppack_.mechanism_id; }
 
-    arb_mechanism_type  mech_;
+    arb_mechanism_type mech_;
     arb_mechanism_interface iface_;
     arb_mechanism_ppack ppack_;
 

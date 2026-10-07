@@ -11,6 +11,7 @@
 #include <optional>
 #include <utility>
 #include <vector>
+#include <string>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
@@ -32,6 +33,7 @@
 #include "util/transform.hpp"
 
 namespace arb {
+
 template <class Backend>
 struct fvm_lowered_cell_impl: public fvm_lowered_cell {
     using backend = Backend;
@@ -60,6 +62,8 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
     void t_serialize(serializer& ser, const std::string& k) const override { serialize(ser, k, *this); }
     void t_deserialize(serializer& ser, const std::string& k) override { deserialize(ser, k, *this); }
 
+    void edit_cell(cell_gid_type gid, cell_gid_type lid, const cable_cell_editor& edit) override;
+
     // Host or GPU-side back-end dependent storage.
     using array               = typename backend::array;
     using shared_state        = typename backend::shared_state;
@@ -68,12 +72,18 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
 
     std::unique_ptr<shared_state> state_; // Cell state shared across mechanisms.
 
+    // mutable cells.
+    std::unordered_map<cell_gid_type, fvm_mutable_data> mutable_cell_data_;
+    // _needed_ for mutable cells
+    cable_cell_global_properties gprop;
+
+    std::unordered_map<std::string, mechanism*> mechptr_by_name_;
+
     std::vector<mechanism_ptr> density_mechanisms_;
     std::vector<mechanism_ptr> junction_mechanisms_;
     std::vector<mechanism_ptr> point_mechanisms_;
     std::vector<mechanism_ptr> revpot_mechanisms_;
     std::vector<mechanism_ptr> voltage_mechanisms_;
-
     // mechs with POST_EVENTS, contains subset(s) from all above.
     // NOTE: these are non-owning!
     std::vector<mechanism*> post_event_mechanisms_;
@@ -116,7 +126,6 @@ struct fvm_lowered_cell_impl: public fvm_lowered_cell {
                    const std::vector<cable_cell>& cells,
                    const recipe& rec,
                    const fvm_cv_discretization& D,
-                   const std::unordered_map<std::string, mechanism*>& mechptr_by_name,
                    const fvm_mechanism_data& mech_data,
                    const std::vector<target_handle>& target_handles,
                    probe_association_map& probe_map);
@@ -303,7 +312,6 @@ fvm_lowered_cell_impl<Backend>::add_probes(const std::vector<cell_gid_type>& gid
                                            const std::vector<cable_cell>& cells,
                                            const recipe& rec,
                                            const fvm_cv_discretization& D,
-                                           const std::unordered_map<std::string, mechanism*>& mechptr_by_name,
                                            const fvm_mechanism_data& mech_data,
                                            const std::vector<target_handle>& target_handles,
                                            probe_association_map& probe_map) {
@@ -314,12 +322,78 @@ fvm_lowered_cell_impl<Backend>::add_probes(const std::vector<cell_gid_type>& gid
         cell_gid_type gid = gids[cell_idx];
         const auto& rec_probes = rec.get_probes(gid);
         for (const auto& pi: rec_probes) {
-            resolve_probe_address(probe_data, cells, cell_idx, pi.address, D, mech_data, target_handles, mechptr_by_name);
+            resolve_probe_address(probe_data, cells, cell_idx, pi.address, D, mech_data, target_handles, mechptr_by_name_);
             if (!probe_data.empty()) {
                 cell_address_type addr{gid, pi.tag};
                 if (probe_map.count(addr)) throw dup_cell_probe(cell_kind::cable, gid, pi.tag);
                 for (auto& data: probe_data) probe_map.insert(addr, std::move(data));
             }
+        }
+    }
+}
+
+
+template <typename Backend> void
+fvm_lowered_cell_impl<Backend>::edit_cell(cell_gid_type gid,
+                                          cell_gid_type lid,
+                                          const cable_cell_editor& edit) {
+    if (!mutable_cell_data_.contains(gid)) throw bad_cell_edit{gid, "Cable cell is not editable. Did you enable editing at creation?"};
+    auto& mut_data = mutable_cell_data_[gid];
+    auto new_dec  = decor{};
+    // Handle density changes
+    if (auto fun = edit.on_density) {
+        for (auto& [reg, mech, params]: mut_data.density_overrides_) {
+            auto new_params = fun(reg, mech, params);
+            for (const auto& [nk, nv]: new_params) {
+                bool found = false;
+                for (auto& [ok, ov]: params) {
+                    if (ok == nk) {
+                        ov = nv;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) throw bad_cell_edit{gid, "Unknown parameter '" + std::string{nk} + "' for mechanism '" + mech + "'." };
+            }
+            // found all new values. add mech to decor
+            new_dec.paint(reg, density(mech.c_str(), params));
+        }
+    }
+    if (auto fun = edit.on_synapse) {
+        for (auto& [loc, mech, tag, params]: mut_data.synapse_overrides_) {
+            auto new_params = fun(loc, mech, params);
+            for (const auto& [nk, nv]: new_params) {
+                // TODO: Using STL patterns here trips up older compilers
+                //       due to capturing from a structured binding.
+                bool found = false;
+                for (auto& [ok, ov]: params) {
+                    if (ok == nk) {
+                        ov = nv;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) throw bad_cell_edit{gid, "Unknown parameter '" + std::string{nk} + "' for mechanism '" + mech + "'." };
+            }
+            // found all new values. add mech to decor
+            new_dec.place(loc, synapse(mech.c_str(), params), tag);
+        }
+    }
+
+    auto new_cell = cable_cell{mut_data.morph, new_dec, mut_data.lbl, mut_data.cvp};
+
+    auto D =  fvm_cv_discretize(new_cell, gprop.default_parameters);
+    // TODO do we need the (correct) gap junctions here? Only if we do GJs?
+    auto M = fvm_build_mechanism_data(gprop, new_cell, {}, D, 0);
+    for (const auto& [mech, data]: M.mechanisms) {
+        auto& ptr = mechptr_by_name_.at(mech);
+        auto& type = ptr->mech_;
+        for (auto off: util::make_span(type.n_parameters)) {
+            auto pname = type.parameters[off].name;
+            auto pset = std::find_if(data.param_values.begin(), data.param_values.end(),
+                                     [&pname] (const auto& it) { return it.first == pname; });
+            if (pset == data.param_values.end()) arbor_internal_error{"Cannot find parameter by name? Expected " + std::string{pname}};
+            state_->update_range_parameter(ptr->mechanism_id(), mut_data.lid, ptr->ppack_, off, pset->second);
         }
     }
 }
@@ -384,6 +458,9 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
     }
     fvm_info.shrink_to_fit();
 
+    // TODO think about (how) making this optional.
+    gprop = std::any_cast<cable_cell_global_properties>(rec.get_global_properties(cell_kind::cable));
+
     // extract and verify global settings
     auto global_props = get_cable_cell_global_properties(rec);
     // fetch backend specific mechanism data
@@ -405,7 +482,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
 
     // Fill src_to_spike and cv_to_cell vectors only if mechanisms with post_events implemented are present.
     auto max_detector = 0;
-    std::vector<arb_index_type> src_to_spike, cv_to_cell;
+    std::vector<arb_index_type> src_to_spike;
     if (mech_data.post_events) {
         max_detector = util::max_element_by(fvm_info.num_sources, [](const auto& elem) { return util::second(elem); })->second;
         for (auto cell_idx: util::make_span(ncell)) {
@@ -414,8 +491,9 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
             }
         }
         src_to_spike.shrink_to_fit();
-        cv_to_cell = D.geometry.cv_to_cell;
     }
+
+    auto cv_to_cell = D.geometry.cv_to_cell;
 
     // map control volume ids to global cell ids
     std::vector<arb_index_type> cv_to_gid(D.geometry.cv_to_cell.size());
@@ -442,8 +520,8 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                                             data_alignment,
                                             seed_);
 
+    target_handles_.resize(mech_data.n_target);
     // Keep track of mechanisms by name for probe lookup.
-    std::unordered_map<std::string, mechanism*> mechptr_by_name;
     target_handles_.resize(mech_data.n_target);
     for (const auto& [name, config]: mech_data.mechanisms) {
         auto n_cv = config.cv.size();
@@ -491,7 +569,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
                     }
                 }
             }
-            mechptr_by_name[name] = mech.get();
+            mechptr_by_name_[name] = mech.get();
             if (config.has_post_event) post_event_mechanisms_.push_back(mech.get());
             point_mechanisms_.emplace_back(mech.release());
             break;
@@ -505,7 +583,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
             }
             auto [mech, over] = mech_instance(name);
             state_->instantiate(*mech, over, layout, config.param_values);
-            mechptr_by_name[name] = mech.get();
+            mechptr_by_name_[name] = mech.get();
             junction_mechanisms_.emplace_back(mech.release());
             break;
         }
@@ -521,7 +599,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
             }
             auto [mech, over] = mech_instance(name);
             state_->instantiate(*mech, over, layout, config.param_values);
-            mechptr_by_name[name] = mech.get();
+            mechptr_by_name_[name] = mech.get();
             voltage_mechanisms_.emplace_back(mech.release());
             break;
         }
@@ -537,7 +615,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
             }
             auto [mech, over] = mech_instance(name);
             state_->instantiate(*mech, over, layout, config.param_values);
-            mechptr_by_name[name] = mech.get();
+            mechptr_by_name_[name] = mech.get();
             density_mechanisms_.emplace_back(mech.release());
             break;
         }
@@ -546,7 +624,7 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
             // to any currents, so leave weights as zero.
             auto [mech, over] = mech_instance(name);
             state_->instantiate(*mech, over, layout, config.param_values);
-            mechptr_by_name[name] = mech.get();
+            mechptr_by_name_[name] = mech.get();
             revpot_mechanisms_.emplace_back(mech.release());
             break;
         }
@@ -554,7 +632,66 @@ fvm_lowered_cell_impl<Backend>::initialize(const std::vector<cell_gid_type>& gid
         }
     }
 
-    add_probes(gids, cells, rec, D, mechptr_by_name, mech_data, target_handles_, fvm_info.probe_map);
+    // prepare data for editable cells
+    for (auto ix: util::make_span(ncell)) {
+        const auto& cell = cells[ix];
+        const auto gid = gids[ix];
+        if (cell.is_editable()) {
+            mutable_cell_data_[gid] = fvm_mutable_data {
+                .morph = cell.morphology(),
+                .cvp   = cell.discretization(),
+                .lbl   = cell.labels(),
+                .lid   = static_cast<arb_index_type>(ix),
+            };
+
+            const auto& dec = cell.decorations();
+
+            for (const auto& [reg, it]: dec.paintings()) {
+                if (std::holds_alternative<density>(it)) {
+                    const auto& mech  = std::get<density>(it);
+                    const auto& name  = mech.mech.name();
+                    const auto& ptr   = mechptr_by_name_.at(name);
+                    const auto& type  = ptr->mech_;
+                    parameter_map params;
+                    for (arb_size_type ix = 0; ix < type.n_parameters; ++ix) {
+                        const auto& param = type.parameters[ix];
+                        const auto& key   = param.name;
+                        arb_value_type val = param.default_value;
+                        for (const auto& [k, v]: mech.mech.values()) {
+                            if (k == param.name) val = v;
+                        }
+                        params.emplace_back(key, val);
+                    }
+                    mutable_cell_data_[gid].density_overrides_.emplace_back(reg, name, params);
+                }
+            }
+
+            for (const auto& [loc, it, hash]: dec.placements()) {
+                if (std::holds_alternative<synapse>(it)) {
+                    const auto& mech  = std::get<synapse>(it);
+                    const auto& name  = mech.mech.name();
+                    const auto& ptr   = mechptr_by_name_.at(name);
+                    const auto& type  = ptr->mech_;
+                    const auto& tag   = dec.tag_of(hash);
+                    parameter_map params;
+                    for (arb_size_type ix = 0; ix < type.n_parameters; ++ix) {
+                        const auto& param = type.parameters[ix];
+                        const auto& key   = param.name;
+                        arb_value_type val = param.default_value;
+                        for (const auto& [k, v]: mech.mech.values()) {
+                            if (k == param.name) val = v;
+                        }
+                        params.emplace_back(key, val);
+                    }
+                    mutable_cell_data_[gid].synapse_overrides_.emplace_back(loc, name, tag, params);
+                }
+            }
+        }
+    }
+
+
+
+    add_probes(gids, cells, rec, D, mech_data, target_handles_, fvm_info.probe_map);
 
     // Create lookup structure for target ids.
     util::make_partition(target_handle_divisions_,

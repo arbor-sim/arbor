@@ -3,6 +3,7 @@
 #include <arbor/arbexcept.hpp>
 
 #include "arbor/math.hpp"
+#include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
 #include "label_resolution.hpp"
@@ -99,6 +100,49 @@ void adex_cell_group::reset() {
     spikes_.clear();
 }
 
+void
+adex_cell_group::edit_cell(cell_gid_type gid, std::any cell_edit) {
+    try {
+        auto adex_edit = std::any_cast<adex_cell_editor>(cell_edit);
+        auto lid = util::binary_search_index(gids_, gid);
+        if (!lid) throw arb::arbor_internal_error{"gid " + std::to_string(gid) + " erroneuosly dispatched to cell group."};
+        auto& lowered = cells_[*lid];
+        auto tmp = adex_cell {
+            .source = lowered.source, // Label of source
+            .target = lowered.target, // Label of target
+            .delta  = lowered.delta * U::mV,
+            .V_th   = lowered.V_th  * U::mV,
+            .C_m    = lowered.C_m   * U::nF,
+            .E_L    = lowered.E_L   * U::mV,
+            .E_R    = lowered.E_R   * U::mV,
+            .V_m    = lowered.V_m   * U::mV,
+            .t_ref  = lowered.t_ref * U::ms,
+            .g      = lowered.g     * U::uS,
+            .tau    = lowered.tau   * U::ms,
+            .w      = lowered.w     * U::pA,
+            .a      = lowered.a     * U::uS,
+            .b      = lowered.b     * U::nA,
+        };
+        adex_edit(tmp);
+        // NOTE: we forbid writing to V_m? Reasons
+        //       * the cell might be in the refractory period which causes semantic issues
+        //         - return to normal or not?
+        //         - what should probes return
+        //       * V_m is the _initial state_ only
+        if (tmp.V_m.value_as(U::mV) != lowered.V_m) throw bad_cell_edit(gid, "Initial voltage is not editable.");
+        if (tmp.w.value_as(U::pA) != lowered.w) throw bad_cell_edit(gid, "Adaption parameter is not editable.");
+        if (tmp.source != lowered.source) throw bad_cell_edit(gid, "Source is not editable.");
+        if (tmp.target != lowered.target) throw bad_cell_edit(gid, "Target is not editable.");
+        // Write back
+        lowered = adex_lowered_cell{tmp};
+
+    }
+    catch (const std::bad_any_cast& ){
+        throw bad_cell_edit(gid, "Not an AdEx editor (C++ type-id: '" + std::string{cell_edit.type().name()} + "')");
+    }
+}
+
+
 // integrate a single cell's state from current time `cur` tos final time `end`.
 // Extra parameters
 // * the cell cannot be updated until time `nxt`, which might be in the past or future.
@@ -118,7 +162,7 @@ void integrate_until(adex_lowered_cell& cell, const time_type end, const time_ty
     auto delta = end - cur;
     // membrane potential deviation from resting value
     auto dE = cell.V_m - cell.E_L;
-    // leak current 
+    // leak current
     auto il = cell.g*dE;
     // spike current
     auto is = cell.g*cell.delta*exp((cell.V_m - cell.V_th)/cell.delta);

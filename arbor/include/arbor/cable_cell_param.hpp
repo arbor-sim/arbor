@@ -427,9 +427,9 @@ class ARB_ARBOR_API decor {
     std::unordered_map<hash_type, cell_tag_type> hashes_;
 
 public:
-    const auto& paintings()  const {return paintings_;  }
-    const auto& placements() const {return placements_; }
-    const auto& defaults()   const {return defaults_;   }
+    const auto& paintings()  const { return paintings_;  }
+    const auto& placements() const { return placements_; }
+    const auto& defaults()   const { return defaults_;   }
 
     decor& paint(region, paintable);
     decor& place(locset, placeable, cell_tag_type);

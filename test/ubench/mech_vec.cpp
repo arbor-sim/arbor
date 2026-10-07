@@ -2,9 +2,6 @@
 //
 // Start with pas (passive dendrite) mechanism
 
-// NOTE: This targets an earlier version of the Arbor API and
-// will need to be reworked in order to compile.
-
 #include <any>
 #include <random>
 
@@ -55,7 +52,6 @@ template struct arb_access::bind<type, global, value>;
 
 ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_pp_mechanisms_ptr, &fvm_cell::point_mechanisms_)
 ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_de_mechanisms_ptr, &fvm_cell::density_mechanisms_)
-
 
 const mechanism_ptr& find_mechanism(const std::string& name, fvm_cell& cell) {
     auto& pp = cell.*private_pp_mechanisms_ptr;
