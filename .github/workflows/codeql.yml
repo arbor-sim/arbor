@@ -34,6 +34,7 @@ jobs:
       actions: read
       contents: read
       security-events: write
+    build-mode: autobuild
 
     strategy:
       fail-fast: false
