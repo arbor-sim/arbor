@@ -246,6 +246,36 @@ template <typename FPType, typename Seq1, typename Seq2>
     return ::testing::AssertionSuccess();
 }
 
+template <typename FPType, typename Seq1, typename Seq2>
+::testing::AssertionResult seq_almost_eq(Seq1&& seq1, Seq2&& seq2, FPType eps) {
+    using std::begin;
+    using std::end;
+
+    auto i1 = begin(seq1);
+    auto i2 = begin(seq2);
+
+    auto e1 = end(seq1);
+    auto e2 = end(seq2);
+
+    for (std::size_t j = 0; i1!=e1 && i2!=e2; ++i1, ++i2, ++j) {
+
+        auto v1 = *i1;
+        auto v2 = *i2;
+
+        // Cast to FPType to avoid warnings about lowering conversion
+        // if FPType has lower precision than Seq{12}::value_type.
+        if (std::abs(v1 - v2) > eps) {
+            ::testing::AssertionFailure() << "sequence values " << v1 << " and " << v2 << " exceed max deviation at index " << j;
+        }
+    }
+
+    if (i1!=e1 || i2!=e2) {
+        return ::testing::AssertionFailure() << "sequences differ in length";
+    }
+    return ::testing::AssertionSuccess();
+}
+
+    
 template <typename V>
 inline bool generic_isnan(const V& x) { return false; }
 inline bool generic_isnan(float x) { return std::isnan(x); }

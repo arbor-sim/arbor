@@ -1,10 +1,16 @@
 #pragma once
 
 // This file is intended to be included in the source files directly in order
-// to be compiled by either the host or the device compiler 
+// to be compiled by either the host or the device compiler
 
 #include <type_traits>
 
+// On HIP, sincosf/sincos are device-only; use the sin+cos fallback in Random123.
+#if defined(__HIP_PLATFORM_AMD__) || defined(__HIP__)
+#  ifndef R123_NO_SINCOS
+#    define R123_NO_SINCOS 1
+#  endif
+#endif
 #include <Random123/boxmuller.hpp>
 #include <Random123/threefry.h>
 

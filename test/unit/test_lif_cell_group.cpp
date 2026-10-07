@@ -202,7 +202,7 @@ TEST(lif_cell_group, ring)
 
     std::vector<spike> spike_buffer;
 
-    sim.set_global_spike_callback(
+    sim.set_local_spike_callback(
         [&spike_buffer](const std::vector<spike>& spikes) {
             spike_buffer.insert(spike_buffer.end(), spikes.begin(), spikes.end());
         }
@@ -696,7 +696,7 @@ TEST(lif_cell_group, probe_with_connections) {
 
     std::vector<double> spikes;
 
-    sim.set_global_spike_callback(
+    sim.set_local_spike_callback(
         [&spikes](const std::vector<spike>& spk) { for (const auto& s: spk) spikes.push_back(s.time); }
     );
 

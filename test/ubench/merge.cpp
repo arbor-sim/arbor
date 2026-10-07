@@ -97,7 +97,7 @@ static void BM_default(benchmark::State& state) {
     }
 }
 
-void run_custom_arguments(benchmark::internal::Benchmark* b) {
+void run_custom_arguments(::benchmark::Benchmark* b) {
     for (auto ncells: {5, 13, 23, 41, 53}) {
         for (auto ev_per_cell: {8, 32, 256, 1024}) {
             b->Args({ncells, ev_per_cell});

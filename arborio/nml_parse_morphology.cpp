@@ -21,7 +21,7 @@
 
 using std::optional;
 using arb::util::expected;
-using arb::util::unexpected;
+namespace arb_util = arb::util;
 
 using namespace std::literals;
 
@@ -109,7 +109,7 @@ expected<std::vector<std::size_t>, cycle_detected> topological_sort(std::size_t 
             for (auto k = begin(in); k!=end(in); ++k) {
                 switch (depth[*k]) {
                 case cycle:
-                    return unexpected(cycle_detected{*k});
+                    return arb_util::unexpected(cycle_detected{*k});
                 case unknown:
                     depth[*k] = cycle;
                     stack.push(*k);

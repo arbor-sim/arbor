@@ -9,7 +9,6 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <random>
 #include <vector>
 
 #include <nlohmann/json.hpp>
@@ -60,7 +59,6 @@ ring_params read_options(int argc, char** argv);
 using arb::cell_gid_type;
 using arb::cell_kind;
 using arb::cell_lid_type;
-using arb::cell_member_type;
 using arb::cell_size_type;
 using arb::time_type;
 
@@ -165,6 +163,7 @@ private:
 
 int main(int argc, char** argv) {
     try {
+        int rank = 0;
         bool root = true;
 
         arb::proc_allocation resources;
@@ -174,7 +173,8 @@ int main(int argc, char** argv) {
         arbenv::with_mpi guard(argc, argv, false);
         resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(resources, MPI_COMM_WORLD);
-        root = arb::rank(context) == 0;
+        rank = arb::rank(context);
+        root = rank == 0;
 #else
         resources.gpu_id = arbenv::default_gpu();
         auto context = arb::make_context(resources);
@@ -217,12 +217,9 @@ int main(int argc, char** argv) {
 
         // Set up recording of spikes to a vector on the root process.
         std::vector<arb::spike> recorded_spikes;
-        if (root) {
-            sim.set_global_spike_callback(
-                [&recorded_spikes](const std::vector<arb::spike>& spikes) {
-                    recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
-                });
-        }
+        sim.set_local_spike_callback([&recorded_spikes](const std::vector<arb::spike>& spikes) {
+            recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
+        });
 
         meters.checkpoint("model-init", context);
 
@@ -250,21 +247,14 @@ int main(int argc, char** argv) {
             std::cout << "\n"
                       << ns << " spikes generated at rate of " << params.duration / ns
                       << " ms between spikes\n";
-            std::ofstream fid("spikes.gdf");
-            if (!fid.good()) {
-                std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
-            }
-            else {
-                char linebuf[45];
-                for (auto spike: recorded_spikes) {
-                    auto n = std::snprintf(linebuf,
-                        sizeof(linebuf),
-                        "%u %.4f\n",
-                        unsigned{spike.source.gid},
-                        float(spike.time));
-                    fid.write(linebuf, n);
-                }
-            }
+        }
+        std::ofstream fid("spikes-" + std::to_string(rank) + ".gdf");
+        if (!fid.good()) std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
+        char linebuf[45];
+        for (auto spike: recorded_spikes) {
+            auto n = std::snprintf(linebuf, sizeof(linebuf),
+                                   "%u %.4f\n", unsigned{spike.source.gid}, float(spike.time));
+            fid.write(linebuf, n);
         }
 
         // Write the samples to a json file.

@@ -20,26 +20,19 @@ namespace profile {
 using util::make_span;
 
 #ifdef ARB_HAVE_PROFILING
-namespace {
-    // Check whether a string describes a valid profiler region name.
-    bool is_valid_region_string(const std::string& s) {
-        return (s.size()!=0u) && (s.front()!=':') && (s.back()!=':');
-    }
-}
 
 // Holds the accumulated number of calls and time spent in a region of a timer stack.
 struct profile_accumulator {
-    std::size_t count=0;
-    double time=0.;
+    std::size_t count = 0;
+    double time = 0.;
     tick_type start_time{};
     bool running = false;
 };
 
 struct timer_stack_hasher {
-    auto operator()(const timer_stack& key) const noexcept -> uint64_t {
-        return hash_value(key);
-    }
+    auto operator()(const timer_stack& key) const noexcept -> uint64_t { return hash_value(key); }
 };
+
 using accumulators_type = std::unordered_map<timer_stack, profile_accumulator, timer_stack_hasher>;
 
 // Records the accumulated time spent in profiler regions on one thread.
@@ -47,56 +40,51 @@ using accumulators_type = std::unordered_map<timer_stack, profile_accumulator, t
 class recorder {
     // Each timer stack has its own profile accumulator to store the time spend in this state
     accumulators_type accumulators_{};
-
     // The current state of nested timers
     timer_stack current_timer_stack{};
+    // For each task_started() on this thread remembers the depth from which ancestor accumulators were freshly
+    // opened by that call, so the  matching task_stopped() closes exactly those
+    std::vector<std::pair<timer_stack, std::size_t>> task_starts_{};
 
 public:
     // Return an unordered map that assigns each timer stack its profile accumulator
     [[nodiscard]] const std::unordered_map<timer_stack, profile_accumulator, timer_stack_hasher>& accumulators() const;
-
     // Start timing the region with index.
     // Throws std::runtime_error if already timing a region.
     void enter(region_id_type index,  const std::vector<std::string>& names);
-
     // Stop timing the current region, and add the time taken to the accumulated time.
     // Throws std::runtime_error if not currently timing a region.
     void leave(region_id_type index, const std::vector<std::string>& names);
-
     // A new thread has been started from the following timer stack
     void task_started(timer_stack _timer_stack);
-
     // A thread has been stopped
     void task_stopped(timer_stack _timer_stack);
-
     // Get the current timer stack
     const timer_stack&get_timer_stack() const;
-
     // Reset all of the accumulated call counts and times to zero.
     void clear();
 };
 
 // Manages the thread-local recorders.
 class profiler {
+    // one recorder per thread
     std::vector<recorder> recorders_;
-
+    // thread -> recorder
     std::unordered_map<std::thread::id, std::size_t> thread_ids_;
-
     // Hash table that maps region names to a unique index.
     // The regions are assigned consecutive indexes in the order that they are
     // added to the profiler with calls to `region_index()`, with the first
     // region numbered zero.
     std::unordered_map<std::string, region_id_type> name_index_;
-
     // The name of each region being recorded, with index stored in name_index_
     // is used to index into region_names_.
     std::vector<std::string> region_names_;
-
     // Used to protect name_index_, which is shared between all threads.
     std::mutex mutex_;
-
     // Flag to indicate whether the profiler has been initialized with the task_system
     bool init_ = false;
+    //
+    timer_stack empty_stack{};
 
 public:
     profiler();
@@ -123,9 +111,6 @@ public:
         name_index_.clear();
         region_names_.clear();
     }
-
-  private:
-    timer_stack empty_stack{};
 };
 
 
@@ -134,23 +119,17 @@ struct profile_node {
     static constexpr region_id_type npos = std::numeric_limits<region_id_type>::max();
 
     std::string name;
-    double time = 0;
-    double time_childs = 0;
+    double time = 0.0;
+    double time_childs = 0.0;
     region_id_type count = npos;
     std::vector<profile_node> children;
 
     profile_node() = default;
-    profile_node(std::string n, double t, region_id_type c):
-        name(std::move(n)), time(t), count(c) {}
-    profile_node(std::string n):
-        name(std::move(n)), time(0), count(npos) {}
+    profile_node(std::string n, double t, region_id_type c): name(std::move(n)), time(t), count(c) {}
+    profile_node(std::string n): profile_node(std::move(n), 0, npos) {}
 };
 
-// recorder implementation
-
-const accumulators_type& recorder::accumulators() const {
-    return accumulators_;
-}
+const accumulators_type& recorder::accumulators() const { return accumulators_; }
 
 std::string timer_stack_to_string(const timer_stack& ts, const std::vector<std::string>& names) {
     std::stringstream ss;
@@ -165,62 +144,67 @@ std::string timer_stack_to_string(const timer_stack& ts, const std::vector<std::
 void recorder::enter(region_id_type index, const std::vector<std::string>& names) {
     current_timer_stack.push_back(index);
     auto& cur_acc = accumulators_[current_timer_stack];
-    if (cur_acc.running) {
-        throw std::runtime_error("recorder::enter you entered the timer twice "+names[index] + " TimerStack: " + timer_stack_to_string(current_timer_stack, names));
-    }
-
+    if (cur_acc.running) throw std::runtime_error("recorder::enter you entered the timer twice "+ names[index] +
+        ". TimerStack:" + timer_stack_to_string(current_timer_stack, names));
     cur_acc.start_time = timer::tic();
     cur_acc.running = true;
 }
 
 void recorder::leave(region_id_type index, const std::vector<std::string>& names) {
-    if(current_timer_stack[current_timer_stack.size()-1] != index) {
-        throw std::runtime_error("recorder::leave without matching recorder::enter Trying to leave "+names[index] + " but currently in "+names[current_timer_stack[current_timer_stack.size()-1]] + " TimerStack: " + timer_stack_to_string(current_timer_stack, names));
-    }
+    auto last = current_timer_stack.size() - 1;
+    if(current_timer_stack[last] != index) throw std::runtime_error(
+        "recorder::leave without matching recorder::enter Trying to leave " +  names[index] + " but currently in "
+        + names[current_timer_stack[last]] +". TimerStack: "+ timer_stack_to_string(current_timer_stack, names));
     auto& cur_acc = accumulators_[current_timer_stack];
-
     // calculate the elapsed time before any other steps, to increase accuracy.
     auto delta = timer::toc(cur_acc.start_time);
-
     cur_acc.count++;
     cur_acc.time += delta;
     cur_acc.running = false;
-
     current_timer_stack.erase(std::next(current_timer_stack.begin(), current_timer_stack.size()-1));
 }
 
 void recorder::clear() {
     accumulators_.clear();
     current_timer_stack.clear();
+    task_starts_.clear();
 }
 
 void recorder::task_started(timer_stack _timer_stack) {
-  current_timer_stack = std::move(_timer_stack);
-  const auto now = timer::tic();
-  for(auto stack_depth=0U;stack_depth < current_timer_stack.size();stack_depth++) {
-    const timer_stack sub_timer_stack(current_timer_stack.begin(), current_timer_stack.begin() + stack_depth+1);
-    auto& acc = accumulators_[sub_timer_stack];
-    acc.running = true;
-    acc.start_time = now;
-  }
+    current_timer_stack = _timer_stack;
+    const auto now = timer::tic();
 
+    // Only open accumulators that are not already running
+    std::size_t first_new = 0;
+    while (first_new < _timer_stack.size()) {
+        const timer_stack sub_timer_stack(_timer_stack.begin(), _timer_stack.begin() + first_new + 1);
+        if (!accumulators_[sub_timer_stack].running) break;
+        ++first_new;
+    }
+    for(auto stack_depth = first_new; stack_depth < _timer_stack.size(); ++stack_depth) {
+        const timer_stack sub_timer_stack(_timer_stack.begin(), _timer_stack.begin() + stack_depth + 1);
+        auto& acc = accumulators_[sub_timer_stack];
+        acc.running = true;
+        acc.start_time = now;
+    }
+    task_starts_.emplace_back(std::move(_timer_stack), first_new);
 }
 
-void recorder::task_stopped(const timer_stack _timer_stack) {
-  current_timer_stack = std::move(_timer_stack);
-  for(auto stack_depth=0U;stack_depth < current_timer_stack.size();stack_depth++) {
-    const timer_stack sub_timer_stack(current_timer_stack.begin(), current_timer_stack.begin() + stack_depth+1);
-    auto& acc = accumulators_[sub_timer_stack];
-    acc.running = false;
-    acc.time +=  timer::toc(acc.start_time);
-  }
-
+void recorder::task_stopped(timer_stack _timer_stack) {
+    // Only stop accumulators that were opened by this task
+    auto [started_stack, first_new] = std::move(task_starts_.back());
+    task_starts_.pop_back();
+    const auto now = timer::tic();
+    for(auto stack_depth = first_new; stack_depth < started_stack.size(); ++stack_depth) {
+        const timer_stack sub_timer_stack(started_stack.begin(), started_stack.begin() + stack_depth + 1);
+        auto& acc = accumulators_[sub_timer_stack];
+        acc.running = false;
+        acc.time += timer::scale*std::chrono::duration_cast<std::chrono::nanoseconds>(now - acc.start_time).count();
+    }
+    current_timer_stack = std::move(_timer_stack);
 }
-const timer_stack &recorder::get_timer_stack() const {
-    return current_timer_stack;
-}
 
-// profiler implementation
+const timer_stack &recorder::get_timer_stack() const { return current_timer_stack; }
 
 profiler::profiler() {}
 
@@ -278,72 +262,56 @@ double sort_profile_tree(profile_node& n) {
             n.time_childs += c.time;
         }
     }
-
     // sort the children in descending order of time taken
     util::sort_by(n.children, [](const profile_node& n){return -n.time;});
-
     return n.time;
 }
 
 profile profiler::results() const {
-    profile p;
-    p.names = region_names_;
-
-    for (auto& r: recorders_) {
-        auto& accumulators = r.accumulators();
-        for (auto &[timer_stack, acc] : accumulators) {
-            auto it = std::find(p.stacks.begin(), p.stacks.end(), timer_stack);
-            auto i=0U;
-            if(p.stacks.end() == it) {
-                i = p.times.size();
-                p.stacks.push_back(timer_stack);
-                p.times.push_back(0);
-                p.counts.push_back(0);
-            } else {
-                i = std::distance(p.stacks.begin(), it);
+    profile prof;
+    prof.names = region_names_;
+    for (auto& rec: recorders_) {
+        auto& accs = rec.accumulators();
+        for (auto &[timer_stack, acc]: accs) {
+            if (acc.running) throw std::runtime_error("Accumulator still running at reporting. TimerStack: " + timer_stack_to_string(timer_stack, region_names_));
+            auto it = std::find(prof.stacks.begin(), prof.stacks.end(), timer_stack);
+            auto ix = std::distance(prof.stacks.begin(), it);
+            if(prof.stacks.end() == it) {
+                prof.stacks.push_back(timer_stack);
+                prof.times.push_back(0);
+                prof.counts.push_back(0);
             }
-            p.times[i]  += acc.time;
-            p.counts[i] += acc.count;
+            prof.times[ix]  += acc.time;
+            prof.counts[ix] += acc.count;
         }
     }
-
-    p.num_threads = recorders_.size();
-
-    return p;
+    prof.num_threads = recorders_.size();
+    return prof;
 }
 
 // Remove all nodes with time == 0 from the profile tree
 void remove_zero_time_nodes(profile_node &node) {
-  node.children.erase(
-      std::remove_if(node.children.begin(), node.children.end(), [](const profile_node &child) { return child.time == 0; }), node.children.end()
-  );
-
-  for (auto& child : node.children) {
-    remove_zero_time_nodes(child);
-  }
+    std::erase_if(node.children, [](const profile_node &child) { return child.time == 0; });
+    for (auto& child: node.children) remove_zero_time_nodes(child);
 }
 
 profile_node make_profile_tree(const profile& p) {
-    using std::vector;
-    using util::assign_from;
-    using util::transform_view;
-
     const auto& region_names = p.names;
     // Build a tree description of the regions and sub-regions in the profile.
     profile_node tree("r");
 
-    for (const auto i: make_span(0,p.stacks.size())) {
-        const auto & ids = p.stacks[i];
+    for (const auto ix: make_span(0, p.stacks.size())) {
+        const auto& ids = p.stacks[ix];
         profile_node* node = &tree;
-        const auto depth  = ids.size();
-        for (auto j: make_span(0, depth)) {
-            auto& node_name = region_names[ids[j]];
+        const auto depth = ids.size();
+        for (const auto jx: make_span(0, depth)) {
+            auto& id = ids[jx];
+            auto& node_name = region_names[id];
             auto& kids = node->children;
-
             // Find child of node that matches node_name
-            auto child = std::find_if(kids.begin(), kids.end(), [&](profile_node& n){return n.name==node_name;});
-
-            if (child==kids.end()) { // Insert an empty node in the tree.
+            auto child = std::find_if(kids.begin(), kids.end(),
+                                      [&](const auto& it) { return it.name == node_name; });
+            if (child == kids.end()) { // Insert an empty node in the tree.
                 node->children.emplace_back(node_name);
                 node = &node->children.back();
             }
@@ -351,41 +319,30 @@ profile_node make_profile_tree(const profile& p) {
                 node = &(*child);
             }
         }
-        if(node->name == region_names[ids.back()]) {
-            node->time += p.times[i];
-            node->count += p.counts[i];
-        } else {
-            node->children.emplace_back(region_names[ids.back()], p.times[i], p.counts[i]);
-        }
+        node->time += p.times[ix];
+        node->count = (node->count == profile_node::npos) ? p.counts[ix] : node->count + p.counts[ix];
     }
-    if(tree.children.size() != 1) {
-        throw std::invalid_argument("More than one root timer");
-    }
+    if(tree.children.size() != 1) throw std::invalid_argument("More than one root timer");
     tree = tree.children[0];
     sort_profile_tree(tree);
-
-    //Remove timers with time of 0
     remove_zero_time_nodes(tree);
-
     return tree;
 }
 
-const std::vector<std::string>& profiler::regions() const {
-    return region_names_;
-}
+const std::vector<std::string>& profiler::regions() const { return region_names_; }
 
 void profiler::task_started(const timer_stack& timer_stack) {
-  if(!init_) return;
+    if(!init_) return;
     recorders_[thread_ids_.at(std::this_thread::get_id())].task_started(timer_stack);
 }
 
 void profiler::task_stopped(const timer_stack& _timer_stack) {
-  if(!init_) return;
-  recorders_[thread_ids_.at(std::this_thread::get_id())].task_stopped(_timer_stack);
+    if(!init_) return;
+    recorders_[thread_ids_.at(std::this_thread::get_id())].task_stopped(_timer_stack);
 }
 
 const timer_stack& profiler::get_current_timer_stack() {
-  if (!init_) return empty_stack;
+    if (!init_) return empty_stack;
     return recorders_[thread_ids_.at(std::this_thread::get_id())].get_timer_stack();
 }
 
@@ -470,38 +427,18 @@ void print(std::ostream& os,
                                      << '\n';
 };
 
-//
-// convenience functions for instrumenting code.
-//
+ARB_ARBOR_API void profiler_leave(region_id_type id) { profiler::get_global_profiler().leave(id); }
+ARB_ARBOR_API void profiler_clear() { profiler::get_global_profiler().clear(); }
+ARB_ARBOR_API void task_started(const timer_stack& _timer_stack) { profiler::get_global_profiler().task_started(_timer_stack); }
+ARB_ARBOR_API void task_stopped(const timer_stack& _timer_stack) { profiler::get_global_profiler().task_stopped(_timer_stack); }
 
-ARB_ARBOR_API void profiler_leave(region_id_type id) {
-    profiler::get_global_profiler().leave(id);
-}
-
-ARB_ARBOR_API void profiler_clear() {
-    profiler::get_global_profiler().clear();
-}
-ARB_ARBOR_API void task_started(const timer_stack& _timer_stack) {
-    profiler::get_global_profiler().task_started(_timer_stack);
-}
-
-ARB_ARBOR_API void task_stopped(const timer_stack& _timer_stack) {
-  profiler::get_global_profiler().task_stopped(_timer_stack);
-}
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string& name) {
-    if (!is_valid_region_string(name)) {
-        throw std::runtime_error(std::string("'")+name+"' is not a valid profiler region name.");
-    }
+    if (name.empty() || name.front() == ':' || name.back() ==':') throw std::runtime_error("'" + name + "' is not a valid profiler region name.");
     return profiler::get_global_profiler().region_index(name);
 }
 
-ARB_ARBOR_API void profiler_enter(region_id_type region_id) {
-    profiler::get_global_profiler().enter(region_id);
-}
-
-ARB_ARBOR_API void profiler_initialize(context ctx) {
-    profiler::get_global_profiler().initialize(ctx->thread_pool);
-}
+ARB_ARBOR_API void profiler_enter(region_id_type region_id) { profiler::get_global_profiler().enter(region_id); }
+ARB_ARBOR_API void profiler_initialize(context ctx) { profiler::get_global_profiler().initialize(ctx->thread_pool); }
 
 // Print profiler statistics to an ostream
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const profile& prof) {
@@ -510,9 +447,7 @@ ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const profile& prof) {
     return o;
 }
 
-ARB_ARBOR_API profile profiler_summary() {
-    return profiler::get_global_profiler().results();
-}
+ARB_ARBOR_API profile profiler_summary() { return profiler::get_global_profiler().results(); }
 
 ARB_ARBOR_API std::ostream& print_profiler_summary(std::ostream& os, double limit) {
     auto prof = profiler_summary();
@@ -521,12 +456,9 @@ ARB_ARBOR_API std::ostream& print_profiler_summary(std::ostream& os, double limi
     return os;
 }
 
-ARB_ARBOR_API const timer_stack& get_current_timer_stack() {
-    return profiler::get_global_profiler().get_current_timer_stack();
-}
+ARB_ARBOR_API const timer_stack& get_current_timer_stack() { return profiler::get_global_profiler().get_current_timer_stack(); }
 
 #else
-
 ARB_ARBOR_API void profiler_clear() {}
 ARB_ARBOR_API void profiler_leave() {}
 ARB_ARBOR_API void profiler_enter(region_id_type) {}
@@ -539,8 +471,6 @@ ARB_ARBOR_API profile profiler_summary() {return profile();}
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string&) {return 0;}
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const profile&) { return o; }
 ARB_ARBOR_API std::ostream& profiler_print_summary(std::ostream& os, double limit) { return os; }
-
-
 #endif // ARB_HAVE_PROFILING
 
 } // namespace profile

@@ -171,12 +171,9 @@ int main(int argc, char** argv) {
 
         // Set up recording of spikes to a vector on the root process.
         std::vector<arb::spike> recorded_spikes;
-        if (root) {
-            sim.set_global_spike_callback(
-                [&recorded_spikes](const std::vector<arb::spike>& spikes) {
-                    recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
-                });
-        }
+        sim.set_local_spike_callback([&recorded_spikes](const std::vector<arb::spike>& spikes) {
+            recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
+        });
 
         meters.checkpoint("model-init", context);
 

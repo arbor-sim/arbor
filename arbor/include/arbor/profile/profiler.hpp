@@ -2,6 +2,7 @@
 
 #include <ostream>
 #include <vector>
+#include <cstdint>
 
 #include <arbor/export.hpp>
 #include <arbor/context.hpp>

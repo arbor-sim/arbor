@@ -472,6 +472,11 @@ The set of boundary points used by the simulator is determined by a
        A read-only string expression describing the subset of a cell morphology
        (region) on which this policy has been declared.
 
+   .. py:function:: boundary_points(cell: arbor.cable_cell)
+
+      Return the points delimiting the CVs of the given ``cell`` after
+      discretisation using this ``cv_policy``.
+
    CV policies can be :ref:`composed <morph-cv-composition>` with
    ``+`` and ``|`` operators.
 
@@ -606,19 +611,19 @@ region.
 
 .. py:class:: loaded_morphology
 
-   .. py:attr:: segment_tree
+   .. py:attribute:: segment_tree
 
     Raw segment tree, identical to morphology.
 
-   .. py:attr:: morphology
+   .. py:attribute:: morphology
 
     Morphology constructed from description.
 
-   .. py:attr:: labels
+   .. py:attribute:: labels
 
     Regions and locsets defined in the description as ``label_dict``
 
-   .. py:attr:: metadata
+   .. py:attribute:: metadata
 
     Loader specific metadata, see below in the individual sections.
 

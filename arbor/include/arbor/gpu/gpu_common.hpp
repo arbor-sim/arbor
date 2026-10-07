@@ -12,14 +12,20 @@ namespace arb {
 namespace gpu {
 
 namespace impl {
-// Number of threads per warp
-// This has always been 32, however it may change in future NVIDIA gpus
+// Number of threads per warp (wavefront on AMD).
+// NVIDIA: always 32.
+// AMD CDNA (gfx9xx): 64-wide wavefront.
+// AMD RDNA (gfx10xx, gfx11xx): 32-wide wavefront.
 HOST_DEVICE_IF_GPU
 constexpr inline unsigned threads_per_warp() {
-#ifdef ARB_HIP
-    return 64u;
+#if defined(ARB_HIP)
+  #if defined(__GFX9__)
+    return 64u;   // CDNA: gfx90a, gfx94x (wave64)
+  #else
+    return 32u;   // RDNA: gfx10xx, gfx11xx (wave32)
+  #endif
 #else
-    return 32u;
+    return 32u;   // CUDA
 #endif
 }
 

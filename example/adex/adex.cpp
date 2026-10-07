@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
     sim.add_sampler(arb::all_probes,
                     arb::regular_schedule(opt.dt * U::ms),
                     sampler);
-    sim.set_global_spike_callback([](const auto& spks) {
+    sim.set_local_spike_callback([](const auto& spks) {
         for (const auto& spk: spks) {
             std::cerr << spk.time << ", " << spk.source.gid << ", " << spk.source.index << '\n';
         }

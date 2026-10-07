@@ -88,8 +88,26 @@ struct ring_recipe: public arb::recipe {
             const auto group = gid/s;
             const auto group_start = s*group;
             const auto group_end = std::min(group_start+s, num_cells_);
+            // ring connection
             cell_gid_type src = gid==group_start ? group_end-1: gid-1;
             cons.push_back({{src, "d"}, {"p"}, event_weight_, min_delay_*U::ms});
+            // Random weight=0 connections
+            // Used to pick source cell for a connection.
+            std::uniform_int_distribution<cell_gid_type> dist(0, num_cells_-2);
+            // Used to pick delay for a connection.
+            std::uniform_real_distribution<float> delay_dist(0, 2*min_delay_);
+            auto src_gen = std::mt19937(gid);
+            for (unsigned ix = 1; ix < ncons; ++ix) {
+                // Make a connection with weight 0.
+                // The source is randomly picked, with no self connections.
+                auto src = dist(src_gen);
+                if (src==gid) ++src;
+                const float delay = min_delay_+delay_dist(src_gen);
+                cons.push_back(arb::cell_connection({src, "d"},
+                                                    {"s", arb::lid_selection_policy::round_robin},
+                                                    0.f,
+                                                    delay*U::ms));
+            }
         }
         return cons;
     }
@@ -108,6 +126,24 @@ struct ring_recipe: public arb::recipe {
             const auto group_end = std::min(group_start+s, num_cells_);
             cell_gid_type src = gid==group_start? group_end-1: gid-1;
             cons.push_back({{src, 0}, {"p"}, event_weight_, min_delay_*U::ms});
+            // Random weight=0 connections
+            // Used to pick source cell for a connection.
+            std::uniform_int_distribution<cell_gid_type> dist(0, num_cells_-2);
+            // Used to pick delay for a connection.
+            std::uniform_real_distribution<float> delay_dist(0, 2*min_delay_);
+            auto src_gen = std::mt19937(gid);
+            for (unsigned ix = 1; ix < ncons; ++ix) {
+                // Make a connection with weight 0.
+                // The source is randomly picked, with no self connections.
+                auto src = dist(src_gen);
+                if (src==gid) ++src;
+                const float delay = min_delay_+delay_dist(src_gen);
+                cons.push_back(arb::raw_cell_connection({src, 0},
+                                                        {"s", arb::lid_selection_policy::round_robin},
+                                                        0.f,
+                                                        delay*U::ms));
+            }
+
         }
         return cons;
     }
@@ -406,9 +442,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     decor.place(arb::mlocation{1, 0}, arb::synapse{"expsyn"}, "p");
 
     // Add additional synapses that will not be connected to anything.
-    if (params.synapses>1) {
-        decor.place(syns, arb::synapse{"expsyn"}, "s");
-    }
+    if (params.synapses>1) decor.place(syns, arb::synapse{"expsyn"}, "s");
 
     // Make a CV between every sample in the sample tree.
     return {arb::morphology(tree), decor, {}, arb::cv_policy_every_segment()};
