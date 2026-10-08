@@ -9,7 +9,7 @@
 #include <functional>
 #include <mutex>
 #include <optional>
-#include <string>
+#include <exception>
 #include <thread>
 #include <unordered_map>
 #include <utility>
