@@ -37,7 +37,7 @@ jobs:
           VECTOR_EXTENSIONS=${HAS_AVX512F}${HAS_AVX2}${HAS_FMA}${HAS_AVX}
           echo "VECTOR_EXTENSIONS=$VECTOR_EXTENSIONS" >> $GITHUB_ENV
       - name: Setup ccache
-        uses: hendrikmuhs/ccache-action@v1.2
+        uses: hendrikmuhs/ccache-action@v1.2.24
         with:
           key: benchmarks-${{ env.CXX }}-${{ env.VECTOR_EXTENSIONS }}
       - name: Build arbor
