@@ -35,7 +35,8 @@ struct partition_iterator: public iterator_adaptor<partition_iterator<I>, I> {
     using pointer = const value_type*;
     using reference = const value_type&;
 
-    using base::operator==;
+
+    friend bool operator==(const partition_iterator& it, const partition_iterator& x) { return it.inner()==x.inner(); }
 
     partition_iterator() = default;
 

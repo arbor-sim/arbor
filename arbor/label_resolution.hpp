@@ -83,7 +83,7 @@ struct gid_label_hasher {
     using is_avalanching = void;
     auto operator()(const gid_label_pair& key) const noexcept -> uint64_t {
         static_assert(std::has_unique_object_representations_v<gid_label_pair>);
-        return ankerl::unordered_dense::detail::wyhash::hash(&key, sizeof(key));
+        return ankerl::unordered_dense::detail::hash_bytes(&key, sizeof(key));
     }
 };
 
