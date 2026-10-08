@@ -343,7 +343,7 @@ endif()
 
 CPMFindPackage(NAME pugixml
                GITHUB_REPOSITORY zeux/pugixml
-               VERSION 1.15
+               VERSION 1.16
                DOWNLOAD_ONLY YES)
 add_library(ext-pugixml INTERFACE)
 if(pugixml_ADDED)
@@ -357,8 +357,8 @@ install(TARGETS ext-pugixml EXPORT arbor-targets)
 
 CPMFindPackage(NAME fmt
               GITHUB_REPOSITORY fmtlib/fmt
-              VERSION 12.1.0
-              GIT_TAG 12.1.0)
+              VERSION 12.2.0
+              GIT_TAG 12.2.0)
 
 add_library(ext-gtest INTERFACE)
 add_library(ext-bench INTERFACE)
@@ -404,7 +404,7 @@ list(APPEND arbor_export_dependencies units)
 
 CPMFindPackage(NAME unordered_dense
                GITHUB_REPOSITORY martinus/unordered_dense
-               VERSION 4.5.0
+               VERSION 5.3.1
                SYSTEM YES
                EXCLUDE_FROM_ALL YES)
 
