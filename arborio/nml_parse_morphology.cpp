@@ -398,8 +398,7 @@ static arb::stitched_morphology construct_morphology(const neuroml_segment_tree&
 }
 
 loaded_morphology nml_parse_morphology_element(const xml_node& morph,
-                                               enum neuroml_options::values options) {
-    using namespace neuroml_options;
+                                               enum neuroml_options options) {
     loaded_morphology M;
     M.metadata = nml_metadata{};
     auto& L = std::get<nml_metadata>(M.metadata);
@@ -446,7 +445,8 @@ loaded_morphology nml_parse_morphology_element(const xml_node& morph,
 
                 // Set spherical flag if we have no parent, options has allow_spherical_root flag,
                 // and proximal == distal.
-                seg.spherical = (options & allow_spherical_root) && !seg.parent_id && seg.proximal && seg.proximal.value()==seg.distal;
+                seg.spherical = (static_cast<int>(options) & static_cast<int>(neuroml_options::allow_spherical_root))
+                             && !seg.parent_id && seg.proximal && seg.proximal.value()==seg.distal;
             }
             else {
                 throw nml_bad_segment(seg.id);

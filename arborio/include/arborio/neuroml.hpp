@@ -5,7 +5,6 @@
 #include <optional>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include <arborio/loaded_morphology.hpp>
@@ -74,13 +73,10 @@ struct ARB_SYMBOL_VISIBLE nml_cyclic_dependency: neuroml_exception {
 
 struct ARB_ARBORIO_API neuroml_impl;
 
-// TODO: C++20, replace with enum class and deploy using enum as appropriate.
-namespace neuroml_options {
-    enum values {
-        none = 0,
-        allow_spherical_root = 1
-    };
-}
+enum class neuroml_options {
+    none = 0,
+    allow_spherical_root = 1
+};
 
 struct ARB_ARBORIO_API neuroml {
     // Correct interpretation of zero-length segments is currently a bit unclear
@@ -104,8 +100,8 @@ struct ARB_ARBORIO_API neuroml {
     // Parse and retrieve top-level morphology or morphology associated with a cell.
     // Return nullopt if not found.
 
-    std::optional<loaded_morphology> morphology(const std::string& morph_id, enum neuroml_options::values = neuroml_options::none) const;
-    std::optional<loaded_morphology> cell_morphology(const std::string& cell_id, enum neuroml_options::values = neuroml_options::none) const;
+    std::optional<loaded_morphology> morphology(const std::string& morph_id, neuroml_options = neuroml_options::none) const;
+    std::optional<loaded_morphology> cell_morphology(const std::string& cell_id, neuroml_options = neuroml_options::none) const;
 
     ~neuroml();
 

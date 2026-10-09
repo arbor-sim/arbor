@@ -10,19 +10,21 @@ Cable cells
    probe_sample
    cable_cell_format
 
-Cable cells, which use the :cpp:enum:`cell_kind` :cpp:expr:`cable`, represent
-morphologically-detailed neurons as 1-d trees, with electrical and biophysical
-properties mapped onto those trees.
+.. cpp:namespace:: arb
+
+Cable cells, which use the :cpp:enum:`cell_kind` :cpp:expr:`cell_kind::cable`,
+represent morphologically-detailed neurons as 1-d trees, with electrical and
+biophysical properties mapped onto those trees.
 
 A single cell is represented by an object of type :cpp:type:`cable_cell`.
 Properties shared by all cable cells, as returned by the recipe
-:cpp:expr:`get_global_properties` method, are described by an object of type
-:cpp:type:`cable_cell_global_properties`.
+:cpp:expr:`recipe::get_global_properties` method, are described by an object of
+type :cpp:type:`cable_cell_global_properties`.
 
 The :cpp:type:`cable_cell` object
 ---------------------------------
 
-Cable cells are minimally constructed from a :cpp:type:`morphology.` To add
+Cable cells are minimally constructed from a :cpp:type:`morphology`. To add
 dynamics (ion channels, synapses, ...) a :ref:`decor <cablecell-decoration>` may
 be added and an :cpp:type:`label_dict` that associates names with particular
 points (:cpp:type:`locset` objects) or subsets (:cpp:type:`region` objects) of
@@ -46,6 +48,40 @@ Ion channels and other distributed dynamical processes are also specified on the
 decor via the ``paint`` method; while synapses, current clamps, gap junction
 mechanisms, and the site for testing the threshold potential are specified via
 the ``place`` method. See :ref:`cppcablecell-dynamics`, below.
+
+.. cpp:class:: cable_cell
+
+    .. cpp:function:: cable_cell()
+
+    .. cpp:function:: cable_cell(const class morphology& m, const decor& d, const label_dict& l={}, const std::optional<cv_policy>& = {});
+
+        Construct from morphology, label and decoration descriptions.
+
+    .. cpp:function:: const label_dict& labels() const
+
+    .. cpp:function:: const concrete_embedding& embedding() const
+    .. cpp:function:: const morphology& morphology() const
+    .. cpp:function:: const mprovider& provider() const
+
+    .. cpp:function:: mlocation_list concrete_locset(const locset&) const
+
+        Turn a ``locset`` into a list of locations on this cell using the set ``cv_policy``.
+
+    .. cpp:function:: mextent concrete_region(const region&) const
+
+        Turn a ``locset`` into a list of ``extents`` on this cell using the set ``cv_policy``.
+
+    .. cpp:function:: const decor& decorations() const
+
+    .. cpp:function:: const std::optional<cv_policy>& discretization() const
+
+        Get the discretization policy, if set.
+
+    .. cpp:function:: void discretization(cv_policy)
+
+        Set the discretization policy.
+
+    .. cpp:function:: const cable_cell_parameter_set& default_parameters() const
 
 .. _cppcablecell-dynamics:
 
@@ -93,16 +129,22 @@ thin wrappers around a :cpp:type:`mechanism_desc`, needed for *painting* and
 *placing* mechanisms on a :cpp:type:`decor`:
 
 .. cpp:class:: density
+               
+    :no-index:
 
-   Construct a density wrapper from the mechanism `mech`.
+    Construct a density wrapper from the mechanism `mech`.
 
 .. cpp:class:: synapse
+               
+    :no-index:
 
-   Construct a synapse wrapper from the mechanism `mech`.
+    Construct a synapse wrapper from the mechanism `mech`.
 
 .. cpp:class:: junction
+               
+    :no-index:
 
-   Construct a junction wrapper from the mechanism `mech`.
+    Construct a junction wrapper from the mechanism `mech`.
 
 The decor collects mechanisms and other settings
 
@@ -145,7 +187,7 @@ where
     Record a spike when the rising edge of the membrane potential crosses a
     limit.
 
-    .. cpp:function:: threshold_detector(quantity limit)
+    .. cpp:function:: threshold_detector(units::quantity limit)
 
         Construct from limit in [mV]
 
@@ -169,7 +211,7 @@ where
        A default constructor, with an empty envelope, describes a trivial
        stimulus, providing no current at all.
 
-    .. cpp:function:: i_clamp(const quantity& amplitude, const quantity& frequency=0*U::kHz, const quantity& phase=0*U::rad)
+    .. cpp:function:: i_clamp(const quantity& amplitude, const quantity& frequency=0*units::kHz, const quantity& phase=0*units::rad)
 
       Constant amplitude stimulus starting at t = 0.
 
@@ -177,7 +219,7 @@ where
       - **Frequency**, must be convertible to frequency; gives a sine current if not zero
       - **Phase**, must be convertible to radians, phase shift of sine.
 
-    .. cpp:function:: i_clamp(std::vector<envelope_point> envelope, const quantity& f = 0*U::kHz, const quantity& phi = 0*U::rad)
+    .. cpp:function:: i_clamp(std::vector<envelope_point> envelope, const quantity& f = 0*units::kHz, const quantity& phi = 0*units::rad)
 
       Current described by piecewise linear amplitude from ``(time,
       amplitude)``. If ``frequency`` is non-zero, the sine's amplitude will be
@@ -194,7 +236,7 @@ The current clamp provides a convenience constructor
 
 Default values for the whole cell are set via
 
-.. cpp:function:: decor& set_default(defaultable)
+.. cpp:function:: decor& decor::set_default(defaultable)
 
 where ``defaultable`` is one of
 
@@ -207,6 +249,10 @@ where ``defaultable`` is one of
 - :cpp:expr:`ion_diffusivity` Diffusivity [m²/s]
 - :cpp:expr:`init_reversal_potential` Initial reversal potential [mV].
 
+in short
+  
+.. cpp:type:: defaultable = std::variant<init_membrane_potential, temperature, axial_resistivity, membrane_capacitance, init_int_concentration, init_ext_concentration, ion_diffusivity, init_reversal_potential>
+              
 see below for more details.
 
 .. _cppcablecell-electrical-properties:
@@ -222,42 +268,42 @@ should be taken from the cell or global parameter set.
 
    .. cpp:member:: std::unordered_map<std::string, cable_cell_ion_data> ion_data
 
-   The keys of this map are names of ions, whose parameters will be locally overridden.
-   The struct :cpp:type:`cable_cell_ion_data` has three fields:
+   The keys of this map are names of ions, whose parameters will be locally
+   overridden. The struct :cpp:type:`cable_cell_ion_data` has three fields:
    :cpp:type:`init_int_concentration`, :cpp:type:`init_ext_concentration`, and
    :cpp:type:`init_reversal_potential`.
 
    Internal and external concentrations are given in millimolars, i.e. mol/m³.
    Reversal potential is given in millivolts.
 
-   .. cpp:member:: util::optional<units::quantity> init_membrane_potential
+   .. cpp:member:: std::optional<units::quantity> init_membrane_potential
 
    Initial membrane potential in millivolts.
 
-   .. cpp:member:: util::optional<units::quantity> temperature
+   .. cpp:member:: std::optional<units::quantity> temperature
 
    Local temperature in Kelvin.
 
-   .. cpp:member:: util::optional<units::quantity> axial_resistivity
+   .. cpp:member:: std::optional<units::quantity> axial_resistivity
 
    Local resistivity of the intracellular medium, in ohm-centimetres.
 
-   .. cpp:member:: util::optional<units::quantity> membrane_capacitance
+   .. cpp:member:: std::optional<units::quantity> membrane_capacitance
 
    Local areal capacitance of the cell membrane, in Farads per square metre.
 
-   .. cpp:member:: util::optional<cv_policy> discretisation
+   .. cpp:member:: std::optional<cv_policy> discretisation
 
    Method by which CV boundaries are determined when the cell is discretised.
    See :ref:`cv-policies`.
 
-Default parameters for a cell are returned by the :cpp:expr:`default_parameters`
+Default parameters for a cell are returned by the :cpp:func:`cable_cell::default_parameters`
 member in the :cpp:type:`cable_cell` object. This is a value of type
 :cpp:type:`cable_cell_parameter_set`, which extends
 :cpp:type:`cable_cell_parameter_set` by adding an additional field describing
 reversal potential computation:
 
-   .. cpp:member:: cable_cell_parameter_set::std::unordered_map<std::string, mechanism_desc> reversal_potential_method
+   .. cpp:member:: std::unordered_map<std::string, mechanism_desc> reversal_potential_method
 
    Maps the name of an ion to a 'reversal potential' mechanism that describes
    how it should be computed. When no mechanism is provided for an ionic
@@ -265,7 +311,27 @@ reversal potential computation:
 
 Default parameters for all cells are supplied in the
 :cpp:type:`cable_cell_global_properties` struct, while per-cell defaults are set
-via :cpp:expr:`decor::set_default`.
+via :cpp:func:`decor::set_default`.
+
+.. cpp:class:: cable_cell_ion_data
+               
+    .. cpp:member:: std::optional<double> init_int_concentration
+
+        mM
+    .. cpp:member:: std::optional<double> init_ext_concentration
+
+        mM
+    .. cpp:member:: std::optional<double> init_reversal_potential
+
+        mV
+    .. cpp:member:: std::optional<double> diffusivity
+
+        m²/s
+
+Arbor provides a predefined parameter set that holds values that correspond to
+NEURON defaults
+
+.. cpp:function:: cable_cell_parameter_set neuron_parameter_defaults()
 
 Global properties
 -----------------
@@ -317,8 +383,8 @@ Global properties
 
 For convenience, :cpp:expr:`neuron_parameter_defaults` is a predefined
 :cpp:type:`cable_cell_parameter_set` value that holds values that correspond to
-NEURON defaults. To use these values, assign them to the
-:cpp:expr:`default_parameters` field of the global properties object returned in
+NEURON defaults. To use these values, assign them to 
+:cpp:expr:`cable_cell_global_properties::default_parameters` field of the global properties object returned in
 the recipe.
 
 .. _cppcablecell-revpot:

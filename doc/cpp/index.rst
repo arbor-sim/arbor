@@ -25,6 +25,7 @@ A :cpp:type:`arb::recipe` describes a model, and a :cpp:type:`arb::simulation` i
    mechanisms
    simulation
    profiler
+   adex_cell
    cable_cell
    lif_cell
    spike_source_cell

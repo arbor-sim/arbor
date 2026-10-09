@@ -216,8 +216,7 @@ Interconnectivity
    .. cpp:function:: if_else(network_selection cond, network_value true_value, network_value false_value)
 
    if contained in selection, the true_value is used and the false_value otherwise.
-
-
+   
 .. cpp:class:: network_selection
 
     A network selection, describing a subset of all possible connections.

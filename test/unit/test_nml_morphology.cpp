@@ -275,7 +275,6 @@ R"~(
 
 TEST(neuroml, spherical_segments) {
     using namespace arb;
-    using namespace arborio::neuroml_options;
 
     // Spherical root segments can be translated as equivalent-area
     // cylinders oriented along the y-axis in the generated morphology.
@@ -335,7 +334,7 @@ R"~(
     arborio::neuroml N(doc);
 
     {
-        auto m1 = N.morphology("m1", allow_spherical_root).value();
+        auto m1 = N.morphology("m1", arborio::neuroml_options::allow_spherical_root).value();
         auto d1 = std::get<arborio::nml_metadata>(m1.metadata);
         label_dict labels;
         labels.extend(d1.segments, "seg:");
@@ -365,7 +364,7 @@ R"~(
     }
     {
         // With spherical root _not_ provided, treat it just as a simple zero-length segment.
-        auto m1 = N.morphology("m1", none).value();
+        auto m1 = N.morphology("m1", arborio::neuroml_options::none).value();
         auto d1 = std::get<arborio::nml_metadata>(m1.metadata);
         label_dict labels;
         labels.extend(d1.segments, "seg:");
@@ -379,7 +378,7 @@ R"~(
         EXPECT_EQ(p0, G.at(mlocation{0, 1}));
     }
     {
-        auto m2 = N.morphology("m2", allow_spherical_root).value();
+        auto m2 = N.morphology("m2", arborio::neuroml_options::allow_spherical_root).value();
         auto d2 = std::get<arborio::nml_metadata>(m2.metadata);
         label_dict labels;
         labels.extend(d2.segments, "seg:");
@@ -396,7 +395,7 @@ R"~(
                     (p0==points[1] && p1==points[0]));
     }
     {
-        auto m3 = N.morphology("m3", allow_spherical_root).value();
+        auto m3 = N.morphology("m3", arborio::neuroml_options::allow_spherical_root).value();
         auto d3 = std::get<arborio::nml_metadata>(m3.metadata);
         label_dict labels;
         labels.extend(d3.segments, "seg:");
@@ -419,7 +418,7 @@ R"~(
         EXPECT_EQ(p2, s1d);
     }
     {
-        auto m4 = N.morphology("m4", allow_spherical_root).value();
+        auto m4 = N.morphology("m4", arborio::neuroml_options::allow_spherical_root).value();
         auto d4 = std::get<arborio::nml_metadata>(m4.metadata);
         label_dict labels;
         labels.extend(d4.segments, "seg:");

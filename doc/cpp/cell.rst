@@ -5,7 +5,7 @@ Cells
 
 .. cpp:namespace:: arb
 
-Cell identifiers and indexes
+Cell identifiers and indices
 ----------------------------
 
 These types, defined in ``common_types.hpp``, are used as identifiers for
@@ -160,3 +160,6 @@ cells and members of cell-local collections.
 
         Proxy cell used for benchmarking.
 
+Internally, cells are bundled into structures deriving from
+
+.. cpp:class:: cell_group

@@ -32,20 +32,19 @@ Recipe
 
     All recipes derive from this abstract base class, defined in ``src/recipe.hpp``.
 
-    Recipes provide a cell-centric interface for describing a model. This means that
-    model properties, such as connections, are queried using the global identifier
-    (`gid`) of a cell. In the description below, the term `gid` is used as shorthand
-    for "the cell with global identifier `gid`".
+    Recipes provide a cell-centric interface for describing a model. This means
+    that model properties, such as connections, are queried using the global
+    identifier (``gid``) of a cell. In the description below, the term ``gid`` is
+    used as shorthand for "the cell with global identifier ``gid``".
 
 
-    .. Warning::
-        All member functions must be **thread safe**, because the recipe is used
-        by the multithreaded model-building stage. In practice, this means that
-        multiple threads should be able to call member functions of a recipe
-        simultaneously. Model building is multithreaded to reduce model building times,
-        so recipe implementations should avoid using locks and mutexes to introduce
-        thread safety. See `recipe best practices <cpp_recipe_best_practice_>`_ for more
-        information.
+    .. Warning:: All member functions must be **thread safe**, because the
+        recipe is used by the multithreaded model-building stage. In practice,
+        this means that multiple threads should be able to call member functions
+        of a recipe simultaneously. Model building is multithreaded to reduce
+        model building times, so recipe implementations should avoid using locks
+        and mutexes to introduce thread safety. See `recipe best practices
+        <cpp_recipe_best_practice_>`_ for more information.
 
     **Required Member Functions**
 
@@ -57,11 +56,11 @@ Recipe
 
     .. cpp:function:: virtual cell_kind get_cell_kind(cell_gid_type gid) const = 0
 
-        The kind of `gid` (see :cpp:type:`arb::cell_kind`).
+        The kind of ``gid`` (see :cpp:type:`arb::cell_kind`).
 
     .. cpp:function:: virtual util::unique_any get_cell_description(cell_gid_type gid) const = 0
 
-        A description of the cell `gid`, for example the morphology, synapses
+        A description of the cell ``gid``, for example the morphology, synapses
         and ion channels required to build a multi-compartment neuron.
 
         The type used to describe a cell depends on the kind of the cell.
@@ -73,8 +72,8 @@ Recipe
 
     .. cpp:function:: virtual std::vector<cell_connection> connections_on(cell_gid_type gid) const
 
-        Returns a list of all the **incoming** connections for `gid` .
-        Each connection ``con`` should have a valid synapse label ``con.dest`` on the post-synaptic target `gid`,
+        Returns a list of all the **incoming** connections for ``gid`` .
+        Each connection ``con`` should have a valid synapse label ``con.dest`` on the post-synaptic target ``gid``,
         and a valid source label ``con.source.label`` on the pre-synaptic source ``con.source.gid``.
         See :cpp:type:`cell_connection`.
 
@@ -82,9 +81,9 @@ Recipe
 
     .. cpp:function:: virtual std::vector<ext_cell_connection> external_connections_on(cell_gid_type gid) const
 
-        Returns a list of all the **incoming** connections for `gid` from a
+        Returns a list of all the **incoming** connections for ``gid`` from a
         remote simulation. Each connection ``con`` should have a valid synapse
-        label ``con.dest`` on the post-synaptic target `gid`, and a valid source
+        label ``con.dest`` on the post-synaptic target ``gid``, and a valid source
         label ``con.source.lid`` on the remote pre-synaptic source ``con.source.rid``.
         See :cpp:type:`ext_cell_connection`.
 
@@ -93,7 +92,7 @@ Recipe
 
     .. cpp:function:: virtual std::vector<gap_junction_connection> gap_junctions_on(cell_gid_type gid) const
 
-        Returns a list of all the gap junctions connected to `gid`.
+        Returns a list of all the gap junctions connected to ``gid``.
         Each gap junction ``gj`` should have a valid gap junction site label ``gj.local`` on ``gid``,
         and a valid gap junction site label ``gj.peer.label`` on ``gj.peer.gid``.
         See :cpp:type:`gap_junction_connection`.
@@ -102,7 +101,7 @@ Recipe
 
     .. cpp:function:: virtual std::vector<event_generator> event_generators(cell_gid_type gid) const
 
-        Returns a list of all the event generators that are attached to `gid`.
+        Returns a list of all the event generators that are attached to ``gid``.
 
         By default returns an empty list.
 
@@ -112,7 +111,7 @@ Recipe
         structures ahead of time and for putting in place any structures or
         information in the concrete cell implementations to allow monitoring.
 
-        Returns a vector containing (in order) all the probes on a given cell `gid`.
+        Returns a vector containing (in order) all the probes on a given cell ``gid``.
 
         By default returns an empty vector.
 
@@ -146,7 +145,7 @@ Probes
            User-defined tag; must be unique per cell or an exception of type
            ``dup_cell_probe`` will be thrown.
 
-    .. cpp:member:: util::any address
+    .. cpp:member:: std::any address
 
            Cell-type specific location info, specific to cell kind of ``id.gid``.
 
