@@ -130,7 +130,7 @@ struct lfp_sampler {
     arb::sampler_function callback() {
         return [this](arb::probe_metadata pm, const arb::sample_records& samples) {
             std::vector<double> currents;
-            auto data = std::any_cast<arb::cable_sample_type*>(samples.values);
+            auto data = any_cast<arb::cable_sample_type*>(samples.values);
             lfp_voltage.resize(response.size());
             for (std::size_t ix = 0; ix < samples.n_sample; ++ix) {
                 lfp_time.push_back(samples.time[ix]);
