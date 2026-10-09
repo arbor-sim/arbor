@@ -90,7 +90,7 @@ R"~(
         EXPECT_EQ("c3", meta.cell_id);
         EXPECT_EQ("m1", meta.id);
     }
-    EXPECT_THROW(N.cell_morphology("mr. bobbins").value(), std::bad_optional_access);
+    EXPECT_THROW((void)N.cell_morphology("mr. bobbins").value(), std::bad_optional_access);
 }
 
 TEST(neuroml, simple_morphologies) {
@@ -514,12 +514,12 @@ R"~(
 
     arborio::neuroml N(doc);
 
-    EXPECT_THROW(N.morphology("no-proximal").value(), arborio::nml_bad_segment);
-    EXPECT_THROW(N.morphology("no-such-parent").value(), arborio::nml_bad_segment);
-    EXPECT_THROW(N.morphology("cyclic-dependency").value(), arborio::nml_cyclic_dependency);
-    EXPECT_THROW(N.morphology("duplicate-id").value(), arborio::nml_bad_segment);
-    EXPECT_THROW(N.morphology("bad-segment-id").value(), arborio::nml_bad_segment);
-    EXPECT_THROW(N.morphology("another-bad-segment-id").value(), arborio::nml_bad_segment);
+    EXPECT_THROW((void)N.morphology("no-proximal").value(), arborio::nml_bad_segment);
+    EXPECT_THROW((void)N.morphology("no-such-parent").value(), arborio::nml_bad_segment);
+    EXPECT_THROW((void)N.morphology("cyclic-dependency").value(), arborio::nml_cyclic_dependency);
+    EXPECT_THROW((void)N.morphology("duplicate-id").value(), arborio::nml_bad_segment);
+    EXPECT_THROW((void)N.morphology("bad-segment-id").value(), arborio::nml_bad_segment);
+    EXPECT_THROW((void)N.morphology("another-bad-segment-id").value(), arborio::nml_bad_segment);
 }
 
 TEST(neuroml, simple_groups) {
@@ -662,9 +662,9 @@ R"~(
 
     arborio::neuroml N(doc);
 
-    EXPECT_THROW(N.morphology("no-such-segment").value(), arborio::nml_bad_segment_group);
-    EXPECT_THROW(N.morphology("no-such-group").value(), arborio::nml_bad_segment_group);
-    EXPECT_THROW(N.morphology("cyclic-dependency").value(), arborio::nml_cyclic_dependency);
+    EXPECT_THROW((void)N.morphology("no-such-segment").value(), arborio::nml_bad_segment_group);
+    EXPECT_THROW((void)N.morphology("no-such-group").value(), arborio::nml_bad_segment_group);
+    EXPECT_THROW((void)N.morphology("cyclic-dependency").value(), arborio::nml_cyclic_dependency);
 }
 
 

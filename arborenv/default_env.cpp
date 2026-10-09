@@ -1,5 +1,6 @@
 #include <limits>
 #include <optional>
+#include <cstdlib>
 
 #include <arbor/version.hpp>
 #include <arborenv/arbenvexcept.hpp>
