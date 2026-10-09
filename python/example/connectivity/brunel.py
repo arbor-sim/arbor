@@ -45,7 +45,7 @@ class brunel(unconnected):
 if __name__ == "__main__":
     rec = brunel(N)
     sim = A.simulation(rec)
-    sim.record(A.spike_recording.all)
+    sim.record(A.spike_recording.local)
     sim.run(T * U.ms, dt * U.ms)
     plot_spikes(sim, T, N, prefix="04-")
     plot_network(rec, prefix="04-", graph=True)

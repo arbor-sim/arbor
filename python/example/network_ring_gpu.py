@@ -149,7 +149,7 @@ meters.checkpoint("load-balance", context)
 
 # (16) Simulation init and set spike generators to record
 sim = A.simulation(recipe, context, decomp)
-sim.record(A.spike_recording.all)
+sim.record(A.spike_recording.local)
 handles = [
     sim.sample((gid, "Um"), A.regular_schedule(1 * U.ms)) for gid in range(ncells)
 ]

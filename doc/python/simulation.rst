@@ -239,10 +239,9 @@ Spikes recorded during a simulation are returned as a NumPy structured datatype 
         # Instantiate the simulation.
         sim = A.simulation(recipe, decomp, context)
 
-        # Direct the simulation to record all spikes, which will record all spikes
-        # across multiple MPI ranks in distributed simulation.
-        # To only record spikes from the local MPI rank, use A.spike_recording.local
-        sim.record(A.spike_recording.all)
+        # Direct the simulation to record spikes, which will record all spikes #
+        on each individual MPI rank in distributed simulation.
+        sim.record(A.spike_recording.local)
 
         # Run the simulation for 2000 ms with a time step of 0.025 ms
         tSim = 2 * U.s

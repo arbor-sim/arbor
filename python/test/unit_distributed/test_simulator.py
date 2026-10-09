@@ -84,16 +84,3 @@ class TestSimulator(unittest.TestCase):
             self.assertEqual([0, 2, 4, 6, 8], times)
         else:
             self.assertEqual([0, 4, 8], times)
-
-    def test_global_spikes(self):
-        sim = self.init_sim()
-        sim.record(A.spike_recording.all)
-        sim.run(9, 0.01)
-        spikes = sim.spikes().tolist()
-
-        expected = [
-            ((s, 0), t)
-            for s in range(0, self.ranks)
-            for t in ([0, 2, 4, 6, 8] if s % 2 == 0 else [0, 4, 8])
-        ]
-        self.assertEqual(expected, sorted(spikes))

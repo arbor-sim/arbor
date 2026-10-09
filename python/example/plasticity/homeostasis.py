@@ -36,7 +36,7 @@ class homeostatic_network(random_network):
 if __name__ == "__main__":
     rec = homeostatic_network(N, setpoint_rate, sensitivity)
     sim = A.simulation(rec)
-    sim.record(A.spike_recording.all)
+    sim.record(A.spike_recording.local)
 
     plot_network(rec, prefix="03-initial-")
 

@@ -31,7 +31,7 @@ class all2all(unconnected):
 if __name__ == "__main__":
     rec = all2all(N)
     sim = A.simulation(rec)
-    sim.record(A.spike_recording.all)
+    sim.record(A.spike_recording.local)
     sim.run(T * U.ms, dt * U.ms)
     plot_spikes(sim, T, N, prefix="03-")
     plot_network(rec, prefix="03-")

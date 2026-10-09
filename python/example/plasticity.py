@@ -91,7 +91,7 @@ rec = recipe(3)
 # is set up in the simulation construction.
 rec.add_connection_to_spike_source(1)
 sim = A.simulation(rec, ctx)
-sim.record(A.spike_recording.all)
+sim.record(A.spike_recording.local)
 # then run the simulation for a bit
 sim.run(0.25 * U.ms, 0.025 * U.ms)
 # update the simulation to

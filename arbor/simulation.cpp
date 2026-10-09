@@ -613,10 +613,6 @@ std::size_t simulation::num_spikes() const {
     return impl_->num_spikes();
 }
 
-void simulation::set_global_spike_callback(spike_export_function export_callback) {
-    throw std::runtime_error("Attempted to call deprecated method: set_global_spike_callback");
-}
-
 void simulation::set_local_spike_callback(spike_export_function export_callback) {
     impl_->local_export_callback_ = std::move(export_callback);
 }

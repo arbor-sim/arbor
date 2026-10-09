@@ -285,7 +285,7 @@ if __name__ == "__main__":
     handle_tot_curr = sim.sample((gid, "Itot"), reg_sched)  # total current
     handle_curr = sim.sample((gid, "Iou"), reg_sched)  # input current
 
-    sim.record(A.spike_recording.all)
+    sim.record(A.spike_recording.local)
     sim.run(tfinal=recipe.runtime, dt=recipe.dt)
 
     # get traces and spikes from simulator
