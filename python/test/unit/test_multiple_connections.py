@@ -71,9 +71,10 @@ class TestMultipleConnections(unittest.TestCase):
         # membrane potential should temporarily be above the spiking threshold at around 1.0 ms (only testing this if the current node keeps the data, cf. GitHub issue #1892)
         if len(sim.samples(handle_mem)) > 0:
             data_mem, _ = sim.samples(handle_mem)[0]
-            # print(data_mem[(data_mem[:, 0] >= 1.0), 1])
-            self.assertGreater(data_mem[(np.round(data_mem[:, 0], 2) == 1.02), 1], -10)
-            self.assertLess(data_mem[(np.round(data_mem[:, 0], 2) == 1.05), 1], -10)
+            um_pre = data_mem[(np.round(data_mem[:, 0], 2) == 1.02), 1][0]
+            um_pst = data_mem[(np.round(data_mem[:, 0], 2) == 1.05), 1][0]
+            self.assertGreater(um_pre, -10)
+            self.assertLess(um_pst, -10)
 
         # neuron 3 should spike at around 1.0 ms, when the added input from all connections will cause threshold crossing
         spike_gids, spike_times = self.gather_all_spikes(sim.spikes())
@@ -157,7 +158,7 @@ class TestMultipleConnections(unittest.TestCase):
         sim.record(A.spike_recording.local)
 
         # create schedule and handle to record the membrane potential of neuron 3
-        reg_sched = A.regular_schedule(0 * U.ms, self.dt * U.ms, self.runtime * U.ms)
+        reg_sched = A.regular_schedule(self.dt * U.ms)
         handle_mem = sim.sample((3, "Um"), reg_sched)
 
         # run the simulation
@@ -367,7 +368,7 @@ class TestMultipleConnections(unittest.TestCase):
         sim.record(A.spike_recording.local)
 
         # create schedule and handle to record the membrane potential of neuron 3
-        reg_sched = A.regular_schedule(0 * U.ms, self.dt * U.ms, self.runtime * U.ms)
+        reg_sched = A.regular_schedule(self.dt * U.ms)
         handle_mem = sim.sample((3, "Um"), reg_sched)
 
         # run the simulation

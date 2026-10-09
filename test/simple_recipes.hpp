@@ -21,8 +21,7 @@ namespace U = units;
 // Common functionality: maintain an unordered map of probe data
 // per gid, built with `add_probe()`.
 
-class simple_recipe_base: public recipe {
-public:
+struct simple_recipe_base: public recipe {
     simple_recipe_base() {
         cell_gprop_.catalogue = global_default_catalogue();
         cell_gprop_.default_parameters = neuron_parameter_defaults;
@@ -94,8 +93,7 @@ protected:
 //
 // Cell descriptions passed to the constructor are cloned.
 
-class cable1d_recipe: public simple_recipe_base {
-public:
+struct cable1d_recipe: public simple_recipe_base {
     template <typename Seq>
     explicit cable1d_recipe(const Seq& cells, bool coalesce = true) {
         for (const auto& c: cells) {

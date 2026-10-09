@@ -8,12 +8,14 @@ From recipe to simulation
 
 To build a simulation, the following concepts are needed:
 
-* an :py:class:`arbor.recipe` that describes the cells and connections in the model;
-* an :py:class:`arbor.context` used to execute the simulation.
+* a :py:class:`~arbor.recipe` that describes the cells and connections in the model;
+* a :py:class:`~arbor.context` used to execute the simulation.
 
-The workflow to build a simulation is to first generate an
-:class:`arbor.domain_decomposition` based on the :py:class:`arbor.recipe` and :py:class:`arbor.context` describing the distribution of the model
-over the local and distributed hardware resources (see :ref:`pydomdec`). Then, the simulation is built using this :py:class:`arbor.domain_decomposition`.
+The workflow to build a simulation is to first generate a
+:py:class:`~arbor.domain_decomposition` based on the :py:class:`~arbor.recipe` and
+:py:class:`~arbor.context` describing the distribution of the model over the
+local and distributed hardware resources (see :ref:`pydomdec`). Then, the
+simulation is built using this :py:class:`~arbor.domain_decomposition`.
 
 .. container:: example-code
 
@@ -50,9 +52,9 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     The **constructor** takes
 
-    * an :py:class:`arbor.recipe` that describes the model;
-    * an :py:class:`arbor.domain_decomposition` that describes how the cells in the model are assigned to hardware resources;
-    * an :py:class:`arbor.context` which is used to execute the simulation.
+    * a :py:class:`~arbor.recipe` that describes the model;
+    * a :py:class:`~arbor.domain_decomposition` that describes how the cells in the model are assigned to hardware resources;
+    * a :py:class:`~arbor.context` which is used to execute the simulation.
     * a non-negative :py:class:`int` in order to seed the pseudo random number generator (optional)
 
     Simulations provide an interface for executing and interacting with the model:
@@ -66,7 +68,7 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     .. function:: simulation(recipe, domain_decomposition, context, seed)
 
-        Initialize the model described by an :py:class:`~arbor.recipe`, with cells and network
+        Initialize the model described by a :py:class:`~arbor.recipe`, with cells and network
         distributed according to :py:class:`~arbor.domain_decomposition`, computational resources
         described by :py:class:`~arbor.context` and with a seed value for generating reproducible
         random numbers (optional, default value: `0`).
@@ -79,8 +81,8 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
     .. function:: update_connections(recipe)
 
         Rebuild the connection table as described by
-        :py:class:`arbor.recipe::connections_on` The recipe must differ **only**
-        in the return value of its :py:func:`connections_on` when compared to
+        :py:func:`~arbor.recipe.connections_on` The recipe must differ **only**
+        in the return value of its :py:func:`~arbor.recipe.connections_on` when compared to
         the original recipe used to construct the simulation object.
 
     .. function:: reset()
@@ -105,9 +107,10 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     .. function:: record(policy)
 
-        Disable or enable the recorder of rank-local or global spikes, as determined by the ``policy``.
+        Disable or enable the recorder of rank-local or global spikes, as
+        determined by the ``policy``.
 
-        :param policy: Recording policy of type :py:class:`spike_recording`.
+        :param policy: Recording policy of type :py:class:`~arbor.spike_recording`.
 
     .. function:: spikes()
 
@@ -137,11 +140,14 @@ over the local and distributed hardware resources (see :ref:`pydomdec`). Then, t
 
     .. function:: sample(probeset_id, schedule)
 
-        Set up a sampling schedule for the probes associated with the supplied probeset_id of type :py:class:`cell_member`.
-        The schedule is any schedule object, as might be used with an event generator — see :ref:`pyrecipe` for details.
+        Set up a sampling schedule for the probes associated with the supplied
+        probeset_id of type :py:class:`~arbor.cell_member`. The schedule is any
+        schedule object, as might be used with an event generator — see
+        :ref:`pyrecipe` for details.
 
-        The method returns a :term:`handle` which can be used in turn to retrieve the sampled data from the simulator or to
-        remove the corresponding sampling process.
+        The method returns a :term:`handle` which can be used in turn to
+        retrieve the sampled data from the simulator or to remove the
+        corresponding sampling process.
 
     .. function:: probe_metadata(probeset_id)
 
@@ -351,4 +357,3 @@ Example
 >>>  [  2.7        -62.53349949]
 >>>  [  2.8        -69.22068995]
 >>>  [  2.9        -73.41691825]]
-

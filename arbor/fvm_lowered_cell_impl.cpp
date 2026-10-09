@@ -1,6 +1,3 @@
-#include <memory>
-#include <stdexcept>
-
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/version.hpp>

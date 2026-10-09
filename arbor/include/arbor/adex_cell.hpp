@@ -4,6 +4,8 @@
 #include <arbor/common_types.hpp>
 #include <arbor/export.hpp>
 #include <arbor/units.hpp>
+#include <arbor/util/extra_traits.hpp>
+
 
 namespace arb {
 
@@ -41,12 +43,27 @@ struct ARB_SYMBOL_VISIBLE adex_cell {
 // ADEX probe metadata, to be passed to sampler callbacks. Intentionally left blank.
 struct ARB_SYMBOL_VISIBLE adex_probe_metadata {};
 
-// Voltage estimate `U` [mV].
+using adex_sample_type = const double;
+using adex_meta_type = const adex_probe_metadata;
+
+// Voltage estimate [mV].
 // Sample value type: `double`
-struct ARB_SYMBOL_VISIBLE adex_probe_voltage {};
+struct ARB_SYMBOL_VISIBLE adex_probe_voltage {
+    using value_type = adex_sample_type;
+    using meta_type = const adex_probe_metadata;
+};
 
 // Adapation variable `w` [nA].
 // Sample value type: `double`
-struct ARB_SYMBOL_VISIBLE adex_probe_adaption {};
+struct ARB_SYMBOL_VISIBLE adex_probe_adaption {
+    using value_type = adex_sample_type;
+    using meta_type = const adex_probe_metadata;
+};
 
+template <>
+struct probe_value_type_of<const adex_meta_type> {
+    using type = adex_sample_type;
+};
+
+    
 } // namespace arb
