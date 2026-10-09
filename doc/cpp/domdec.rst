@@ -16,14 +16,13 @@ Documentation for the data structures used to describe domain decompositions.
 
 .. cpp:class:: domain_decomposition
 
-    Describes a domain decomposition and is solely responsible for describing the
-    distribution of cells across cell groups and domains.
-    It holds cell group descriptions (:cpp:member:`groups`) for cells assigned to
-    the local domain, and a helper member (:cpp:member:`gid_domain`) used to
-    look up which domain a cell has been assigned to.
-    The :cpp:class:`domain_decomposition` object also has meta-data about the
-    number of cells in the global model and the number of domains over which
-    the model is distributed.
+    Describes a domain decomposition and is solely responsible for describing
+    the distribution of cells across cell groups and domains. It holds cell
+    group descriptions (:cpp:func:`groups`) for cells assigned to the local
+    domain, and a helper member (:cpp:func:`gid_domain`) used to look up which
+    domain a cell has been assigned to. The :cpp:class:`domain_decomposition`
+    object also has meta-data about the number of cells in the global model and
+    the number of domains over which the model is distributed.
 
     .. Note::
         The domain decomposition represents a division of **all** of the cells in
@@ -52,12 +51,13 @@ Documentation for the data structures used to describe domain decompositions.
         *   a vector of :cpp:class:`arb::group_description` that contains the indices of the cells
             to be executed on the local rank, categorized into groups.
 
-        It's expected that a different :cpp:class:`arb::domain_decomposition` object will be constructed on
-        each rank in a distributed simulation containing the selected cell groups for that rank.
-        For example, in a simulation of 10 cells on 2 MPI ranks where cells {0, 2, 4, 6, 8} of kind
-        :class:`cable_cell` are meant to be in a single group executed on the GPU on rank 0;
-        and cells {1, 3, 5, 7, 9} of kind :class:`lif_cell` are expected to be in a single group executed
-        on the CPU on rank 1:
+        It's expected that a different :cpp:class:`domain_decomposition` object
+        will be constructed on each rank in a distributed simulation containing
+        the selected cell groups for that rank. For example, in a simulation of
+        10 cells on 2 MPI ranks where cells {0, 2, 4, 6, 8} of kind
+        :cpp:class:`cable_cell` are meant to be in a single group executed on the
+        GPU on rank 0; and cells {1, 3, 5, 7, 9} of kind :cpp:class:`lif_cell` are
+        expected to be in a single group executed on the CPU on rank 1:
 
         Rank 0 should run:
 
@@ -102,39 +102,39 @@ Documentation for the data structures used to describe domain decompositions.
             Arbor provided load balancers such as :cpp:func:`partition_load_balance`
             guarantee that this rule is obeyed.
 
-    .. cpp:member:: int gid_domain(cell_gid_type gid)
+    .. cpp:function:: int gid_domain(cell_gid_type gid)
 
         Returns the domain id of the cell with id ``gid``.
 
-    .. cpp:member:: int num_domains()
+    .. cpp:function:: int num_domains()
 
         Returns the number of domains that the model is distributed over.
 
-    .. cpp:member:: int domain_id()
+    .. cpp:function:: int domain_id()
 
         Returns the index of the local domain.
         Always 0 for non-distributed models, and corresponds to the MPI rank
         for distributed runs.
 
-    .. cpp:member:: cell_size_type num_local_cells()
+    .. cpp:function:: cell_size_type num_local_cells()
 
         Returns the total number of cells in the local domain.
 
-    .. cpp:member:: cell_size_type num_global_cells()
+    .. cpp:function:: cell_size_type num_global_cells()
 
         Returns the total number of cells in the global model
-        (sum of :cpp:member:`num_local_cells` over all domains).
+        (sum of :cpp:expr:`num_local_cells` over all domains).
 
-    .. cpp:member:: cell_size_type num_groups()
+    .. cpp:function:: cell_size_type num_groups()
 
         Returns the total number of cell groups on the local domain.
 
-    .. cpp:member:: const group_description& group(unsigned idx)
+    .. cpp:function:: const group_description& group(unsigned idx)
 
         Returns the description of the cell group at index ``idx`` on the local domain.
         See :cpp:class:`group_description`.
 
-    .. cpp:member:: const std::vector<group_description>& groups()
+    .. cpp:function:: const std::vector<group_description>& groups()
 
         Returns the descriptions of the cell groups on the local domain.
         See :cpp:class:`group_description`.
@@ -142,7 +142,7 @@ Documentation for the data structures used to describe domain decompositions.
 .. cpp:class:: group_description
 
     The indexes of a set of cells of the same kind that are grouped together in a
-    cell group in a :cpp:class:`arb::simulation`.
+    cell group in a :cpp:class:`simulation`.
 
     .. cpp:function:: group_description(cell_kind k, std::vector<cell_gid_type> g, backend_kind b)
 
@@ -189,7 +189,7 @@ If the model is distributed with MPI, the partitioning algorithm for cells is
 distributed with MPI communication. The returned :cpp:class:`domain_decomposition`
 describes the cell groups on the local MPI rank.
 
-.. cpp:function:: domain_decomposition partition_load_balance(const recipe& rec, const arb::context& ctx)
+.. cpp:function:: domain_decomposition partition_load_balance(const recipe& rec, const context& ctx)
 
     Construct a :cpp:class:`domain_decomposition` that distributes the cells
     in the model described by :cpp:any:`rec` over the distributed and local hardware
@@ -207,3 +207,20 @@ describes the cell groups on the local MPI rank.
         The partitioning assumes that all cells of the same kind have equal
         computational cost, hence it may not produce a balanced partition for
         models with cells that have a large variance in computational costs.
+
+To handle descriptions of structured sets of ``gid`` s we use
+
+.. cpp:class:: gid_range
+
+    Describe set of ``gid`` s as ``{gid = beg + i dlt | gid < end}``
+               
+    .. cpp:member:: cell_gid_type beg = 0
+                    
+        First ``gid`` in range
+    .. cpp:member:: cell_gid_type end = 0
+
+        First ``gid`` no longer in range. ``beg <= end``.
+        
+    .. cpp:member:: cell_gid_type dlt = 1
+
+        Step between two ``gid`` s.

@@ -100,7 +100,7 @@ The steps of building a simulation from a recipe are:
     the cells assigned to it to build a cost model.
     The ranks then coordinate to redistribute cells over MPI ranks so that
     each rank has a balanced workload. Finally, each rank groups its local
-    cells into :cpp:type:`cell_group` s that balance the work over threads (and
+    cells into :cpp:type:`arb::cell_group` s that balance the work over threads (and
     GPU accelerators, if available).
 
 .. topic:: 2. Model building
@@ -153,8 +153,7 @@ General best practices
     can be a challenge when a description uses random numbers, e.g., to pick incoming
     connections to a cell from a random subset of a cell population.
     To get a reproducible model, use the cell `gid` (or a hash based on the `gid`)
-    to seed random number generators, including those for :cpp:type:`event_generator` s.
-
+    to seed random number generators, including those for :cpp:type:`arb::event_generator` s.
 
 API
 ---

@@ -133,7 +133,7 @@ functions. Conversion between different units is done like this
 
 however, Arbor does this whenever values pass its interface.
 
-.. cpp::namespace:: arb::units
+.. cpp:namespace:: arb::units
 
 .. cpp:class:: unit
 
@@ -152,7 +152,52 @@ however, Arbor does this whenever values pass its interface.
         Convert to another unit and return the converted value, possibly NaN, if
         malformed.
 
+Predefined units
+^^^^^^^^^^^^^^^^
 
+.. cpp:var:: unit Kelvin
+.. cpp:var:: unit Celsius
+.. cpp:var:: unit m
+.. cpp:var:: unit cm
+.. cpp:var:: unit mm
+.. cpp:var:: unit um
+.. cpp:var:: unit nm
+.. cpp:var:: unit s
+.. cpp:var:: unit ms
+.. cpp:var:: unit us
+.. cpp:var:: unit ns
+.. cpp:var:: unit Ohm
+.. cpp:var:: unit kOhm
+.. cpp:var:: unit MOhm
+.. cpp:var:: unit S
+.. cpp:var:: unit mS
+.. cpp:var:: unit uS
+.. cpp:var:: unit A
+.. cpp:var:: unit mA
+.. cpp:var:: unit uA
+.. cpp:var:: unit nA
+.. cpp:var:: unit pA
+.. cpp:var:: unit V
+.. cpp:var:: unit mV
+.. cpp:var:: unit Hz
+.. cpp:var:: unit kHz
+.. cpp:var:: unit F
+.. cpp:var:: unit mF
+.. cpp:var:: unit uF
+.. cpp:var:: unit nF
+.. cpp:var:: unit pF
+.. cpp:var:: unit m2
+.. cpp:var:: unit cm2
+.. cpp:var:: unit mm2
+.. cpp:var:: unit um2
+.. cpp:var:: unit nm2
+.. cpp:var:: unit C
+.. cpp:var:: unit mol
+.. cpp:var:: unit M
+.. cpp:var:: unit mM
+.. cpp:var:: unit rad
+.. cpp:var:: unit deg
+        
 Python
 ------
 

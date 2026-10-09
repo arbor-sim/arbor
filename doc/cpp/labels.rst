@@ -3,7 +3,7 @@
 Cable cell labels
 =================
 
-.. currentmodule:: arbor
+.. cpp:namespace:: arb
 
 .. cpp:class:: label_dict
 
@@ -316,7 +316,7 @@ multisets of point-like locations. These are used in ``place`` operations.
 
     Completed boundary points of a region. (Boundary of completed components.)
 
-.. cpp:function:: locset restrict_to(arb::locset ls, region reg)
+.. cpp:function:: locset restrict_to(locset ls, region reg)
 
     Returns all locations in a locset that are also in the region.
 
@@ -324,7 +324,7 @@ multisets of point-like locations. These are used in ``place`` operations.
 
     Returns locations that mark the segments.
 
-.. cpp:function:: locset uniform(region reg, unsigned left, unsigned right, uint64_t seed)
+.. cpp:function:: locset uniform(region reg, unsigned left, unsigned right, std::uint64_t seed)
 
     A range `left` to `right` of randomly selected locations with a uniform distribution from region `reg` generated using `seed`
 

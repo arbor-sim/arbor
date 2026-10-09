@@ -24,6 +24,7 @@ add_custom_target(html
         -m sphinx
         -b html
         -d ${doctree_dir}
+        -n                          # be more verbose about missing links.
         -q                          # Quiet: no output other than errors and warnings.
         ${CMAKE_CURRENT_SOURCE_DIR} # Source directory
         ${html_dir}                 # Output directory
