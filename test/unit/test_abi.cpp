@@ -16,6 +16,16 @@
 
 using namespace std::string_literals;
 
+TEST(abi, rejects_old_parameter_pack) {
+    arb_mechanism_type type{};
+    arb_mechanism_interface iface{};
+    // 0.7 encoded its version as zero; neither encoding has accumulation scratch.
+    for (auto version: {0ul, 70000ul}) {
+        type.abi_version = version;
+        EXPECT_THROW((arb::mechanism{type, iface}), arb::unsupported_abi_error);
+    }
+}
+
 TEST(abi, multicore_initialisation) {
     auto thread_pool = std::make_shared<arb::threading::task_system>();
 

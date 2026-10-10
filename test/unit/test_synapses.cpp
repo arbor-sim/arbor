@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
@@ -9,11 +10,15 @@
 #include <arbor/cable_cell.hpp>
 
 #include "backends/multicore/fvm.hpp"
+#ifdef ARB_GPU_ENABLED
+#include "backends/gpu/shared_state.hpp"
+#endif
 #include "util/range.hpp"
 
 #include "../common_cells.hpp"
 #include "common.hpp"
 #include "mech_private_field_access.hpp"
+#include "unit_test_catalogue.hpp"
 
 using namespace arb;
 
@@ -23,6 +28,103 @@ using value_type = backend::value_type;
 using size_type = backend::size_type;
 
 ACCESS_BIND(arb_mechanism_ppack mechanism::*, get_ppack, &mechanism::ppack_);
+
+#ifdef ARB_GPU_ENABLED
+TEST(synapses, gpu_empty_mechanism) {
+    auto thread_pool = std::make_shared<arb::threading::task_system>();
+    auto syn = global_default_catalogue().instance(arb_backend_kind_gpu, "expsyn").mech;
+    gpu::shared_state state(thread_pool, 1, 1, {0}, {-65}, {23}, {1}, {10}, {},
+                            fvm_detector_info{}, syn->data_alignment());
+    std::vector<arb_index_type> cv;
+    state.instantiate(*syn, {}, mechanism_layout{cv}, {});
+    syn->initialize();
+    syn->update_current();
+    syn->update_state();
+    syn->update_ions();
+}
+
+TEST(synapses, gpu_ionic_current_accumulation) {
+    auto thread_pool = std::make_shared<arb::threading::task_system>();
+    auto syn = make_unit_test_catalogue().instance(arb_backend_kind_gpu, "point_ica_current").mech;
+    gpu::shared_state state(thread_pool, 1, 4, {0, 0, 0, 0}, {-65, -65, -65, -65},
+                            {23, 23, 23, 23}, {1, 1, 1, 1}, {10, 10, 10, 10}, {},
+                            fvm_detector_info{}, syn->data_alignment());
+    fvm_ion_config ion;
+    ion.cv = {1, 3};
+    ion.charge = 2;
+    state.add_ion("ca", ion);
+    std::vector<arb_index_type> cv(129, 1);
+    std::fill(cv.begin()+64, cv.end(), 3);
+    mechanism_layout layout{cv};
+    layout.weight.assign(cv.size(), 0.5);
+    state.instantiate(*syn, {}, layout, {});
+    state.reset();
+    syn->initialize();
+    for (unsigned repeat = 0; repeat<20; ++repeat) {
+        std::vector<double> currents(cv.size());
+        double expected[2] = {};
+        for (unsigned i = 0; i<cv.size(); ++i) {
+            currents[i] = (repeat+1)*(.001+(1+std::sin(double(i)))*.01);
+            expected[i<64? 0: 1] += 0.5*currents[i];
+        }
+        write_mechanism_field(syn, "ica_nA", currents);
+        state.zero_currents();
+        syn->update_current();
+        syn->update_current();
+        auto ionic = memory::on_host(state.ion_data.at("ca").iX_);
+        auto total = memory::on_host(state.current_density);
+        EXPECT_EQ(0, total[0]);
+        EXPECT_EQ(0, total[2]);
+        for (unsigned i = 0; i<2; ++i) {
+            EXPECT_NEAR(2*expected[i], ionic[i], 1e-12);
+            EXPECT_DOUBLE_EQ(ionic[i], total[ion.cv[i]]);
+        }
+    }
+}
+
+TEST(synapses, gpu_current_reproducibility) {
+    auto thread_pool = std::make_shared<arb::threading::task_system>();
+    auto syn = global_default_catalogue().instance(arb_backend_kind_gpu, "expsyn").mech;
+    gpu::shared_state state(thread_pool, 1, 3, {0, 0, 0}, {-65, -65, -65},
+                            {23, 23, 23}, {1, 1, 1}, {10, 10, 10}, {},
+                            fvm_detector_info{}, syn->data_alignment());
+    state.reset();
+    constexpr unsigned n = 8193;
+    std::vector<arb_index_type> cv(n, 0);
+    std::fill(cv.end()-129, cv.end(), 2);
+    mechanism_layout layout{cv};
+    layout.weight.assign(n, 1.0);
+    state.instantiate(*syn, {}, layout, {});
+    syn->initialize();
+
+    // Change state between batches to catch stale/unwritten scratch entries too.
+    for (double scale: {1.0, 2.0}) {
+        std::vector<double> g(n), expected_i(3), expected_g(3);
+        for (unsigned i = 0; i<n; ++i) {
+            g[i] = scale*(0.001+(1+std::sin(double(i)))*0.01);
+            expected_i[layout.cv[i]] += -65*g[i];
+            expected_g[layout.cv[i]] += g[i];
+        }
+        write_mechanism_field(syn, "g", g);
+        std::vector<double> first_i, first_g;
+        for (unsigned repeat = 0; repeat<30; ++repeat) {
+            state.zero_currents();
+            syn->update_current();
+            auto currents = memory::on_host(state.current_density);
+            auto conductances = memory::on_host(state.conductivity);
+            std::vector<double> actual_i(currents.begin(), currents.end());
+            std::vector<double> actual_g(conductances.begin(), conductances.end());
+            for (unsigned cv = 0; cv<3; ++cv) {
+                EXPECT_NEAR(expected_i[cv], actual_i[cv], 1e-10);
+                EXPECT_NEAR(expected_g[cv], actual_g[cv], 1e-10);
+            }
+            if (!repeat) { first_i = actual_i; first_g = actual_g; }
+            EXPECT_EQ(first_i, actual_i);
+            EXPECT_EQ(first_g, actual_g);
+        }
+    }
+}
+#endif
 
 TEST(synapses, add_to_cell) {
     using namespace arb;

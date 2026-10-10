@@ -28,6 +28,14 @@ instance may be used by multiple :c:struct:`arb_mechanism_interface` instances.
   Note that ``mechanism_abi.h`` is heavily commented and is useful as
   documentation in its own right, and also when writing mechanisms in languages other than C(++).
 
+ABI version 0.8 adds GPU accumulation scratch to ``arb_mechanism_ppack``.
+Rebuild external mechanism catalogues when updating to this ABI. For initialization,
+state updates, current updates and ion writes, generated GPU point and gap-junction
+mechanisms store contributions before reducing them with a fixed parallel tree.
+The scratch is allocated by Arbor and reused between API calls. Event handlers retain their
+existing accumulation behavior; this change does not guarantee determinism for
+all simulation paths.
+
 Metadata: ``arb_mechanism_type``
 --------------------------------
 

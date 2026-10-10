@@ -71,6 +71,8 @@ void solve_matrix_fine(
     const auto num_levels  = block_index[bid + 1] - first_level;
 
     const auto block_level_meta = &level_meta[first_level];
+    __shared__ T delta_d[max_branches_per_matrix_level], delta_rhs[max_branches_per_matrix_level];
+    __shared__ arb_index_type parents[max_branches_per_matrix_level];
 
     // backward substitution
 
@@ -87,6 +89,7 @@ void solve_matrix_fine(
         const unsigned width = lvl_meta.num_branches;
 
 
+        parents[tid] = -1;
         // Perform backward substitution for each branch on this level.
         // One thread per branch.
         if (tid < width) {
@@ -112,15 +115,30 @@ void solve_matrix_fine(
                     rhs[next_pos] = fma(factor, rhs[pos], rhs_next);
                     pos = next_pos;
                 }
-                // Update d and rhs at the parent node of this branch.
-                // A parent may have more than one contributing to it, so we use
-                // atomic updates to avoid races conditions.
-                const unsigned parent_index = next_lvl_meta.matrix_data_index;
-                const unsigned p = parent_index + lvl_parents[tid];
+                const T factor = -u[pos]/d[pos];
+                delta_d[tid] = factor*u[pos];
+                delta_rhs[tid] = factor*rhs[pos];
+                parents[tid] = lvl_parents[tid];
+            }
+        }
+        __syncthreads();
 
-                const T factor = -u[pos] / d[pos];
-                gpu_atomic_add(d + p, factor*u[pos]);
-                gpu_atomic_add(rhs + p, factor*rhs[pos]);
+        if (parents[tid]>=0) {
+            // The first child owns its parent's updates, in fixed child order.
+            const auto parent = parents[tid];
+            const unsigned p = next_lvl_meta.matrix_data_index + parent;
+            T sum_d = 0, sum_rhs = 0;
+            bool owner = true;
+            // shortcut: scan at most 128 children; precompute child lists if profiling warrants it.
+            for (unsigned child = 0; child<width; ++child) {
+                if (parents[child]!=parent) continue;
+                if (child<tid) { owner = false; break; }
+                sum_d += delta_d[child];
+                sum_rhs += delta_rhs[child];
+            }
+            if (owner) {
+                d[p] += sum_d;
+                rhs[p] += sum_rhs;
             }
         }
         __syncthreads();

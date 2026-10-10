@@ -17,6 +17,28 @@ struct testcase {
     const char* expected;
 };
 
+TEST(gpu_printer, point_current_accumulation) {
+    for (const auto& kind: {"POINT_PROCESS", "JUNCTION_PROCESS", "SUFFIX"}) {
+        std::string source = std::string("NEURON { ")+kind+R"( test
+            NONSPECIFIC_CURRENT i
+            USEION ca READ eca WRITE ica
+        }
+        INITIAL {}
+        BREAKPOINT { i = 0.1*(v+65) ica = 0.2*(v-eca) }
+        )";
+        Module m(source, "test.mod");
+        Parser p(m, false);
+        ASSERT_TRUE(p.parse());
+        ASSERT_TRUE(m.semantic());
+        auto code = emit_gpu_cu_source(m, {});
+        bool point = std::string(kind)!="SUFFIX";
+        EXPECT_EQ(point, code.find("params_.accumulators[")!=std::string::npos);
+        EXPECT_EQ(point, code.find("compute_currents_reduce, *p")!=std::string::npos);
+        EXPECT_EQ(point, code.find("gather_by_key(")!=std::string::npos);
+        EXPECT_EQ(std::string::npos, code.find("::arb::gpu::reduce_by_key("));
+    }
+}
+
 static std::string strip(std::string text) {
     // Strip all spaces, except when between two minus symbols, where instead
     // they should be replaced by a single space:

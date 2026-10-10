@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <regex>
+#include <set>
 
 #include <fmt/core.h>
 #include <fmt/format.h>
@@ -24,9 +25,9 @@ static std::string scaled(double coeff) {
 }
 
 
-void emit_api_body_cu(std::ostream& out, APIMethod* method, const ApiFlags&);
+void emit_api_body_cu(std::ostream& out, APIMethod* method, const ApiFlags&, bool stage=false);
 void emit_state_read_cu(std::ostream& out, LocalVariable* local, const ApiFlags&);
-void emit_state_update_cu(std::ostream& out, Symbol* from, IndexedVariable* external, const ApiFlags&);
+void emit_state_update_cu(std::ostream& out, Symbol* from, IndexedVariable* external, const ApiFlags&, int accumulator=-1);
 
 const char* index_id(Symbol *s);
 
@@ -96,6 +97,11 @@ ARB_LIBMODCC_API std::string emit_gpu_cpp_source(const Module& module_, const pr
     return out.str();
 }
 
+static bool accumulates(IndexedVariable* v, bool additive) {
+    auto d = decode_indexed_variable(v);
+    return v->is_write() && !d.readonly && (d.accumulate || (d.additive && additive));
+}
+
 ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const printer_options& opt) {
     std::string name = module_.module_name();
     std::string class_name = make_class_name(name);
@@ -119,7 +125,8 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
 
     auto vars = local_module_variables(module_);
 
-    out << "#include <arbor/gpu/gpu_common.hpp>\n"
+    out << "#include <cstddef>\n"
+           "#include <arbor/gpu/gpu_common.hpp>\n"
            "#include <arbor/gpu/math_cu.hpp>\n"
            "#include <arbor/gpu/reduce_by_key.hpp>\n"
            "#include <arbor/mechanism_abi.h>\n";
@@ -188,6 +195,7 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
         << "using ::arb::gpu::max;\n\n";
 
     // API methods as __global__ kernels.
+    std::set<std::string> reductions;
     auto emit_api_kernel = [&] (APIMethod* e, bool additive=false) {
         // Only print the kernel if the method is not empty.
         if (!e->body()->statements().empty()) {
@@ -195,8 +203,29 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                 << "void " << e->name() << "(arb_mechanism_ppack params_) {\n" << indent
                 << "int n_ = params_.width;\n"
                 << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
-            emit_api_body_cu(out, e, ApiFlags{}.point(is_point_proc).additive(additive).voltage(moduleKind::voltage == module_.kind()));
+            emit_api_body_cu(out, e, ApiFlags{}.point(is_point_proc).additive(additive).voltage(moduleKind::voltage == module_.kind()), is_point_proc);
             out << popindent << "}\n\n";
+            if (is_point_proc) {
+                std::vector<LocalVariable*> fields;
+                for (auto* v: indexed_locals(e->scope())) {
+                    if (accumulates(v->external_variable(), additive)) fields.push_back(v);
+                }
+                if (fields.size()>2+4*module_.ion_deps().size()) {
+                    throw compiler_exception("Too many GPU accumulation fields", e->location());
+                }
+                if (!fields.empty()) {
+                    reductions.insert(e->name());
+                    out << "__global__\nvoid " << e->name() << "_reduce(arb_mechanism_ppack params_) {\n" << indent
+                        << "PPACK_IFACE_BLOCK;\n";
+                    for (unsigned slot = 0; slot<fields.size(); ++slot) {
+                        auto d = decode_indexed_variable(fields[slot]->external_variable());
+                        out << "::arb::gpu::gather_by_key(params_.accumulators + std::size_t{" << slot
+                            << "}*params_.width, " << pp_var_pfx << d.data_var << ", "
+                            << pp_var_pfx << d.outer_index_var() << ", params_.accumulator_divisions, params_.n_accumulator_runs, params_.accumulator_group_width);\n";
+                    }
+                    out << popindent << "}\n\n";
+                }
+            }
         }
     };
 
@@ -274,9 +303,13 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
         if(!e->body()->statements().empty()) {
             out << fmt::format(FMT_COMPILE("\n"
                                            "    auto n = p->{};\n"
+                                           "    if (!n) return;\n"
                                            "    ::arb::gpu::launch_1d(n, 128, {}, *p);\n"),
                                width,
                                api_name);
+            if (reductions.count(e->name())) {
+                out << "    ::arb::gpu::launch(::arb::gpu::impl::block_count(p->n_accumulator_runs, 128/p->accumulator_group_width), 128, " << e->name() << "_reduce, *p);\n";
+            }
         }
         out << "}\n\n";
     };
@@ -294,10 +327,14 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                                            "    auto n = p->{0};\n"
                                            "    unsigned block_dim = 128;\n"
                                            "    unsigned grid_dim = ::arb::gpu::impl::block_count(n, block_dim);\n"
-                                           "    ::arb::gpu::launch(grid_dim, block_dim, {1}, *p);\n"
-                                           "    if (!p->multiplicity) return;\n"),
+                                           "    if (!n) return;\n"
+                                           "    ::arb::gpu::launch(grid_dim, block_dim, {1}, *p);\n"),
                                "width",
                                api_name);
+            if (reductions.count(init_api->name())) {
+                out << "    ::arb::gpu::launch(::arb::gpu::impl::block_count(p->n_accumulator_runs, 128/p->accumulator_group_width), 128, " << api_name << "_reduce, *p);\n";
+            }
+            out << "    if (!p->multiplicity) return;\n";
             // only multiply if we actually have arrays
             if (n_state_vars) out << fmt::format(FMT_COMPILE("    ::arb::gpu::launch({{grid_dim, {}}}, block_dim, multiply, *p);\n"),
                                                  n_state_vars);
@@ -331,7 +368,7 @@ static std::string index_i_name(const std::string& index_var) {
     return index_var+"i_";
 }
 
-void emit_api_body_cu(std::ostream& out, APIMethod* e, const ApiFlags& flags) {
+void emit_api_body_cu(std::ostream& out, APIMethod* e, const ApiFlags& flags, bool stage) {
     auto body = e->body();
     auto indexed_vars = indexed_locals(e->scope());
 
@@ -384,7 +421,7 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, const ApiFlags& flags) {
     }
 
     if (!body->statements().empty()) {
-        if (flags.is_point) {
+        if (flags.is_point && !stage) {
             // The run length information is only required if this method will
             // update an indexed variable, like current or conductance.
             // This is the case if one of the external variables "is_write".
@@ -408,8 +445,11 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, const ApiFlags& flags) {
 
         out << cuprint(body);
 
+        int slot = 0;
         for (auto& sym: indexed_vars) {
-            emit_state_update_cu(out, sym, sym->external_variable(), flags);
+            auto* external = sym->external_variable();
+            int accumulator = stage && accumulates(external, flags.use_additive)? slot++: -1;
+            emit_state_update_cu(out, sym, external, flags, accumulator);
         }
         if (flags.cv_loop) out << popindent << "}\n";
     }
@@ -450,7 +490,7 @@ void emit_state_read_cu(std::ostream& out, LocalVariable* local, const ApiFlags&
 void emit_state_update_cu(std::ostream& out,
                           Symbol* from,
                           IndexedVariable* external,
-                          const ApiFlags& flags) {
+                          const ApiFlags& flags, int accumulator) {
     if (!external->is_write()) return;
     auto d = decode_indexed_variable(external);
     auto write_voltage = external->data_source() == sourceKind::voltage
@@ -467,7 +507,12 @@ void emit_state_update_cu(std::ostream& out,
     auto var    = deref(d);
     auto use_weight = d.always_use_weight || !flags.is_point;
     std::string weight = scale + (use_weight ? pp_var_pfx + "weight[tid_]" : "1.0");
-    if (d.additive && flags.use_additive) {
+    if (accumulator>=0) {
+        if (d.additive && flags.use_additive) out << name << " -= " << var << ";\n";
+        out << "params_.accumulators[std::size_t{" << accumulator << "}*params_.width + tid_] = "
+            << weight << "*" << name << ";\n";
+    }
+    else if (d.additive && flags.use_additive) {
         // NOTE additive means we are treating a diffusive concentration, so we
         // can do a lot of specialised stuff here.
         out << name << " -= " << var << ";\n";
