@@ -110,6 +110,8 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
 
     const bool is_point_proc = (module_.kind() == moduleKind::point) || (module_.kind() == moduleKind::junction);
 
+    const bool stage_accumulation = is_point_proc && opt.deterministic_gpu;
+
     APIMethod* net_receive_api = find_api_method(module_, "net_rec_api");
     APIMethod* post_event_api  = find_api_method(module_, "post_event_api");
     APIMethod* init_api        = find_api_method(module_, "init");
@@ -124,6 +126,11 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
     io::pfxstringstream out;
 
     auto vars = local_module_variables(module_);
+
+    out << "#if defined(ARB_DETERMINISTIC_GPU) != "
+        << (opt.deterministic_gpu? 1: 0) << "\n"
+           "#error \"Regenerate this catalogue with the Arbor deterministic GPU setting\"\n"
+           "#endif\n";
 
     out << "#include <cstddef>\n"
            "#include <arbor/gpu/gpu_common.hpp>\n"
@@ -203,9 +210,9 @@ ARB_LIBMODCC_API std::string emit_gpu_cu_source(const Module& module_, const pri
                 << "void " << e->name() << "(arb_mechanism_ppack params_) {\n" << indent
                 << "int n_ = params_.width;\n"
                 << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
-            emit_api_body_cu(out, e, ApiFlags{}.point(is_point_proc).additive(additive).voltage(moduleKind::voltage == module_.kind()), is_point_proc);
+            emit_api_body_cu(out, e, ApiFlags{}.point(is_point_proc).additive(additive).voltage(moduleKind::voltage == module_.kind()), stage_accumulation);
             out << popindent << "}\n\n";
-            if (is_point_proc) {
+            if (stage_accumulation) {
                 std::vector<LocalVariable*> fields;
                 for (auto* v: indexed_locals(e->scope())) {
                     if (accumulates(v->external_variable(), additive)) fields.push_back(v);

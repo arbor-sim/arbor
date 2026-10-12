@@ -71,8 +71,10 @@ void solve_matrix_fine(
     const auto num_levels  = block_index[bid + 1] - first_level;
 
     const auto block_level_meta = &level_meta[first_level];
+#ifdef ARB_DETERMINISTIC_GPU
     __shared__ T delta_d[max_branches_per_matrix_level], delta_rhs[max_branches_per_matrix_level];
     __shared__ arb_index_type parents[max_branches_per_matrix_level];
+#endif
 
     // backward substitution
 
@@ -89,7 +91,9 @@ void solve_matrix_fine(
         const unsigned width = lvl_meta.num_branches;
 
 
+#ifdef ARB_DETERMINISTIC_GPU
         parents[tid] = -1;
+#endif
         // Perform backward substitution for each branch on this level.
         // One thread per branch.
         if (tid < width) {
@@ -116,11 +120,18 @@ void solve_matrix_fine(
                     pos = next_pos;
                 }
                 const T factor = -u[pos]/d[pos];
+#ifdef ARB_DETERMINISTIC_GPU
                 delta_d[tid] = factor*u[pos];
                 delta_rhs[tid] = factor*rhs[pos];
                 parents[tid] = lvl_parents[tid];
+#else
+                const unsigned p = next_lvl_meta.matrix_data_index + lvl_parents[tid];
+                gpu_atomic_add(d + p, factor*u[pos]);
+                gpu_atomic_add(rhs + p, factor*rhs[pos]);
+#endif
             }
         }
+#ifdef ARB_DETERMINISTIC_GPU
         __syncthreads();
 
         if (parents[tid]>=0) {
@@ -141,6 +152,7 @@ void solve_matrix_fine(
                 rhs[p] += sum_rhs;
             }
         }
+#endif
         __syncthreads();
     }
 

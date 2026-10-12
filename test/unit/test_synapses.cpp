@@ -77,7 +77,7 @@ TEST(synapses, gpu_ionic_current_accumulation) {
         EXPECT_EQ(0, total[2]);
         for (unsigned i = 0; i<2; ++i) {
             EXPECT_NEAR(2*expected[i], ionic[i], 1e-12);
-            EXPECT_DOUBLE_EQ(ionic[i], total[ion.cv[i]]);
+            EXPECT_NEAR(ionic[i], total[ion.cv[i]], 1e-12);
         }
     }
 }
@@ -95,6 +95,13 @@ TEST(synapses, gpu_current_reproducibility) {
     mechanism_layout layout{cv};
     layout.weight.assign(n, 1.0);
     state.instantiate(*syn, {}, layout, {});
+#ifdef ARB_DETERMINISTIC_GPU
+    EXPECT_NE(nullptr, syn->ppack_.accumulators);
+    EXPECT_GT(syn->ppack_.n_accumulator_runs, 0u);
+#else
+    EXPECT_EQ(nullptr, syn->ppack_.accumulators);
+    EXPECT_EQ(0u, syn->ppack_.n_accumulator_runs);
+#endif
     syn->initialize();
 
     // Change state between batches to catch stale/unwritten scratch entries too.
@@ -106,7 +113,9 @@ TEST(synapses, gpu_current_reproducibility) {
             expected_g[layout.cv[i]] += g[i];
         }
         write_mechanism_field(syn, "g", g);
+#ifdef ARB_DETERMINISTIC_GPU
         std::vector<double> first_i, first_g;
+#endif
         for (unsigned repeat = 0; repeat<30; ++repeat) {
             state.zero_currents();
             syn->update_current();
@@ -118,9 +127,11 @@ TEST(synapses, gpu_current_reproducibility) {
                 EXPECT_NEAR(expected_i[cv], actual_i[cv], 1e-10);
                 EXPECT_NEAR(expected_g[cv], actual_g[cv], 1e-10);
             }
+#ifdef ARB_DETERMINISTIC_GPU
             if (!repeat) { first_i = actual_i; first_g = actual_g; }
             EXPECT_EQ(first_i, actual_i);
             EXPECT_EQ(first_g, actual_g);
+#endif
         }
     }
 }

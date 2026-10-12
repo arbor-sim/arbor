@@ -65,7 +65,9 @@ TEST(matrix, gpu_fixed_parent_accumulation) {
     auto parents = memory::on_gpu(level_parents);
     auto block = memory::on_gpu(block_index);
     auto cells = memory::on_gpu(count);
+#ifdef ARB_DETERMINISTIC_GPU
     std::vector<double> first;
+#endif
     for (unsigned repeat = 0; repeat<100; ++repeat) {
         auto d = memory::on_gpu(diagonal);
         auto x = memory::on_gpu(rhs);
@@ -73,8 +75,10 @@ TEST(matrix, gpu_fixed_parent_accumulation) {
                                parents.data(), block.data(), cells.data(), nullptr, blocks, 128);
         auto host = memory::on_host(x);
         std::vector<double> actual(host.begin(), host.end());
+#ifdef ARB_DETERMINISTIC_GPU
         if (!repeat) first = actual;
         EXPECT_EQ(first, actual);
+#endif
         if (repeat) continue;
         std::vector<double> residual(rhs.size());
         for (unsigned i = 0; i<rhs.size(); ++i) {

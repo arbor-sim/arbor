@@ -20,8 +20,13 @@ extern "C" {
 
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
-#define ARB_MECH_ABI_VERSION_MINOR 8
+#define ARB_MECH_ABI_VERSION_MINOR 9
+// Catalogue mode must match the library's accumulation contract.
+#ifdef ARB_DETERMINISTIC_GPU
+#define ARB_MECH_ABI_VERSION_PATCH 1
+#else
 #define ARB_MECH_ABI_VERSION_PATCH 0
+#endif
 #define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000L * 10000L) + (ARB_MECH_ABI_VERSION_MINOR * 10000L) + ARB_MECH_ABI_VERSION_PATCH)
 
 typedef const char* arb_mechanism_fingerprint;

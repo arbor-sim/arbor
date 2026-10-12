@@ -30,12 +30,18 @@ TEST(gpu_printer, point_current_accumulation) {
         Parser p(m, false);
         ASSERT_TRUE(p.parse());
         ASSERT_TRUE(m.semantic());
-        auto code = emit_gpu_cu_source(m, {});
-        bool point = std::string(kind)!="SUFFIX";
-        EXPECT_EQ(point, code.find("params_.accumulators[")!=std::string::npos);
-        EXPECT_EQ(point, code.find("compute_currents_reduce, *p")!=std::string::npos);
-        EXPECT_EQ(point, code.find("gather_by_key(")!=std::string::npos);
-        EXPECT_EQ(std::string::npos, code.find("::arb::gpu::reduce_by_key("));
+        for (bool deterministic: {false, true}) {
+            printer_options options;
+            options.deterministic_gpu = deterministic;
+            auto code = emit_gpu_cu_source(m, options);
+            bool point = std::string(kind)!="SUFFIX";
+            bool staged = point && deterministic;
+            EXPECT_EQ(staged, code.find("params_.accumulators[")!=std::string::npos);
+            EXPECT_EQ(staged, code.find("compute_currents_reduce, *p")!=std::string::npos);
+            EXPECT_EQ(staged, code.find("gather_by_key(")!=std::string::npos);
+            EXPECT_EQ(point && !deterministic,
+                      code.find("::arb::gpu::reduce_by_key(")!=std::string::npos);
+        }
     }
 }
 

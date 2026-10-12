@@ -142,6 +142,7 @@ const char* usage_str =
         "-V|--verbose           [Toggle verbose mode]\n"
         "-A|--analyse           [Toggle analysis mode]\n"
         "-r|--raw               [Add raw (CXX) mechanisms]\n"
+        "--deterministic-gpu   [Generate fixed-order GPU accumulation; match the Arbor build]\n"
         "-T|--trace-codegen     [Leave trace marks in generated source]\n"
         "<filenames>            [Files to be compiled]\n";
 
@@ -172,6 +173,7 @@ int main(int argc, char **argv) {
                 { popt.cpp_namespace,                                    "-N", "--namespace" },
                 { to::action(enable_simd), to::flag,                     "-s", "--simd" },
                 { popt.simd,                                             "-S", "--simd-abi" },
+                { to::set(popt.deterministic_gpu), to::flag, "--deterministic-gpu" },
                 { to::set(popt.trace_codegen), to::flag,                 "-T", "--trace-codegen"},
                 { to::action(add_target, to::keywords(targetKindMap)),   "-t", "--target" },
                 { to::push_back(opt.rawfiles),                           "-r", "--raw"},
