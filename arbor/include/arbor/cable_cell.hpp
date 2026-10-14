@@ -315,8 +315,8 @@ struct ARB_SYMBOL_VISIBLE cable_cell {
     const mprovider& provider() const;
 
     // Convenience access to placed items.
-    const std::unordered_map<std::string, mlocation_map<synapse>>& synapses() const;
-    const std::unordered_map<std::string, mlocation_map<junction>>& junctions() const;
+    const location_assignment<synapse>& synapses() const;
+    const location_assignment<junction>& junctions() const;
     const mlocation_map<threshold_detector>& detectors() const;
     const mlocation_map<i_clamp>& stimuli() const;
 

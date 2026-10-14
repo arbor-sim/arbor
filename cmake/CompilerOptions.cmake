@@ -19,23 +19,24 @@ endif()
 set(CXXOPT_WALL
     -Wall
 
+    # Clang: Also add lifetime warnings, because we can.
+    $<IF:$<CXX_COMPILER_ID:Clang>,-Wlifetime-safety-permissive,>
+
     # Clang:
     #
     # * Disable 'missing-braces' warning: this will inappropriately
     #   flag initializations such as
     #       std::array<int,3> a={1,2,3};
-
-    $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-missing-braces,>
-    $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-missing-braces,>
+    #$<IF:$<CXX_COMPILER_ID:Clang>,-Wno-missing-braces,>
+    #$<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-missing-braces,>
 
     # Clang:
     #
     # * Disable 'potentially-evaluated-expression' warning: this warns
     #   on expressions of the form `typeid(expr)` when `expr` has side
     #   effects.
-
-    $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-potentially-evaluated-expression,>
-    $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-potentially-evaluated-expression,>
+    #$<IF:$<CXX_COMPILER_ID:Clang>,-Wno-potentially-evaluated-expression,>
+    #$<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-potentially-evaluated-expression,>
 
     # Clang (Apple):
     #
@@ -43,7 +44,6 @@ set(CXXOPT_WALL
     #   clang, but enabled in Apple clang, this will flag loops of the form
     #   `for (auto& x: y)` where iterators for `y` dereference to proxy objects.
     #   Such code is correct, and the warning is spurious.
-
     $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-range-loop-analysis,>
 
     # * Clang erroneously warns that T is an 'unused type alias'
@@ -52,27 +52,23 @@ set(CXXOPT_WALL
     #           using T = decltype(expression);
     #           T x;
     #       };
-
-    $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-unused-local-typedef,>
-    $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-unused-local-typedef,>
+    #$<IF:$<CXX_COMPILER_ID:Clang>,-Wno-unused-local-typedef,>
+    #$<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-unused-local-typedef,>
 
     # * Ignore warning if string passed to snprintf is not a string literal.
-
-    $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-format-security,>
-    $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-format-security,>
+    #$<IF:$<CXX_COMPILER_ID:Clang>,-Wno-format-security,>
+    #$<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-format-security,>
 
     # GCC:
     #
     # * Disable 'maybe-uninitialized' warning: this will be raised
     #   inappropriately in some uses of util::optional<T> when T
     #   is a primitive type.
-
     $<IF:$<CXX_COMPILER_ID:GNU>,-Wno-maybe-uninitialized,>
 
     # * Disable comments that point out that an ABI bug has been patched, which
     #   could lead to bugs when linking against code compiled an older compiler,
     #   because there is nothing to fix on our side.
-
     $<IF:$<CXX_COMPILER_ID:GNU>,-Wno-psabi,>
 )
 

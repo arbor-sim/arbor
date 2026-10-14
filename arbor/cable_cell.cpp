@@ -25,7 +25,7 @@ template <typename T> struct constant_type {
 std::string show(const paintable& item) {
     std::stringstream os;
     std::visit(
-        [&] (const auto& p) {
+        [&](const auto& p) {
             using T = std::decay_t<decltype(p)>;
             if constexpr (std::is_same_v<init_membrane_potential, T>) {
                 os << "init-membrane-potential";
@@ -69,6 +69,8 @@ struct get_index<T, std::variant<Ts...>>: std::integral_constant<size_t, std::va
 
 template <typename T, typename V> auto constexpr get_index_v = get_index<T, V>::value;
 
+
+
 // injection to determine the return value of
 template <typename T>
 using region_assignment_value = std::conditional_t<std::is_same_v<T, density>,
@@ -107,8 +109,8 @@ struct cable_cell_impl {
     std::array<std::unordered_multimap<hash_type, lid_range>, std::variant_size_v<placeable>> labeled_lid_ranges_;
 
     // Point assignments.
-    std::unordered_map<std::string, mlocation_map<synapse>> synapses_;
-    std::unordered_map<std::string, mlocation_map<junction>> junctions_;
+    location_assignment<synapse> synapses_;
+    location_assignment<junction> junctions_;
     mlocation_map<threshold_detector> detectors_;
     mlocation_map<i_clamp> i_clamps_;
 
@@ -186,7 +188,9 @@ struct cable_cell_impl {
             if (cable.prox_pos == cable.dist_pos) continue;
             if (!mm.insert(cable, {prop.t_mech, im})) {
                 throw cable_cell_error(util::pprintf("Setting mechanism '{}' on region '{}' overpaints at cable {}",
-                                                     prop.t_mech.mech.name(), util::to_string(reg), cable));
+                                                     prop.t_mech.mech.name(),
+                                                     util::to_string(reg),
+                                                     cable));
             }
         }
     }
@@ -199,7 +203,9 @@ struct cable_cell_impl {
             if (cable.prox_pos == cable.dist_pos) continue;
             if (!mm.insert(cable, prop)) {
                 throw cable_cell_error(util::pprintf("Setting property '{}' on region '{}' overpaints at cable {}",
-                                                     show(prop), util::to_string(reg), cable));
+                                                     show(prop),
+                                                     util::to_string(reg),
+                                                     cable));
             }
         }
     }
@@ -221,29 +227,25 @@ void cable_cell_impl::init() {
     {
         region last;
         mextent last_region;
-        for (const auto &[where, what] : decorations.paintings()) {
+        for (const auto& [where, what]: decorations.paintings()) {
             if (last != where) {
-                last = where;
+                last        = where;
                 last_region = thingify(where, provider);
             }
-            std::visit([this, &last_region, &last](auto &&what) {
-                           this->paint(last_region, last, what);
-                        },
-                        what);
+            std::visit([this, &last_region, &last](auto&& what) { this->paint(last_region, last, what); },
+                       what);
         }
     }
     {
         locset last;
         mlocation_list last_locset;
-        for (const auto &[where, what, label] : decorations.placements()) {
+        for (const auto& [where, what, label]: decorations.placements()) {
             if (last != where) {
-                last = where;
+                last        = where;
                 last_locset = thingify(where, provider);
             }
-            std::visit([this, &last_locset, &label = label](auto &&what) {
-                           return this->place(last_locset, what, label);
-                        },
-                        what);
+            std::visit([this, &last_locset, &label=label](auto&& what) { return this->place(last_locset, what, label); },
+                       what);
         }
     }
 }
@@ -286,8 +288,8 @@ const cable_cell::lid_range_map& cable_cell::detector_ranges() const { return im
 const cable_cell::lid_range_map& cable_cell::synapse_ranges() const { return impl_->labeled_lid_ranges_[get_index_v<synapse, placeable>]; }
 const cable_cell::lid_range_map& cable_cell::junction_ranges() const { return impl_->labeled_lid_ranges_[get_index_v<junction, placeable>]; }
 
-const std::unordered_map<std::string, mlocation_map<synapse>>& cable_cell::synapses() const { return impl_->synapses_; }
-const std::unordered_map<std::string, mlocation_map<junction>>& cable_cell::junctions() const { return impl_->junctions_; }
+const location_assignment<synapse>& cable_cell::synapses() const { return impl_->synapses_; }
+const location_assignment<junction>& cable_cell::junctions() const { return impl_->junctions_; }
 const mlocation_map<threshold_detector>& cable_cell::detectors() const { return impl_->detectors_; }
 const mlocation_map<i_clamp>& cable_cell::stimuli() const { return impl_->i_clamps_; }
 

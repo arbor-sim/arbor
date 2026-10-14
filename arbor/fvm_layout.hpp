@@ -232,7 +232,7 @@ struct fvm_mechanism_config {
     std::vector<value_type> local_weight;
 
     // (Non-global) parameters and parameter values across the mechanism instance.
-    std::vector<std::pair<std::string, std::vector<value_type>>> param_values;
+    flat_map<std::string, std::vector<value_type>> param_values;
 };
 
 // Post-discretization data for ion channel state.

@@ -45,182 +45,179 @@ template struct arb::fvm_lowered_cell_impl<arb::multicore::backend>;
 namespace U = arb::units;
 
 namespace {
-    struct system {
-        std::vector<soma_cell_builder> builders;
-        std::vector<cable_cell_description> descriptions;
+struct system {
+    std::vector<soma_cell_builder> builders;
+    std::vector<cable_cell_description> descriptions;
 
-        std::vector<arb::cable_cell> cells() const {
-            std::vector<arb::cable_cell> C;
-            C.reserve(descriptions.size());
-            for (auto& d: descriptions) {
-                C.emplace_back(d);
-            }
-            return C;
-        }
+    std::vector<arb::cable_cell> cells() const {
+        std::vector<arb::cable_cell> C;
+        C.reserve(descriptions.size());
+        for (auto& d: descriptions) { C.emplace_back(d); }
+        return C;
+    }
+};
 
-    };
+system two_cell_system() {
+    system s;
+    auto& descriptions = s.descriptions;
 
-    system two_cell_system() {
-        system s;
-        auto& descriptions = s.descriptions;
+    // Cell 0: simple ball and stick
+    {
+        soma_cell_builder builder(12.6157 / 2.0);
+        builder.add_branch(0, 200, 1.0 / 2, 1.0 / 2, 4, "dend");
 
-        // Cell 0: simple ball and stick
-        {
-            soma_cell_builder builder(12.6157/2.0);
-            builder.add_branch(0, 200, 1.0/2, 1.0/2, 4, "dend");
-
-            auto description = builder.make_cell();
-            description.decorations.paint("soma"_lab, density("hh"));
-            description.decorations.paint("dend"_lab, density("pas"));
-            description.decorations.place(builder.location({1,1}),
-                                          i_clamp{5*arb::units::nA, 80*arb::units::kHz, 0.3*arb::units::rad},
-                                          "clamp");
-            s.builders.push_back(std::move(builder));
-            descriptions.push_back(description);
-
-        }
-
-        // Cell 1: ball and 3-stick, but with uneven dendrite
-        // length and heterogeneous electrical properties:
-        //
-        // Bulk resistivity: 90 Ω·cm
-        // capacitance:
-        //    soma:      0.01  F/m² [default]
-        //    branch 1:  0.017 F/m²
-        //    branch 2:  0.013 F/m²
-        //    branch 3:  0.018 F/m²
-        //
-        // Soma diameter: 14 µm
-        // Some mechanisms: HH (default params)
-        //
-        // Branch 1 diameter: 1 µm
-        // Branch 1 length:   200 µm
-        //
-        // Branch 2 diameter: 0.8 µm
-        // Branch 2 length:   300 µm
-        //
-        // Branch 3 diameter: 0.7 µm
-        // Branch 3 length:   180 µm
-        //
-        // Dendrite mechanisms: passive (default params).
-        // Stimulus at end of branch 2, amplitude 0.45.
-        // Stimulus at end of branch 3, amplitude -0.2.
-        //
-        // All dendrite branches with 4 compartments.
-
-        {
-            soma_cell_builder b(7.);
-            auto b1 = b.add_branch(0, 200, 0.5,  0.5, 4,  "dend");
-            auto b2 = b.add_branch(1, 300, 0.4,  0.4, 4,  "dend");
-            auto b3 = b.add_branch(1, 180, 0.35, 0.35, 4, "dend");
-            auto desc = b.make_cell();
-
-            desc.decorations.paint("soma"_lab, density("hh"));
-            desc.decorations.paint("dend"_lab, density("pas"));
-
-            using ::arb::reg::branch;
-            auto c1 = reg::cable(b1-1, b.location({b1, 0}).pos, 1);
-            auto c2 = reg::cable(b2-1, b.location({b2, 0}).pos, 1);
-            auto c3 = reg::cable(b3-1, b.location({b3, 0}).pos, 1);
-            desc.decorations.paint(c1, membrane_capacitance{0.017*U::F*U::m.pow(-2)});
-            desc.decorations.paint(c2, membrane_capacitance{0.013*U::F*U::m.pow(-2)});
-            desc.decorations.paint(c3, membrane_capacitance{0.018*U::F*U::m.pow(-2)});
-
-            desc.decorations.place(b.location({2,1}),
-                                   i_clamp::box( 5.*arb::units::ms, 80.*arb::units::ms,  0.45*arb::units::nA),
-                                   "clamp0");
-            desc.decorations.place(b.location({3,1}),
-                                   i_clamp::box(40.*arb::units::ms, 10.*arb::units::ms, -0.2*arb::units::nA),
-                                   "clamp1");
-
-            desc.decorations.set_default(axial_resistivity{90*U::Ohm*U::cm});
-
-            s.builders.push_back(std::move(b));
-            descriptions.push_back(desc);
-        }
-
-        return s;
+        auto description = builder.make_cell();
+        description.decorations.paint("soma"_lab, density("hh"));
+        description.decorations.paint("dend"_lab, density("pas"));
+        description.decorations.place(
+            builder.location({1, 1}),
+            i_clamp{5 * arb::units::nA, 80 * arb::units::kHz, 0.3 * arb::units::rad},
+            "clamp");
+        s.builders.push_back(std::move(builder));
+        descriptions.push_back(description);
     }
 
-    void check_two_cell_system(std::vector<cable_cell>& cells) {
-        ASSERT_EQ(2u, cells.size());
-        ASSERT_EQ(1u, cells[0].morphology().num_branches());
-        ASSERT_EQ(3u, cells[1].morphology().num_branches());
+    // Cell 1: ball and 3-stick, but with uneven dendrite
+    // length and heterogeneous electrical properties:
+    //
+    // Bulk resistivity: 90 Ω·cm
+    // capacitance:
+    //    soma:      0.01  F/m² [default]
+    //    branch 1:  0.017 F/m²
+    //    branch 2:  0.013 F/m²
+    //    branch 3:  0.018 F/m²
+    //
+    // Soma diameter: 14 µm
+    // Some mechanisms: HH (default params)
+    //
+    // Branch 1 diameter: 1 µm
+    // Branch 1 length:   200 µm
+    //
+    // Branch 2 diameter: 0.8 µm
+    // Branch 2 length:   300 µm
+    //
+    // Branch 3 diameter: 0.7 µm
+    // Branch 3 length:   180 µm
+    //
+    // Dendrite mechanisms: passive (default params).
+    // Stimulus at end of branch 2, amplitude 0.45.
+    // Stimulus at end of branch 3, amplitude -0.2.
+    //
+    // All dendrite branches with 4 compartments.
+    {
+        soma_cell_builder b(7.);
+        auto b1   = b.add_branch(0, 200, 0.5, 0.5, 4, "dend");
+        auto b2   = b.add_branch(1, 300, 0.4, 0.4, 4, "dend");
+        auto b3   = b.add_branch(1, 180, 0.35, 0.35, 4, "dend");
+        auto desc = b.make_cell();
+
+        desc.decorations.paint("soma"_lab, density("hh"));
+        desc.decorations.paint("dend"_lab, density("pas"));
+
+        auto c1 = reg::cable(b1 - 1, b.location({b1, 0}).pos, 1);
+        auto c2 = reg::cable(b2 - 1, b.location({b2, 0}).pos, 1);
+        auto c3 = reg::cable(b3 - 1, b.location({b3, 0}).pos, 1);
+        desc.decorations.paint(c1, membrane_capacitance{0.017 * U::F * U::m.pow(-2)});
+        desc.decorations.paint(c2, membrane_capacitance{0.013 * U::F * U::m.pow(-2)});
+        desc.decorations.paint(c3, membrane_capacitance{0.018 * U::F * U::m.pow(-2)});
+
+        desc.decorations.place(
+            b.location({2, 1}),
+            i_clamp::box(5. * arb::units::ms, 80. * arb::units::ms, 0.45 * arb::units::nA),
+            "clamp0");
+        desc.decorations.place(
+            b.location({3, 1}),
+            i_clamp::box(40. * arb::units::ms, 10. * arb::units::ms, -0.2 * arb::units::nA),
+            "clamp1");
+
+        desc.decorations.set_default(axial_resistivity{90 * U::Ohm * U::cm});
+
+        s.builders.push_back(std::move(b));
+        descriptions.push_back(desc);
     }
 
-    system six_cell_gj_system() {
-        system s;
-        auto& descriptions = s.descriptions;
+    return s;
+}
 
-        // Cell 0: simple soma cell, 1 CV.
-        {
-            soma_cell_builder builder(12.6157/2.0);
+void check_two_cell_system(std::vector<cable_cell>& cells) {
+    ASSERT_EQ(2u, cells.size());
+    ASSERT_EQ(1u, cells[0].morphology().num_branches());
+    ASSERT_EQ(3u, cells[1].morphology().num_branches());
+}
 
-            auto desc = builder.make_cell();
-            desc.decorations.paint("soma"_lab, density("hh"));
+system six_cell_gj_system() {
+    system s;
+    auto& descriptions = s.descriptions;
 
-            s.builders.push_back(std::move(builder));
-            descriptions.push_back(desc);
-        }
-        // Cell 1: ball and 3-stick, 2 CVs per dendrite, 1 CV for the soma.
-        {
-            soma_cell_builder b(7.);
-            b.add_branch(0, 200, 0.5,  0.5, 2,  "dend");
-            b.add_branch(1, 300, 0.4,  0.4, 2,  "dend");
-            b.add_branch(1, 180, 0.35, 0.35, 2, "dend");
-            auto desc = b.make_cell();
+    // Cell 0: simple soma cell, 1 CV.
+    {
+        soma_cell_builder builder(12.6157 / 2.0);
 
-            desc.decorations.paint("soma"_lab, density("hh"));
-            desc.decorations.paint("dend"_lab, density("pas"));
+        auto desc = builder.make_cell();
+        desc.decorations.paint("soma"_lab, density("hh"));
 
-            s.builders.push_back(std::move(b));
-            descriptions.push_back(desc);
-        }
-        // Cell 2: ball and stick, 1 CV for the soma, 2 CVs for the dendrite.
-        {
-            soma_cell_builder b(7.);
-            b.add_branch(0, 200, 0.5,  0.5, 2,  "dend");
-            auto desc = b.make_cell();
-
-            s.builders.push_back(std::move(b));
-            descriptions.push_back(desc);
-        }
-        // Cell 3: simple soma cell, 1 CV. 1 gap junction.
-        {
-            soma_cell_builder b(7.);
-            auto desc = b.make_cell();
-
-            desc.decorations.paint("soma"_lab, density("hh"));
-
-            s.builders.push_back(std::move(b));
-            descriptions.push_back(desc);
-        }
-        // Cell 4: ball and stick, 1 CV for the soma, 3 CVs for the dendrite.
-        {
-            soma_cell_builder b(7.);
-            b.add_branch(0, 200, 0.5,  0.5, 3,  "dend");
-            auto desc = b.make_cell();
-
-            desc.decorations.paint("soma"_lab, density("pas"));
-
-            s.builders.push_back(std::move(b));
-            descriptions.push_back(desc);
-        }
-        // Cell 5: ball and stick, 1 CV for the soma, 1 CV for the dendrite.
-        {
-            soma_cell_builder b(7.);
-            b.add_branch(0, 200, 0.5,  0.5, 1,  "dend");
-            auto desc = b.make_cell();
-
-            s.builders.push_back(std::move(b));
-            descriptions.push_back(desc);
-        }
-        return s;
+        s.builders.push_back(std::move(builder));
+        descriptions.push_back(desc);
     }
+    // Cell 1: ball and 3-stick, 2 CVs per dendrite, 1 CV for the soma.
+    {
+        soma_cell_builder b(7.);
+        b.add_branch(0, 200, 0.5, 0.5, 2, "dend");
+        b.add_branch(1, 300, 0.4, 0.4, 2, "dend");
+        b.add_branch(1, 180, 0.35, 0.35, 2, "dend");
+        auto desc = b.make_cell();
+
+        desc.decorations.paint("soma"_lab, density("hh"));
+        desc.decorations.paint("dend"_lab, density("pas"));
+
+        s.builders.push_back(std::move(b));
+        descriptions.push_back(desc);
+    }
+    // Cell 2: ball and stick, 1 CV for the soma, 2 CVs for the dendrite.
+    {
+        soma_cell_builder b(7.);
+        b.add_branch(0, 200, 0.5, 0.5, 2, "dend");
+        auto desc = b.make_cell();
+
+        s.builders.push_back(std::move(b));
+        descriptions.push_back(desc);
+    }
+    // Cell 3: simple soma cell, 1 CV. 1 gap junction.
+    {
+        soma_cell_builder b(7.);
+        auto desc = b.make_cell();
+
+        desc.decorations.paint("soma"_lab, density("hh"));
+
+        s.builders.push_back(std::move(b));
+        descriptions.push_back(desc);
+    }
+    // Cell 4: ball and stick, 1 CV for the soma, 3 CVs for the dendrite.
+    {
+        soma_cell_builder b(7.);
+        b.add_branch(0, 200, 0.5, 0.5, 3, "dend");
+        auto desc = b.make_cell();
+
+        desc.decorations.paint("soma"_lab, density("pas"));
+
+        s.builders.push_back(std::move(b));
+        descriptions.push_back(desc);
+    }
+    // Cell 5: ball and stick, 1 CV for the soma, 1 CV for the dendrite.
+    {
+        soma_cell_builder b(7.);
+        b.add_branch(0, 200, 0.5, 0.5, 1, "dend");
+        auto desc = b.make_cell();
+
+        s.builders.push_back(std::move(b));
+        descriptions.push_back(desc);
+    }
+    return s;
+}
 
 } // namespace
 
-template<typename P>
+template <typename P>
 void check_compatible_mechanism_failure(cable_cell_global_properties gprop, P painter) {
     auto system = two_cell_system();
 
@@ -228,23 +225,97 @@ void check_compatible_mechanism_failure(cable_cell_global_properties gprop, P pa
 
     auto cells = system.cells();
     check_two_cell_system(cells);
-    std::vector<cell_gid_type> gids = {0,1};
-    std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> gj_conns = {{0, {}}, {1, {}}};
+    auto gids     = std::vector<cell_gid_type>{0, 1};
+    auto gj_conns = std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>>{
+        {0, {}},
+        {1, {}}
+    };
     fvm_cv_discretization D = fvm_cv_discretize(cells, gprop.default_parameters);
 
-    EXPECT_THROW(fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D), arb::cable_cell_error);
+    fvm_build_mechanism_data(gprop, cells, gids, gj_conns, D);
 }
 
 TEST(fvm_layout, compatible_mechanisms) {
     cable_cell_global_properties gprop;
     gprop.default_parameters = neuron_parameter_defaults;
 
-    check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[0].decorations.place(sys.builders[0].location({1, 0.4}), synapse("hh"), "syn0"); });
-    check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[1].decorations.paint(sys.builders[1].cable(mcable{0}), density("expsyn")); });
-    check_compatible_mechanism_failure(gprop, [](auto& sys) {sys.descriptions[0].decorations.set_default(ion_reversal_potential_method{"na", "expsyn"}); });
+    EXPECT_THROW(check_compatible_mechanism_failure(gprop,
+                                                    [](auto& sys) {
+                                                        sys.descriptions[0]
+                                                            .decorations
+                                                            .place(sys.builders[0].location(
+                                                                       mlocation{1, 0.4}),
+                                                                   synapse("hh"),
+                                                                   "syn0");
+                                                    }),
+                 arb::cable_cell_error);
+    EXPECT_THROW(check_compatible_mechanism_failure(gprop,
+                                                    [](auto& sys) {
+                                                        sys.descriptions[1]
+                                                            .decorations
+                                                            .paint(sys.builders[1].cable(mcable{0, 0, 1}),
+                                                                   density("expsyn"));
+                                                    }),
+                 arb::cable_cell_error);
+    EXPECT_THROW(
+        check_compatible_mechanism_failure(gprop,
+                                           [](auto& sys) {
+                                               sys.descriptions[0].decorations.set_default(
+                                                   ion_reversal_potential_method{"na", "expsyn"});
+                                           }),
+        arb::cable_cell_error);
 
     gprop.default_parameters.reversal_potential_method["na"] = "pas";
-    check_compatible_mechanism_failure(gprop, [](auto& sys) {});
+    EXPECT_THROW(check_compatible_mechanism_failure(gprop, [](auto& sys) {}),
+                 arb::cable_cell_error);
+}
+
+TEST(fvm_layout, can_use_global_parameters) {
+    double r     = 42.0;
+    auto builder = soma_cell_builder(r);
+    auto ctr     = ls::location(0, 0.5);
+    auto lhs     = reg::distal_interval(ctr, r);
+    auto rhs     = reg::proximal_interval(ctr, r);
+    auto gids    = std::vector<cell_gid_type>{0};
+    {
+        auto desc = builder.make_cell();
+        desc.decorations.paint(lhs, density("pas/e=42")).paint(rhs, density("pas/e=23"));
+        auto C = cable_cell(desc);
+        auto D = fvm_cv_discretize({C}, neuron_parameter_defaults);
+        auto M = fvm_build_mechanism_data({}, {C}, gids, {{}}, D);
+        EXPECT_TRUE(M.mechanisms.contains("pas/e=42"));
+        EXPECT_TRUE(M.mechanisms.contains("pas/e=23"));
+    }
+    {
+        auto desc = builder.make_cell();
+        desc.decorations
+            .paint(lhs,
+                   density("pas",
+                           {{"e", 42}}))
+            .paint(rhs, density("pas/e=23"));
+        auto C = cable_cell(desc);
+        auto D = fvm_cv_discretize({C}, neuron_parameter_defaults);
+        auto M = fvm_build_mechanism_data({}, {C}, gids, {{}}, D);
+        EXPECT_TRUE(M.mechanisms.contains("pas/e=42"));
+        EXPECT_TRUE(M.mechanisms.contains("pas/e=23"));
+    }
+    {
+        auto desc = builder.make_cell();
+        desc.decorations
+            .place(ctr,
+                   synapse("expsyn",
+                           {{"e", 42}}),
+                   "syn-0")
+            .place(ctr,
+                   synapse("expsyn/e=23",
+                           {{"e", 23}}),
+                   "syn-1");
+        auto C = cable_cell(desc);
+        auto D = fvm_cv_discretize({C}, neuron_parameter_defaults);
+        auto M = fvm_build_mechanism_data({}, {C}, gids, {{}}, D);
+        EXPECT_TRUE(M.mechanisms.contains("pas/e=42"));
+        EXPECT_TRUE(M.mechanisms.contains("pas/e=23"));
+    }
 }
 
 TEST(fvm_layout, mech_index) {
@@ -1571,32 +1642,15 @@ TEST(fvm_layout, ion_weights) {
 TEST(fvm_layout, global_vs_range_parameters) {
     soma_cell_builder builder(5);
     builder.add_branch(0, 100, 0.5, 0.5, 1, "dend");
-
-    {
-        auto desc = builder.make_cell();
-        desc.decorations.paint("dend"_lab, density("pas", {{"e", 42}}));
-
-        EXPECT_THROW(
-            fvm_build_mechanism_data({},
-                                     {{desc}},
-                                     {0},
-                                     {{}},
-                                     fvm_cv_discretize({{desc}},
-                                                       neuron_parameter_defaults)),
-            did_you_mean_global_parameter);
-    }
+    auto make_mech_data = [](auto& desc) {
+        fvm_build_mechanism_data({}, {{desc}}, {0}, {{}}, fvm_cv_discretize({{desc}}, neuron_parameter_defaults));
+    };
+    // a RANGE PARAMETER cannot be used to derive.
     {
         auto desc = builder.make_cell();
         desc.decorations.paint("dend"_lab, density("pas/g=23"));
 
-        EXPECT_THROW(
-            fvm_build_mechanism_data({},
-                                     {{desc}},
-                                     {0},
-                                     {{}},
-                                     fvm_cv_discretize({{desc}},
-                                                       neuron_parameter_defaults)),
-            did_you_mean_normal_parameter);
+        EXPECT_THROW(make_mech_data(desc), did_you_mean_normal_parameter);
     }
 }
 

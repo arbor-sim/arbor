@@ -883,7 +883,7 @@ make_density_mechanism_config(const region_assignment<density>& assignments,
 // * have post_events?
 // * number of targets
 std::tuple<bool, std::size_t>
-make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<synapse>>& synapses,
+make_point_mechanism_config(const location_assignment<synapse>& synapses,
                             const cell_build_data& data,
                             fvm_ion_map& ion_build_data,
                             fvm_mechanism_config_map&);
@@ -907,7 +907,7 @@ make_stimulus_config(const mlocation_map<i_clamp>& stimuli,
 // Two-step builder for GJ connections; needs all junction mechanisms ('left'
 // and 'right' part) and their connections (gj_conns).
 void
-make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<junction>>& junctions,
+make_gj_mechanism_config(const location_assignment<junction>& junctions,
                          const std::vector<fvm_gap_junction>& gj_conns,
                          const cell_build_data& data,
                          fvm_ion_map& ion_build_data,
@@ -1133,21 +1133,8 @@ apply_parameters_on_cv(fvm_mechanism_config& config,
     }
 }
 
-auto make_mechanism_config(const mechanism_info& info,
-                           arb_mechanism_kind expected) {
-    if (info.kind != expected) {
-        throw make_cc_error("Expected {} mechanism, got {}.",
-                            arb_mechanism_kind_str(expected),
-                            arb_mechanism_kind_str(info.kind));
-    }
-    fvm_mechanism_config result;
-    result.kind = expected;
-    result.has_post_event = info.post_events;
-    return result;
-}
-
 auto ordered_parameters(const mechanism_info& info) {
-    std::vector<std::pair<std::string, arb_value_type>> result;
+    flat_map<std::string, arb_value_type> result;
     for (const auto& [name, val]: info.parameters) {
         result.emplace_back(name, val.default_value);
     }
@@ -1155,50 +1142,110 @@ auto ordered_parameters(const mechanism_info& info) {
     return result;
 }
 
-void
-make_voltage_mechanism_config(const region_assignment<voltage_process>& assignments,
-                              const cell_build_data& data,
-                              fvm_mechanism_config_map& result) {
+struct instance_t {
+    mcable_map<double> support;
+    std::vector<mcable_map<std::pair<double, iexpr_ptr>>> param_maps;
+    fvm_mechanism_config config;
+    size_t n_param = 0;
+    flat_map<std::string, arb_value_type> parameters;
 
-    std::unordered_set<mcable> voltage_support;
-    for (const auto& [name, cables]: assignments) {
-        const auto& info = data.catalogue[name];
-        auto config = make_mechanism_config(info, arb_mechanism_kind_voltage);
+    instance_t() = default;
 
-        auto parameters = ordered_parameters(info);
-        auto n_param = parameters.size();
+    instance_t(const mechanism_info& info) {
+        config     = fvm_mechanism_config {
+        .kind = info.kind,
+        .has_post_event = info.post_events,
+    };
+        parameters = ordered_parameters(info);
+        n_param    = parameters.size();
 
+        param_maps.resize(n_param);
         config.param_values.reserve(n_param);
         for (const auto& [k, _v]: parameters) {
             config.param_values.emplace_back(k, std::vector<arb_value_type>{});
         }
+    }
+};
 
-        mcable_map<double> support;
-        std::vector<mcable_map<std::pair<double, iexpr_ptr>>> param_maps(n_param);
+auto check_kind(const mechanism_info& base, arb_mechanism_kind expected_kind) {
+    if (base.kind != expected_kind) {
+        throw make_cc_error("Expected {} mechanism, got {}.",
+                            arb_mechanism_kind_str(expected_kind),
+                            arb_mechanism_kind_str(base.kind));
+    }
+}
 
-        for (const auto& [cable, density_iexpr]: cables) {
-            const auto& mech = density_iexpr.mech;
+// Absorb global parameters into the mechanism info by moving global parameters
+// from the parameter list into the derivation closure.
+//
+// Example
+//   density("pas", {{"e", 80}, {"g", 0.42}}) ==> density("pas/e=80", {{"g", 0.42}})
+//
+// We need to take care that we do separate different mechanisms created by
+// derivation to avoid overpainting.
+auto absorb_global_parameters(const mechanism_info& base,
+                              const mechanism_desc& mech,
+                              const cell_build_data& data,
+                              std::unordered_map<std::string, instance_t>& instances) {
+    auto name = mech.name();
+    // use '/' to separate globals from the name;
+    // if there's already one present use ','
+    auto sep = (name.find('/') == std::string::npos) ? '/' : ',';
+    // only 'real' parameters.
+    flat_map<std::string, arb_value_type> set_params;
+    // separate out globals from parameters
+    for (const auto& [k, v]: mech.values()) {
+        if (base.globals.contains(k)) {
+            name = util::pprintf("{}{}{}={}", name, sep, k, v);
+            sep  = ',';
+        }
+        else {
+            set_params.emplace_back(k, v);
+        }
+    }
+    // add new instance, if needed, then check that the new
+    // derivation/parameter combination is ok
+    const auto& info = data.catalogue[name];
+    if (!instances.contains(name)) instances[name] = instance_t(info);
+    verify_mechanism(data.ion_species,
+                     data.D.diffusive_ions,
+                     info,
+                     mechanism_desc(name, set_params));
+    return std::make_pair(name, set_params);
+}
 
-            verify_mechanism(data.ion_species, data.D.diffusive_ions, info, mech);
-            const auto& set_params = mech.values();
-
-            support.insert(cable, 1.);
-            for (std::size_t i = 0; i<n_param; ++i) {
-                const auto& [name, dflt] = parameters[i];
-                double value = util::value_by_key_or(set_params, name, dflt);
-                param_maps[i].insert(cable, {value, data.unit_scale});
+void make_voltage_mechanism_config(const region_assignment<voltage_process>& assignments,
+                                   const cell_build_data& data,
+                                   fvm_mechanism_config_map& result) {
+    std::unordered_set<mcable> voltage_support;
+    for (const auto& [name, cables]: assignments) {
+        // separate entries for different derivations.
+        std::unordered_map<std::string, instance_t> instances;
+        const auto& base = data.catalogue[name];
+        check_kind(base, arb_mechanism_kind_voltage);
+        for (const auto& [cable, voltage]: cables) {
+            const auto& [name, set_params] =
+                absorb_global_parameters(base, voltage.mech, data, instances);
+            auto& instance = instances[name];
+            instance.support.insert(cable, 1.);
+            for (std::size_t i = 0; i < instance.n_param; ++i) {
+                const auto& [name, dflt] = instance.parameters[i];
+                auto value               = util::value_by_key_or(set_params, name, dflt);
+                auto scale               = data.unit_scale;
+                instance.param_maps[i].insert(cable, {value, scale});
             }
         }
+        for (auto& [name, instance]: instances) {
+            apply_parameters_on_cv(instance.config, data, instance.param_maps, instance.support);
 
-        apply_parameters_on_cv(config, data, param_maps, support);
-
-        for (const auto& [cable, _]: support) {
-            if (voltage_support.count(cable)) {
-                throw make_cc_error("Multiple voltage processes on a single cable");
+            for (const auto& [cable, _]: instance.support) {
+                if (voltage_support.count(cable)) {
+                    throw make_cc_error("Multiple voltage processes on a single cable");
+                }
+                voltage_support.insert(cable);
             }
-            voltage_support.insert(cable);
+            if (!instance.config.cv.empty()) result.emplace(name, std::move(instance.config));
         }
-        if (!config.cv.empty()) result.emplace(name, std::move(config));
     }
 }
 
@@ -1207,59 +1254,51 @@ make_density_mechanism_config(const region_assignment<density>& assignments,
                               const cell_build_data& data,
                               fvm_ion_map& ion_build_data,
                               fvm_mechanism_config_map& result) {
+
     for (const auto& [name, cables]: assignments) {
-        const auto& info = data.catalogue[name];
-        auto config = make_mechanism_config(info, arb_mechanism_kind_density);
-        auto parameters = ordered_parameters(info);
-        auto n_param = parameters.size();
-
-        config.param_values.reserve(n_param);
-        for (const auto& [k, _v]: parameters) {
-            config.param_values.emplace_back(k, std::vector<arb_value_type>{});
-        }
-
-        mcable_map<double> support;
-        std::vector<mcable_map<std::pair<double, iexpr_ptr>>> param_maps(n_param);
-
+        // separate entries for different derivations.
+        std::unordered_map<std::string, instance_t> instances;
+        const auto& base = data.catalogue[name];
+        check_kind(base, arb_mechanism_kind_density);
         for (const auto& [cable, density_iexpr]: cables) {
             const auto& [density, scale_expr] = density_iexpr;
-            const auto& mech = density.mech;
-
-            verify_mechanism(data.ion_species, data.D.diffusive_ions, info, mech);
-            const auto& set_params = mech.values();
-
-            support.insert(cable, 1.);
-            for (std::size_t i = 0; i<n_param; ++i) {
-                const auto& [name, dflt] = parameters[i];
-                auto value = util::value_by_key_or(set_params, name, dflt);
-                auto scale = util::value_by_key_or(scale_expr, name, data.unit_scale);
-                param_maps[i].insert(cable, {value, scale});
+            const auto& [name, set_params]    = absorb_global_parameters(base,
+                                                                         density.mech,
+                                                                         data,
+                                                                         instances);
+            auto& instance                    = instances[name];
+            instance.support.insert(cable, 1.);
+            for (std::size_t i = 0; i < instance.n_param; ++i) {
+                const auto& [name, dflt] = instance.parameters[i];
+                auto value               = util::value_by_key_or(set_params, name, dflt);
+                auto scale               = util::value_by_key_or(scale_expr, name, data.unit_scale);
+                instance.param_maps[i].insert(cable, {value, scale});
             }
         }
 
-        apply_parameters_on_cv(config, data, param_maps, support);
+        for (auto& [name, instance]: instances) {
+            apply_parameters_on_cv(instance.config, data, instance.param_maps, instance.support);
 
-        for (const auto& [ion, dep]: info.ions) {
-            auto& build_data = ion_build_data[ion]
-                .add_ion_dep(dep)
-                .add_to_support(config.cv);
+            for (const auto& [ion, dep]: base.ions) {
+                auto& build_data = ion_build_data[ion].add_ion_dep(dep).add_to_support(instance.config.cv);
 
-            auto ok = true;
-            if (dep.write_concentration_int) {
-                for (const auto& [c, _v]: support) {
-                    ok &= build_data.init_iconc_mask.insert(c, 0.);
+                auto ok = true;
+                if (dep.write_concentration_int) {
+                    for (const auto& [c, _v]: instance.support) {
+                        ok &= build_data.init_iconc_mask.insert(c, 0.);
+                    }
+                }
+                if (dep.write_concentration_ext) {
+                    for (const auto& [c, _v]: instance.support) {
+                        ok &= build_data.init_econc_mask.insert(c, 0.);
+                    }
+                }
+                if (!ok) {
+                    throw make_cc_error("Overlapping ion concentration writing mechanism {}.", name);
                 }
             }
-            if (dep.write_concentration_ext) {
-                for (const auto& [c, _v]: support) {
-                    ok &= build_data.init_econc_mask.insert(c, 0.);
-                }
-            }
-            if (!ok) {
-                throw make_cc_error("Overlapping ion concentration writing mechanism {}.", name);
-            }
+            if (!instance.config.cv.empty()) result[name] = std::move(instance.config);
         }
-        if (!config.cv.empty()) result[name] = std::move(config);
     }
 }
 
@@ -1414,9 +1453,8 @@ make_stimulus_config(const mlocation_map<i_clamp>& stimuli,
     if (!result.cv.empty()) out = std::move(result);
 }
 
-std::tuple<bool,
-           std::size_t>
-make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<synapse>>& synapses,
+std::tuple<bool, std::size_t>
+make_point_mechanism_config(const location_assignment<synapse>& synapses,
                             const cell_build_data& data,
                             fvm_ion_map& ion_build_data,
                             fvm_mechanism_config_map& result) {
@@ -1502,7 +1540,11 @@ make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<
                  return a.target_index<b.target_index;
              });
 
-        auto config = make_mechanism_config(info, arb_mechanism_kind_point);
+        check_kind(info, arb_mechanism_kind_point);
+        auto config = fvm_mechanism_config {
+            .kind = info.kind,
+            .has_post_event = info.post_events,
+        };
 
         // Do coalesce?
         if (!info.random_variables.size() && info.linear && data.coalesce) {
@@ -1559,7 +1601,7 @@ make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<
 }
 
 void
-make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<junction>>& junctions,
+make_gj_mechanism_config(const location_assignment<junction>& junctions,
                          const std::vector<fvm_gap_junction>& gj_conns,
                          const cell_build_data& data,
                          fvm_ion_map& ion_build_data,
@@ -1587,7 +1629,11 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
     std::unordered_map<cell_lid_type, junction_desc> lid_junction_desc;
     for (const auto& [name, placements]: junctions) {
         const auto& info = data.catalogue[name];
-        auto config = make_mechanism_config(info, arb_mechanism_kind_gap_junction);
+        check_kind(info, arb_mechanism_kind_gap_junction);
+        auto config = fvm_mechanism_config {
+            .kind = info.kind,
+            .has_post_event = info.post_events,
+        };
 
         std::vector<std::string> param_names;
         assign(param_names, util::keys(info.parameters));
@@ -1632,7 +1678,6 @@ make_gj_mechanism_config(const std::unordered_map<std::string, mlocation_map<jun
             params[i].second.push_back(local_junction_desc.param_values[i]);
         }
     }
-
     // Remove empty fvm_mechanism_config.
     // Note that this is _ok_ to do while iterating since erase preserves ordering.
     // Today I learned. ;)
@@ -1698,8 +1743,11 @@ make_revpot_mechanism_config(const std::unordered_map<std::string, mechanism_des
                 }
             }
             else {
-                auto config = make_mechanism_config(info, arb_mechanism_kind_reversal_potential);
-                config.cv = ion_conf.cv;
+                auto config = fvm_mechanism_config {
+                    .kind = info.kind,
+                    .has_post_event = info.post_events,
+                    .cv = ion_conf.cv,
+                };
                 auto n_cv = config.cv.size();
                 config.norm_area.assign(n_cv, 1.);
                 auto parameters = ordered_parameters(info);

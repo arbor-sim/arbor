@@ -16,7 +16,7 @@ void register_label_dict(py::module& m) {
             items_.insert(items_.end(), ld_.iexpressions.begin(), ld_.iexpressions.end());
             std::sort(items_.begin(), items_.end());
         }
-        std::vector<std::pair<std::string, std::string>> items_;
+        arb::flat_map<std::string, std::string> items_;
         size_t idx = 0;
         std::pair<std::string, std::string> next() {
             if (idx == items_.size()) throw py::stop_iteration();
