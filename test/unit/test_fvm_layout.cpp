@@ -18,6 +18,7 @@
 #include "fvm_lowered_cell.hpp"
 #include "fvm_lowered_cell_impl.hpp"
 #include "fvm_layout.hpp"
+#include "testing_catalogue.hpp"
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -277,11 +278,15 @@ TEST(fvm_layout, can_use_global_parameters) {
     auto lhs     = reg::distal_interval(ctr, r);
     auto rhs     = reg::proximal_interval(ctr, r);
     auto gids    = std::vector<cell_gid_type>{0};
+    auto gprop   = cable_cell_global_properties{};
+    gprop.default_parameters = neuron_parameter_defaults;
+    gprop.catalogue = global_default_catalogue();
+    gprop.catalogue.extend(global_testing_catalogue());
     {
         auto desc = builder.make_cell();
         desc.decorations.paint(lhs, density("pas/e=42")).paint(rhs, density("pas/e=23"));
         auto C = cable_cell(desc);
-        auto D = fvm_cv_discretize({C}, neuron_parameter_defaults);
+        auto D = fvm_cv_discretize({C}, gprop.default_parameters);
         auto M = fvm_build_mechanism_data({}, {C}, gids, {{}}, D);
         EXPECT_TRUE(M.mechanisms.contains("pas/e=42"));
         EXPECT_TRUE(M.mechanisms.contains("pas/e=23"));
@@ -294,7 +299,7 @@ TEST(fvm_layout, can_use_global_parameters) {
                            {{"e", 42}}))
             .paint(rhs, density("pas/e=23"));
         auto C = cable_cell(desc);
-        auto D = fvm_cv_discretize({C}, neuron_parameter_defaults);
+        auto D = fvm_cv_discretize({C}, gprop.default_parameters);
         auto M = fvm_build_mechanism_data({}, {C}, gids, {{}}, D);
         EXPECT_TRUE(M.mechanisms.contains("pas/e=42"));
         EXPECT_TRUE(M.mechanisms.contains("pas/e=23"));
@@ -303,18 +308,21 @@ TEST(fvm_layout, can_use_global_parameters) {
         auto desc = builder.make_cell();
         desc.decorations
             .place(ctr,
-                   synapse("expsyn",
+                   synapse("gexpsyn",
                            {{"e", 42}}),
                    "syn-0")
             .place(ctr,
-                   synapse("expsyn/e=23",
+                   synapse("gexpsyn",
                            {{"e", 23}}),
                    "syn-1");
         auto C = cable_cell(desc);
-        auto D = fvm_cv_discretize({C}, neuron_parameter_defaults);
-        auto M = fvm_build_mechanism_data({}, {C}, gids, {{}}, D);
-        EXPECT_TRUE(M.mechanisms.contains("pas/e=42"));
-        EXPECT_TRUE(M.mechanisms.contains("pas/e=23"));
+        auto D = fvm_cv_discretize({C}, gprop.default_parameters);
+        auto M = fvm_build_mechanism_data(gprop, {C}, gids, {{}}, D);
+        for (const auto& [k, v]: M.mechanisms) {
+            std::cerr << k << '\n';
+        }
+        EXPECT_TRUE(M.mechanisms.contains("gexpsyn/e=42"));
+        EXPECT_TRUE(M.mechanisms.contains("gexpsyn/e=23"));
     }
 }
 

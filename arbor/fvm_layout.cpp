@@ -1037,11 +1037,8 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
 
     // Synapses:
     if (!point_processes.empty()) {
-        const auto& [post_events,
-                     n_targets] = make_point_mechanism_config(point_processes,
-                                                              data,
-                                                              ion_build_data,
-                                                              M.mechanisms);
+        const auto& [post_events, n_targets] =
+            make_point_mechanism_config(point_processes, data, ion_build_data, M.mechanisms);
         M.n_target += n_targets;
         M.post_events = post_events;
     }
@@ -1054,9 +1051,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& 
                                  M.mechanisms);
     }
     // Stimuli
-    if (!stimuli.empty()) {
-        make_stimulus_config(stimuli, data, M.stimuli);
-    }
+    if (!stimuli.empty()) make_stimulus_config(stimuli, data, M.stimuli);
 
     // Ions:
     {
@@ -1142,31 +1137,6 @@ auto ordered_parameters(const mechanism_info& info) {
     return result;
 }
 
-struct instance_t {
-    mcable_map<double> support;
-    std::vector<mcable_map<std::pair<double, iexpr_ptr>>> param_maps;
-    fvm_mechanism_config config;
-    size_t n_param = 0;
-    flat_map<std::string, arb_value_type> parameters;
-
-    instance_t() = default;
-
-    instance_t(const mechanism_info& info) {
-        config     = fvm_mechanism_config {
-        .kind = info.kind,
-        .has_post_event = info.post_events,
-    };
-        parameters = ordered_parameters(info);
-        n_param    = parameters.size();
-
-        param_maps.resize(n_param);
-        config.param_values.reserve(n_param);
-        for (const auto& [k, _v]: parameters) {
-            config.param_values.emplace_back(k, std::vector<arb_value_type>{});
-        }
-    }
-};
-
 auto check_kind(const mechanism_info& base, arb_mechanism_kind expected_kind) {
     if (base.kind != expected_kind) {
         throw make_cc_error("Expected {} mechanism, got {}.",
@@ -1180,19 +1150,13 @@ auto check_kind(const mechanism_info& base, arb_mechanism_kind expected_kind) {
 //
 // Example
 //   density("pas", {{"e", 80}, {"g", 0.42}}) ==> density("pas/e=80", {{"g", 0.42}})
-//
-// We need to take care that we do separate different mechanisms created by
-// derivation to avoid overpainting.
-auto absorb_global_parameters(const mechanism_info& base,
-                              const mechanism_desc& mech,
-                              const cell_build_data& data,
-                              std::unordered_map<std::string, instance_t>& instances) {
+auto auto_derive(const mechanism_desc& mech, const mechanism_info& base) {
     auto name = mech.name();
     // use '/' to separate globals from the name;
     // if there's already one present use ','
     auto sep = (name.find('/') == std::string::npos) ? '/' : ',';
     // only 'real' parameters.
-    flat_map<std::string, arb_value_type> set_params;
+    auto set_params = flat_map<std::string, arb_value_type>{};
     // separate out globals from parameters
     for (const auto& [k, v]: mech.values()) {
         if (base.globals.contains(k)) {
@@ -1203,102 +1167,139 @@ auto absorb_global_parameters(const mechanism_info& base,
             set_params.emplace_back(k, v);
         }
     }
-    // add new instance, if needed, then check that the new
-    // derivation/parameter combination is ok
-    const auto& info = data.catalogue[name];
-    if (!instances.contains(name)) instances[name] = instance_t(info);
-    verify_mechanism(data.ion_species,
-                     data.D.diffusive_ions,
-                     info,
-                     mechanism_desc(name, set_params));
     return std::make_pair(name, set_params);
 }
 
-void make_voltage_mechanism_config(const region_assignment<voltage_process>& assignments,
+void make_voltage_mechanism_config(const region_assignment<voltage_process>& v_procs,
                                    const cell_build_data& data,
                                    fvm_mechanism_config_map& result) {
-    std::unordered_set<mcable> voltage_support;
-    for (const auto& [name, cables]: assignments) {
-        // separate entries for different derivations.
-        std::unordered_map<std::string, instance_t> instances;
+    auto derived_v_procs = region_assignment<voltage_process>{};
+    for (const auto& [name, cables]: v_procs) {
         const auto& base = data.catalogue[name];
-        check_kind(base, arb_mechanism_kind_voltage);
-        for (const auto& [cable, voltage]: cables) {
-            const auto& [name, set_params] =
-                absorb_global_parameters(base, voltage.mech, data, instances);
-            auto& instance = instances[name];
-            instance.support.insert(cable, 1.);
-            for (std::size_t i = 0; i < instance.n_param; ++i) {
-                const auto& [name, dflt] = instance.parameters[i];
-                auto value               = util::value_by_key_or(set_params, name, dflt);
-                auto scale               = data.unit_scale;
-                instance.param_maps[i].insert(cable, {value, scale});
-            }
+        for (const auto& [cable, v_proc]: cables) {
+            const auto& [name, params] = auto_derive(v_proc.mech, base);
+            derived_v_procs[name].insert(cable, voltage_process{name, params});
         }
-        for (auto& [name, instance]: instances) {
-            apply_parameters_on_cv(instance.config, data, instance.param_maps, instance.support);
+    }
 
-            for (const auto& [cable, _]: instance.support) {
-                if (voltage_support.count(cable)) {
-                    throw make_cc_error("Multiple voltage processes on a single cable");
-                }
-                voltage_support.insert(cable);
-            }
-            if (!instance.config.cv.empty()) result.emplace(name, std::move(instance.config));
+    std::unordered_set<mcable> voltage_support;
+    for (const auto& [name, cables]: derived_v_procs) {
+        const auto& info = data.catalogue[name];
+        check_kind(info, arb_mechanism_kind_voltage);
+
+        auto parameters = ordered_parameters(info);
+        auto n_param    = parameters.size();
+
+        auto config = fvm_mechanism_config{
+            .kind           = info.kind,
+            .has_post_event = info.post_events,
+        };
+        config.param_values.reserve(n_param);
+        for (const auto& [k, _v]: parameters) {
+            config.param_values.emplace_back(k, std::vector<arb_value_type>{});
         }
+
+        mcable_map<double> support;
+        std::vector<mcable_map<std::pair<double, iexpr_ptr>>> param_maps(n_param);
+
+        for (const auto& [cable, density_iexpr]: cables) {
+            const auto& mech = density_iexpr.mech;
+
+            verify_mechanism(data.ion_species, data.D.diffusive_ions, info, mech);
+            const auto& set_params = mech.values();
+
+            support.insert(cable, 1.);
+            for (std::size_t i = 0; i < n_param; ++i) {
+                const auto& [name, dflt] = parameters[i];
+                double value             = util::value_by_key_or(set_params, name, dflt);
+                param_maps[i].insert(cable, {value, data.unit_scale});
+            }
+        }
+
+        apply_parameters_on_cv(config, data, param_maps, support);
+
+        for (const auto& [cable, _]: support) {
+            if (voltage_support.count(cable)) {
+                throw make_cc_error("Multiple voltage processes on a single cable");
+            }
+            voltage_support.insert(cable);
+        }
+        if (!config.cv.empty()) result.emplace(name, std::move(config));
     }
 }
 
 void
-make_density_mechanism_config(const region_assignment<density>& assignments,
+make_density_mechanism_config(const region_assignment<density>& densities,
                               const cell_build_data& data,
                               fvm_ion_map& ion_build_data,
                               fvm_mechanism_config_map& result) {
-
-    for (const auto& [name, cables]: assignments) {
-        // separate entries for different derivations.
-        std::unordered_map<std::string, instance_t> instances;
+    auto derived_densities = region_assignment<density>{};
+    for (const auto& [name, cables]: densities) {
         const auto& base = data.catalogue[name];
-        check_kind(base, arb_mechanism_kind_density);
+        for (const auto& [cable, scaled_density]: cables) {
+            const auto& [density, scale] = scaled_density;
+            const auto& [name, params] = auto_derive(density.mech, base);
+            derived_densities[name].insert(cable, make_pair(arb::density{name, params}, scale));
+        }
+    }
+
+    for (const auto& [name, cables]: derived_densities) {
+        const auto& info = data.catalogue[name];
+        check_kind(info, arb_mechanism_kind_density);
+        auto parameters = ordered_parameters(info);
+        auto n_param = parameters.size();
+
+        auto config = fvm_mechanism_config {
+            .kind=info.kind,
+            .has_post_event=info.post_events,
+        };
+        config.param_values.reserve(n_param);
+        for (const auto& [k, _v]: parameters) {
+            config.param_values.emplace_back(k, std::vector<arb_value_type>{});
+        }
+
+        mcable_map<double> support;
+        std::vector<mcable_map<std::pair<double, iexpr_ptr>>> param_maps(n_param);
+
         for (const auto& [cable, density_iexpr]: cables) {
             const auto& [density, scale_expr] = density_iexpr;
-            const auto& [name, set_params]    = absorb_global_parameters(base,
-                                                                         density.mech,
-                                                                         data,
-                                                                         instances);
-            auto& instance                    = instances[name];
-            instance.support.insert(cable, 1.);
-            for (std::size_t i = 0; i < instance.n_param; ++i) {
-                const auto& [name, dflt] = instance.parameters[i];
-                auto value               = util::value_by_key_or(set_params, name, dflt);
-                auto scale               = util::value_by_key_or(scale_expr, name, data.unit_scale);
-                instance.param_maps[i].insert(cable, {value, scale});
+            const auto& mech = density.mech;
+
+            verify_mechanism(data.ion_species, data.D.diffusive_ions, info, mech);
+            const auto& set_params = mech.values();
+
+            support.insert(cable, 1.);
+            for (std::size_t i = 0; i<n_param; ++i) {
+                const auto& [name, dflt] = parameters[i];
+                auto value = util::value_by_key_or(set_params, name, dflt);
+                auto scale = util::value_by_key_or(scale_expr, name, data.unit_scale);
+                param_maps[i].insert(cable, {value, scale});
             }
         }
 
-        for (auto& [name, instance]: instances) {
-            apply_parameters_on_cv(instance.config, data, instance.param_maps, instance.support);
+        apply_parameters_on_cv(config, data, param_maps, support);
 
-            for (const auto& [ion, dep]: base.ions) {
-                auto& build_data = ion_build_data[ion].add_ion_dep(dep).add_to_support(instance.config.cv);
+        for (const auto& [ion, dep]: info.ions) {
+            auto& build_data = ion_build_data[ion]
+                .add_ion_dep(dep)
+                .add_to_support(config.cv);
 
-                auto ok = true;
-                if (dep.write_concentration_int) {
-                    for (const auto& [c, _v]: instance.support) {
-                        ok &= build_data.init_iconc_mask.insert(c, 0.);
-                    }
-                }
-                if (dep.write_concentration_ext) {
-                    for (const auto& [c, _v]: instance.support) {
-                        ok &= build_data.init_econc_mask.insert(c, 0.);
-                    }
-                }
-                if (!ok) {
-                    throw make_cc_error("Overlapping ion concentration writing mechanism {}.", name);
+            auto ok = true;
+            if (dep.write_concentration_int) {
+                for (const auto& [c, _v]: support) {
+                    ok &= build_data.init_iconc_mask.insert(c, 0.);
                 }
             }
-            if (!instance.config.cv.empty()) result[name] = std::move(instance.config);
+            if (dep.write_concentration_ext) {
+                for (const auto& [c, _v]: support) {
+                    ok &= build_data.init_econc_mask.insert(c, 0.);
+                }
+            }
+            if (!ok) {
+                throw make_cc_error("Overlapping ion concentration writing mechanism {}.", name);
+            }
         }
+        if (!config.cv.empty()) result[name] = std::move(config);
     }
 }
 
@@ -1458,12 +1459,23 @@ make_point_mechanism_config(const location_assignment<synapse>& synapses,
                             const cell_build_data& data,
                             fvm_ion_map& ion_build_data,
                             fvm_mechanism_config_map& result) {
+    auto derived_synapses = location_assignment<synapse>{};
+    for (const auto& [name, syn]: synapses) {
+        const auto& base = data.catalogue[name];
+        for (const auto& pm: syn) {
+            const auto& mech = pm.item.mech;
+            const auto& [name, params] = auto_derive(mech, base);
+            derived_synapses[name].emplace_back(pm.loc, pm.lid, synapse(name, params), pm.tag);
+        }
+    }
+
     struct synapse_instance {
         arb_size_type cv;
         std::size_t param_values_offset;
         arb_size_type target_index;
 
-        synapse_instance(arb_size_type c, std::size_t o, arb_size_type i): cv{c}, param_values_offset(o), target_index(i) {}
+        synapse_instance(arb_size_type c, std::size_t o, arb_size_type i)
+            : cv{c}, param_values_offset(o), target_index(i) {}
     };
 
     // Working vectors for synapse collation:
@@ -1473,7 +1485,7 @@ make_point_mechanism_config(const location_assignment<synapse>& synapses,
 
     bool post_events = false;
     std::size_t n_target = 0;
-    for (const auto& [name, synapse]: synapses) {
+    for (const auto& [name, synapse]: derived_synapses) {
         const auto& info = data.catalogue[name];
 
         post_events |= info.post_events;
@@ -1490,14 +1502,13 @@ make_point_mechanism_config(const location_assignment<synapse>& synapses,
         std::size_t offset = 0;
         for (const auto& pm: synapse) {
             const auto& mech = pm.item.mech;
-            verify_mechanism(data.ion_species, data.D.diffusive_ions, info, mech);
 
             auto param_values_offset = offset;
             offset += n_param;
-            arb_assert(offset<=all_param_values.size());
+            arb_assert(offset <= all_param_values.size());
+            const auto set_params = mech.values();
 
             // Copy in the defaults and overwrite where set;
-            const auto& set_params = mech.values();
             double* in_param = all_param_values.data() + param_values_offset;
             for (const auto& [name, def]: parameters) {
                 *in_param = def;
@@ -1506,39 +1517,44 @@ make_point_mechanism_config(const location_assignment<synapse>& synapses,
                 }
                 ++in_param;
             }
-            inst_list.emplace_back((arb_size_type) data.D.geometry.location_cv(data.cell_idx, pm.loc, cv_prefer::cv_nonempty),
-                                   (std::size_t) param_values_offset,
-                                   (arb_size_type) pm.lid);
+            verify_mechanism(
+                data.ion_species, data.D.diffusive_ions, info, mechanism_desc{name, set_params});
+
+            inst_list.emplace_back((arb_size_type)data.D.geometry.location_cv(data.cell_idx,
+                                                                              pm.loc,
+                                                                              cv_prefer::cv_nonempty),
+                                   (std::size_t)param_values_offset,
+                                   (arb_size_type)pm.lid);
         }
 
         // Permute synapse instances so that they are in increasing order
         // (lexicographically) by CV, param_value set, and target, so that
         // instances in the same CV with the same parameter values are adjacent.
         // cv_order[i] is the index of the ith instance by this ordering.
-        auto cmp_inst_param = [n_param, &all_param_values](const synapse_instance& a, const synapse_instance& b) {
-            const double* aparam = all_param_values.data()+a.param_values_offset;
-            const double* bparam = all_param_values.data()+b.param_values_offset;
+        auto cmp_inst_param = [n_param, &all_param_values](const synapse_instance& a,
+                                                           const synapse_instance& b) {
+            const double* aparam = all_param_values.data() + a.param_values_offset;
+            const double* bparam = all_param_values.data() + b.param_values_offset;
 
             for (auto j: make_span(n_param)) {
-                if (aparam[j]<bparam[j]) return -1;
-                if (bparam[j]<aparam[j]) return 1;
+                if (aparam[j] < bparam[j]) return -1;
+                if (bparam[j] < aparam[j]) return 1;
             }
             return 0;
         };
 
         assign(cv_order, count_along(inst_list));
-        sort(cv_order,
-             [&](arb_size_type i, arb_size_type j) {
-                 const synapse_instance& a = inst_list[i];
-                 const synapse_instance& b = inst_list[j];
-                 if (a.cv<b.cv) return true;
-                 if (b.cv<a.cv) return false;
-                 auto cmp_param = cmp_inst_param(a, b);
-                 if (cmp_param<0) return true;
-                 if (cmp_param>0) return false;
-                 // CV and all parameters are equal, so finally sort on target index.
-                 return a.target_index<b.target_index;
-             });
+        sort(cv_order, [&](arb_size_type i, arb_size_type j) {
+            const synapse_instance& a = inst_list[i];
+            const synapse_instance& b = inst_list[j];
+            if (a.cv < b.cv) return true;
+            if (b.cv < a.cv) return false;
+            auto cmp_param = cmp_inst_param(a, b);
+            if (cmp_param < 0) return true;
+            if (cmp_param > 0) return false;
+            // CV and all parameters are equal, so finally sort on target index.
+            return a.target_index < b.target_index;
+        });
 
         check_kind(info, arb_mechanism_kind_point);
         auto config = fvm_mechanism_config {
@@ -1547,24 +1563,23 @@ make_point_mechanism_config(const location_assignment<synapse>& synapses,
         };
 
         // Do coalesce?
-        if (!info.random_variables.size() && info.linear && data.coalesce) {
+        if (info.random_variables.empty() && info.linear && data.coalesce) {
             for (auto& [k, _v]: parameters) {
                 config.param_values.emplace_back(k, std::vector<arb_value_type>{});
             }
-
             const synapse_instance* prev = nullptr;
             for (auto i: cv_order) {
                 const auto& in = inst_list[i];
-
                 // We are coalescing and have seen this before, so bump count
-                if (prev && prev->cv==in.cv && cmp_inst_param(*prev, in)==0) {
+                if (prev && prev->cv == in.cv && cmp_inst_param(*prev, in) == 0) {
                     ++config.multiplicity.back();
                 }
                 else {
                     config.cv.push_back(in.cv);
                     config.multiplicity.push_back(1);
                     for (auto j: make_span(n_param)) {
-                        config.param_values[j].second.push_back(all_param_values[in.param_values_offset+j]);
+                        config.param_values[j].second.push_back(
+                            all_param_values[in.param_values_offset + j]);
                     }
                 }
                 config.target.push_back(in.target_index);
@@ -1573,15 +1588,16 @@ make_point_mechanism_config(const location_assignment<synapse>& synapses,
             }
         }
         else {
+            auto& params = config.param_values;
             for (auto& [k, _v]: parameters) {
-                config.param_values.emplace_back(k, std::vector<arb_value_type>{});
-                config.param_values.back().second.reserve(n_inst);
+                params.emplace_back(k, std::vector<arb_value_type>{});
+                params.back().second.reserve(n_inst);
             }
             for (auto i: cv_order) {
                 const auto& in = inst_list[i];
                 config.cv.push_back(in.cv);
                 for (auto j: make_span(n_param)) {
-                    config.param_values[j].second.push_back(all_param_values[in.param_values_offset+j]);
+                    params[j].second.push_back(all_param_values[in.param_values_offset + j]);
                 }
                 config.target.push_back(in.target_index);
             }

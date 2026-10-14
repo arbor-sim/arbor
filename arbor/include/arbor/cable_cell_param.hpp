@@ -341,32 +341,40 @@ struct ARB_SYMBOL_VISIBLE junction {
 
 struct ARB_SYMBOL_VISIBLE synapse {
     mechanism_desc mech;
-    explicit synapse(mechanism_desc m): mech(std::move(m)) {}
-    explicit synapse(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+    explicit synapse(mechanism_desc m) : mech(std::move(m)) {}
+    explicit synapse(mechanism_desc m, const std::unordered_map<std::string, double>& params)
+        : mech(std::move(m)) {
         for (const auto& [param, value]: params) mech.set(param, value);
     }
-    synapse(const char* m, flat_map<std::string, double> params):
-        mech(m, std::move(params)) {}
+    synapse(const char* m, flat_map<std::string, double> params) : mech(m, std::move(params)) {}
+    synapse(std::string m, flat_map<std::string, double> params)
+        : mech(std::move(m), std::move(params)) {}
 };
 
 struct ARB_SYMBOL_VISIBLE density {
     mechanism_desc mech;
-    explicit density(mechanism_desc m): mech(std::move(m)) {}
-    explicit density(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+    explicit density(mechanism_desc m) : mech(std::move(m)) {}
+    explicit density(mechanism_desc m, const std::unordered_map<std::string, double>& params)
+        : mech(std::move(m)) {
         for (const auto& [param, value]: params) mech.set(param, value);
     }
-    density(const char* m, flat_map<std::string, double> params):
-        mech(m, std::move(params)) {}
+    density(const char* m, flat_map<std::string, double> params) : mech(m, std::move(params)) {}
+    density(std::string m, flat_map<std::string, double> params)
+        : mech(std::move(m), std::move(params)) {}
 };
 
 struct ARB_SYMBOL_VISIBLE voltage_process {
     mechanism_desc mech;
-    explicit voltage_process(mechanism_desc m): mech(std::move(m)) {}
-    explicit voltage_process(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+    explicit voltage_process(mechanism_desc m) : mech(std::move(m)) {}
+    explicit voltage_process(mechanism_desc m,
+                             const std::unordered_map<std::string, double>& params)
+        : mech(std::move(m)) {
         for (const auto& [param, value]: params) mech.set(param, value);
     }
-    voltage_process(const char* m, flat_map<std::string, double> params):
-        mech(m, std::move(params)) {}
+    voltage_process(const char* m, flat_map<std::string, double> params)
+        : mech(m, std::move(params)) {}
+    voltage_process(std::string m, flat_map<std::string, double> params)
+        : mech(std::move(m), std::move(params)) {}
 };
 
 struct ARB_SYMBOL_VISIBLE ion_reversal_potential_method {
