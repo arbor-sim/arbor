@@ -94,7 +94,7 @@ void neighborhood_router::update(const std::vector<time_type>& min_delays,
         for (auto d: ranks) {
             auto l = send_level_[d];
             if (l == self_level) continue;
-            if (l == far_level()) r.far_ranks.push_back(d);
+            r.ranks.push_back(d);
             if (std::find(r.levels.begin(), r.levels.end(), l) == r.levels.end()) r.levels.push_back(l);
         }
         if (!r.levels.empty()) routes_.emplace(src, std::move(r));
@@ -144,7 +144,7 @@ neighborhood_router::exchange(const std::vector<spike>& local_spikes, std::optio
         }
         else {
             PE(far);
-            const auto& spikes = received.emplace_back(exchange_far(lvl.pending));
+            const auto& spikes = received.emplace_back(dist_->all_to_all_spikes(bin_by_far_rank(lvl.pending)));
             PL(far);
             for (int d = 0; d < num_domains_; ++d) {
                 if (recv_level_[d] != l) continue;
@@ -166,20 +166,22 @@ neighborhood_router::exchange(const std::vector<spike>& local_spikes, std::optio
     return {std::move(spikes), std::move(partition)};
 }
 
-gathered_vector<spike> neighborhood_router::exchange_far(const std::vector<spike>& spikes) const {
-    // Sort spikes into bins by destination.
+gathered_vector<spike>
+neighborhood_router::bin_by_far_rank(const std::vector<spike>& spikes) const {
+    // Counting sort, which keeps the spikes in each bin sorted by source.
     using count_type = gathered_vector<spike>::count_type;
+    auto for_each_bin = [&](const spike& spk, auto&& f) {
+        for (auto d: routes_.at(spk.source).ranks) {
+            if (send_level_[d] == far_level()) f(d);
+        }
+    };
     std::vector<count_type> offsets(num_domains_ + 1, 0);
-    for (const auto& spk: spikes) {
-        for (auto d: routes_.at(spk.source).far_ranks) ++offsets[d + 1];
-    }
+    for (const auto& spk: spikes) for_each_bin(spk, [&](auto bin) { ++offsets[bin + 1]; });
     std::partial_sum(offsets.begin(), offsets.end(), offsets.begin());
     std::vector<spike> binned(offsets.back());
     auto next = offsets;
-    for (const auto& spk: spikes) {
-        for (auto d: routes_.at(spk.source).far_ranks) binned[next[d]++] = spk;
-    }
-    return dist_->all_to_all_spikes({std::move(binned), std::move(offsets)});
+    for (const auto& spk: spikes) for_each_bin(spk, [&](auto bin) { binned[next[bin]++] = spk; });
+    return {std::move(binned), std::move(offsets)};
 }
 
 std::vector<std::size_t> neighborhood_router::periods() const {

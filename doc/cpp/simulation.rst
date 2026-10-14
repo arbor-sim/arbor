@@ -62,7 +62,7 @@ neighbourhood collectives can make this cheaper. Each rank names the ranks it re
 spikes from, grouped into levels. Arbor then splits the senders of each rank into
 
 * the rank itself, which is handled without communication,
-* one level per neighbourhood, exchanged with a sparse neighbourhood collective,
+* one level per neighbourhood, exchanged with a sparse neighbourhood all-gather,
 * all remaining (far) ranks, exchanged with a global all-to-all.
 
 Spikes are buffered per level, and each level is only exchanged as often as the minimum
@@ -86,6 +86,10 @@ A rank listed in more than one level belongs to the first, and the calling rank 
 ignored, so nested levels are fine. All ranks must pass the same number of levels. With
 no levels at all, only the far ranks remain, which still saves collectives if delays
 between ranks exceed the minimum delay.
+
+Within a neighbourhood, spikes are exchanged with ``MPI_Neighbor_allgatherv``, which sends
+every spike with targets in the neighbourhood to all of its ranks. The example in
+``example/neighborhood`` compares this with the default exchange.
 
 In a dry run, pass the levels of rank 0. Since every rank holds a copy of rank 0's tile
 shifted by its rank, the levels of rank r are taken to be those of rank 0 shifted by r.

@@ -69,14 +69,15 @@ private:
         std::vector<spike> pending;
     };
 
-    // Levels a local source's spikes are sent in, and its destinations in the far level.
+    // Levels a local source's spikes are sent in, and the ranks it is sent to.
     struct route {
         std::vector<int> levels;
-        std::vector<cell_size_type> far_ranks;
+        std::vector<cell_size_type> ranks;
     };
 
     int far_level() const { return levels_.size() - 1; }
-    gathered_vector<spike> exchange_far(const std::vector<spike>& spikes) const;
+    // Sort spikes into bins, one per far rank they are sent to.
+    gathered_vector<spike> bin_by_far_rank(const std::vector<spike>& spikes) const;
 
     distributed_context_handle dist_;
     int rank_;

@@ -13,7 +13,7 @@ namespace arb {
 //
 //   * the calling rank itself, which is handled without communication,
 //   * one level per entry in `neighborhoods`, exchanged with a sparse MPI
-//     neighbourhood collective over just those ranks,
+//     neighbourhood all-gather over just those ranks,
 //   * all remaining ("far") ranks, exchanged with a global all-to-all that sends
 //     each spike only to the ranks with connections from its source.
 //

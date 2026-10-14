@@ -313,6 +313,7 @@ TEST(spike_exchange, communicator_holds_back_spikes) {
                 EXPECT_TRUE(received.insert(gid).second) << "duplicate spike from " << gid;
             }
         }
+        // The all-gather may also deliver spikes without local targets.
         for (auto gid: connected_sources) {
             if (decomp->gid_domain(gid) == rank) continue;
             EXPECT_TRUE(received.count(gid)) << "missing spike from " << gid;
