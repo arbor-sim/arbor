@@ -70,7 +70,11 @@ ARB_ARBOR_API void merge_cell_events(time_type t_from,
 }
 
 struct simulation_state {
-    simulation_state(const recipe& rec, const domain_decomposition_ptr decomp, context ctx, arb_seed_type seed);
+    simulation_state(const recipe& rec,
+                     const domain_decomposition_ptr decomp,
+                     context ctx,
+                     arb_seed_type seed,
+                     const std::optional<neighborhood_spike_exchange>& spike_exchange);
 
     void update(const recipe& rec);
 
@@ -217,11 +221,12 @@ private:
 simulation_state::simulation_state(const recipe& rec,
                                    const domain_decomposition_ptr decomp,
                                    context ctx,
-                                   arb_seed_type seed):
+                                   arb_seed_type seed,
+                                   const std::optional<neighborhood_spike_exchange>& spike_exchange):
     ctx_{ctx},
     ddc_{decomp},
     task_system_(ctx_->thread_pool),
-    communicator_{rec, ddc_, ctx_},
+    communicator_{rec, ddc_, ctx_, spike_exchange},
     local_spikes_({thread_private_spike_store(ctx_->thread_pool),
                    thread_private_spike_store(ctx_->thread_pool)}) {
     PE(arbor);
@@ -272,6 +277,7 @@ void simulation_state::update(const recipe& rec) {
     communicator_.update_connections(rec, ddc_, source_resolution_map_, target_resolution_map_);
     // Use half minimum delay of the network for max integration interval.
     t_interval_ = min_delay()/2;
+    communicator_.schedule_exchange(t_interval_);
 
     const auto num_local_cells = communicator_.num_local_cells();
     // Initialize empty buffers for pending events for each local cell
@@ -369,6 +375,10 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     // while E consumes and clears it). The local spike collection and the per-cell event
     // lanes are double buffered.
     //
+    // With neighbourhood spike exchange, D(k) may hold spikes back for a later D(k+j). The
+    // communicator only does so if connection delays guarantee that all resulting events
+    // still belong to E(k+j+2) or later; see exchange_period.
+    //
     // Required state on run() invocation with epoch_.id==k:
     //     * For k≥0,  U(k) and D(k) have completed.
     //
@@ -420,7 +430,8 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
     // Exchange task: gather previous locally generated spikes, distribute across all ranks, and deliver
     // post-synaptic spike events to per-cell pending event vectors.
-    auto exchange = [this](epoch prev) {
+    // The last exchange of a run is final: it delivers all spikes held back by the communicator.
+    auto exchange = [this](epoch prev, bool final = false) {
         PE(exchange);
         // Collate locally generated spikes.
         PE(local_gather);
@@ -428,7 +439,8 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         PL(local_gather);
         communicator_.remote_ctrl_send_continue(prev);
         // Gather generated spikes across all ranks.
-        auto spikes = communicator_.exchange(all_local_spikes);
+        auto spikes = final ? communicator_.exchange(all_local_spikes)
+                            : communicator_.exchange(all_local_spikes, prev.id);
 
         // Present spikes to user-supplied callbacks.
         PE(spikeio);
@@ -499,7 +511,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     if (next.empty()) {
         enqueue(current);
         update(current);
-        exchange(current);
+        exchange(current, true);
         if (epoch_callback_) epoch_callback_(current.t1, tfinal);
     }
     else {
@@ -526,7 +538,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
         g.run([&]() { update(current); });
         g.wait();
 
-        exchange(current);
+        exchange(current, true);
         if (epoch_callback_) epoch_callback_(current.t1, tfinal);
     }
 
@@ -573,8 +585,9 @@ simulation_builder simulation::create(recipe const & rec) { return {rec}; };
 simulation::simulation(const recipe& rec,
                        context ctx,
                        const domain_decomposition_ptr decomp,
-                       arb_seed_type seed) {
-    impl_.reset(new simulation_state(rec, decomp, ctx, seed));
+                       arb_seed_type seed,
+                       const std::optional<neighborhood_spike_exchange>& spike_exchange) {
+    impl_.reset(new simulation_state(rec, decomp, ctx, seed, spike_exchange));
 }
 
 void simulation::reset() {

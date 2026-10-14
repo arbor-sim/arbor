@@ -2,6 +2,7 @@ set(unit-distributed_sources
     distributed_listener.cpp
     test_domain_decomposition.cpp
     test_communicator.cpp
+    test_spike_exchange.cpp
     test_mpi.cpp
     test_distributed_for_each.cpp
     test_network_generation.cpp

@@ -52,6 +52,42 @@ default values if not specified. In order to simplify the construction of a simu
                 .add_decompostion(decomp)    // optionally add a decompostion
                 .add_seed(42);               // optionally add a seed value
 
+Neighbourhood spike exchange
+----------------------------
+
+By default, spikes are exchanged between all ranks with a global all-to-all after every
+epoch, where an epoch is half the minimum delay of the whole network. If connections
+between distant ranks have longer delays than those between neighbouring ranks, MPI
+neighbourhood collectives can make this cheaper. Each rank names the ranks it receives
+spikes from, grouped into levels. Arbor then splits the senders of each rank into
+
+* the rank itself, which is handled without communication,
+* one level per neighbourhood, exchanged with a sparse neighbourhood collective,
+* all remaining (far) ranks, exchanged with a global all-to-all.
+
+Spikes are buffered per level, and each level is only exchanged as often as the minimum
+delay of the connections from it allows. All buffers are flushed at the end of each
+:cpp:func:`simulation::run`.
+
+.. container:: example-code
+
+    .. code-block:: cpp
+
+        // Receive from the neighbouring ranks on a ring of n ranks, then from the next but one.
+        auto ring = [&](int offset) { return (rank + offset + n) % n; };
+        arb::neighborhood_spike_exchange exchange;
+        exchange.neighborhoods = {{ring(-1), ring(1)}, {ring(-2), ring(2)}};
+
+        arb::simulation sim = arb::simulation::create(recipe)
+            .set_context(context)
+            .set_spike_exchange(exchange);
+
+A rank listed in more than one level belongs to the first, and the calling rank itself is
+ignored, so nested levels are fine. All ranks must pass the same number of levels. With
+no levels at all, only the far ranks remain, which still saves collectives if delays
+between ranks exceed the minimum delay. This option needs an MPI context; it is not
+available with dry-run contexts.
+
 Class documentation
 -------------------
 
@@ -71,6 +107,8 @@ Class documentation
                 cells in the model are assigned to hardware resources;
             *   an :cpp:class:`arb::context` which is used to execute the simulation.
             *   a :cpp:class:`std::uint64_t` in order to seed the pseudo random number generator (optional)
+            *   a :cpp:class:`arb::neighborhood_spike_exchange` to exchange spikes with MPI
+                neighbourhood collectives (optional, see above)
         * **Experimental inputs** that can change between model runs, such
           as external spike trains.
 

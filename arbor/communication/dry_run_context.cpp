@@ -111,6 +111,10 @@ struct dry_run_context_impl {
         return gathered_vector<cell_gid_type>(std::move(gathered_gids), std::move(partition));
     }
 
+    distributed_neighborhood_ptr make_neighborhood(const std::vector<int>&) const {
+        throw arbor_internal_error("make_neighborhood: not implemented for dry run context.");
+    }
+
     // Rank r needs from rank 0 what rank 0 needs from rank -r.
     gathered_vector<cell_member_type>
     all_to_all_gids_domains(const std::vector<std::vector<cell_member_type>>& gids_domains) const {

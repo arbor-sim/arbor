@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <optional>
 #include <vector>
 
 #include <arbor/common_types.hpp>
@@ -8,8 +10,10 @@
 #include <arbor/export.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike.hpp>
+#include <arbor/spike_exchange.hpp>
 
 #include "communication/gathered_vector.hpp"
+#include "communication/neighborhood_router.hpp"
 #include "connection.hpp"
 #include "epoch.hpp"
 #include "execution_context.hpp"
@@ -38,9 +42,11 @@ public:
 
     communicator() = default;
 
+    /// Without exchange options, all spikes are exchanged every epoch via a global all-to-all.
     explicit communicator(const recipe& rec,
                           const domain_decomposition_ptr dom_dec,
-                          context ctx);
+                          context ctx,
+                          const std::optional<neighborhood_spike_exchange>& exchange_options = {});
 
     /// The range of event queues that belong to cells in group i.
     std::pair<cell_size_type, cell_size_type> group_queue_range(cell_size_type i);
@@ -48,13 +54,23 @@ public:
     /// The minimum delay of all connections in the global network.
     time_type min_delay();
 
+    /// Plan when spikes are exchanged, given the maximum epoch length.
+    /// Must be called after update_connections.
+    void schedule_exchange(time_type interval);
+
     /// Perform exchange of spikes.
     ///
-    /// Takes as input the list of local_spikes that were generated on the calling domain.
+    /// Takes as input the list of local_spikes that were generated on the calling domain
+    /// in epoch epoch_id. With neighbourhood exchange, spikes may be held back for later
+    /// epochs as far as connection delays permit; without an epoch all spikes are
+    /// exchanged now.
     /// Returns
-    /// * full global set of vectors, along with meta data about their partition
+    /// * the spikes received, along with meta data about their partition by source domain
     /// * a list of spikes received from remote simulations
-    spikes exchange(std::vector<spike>& local_spikes);
+    spikes exchange(std::vector<spike>& local_spikes, std::optional<std::ptrdiff_t> epoch_id = {});
+
+    /// Exchange period in epochs per neighbourhood exchange level; empty for the default exchange.
+    std::vector<std::size_t> exchange_periods() const;
 
     /// Check each global spike in turn to see it generates local events.
     /// If so, make the events and insert them into the appropriate event list.
@@ -136,6 +152,10 @@ public:
     const connection_list& connections() const;
 
 private:
+    gathered_vector<spike> exchange_all_to_all(const std::vector<spike>& local_spikes);
+    gathered_vector<spike> exchange_neighborhoods(const std::vector<spike>& local_spikes,
+                                                  std::optional<std::ptrdiff_t> epoch_id);
+
     cell_size_type num_total_cells_ = 0;
     cell_size_type num_local_cells_ = 0;
     cell_size_type num_local_groups_ = 0;
@@ -152,6 +172,11 @@ private:
 
     // sources with connections to other ranks
     std::unordered_map<cell_member_type, std::vector<cell_size_type>> src_ranks_;
+
+    // neighbourhood exchange, if enabled
+    std::unique_ptr<neighborhood_router> router_;
+    // local spikes since the last global spike count with neighbourhood exchange
+    std::uint64_t num_uncounted_spikes_ = 0u;
 
     // Connections from external simulators into Arbor.
     // Currently we have no partitions/indices/acceleration structures
