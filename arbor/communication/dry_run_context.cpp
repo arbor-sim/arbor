@@ -1,3 +1,4 @@
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,38 @@ struct dry_run_tiling {
     // Rank r sends to rank 0 what rank 0 sends to rank -r.
     unsigned mirror(unsigned rank) const {
         return (num_ranks - rank)%num_ranks;
+    }
+};
+
+// Rank r receives from sources + r, so rank 0 sends to -sources.
+struct dry_run_neighborhood: distributed_neighborhood {
+    using count_type = typename gathered_vector<spike>::count_type;
+
+    dry_run_tiling tiling;
+    std::vector<int> sources_;
+    std::vector<int> destinations_;
+
+    dry_run_neighborhood(dry_run_tiling t, const std::vector<int>& sources):
+        tiling(t), sources_(sources) {
+        for (auto s: sources_) destinations_.push_back(tiling.mirror(s));
+    }
+
+    const std::vector<int>& sources() const override { return sources_; }
+    const std::vector<int>& destinations() const override { return destinations_; }
+
+    // Every source sends a copy of our spikes, shifted to its tile.
+    gathered_vector<spike> gather_spikes(const std::vector<spike>& local_spikes) const override {
+        std::vector<spike> gathered_spikes;
+        gathered_spikes.reserve(local_spikes.size()*sources_.size());
+        std::vector<count_type> partition{0};
+        for (auto s: sources_) {
+            for (auto spike: local_spikes) {
+                spike.source.gid = tiling.shift(spike.source.gid, s);
+                gathered_spikes.push_back(spike);
+            }
+            partition.push_back(gathered_spikes.size());
+        }
+        return gathered_vector<spike>(std::move(gathered_spikes), std::move(partition));
     }
 };
 
@@ -111,8 +144,8 @@ struct dry_run_context_impl {
         return gathered_vector<cell_gid_type>(std::move(gathered_gids), std::move(partition));
     }
 
-    distributed_neighborhood_ptr make_neighborhood(const std::vector<int>&) const {
-        throw arbor_internal_error("make_neighborhood: not implemented for dry run context.");
+    distributed_neighborhood_ptr make_neighborhood(const std::vector<int>& sources) const {
+        return std::make_unique<dry_run_neighborhood>(tiling(), sources);
     }
 
     // Rank r needs from rank 0 what rank 0 needs from rank -r.

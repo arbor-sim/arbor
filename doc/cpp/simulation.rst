@@ -85,8 +85,10 @@ delay of the connections from it allows. All buffers are flushed at the end of e
 A rank listed in more than one level belongs to the first, and the calling rank itself is
 ignored, so nested levels are fine. All ranks must pass the same number of levels. With
 no levels at all, only the far ranks remain, which still saves collectives if delays
-between ranks exceed the minimum delay. This option needs an MPI context; it is not
-available with dry-run contexts.
+between ranks exceed the minimum delay.
+
+In a dry run, pass the levels of rank 0. Since every rank holds a copy of rank 0's tile
+shifted by its rank, the levels of rank r are taken to be those of rank 0 shifted by r.
 
 Class documentation
 -------------------
