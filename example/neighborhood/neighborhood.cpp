@@ -10,11 +10,12 @@
  * Each cell receives --in-degrees connections from cells in each of these
  * groups, with the respective --delays; delays should grow with distance.
  *
- * The model is simulated twice: with the default exchange, which runs a global
- * all-to-all every epoch (half the shortest delay), and with neighbourhood
- * exchange. There, each level is exchanged with a sparse MPI neighbourhood
- * all-gather and the far ranks with a global all-to-all, each only as often as
- * the delays from that group require.
+ * The model is simulated three times: with the default exchange, which runs a
+ * global all-to-all every epoch (half the shortest delay), and twice with
+ * neighbourhood exchange. There, each level is exchanged with a sparse MPI
+ * neighbourhood all-gather and the far ranks with a global all-to-all, each
+ * only as often as the delays from that group require. The levels are either
+ * the ones described above, or chosen by arbor from the connection delays.
  *
  * Run with MPI, e.g. `mpirun -n 16 ./neighborhood --widths 1,4`, or emulate
  * many ranks with `./neighborhood --dry-run 64`.
@@ -22,7 +23,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -144,6 +144,9 @@ struct result {
     std::size_t num_spikes;
     double init_time;
     double run_time;
+    // Levels of the neighbourhood exchange on this rank, and the epoch length [ms].
+    std::vector<arb::spike_exchange_level> levels;
+    double epoch;
 };
 
 result simulate(const arb::recipe& rec, arb::context ctx, const std::optional<arb::neighborhood_spike_exchange>& exchange, const options& opt) {
@@ -158,7 +161,32 @@ result simulate(const arb::recipe& rec, arb::context ctx, const std::optional<ar
     simulation->run(opt.tfinal*U::ms, opt.dt*U::ms);
     auto t2 = clock::now();
 
-    return {simulation->num_spikes(), seconds(t1 - t0), seconds(t2 - t1)};
+    return {simulation->num_spikes(), seconds(t1 - t0), seconds(t2 - t1),
+            simulation->spike_exchange_levels(), simulation->max_epoch_length()};
+}
+
+// Print the levels arbor uses on this rank.
+void print_levels(const std::string& title, const result& r) {
+    std::cout << title << ", in epochs of " << r.epoch << " ms:\n";
+    for (std::size_t l = 0; l < r.levels.size(); ++l) {
+        const auto& level = r.levels[l];
+        auto name = level.far? std::string("far"): "level " + std::to_string(l + 1);
+        std::cout << "  " << name << ":" << std::string(10 - name.size(), ' ')
+                  << level.ranks.size() << (level.ranks.size() == 1? " rank ": " ranks");
+        // Long lists of ranks are cut short.
+        if (!level.ranks.empty()) {
+            std::cout << " [";
+            for (std::size_t i = 0; i < level.ranks.size() && i < 8; ++i) std::cout << (i? ", ": "") << level.ranks[i];
+            std::cout << (level.ranks.size() > 8? ", ...]": "]");
+        }
+        if (level.period) {
+            std::cout << ", every " << level.period << (level.period == 1? " epoch": " epochs")
+                      << " (" << level.period*r.epoch << " ms)\n";
+        }
+        else {
+            std::cout << ", unused\n";
+        }
+    }
 }
 
 int main(int argc, char** argv) {
@@ -190,41 +218,40 @@ int main(int argc, char** argv) {
 
         std::cout << "ranks:        " << num_ranks << (opt->dry_run_ranks? " (dry run)": "") << "\n"
                   << "cells:        " << rec.num_cells() << "\n\n";
-        // Epochs are half the shortest delay. Like arbor, leave some slack for
-        // rounding, which costs one epoch if a delay is a multiple of the epoch.
-        auto epoch = *std::min_element(opt->delays.begin(), opt->delays.end())/2;
+
+        // The model as seen from rank 0: groups of ranks with their connections.
         auto describe = [&](const std::string& name, std::size_t g, std::size_t num_ranks_in_group) {
-            std::cout << name << num_ranks_in_group << (num_ranks_in_group == 1? " rank": " ranks");
-            if (!num_ranks_in_group) {
-                std::cout << ", unused\n";
-                return;
+            std::cout << "  " << name << num_ranks_in_group << (num_ranks_in_group == 1? " rank": " ranks");
+            if (num_ranks_in_group) {
+                std::cout << ", " << opt->in_degrees[g] << " connections per cell, delay " << opt->delays[g] << " ms";
             }
-            std::cout << ", " << opt->in_degrees[g] << " connections per cell, delay " << opt->delays[g] << " ms, ";
-            if (g == 0) {
-                std::cout << "no communication\n";
-                return;
-            }
-            auto period = std::max(1, int(std::floor(opt->delays[g]/epoch*(1 - 1e-6))) - 1);
-            std::cout << "exchanged every " << period << (period == 1? " epoch\n": " epochs\n");
+            std::cout << "\n";
         };
-        describe("own rank:     ", 0, 1);
+        std::cout << "model:\n";
+        describe("own rank:  ", 0, 1);
         std::size_t num_near = 1;
         for (std::size_t l = 0; l < opt->widths.size(); ++l) {
-            describe("level " + std::to_string(l + 1) + ":      ", l + 1, exchange.neighborhoods[l].size());
+            describe("level " + std::to_string(l + 1) + ":   ", l + 1, exchange.neighborhoods[l].size());
             num_near += exchange.neighborhoods[l].size();
         }
-        describe("far:          ", opt->widths.size() + 1, num_ranks - num_near);
+        describe("far:       ", opt->widths.size() + 1, num_ranks - num_near);
         std::cout << "\n";
 
         auto global = simulate(rec, ctx, {}, *opt);
         auto neighborhood = simulate(rec, ctx, exchange, *opt);
+        auto automatic = simulate(rec, ctx, arb::neighborhood_spike_exchange{.automatic = true}, *opt);
+
+        print_levels("given levels of rank 0", neighborhood);
+        print_levels("automatic levels of rank 0", automatic);
+        std::cout << "\n";
 
         auto report = [](const std::string& name, const result& r) {
             std::cout << name << r.num_spikes << " spikes, init " << r.init_time << " s, run " << r.run_time << " s\n";
         };
         report("all-to-all:   ", global);
         report("neighborhood: ", neighborhood);
-        if (neighborhood.num_spikes != global.num_spikes) {
+        report("automatic:    ", automatic);
+        if (neighborhood.num_spikes != global.num_spikes || automatic.num_spikes != global.num_spikes) {
             std::cerr << "error: the exchange methods produced different numbers of spikes\n";
             return 1;
         }

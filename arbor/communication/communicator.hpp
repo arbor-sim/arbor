@@ -69,8 +69,8 @@ public:
     /// * a list of spikes received from remote simulations
     spikes exchange(std::vector<spike>& local_spikes, std::optional<std::ptrdiff_t> epoch_id = {});
 
-    /// Exchange period in epochs per neighbourhood exchange level; empty for the default exchange.
-    std::vector<std::size_t> exchange_periods() const;
+    /// The levels of the neighbourhood exchange of this rank; empty for the default exchange.
+    std::vector<spike_exchange_level> exchange_levels() const;
 
     /// Check each global spike in turn to see it generates local events.
     /// If so, make the events and insert them into the appropriate event list.

@@ -128,6 +128,10 @@ public:
         return sim_->run(tfinal, dt);
     }
 
+    arb::time_type max_epoch_length() { return sim_->max_epoch_length(); }
+
+    std::vector<arb::spike_exchange_level> spike_exchange_levels() const { return sim_->spike_exchange_levels(); }
+
     void record(spike_recording policy) {
         auto spike_recorder = [this](const std::vector<arb::spike>& spikes) {
             auto old_size = spike_record_.size();
@@ -216,17 +220,25 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
         "and all remaining ranks, exchanged with a global all-to-all. Each level is only\n"
         "exchanged as often as the minimum delay of its connections permits.");
     spike_exchange
-        .def(py::init([](std::vector<std::vector<int>> neighborhoods) {
-                 return arb::neighborhood_spike_exchange{std::move(neighborhoods)};
+        .def(py::init([](std::vector<std::vector<int>> neighborhoods, bool automatic) {
+                 return arb::neighborhood_spike_exchange{std::move(neighborhoods), automatic};
              }),
              "neighborhoods"_a=std::vector<std::vector<int>>{},
+             py::kw_only(),
+             "automatic"_a=false,
              "Construct from the ranks this rank receives spikes from, grouped into levels,\n"
              "innermost first. A rank listed in more than one level belongs to the first; the\n"
-             "calling rank is ignored. Every rank must pass the same number of levels.")
+             "calling rank is ignored. Every rank must pass the same number of levels.\n"
+             "With automatic=True, arbor chooses the levels from the connection delays instead.")
         .def_readwrite("neighborhoods", &arb::neighborhood_spike_exchange::neighborhoods,
              "The ranks this rank receives spikes from, grouped into levels, innermost first.")
+        .def_readwrite("automatic", &arb::neighborhood_spike_exchange::automatic,
+             "Choose the levels from the connection delays: source ranks are grouped by the\n"
+             "class of the exchange period their minimum delay allows (1, 2-3, 4-7, ...), and\n"
+             "the slowest class is exchanged with a global all-to-all.")
         .def("__repr__", [](const arb::neighborhood_spike_exchange& e) {
                  std::stringstream ss;
+                 if (e.automatic) return std::string("<arbor.neighborhood_spike_exchange: automatic>");
                  ss << "<arbor.neighborhood_spike_exchange: neighborhoods [";
                  for (std::size_t l = 0; l < e.neighborhoods.size(); ++l) {
                      ss << (l? ", [": "[");
@@ -237,6 +249,22 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
                  return ss.str();
              })
         .def("__str__", [](const arb::neighborhood_spike_exchange& e) { return py::repr(py::cast(e)); });
+
+    py::class_<arb::spike_exchange_level> spike_exchange_level(m, "spike_exchange_level",
+        "A level of the neighbourhood spike exchange, as seen by the calling rank.");
+    spike_exchange_level
+        .def_readonly("ranks", &arb::spike_exchange_level::ranks,
+             "Ranks this rank receives spikes from in this level, in ascending order.")
+        .def_readonly("period", &arb::spike_exchange_level::period,
+             "Exchanged every `period` epochs; 0 if no connections use this level.")
+        .def_readonly("far", &arb::spike_exchange_level::far,
+             "Exchanged with the global all-to-all instead of a neighbourhood all-gather.")
+        .def("__repr__", [](const arb::spike_exchange_level& l) {
+                 std::stringstream ss;
+                 ss << "<arbor.spike_exchange_level: " << (l.far? "far, ": "") << l.ranks.size() << " ranks, period " << l.period << ">";
+                 return ss.str();
+             })
+        .def("__str__", [](const arb::spike_exchange_level& l) { return py::repr(py::cast(l)); });
 
     // Simulation
     py::class_<simulation_shim> simulation(m, "simulation",
@@ -300,6 +328,12 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
             py::call_guard<py::gil_scoped_release>(),
             "Run the simulation from current simulation time to tfinal [ms], with maximum time step size dt [ms].",
             "tfinal"_a, py::arg_v("dt", 0.025*arb::units::ms, "0.025*arbor.units.ms"))
+        .def("max_epoch_length", &simulation_shim::max_epoch_length,
+            py::call_guard<py::gil_scoped_release>(),
+            "Maximum epoch length [ms], half the minimum delay of the network. Collective: all ranks must call it.")
+        .def("spike_exchange_levels", &simulation_shim::spike_exchange_levels,
+            "The levels of the neighbourhood spike exchange of this rank, neighbourhoods first,\n"
+            "far ranks last; empty for the default exchange. Periods are in epochs of max_epoch_length().")
         .def("record", &simulation_shim::record,
             "Disable or enable local or global spike recording.")
         .def("spikes", &simulation_shim::spikes,

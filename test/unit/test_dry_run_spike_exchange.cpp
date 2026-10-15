@@ -117,4 +117,10 @@ TEST(dry_run_spike_exchange, neighborhoods) {
         EXPECT_EQ(expected, run(dry_run_context(), neighborhood_spike_exchange{levels}, &num_spikes));
         EXPECT_EQ(expected_num_spikes, num_spikes);
     }
+    {
+        SCOPED_TRACE("automatic");
+        std::size_t num_spikes = 0;
+        EXPECT_EQ(expected, run(dry_run_context(), neighborhood_spike_exchange{.automatic = true}, &num_spikes));
+        EXPECT_EQ(expected_num_spikes, num_spikes);
+    }
 }

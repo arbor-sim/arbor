@@ -374,8 +374,8 @@ void communicator::schedule_exchange(time_type interval) {
     router_->update(min_delays, src_ranks_, interval);
 }
 
-std::vector<std::size_t> communicator::exchange_periods() const {
-    return router_ ? router_->periods() : std::vector<std::size_t>{};
+std::vector<spike_exchange_level> communicator::exchange_levels() const {
+    return router_ ? router_->levels() : std::vector<spike_exchange_level>{};
 }
 
 communicator::spikes

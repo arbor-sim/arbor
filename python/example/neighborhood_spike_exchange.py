@@ -12,11 +12,13 @@ split into levels by distance. With --widths 1 4 there are
 Each cell receives --in-degrees connections from cells in each of these
 groups, with the respective --delays; delays should grow with distance.
 
-The model is simulated twice: with the default exchange, which runs a global
-all-to-all every epoch (half the shortest delay), and with neighbourhood
-exchange. There, each level is exchanged with a sparse MPI neighbourhood
-all-gather and the far ranks with a global all-to-all, each only as often as
-the delays from that group require. Both runs must produce the same spikes.
+The model is simulated three times: with the default exchange, which runs a
+global all-to-all every epoch (half the shortest delay), and twice with
+neighbourhood exchange. There, each level is exchanged with a sparse MPI
+neighbourhood all-gather and the far ranks with a global all-to-all, each only
+as often as the delays from that group require. The levels are either the ones
+described above, or chosen by arbor from the connection delays. All runs must
+produce the same spikes.
 
 Run with MPI, e.g. `mpirun -n 16 python neighborhood_spike_exchange.py`.
 """
@@ -100,6 +102,18 @@ def ring_neighborhoods(rank, num_ranks, widths):
     return A.neighborhood_spike_exchange(levels)
 
 
+class result:
+    """Spikes of this rank, timings, and the exchange levels arbor uses on this rank."""
+
+    def __init__(self, sim, init, run):
+        self.spikes = sim.spikes().tolist()
+        self.init = init
+        self.run = run
+        self.levels = sim.spike_exchange_levels()
+        # Collective, so every rank calls it.
+        self.epoch = sim.max_epoch_length()
+
+
 def simulate(recipe, context, args, spike_exchange=None):
     t0 = time.perf_counter()
     sim = A.simulation(recipe, context, spike_exchange=spike_exchange)
@@ -107,7 +121,29 @@ def simulate(recipe, context, args, spike_exchange=None):
     t1 = time.perf_counter()
     sim.run(args.tfinal * U.ms, args.dt * U.ms)
     t2 = time.perf_counter()
-    return sim.spikes().tolist(), t1 - t0, t2 - t1
+    return result(sim, t1 - t0, t2 - t1)
+
+
+def describe_levels(title, r):
+    """The levels arbor uses on this rank, as text."""
+    lines = [f"{title}, in epochs of {r.epoch:g} ms:"]
+    for i, level in enumerate(r.levels):
+        name = "far" if level.far else f"level {i + 1}"
+        ranks = level.ranks
+        line = f"  {name + ':':10} {len(ranks)} rank(s)"
+        if ranks:
+            # Long lists of ranks are cut short.
+            line += (
+                " ["
+                + ", ".join(map(str, ranks[:8]))
+                + (", ...]" if len(ranks) > 8 else "]")
+            )
+        if level.period:
+            line += f", every {level.period} epoch(s) ({level.period * r.epoch:g} ms)"
+        else:
+            line += ", unused"
+        lines.append(line)
+    return "\n".join(lines)
 
 
 def parse_args():
@@ -165,36 +201,39 @@ def main():
     recipe = ring_recipe(num_ranks, args)
     exchange = ring_neighborhoods(rank, num_ranks, args.widths)
 
-    log(f"ranks: {num_ranks}, cells: {recipe.num_cells()}")
-    # Epochs are half the shortest delay. Like arbor, leave some slack for
-    # rounding, which costs one epoch if a delay is a multiple of the epoch.
-    epoch = min(args.delays) / 2
+    log(f"ranks: {num_ranks}, cells: {recipe.num_cells()}\n")
+
+    # The model as seen from rank 0: groups of ranks with their connections.
+    log("model:")
     sizes = [1] + [len(level) for level in exchange.neighborhoods]
     sizes.append(num_ranks - sum(sizes))
     names = ["own rank"] + [f"level {i + 1}" for i in range(len(args.widths))] + ["far"]
     for g, (name, size) in enumerate(zip(names, sizes)):
-        if size == 0:
-            log(f"{name:9} 0 ranks, unused")
-            continue
-        if g == 0:
-            how = "no communication"
-        else:
-            period = max(1, int(args.delays[g] / epoch * (1 - 1e-6)) - 1)
-            how = f"exchanged every {period} epoch(s)"
+        line = f"  {name + ':':10} {size} rank(s)"
+        if size:
+            line += f", {args.in_degrees[g]} connections per cell, delay {args.delays[g]:g} ms"
+        log(line)
+    log()
+
+    default = simulate(recipe, context, args)
+    given = simulate(recipe, context, args, exchange)
+    automatic = A.neighborhood_spike_exchange(automatic=True)
+    auto = simulate(recipe, context, args, automatic)
+
+    log(describe_levels("given levels of rank 0", given))
+    log(describe_levels("automatic levels of rank 0", auto))
+    log()
+    for name, r in [
+        ("all-to-all:", default),
+        ("neighborhood:", given),
+        ("automatic:", auto),
+    ]:
         log(
-            f"{name:9} {size} rank(s), {args.in_degrees[g]} connections per cell, "
-            f"delay {args.delays[g]:g} ms, {how}"
+            f"{name:13} {len(r.spikes)} local spikes, init {r.init:.3f} s, run {r.run:.3f} s"
         )
 
-    spikes, init, run = simulate(recipe, context, args)
-    log(f"all-to-all:   {len(spikes)} local spikes, init {init:.3f} s, run {run:.3f} s")
-    nbh_spikes, init, run = simulate(recipe, context, args, exchange)
-    log(
-        f"neighborhood: {len(nbh_spikes)} local spikes, init {init:.3f} s, run {run:.3f} s"
-    )
-
     # Each rank checks its own spikes.
-    if spikes != nbh_spikes:
+    if default.spikes != given.spikes or default.spikes != auto.spikes:
         raise RuntimeError(
             f"rank {rank}: the exchange methods produced different spikes"
         )

@@ -125,6 +125,34 @@ std::vector<std::pair<std::string, neighborhood_fn>> neighborhood_shapes() {
             {"everyone",  everyone}};
 }
 
+std::vector<std::size_t> periods_of(const std::vector<spike_exchange_level>& levels) {
+    std::vector<std::size_t> periods;
+    for (const auto& l: levels) periods.push_back(l.period);
+    return periods;
+}
+
+// Check that a rank's levels are neighbourhoods followed by the far level,
+// which holds all ranks but ours that are in no neighbourhood.
+void expect_valid_levels(const std::vector<spike_exchange_level>& levels, int rank, int num_ranks) {
+    ASSERT_FALSE(levels.empty());
+    std::vector<int> seen(num_ranks, 0);
+    seen[rank] = 1;
+    for (std::size_t l = 0; l < levels.size(); ++l) {
+        EXPECT_EQ(l + 1 == levels.size(), levels[l].far);
+        EXPECT_TRUE(std::is_sorted(levels[l].ranks.begin(), levels[l].ranks.end()));
+        for (auto r: levels[l].ranks) ++seen[r];
+    }
+    EXPECT_EQ(std::vector<int>(num_ranks, 1), seen);
+}
+
+// All neighbourhood shapes, and automatic levels.
+std::vector<std::pair<std::string, neighborhood_spike_exchange>> exchange_options(int rank, int num_ranks) {
+    std::vector<std::pair<std::string, neighborhood_spike_exchange>> options;
+    for (const auto& [name, shape]: neighborhood_shapes()) options.push_back({name, {shape(rank, num_ranks)}});
+    options.push_back({"automatic", {.automatic = true}});
+    return options;
+}
+
 } // namespace
 
 TEST(spike_exchange, exchange_period) {
@@ -153,9 +181,9 @@ TEST(spike_exchange, same_spikes_as_all_to_all) {
     ASSERT_GT(expected.spikes.size(), 0u);
     ASSERT_EQ(expected.spikes.size(), expected.num_spikes);
 
-    for (const auto& [name, shape]: neighborhood_shapes()) {
+    for (const auto& [name, options]: exchange_options(rank, num_ranks)) {
         SCOPED_TRACE(name);
-        const auto result = run(neighborhood_spike_exchange{shape(rank, num_ranks)}, stops);
+        const auto result = run(options, stops);
         EXPECT_EQ(expected.spikes, result.spikes);
         EXPECT_EQ(expected.num_spikes, result.num_spikes);
     }
@@ -169,9 +197,9 @@ TEST(spike_exchange, same_spikes_over_several_runs) {
     const auto expected = run({}, stops);
     ASSERT_GT(expected.spikes.size(), 0u);
 
-    for (const auto& [name, shape]: neighborhood_shapes()) {
+    for (const auto& [name, options]: exchange_options(rank, num_ranks)) {
         SCOPED_TRACE(name);
-        const auto result = run(neighborhood_spike_exchange{shape(rank, num_ranks)}, stops);
+        const auto result = run(options, stops);
         EXPECT_EQ(expected.spikes, result.spikes);
         EXPECT_EQ(expected.num_spikes, result.num_spikes);
     }
@@ -187,7 +215,12 @@ TEST(spike_exchange, invalid_options) {
         // All ranks must agree on the number of levels.
         auto levels = std::vector<std::vector<int>>(g_context->distributed->id() == 0 ? 1 : 2);
         EXPECT_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{levels}), arbor_exception);
+        // All ranks must agree on automatic levels.
+        auto automatic = neighborhood_spike_exchange{.automatic = g_context->distributed->id() == 0};
+        EXPECT_THROW(simulation(rec, g_context, decomp, 0, automatic), arbor_exception);
     }
+    // Automatic levels and explicit neighbourhoods exclude each other.
+    EXPECT_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{{{0}}, true}), arbor_exception);
 }
 
 // Exchanged in epoch e, spikes become events in epoch e+2. Check that held back
@@ -215,9 +248,9 @@ TEST(spike_exchange, communicator_delivers_in_time) {
         }
     }
 
-    for (const auto& [name, shape]: neighborhood_shapes()) {
+    for (const auto& [name, options]: exchange_options(rank, num_ranks)) {
         SCOPED_TRACE(name);
-        auto comm = communicator(rec, decomp, g_context, neighborhood_spike_exchange{shape(rank, num_ranks)});
+        auto comm = communicator(rec, decomp, g_context, options);
         comm.update_connections(rec, decomp, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}));
         comm.schedule_exchange(interval);
 
@@ -286,7 +319,8 @@ TEST(spike_exchange, communicator_holds_back_spikes) {
         }
         std::vector<std::size_t> expected_periods;
         for (auto d: min_delays) expected_periods.push_back(std::isfinite(d)? exchange_period(d, interval): 0);
-        EXPECT_EQ(expected_periods, comm.exchange_periods());
+        EXPECT_EQ(expected_periods, periods_of(comm.exchange_levels()));
+        expect_valid_levels(comm.exchange_levels(), rank, num_ranks);
 
         // Every cell fires once. No connection between ranks is short enough to
         // be exchanged every epoch, so in epoch 1 only our own spikes arrive.
@@ -319,5 +353,106 @@ TEST(spike_exchange, communicator_holds_back_spikes) {
             EXPECT_TRUE(received.count(gid)) << "missing spike from " << gid;
         }
         EXPECT_EQ(std::size_t(num_ranks*gids.size()), comm.num_spikes());
+    }
+}
+
+// Automatic levels group source ranks by the class of the exchange period
+// their minimum connection delay allows; the slowest class is the far level.
+TEST(spike_exchange, automatic_levels) {
+    const int rank = g_context->distributed->id();
+    const int num_ranks = g_context->distributed->size();
+    const time_type interval = 0.5;
+
+    auto rec = distance_recipe(num_ranks, cells_per_rank);
+    auto decomp = partition_load_balance(rec, g_context);
+    std::vector<cell_gid_type> gids;
+    for (const auto& g: decomp->groups()) gids.insert(gids.end(), g.gids.begin(), g.gids.end());
+    cell_label_range local_sources, local_targets;
+    lif_cell_group group(gids, rec, local_sources, local_targets);
+    auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, gids});
+
+    auto comm = communicator(rec, decomp, g_context, neighborhood_spike_exchange{.automatic = true});
+    comm.update_connections(rec, decomp, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}));
+    comm.schedule_exchange(interval);
+
+    // From the recipe: minimum delay between each pair of ranks, and its period class.
+    const auto inf = std::numeric_limits<double>::infinity();
+    std::vector<std::vector<double>> min_delay(num_ranks, std::vector<double>(num_ranks, inf));
+    for (cell_gid_type tgt = 0; tgt < rec.num_cells(); ++tgt) {
+        for (const auto& c: rec.connections_on(tgt)) {
+            auto& d = min_delay[decomp->gid_domain(tgt)][decomp->gid_domain(c.source.gid)];
+            d = std::min(d, double(float(c.delay)));
+        }
+    }
+    auto class_of = [&](int receiver, int source) {
+        auto d = min_delay[receiver][source];
+        return receiver == source || !std::isfinite(d)? -1: int(period_class(exchange_period(d, interval)));
+    };
+    int far = -1;
+    for (int r = 0; r < num_ranks; ++r) {
+        for (int s = 0; s < num_ranks; ++s) far = std::max(far, class_of(r, s));
+    }
+    far = std::max(far, 0);
+
+    // Our neighbourhoods, in any order.
+    std::vector<std::vector<int>> expected(far);
+    for (int s = 0; s < num_ranks; ++s) {
+        auto c = class_of(rank, s);
+        if (c >= 0 && c < far) expected[c].push_back(s);
+    }
+    auto levels = comm.exchange_levels();
+    expect_valid_levels(levels, rank, num_ranks);
+    std::vector<std::vector<int>> neighborhoods;
+    for (const auto& l: levels) {
+        if (!l.far) neighborhoods.push_back(l.ranks);
+    }
+    EXPECT_EQ(expected, neighborhoods);
+
+    // Periods: from the global minimum delay per class.
+    std::vector<double> class_delay(far + 1, inf);
+    for (int r = 0; r < num_ranks; ++r) {
+        for (int s = 0; s < num_ranks; ++s) {
+            auto c = class_of(r, s);
+            if (c >= 0) class_delay[c] = std::min(class_delay[c], min_delay[r][s]);
+        }
+    }
+    std::vector<std::size_t> expected_periods;
+    for (auto d: class_delay) expected_periods.push_back(std::isfinite(d)? exchange_period(d, interval): 0);
+    EXPECT_EQ(expected_periods, periods_of(levels));
+    // Each level is exchanged at most twice as often as its own delays require.
+    for (std::size_t c = 0; c < expected_periods.size(); ++c) {
+        if (expected_periods[c]) {
+            EXPECT_EQ(c, period_class(expected_periods[c]));
+        }
+    }
+}
+
+TEST(spike_exchange, period_class) {
+    EXPECT_EQ(0u, period_class(1));
+    EXPECT_EQ(1u, period_class(2));
+    EXPECT_EQ(1u, period_class(3));
+    EXPECT_EQ(2u, period_class(4));
+    EXPECT_EQ(2u, period_class(7));
+    EXPECT_EQ(3u, period_class(8));
+    EXPECT_EQ(5u, period_class(38));
+}
+
+// The simulation reports the levels of its communicator; none for the default exchange.
+TEST(spike_exchange, simulation_levels) {
+    const int rank = g_context->distributed->id();
+    const int num_ranks = g_context->distributed->size();
+    auto rec = distance_recipe(num_ranks, cells_per_rank);
+    auto decomp = partition_load_balance(rec, g_context);
+
+    EXPECT_TRUE(simulation(rec, g_context, decomp).spike_exchange_levels().empty());
+
+    for (const auto& [name, options]: exchange_options(rank, num_ranks)) {
+        SCOPED_TRACE(name);
+        auto sim = simulation(rec, g_context, decomp, 0, options);
+        auto levels = sim.spike_exchange_levels();
+        expect_valid_levels(levels, rank, num_ranks);
+        if (!options.automatic) {
+            EXPECT_EQ(options.neighborhoods.size() + 1, levels.size());
+        }
     }
 }

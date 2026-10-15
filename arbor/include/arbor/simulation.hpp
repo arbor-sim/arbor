@@ -77,6 +77,11 @@ struct ARB_ARBOR_API simulation {
 
     std::size_t num_spikes() const;
 
+    // The levels of the neighbourhood spike exchange of this rank, neighbourhoods
+    // first, far ranks last; empty for the default exchange. Periods are in
+    // epochs of max_epoch_length().
+    std::vector<spike_exchange_level> spike_exchange_levels() const;
+
     // Register a callback that will perform a export of the rank local
     // spike vector.
     void set_local_spike_callback(spike_export_function = spike_export_function{});

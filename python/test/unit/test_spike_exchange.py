@@ -56,6 +56,12 @@ class TestSpikeExchange(unittest.TestCase):
 
         ex = A.neighborhood_spike_exchange(neighborhoods=[[5]])
         self.assertEqual([[5]], ex.neighborhoods)
+        self.assertFalse(ex.automatic)
+
+        ex = A.neighborhood_spike_exchange(automatic=True)
+        self.assertTrue(ex.automatic)
+        self.assertEqual([], ex.neighborhoods)
+        self.assertEqual("<arbor.neighborhood_spike_exchange: automatic>", repr(ex))
 
     # The local spikes of every rank must be the same as with the default exchange.
     @fixtures.context()
@@ -67,9 +73,40 @@ class TestSpikeExchange(unittest.TestCase):
             with self.subTest(neighborhoods=name):
                 result = run(context, A.neighborhood_spike_exchange(levels))
                 self.assertEqual(expected, result)
+        with self.subTest(neighborhoods="automatic"):
+            result = run(context, A.neighborhood_spike_exchange(automatic=True))
+            self.assertEqual(expected, result)
 
     @fixtures.context()
-    def test_invalid_rank(self, context):
+    def test_levels(self, context):
+        rec = fixtures.ring_distance_recipe(context.ranks)
+        dd = A.partition_load_balance(rec, context)
+
+        sim = A.simulation(rec, context, dd)
+        self.assertEqual([], sim.spike_exchange_levels())
+        # The shortest delay is 1 ms.
+        self.assertAlmostEqual(0.5, sim.max_epoch_length())
+
+        shapes = neighborhood_shapes(context.rank, context.ranks)
+        options = [A.neighborhood_spike_exchange(levels) for levels in shapes.values()]
+        options.append(A.neighborhood_spike_exchange(automatic=True))
+        for ex in options:
+            with self.subTest(spike_exchange=repr(ex)):
+                sim = A.simulation(rec, context, dd, spike_exchange=ex)
+                levels = sim.spike_exchange_levels()
+                # Neighbourhoods, then the far level.
+                self.assertEqual(
+                    [False] * (len(levels) - 1) + [True], [lvl.far for lvl in levels]
+                )
+                # Every other rank is in exactly one level.
+                ranks = sorted(r for lvl in levels for r in lvl.ranks)
+                others = [r for r in range(context.ranks) if r != context.rank]
+                self.assertEqual(others, ranks)
+
+    @fixtures.context()
+    def test_invalid_options(self, context):
         # Checked on all ranks, so that all of them raise.
         with self.assertRaises(RuntimeError):
             run(context, A.neighborhood_spike_exchange([[context.ranks]]))
+        with self.assertRaises(RuntimeError):
+            run(context, A.neighborhood_spike_exchange([[0]], automatic=True))

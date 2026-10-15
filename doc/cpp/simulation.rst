@@ -91,6 +91,29 @@ Within a neighbourhood, spikes are exchanged with ``MPI_Neighbor_allgatherv``, w
 every spike with targets in the neighbourhood to all of its ranks. The example in
 ``example/neighborhood`` compares this with the default exchange.
 
+Instead of listing the levels, arbor can choose them from the connection delays:
+
+.. container:: example-code
+
+    .. code-block:: cpp
+
+        arb::simulation sim = arb::simulation::create(recipe)
+            .set_context(context)
+            .set_spike_exchange({.automatic = true});
+
+Every rank puts each rank it receives from into a class by the exchange period that the
+minimum delay of their connections allows: periods of 1, 2–3, 4–7, 8–15 epochs, and so
+on. With *K* the slowest class over all ranks, classes 0 to *K*-1 become neighbourhoods
+and class *K* the far level. Each level is then exchanged at most twice as often as its
+own delays require. If all delays are equal, all ranks end up as far ranks, which is the
+default exchange. The levels are chosen anew whenever the connections change, i.e. on
+construction and on :cpp:func:`simulation::update`.
+
+:cpp:func:`simulation::spike_exchange_levels` returns the levels in use on the calling rank,
+given or automatic: for each level the ranks it receives from, the exchange period in epochs
+of :cpp:func:`simulation::max_epoch_length`, and whether it is the far level. The example in
+``example/neighborhood`` prints them.
+
 In a dry run, pass the levels of rank 0. Since every rank holds a copy of rank 0's tile
 shifted by its rank, the levels of rank r are taken to be those of rank 0 shifted by r.
 

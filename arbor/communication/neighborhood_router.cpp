@@ -21,6 +21,13 @@ std::size_t exchange_period(time_type delay, time_type interval) {
     return ratio > 2 ? std::size_t(ratio) - 1 : 1;
 }
 
+unsigned period_class(std::size_t period) {
+    arb_assert(period > 0);
+    unsigned c = 0;
+    while (period >>= 1) ++c;
+    return c;
+}
+
 namespace {
 // Throw on all ranks if any rank fails a check, so that no rank is left
 // waiting in a collective.
@@ -32,9 +39,21 @@ void check_on_all_ranks(const distributed_context& dist, bool ok, const std::str
 neighborhood_router::neighborhood_router(const neighborhood_spike_exchange& options,
                                          distributed_context_handle dist):
     dist_(std::move(dist)),
+    automatic_(options.automatic),
     rank_(dist_->id()),
     num_domains_(dist_->size())
 {
+    check_on_all_ranks(*dist_,
+                       dist_->min(int(automatic_)) == dist_->max(int(automatic_)),
+                       "all ranks must choose automatic levels alike.");
+    if (automatic_) {
+        check_on_all_ranks(*dist_, options.neighborhoods.empty(),
+                           "neighborhoods must be empty with automatic levels.");
+        // Until the connections are known, all other ranks are far ranks.
+        set_levels({});
+        return;
+    }
+
     const int num_neighborhoods = options.neighborhoods.size();
     check_on_all_ranks(*dist_,
                        dist_->min(num_neighborhoods) == dist_->max(num_neighborhoods),
@@ -44,6 +63,12 @@ neighborhood_router::neighborhood_router(const neighborhood_spike_exchange& opti
         for (auto r: neighborhood) ranks_valid &= r >= 0 && r < num_domains_;
     }
     check_on_all_ranks(*dist_, ranks_valid, "rank out of range.");
+    set_levels(options.neighborhoods);
+}
+
+void neighborhood_router::set_levels(const std::vector<std::vector<int>>& neighborhoods) {
+    const int num_neighborhoods = neighborhoods.size();
+    levels_.clear();
 
     // Assign every other rank to the first neighbourhood that lists it, or the far level.
     const int far = num_neighborhoods;
@@ -51,7 +76,7 @@ neighborhood_router::neighborhood_router(const neighborhood_spike_exchange& opti
     recv_level_[rank_] = self_level;
     for (int l = 0; l < num_neighborhoods; ++l) {
         std::vector<int> sources;
-        for (auto r: options.neighborhoods[l]) {
+        for (auto r: neighborhoods[l]) {
             if (recv_level_[r] != far) continue;
             recv_level_[r] = l;
             sources.push_back(r);
@@ -71,11 +96,31 @@ neighborhood_router::neighborhood_router(const neighborhood_spike_exchange& opti
     }
 }
 
+std::vector<std::vector<int>>
+neighborhood_router::automatic_levels(const std::vector<time_type>& min_delays, time_type interval) const {
+    // Class of each rank we receive from; -1 if there are no connections from it.
+    std::vector<int> classes(num_domains_, -1);
+    int max_class = -1;
+    for (int d = 0; d < num_domains_; ++d) {
+        if (d == rank_ || !std::isfinite(min_delays[d])) continue;
+        classes[d] = period_class(exchange_period(min_delays[d], interval));
+        max_class = std::max(max_class, classes[d]);
+    }
+    // All ranks need the same number of levels; the slowest class is the far level.
+    max_class = dist_->max(max_class);
+    std::vector<std::vector<int>> neighborhoods(std::max(max_class, 0));
+    for (int d = 0; d < num_domains_; ++d) {
+        if (classes[d] >= 0 && classes[d] < max_class) neighborhoods[classes[d]].push_back(d);
+    }
+    return neighborhoods;
+}
+
 void neighborhood_router::update(const std::vector<time_type>& min_delays,
                                  const source_ranks_map& src_ranks,
                                  time_type interval) {
     arb_assert(min_delays.size() == std::size_t(num_domains_));
     clear();
+    if (automatic_) set_levels(automatic_levels(min_delays, interval));
 
     // All ranks must agree on when a level is exchanged, so periods use the global minimum delay.
     std::vector<time_type> level_delays(levels_.size(), std::numeric_limits<time_type>::infinity());
@@ -184,9 +229,18 @@ neighborhood_router::bin_by_far_rank(const std::vector<spike>& spikes) const {
     return {std::move(binned), std::move(offsets)};
 }
 
-std::vector<std::size_t> neighborhood_router::periods() const {
-    std::vector<std::size_t> result;
-    for (const auto& lvl: levels_) result.push_back(lvl.period);
+std::vector<spike_exchange_level> neighborhood_router::levels() const {
+    std::vector<spike_exchange_level> result;
+    for (int l = 0; l < far_level(); ++l) {
+        auto ranks = levels_[l].neighbors->sources();
+        std::sort(ranks.begin(), ranks.end());
+        result.push_back({std::move(ranks), levels_[l].period, false});
+    }
+    spike_exchange_level far{{}, levels_.back().period, true};
+    for (int d = 0; d < num_domains_; ++d) {
+        if (recv_level_[d] == far_level()) far.ranks.push_back(d);
+    }
+    result.push_back(std::move(far));
     return result;
 }
 

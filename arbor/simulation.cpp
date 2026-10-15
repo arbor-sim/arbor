@@ -96,6 +96,10 @@ struct simulation_state {
         return communicator_.num_spikes();
     }
 
+    std::vector<spike_exchange_level> spike_exchange_levels() const {
+        return communicator_.exchange_levels();
+    }
+
     void set_remote_spike_filter(const spike_predicate& p) { return communicator_.set_remote_spike_filter(p); }
 
     time_type min_delay() {
@@ -624,6 +628,10 @@ std::vector<probe_metadata> simulation::get_probe_metadata(const cell_address_ty
 
 std::size_t simulation::num_spikes() const {
     return impl_->num_spikes();
+}
+
+std::vector<spike_exchange_level> simulation::spike_exchange_levels() const {
+    return impl_->spike_exchange_levels();
 }
 
 void simulation::set_local_spike_callback(spike_export_function export_callback) {
