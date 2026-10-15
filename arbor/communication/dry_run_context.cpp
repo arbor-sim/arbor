@@ -9,6 +9,25 @@
 
 namespace arb {
 
+// Only rank 0 is simulated. Every other rank r holds a copy of rank 0's tile of
+// cells, with gids shifted by r tiles, modulo the number of cells (see
+// symmetric_recipe). By this symmetry, whatever rank r sends to rank 0 is what
+// rank 0 sends to rank -r, shifted by r tiles.
+struct dry_run_tiling {
+    unsigned num_ranks;
+    unsigned num_cells_per_tile;
+
+    // Shift gid from rank 0's view to rank's.
+    cell_gid_type shift(cell_gid_type gid, unsigned rank) const {
+        return (gid + rank*num_cells_per_tile)%(num_ranks*num_cells_per_tile);
+    }
+
+    // Rank r sends to rank 0 what rank 0 sends to rank -r.
+    unsigned mirror(unsigned rank) const {
+        return (num_ranks - rank)%num_ranks;
+    }
+};
+
 struct dry_run_context_impl {
     using count_type = typename gathered_vector<spike>::count_type;
 
@@ -18,18 +37,22 @@ struct dry_run_context_impl {
     remote_gather_spikes(const std::vector<spike>& local_spikes) const {
         return {};
     }
+    dry_run_tiling tiling() const { return {num_ranks_, num_cells_per_tile_}; }
+
     gathered_vector<spike>
     all_to_all_spikes(const gathered_vector<spike>& local_spikes) const {
         const auto& local = local_spikes.values();
+        const auto& local_part = local_spikes.partition();
         std::vector<spike> gathered_spikes;
         gathered_spikes.reserve(static_cast<size_t>(local_spikes.size()));
         std::vector<count_type> partition;
         partition.reserve(num_ranks_ + 1);
         partition.push_back(0);
-        for (std::size_t ridx = 0; ridx < num_ranks_; ridx++) {
-            for (std::size_t lidx = 0; lidx < local_spikes.count(ridx); ++lidx) {
+        for (unsigned ridx = 0; ridx < num_ranks_; ridx++) {
+            auto from = tiling().mirror(ridx);
+            for (auto lidx = local_part[from]; lidx < local_part[from + 1]; ++lidx) {
                 auto spike = local[lidx];
-                spike.source.gid += num_cells_per_tile_*ridx;
+                spike.source.gid = tiling().shift(spike.source.gid, ridx);
                 gathered_spikes.push_back(spike);
             }
             partition.push_back(gathered_spikes.size());
@@ -88,28 +111,18 @@ struct dry_run_context_impl {
         return gathered_vector<cell_gid_type>(std::move(gathered_gids), std::move(partition));
     }
 
+    // Rank r needs from rank 0 what rank 0 needs from rank -r.
     gathered_vector<cell_member_type>
     all_to_all_gids_domains(const std::vector<std::vector<cell_member_type>>& gids_domains) const {
         using count_type = gathered_vector<cell_member_type>::count_type;
-        count_type local_size = 0;
-        std::vector<count_type> partition(num_ranks_ + 1);
-        partition[0] = 0;
-
-        for (count_type i = 0; i < num_ranks_; i++) {
-            local_size += gids_domains[i].size();
-            partition[i + 1] = local_size;
-        }
-
-        std::vector<cell_member_type> gathered_gids(local_size);
-        for (count_type i = 0; i < num_ranks_; i++){
-            auto start = partition[i];
-            auto end = partition[i + 1];
-            cell_gid_type cell = 0;
-            while (start < end ) {
-                gathered_gids[start] = {cell, 0};
-                cell++;
-                start++;
+        std::vector<cell_member_type> gathered_gids;
+        std::vector<count_type> partition{0};
+        for (unsigned ridx = 0; ridx < num_ranks_; ridx++) {
+            for (auto src: gids_domains[tiling().mirror(ridx)]) {
+                src.gid = tiling().shift(src.gid, ridx);
+                gathered_gids.push_back(src);
             }
+            partition.push_back(gathered_gids.size());
         }
         return gathered_vector<cell_member_type>(std::move(gathered_gids), std::move(partition));
     }
