@@ -27,6 +27,11 @@ ARB_ARBOR_API std::size_t exchange_period(time_type delay, time_type interval);
 // Class of an exchange period for choosing levels automatically: floor(log2(period)).
 ARB_ARBOR_API unsigned period_class(std::size_t period);
 
+// Sort spikes by source, given that they consist of runs that are already
+// sorted by source, starting at the given offsets. Merges the runs pairwise in
+// log2(runs) passes, which keeps spikes from the same source in run order.
+ARB_ARBOR_API void merge_sorted_runs(std::vector<spike>& spikes, std::vector<std::size_t> runs);
+
 // Implements neighborhood_spike_exchange.
 //
 // Every rank sorts the ranks it receives from into levels: itself, its
@@ -69,7 +74,14 @@ private:
         // Null for the far level.
         distributed_neighborhood_ptr neighbors;
         std::size_t period = 0;
+        // Spikes held back, one run sorted by source per epoch, starting at the offsets in runs.
         std::vector<spike> pending;
+        std::vector<std::size_t> runs;
+
+        void clear() {
+            pending.clear();
+            runs.clear();
+        }
     };
 
     // Levels a local source's spikes are sent in, and the ranks it is sent to.

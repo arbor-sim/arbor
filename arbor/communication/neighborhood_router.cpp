@@ -21,6 +21,22 @@ std::size_t exchange_period(time_type delay, time_type interval) {
     return ratio > 2 ? std::size_t(ratio) - 1 : 1;
 }
 
+void merge_sorted_runs(std::vector<spike>& spikes, std::vector<std::size_t> runs) {
+    auto by_source = [](const spike& a, const spike& b) { return a.source < b.source; };
+    // Boundaries of the runs; merge neighbouring pairs until a single run is left.
+    runs.push_back(spikes.size());
+    while (runs.size() > 2) {
+        std::vector<std::size_t> merged{runs.front()};
+        for (std::size_t i = 0; i + 2 < runs.size(); i += 2) {
+            std::inplace_merge(spikes.begin() + runs[i], spikes.begin() + runs[i + 1], spikes.begin() + runs[i + 2], by_source);
+            merged.push_back(runs[i + 2]);
+        }
+        // With an odd number of runs, the last one is merged in the next pass.
+        if (runs.size() % 2 == 0) merged.push_back(runs.back());
+        runs = std::move(merged);
+    }
+}
+
 unsigned period_class(std::size_t period) {
     arb_assert(period > 0);
     unsigned c = 0;
@@ -151,10 +167,17 @@ neighborhood_router::exchange(const std::vector<spike>& local_spikes, std::optio
     using count_type = gathered_vector<spike>::count_type;
 
     PE(buffer);
+    arb_assert(std::is_sorted(local_spikes.begin(), local_spikes.end(),
+                              [](const spike& a, const spike& b) { return a.source < b.source; }));
+    // Every epoch appends a run sorted by source to each level; empty runs are dropped.
+    for (auto& lvl: levels_) lvl.runs.push_back(lvl.pending.size());
     for (const auto& spk: local_spikes) {
         auto it = routes_.find(spk.source);
         if (it == routes_.end()) continue;
         for (auto l: it->second.levels) levels_[l].pending.push_back(spk);
+    }
+    for (auto& lvl: levels_) {
+        if (lvl.runs.back() == lvl.pending.size()) lvl.runs.pop_back();
     }
     PL(buffer);
 
@@ -177,7 +200,9 @@ neighborhood_router::exchange(const std::vector<spike>& local_spikes, std::optio
             continue;
         }
 
-        util::sort_by(lvl.pending, [](const spike& s) { return s.source; });
+        PE(merge);
+        merge_sorted_runs(lvl.pending, lvl.runs);
+        PL(merge);
         if (lvl.neighbors) {
             PE(neighborhood);
             const auto& spikes = received.emplace_back(lvl.neighbors->gather_spikes(lvl.pending));
@@ -196,7 +221,7 @@ neighborhood_router::exchange(const std::vector<spike>& local_spikes, std::optio
                 ranges.push_back({d, spikes.values().data() + spikes.partition()[d], spikes.count(d)});
             }
         }
-        lvl.pending.clear();
+        lvl.clear();
     }
 
     PE(collect);
@@ -245,7 +270,7 @@ std::vector<spike_exchange_level> neighborhood_router::levels() const {
 }
 
 void neighborhood_router::clear() {
-    for (auto& lvl: levels_) lvl.pending.clear();
+    for (auto& lvl: levels_) lvl.clear();
 }
 
 } // namespace arb
