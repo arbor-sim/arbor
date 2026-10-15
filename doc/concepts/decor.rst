@@ -382,14 +382,14 @@ between cells. An example where we're interested in when a threshold of ``-10 mV
 
     # Placing a threshold detector might look like this.
     decor = arbor.decor()
-    decor.place('"root"', arbor.threshold_detector(-10), "detector")
+    decor.place('"root"', arbor.threshold_detector(-10*U.mV), "detector")
 
     # At this point, "detector" could be connected to another cell,
     # and it would transmit events upon the voltage crossing the threshold.
 
     # Just printing those spike times goes as follows.
     sim = arbor.simulation(...)
-    sim.record(arbor.spike_recording.all)
+    sim.record(arbor.spike_recording.local)
     sim.run(...)
     print("spikes:")
     for sp in sim.spikes():

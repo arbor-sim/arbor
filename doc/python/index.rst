@@ -49,6 +49,7 @@ These details are described and examples are given in the next sections :ref:`py
    domdec
    simulation
    profiler
+   adex_cell
    cable_cell
    lif_cell
    spike_source_cell

@@ -3,18 +3,22 @@
 Description Format
 ==================
 
-Arbor provides readers and writers for describing :ref:`label dictionaries <labels>`,
-:ref:`decoration objects <cablecell-decoration>`, :ref:`morphologies <morph>` and
-:ref:`cable cells <cablecell>`, referred to here as *arbor-components*.
+Arbor provides readers and writers for describing :ref:`label dictionaries
+<labels>`, :ref:`decoration objects <cablecell-decoration>`, :ref:`morphologies
+<morph>` and :ref:`cable cells <cablecell>`, referred to here as
+*arbor-components*.
 
-A detailed description of the s-expression format used to describe each of these components
-can be found :ref:`here <formatcablecell>`.
+A detailed description of the s-expression format used to describe each of these
+components can be found :ref:`here <formatcablecell>`.
 
-Reading and writing of the arbor-component description format is delegated to the ``arborio``
-library and the responsible classes and functions are present in the ``arborio`` namespace.
+Reading and writing of the arbor-component description format is delegated to
+the ``arborio`` library and the responsible classes and functions are present in
+the ``arborio`` namespace.
 
 The arbor-components and meta-data
 ----------------------------------
+
+.. cpp:namespace:: arborio
 
 .. cpp:type:: cable_cell_variant = std::variant<arb::morphology, arb::label_dict, arb::decor, arb::cable_cell>
 
@@ -40,16 +44,18 @@ The arbor-components and meta-data
 
    .. cpp:member:: cable_cell_variant component
 
-      Stores one of :cpp:class:`decor`, :cpp:class:`label_dict`, :cpp:class:`morphology` or :cpp:class:`cable_cell`.
+      Stores one of :cpp:class:`arb::decor`, :cpp:class:`arb::label_dict`,
+      :cpp:class:`arb::morphology` or :cpp:class:`arb::cable_cell`.
 
 Reading arbor-components
 ------------------------
 
 .. cpp:function:: parse_hopefully<cable_cell_component> parse_component(const std::string&)
 
-   This function will attempt to construct a :cpp:class:`cable_cell_component` object by parsing the
-   contents of a string. It will return a :cpp:type:`parse_hopefully` containing the constructed object,
-   or, if parsing fails, a helpful ``cableio_parse_error``.
+   This function will attempt to construct a :cpp:class:`cable_cell_component`
+   object by parsing the contents of a string. It will return a
+   :cpp:type:`parse_hopefully` containing the constructed object, or, if parsing
+   fails, a helpful ``cableio_parse_error``.
 
 .. cpp:function:: parse_hopefully<cable_cell_component> parse_component(std::istream&)
 
@@ -65,24 +71,28 @@ Writing arbor-components
 
 .. cpp:function:: std::ostream& write_component(std::ostream& o, const arb::decor& x, const meta_data& m = {})
 
-   Constructs a :cpp:class:`cable_cell_component` from a :cpp:class:`decor` object, and optional
-   :cpp:class:`meta_data`. If no meta_data is provided, the most recent version of
-   the format is used to create it. The resulting object is written to the given ``std::ostream``.
+   Constructs a :cpp:class:`cable_cell_component` from a :cpp:class:`arb::decor`
+   object, and optional :cpp:class:`meta_data`. If no meta_data is provided, the
+   most recent version of the format is used to create it. The resulting object
+   is written to the given ``std::ostream``.
 
 .. cpp:function:: std::ostream& write_component(std::ostream& o, const arb::label_dict& x, const meta_data& m = {})
 
-   Constructs a :cpp:class:`cable_cell_component` from a :cpp:class:`label_dict` object, and optional
-   :cpp:class:`meta_data`. If no meta_data is provided, the most recent version of
-   the format is used to create it. The resulting object is written to the given ``std::ostream``.
+   Constructs a :cpp:class:`cable_cell_component` from a
+   :cpp:class:`arb::label_dict` object, and optional :cpp:class:`meta_data`. If
+   no meta_data is provided, the most recent version of the format is used to
+   create it. The resulting object is written to the given ``std::ostream``.
 
 .. cpp:function:: std::ostream& write_component(std::ostream& o, const arb::morphology& x, const meta_data& m = {})
 
-   Constructs a :cpp:class:`cable_cell_component` from a :cpp:class:`morphology` object, and optional
-   :cpp:class:`meta_data`. If no meta_data is provided, the most recent version of
-   the format is used to create it. The resulting object is written to the given ``std::ostream``.
+   Constructs a :cpp:class:`cable_cell_component` from a :cpp:class:`arb::morphology`
+   object, and optional :cpp:class:`meta_data`. If no meta_data is provided, the
+   most recent version of the format is used to create it. The resulting object
+   is written to the given ``std::ostream``.
 
 .. cpp:function:: std::ostream& write_component(std::ostream& o, const arb::cable_cell& x, const meta_data& m = {})
 
-   Constructs a :cpp:class:`cable_cell_component` from a :cpp:class:`cable_cell` object, and optional
-   :cpp:class:`meta_data`. If no meta_data is provided, the most recent version of
-   the format is used to create it. The resulting object is written to the given ``std::ostream``.
+   Constructs a :cpp:class:`cable_cell_component` from a
+   :cpp:class:`arb::cable_cell` object, and optional :cpp:class:`meta_data`. If
+   no meta_data is provided, the most recent version of the format is used to
+   create it. The resulting object is written to the given ``std::ostream``.

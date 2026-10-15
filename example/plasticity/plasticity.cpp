@@ -1,6 +1,5 @@
 #include <any>
 #include <iostream>
-#include <iomanip>
 #include <unordered_map>
 
 #include <arborio/label_parse.hpp>
@@ -10,6 +9,8 @@
 #include <arbor/simulation.hpp>
 #include <arbor/util/any_cast.hpp>
 #include <arbor/util/any_ptr.hpp>
+
+#include <fmt/format.h>
 
 using namespace arborio::literals;
 
@@ -77,14 +78,15 @@ struct recipe: public arb::recipe {
 // NEVER do this in HPC!!!
 std::mutex mtx;
 
-void sampler(arb::probe_metadata pm, std::size_t n, const arb::sample_record* samples) {
-    auto* loc = arb::util::any_cast<const arb::mlocation*>(pm.meta);
-
-    for (std::size_t i = 0; i<n; ++i) {
-        std::lock_guard<std::mutex> lock{mtx};
-        auto* value = arb::util::any_cast<const double*>(samples[i].data);
-        std::cout << std::fixed << std::setprecision(4)
-                  << "|  " << samples[i].time << " |      " << loc->pos << " | " << *value << " |\n";
+void sampler(arb::probe_metadata pm, const arb::sample_records& samples) {
+    using probe_t = arb::cable_probe_membrane_voltage;
+    auto reader = arb::sample_reader<probe_t::meta_type>(pm.meta, samples);
+    std::lock_guard<std::mutex> lock{mtx};
+    for (std::size_t ix = 0; ix < reader.n_row(); ++ix) {
+        auto time = reader.time(ix);
+        auto value = reader.value(ix);
+        arb::mlocation meta = reader.metadata(0);
+        std::cout << fmt::format("| {:7.4f} | {:11.1f} | {:9.2f} |\n", time, meta.pos, value);
     }
 }
 
@@ -113,7 +115,7 @@ int main(int argc, char** argv) {
     auto ctx = arb::make_context(arb::proc_allocation{8, -1});
     auto sim = arb::simulation(rec, ctx);
     sim.add_sampler(arb::all_probes, arb::regular_schedule(dt*arb::units::ms), sampler);
-    sim.set_global_spike_callback(spike_cb);
+    sim.set_local_spike_callback(spike_cb);
     print_header(0, 1);
     sim.run(1.0*arb::units::ms, dt*arb::units::ms);
     rec.add_connection(2);

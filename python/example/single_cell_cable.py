@@ -56,7 +56,7 @@ class Cable(A.recipe):
         self.stimulus_duration = stimulus_duration * U.ms
         self.stimulus_amplitude = stimulus_amplitude * U.nA
 
-        self.cv_policy_max_extent = cv_policy_max_extent
+        self.cv_policy_max_extent = cv_policy_max_extent * U.um
 
         self.the_props = A.neuron_cable_properties()
 
@@ -101,7 +101,7 @@ class Cable(A.recipe):
             )
         )
 
-        policy = A.cv_policy_max_extent_um(self.cv_policy_max_extent)
+        policy = A.cv_policy_max_extent(self.cv_policy_max_extent)
 
         return A.cable_cell(tree, decor, labels, policy)
 

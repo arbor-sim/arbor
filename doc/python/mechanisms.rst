@@ -75,7 +75,7 @@ Cable cell mechanisms
         :param name: name of mechanism.
         :type name: str
         :param params: A dictionary of parameter values, with parameter name as key.
-        :type params: dict[str, double]
+        :type params: dict[str, float]
 
     .. method:: mechanism(name)
         :noindex:
@@ -145,7 +145,7 @@ Cable cell mechanisms
         :param name: name of mechanism.
         :type name: str
         :param params: A dictionary of parameter values, with parameter name as key.
-        :type params: dict[str, double]
+        :type params: dict[str, float]
 
     .. method:: density(mech)
         :noindex:
@@ -163,7 +163,7 @@ Cable cell mechanisms
         :param mech: mechanism description.
         :type mech: :py:class:`mechanism`
         :param params: A dictionary of parameter values, with parameter name as key.
-        :type params: dict[str, double]
+        :type params: dict[str, float]
 
 .. py:class:: synapse
 
@@ -191,7 +191,7 @@ Cable cell mechanisms
         :param name: name of mechanism.
         :type name: str
         :param params: A dictionary of parameter values, with parameter name as key.
-        :type params: dict[str, double]
+        :type params: dict[str, float]
 
     .. method:: synapse(mech)
         :noindex:
@@ -209,7 +209,7 @@ Cable cell mechanisms
         :param mech: mechanism description.
         :type mech: :py:class:`mechanism`
         :param params: A dictionary of parameter values, with parameter name as key.
-        :type params: dict[str, double]
+        :type params: dict[str, float]
 
 
 .. py:class:: junction
@@ -238,7 +238,7 @@ Cable cell mechanisms
         :param name: name of mechanism.
         :type name: str
         :param params: A dictionary of parameter values, with parameter name as key.
-        :type params: dict[str, double]
+        :type params: dict[str, float]
 
     .. method:: junction(mech)
         :noindex:
@@ -256,7 +256,7 @@ Cable cell mechanisms
         :param mech: mechanism description.
         :type mech: :py:class:`mechanism`
         :param params: A dictionary of parameter values, with parameter name as key.
-        :type params: dict[str, double]
+        :type params: dict[str, float]
 
 .. py:class:: mechanism_info
 
@@ -283,7 +283,7 @@ Cable cell mechanisms
         # 2.0
 
     .. py:attribute:: kind
-        :type: string
+        :type: str
 
         String representation of the kind of the mechanism: density, point or reversal potential.
 
@@ -368,7 +368,7 @@ Cable cell mechanisms
     Metadata about a specific field of a mechanism is presented as read-only attributes.
 
     .. py:attribute:: units
-        :type: string
+        :type: str
 
         The units of the field.
 
@@ -466,9 +466,6 @@ Mechanism catalogues
             for name in arbor.default_catalogue():
               print(name)
 
-        :return: :class:`py_mech_cat_iterator`
-
-
     .. py:method:: extend(other, prefix="")
 
         Import another catalogue, possibly with a prefix. Will raise an exception
@@ -482,7 +479,7 @@ Mechanism catalogues
             cat.extend(arbor.allen_catalogue())
 
         :param other: reference to other catalogue.
-        :type other: :class:`mechanism_catalogue`
+        :type other: :class:`catalogue`
         :param prefix: prefix for mechanism names in ``other``
         :type prefix: str
 

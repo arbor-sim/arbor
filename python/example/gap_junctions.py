@@ -129,7 +129,7 @@ recipe = chain_recipe(ncells_per_chain, nchains)
 sim = A.simulation(recipe)
 
 # Set spike generators to record
-sim.record(A.spike_recording.all)
+sim.record(A.spike_recording.local)
 
 # Sampler
 handles = [

@@ -5,11 +5,10 @@
 
 #include <any>
 #include <cassert>
-#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <random>
+#include <sstream>
 #include <vector>
 
 #include <nlohmann/json.hpp>
@@ -60,18 +59,19 @@ ring_params read_options(int argc, char** argv);
 using arb::cell_gid_type;
 using arb::cell_kind;
 using arb::cell_lid_type;
-using arb::cell_member_type;
 using arb::cell_size_type;
 using arb::time_type;
 
+// result of simple sampler for probe type
+using sample_result = arb::simple_sampler_result<arb::cable_state_meta_type>;
+
 // Writes voltage trace as a json file.
-void write_trace_json(const arb::trace_data<double>& trace);
+void write_trace_json(int rank, const sample_result&);
 
 // Generate a cell.
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params);
 
-class ring_recipe: public arb::recipe {
-public:
+struct ring_recipe: public arb::recipe {
     ring_recipe(unsigned num_cells, cell_parameters params, unsigned min_delay):
         num_cells_(num_cells),
         cell_params_(params),
@@ -165,6 +165,7 @@ private:
 
 int main(int argc, char** argv) {
     try {
+        int rank = 0;
         bool root = true;
 
         arb::proc_allocation resources;
@@ -174,7 +175,8 @@ int main(int argc, char** argv) {
         arbenv::with_mpi guard(argc, argv, false);
         resources.gpu_id = arbenv::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(resources, MPI_COMM_WORLD);
-        root = arb::rank(context) == 0;
+        rank = arb::rank(context);
+        root = rank == 0;
 #else
         resources.gpu_id = arbenv::default_gpu();
         auto context = arb::make_context(resources);
@@ -187,10 +189,10 @@ int main(int argc, char** argv) {
         std::cout << sup::mask_stream(root);
 
         // Print a banner with information about hardware configuration
-        std::cout << "gpu:      " << (has_gpu(context) ? "yes" : "no") << "\n";
-        std::cout << "threads:  " << num_threads(context) << "\n";
-        std::cout << "mpi:      " << (has_mpi(context) ? "yes" : "no") << "\n";
-        std::cout << "ranks:    " << num_ranks(context) << "\n" << std::endl;
+        std::cout << "gpu:      " << (has_gpu(context) ? "yes" : "no") << "\n"
+                  << "threads:  " << num_threads(context) << "\n"
+                  << "mpi:      " << (has_mpi(context) ? "yes" : "no") << "\n"
+                  << "ranks:    " << num_ranks(context) << "\n" << std::endl;
 
         auto params = read_options(argc, argv);
 
@@ -211,98 +213,64 @@ int main(int argc, char** argv) {
         // The schedule for sampling is 10 samples every 1 ms.
         auto sched = arb::regular_schedule(1*arb::units::ms);
         // This is where the voltage samples will be stored as (time, value) pairs
-        arb::trace_vector<double> voltage;
+        sample_result voltage;
         // Now attach the sampler at probeset_id, with sampling schedule sched, writing to voltage
         sim.add_sampler(arb::one_probe(probeset_id), sched, arb::make_simple_sampler(voltage));
 
         // Set up recording of spikes to a vector on the root process.
         std::vector<arb::spike> recorded_spikes;
-        if (root) {
-            sim.set_global_spike_callback(
-                [&recorded_spikes](const std::vector<arb::spike>& spikes) {
-                    recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
-                });
-        }
+        sim.set_local_spike_callback([&recorded_spikes](const std::vector<arb::spike>& spikes) {
+            recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
+        });
 
         meters.checkpoint("model-init", context);
 
-        if (root) { sim.set_epoch_callback(arb::epoch_progress_bar()); }
+        if (root) sim.set_epoch_callback(arb::epoch_progress_bar());
         std::cout << "running simulation\n" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
         sim.run(params.duration*arb::units::ms, 0.025*arb::units::ms);
 
         meters.checkpoint("model-run", context);
 
-        // Print generated connections
+        auto ns = sim.num_spikes();
+
+        // Print diagnostics on rank zero
         if (root) {
+            // Generated connections
             const auto connections = arb::generate_network_connections(recipe);
             std::cout << "Connections:" << std::endl;
             for (const auto& c: connections) {
                 std::cout << "(" << c.source.gid << ", \"" << c.source.label << "\") ->";
                 std::cout << "(" << c.target.gid << ", \"" << c.target.label << "\")" << std::endl;
             }
-        }
-
-        auto ns = sim.num_spikes();
-
-        // Write spikes to file
-        if (root) {
+            // Spike counts
             std::cout << "\n"
                       << ns << " spikes generated at rate of " << params.duration / ns
                       << " ms between spikes\n";
-            std::ofstream fid("spikes.gdf");
-            if (!fid.good()) {
-                std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
-            }
-            else {
-                char linebuf[45];
-                for (auto spike: recorded_spikes) {
-                    auto n = std::snprintf(linebuf,
-                        sizeof(linebuf),
-                        "%u %.4f\n",
-                        unsigned{spike.source.gid},
-                        float(spike.time));
-                    fid.write(linebuf, n);
-                }
-            }
         }
-
-        // Write the samples to a json file.
-        if (root) { write_trace_json(voltage.at(0)); }
-
-        auto profile = arb::profile::profiler_summary();
-        std::cout << profile << "\n";
 
         auto report = arb::profile::make_meter_report(meters, context);
         std::cout << report;
+        auto profile = arb::profile::profiler_summary();
+        std::cout << profile << "\n";
+        
+        // Write local spikes to file
+        std::ofstream fid("spikes-" + std::to_string(rank) + ".gdf");
+        if (!fid.good()) std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
+        char linebuf[45];
+        for (auto spike: recorded_spikes) {
+            auto n = std::snprintf(linebuf, sizeof(linebuf),
+                                   "%u %.4f\n", unsigned{spike.source.gid}, float(spike.time));
+            fid.write(linebuf, n);
+        }
+
+        // Write the samples to a json file.
+        write_trace_json(rank, voltage);
     }
     catch (std::exception& e) {
         std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";
         return 1;
     }
-
-    return 0;
-}
-
-void write_trace_json(const arb::trace_data<double>& trace) {
-    std::string path = "./voltages.json";
-
-    nlohmann::json json;
-    json["name"] = "ring demo";
-    json["units"] = "mV";
-    json["cell"] = "0.0";
-    json["probe"] = "0";
-
-    auto& jt = json["data"]["time"];
-    auto& jy = json["data"]["voltage"];
-
-    for (const auto& sample: trace) {
-        jt.push_back(sample.t);
-        jy.push_back(sample.v);
-    }
-
-    std::ofstream file(path);
-    file << std::setw(1) << json << "\n";
 }
 
 ring_params read_options(int argc, char** argv) {
@@ -340,4 +308,21 @@ ring_params read_options(int argc, char** argv) {
     }
 
     return params;
+}
+
+void write_trace_json(int rank, const sample_result& result) {
+    std::string path = "./voltages-rank=" + std::to_string(rank) + ".json";
+    nlohmann::json json;
+    json["name"] = "network demo";
+    json["units"] = "mV";
+    json["cell"] = "0";
+    json["probe"] = "Um";
+    json["data"]["time"] = result.time;
+    for (std::size_t idx = 0; idx < result.width; ++idx) {
+        std::stringstream loc;
+        loc << result.metadata.at(idx);
+        json["data"]["voltages"][loc.str()] = result.values.at(idx); 
+    }
+    std::ofstream file(path);
+    file << std::setw(1) << json << "\n";
 }

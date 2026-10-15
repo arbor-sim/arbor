@@ -158,7 +158,7 @@ if __name__ == "__main__":
     print(decomp)
 
     sim = A.simulation(recipe, context, decomp)
-    sim.record(A.spike_recording.all)
+    sim.record(A.spike_recording.local)
     sim.run(tfinal * U.ms, dt * U.ms)
 
     # get data

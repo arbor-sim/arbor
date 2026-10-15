@@ -33,7 +33,7 @@ class recipe(A.recipe):
 if __name__ == "__main__":
     rec = recipe(n_cell=4)
     sim = A.simulation(rec)
-    sim.record(A.spike_recording.all)
+    sim.record(A.spike_recording.local)
     sim.run(10 * U.ms, 10 * U.us)
     for (gid, _), time in sim.spikes():
         print(f"{time:5.3}ms gid={gid:3d}")

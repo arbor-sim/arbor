@@ -1,10 +1,9 @@
 #pragma once
 
 #include <filesystem>
-#include <map>
 #include <memory>
 #include <string>
-#include <typeindex>
+#include <exception>
 #include <vector>
 
 #include <arbor/export.hpp>

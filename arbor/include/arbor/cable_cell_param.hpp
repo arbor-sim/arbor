@@ -132,51 +132,56 @@ struct ARB_SYMBOL_VISIBLE threshold_detector {
 // cell-wide default:
 
 struct ARB_SYMBOL_VISIBLE init_membrane_potential {
+    static constexpr U::unit unit = U::mV;
     double value = NAN;      // [mV]
     iexpr scale = 1;         // [1]
 
     init_membrane_potential() = default;
     init_membrane_potential(const U::quantity& m, iexpr scale=1):
-        value(U::unit_of(m, U::mV, "membrane potential")),
+        value(U::unit_of(m, unit, "membrane potential")),
         scale{scale}
     {}
 };
 
 
 struct ARB_SYMBOL_VISIBLE temperature {
+    static constexpr U::unit unit = U::Kelvin;
     double value = NAN;      // [K]
     iexpr scale = 1;         // [1]
 
     temperature() = default;
     temperature(const U::quantity& m, iexpr scale=1):
-        value(U::unit_of(m, U::Kelvin, "Temperature")),
+        value(U::unit_of(m, unit, "Temperature")),
         scale{scale}
     {}
 };
 
 struct ARB_SYMBOL_VISIBLE axial_resistivity {
+    static constexpr U::unit unit = U::cm*U::Ohm;
     double value = NAN;      // [Ω·cm]
     iexpr scale = 1;         // [1]
 
     axial_resistivity() = default;
     axial_resistivity(const U::quantity& m, iexpr scale=1):
-        value(U::unit_of(m, U::cm*U::Ohm, "Resistivity")),
+        value(U::unit_of(m, unit, "Resistivity")),
         scale{scale}
     {}
 };
 
 struct ARB_SYMBOL_VISIBLE membrane_capacitance {
+    static constexpr U::unit unit = U::F/U::m2;
     double value = NAN;      // [F/m²]
     iexpr scale = 1;         // [1]
 
     membrane_capacitance() = default;
     membrane_capacitance(const U::quantity& m, iexpr scale=1):
-        value(U::unit_of(m, U::F/U::m2, "Capacitance")),
+        value(U::unit_of(m, unit, "Capacitance")),
         scale{scale}
     {}
 };
 
 struct ARB_SYMBOL_VISIBLE init_int_concentration {
+    static constexpr U::unit unit = U::mM;
     std::string ion = "";
     double value = NAN;      // [mM]
     iexpr scale = 1;         // [1]
@@ -184,12 +189,13 @@ struct ARB_SYMBOL_VISIBLE init_int_concentration {
     init_int_concentration() = default;
     init_int_concentration(const std::string& ion, const U::quantity& m, iexpr scale=1):
         ion{ion},
-        value(U::unit_of(m, U::mM, "Concentration")),
+        value(U::unit_of(m, unit, "Concentration")),
         scale{scale}
     {}
 };
 
 struct ARB_SYMBOL_VISIBLE ion_diffusivity {
+    static constexpr U::unit unit = U::m2/U::s;
     std::string ion = "";
     double value = NAN;      // [m²/s]
     iexpr scale = 1;         // [1]
@@ -197,12 +203,13 @@ struct ARB_SYMBOL_VISIBLE ion_diffusivity {
     ion_diffusivity() = default;
     ion_diffusivity(const std::string& ion, const U::quantity& m, iexpr scale=1):
         ion{ion},
-        value(U::unit_of(m, U::m2/U::s, "Diffusivity")),
+        value(U::unit_of(m, unit, "Diffusivity")),
         scale{scale}
     {}
 };
 
 struct ARB_SYMBOL_VISIBLE init_ext_concentration {
+    static constexpr U::unit unit = U::mM;
     std::string ion = "";
     double value = NAN;      // [mM]
     iexpr scale = 1;         // [1]
@@ -210,12 +217,13 @@ struct ARB_SYMBOL_VISIBLE init_ext_concentration {
     init_ext_concentration() = default;
     init_ext_concentration(const std::string& ion, const U::quantity& m, iexpr scale=1):
         ion{ion},
-        value(U::unit_of(m, U::mM, "Concentration")),
+        value(U::unit_of(m, unit, "Concentration")),
         scale{scale}
     {}
 };
 
 struct ARB_SYMBOL_VISIBLE init_reversal_potential {
+    static constexpr U::unit unit = U::mV;
     std::string ion = "";
     double value = NAN;      // [mV]
     iexpr scale = 1;         // [1]
@@ -223,7 +231,7 @@ struct ARB_SYMBOL_VISIBLE init_reversal_potential {
     init_reversal_potential() = default;
     init_reversal_potential(const std::string& ion, const U::quantity& m, iexpr scale=1):
         ion{ion},
-        value(U::unit_of(m, U::mV, "Reversal potential")),
+        value(U::unit_of(m, unit, "Reversal potential")),
         scale{scale}
     {}
 };

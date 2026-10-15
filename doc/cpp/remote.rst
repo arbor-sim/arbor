@@ -53,12 +53,12 @@ Spike Exchange
 
 .. cpp:class:: arb_spike
 
-    .. cpp:member:: uint32_t gid
+    .. cpp:member:: std::uint32_t gid
 
         Global id of the spiking cell, must fit in an unsigned 32b integer.
         ``gid`` must be unique in the external network.
 
-    .. cpp:member:: uint32_t lid
+    .. cpp:member:: std::uint32_t lid
 
         Local id on the spiking cell, must fit in an unsigned 32b integer. This
         ``lid`` describes which logical part of the cell ``gid`` emitted the
@@ -69,7 +69,7 @@ Spike Exchange
 
         Time at which the event occured.
 
- .. function:: gather_spikes(const std::vector<arb_spike>& spikes, MPI_Comm comm)
+ .. function:: std::vector<arb_spike> gather_spikes(const std::vector<arb_spike>& spikes, MPI_Comm comm)
 
         Sends a buffer of spikes over ``comm`` receiving back the concatenated
         result of all calling MPI tasks in Arbor. This is a collective

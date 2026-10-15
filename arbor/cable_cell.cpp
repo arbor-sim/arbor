@@ -172,9 +172,9 @@ struct cable_cell_impl {
         if constexpr (std::is_same_v<T, membrane_capacitance>)    { return membrane_capacitances_; }
     }
 
-    void paint(const mextent& cables, const std::string& str, const density& prop) { this->paint(cables, str, scaled_mechanism<density>(prop)); }
+    void paint(const mextent& cables, const region& reg, const density& prop) { this->paint(cables, reg, scaled_mechanism<density>(prop)); }
 
-    void paint(const mextent& cables, const std::string& str, const scaled_mechanism<density>& prop) {
+    void paint(const mextent& cables, const region& reg, const scaled_mechanism<density>& prop) {
         std::unordered_map<std::string, iexpr_ptr> im;
         for (const auto& [label, iex]: prop.scale_expr) {
             im.insert_or_assign(label, thingify(iex, provider));
@@ -186,20 +186,20 @@ struct cable_cell_impl {
             if (cable.prox_pos == cable.dist_pos) continue;
             if (!mm.insert(cable, {prop.t_mech, im})) {
                 throw cable_cell_error(util::pprintf("Setting mechanism '{}' on region '{}' overpaints at cable {}",
-                                                     prop.t_mech.mech.name(), str, cable));
+                                                     prop.t_mech.mech.name(), util::to_string(reg), cable));
             }
         }
     }
 
     template <typename TaggedMech>
-    void paint(const mextent& cables, const std::string& str, const TaggedMech& prop) {
+    void paint(const mextent& cables, const region& reg, const TaggedMech& prop) {
         auto& mm = get_region_map(prop);
         for (const auto& cable: cables) {
             // Skip zero-length cables in extent:
             if (cable.prox_pos == cable.dist_pos) continue;
             if (!mm.insert(cable, prop)) {
                 throw cable_cell_error(util::pprintf("Setting property '{}' on region '{}' overpaints at cable {}",
-                                                     show(prop), str, cable));
+                                                     show(prop), util::to_string(reg), cable));
             }
         }
     }
@@ -217,25 +217,34 @@ impl_ptr make_impl(cable_cell_impl* c) { return impl_ptr(c, [](cable_cell_impl* 
 
 void cable_cell_impl::init() {
     // Try to cache with a lookback of one since most models paint/place one
-    // region/locset in direct succession. We also key on the stringy view of
-    // expressions since in general equality is undecidable.
-    std::string last_label = "";
-    mextent last_region;
-    mlocation_list last_locset;
-    for (const auto& [where, what]: decorations.paintings()) {
-        if (auto region = util::to_string(where); last_label != region) {
-            last_label  = std::move(region);
-            last_region = thingify(where, provider);
+    // region/locset in direct succession.
+    {
+        region last;
+        mextent last_region;
+        for (const auto &[where, what] : decorations.paintings()) {
+            if (last != where) {
+                last = where;
+                last_region = thingify(where, provider);
+            }
+            std::visit([this, &last_region, &last](auto &&what) {
+                           this->paint(last_region, last, what);
+                        },
+                        what);
         }
-        std::visit([this, &last_region, &last_label] (auto&& what) { this->paint(last_region, last_label, what); }, what);
     }
-    for (const auto& [where, what, label]: decorations.placements()) {
-        if (auto locset = util::to_string(where); last_label != locset) {
-            last_label  = std::move(locset);
-            last_locset = thingify(where, provider);
+    {
+        locset last;
+        mlocation_list last_locset;
+        for (const auto &[where, what, label] : decorations.placements()) {
+            if (last != where) {
+                last = where;
+                last_locset = thingify(where, provider);
+            }
+            std::visit([this, &last_locset, &label = label](auto &&what) {
+                           return this->place(last_locset, what, label);
+                        },
+                        what);
         }
-        std::visit([this, &last_locset, &label=label] (auto&& what) { return this->place(last_locset, what, label); },
-                   what);
     }
 }
 

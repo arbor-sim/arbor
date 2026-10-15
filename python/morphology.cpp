@@ -514,8 +514,7 @@ void register_morphology(py::module& m) {
         .def("morphology",
             [](const arborio::neuroml& nml, const std::string& morph_id, bool spherical) {
                 try {
-                    using namespace arborio::neuroml_options;
-                    return nml.morphology(morph_id, spherical? allow_spherical_root: none);
+                    return nml.morphology(morph_id, spherical? arborio::neuroml_options::allow_spherical_root: arborio::neuroml_options::none);
                 }
                 catch (arborio::neuroml_exception& e) {
                     throw util::pprintf("NeuroML error: {}", e.what());
@@ -525,8 +524,7 @@ void register_morphology(py::module& m) {
         .def("cell_morphology",
             [](const arborio::neuroml& nml, const std::string& cell_id, bool spherical) {
                 try {
-                    using namespace arborio::neuroml_options;
-                    return nml.cell_morphology(cell_id, spherical? allow_spherical_root: none);
+                    return nml.cell_morphology(cell_id, spherical? arborio::neuroml_options::allow_spherical_root: arborio::neuroml_options::none);
                 }
                 catch (arborio::neuroml_exception& e) {
                     throw util::pprintf("NeuroML error: {}", e.what());

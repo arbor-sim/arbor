@@ -7,6 +7,6 @@
 
 namespace arborio {
 
-loaded_morphology nml_parse_morphology_element(const pugi::xml_node& morph, enum neuroml_options::values);
+loaded_morphology nml_parse_morphology_element(const pugi::xml_node& morph, neuroml_options);
 
 } // namespace arborio

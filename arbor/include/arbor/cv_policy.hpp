@@ -1,5 +1,6 @@
 #pragma once
 
+#include "arbor/units.hpp"
 #include <memory>
 #include <utility>
 #include <ostream>

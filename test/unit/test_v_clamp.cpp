@@ -72,17 +72,18 @@ using um_s_type = std::vector<Um_type>;
 TEST(v_process, clamp) {
     auto u_soma = um_s_type{};
     auto u_dend = um_s_type{};
-    auto fun = [&u_soma, &u_dend](arb::probe_metadata pm,
-                                  std::size_t n,
-                                  const arb::sample_record* samples) {
-        for (std::size_t ix = 0ul; ix < n; ++ix) {
-            const auto& [t, v] = samples[ix];
-            double u = *arb::util::any_cast<const double*>(v);
+    auto fun = [&u_soma, &u_dend](const arb::probe_metadata& pm,
+                                  const arb::sample_records& samples) {
+        using probe_t = arb::cable_probe_membrane_voltage;
+        auto reader = arb::sample_reader<probe_t::meta_type>(pm.meta, samples);
+        for (std::size_t ix = 0ul; ix < reader.n_row(); ++ix) {
+            auto t = reader.time(ix);
+            auto v = reader.value(ix);
             if (pm.id.tag == "Um-(0, 0.125)") {
-                u_soma.push_back({t, u});
+                u_soma.push_back({t, v});
             }
             else if (pm.id.tag == "Um-(0, 0.625)") {
-                u_dend.push_back({t, u});
+                u_dend.push_back({t, v});
             }
             else {
                 throw std::runtime_error{"Unexpected probe id"};
@@ -140,17 +141,18 @@ TEST(v_process, clamp) {
 TEST(v_process, limit) {
     auto u_soma = um_s_type{};
     auto u_dend = um_s_type{};
-    auto fun = [&u_soma, &u_dend](arb::probe_metadata pm,
-                                  std::size_t n,
-                                  const arb::sample_record* samples) {
-        for (std::size_t ix = 0ul; ix < n; ++ix) {
-            const auto& [t, v] = samples[ix];
-            double u = *arb::util::any_cast<const double*>(v);
+    auto fun = [&u_soma, &u_dend](const arb::probe_metadata& pm,
+                                  const arb::sample_records& samples) {
+        using probe_t = arb::cable_probe_membrane_voltage;
+        auto reader = arb::sample_reader<probe_t::meta_type>(pm.meta, samples);
+        for (std::size_t ix = 0ul; ix < reader.n_row(); ++ix) {
+            auto t = reader.time(ix);
+            auto v = reader.value(ix);
             if (pm.id.tag == "Um-(0, 0.125)") {
-                u_soma.push_back({t, u});
+                u_soma.push_back({t, v});
             }
             else if (pm.id.tag == "Um-(0, 0.625)") {
-                u_dend.push_back({t, u});
+                u_dend.push_back({t, v});
             }
             else {
                 throw std::runtime_error{"Unexpected probe id"};
@@ -208,17 +210,18 @@ TEST(v_process, limit) {
 TEST(v_process, clamp_fine) {
     auto u_soma = um_s_type{};
     auto u_dend = um_s_type{};
-    auto fun = [&u_soma, &u_dend](arb::probe_metadata pm,
-                                  std::size_t n,
-                                  const arb::sample_record* samples) {
-        for (std::size_t ix = 0ul; ix < n; ++ix) {
-            const auto& [t, v] = samples[ix];
-            double u = *arb::util::any_cast<const double*>(v);
+    auto fun = [&u_soma, &u_dend](const arb::probe_metadata& pm,
+                                  const arb::sample_records& samples) {
+        using probe_t = arb::cable_probe_membrane_voltage;
+        auto reader = arb::sample_reader<probe_t::meta_type>(pm.meta, samples);
+        for (std::size_t ix = 0ul; ix < reader.n_row(); ++ix) {
+            auto t = reader.time(ix);
+            auto v = reader.value(ix);
             if (pm.id.tag == "Um-(0, 0.125)") {
-                u_soma.push_back({t, u});
+                u_soma.push_back({t, v});
             }
             else if (pm.id.tag == "Um-(0, 0.625)") {
-                u_dend.push_back({t, u});
+                u_dend.push_back({t, v});
             }
             else {
                 throw std::runtime_error{"Unexpected probe id"};
