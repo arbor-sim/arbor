@@ -114,6 +114,7 @@ set(unit_sources
     test_piecewise.cpp
     test_pp_util.cpp
     test_probe.cpp
+    test_profiler.cpp
     test_rand.cpp
     test_range.cpp
     test_recipe.cpp
