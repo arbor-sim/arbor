@@ -33,8 +33,9 @@ namespace {
 // trains sensitive to late, missing or duplicated events.
 class distance_recipe: public recipe {
 public:
-    distance_recipe(unsigned num_ranks, unsigned cells_per_rank):
-        num_ranks_(num_ranks), cells_per_rank_(cells_per_rank) {}
+    // Delays are 1 ms plus delay_step per step on the ring of ranks.
+    distance_recipe(unsigned num_ranks, unsigned cells_per_rank, double delay_step = 1.3):
+        num_ranks_(num_ranks), cells_per_rank_(cells_per_rank), delay_step_(delay_step) {}
 
     cell_size_type num_cells() const override { return num_ranks_*cells_per_rank_; }
     cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::lif; }
@@ -64,12 +65,13 @@ public:
         unsigned a = src/cells_per_rank_, b = tgt/cells_per_rank_;
         auto d = a > b? a - b: b - a;
         // Not a multiple of the epoch length, where rounding slack would hide off-by-one errors.
-        return 1.0 + 1.3*std::min(d, num_ranks_ - d);
+        return 1.0 + delay_step_*std::min(d, num_ranks_ - d);
     }
 
 private:
     unsigned num_ranks_;
     unsigned cells_per_rank_;
+    double delay_step_;
 };
 
 constexpr unsigned cells_per_rank = 8;
@@ -477,4 +479,76 @@ TEST(spike_exchange, simulation_levels) {
             EXPECT_EQ(options.neighborhoods.size() + 1, levels.size());
         }
     }
+}
+
+// With automatic levels, update() keeps the neighbourhoods whose ranks did not change.
+TEST(spike_exchange, automatic_reuses_neighborhoods) {
+    const int rank = g_context->distributed->id();
+    const int num_ranks = g_context->distributed->size();
+    const time_type interval = 0.5;
+
+    // Minimum delay from each rank: 1 ms plus step per step on the ring of ranks.
+    auto ring_delays = [&](double step) {
+        std::vector<time_type> delays(num_ranks);
+        for (int s = 0; s < num_ranks; ++s) {
+            auto d = std::abs(s - rank);
+            delays[s] = 1.0 + step*std::min(d, num_ranks - d);
+        }
+        return delays;
+    };
+    auto neighborhood_ranks = [](const std::vector<spike_exchange_level>& levels) {
+        std::vector<std::vector<int>> ranks;
+        for (const auto& l: levels) {
+            if (!l.far) ranks.push_back(l.ranks);
+        }
+        return ranks;
+    };
+
+    neighborhood_router router({.automatic = true}, g_context->distributed);
+    router.update(ring_delays(1.3), {}, interval);
+    auto before = neighborhood_ranks(router.levels());
+    auto made = router.num_neighborhoods_made();
+    EXPECT_EQ(before.size(), made);
+
+    // Same delays: nothing is made anew.
+    router.update(ring_delays(1.3), {}, interval);
+    EXPECT_EQ(before, neighborhood_ranks(router.levels()));
+    EXPECT_EQ(made, router.num_neighborhoods_made());
+
+    // Longer delays shift ranks into slower classes. Only the levels whose
+    // ranks changed are made anew; this ring looks the same from every rank.
+    router.update(ring_delays(2.9), {}, interval);
+    auto after = neighborhood_ranks(router.levels());
+    std::size_t changed = 0;
+    for (std::size_t l = 0; l < after.size(); ++l) changed += l >= before.size() || before[l] != after[l];
+    EXPECT_EQ(made + changed, router.num_neighborhoods_made());
+    if (num_ranks > 2) {
+        EXPECT_NE(before, after);
+    }
+}
+
+// Updating the connections must keep the spikes the same as with the default
+// exchange, whether the automatic levels change or not.
+TEST(spike_exchange, same_spikes_after_update) {
+    const int num_ranks = g_context->distributed->size();
+    auto first = distance_recipe(num_ranks, cells_per_rank, 1.3);
+    auto second = distance_recipe(num_ranks, cells_per_rank, 2.9);
+
+    auto run = [&](const std::optional<neighborhood_spike_exchange>& spike_exchange) {
+        auto sim = simulation(first, g_context, partition_load_balance(first, g_context), 0, spike_exchange);
+        std::vector<spike> local;
+        sim.set_local_spike_callback([&](const std::vector<spike>& s) { local.insert(local.end(), s.begin(), s.end()); });
+        sim.run(20*U::ms, 0.025*U::ms);
+        sim.update(second);  // new delays, so the automatic levels change
+        sim.run(40*U::ms, 0.025*U::ms);
+        sim.update(second);  // same delays, so the levels are kept
+        sim.run(60*U::ms, 0.025*U::ms);
+        std::sort(local.begin(), local.end(),
+                  [](const spike& a, const spike& b) { return std::tie(a.source, a.time) < std::tie(b.source, b.time); });
+        return local;
+    };
+
+    auto expected = run({});
+    ASSERT_GT(expected.size(), 0u);
+    EXPECT_EQ(expected, run(neighborhood_spike_exchange{.automatic = true}));
 }

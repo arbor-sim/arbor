@@ -84,22 +84,40 @@ neighborhood_router::neighborhood_router(const neighborhood_spike_exchange& opti
 
 void neighborhood_router::set_levels(const std::vector<std::vector<int>>& neighborhoods) {
     const int num_neighborhoods = neighborhoods.size();
-    levels_.clear();
+    const int num_old_neighborhoods = levels_.empty()? 0: levels_.size() - 1;
 
     // Assign every other rank to the first neighbourhood that lists it, or the far level.
     const int far = num_neighborhoods;
     recv_level_.assign(num_domains_, far);
     recv_level_[rank_] = self_level;
+    std::vector<std::vector<int>> sources(num_neighborhoods);
     for (int l = 0; l < num_neighborhoods; ++l) {
-        std::vector<int> sources;
         for (auto r: neighborhoods[l]) {
             if (recv_level_[r] != far) continue;
             recv_level_[r] = l;
-            sources.push_back(r);
+            sources[l].push_back(r);
         }
-        levels_.push_back({dist_->make_neighborhood(sources)});
     }
-    levels_.emplace_back();
+
+    // Making a neighbourhood is collective and expensive, so keep those whose
+    // ranks are unchanged; all ranks must agree on which ones to make anew.
+    auto same_ranks = [](std::vector<int> a, std::vector<int> b) {
+        std::sort(a.begin(), a.end());
+        std::sort(b.begin(), b.end());
+        return a == b;
+    };
+    std::vector<level> levels(num_neighborhoods + 1);
+    for (int l = 0; l < num_neighborhoods; ++l) {
+        bool same = l < num_old_neighborhoods && same_ranks(levels_[l].neighbors->sources(), sources[l]);
+        if (dist_->min(int(same))) {
+            levels[l].neighbors = std::move(levels_[l].neighbors);
+        }
+        else {
+            levels[l].neighbors = dist_->make_neighborhood(sources[l]);
+            ++num_neighborhoods_made_;
+        }
+    }
+    levels_ = std::move(levels);
 
     // We are in exactly one level of each rank that receives from us.
     send_level_.assign(num_domains_, far);

@@ -64,6 +64,9 @@ public:
     // The levels of this rank: neighbourhoods first, far last.
     std::vector<spike_exchange_level> levels() const;
 
+    // Number of neighbourhoods made so far, for diagnostics and tests.
+    std::size_t num_neighborhoods_made() const { return num_neighborhoods_made_; }
+
     // Drop all buffered spikes.
     void clear();
 
@@ -91,7 +94,9 @@ private:
     };
 
     int far_level() const { return levels_.size() - 1; }
-    // Make the neighbourhoods, which must be valid, and assign all other ranks to the far level.
+    // Make the neighbourhoods, which must be valid, and assign all other ranks to
+    // the far level. Existing neighbourhoods are kept if their ranks are unchanged
+    // on all ranks.
     void set_levels(const std::vector<std::vector<int>>& neighborhoods);
     // Neighbourhoods by period class; see neighborhood_spike_exchange::automatic.
     std::vector<std::vector<int>> automatic_levels(const std::vector<time_type>& min_delays, time_type interval) const;
@@ -108,6 +113,7 @@ private:
     std::vector<int> recv_level_;
     std::vector<int> send_level_;
     std::unordered_map<cell_member_type, route> routes_;
+    std::size_t num_neighborhoods_made_ = 0;
 };
 
 } // namespace arb
