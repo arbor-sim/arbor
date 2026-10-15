@@ -318,11 +318,28 @@ TEST(fvm_layout, can_use_global_parameters) {
         auto C = cable_cell(desc);
         auto D = fvm_cv_discretize({C}, gprop.default_parameters);
         auto M = fvm_build_mechanism_data(gprop, {C}, gids, {{}}, D);
-        for (const auto& [k, v]: M.mechanisms) {
-            std::cerr << k << '\n';
-        }
         EXPECT_TRUE(M.mechanisms.contains("gexpsyn/e=42"));
         EXPECT_TRUE(M.mechanisms.contains("gexpsyn/e=23"));
+    }
+    {
+        auto desc = builder.make_cell();
+        desc.decorations
+            .place(ls::distal_translate(ctr, 1),
+                   junction("ggj",
+                           {{"g", 42}}),
+                   "gj-0")
+            .place(ls::proximal_translate(ctr, 1),
+                   junction("ggj",
+                           {{"g", 23}}),
+                   "gj-1");
+        auto C = cable_cell(desc);
+        auto D = fvm_cv_discretize({C}, gprop.default_parameters);
+        auto G = std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>>{
+            {0, {{0, 0, 0, 0.123}, {1, 0, 0, 0.123}}},
+        };
+        auto M = fvm_build_mechanism_data(gprop, {C}, gids, G, D);
+        EXPECT_TRUE(M.mechanisms.contains("ggj/g=42"));
+        EXPECT_TRUE(M.mechanisms.contains("ggj/g=23"));
     }
 }
 

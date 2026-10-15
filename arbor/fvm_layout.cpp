@@ -1002,7 +1002,6 @@ void verify_mechanism(const ion_species_map& global_ions,
 }
 
 // Construct FVM mechanism data for a single cell.
-
 fvm_mechanism_data fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
                                             const cable_cell& cell,
                                             const std::vector<fvm_gap_junction>& gj_conns,
@@ -1622,6 +1621,16 @@ make_gj_mechanism_config(const location_assignment<junction>& junctions,
                          const cell_build_data& data,
                          fvm_ion_map& ion_build_data,
                          fvm_mechanism_config_map& result) {
+    auto derived_junctions = location_assignment<junction>{};
+    for (const auto& [name, syn]: junctions) {
+        const auto& base = data.catalogue[name];
+        for (const auto& pm: syn) {
+            const auto& mech = pm.item.mech;
+            const auto& [name, params] = auto_derive(mech, base);
+            derived_junctions[name].emplace_back(pm.loc, pm.lid, junction(name, params), pm.tag);
+        }
+    }
+
     // Gap-junction mechanisms are handled differently from point mechanisms.
     // There is a separate mechanism instance at the local site of every gap-junction connection,
     // meaning there can be multiple gap-junction mechanism instances of the same type (name) per
@@ -1643,7 +1652,7 @@ make_gj_mechanism_config(const location_assignment<junction>& junctions,
     };
 
     std::unordered_map<cell_lid_type, junction_desc> lid_junction_desc;
-    for (const auto& [name, placements]: junctions) {
+    for (const auto& [name, placements]: derived_junctions) {
         const auto& info = data.catalogue[name];
         check_kind(info, arb_mechanism_kind_gap_junction);
         auto config = fvm_mechanism_config {

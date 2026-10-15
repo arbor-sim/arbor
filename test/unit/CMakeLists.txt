@@ -7,6 +7,7 @@ set(test_mechanisms
     fixed_ica_current
     gj0
     gj1
+    ggj
     gexpsyn
     linear_ca_conc
     non_linear
