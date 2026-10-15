@@ -105,8 +105,10 @@ def ring_neighborhoods(rank, num_ranks, widths):
 class result:
     """Spikes of this rank, timings, and the exchange levels arbor uses on this rank."""
 
-    def __init__(self, sim, init, run):
+    def __init__(self, sim, init, run, profile):
         self.spikes = sim.spikes().tolist()
+        # Profiler table of this rank; empty without profiling support.
+        self.profile = profile
         self.init = init
         self.run = run
         self.levels = sim.spike_exchange_levels()
@@ -115,13 +117,18 @@ class result:
 
 
 def simulate(recipe, context, args, spike_exchange=None):
+    profiling = A.config()["profiling"]
+    if profiling:
+        # Profile this simulation only, from construction to the end of the run.
+        A.profiler_clear()
     t0 = time.perf_counter()
     sim = A.simulation(recipe, context, spike_exchange=spike_exchange)
     sim.record(A.spike_recording.local)
     t1 = time.perf_counter()
     sim.run(args.tfinal * U.ms, args.dt * U.ms)
     t2 = time.perf_counter()
-    return result(sim, t1 - t0, t2 - t1)
+    profile = A.profiler_summary(args.profile_threshold) if profiling else ""
+    return result(sim, t1 - t0, t2 - t1, profile)
 
 
 def describe_levels(title, r):
@@ -172,6 +179,12 @@ def parse_args():
     )
     parser.add_argument("--tfinal", type=float, default=100, help="[ms]")
     parser.add_argument("--dt", type=float, default=0.025, help="[ms]")
+    parser.add_argument(
+        "--profile-threshold",
+        type=float,
+        default=1,
+        help="hide profiler regions below this share of the wall time [%%]",
+    )
     args = parser.parse_args()
 
     if any(w <= 0 for w in args.widths) or sorted(set(args.widths)) != args.widths:
@@ -193,6 +206,8 @@ def main():
     else:
         context = A.context()
     rank, num_ranks = context.rank, context.ranks
+    if A.config()["profiling"]:
+        A.profiler_initialize(context)
 
     def log(*msg):
         if rank == 0:
@@ -237,6 +252,20 @@ def main():
         raise RuntimeError(
             f"rank {rank}: the exchange methods produced different spikes"
         )
+
+    if A.config()["profiling"]:
+        variants = [
+            ("all-to-all", default),
+            ("neighborhood", given),
+            ("automatic", auto),
+        ]
+        for name, r in variants:
+            log(
+                f"\nprofile of rank 0, {name}, regions above {args.profile_threshold:g}%:"
+            )
+            log(r.profile)
+    else:
+        log("\nfor profiler times, build arbor with -DARB_WITH_PROFILING=ON")
 
     if A.config()["mpi"]:
         A.mpi_finalize()

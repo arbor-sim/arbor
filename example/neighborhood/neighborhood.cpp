@@ -38,6 +38,7 @@
 #include <arbor/event_generator.hpp>
 #include <arbor/lif_cell.hpp>
 #include <arbor/load_balance.hpp>
+#include <arbor/profile/profiler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/spike_exchange.hpp>
 #include <arbor/symmetric_recipe.hpp>
@@ -62,6 +63,7 @@ struct options {
     double tfinal = 200;           // [ms]
     double dt = 0.025;             // [ms]
     unsigned dry_run_ranks = 0;    // emulate this many ranks; 0 for a real run
+    double profile_threshold = 1;  // [%] hide profiler regions below this share of the wall time
 };
 
 std::optional<options> parse_options(int argc, char** argv);
@@ -147,12 +149,18 @@ struct result {
     // Levels of the neighbourhood exchange on this rank, and the epoch length [ms].
     std::vector<arb::spike_exchange_level> levels;
     double epoch;
+    // Profiler table of this rank; empty without profiling support.
+    std::string profile;
 };
 
 result simulate(const arb::recipe& rec, arb::context ctx, const std::optional<arb::neighborhood_spike_exchange>& exchange, const options& opt) {
     using clock = std::chrono::steady_clock;
     auto seconds = [](clock::duration d) { return std::chrono::duration<double>(d).count(); };
 
+#ifdef ARB_PROFILE_ENABLED
+    // Profile this simulation only, from construction to the end of the run.
+    arb::profile::profiler_clear();
+#endif
     auto t0 = clock::now();
     auto sim = arb::simulation::create(rec).set_context(ctx);
     if (exchange) sim.set_spike_exchange(*exchange);
@@ -161,8 +169,12 @@ result simulate(const arb::recipe& rec, arb::context ctx, const std::optional<ar
     simulation->run(opt.tfinal*U::ms, opt.dt*U::ms);
     auto t2 = clock::now();
 
+    std::stringstream profile;
+#ifdef ARB_PROFILE_ENABLED
+    arb::profile::print_profiler_summary(profile, opt.profile_threshold);
+#endif
     return {simulation->num_spikes(), seconds(t1 - t0), seconds(t2 - t1),
-            simulation->spike_exchange_levels(), simulation->max_epoch_length()};
+            simulation->spike_exchange_levels(), simulation->max_epoch_length(), profile.str()};
 }
 
 // Print the levels arbor uses on this rank.
@@ -211,6 +223,9 @@ int main(int argc, char** argv) {
         unsigned rank = arb::rank(ctx);
         unsigned num_ranks = arb::num_ranks(ctx);
         std::cout << sup::mask_stream(rank == 0);
+#ifdef ARB_PROFILE_ENABLED
+        arb::profile::profiler_initialize(ctx);
+#endif
 
         auto rec = arb::symmetric_recipe(std::make_unique<ring_tile>(*opt, num_ranks));
         // In a dry run, rank 0's neighbourhoods are shifted to every other rank.
@@ -255,6 +270,17 @@ int main(int argc, char** argv) {
             std::cerr << "error: the exchange methods produced different numbers of spikes\n";
             return 1;
         }
+
+#ifdef ARB_PROFILE_ENABLED
+        for (const auto& [name, r]: {std::pair{"all-to-all", &global},
+                                     std::pair{"neighborhood", &neighborhood},
+                                     std::pair{"automatic", &automatic}}) {
+            std::cout << "\nprofile of rank 0, " << name << ", regions above " << opt->profile_threshold << "%:\n"
+                      << r->profile;
+        }
+#else
+        std::cout << "\nfor profiler times, build arbor with -DARB_WITH_PROFILING=ON\n";
+#endif
     }
     catch (std::exception& e) {
         std::cerr << "exception caught in neighborhood example:\n" << e.what() << "\n";
@@ -293,7 +319,8 @@ std::optional<options> parse_options(int argc, char** argv) {
                      "-d|--delays         [Delays (ms) of these connections, e.g. 1,2,5,20]\n"
                      "-t|--tfinal         [Length of the simulation period (ms)]\n"
                      "-s|--dt             [Simulation time step (ms)]\n"
-                     "-D|--dry-run        [Emulate this many ranks]\n";
+                     "-D|--dry-run        [Emulate this many ranks]\n"
+                     "-P|--profile-threshold [Hide profiler regions below this share of the wall time (%)]\n";
 
     options opt;
     auto widths = to_list(opt.widths);
@@ -308,6 +335,7 @@ std::optional<options> parse_options(int argc, char** argv) {
         { opt.tfinal,         "-t", "--tfinal" },
         { opt.dt,             "-s", "--dt" },
         { opt.dry_run_ranks,  "-D", "--dry-run" },
+        { opt.profile_threshold, "-P", "--profile-threshold" },
         { to::action(help), to::flag, to::exit, "-h", "--help" }
     };
     if (!to::run(cli, argc, argv + 1)) return {};
