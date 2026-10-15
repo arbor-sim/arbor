@@ -18,10 +18,6 @@ endif()
 
 set(CXXOPT_WALL
     -Wall
-
-    # Clang: Also add lifetime warnings, because we can.
-    $<IF:$<CXX_COMPILER_ID:Clang>,-Wlifetime-safety-permissive,>
-
     # Clang:
     #
     # * Disable 'missing-braces' warning: this will inappropriately
