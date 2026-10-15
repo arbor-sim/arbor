@@ -6,6 +6,7 @@
 #include <limits>
 #include <map>
 #include <optional>
+#include <random>
 #include <set>
 #include <tuple>
 #include <vector>
@@ -424,6 +425,27 @@ TEST(spike_exchange, automatic_levels) {
         if (expected_periods[c]) {
             EXPECT_EQ(c, period_class(expected_periods[c]));
         }
+    }
+}
+
+// Merging sorted runs must give the same as a stable sort of the whole buffer.
+TEST(spike_exchange, merge_sorted_runs) {
+    std::mt19937 rng(42);
+    for (unsigned num_runs: {0u, 1u, 2u, 3u, 7u, 38u}) {
+        std::vector<spike> spikes;
+        std::vector<std::size_t> runs;
+        for (unsigned r = 0; r < num_runs; ++r) {
+            runs.push_back(spikes.size());
+            // Some runs are empty.
+            std::vector<spike> batch(rng()%20);
+            for (auto& s: batch) s = spike({cell_gid_type(rng()%10), 0}, r);
+            std::sort(batch.begin(), batch.end(), [](const spike& a, const spike& b) { return a.source < b.source; });
+            spikes.insert(spikes.end(), batch.begin(), batch.end());
+        }
+        auto expected = spikes;
+        std::stable_sort(expected.begin(), expected.end(), [](const spike& a, const spike& b) { return a.source < b.source; });
+        merge_sorted_runs(spikes, runs);
+        EXPECT_EQ(expected, spikes) << num_runs << " runs";
     }
 }
 
