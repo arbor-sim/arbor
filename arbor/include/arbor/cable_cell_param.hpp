@@ -256,9 +256,6 @@ struct ARB_SYMBOL_VISIBLE mechanism_desc {
         }
     };
 
-    mechanism_desc(nullptr_t) = delete;
-    mechanism_desc(int) = delete;
-
     // implicit
     mechanism_desc(std::string name): name_(std::move(name)) {
         if (name_.empty()) throw cable_cell_error("mechanism_desc: null name");
@@ -288,6 +285,10 @@ struct ARB_SYMBOL_VISIBLE mechanism_desc {
     mechanism_desc() = default;
     mechanism_desc(const mechanism_desc&) = default;
     mechanism_desc(mechanism_desc&&) = default;
+    // disable construction from 0
+    mechanism_desc(std::nullptr_t) = delete;
+    mechanism_desc(int) = delete;
+
 
     mechanism_desc& operator=(const mechanism_desc&) = default;
     mechanism_desc& operator=(mechanism_desc&&) = default;
