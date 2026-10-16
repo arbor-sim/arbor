@@ -235,6 +235,7 @@ void communicator::update_connections(const recipe& rec,
     PL(sort_unique);
 
     PE(gids);
+    src_ranks_.clear();
     auto srcs_by_rank = ctx_->distributed->all_to_all_gids_domains(gids_domains);
     const auto& part = srcs_by_rank.partition();
     const auto& srcs = srcs_by_rank.values();
@@ -346,9 +347,7 @@ communicator::exchange(std::vector<spike>& local_spikes) {
     // Get remote spikes
     PE(remote);
     if (remote_spike_filter_) {
-        local_spikes.erase(std::remove_if(local_spikes.begin(),
-                                          local_spikes.end(),
-                                          [this] (const auto& s) { return !remote_spike_filter_(s); }));
+        std::erase_if(local_spikes,[this] (const auto& s) { return !remote_spike_filter_(s); });
     }
     auto remote_spikes = ctx_->distributed->remote_gather_spikes(local_spikes);
     PL(remote);
