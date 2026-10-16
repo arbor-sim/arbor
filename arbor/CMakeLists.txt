@@ -7,6 +7,7 @@ set(arbor_sources
     backends/multicore/rand.cpp
     communication/communicator.cpp
     communication/dry_run_context.cpp
+    communication/neighborhood_router.cpp
     benchmark_cell_group.cpp
     cable_cell.cpp
     cable_cell_param.cpp

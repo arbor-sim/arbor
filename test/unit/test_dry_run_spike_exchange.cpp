@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -11,6 +12,7 @@
 #include <arbor/lif_cell.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/simulation.hpp>
+#include <arbor/spike_exchange.hpp>
 #include <arbor/symmetric_recipe.hpp>
 
 using namespace arb;
@@ -59,9 +61,11 @@ public:
     }
 };
 
-std::vector<spike> run(context ctx, std::size_t* num_spikes = nullptr) {
+int ring(int offset) { return (offset + int(tiles))%tiles; }
+
+std::vector<spike> run(context ctx, const std::optional<neighborhood_spike_exchange>& exchange, std::size_t* num_spikes = nullptr) {
     auto rec = symmetric_recipe(std::make_unique<lif_tile>());
-    auto sim = simulation(rec, ctx, partition_load_balance(rec, ctx));
+    auto sim = simulation(rec, ctx, partition_load_balance(rec, ctx), 0, exchange);
     std::vector<spike> spikes;
     sim.set_local_spike_callback([&](const std::vector<spike>& s) { spikes.insert(spikes.end(), s.begin(), s.end()); });
     sim.run(30*U::ms, 0.025*U::ms);
@@ -74,7 +78,7 @@ std::vector<spike> run(context ctx, std::size_t* num_spikes = nullptr) {
 
 // Spikes of the first tile when simulating all tiles on a single rank.
 std::vector<spike> reference_spikes(std::size_t* num_spikes) {
-    auto spikes = run(make_context(), num_spikes);
+    auto spikes = run(make_context(), {}, num_spikes);
     spikes.erase(std::remove_if(spikes.begin(), spikes.end(),
                                 [](const spike& s) { return s.source.gid >= cells_per_tile; }),
                  spikes.end());
@@ -91,6 +95,32 @@ TEST(dry_run_spike_exchange, all_to_all) {
     auto expected = reference_spikes(&expected_num_spikes);
     ASSERT_GT(expected.size(), 0u);
 
-    EXPECT_EQ(expected, run(dry_run_context(), &num_spikes));
+    EXPECT_EQ(expected, run(dry_run_context(), {}, &num_spikes));
     EXPECT_EQ(expected_num_spikes, num_spikes);
+}
+
+TEST(dry_run_spike_exchange, neighborhoods) {
+    std::size_t expected_num_spikes = 0;
+    auto expected = reference_spikes(&expected_num_spikes);
+    ASSERT_GT(expected.size(), 0u);
+
+    // Levels of rank 0; the other ranks' levels are the same, shifted by their rank.
+    const std::vector<std::pair<std::string, std::vector<std::vector<int>>>> shapes = {
+        {"none",      {}},
+        {"nested",    {{ring(-1), ring(1)}, {ring(-2), ring(-1), ring(1), ring(2)}}},
+        {"successor", {{ring(1)}}},
+        {"everyone",  {{0, 1, 2, 3, 4, 5, 6}}},
+    };
+    for (const auto& [name, levels]: shapes) {
+        SCOPED_TRACE(name);
+        std::size_t num_spikes = 0;
+        EXPECT_EQ(expected, run(dry_run_context(), neighborhood_spike_exchange{levels}, &num_spikes));
+        EXPECT_EQ(expected_num_spikes, num_spikes);
+    }
+    {
+        SCOPED_TRACE("automatic");
+        std::size_t num_spikes = 0;
+        EXPECT_EQ(expected, run(dry_run_context(), neighborhood_spike_exchange{.automatic = true}, &num_spikes));
+        EXPECT_EQ(expected_num_spikes, num_spikes);
+    }
 }
