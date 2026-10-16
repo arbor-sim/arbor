@@ -70,6 +70,7 @@ set(unit_sources
     test_cv_policy.cpp
     test_domain_decomposition.cpp
     test_dry_run_context.cpp
+    test_dry_run_spike_exchange.cpp
     test_event_delivery.cpp
     test_event_generators.cpp
     test_event_stream.cpp
