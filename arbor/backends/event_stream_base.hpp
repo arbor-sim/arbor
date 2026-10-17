@@ -9,7 +9,7 @@
 #include "event_lane.hpp"
 #include "timestep_range.hpp"
 #include "util/span.hpp"
-
+#include "profile/profiler_macro.hpp"
 
 ARB_SERDES_ENABLE_EXT(arb_deliverable_event_data, mech_index, weight);
 
@@ -92,6 +92,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
                            const std::vector<std::size_t>& divs,
                            const timestep_range& steps,
                            std::vector<EventStream>& streams) {
+        PE(eventstreaminitialize);
         arb_assert(lanes.size() < divs.size());
         // reset streams and allocate sufficient space for temporaries
         for (auto& stream: streams) {
@@ -122,6 +123,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
                 cell_evnt_idx[cell_idx] = evnt_idx;
             }
             // sort step bucket and update right partition
+            PE(sort);
             for (auto& stream: streams) {
                 // fix the partition property
                 stream.ev_spans_[step + 1] += stream.ev_spans_[step];
@@ -132,9 +134,12 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
                               return std::tie(a.mech_index, a.weight) < std::tie(b.mech_index, b.weight);
                           });
             }
+            PL(sort);
         }
-
+        PE(init);
         for (auto& stream: streams) static_cast<spike_event_stream_base&>(stream).init();
+        PL(init);
+        PL(eventstreaminitialize);
     }
 };
 
