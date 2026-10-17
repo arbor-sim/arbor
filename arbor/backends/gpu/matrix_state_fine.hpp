@@ -87,7 +87,7 @@ public:
         using util::make_span;
         constexpr unsigned npos = unsigned(-1);
 
-        max_branches_per_level = 128;
+        max_branches_per_level = max_branches_per_matrix_level;
 
         num_cells = cell_cv_divs.size()-1;
 

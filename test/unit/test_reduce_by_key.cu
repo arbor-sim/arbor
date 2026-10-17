@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 #include <arbor/gpu/reduce_by_key.hpp>
@@ -8,6 +9,47 @@
 #include "gpu_vector.hpp"
 
 using namespace arb;
+
+__global__ void gather_kernel(const double* src, double* dst, const int* index, const int* divisions, unsigned n, unsigned width) {
+    gpu::gather_by_key(src, dst, index, divisions, n, width);
+    gpu::gather_by_key(src, dst, index, divisions, n, width);
+}
+
+TEST(reduce_by_key, deterministic_gather) {
+    // Unequal contributions expose rounding-order differences across warps/blocks.
+    for (unsigned width: {1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u}) {
+        for (unsigned n: {0u, 1u, 31u, 32u, 33u, 256u, 8193u}) {
+            unsigned outputs = n+4;
+            std::vector<double> input(n), expected(outputs, 0.25);
+            std::vector<int> index(n);
+            std::vector<double> sums(outputs);
+            for (unsigned i = 0; i<n; ++i) {
+                index[i] = i<n/2? 0: i/2+3;
+                input[i] = 0.001 + (1+std::sin(double(i)))*0.01;
+                sums[index[i]] += input[i];
+            }
+            for (unsigned i = 0; i<outputs; ++i) expected[i] += 2*sums[i];
+            std::vector<int> divisions;
+            for (unsigned i = 0; i<n; ++i) {
+                if (!i || index[i]!=index[i-1]) divisions.push_back(i);
+            }
+            unsigned runs = divisions.size();
+            divisions.push_back(n);
+            gpu_vector<int> divs(divisions);
+            gpu_vector<double> src(input);
+            gpu_vector<int> keys(index);
+            std::vector<double> first;
+            for (unsigned repeat = 0; repeat<20; ++repeat) {
+                gpu_vector<double> dst(std::vector<double>(outputs, 0.25));
+                gather_kernel<<<std::max(1u, (runs+128/width-1)/(128/width)), 128>>>(src.data(), dst.data(), keys.data(), divs.data(), runs, width);
+                auto actual = dst.host_vector();
+                for (unsigned i = 0; i<outputs; ++i) EXPECT_NEAR(expected[i], actual[i], 1e-10);
+                if (!repeat) first = actual;
+                EXPECT_EQ(first, actual);
+            }
+        }
+    }
+}
 
 template <typename T, typename I>
 __global__

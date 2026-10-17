@@ -6,6 +6,10 @@
 #include <arbor/math.hpp>
 
 #include "backends/multicore/fvm.hpp"
+#ifdef ARB_GPU_ENABLED
+#include "backends/gpu/matrix_fine.hpp"
+#include "memory/wrappers.hpp"
+#endif
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
 
@@ -20,6 +24,75 @@ using index_type  = arb_index_type;
 using value_type  = arb_value_type;
 
 using vvec = std::vector<value_type>;
+
+#ifdef ARB_GPU_ENABLED
+TEST(matrix, gpu_fixed_parent_accumulation) {
+    // Three trees per block, with children on both ends of each root branch.
+    // One tree is inactive (zero diagonal); it must retain its original RHS.
+    constexpr unsigned width = 96, length = 8, roots = 3, blocks = 32;
+    constexpr unsigned size = width*length + 2*roots;
+    std::vector<double> diagonal(size*blocks), rhs(diagonal.size()), upper(diagonal.size());
+    std::vector<int> parent(diagonal.size(), -1), lengths((width+roots)*blocks, 2);
+    std::vector<int> level_parents(lengths.size()), block_index(blocks+1), count(blocks, roots);
+    std::vector<gpu::level_metadata> levels(2*blocks);
+    for (unsigned b = 0; b<blocks; ++b) {
+        block_index[b] = 2*b;
+        levels[2*b] = {width, length, b*size, b*(width+roots)};
+        levels[2*b+1] = {roots, 2, b*size+width*length, b*(width+roots)+width};
+        for (unsigned i = 0; i<width; ++i) {
+            unsigned len = 1+(17*i+3)%length;
+            lengths[b*(width+roots)+i] = len;
+            level_parents[b*(width+roots)+i] = i%(2*roots);
+            for (unsigned k = 0; k<len; ++k) {
+                unsigned p = b*size+k*width+i;
+                diagonal[p] = i%roots==1? 0: 2+0.01*i+0.02*k;
+                rhs[p] = 0.1+std::sin(double(i+k));
+                upper[p] = -0.1;
+                parent[p] = k+1<len? p+width: b*size+width*length+i%(2*roots);
+            }
+        }
+        for (unsigned i = 0; i<2*roots; ++i) {
+            unsigned p = b*size+width*length+i;
+            diagonal[p] = i%roots==1? 0: 100;
+            rhs[p] = 1;
+            if (i<roots) { parent[p] = p+roots; upper[p] = -0.1; }
+        }
+    }
+    block_index[blocks] = 2*blocks;
+    auto u = memory::on_gpu(upper);
+    auto meta = memory::on_gpu(levels);
+    auto lens = memory::on_gpu(lengths);
+    auto parents = memory::on_gpu(level_parents);
+    auto block = memory::on_gpu(block_index);
+    auto cells = memory::on_gpu(count);
+#ifdef ARB_DETERMINISTIC_GPU
+    std::vector<double> first;
+#endif
+    for (unsigned repeat = 0; repeat<100; ++repeat) {
+        auto d = memory::on_gpu(diagonal);
+        auto x = memory::on_gpu(rhs);
+        gpu::solve_matrix_fine(x.data(), d.data(), u.data(), meta.data(), lens.data(),
+                               parents.data(), block.data(), cells.data(), nullptr, blocks, 128);
+        auto host = memory::on_host(x);
+        std::vector<double> actual(host.begin(), host.end());
+#ifdef ARB_DETERMINISTIC_GPU
+        if (!repeat) first = actual;
+        EXPECT_EQ(first, actual);
+#endif
+        if (repeat) continue;
+        std::vector<double> residual(rhs.size());
+        for (unsigned i = 0; i<rhs.size(); ++i) {
+            if (!diagonal[i]) { EXPECT_EQ(rhs[i], actual[i]); continue; }
+            residual[i] += diagonal[i]*actual[i]-rhs[i];
+            if (parent[i]>=0) {
+                residual[i] += upper[i]*actual[parent[i]];
+                residual[parent[i]] += upper[i]*actual[i];
+            }
+        }
+        for (auto r: residual) EXPECT_NEAR(0, r, 1e-12);
+    }
+}
+#endif
 
 TEST(matrix, construct_from_parent_only) {
     std::vector<index_type> p = {0,0,1};

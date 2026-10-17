@@ -15,4 +15,5 @@ struct printer_options {
     simd_spec simd;
 
     bool trace_codegen = false;
+    bool deterministic_gpu = false;
 };

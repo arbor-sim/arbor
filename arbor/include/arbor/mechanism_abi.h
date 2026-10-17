@@ -20,9 +20,14 @@ extern "C" {
 
 // Version
 #define ARB_MECH_ABI_VERSION_MAJOR 0
-#define ARB_MECH_ABI_VERSION_MINOR 7
+#define ARB_MECH_ABI_VERSION_MINOR 9
+// Catalogue mode must match the library's accumulation contract.
+#ifdef ARB_DETERMINISTIC_GPU
+#define ARB_MECH_ABI_VERSION_PATCH 1
+#else
 #define ARB_MECH_ABI_VERSION_PATCH 0
-#define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000L * 10000L) + (ARB_MECH_ABI_VERSION_MAJOR * 10000L) + ARB_MECH_ABI_VERSION_PATCH)
+#endif
+#define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000L * 10000L) + (ARB_MECH_ABI_VERSION_MINOR * 10000L) + ARB_MECH_ABI_VERSION_PATCH)
 
 typedef const char* arb_mechanism_fingerprint;
 
@@ -115,6 +120,12 @@ typedef struct arb_mechanism_ppack {
     arb_ion_state*   ion_states;                    // Array of views into shared state.
 
     arb_value_type const * const * random_numbers;  // Array of random numbers
+    // GPU point/junction scratch: width entries for each accumulated field.
+    // Capacity: (2 + 4*n_ions)*width; reused between API calls, not persistent state.
+    arb_value_type* accumulators;
+    arb_size_type n_accumulator_runs;
+    arb_index_type* accumulator_divisions; // n_accumulator_runs+1 sorted CV run boundaries.
+    arb_size_type accumulator_group_width; // Power of two <= 128, chosen from run lengths.
 } arb_mechanism_ppack;
 
 

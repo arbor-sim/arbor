@@ -7,6 +7,34 @@
 namespace arb {
 namespace gpu {
 
+// Fixed trees over sorted key runs. Launch 128-thread blocks with a power-of-two
+// group_width <= 128; divisions includes the final input size.
+template <typename T, typename I>
+__device__ inline
+void gather_by_key(const T* contributions, T* target, const I* index, const I* divisions, unsigned n, unsigned group_width) {
+    unsigned tid = threadIdx.x;
+    unsigned group = blockIdx.x*(blockDim.x/group_width) + tid/group_width;
+    unsigned lane = tid%group_width;
+    unsigned begin = group<n? divisions[group]: 0;
+    unsigned end = group<n? divisions[group+1]: 0;
+    __shared__ T partial[128];
+    T sum = 0;
+    // shortcut: one group per CV; split very long runs if model profiling shows a bottleneck.
+    for (unsigned i = begin+lane; i<end; i+=group_width) sum += contributions[i];
+    if (group_width==1) {
+        if (group<n) target[index[begin]] += sum;
+        return;
+    }
+    partial[tid] = sum;
+    __syncthreads();
+    for (unsigned stride = group_width/2; stride; stride/=2) {
+        if (lane<stride) partial[tid] += partial[tid+stride];
+        __syncthreads();
+    }
+    if (group<n && !lane) target[index[begin]] += partial[tid];
+    __syncthreads(); // A following field can reuse the shared storage.
+}
+
 // key_set_pos stores information required by a thread to calculate its
 // contribution to a reduce by key operation.
 //

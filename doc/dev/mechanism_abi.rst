@@ -28,6 +28,17 @@ instance may be used by multiple :c:struct:`arb_mechanism_interface` instances.
   Note that ``mechanism_abi.h`` is heavily commented and is useful as
   documentation in its own right, and also when writing mechanisms in languages other than C(++).
 
+ABI 0.9.0 is used with ``ARB_DETERMINISTIC_GPU=OFF``; ABI 0.9.1 is used with
+the option enabled. Both use the same parameter-pack layout, but catalogues
+must match the library's accumulation setting. Older or opposite-mode
+catalogues are rejected; rebuild them against the target installation.
+
+With the option enabled, generated GPU point and gap-junction mechanisms
+stage accumulated fields during initialization, state/current updates and
+ion writes. Arbor allocates and reuses the scratch storage. With the option
+disabled, the original atomic paths are used and this scratch is not allocated.
+Event-handler accumulation remains unchanged.
+
 Metadata: ``arb_mechanism_type``
 --------------------------------
 

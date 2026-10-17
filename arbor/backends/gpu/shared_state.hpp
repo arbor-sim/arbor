@@ -110,6 +110,8 @@ struct ARB_ARBOR_API istim_state {
 
 struct mech_storage {
     array data_;
+    array accumulators_;
+    iarray accumulator_divisions_;
     iarray indices_;
     std::vector<arb_value_type>  globals_;
     std::vector<arb_value_type*> parameters_;
