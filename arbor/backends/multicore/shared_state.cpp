@@ -22,7 +22,6 @@
 
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
-#include "fvm.hpp"
 
 namespace arb {
 namespace multicore {
@@ -364,7 +363,7 @@ void shared_state::update_prng_state(mechanism& m) {
 unsigned shared_state::instantiate(arb::mechanism& m,
                                    const mechanism_overrides& overrides,
                                    const mechanism_layout& pos_data,
-                                   const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
+                                   const flat_map<std::string, std::vector<arb_value_type>>& params) {
     // Mechanism indices and data require:
     // * an alignment that is a multiple of the mechansim data_alignment();
     // * a size which is a multiple of partition_width() for SIMD access.

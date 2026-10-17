@@ -913,7 +913,7 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::density(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::density(name, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::density(mech, params);}))
-        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::density(mech, params);}))
+        .def(py::init([](const char* mech, const arb::flat_map<std::string, double>& params) {return arb::density(mech, params);}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::density(name, util::dict_to_map<double>(parms));}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::density(mech, util::dict_to_map<double>(params));}))
         .def("__getitem__", [](arb::density& syn, const std::string& k) {return syn.mech.get(k); })
@@ -927,7 +927,7 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::voltage_process(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(name, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(mech, params);}))
-        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::voltage_process(mech, params);}))
+        .def(py::init([](const char* mech, const arb::flat_map<std::string, double>& params) {return arb::voltage_process(mech, params);}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::voltage_process(mech, util::dict_to_map<double>(params));}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::voltage_process(name, util::dict_to_map<double>(parms));}))
         .def("__getitem__", [](arb::voltage_process& syn, const std::string& k) {return syn.mech.get(k); })
@@ -977,7 +977,7 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::synapse(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::synapse(name, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::synapse(mech, params);}))
-        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::synapse(mech, params);}))
+        .def(py::init([](const char* mech, const arb::flat_map<std::string, double>& params) {return arb::synapse(mech, params);}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::synapse(name, util::dict_to_map<double>(parms));}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::synapse(mech, util::dict_to_map<double>(params));}))
         .def("__getitem__", [](arb::synapse& syn, const std::string& k) {return syn.mech.get(k); })
@@ -991,7 +991,7 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::junction(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::junction(name, params);}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::junction(name, util::dict_to_map<double>(parms));}))
-        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::junction(mech, params);}))
+        .def(py::init([](const char* mech, const arb::flat_map<std::string, double>& params) {return arb::junction(mech, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::junction(mech, params);}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::junction(mech, util::dict_to_map<double>(params));}))
         .def("__getitem__", [](arb::junction& syn, const std::string& k) {return syn.mech.get(k); })
@@ -1001,52 +1001,57 @@ void register_cells(py::module& m) {
         .def("__str__", [](const arb::junction& j){return "<arbor.junction " + mechanism_desc_str(j.mech) + ">";});
 
     i_clamp
-        .def(py::init(
-                [](const U::quantity& ts,
-                   const U::quantity& dur,
-                   const U::quantity& cur,
-                   const U::quantity& frequency,
-                   const U::quantity& phase) {
-                    return arb::i_clamp::box(ts, dur, cur, frequency, phase);
-                }),
-             "tstart"_a, "duration"_a, "current"_a,
-             py::kw_only(), py::arg_v("frequency", 0*U::kHz, "0.0*arbor.units.kHz"), py::arg_v("phase", 0*U::rad, "0.0*arbor.units.rad"),
-             "Construct finite duration current clamp, constant amplitude")
-        .def(py::init(
-                [](const U::quantity& cur,
-                   const U::quantity& frequency,
-                   const U::quantity& phase) {
-                    return arb::i_clamp{cur, frequency, phase};
-                }),
+        .def(py::init([](const U::quantity& ts,
+                         const U::quantity& dur,
+                         const U::quantity& cur,
+                         const U::quantity& frequency,
+                         const U::quantity& phase) { return arb::i_clamp::box(ts, dur, cur, frequency, phase); }),
+             "tstart"_a,
+             "duration"_a,
              "current"_a,
-             py::kw_only(), py::arg_v("frequency", 0*U::kHz, "0.0*arbor.units.kHz"), py::arg_v("phase", 0*U::rad, "0.0*arbor.units.rad"),
+             py::kw_only(),
+             py::arg_v("frequency", 0 * U::kHz, "0.0*arbor.units.kHz"),
+             py::arg_v("phase", 0 * U::rad, "0.0*arbor.units.rad"),
+             "Construct finite duration current clamp, constant amplitude")
+        .def(py::init([](const U::quantity& cur, const U::quantity& frequency, const U::quantity& phase) {
+                 return arb::i_clamp{cur, frequency, phase};
+             }),
+             "current"_a,
+             py::kw_only(),
+             py::arg_v("frequency", 0 * U::kHz, "0.0*arbor.units.kHz"),
+             py::arg_v("phase", 0 * U::rad, "0.0*arbor.units.rad"),
              "Construct constant amplitude current clamp")
-        .def(py::init(
-                [](std::vector<std::pair<const U::quantity&, const U::quantity&>> envl,
-                   const U::quantity& frequency,
-                   const U::quantity& phase) {
-                    std::vector<arb::i_clamp::envelope_point> env;
-                    for (const auto& [t, a]: envl) env.push_back({t, a});
-                    return arb::i_clamp{env, frequency, phase};
-                }),
+        .def(py::init([](arb::flat_map<const U::quantity&, const U::quantity&> envl,
+                         const U::quantity& frequency,
+                         const U::quantity& phase) {
+                 std::vector<arb::i_clamp::envelope_point> env;
+                 for (const auto& [t, a]: envl)
+                     env.push_back({t, a});
+                 return arb::i_clamp{env, frequency, phase};
+             }),
              "envelope"_a,
-             py::kw_only(), py::arg_v("frequency", 0*U::kHz, "0.0*arbor.units.kHz"), py::arg_v("phase", 0*U::rad, "0.0*arbor.units.rad"),
-             "Construct current clamp according to (time, amplitude) linear envelope")
-        .def_property_readonly("envelope",
-                [](const arb::i_clamp& obj) {
-                    std::vector<std::pair<double, double>> envl;
-                    for (const auto& p: obj.envelope) {
-                        envl.push_back({p.t, p.amplitude});
-                    }
-                    return envl;
-                },
-                "List of (time [ms], amplitude [nA]) points comprising the piecewise linear envelope")
+             py::kw_only(),
+             py::arg_v("frequency", 0 * U::kHz, "0.0*arbor.units.kHz"),
+             py::arg_v("phase", 0 * U::rad, "0.0*arbor.units.rad"),
+             "Construct current clamp according to (time, amplitude) linear "
+             "envelope")
+        .def_property_readonly(
+            "envelope",
+            [](const arb::i_clamp& obj) {
+                arb::flat_map<double, double> envl;
+                for (const auto& p: obj.envelope) {
+                    envl.push_back({p.t, p.amplitude});
+                }
+                return envl;
+            },
+            "List of (time [ms], amplitude [nA]) points comprising the "
+            "piecewise linear envelope")
         .def_readonly("frequency", &arb::i_clamp::frequency, "Oscillation frequency (kHz), zero implies DC stimulus.")
         .def_readonly("phase", &arb::i_clamp::phase, "Oscillation initial phase (rad)")
-        .def("__repr__", [](const arb::i_clamp& c) {
-            return util::pprintf("<arbor.i_clamp: frequency {} kHz>", c.frequency);})
-        .def("__str__", [](const arb::i_clamp& c) {
-            return util::pprintf("<arbor.i_clamp: frequency {} kHz>", c.frequency);});
+        .def("__repr__",
+             [](const arb::i_clamp& c) { return util::pprintf("<arbor.i_clamp: frequency {} kHz>", c.frequency); })
+        .def("__str__",
+             [](const arb::i_clamp& c) { return util::pprintf("<arbor.i_clamp: frequency {} kHz>", c.frequency); });
 
     detector
         .def(py::init(
