@@ -16,6 +16,11 @@
  * neighbourhood all-gather and the far ranks with a global all-to-all, each
  * only as often as the delays from that group require. The levels are either
  * the ones described above, or chosen by arbor from the connection delays.
+ * For timings, run each of these in its own process with --mode, so that they
+ * do not influence each other.
+ *
+ * With --random-delays, each connection instead gets one of the --delays at
+ * random, independent of the distance: the unfavourable case for neighbourhoods.
  *
  * Run with MPI, e.g. `mpirun -n 16 ./neighborhood --widths 1,4`, or emulate
  * many ranks with `./neighborhood --dry-run 64`.
@@ -64,6 +69,8 @@ struct options {
     double dt = 0.025;             // [ms]
     unsigned dry_run_ranks = 0;    // emulate this many ranks; 0 for a real run
     double profile_threshold = 1;  // [%] hide profiler regions below this share of the wall time
+    bool random_delays = false;    // delays independent of the distance
+    std::string mode = "all";      // all-to-all, given, automatic, or all of them
 };
 
 std::optional<options> parse_options(int argc, char** argv);
@@ -102,7 +109,9 @@ public:
         std::mt19937 rng(gid);
         std::uniform_int_distribution<unsigned> any_cell(0, opt_.cells_per_rank - 1);
         std::vector<arb::cell_connection> conns;
+        std::uniform_int_distribution<std::size_t> any_delay(0, opt_.delays.size() - 1);
         auto connect = [&](unsigned rank, double delay) {
+            if (opt_.random_delays) delay = opt_.delays[any_delay(rng)];
             // One in four connections is inhibitory.
             float weight = conns.size()%4? 20.f: -60.f;
             conns.emplace_back(arb::cell_global_label_type{rank*opt_.cells_per_rank + any_cell(rng), "src"},
@@ -242,7 +251,7 @@ int main(int argc, char** argv) {
             }
             std::cout << "\n";
         };
-        std::cout << "model:\n";
+        std::cout << "model" << (opt->random_delays? ", with random delays from the list below": "") << ":\n";
         describe("own rank:  ", 0, 1);
         std::size_t num_near = 1;
         for (std::size_t l = 0; l < opt->widths.size(); ++l) {
@@ -252,31 +261,34 @@ int main(int argc, char** argv) {
         describe("far:       ", opt->widths.size() + 1, num_ranks - num_near);
         std::cout << "\n";
 
-        auto global = simulate(rec, ctx, {}, *opt);
-        auto neighborhood = simulate(rec, ctx, exchange, *opt);
-        auto automatic = simulate(rec, ctx, arb::neighborhood_spike_exchange{.automatic = true}, *opt);
-
-        print_levels("given levels of rank 0", neighborhood);
-        print_levels("automatic levels of rank 0", automatic);
-        std::cout << "\n";
-
-        auto report = [](const std::string& name, const result& r) {
-            std::cout << name << r.num_spikes << " spikes, init " << r.init_time << " s, run " << r.run_time << " s\n";
+        // Init includes making the neighbourhoods, for given and automatic levels alike.
+        std::vector<std::pair<std::string, result>> results;
+        auto run_mode = [&](const std::string& mode, const std::optional<arb::neighborhood_spike_exchange>& exchange) {
+            if (opt->mode == "all" || opt->mode == mode) results.emplace_back(mode, simulate(rec, ctx, exchange, *opt));
         };
-        report("all-to-all:   ", global);
-        report("neighborhood: ", neighborhood);
-        report("automatic:    ", automatic);
-        if (neighborhood.num_spikes != global.num_spikes || automatic.num_spikes != global.num_spikes) {
-            std::cerr << "error: the exchange methods produced different numbers of spikes\n";
-            return 1;
+        run_mode("all-to-all", std::nullopt);
+        run_mode("given", exchange);
+        run_mode("automatic", arb::neighborhood_spike_exchange{.automatic = true});
+
+        for (const auto& [name, r]: results) {
+            if (name != "all-to-all") print_levels(name + " levels of rank 0", r);
+        }
+        std::cout << "\n";
+        for (const auto& [name, r]: results) {
+            std::cout << name << ":" << std::string(12 - name.size(), ' ') << r.num_spikes
+                      << " spikes, init " << r.init_time << " s, run " << r.run_time << " s\n";
+        }
+        for (const auto& [name, r]: results) {
+            if (r.num_spikes != results.front().second.num_spikes) {
+                std::cerr << "error: the exchange methods produced different numbers of spikes\n";
+                return 1;
+            }
         }
 
 #ifdef ARB_PROFILE_ENABLED
-        for (const auto& [name, r]: {std::pair{"all-to-all", &global},
-                                     std::pair{"neighborhood", &neighborhood},
-                                     std::pair{"automatic", &automatic}}) {
+        for (const auto& [name, r]: results) {
             std::cout << "\nprofile of rank 0, " << name << ", regions above " << opt->profile_threshold << "%:\n"
-                      << r->profile;
+                      << r.profile;
         }
 #else
         std::cout << "\nfor profiler times, build arbor with -DARB_WITH_PROFILING=ON\n";
@@ -320,7 +332,9 @@ std::optional<options> parse_options(int argc, char** argv) {
                      "-t|--tfinal         [Length of the simulation period (ms)]\n"
                      "-s|--dt             [Simulation time step (ms)]\n"
                      "-D|--dry-run        [Emulate this many ranks]\n"
-                     "-P|--profile-threshold [Hide profiler regions below this share of the wall time (%)]\n";
+                     "-P|--profile-threshold [Hide profiler regions below this share of the wall time (%)]\n"
+                     "-r|--random-delays  [Give each connection one of the delays at random]\n"
+                     "-m|--mode           [Exchange to run: all-to-all, given, automatic, or all]\n";
 
     options opt;
     auto widths = to_list(opt.widths);
@@ -336,6 +350,8 @@ std::optional<options> parse_options(int argc, char** argv) {
         { opt.dt,             "-s", "--dt" },
         { opt.dry_run_ranks,  "-D", "--dry-run" },
         { opt.profile_threshold, "-P", "--profile-threshold" },
+        { to::set(opt.random_delays), to::flag, "-r", "--random-delays" },
+        { opt.mode,           "-m", "--mode" },
         { to::action(help), to::flag, to::exit, "-h", "--help" }
     };
     if (!to::run(cli, argc, argv + 1)) return {};
@@ -348,6 +364,9 @@ std::optional<options> parse_options(int argc, char** argv) {
         std::adjacent_find(opt.widths.begin(), opt.widths.end()) != opt.widths.end() ||
         (!opt.widths.empty() && opt.widths.front() == 0)) {
         throw std::runtime_error("widths must be positive and strictly increasing");
+    }
+    if (opt.mode != "all" && opt.mode != "all-to-all" && opt.mode != "given" && opt.mode != "automatic") {
+        throw std::runtime_error("mode must be all-to-all, given, automatic, or all");
     }
     auto num_groups = opt.widths.size() + 2;
     if (opt.in_degrees.size() != num_groups || opt.delays.size() != num_groups) {

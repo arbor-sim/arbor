@@ -239,8 +239,10 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
     * all remaining (far) ranks, exchanged with a global all-to-all.
 
     Spikes are buffered per level, and each level is only exchanged as often as the minimum
-    delay of the connections from it allows. All buffers are flushed at the end of each
-    :py:func:`simulation.run`. See the C++ documentation for details.
+    delay of the connections from it allows: with *D* that delay and *Δ* the epoch length,
+    every ⌊*D*/*Δ*⌋ − 1 epochs, but at least every epoch; exact multiples of *Δ* lose an epoch,
+    so that events are always on time despite rounding. All buffers are flushed at the end
+    of each :py:func:`simulation.run`. See the C++ documentation for details.
 
     .. function:: neighborhood_spike_exchange(neighborhoods=[], *, automatic=False)
 

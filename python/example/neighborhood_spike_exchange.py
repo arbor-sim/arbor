@@ -18,7 +18,11 @@ neighbourhood exchange. There, each level is exchanged with a sparse MPI
 neighbourhood all-gather and the far ranks with a global all-to-all, each only
 as often as the delays from that group require. The levels are either the ones
 described above, or chosen by arbor from the connection delays. All runs must
-produce the same spikes.
+produce the same spikes. For timings, run each of these in its own process with
+--mode, so that they do not influence each other.
+
+With --random-delays, each connection instead gets one of the --delays at
+random, independent of the distance: the unfavourable case for neighbourhoods.
 
 Run with MPI, e.g. `mpirun -n 16 python neighborhood_spike_exchange.py`.
 """
@@ -81,6 +85,8 @@ class ring_recipe(A.recipe):
                 src = rng.choice(ranks) * args.cells_per_rank + rng.randrange(
                     args.cells_per_rank
                 )
+                if args.random_delays:
+                    delay = rng.choice(args.delays)
                 # One in four connections is inhibitory.
                 weight = -60 if len(conns) % 4 == 0 else 20
                 conns.append(A.connection((src, "src"), "tgt", weight, delay * U.ms))
@@ -185,6 +191,17 @@ def parse_args():
         default=1,
         help="hide profiler regions below this share of the wall time [%%]",
     )
+    parser.add_argument(
+        "--random-delays",
+        action="store_true",
+        help="give each connection one of the delays at random",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["all-to-all", "given", "automatic", "all"],
+        default="all",
+        help="exchange to run",
+    )
     args = parser.parse_args()
 
     if any(w <= 0 for w in args.widths) or sorted(set(args.widths)) != args.widths:
@@ -219,7 +236,7 @@ def main():
     log(f"ranks: {num_ranks}, cells: {recipe.num_cells()}\n")
 
     # The model as seen from rank 0: groups of ranks with their connections.
-    log("model:")
+    log("model, with random delays from the list below:" if args.random_delays else "model:")
     sizes = [1] + [len(level) for level in exchange.neighborhoods]
     sizes.append(num_ranks - sum(sizes))
     names = ["own rank"] + [f"level {i + 1}" for i in range(len(args.widths))] + ["far"]
@@ -230,36 +247,35 @@ def main():
         log(line)
     log()
 
-    default = simulate(recipe, context, args)
-    given = simulate(recipe, context, args, exchange)
-    automatic = A.neighborhood_spike_exchange(automatic=True)
-    auto = simulate(recipe, context, args, automatic)
+    # Init includes making the neighbourhoods, for given and automatic levels alike.
+    modes = [
+        ("all-to-all", None),
+        ("given", exchange),
+        ("automatic", A.neighborhood_spike_exchange(automatic=True)),
+    ]
+    results = [
+        (name, simulate(recipe, context, args, spike_exchange))
+        for name, spike_exchange in modes
+        if args.mode in ("all", name)
+    ]
 
-    log(describe_levels("given levels of rank 0", given))
-    log(describe_levels("automatic levels of rank 0", auto))
+    for name, r in results:
+        if name != "all-to-all":
+            log(describe_levels(f"{name} levels of rank 0", r))
     log()
-    for name, r in [
-        ("all-to-all:", default),
-        ("neighborhood:", given),
-        ("automatic:", auto),
-    ]:
+    for name, r in results:
         log(
-            f"{name:13} {len(r.spikes)} local spikes, init {r.init:.3f} s, run {r.run:.3f} s"
+            f"{name + ':':11} {len(r.spikes)} local spikes, init {r.init:.3f} s, run {r.run:.3f} s"
         )
 
     # Each rank checks its own spikes.
-    if default.spikes != given.spikes or default.spikes != auto.spikes:
+    if any(r.spikes != results[0][1].spikes for _, r in results):
         raise RuntimeError(
             f"rank {rank}: the exchange methods produced different spikes"
         )
 
     if A.config()["profiling"]:
-        variants = [
-            ("all-to-all", default),
-            ("neighborhood", given),
-            ("automatic", auto),
-        ]
-        for name, r in variants:
+        for name, r in results:
             log(
                 f"\nprofile of rank 0, {name}, regions above {args.profile_threshold:g}%:"
             )

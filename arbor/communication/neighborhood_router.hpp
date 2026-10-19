@@ -21,7 +21,9 @@ namespace arb {
 //
 // Spikes of epoch e that are exchanged after epoch e+p-1 at the latest become
 // events in epoch e+p+1, which starts at most (p+1)*interval after the spike.
-// These events are on time if (p+1)*interval <= delay.
+// These events are on time if (p+1)*interval <= delay. With a margin for rounding,
+// p = floor(delay/interval*(1 - 1e-6)) - 1, and at least 1, so exact multiples
+// of interval lose an epoch.
 ARB_ARBOR_API std::size_t exchange_period(time_type delay, time_type interval);
 
 // Class of an exchange period for choosing levels automatically: floor(log2(period)).
@@ -50,6 +52,7 @@ public:
     neighborhood_router(const neighborhood_spike_exchange& options, distributed_context_handle dist);
 
     // Recompute routes and exchange periods after the connections changed.
+    // Must be called between runs, when no spikes are buffered.
     //  * min_delays: per domain, the minimum delay of the local connections from it,
     //                infinity if there are none.
     //  * src_ranks:  per local source, the domains with connections from it.
