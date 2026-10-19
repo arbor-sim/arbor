@@ -2,7 +2,6 @@
 #include <cmath>
 #include <limits>
 #include <numeric>
-#include <string>
 #include <utility>
 
 #include <arbor/arbexcept.hpp>
@@ -15,11 +14,8 @@ namespace arb {
 
 std::size_t exchange_period(time_type delay, time_type interval) {
     arb_assert(interval > 0);
-    // Events must never arrive after the start of their epoch, so keep a margin
-    // of 1e-6*delay. It covers delays stored as float, which makes delay/interval
-    // off by up to ~1e-7 relative, and the rounding errors accumulated in the
-    // epoch boundaries. The price is that a delay that is an exact multiple of
-    // interval loses one epoch.
+    // Leave some slack for rounding in the epoch boundaries; this only matters
+    // if delay is a multiple of interval and then costs a single epoch.
     auto ratio = std::floor(delay/interval*(1 - 1e-6));
     ratio = std::min(ratio, time_type(std::numeric_limits<int>::max()));
     return ratio > 2 ? std::size_t(ratio) - 1 : 1;
@@ -51,8 +47,8 @@ unsigned period_class(std::size_t period) {
 namespace {
 // Throw on all ranks if any rank fails a check, so that no rank is left
 // waiting in a collective.
-void check_on_all_ranks(const distributed_context& dist, bool ok, const char* what) {
-    if (!dist.min(int(ok))) throw arbor_exception(std::string("neighborhood_spike_exchange: ") + what);
+void check_on_all_ranks(const distributed_context& dist, bool ok, const std::string& what) {
+    if (!dist.min(int(ok))) throw arbor_exception("neighborhood_spike_exchange: " + what);
 }
 } // namespace
 
@@ -157,8 +153,7 @@ void neighborhood_router::update(const std::vector<time_type>& min_delays,
                                  const source_ranks_map& src_ranks,
                                  time_type interval) {
     arb_assert(min_delays.size() == std::size_t(num_domains_));
-    // Only called between runs, which flush all buffers.
-    arb_assert(std::all_of(levels_.begin(), levels_.end(), [](const auto& lvl) { return lvl.pending.empty(); }));
+    clear();
     if (automatic_) set_levels(automatic_levels(min_delays, interval));
 
     // All ranks must agree on when a level is exchanged, so periods use the global minimum delay.

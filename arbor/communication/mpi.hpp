@@ -265,8 +265,6 @@ gathered_vector<T> neighbor_gather_all_with_partition(const std::vector<T>& valu
     int num_sources = 0, num_destinations = 0, weighted = 0;
     MPI_OR_THROW(MPI_Dist_graph_neighbors_count, comm, &num_sources, &num_destinations, &weighted);
 
-    // Two collectives: first the counts, then the values. A persistent
-    // MPI_Neighbor_allgatherv_init (MPI 4) could save the latency of the first.
     int send_count = values.size()*traits::count();
     std::vector<int> counts(num_sources), displs;
     MPI_OR_THROW(MPI_Neighbor_allgather,
@@ -293,27 +291,16 @@ gathered_vector<T> neighbor_gather_all_with_partition(const std::vector<T>& valu
 }
 
 /// Create a distributed graph communicator in which the calling rank receives from sources.
-/// Ranks are not reordered, i.e. they are the same as in comm. Collective over comm.
+/// Ranks are not reordered, i.e. they are the same as in comm.
 inline MPI_Comm dist_graph_create_from_sources(const std::vector<int>& sources, MPI_Comm comm) {
-    // Every rank learns which ranks receive from it with a single all-to-all of flags,
-    // which is usually much cheaper than letting MPI_Dist_graph_create derive them.
-    std::vector<int> receives_from_me(size(comm), 0), sends_to_me(size(comm), 0);
-    for (auto s: sources) sends_to_me[s] = 1;
-    MPI_OR_THROW(MPI_Alltoall,
-                 sends_to_me.data(),      1, MPI_INT, // send buffer
-                 receives_from_me.data(), 1, MPI_INT, // receive buffer
-                 comm);
-    std::vector<int> destinations;
-    for (int r = 0; r < int(receives_from_me.size()); ++r) {
-        if (receives_from_me[r]) destinations.push_back(r);
-    }
-
+    // Describe the incoming edges source -> me; MPI derives the outgoing ones.
+    int n = sources.size();
+    std::vector<int> degrees(n, 1);
+    std::vector<int> destinations(n, rank(comm));
     MPI_Comm graph = MPI_COMM_NULL;
-    MPI_OR_THROW(MPI_Dist_graph_create_adjacent,
-                 comm,
-                 int(sources.size()), sources.data(), MPI_UNWEIGHTED,
-                 int(destinations.size()), destinations.data(), MPI_UNWEIGHTED,
-                 MPI_INFO_NULL, /*reorder*/ 0, &graph);
+    MPI_OR_THROW(MPI_Dist_graph_create,
+                 comm, n, sources.data(), degrees.data(), destinations.data(),
+                 MPI_UNWEIGHTED, MPI_INFO_NULL, /*reorder*/ 0, &graph);
     return graph;
 }
 

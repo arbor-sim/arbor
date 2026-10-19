@@ -5,7 +5,6 @@
 #include <cstring>
 #include <vector>
 
-#include <arbor/arbexcept.hpp>
 #include <arbor/export.hpp>
 #include <arbor/context.hpp>
 #include <arbor/spike.hpp>
@@ -341,7 +340,7 @@ struct local_context {
             }
         };
         for (auto src: sources) {
-            if (src != 0) throw arbor_exception("neighborhood_spike_exchange: neighborhoods with other ranks require an MPI context.");
+            if (src != 0) throw arbor_internal_error("make_neighborhood: source rank must be 0 for local context.");
         }
         return std::make_unique<local_neighborhood>(sources.empty() ? std::vector<int>{} : std::vector<int>{0});
     }

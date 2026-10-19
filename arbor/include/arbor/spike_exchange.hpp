@@ -21,15 +21,9 @@ namespace arb {
 // Spikes are buffered per level and only sent as often as the minimum delay of
 // the connections from that level permits. If, for example, connections between
 // neighbouring ranks are much shorter than connections between distant ones,
-// the expensive global collective runs only every few epochs: with D the
-// minimum delay of the connections from a level and Δ the epoch length, the
-// level is exchanged every floor(D/Δ) - 1 epochs, and at least every epoch.
-// For events to be on time despite rounding, a D that is an exact multiple of
-// Δ counts as slightly less, i.e. loses an epoch.
-// All buffers are flushed at the end of each call to simulation::run. The
-// global spike count is only summed up then, too, so simulation::num_spikes
-// is exact after run returns, but not updated during a run, e.g. when read
-// from an epoch callback.
+// the expensive global collective runs only every few epochs. All buffers are
+// flushed at the end of each call to simulation::run, so the global spike count
+// is exact after run returns.
 struct neighborhood_spike_exchange {
     // Ranks this rank receives spikes from, grouped into levels, innermost
     // first. A rank listed in more than one level belongs to the first; the

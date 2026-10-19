@@ -66,12 +66,8 @@ spikes from, grouped into levels. Arbor then splits the senders of each rank int
 * all remaining (far) ranks, exchanged with a global all-to-all.
 
 Spikes are buffered per level, and each level is only exchanged as often as the minimum
-delay of the connections from it allows: with *D* that delay and *Δ* the epoch length, every
-⌊*D*/*Δ*⌋ − 1 epochs, but at least every epoch. So that events are always on time despite
-rounding, a delay that is an exact multiple of *Δ* counts as slightly less and loses an epoch. All buffers are flushed at the end of each
-:cpp:func:`simulation::run`. The global spike count is only summed up then, too, so
-:cpp:func:`simulation::num_spikes` is not updated during a run, e.g. when read from an epoch
-callback.
+delay of the connections from it allows. All buffers are flushed at the end of each
+:cpp:func:`simulation::run`.
 
 .. container:: example-code
 
@@ -212,8 +208,7 @@ Class documentation
     .. cpp:function:: std::size_t num_spikes() const
 
         The total number of spikes generated since either construction or
-        the last call to :cpp:func:`reset`. With neighbourhood spike exchange,
-        this is only updated at the end of each :cpp:func:`run`.
+        the last call to :cpp:func:`reset`.
 
     .. cpp:function:: void set_local_spike_callback(spike_export_function export_callback)
 

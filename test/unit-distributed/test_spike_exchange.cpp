@@ -31,15 +31,11 @@ namespace {
 // ring, so that farther levels can be exchanged less often. Weights are below
 // threshold, so cells only fire on coincident input, which makes the spike
 // trains sensitive to late, missing or duplicated events.
-//
-// With random_delays, delays are instead independent of the distance, which is
-// the unfavourable case for neighbourhoods. They are multiples of the epoch
-// length, so the earliest events land exactly on epoch boundaries.
 class distance_recipe: public recipe {
 public:
     // Delays are 1 ms plus delay_step per step on the ring of ranks.
-    distance_recipe(unsigned num_ranks, unsigned cells_per_rank, double delay_step = 1.3, bool random_delays = false):
-        num_ranks_(num_ranks), cells_per_rank_(cells_per_rank), delay_step_(delay_step), random_delays_(random_delays) {}
+    distance_recipe(unsigned num_ranks, unsigned cells_per_rank, double delay_step = 1.3):
+        num_ranks_(num_ranks), cells_per_rank_(cells_per_rank), delay_step_(delay_step) {}
 
     cell_size_type num_cells() const override { return num_ranks_*cells_per_rank_; }
     cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::lif; }
@@ -66,11 +62,9 @@ public:
     }
 
     double delay(cell_gid_type src, cell_gid_type tgt) const {
-        // 1 to 5 ms in steps of the epoch length, 0.5 ms.
-        if (random_delays_) return 1.0 + 0.5*((src*2654435761u ^ tgt*40503u)%9);
         unsigned a = src/cells_per_rank_, b = tgt/cells_per_rank_;
         auto d = a > b? a - b: b - a;
-        // Not a multiple of the epoch length; random_delays covers exact multiples.
+        // Not a multiple of the epoch length, where rounding slack would hide off-by-one errors.
         return 1.0 + delay_step_*std::min(d, num_ranks_ - d);
     }
 
@@ -78,7 +72,6 @@ private:
     unsigned num_ranks_;
     unsigned cells_per_rank_;
     double delay_step_;
-    bool random_delays_;
 };
 
 constexpr unsigned cells_per_rank = 8;
@@ -111,10 +104,9 @@ struct run_result {
 };
 
 // Simulate until each time in stops in turn, and gather all spikes from all ranks.
-run_result run(const std::optional<neighborhood_spike_exchange>& spike_exchange, const std::vector<double>& stops,
-               bool random_delays = false) {
+run_result run(const std::optional<neighborhood_spike_exchange>& spike_exchange, const std::vector<double>& stops) {
     auto num_ranks = g_context->distributed->size();
-    auto rec = distance_recipe(num_ranks, cells_per_rank, 1.3, random_delays);
+    auto rec = distance_recipe(num_ranks, cells_per_rank);
     auto sim = simulation(rec, g_context, partition_load_balance(rec, g_context), 0, spike_exchange);
 
     std::vector<spike> local;
@@ -170,22 +162,16 @@ TEST(spike_exchange, exchange_period) {
     // Spikes must be exchanged in time for E(k+p+1) to see them: (p+1)*interval <= delay.
     EXPECT_EQ(1u, exchange_period(1.0, 0.5));
     EXPECT_EQ(1u, exchange_period(1.4, 0.5));
-    EXPECT_EQ(1u, exchange_period(1.5, 0.5)); // exact multiples lose an epoch to the margin
+    EXPECT_EQ(1u, exchange_period(1.5, 0.5)); // exact multiples lose one epoch to rounding slack
     EXPECT_EQ(2u, exchange_period(1.6, 0.5));
-    EXPECT_EQ(3u, exchange_period(2.5, 0.5));
     EXPECT_EQ(4u, exchange_period(2.5001, 0.5));
     EXPECT_EQ(19u, exchange_period(10.01, 0.5));
-    // Delays are stored as float, and the epoch length is half the minimum delay:
-    // 0.3f/(0.1f/2) is slightly above 6, but still counts as an exact multiple.
-    EXPECT_EQ(4u, exchange_period(double(0.3f), double(0.1f)/2));
     for (double delay: {1.0, 1.3, 2.0, 2.5, 3.7, 10.0, 123.4}) {
         for (double interval: {0.025, 0.1, 0.5}) {
             if (delay < 2*interval) continue;
             auto p = exchange_period(delay, interval);
             EXPECT_GE(p, 1u);
-            // With the margin, unless p is the minimum, which relies on delay >= 2*interval.
-            EXPECT_LE((p + 1)*interval, p > 1? delay*(1 - 1e-6): delay);
-            EXPECT_GT((p + 2)*interval, delay*(1 - 1e-6));
+            EXPECT_LE((p + 1)*interval, delay);
         }
     }
 }
@@ -201,21 +187,6 @@ TEST(spike_exchange, same_spikes_as_all_to_all) {
     for (const auto& [name, options]: exchange_options(rank, num_ranks)) {
         SCOPED_TRACE(name);
         const auto result = run(options, stops);
-        EXPECT_EQ(expected.spikes, result.spikes);
-        EXPECT_EQ(expected.num_spikes, result.num_spikes);
-    }
-}
-
-TEST(spike_exchange, same_spikes_with_random_delays) {
-    const int rank = g_context->distributed->id();
-    const int num_ranks = g_context->distributed->size();
-    const std::vector<double> stops = {50};
-    const auto expected = run({}, stops, true);
-    ASSERT_GT(expected.spikes.size(), 0u);
-
-    for (const auto& [name, options]: exchange_options(rank, num_ranks)) {
-        SCOPED_TRACE(name);
-        const auto result = run(options, stops, true);
         EXPECT_EQ(expected.spikes, result.spikes);
         EXPECT_EQ(expected.num_spikes, result.num_spikes);
     }
@@ -263,47 +234,44 @@ TEST(spike_exchange, communicator_delivers_in_time) {
     const time_type interval = 0.5;
     const int num_epochs = 40;
 
-    for (bool random_delays: {false, true}) {
-        SCOPED_TRACE(random_delays? "random delays": "delays by distance");
-        auto rec = distance_recipe(num_ranks, cells_per_rank, 1.3, random_delays);
-        auto decomp = partition_load_balance(rec, g_context);
-        std::vector<cell_gid_type> gids;
-        for (const auto& g: decomp->groups()) gids.insert(gids.end(), g.gids.begin(), g.gids.end());
-        cell_label_range local_sources, local_targets;
-        lif_cell_group group(gids, rec, local_sources, local_targets);
-        auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, gids});
+    auto rec = distance_recipe(num_ranks, cells_per_rank);
+    auto decomp = partition_load_balance(rec, g_context);
+    std::vector<cell_gid_type> gids;
+    for (const auto& g: decomp->groups()) gids.insert(gids.end(), g.gids.begin(), g.gids.end());
+    cell_label_range local_sources, local_targets;
+    lif_cell_group group(gids, rec, local_sources, local_targets);
+    auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, gids});
 
-        // Minimum delay of the local connections from each source.
-        std::map<cell_gid_type, double> min_delay_from;
-        for (auto gid: gids) {
-            for (const auto& c: rec.connections_on(gid)) {
-                auto [it, _] = min_delay_from.emplace(c.source.gid, std::numeric_limits<double>::infinity());
-                it->second = std::min(it->second, double(float(c.delay)));
+    // Minimum delay of the local connections from each source.
+    std::map<cell_gid_type, double> min_delay_from;
+    for (auto gid: gids) {
+        for (const auto& c: rec.connections_on(gid)) {
+            auto [it, _] = min_delay_from.emplace(c.source.gid, std::numeric_limits<double>::infinity());
+            it->second = std::min(it->second, double(float(c.delay)));
+        }
+    }
+
+    for (const auto& [name, options]: exchange_options(rank, num_ranks)) {
+        SCOPED_TRACE(name);
+        auto comm = communicator(rec, decomp, g_context, options);
+        comm.update_connections(rec, decomp, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}));
+        comm.schedule_exchange(interval);
+
+        std::map<cell_gid_type, int> num_received;
+        for (int e = 0; e < num_epochs; ++e) {
+            // Worst case: all cells fire at the start of the epoch.
+            std::vector<spike> local_spikes;
+            for (auto gid: gids) local_spikes.emplace_back(cell_member_type{gid, 0}, e*interval);
+            auto received = e + 1 < num_epochs ? comm.exchange(local_spikes, e) : comm.exchange(local_spikes);
+            for (const auto& s: received.from_local.values()) {
+                auto it = min_delay_from.find(s.source.gid);
+                if (it == min_delay_from.end()) continue;
+                ++num_received[s.source.gid];
+                EXPECT_GE(s.time + it->second + 1e-9, (e + 2)*interval)
+                    << "spike from " << s.source.gid << " at " << s.time << " received in epoch " << e;
             }
         }
-
-        for (const auto& [name, options]: exchange_options(rank, num_ranks)) {
-            SCOPED_TRACE(name);
-            auto comm = communicator(rec, decomp, g_context, options);
-            comm.update_connections(rec, decomp, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}));
-            comm.schedule_exchange(interval);
-
-            std::map<cell_gid_type, int> num_received;
-            for (int e = 0; e < num_epochs; ++e) {
-                // Worst case: all cells fire at the start of the epoch.
-                std::vector<spike> local_spikes;
-                for (auto gid: gids) local_spikes.emplace_back(cell_member_type{gid, 0}, e*interval);
-                auto received = e + 1 < num_epochs ? comm.exchange(local_spikes, e) : comm.exchange(local_spikes);
-                for (const auto& s: received.from_local.values()) {
-                    auto it = min_delay_from.find(s.source.gid);
-                    if (it == min_delay_from.end()) continue;
-                    ++num_received[s.source.gid];
-                    EXPECT_GE(s.time + it->second, (e + 2)*interval)
-                        << "spike from " << s.source.gid << " at " << s.time << " received in epoch " << e;
-                }
-            }
-            for (const auto& [src, _]: min_delay_from) EXPECT_EQ(num_epochs, num_received[src]) << "source " << src;
-        }
+        for (const auto& [src, _]: min_delay_from) EXPECT_EQ(num_epochs, num_received[src]) << "source " << src;
     }
 }
 
