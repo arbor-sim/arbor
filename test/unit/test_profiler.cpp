@@ -67,4 +67,21 @@ TEST(profiler, clear_keeps_regions) {
     EXPECT_EXIT(std::exit(clear_keeps_regions()? 0: 1), ::testing::ExitedWithCode(0), "");
 }
 
+// The summary of a root region with several children. Building the tree used to
+// copy the root from storage that the copy freed first with libc++, which showed
+// up as garbage in the names. Long names, so that they live on the heap.
+TEST(profiler, summary_with_several_children) {
+    arb::profile::profile p;
+    p.names = {"root_region_with_a_long_name", "first_child_with_a_long_name",
+               "second_child_with_a_long_name", "third_child_with_a_long_name"};
+    p.stacks = {{0}, {0, 1}, {0, 2}, {0, 3}, {0, 1, 2}};
+    p.counts = {1, 2, 3, 4, 5};
+    p.times = {10, 1, 2, 3, 0.5};
+    p.num_threads = 1;
+
+    std::stringstream summary;
+    summary << p;
+    for (const auto& name: p.names) EXPECT_NE(std::string::npos, summary.str().find(name)) << name;
+}
+
 #endif
