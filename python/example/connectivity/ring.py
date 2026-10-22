@@ -35,7 +35,7 @@ if __name__ == "__main__":
     ctx = A.context()
     rec = ring(N)
     sim = A.simulation(rec, ctx)
-    sim.record(A.spike_recording.all)
+    sim.record(A.spike_recording.local)
     sim.run(T * U.ms, dt * U.ms)
     plot_spikes(sim, T, N, prefix="02-")
     plot_network(rec, prefix="02-")

@@ -50,6 +50,6 @@ class unconnected(A.recipe):
 if __name__ == "__main__":
     rec = unconnected(N)
     sim = A.simulation(rec)
-    sim.record(A.spike_recording.all)
+    sim.record(A.spike_recording.local)
     sim.run(T * U.ms, dt * U.ms)
     plot_spikes(sim, T, N, prefix="01-")

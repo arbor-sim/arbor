@@ -52,7 +52,7 @@ class unconnected(A.recipe):
 if __name__ == "__main__":
     rec = unconnected(N)
     sim = A.simulation(rec)
-    sim.record(A.spike_recording.all)
+    sim.record(A.spike_recording.local)
 
     t = 0
     while t < T:

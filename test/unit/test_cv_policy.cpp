@@ -100,7 +100,6 @@ TEST(cv_policy, empty_morphology) {
         cv_policy_max_extent_um(0.234, interior_forks),
         cv_policy_max_extent(0.234_um),
         cv_policy_max_extent(0.234_um, interior_forks),
-        
         cv_policy_single(),
         cv_policy_single(reg::all()),
         cv_policy_explicit(ls::location(0, 0))
@@ -232,7 +231,6 @@ TEST(cv_policy, max_extent) {
             cv_policy pol = cv_policy_max_extent_um(0.25, reg::cable(0, 0.25, 0.75), interior_forks);
             locset expected = as_locset(L{0, 0.25}, L{0, 0.375}, L{0, 0.625}, L{0, 0.75});
             EXPECT_TRUE(locset_eq(cell.provider(), expected, pol.cv_boundary_points(cell)));
-
         }
     }
 
@@ -328,8 +326,9 @@ TEST(cv_policy, domain) {
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_fixed_per_branch(3, reg1, interior_forks).domain()));
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_max_extent_um(3, reg1).domain()));
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_max_extent_um(3, reg1, interior_forks).domain()));
+    EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_max_extent(3_um, reg1).domain()));
+    EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_max_extent(3_um, reg1, interior_forks).domain()));    
     EXPECT_TRUE(region_eq(cell.provider(), reg1, cv_policy_every_segment(reg1).domain()));
-
     EXPECT_TRUE(region_eq(cell.provider(), join(reg1, reg2), (cv_policy_single(reg1)+cv_policy_single(reg2)).domain()));
     EXPECT_TRUE(region_eq(cell.provider(), join(reg1, reg2), (cv_policy_single(reg1)|cv_policy_single(reg2)).domain()));
 }

@@ -77,10 +77,6 @@ struct ARB_ARBOR_API simulation {
     // Number of spikes since last reset, on local rank
     std::size_t num_local_spikes() const;
 
-    // Register a callback that will perform a export of the global
-    // spike vector.
-    void set_global_spike_callback(spike_export_function = spike_export_function{});
-
     // Register a callback that will perform a export of the rank local
     // spike vector.
     void set_local_spike_callback(spike_export_function = spike_export_function{});

@@ -24,7 +24,7 @@ namespace pyarb {
 // Argument type for simulation_shim::record() (see below).
 
 enum class spike_recording {
-    off, local, all
+    off, local
 };
 
 // Wraps an arb::simulation object and in addition manages a set of
@@ -42,9 +42,7 @@ class simulation_shim {
     struct sampler_callback {
         std::shared_ptr<sample_recorder_vec> recorders;
 
-        void operator()(arb::probe_metadata pm, std::size_t n_record, const arb::sample_record* records) {
-            recorders->at(pm.index)->record(pm.meta, n_record, records);
-        }
+        void operator()(arb::probe_metadata pm, const arb::sample_records& records) { recorders->at(pm.index)->record(pm.meta, records); }
 
         py::list samples() const {
             std::size_t size = recorders->size();
@@ -132,23 +130,17 @@ public:
             spike_record_.insert(spike_record_.end(), spikes.begin(), spikes.end());
             // Sort the newly appended spikes.
             std::sort(spike_record_.begin()+old_size, spike_record_.end(),
-                    [](const auto& lhs, const auto& rhs) {
-                        return std::tie(lhs.time, lhs.source.gid, lhs.source.index)<std::tie(rhs.time, rhs.source.gid, rhs.source.index);
-                    });
+                      [](const auto& lhs, const auto& rhs) {
+                          return std::tie(lhs.time, lhs.source.gid, lhs.source.index)<std::tie(rhs.time, rhs.source.gid, rhs.source.index);
+                      });
         };
 
         switch (policy) {
         case spike_recording::off:
-            sim_->set_global_spike_callback();
             sim_->set_local_spike_callback();
             break;
         case spike_recording::local:
-            sim_->set_global_spike_callback();
             sim_->set_local_spike_callback(spike_recorder);
-            break;
-        case spike_recording::all:
-            sim_->set_global_spike_callback(spike_recorder);
-            sim_->set_local_spike_callback();
             break;
         }
     }
@@ -160,7 +152,7 @@ public:
     py::list get_probe_metadata(const arb::cell_address_type& probeset_id) const {
         py::list result;
         for (auto&& pm: sim_->get_probe_metadata(probeset_id)) {
-             result.append(global_ptr_->probe_meta_converters.convert(pm.meta));
+             result.append(global_ptr_->probe_meta_converters.convert(pm.meta, pm.width));
         }
         return result;
     }
@@ -169,12 +161,11 @@ public:
         std::shared_ptr<sample_recorder_vec> recorders{new sample_recorder_vec};
 
         for (const arb::probe_metadata& pm: sim_->get_probe_metadata(probeset_id)) {
-            recorders->push_back(global_ptr_->recorder_factories.make_recorder(pm.meta));
+            recorders->push_back(global_ptr_->recorder_factories.make_recorder(pm.meta, pm.width));
         }
 
         // Constructed callbacks are passed to the underlying simulator object, _and_ a copy
         // is kept in sampler_map_; the two copies share the same recorder data.
-
         sampler_callback cb{std::move(recorders)};
         auto sah = sim_->add_sampler(arb::one_probe(probeset_id), sched.schedule(), cb);
         sampler_map_.insert({sah, cb});
@@ -211,8 +202,7 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
 
     py::enum_<spike_recording>(m, "spike_recording")
        .value("off", spike_recording::off)
-       .value("local", spike_recording::local)
-       .value("all", spike_recording::all);
+       .value("local", spike_recording::local);
 
     // Simulation
     py::class_<simulation_shim> simulation(m, "simulation",

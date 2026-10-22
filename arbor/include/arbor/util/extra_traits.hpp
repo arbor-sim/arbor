@@ -1,17 +1,15 @@
 #pragma once
 
 namespace arb {
-namespace util {
 
-// TODO: C++20 replace with std::remove_cvref, std::remove_cvref_t
-
-template <typename T>
-struct remove_cvref {
-    typedef std::remove_cv_t<std::remove_reference_t<T>> type;
+// Helper class, to be specialized in each cell header, mapping from Metadata to Value types
+template <typename M>
+struct probe_value_type_of {
+    using meta_type = M;
+    using type = void;
 };
 
-template <typename T>
-using remove_cvref_t = typename remove_cvref<T>::type;
+template <typename M>
+using probe_value_type_of_t = typename probe_value_type_of<M>::type;
 
-} // namespace util
 } // namespace arb

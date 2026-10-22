@@ -7,7 +7,6 @@
 
 #include <arbor/export.hpp>
 #include <arbor/util/any_cast.hpp>
-#include <arbor/util/extra_traits.hpp>
 
 // A non copyable variant of std::any. The two main use cases for such a
 // container are:
@@ -55,8 +54,8 @@ public:
 
     template <
         typename T,
-        typename = std::enable_if_t<!std::is_same_v<remove_cvref_t<T>, unique_any>>,
-        typename = std::enable_if_t<!std::is_same_v<remove_cvref_t<T>, std::any>>
+        typename = std::enable_if_t<!std::is_same_v<std::remove_cvref_t<T>, unique_any>>,
+        typename = std::enable_if_t<!std::is_same_v<std::remove_cvref_t<T>, std::any>>
     >
     unique_any(T&& other) {
         state_.reset(new model<contained_type<T>>(std::forward<T>(other)));
@@ -69,8 +68,8 @@ public:
 
     template <
         typename T,
-        typename = std::enable_if_t<!std::is_same_v<remove_cvref_t<T>, unique_any>>,
-        typename = std::enable_if_t<!std::is_same_v<remove_cvref_t<T>, std::any>>
+        typename = std::enable_if_t<!std::is_same_v<std::remove_cvref_t<T>, unique_any>>,
+        typename = std::enable_if_t<!std::is_same_v<std::remove_cvref_t<T>, std::any>>
     >
     unique_any& operator=(T&& other) {
         state_.reset(new model<contained_type<T>>(std::forward<T>(other)));
@@ -161,7 +160,7 @@ T* any_cast(unique_any* operand) {
 
 template<class T>
 T any_cast(const unique_any& operand) {
-    using U = remove_cvref_t<T>;
+    using U = std::remove_cvref_t<T>;
     static_assert(std::is_constructible<T, const U&>::value,
         "any_cast type can't construct copy of contained object");
 
@@ -174,7 +173,7 @@ T any_cast(const unique_any& operand) {
 
 template<class T>
 T any_cast(unique_any& operand) {
-    using U = remove_cvref_t<T>;
+    using U = std::remove_cvref_t<T>;
     static_assert(std::is_constructible<T, U&>::value,
         "any_cast type can't construct copy of contained object");
 
@@ -187,7 +186,7 @@ T any_cast(unique_any& operand) {
 
 template<class T>
 T any_cast(unique_any&& operand) {
-    using U = remove_cvref_t<T>;
+    using U = std::remove_cvref_t<T>;
 
     static_assert(std::is_constructible<T, U&&>::value,
         "any_cast type can't construct copy of contained object");

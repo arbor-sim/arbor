@@ -106,10 +106,10 @@ public:
         return p;
     }
 
+    // Reset all measurements. Region names and indexes are kept, since callers
+    // cache the indexes, e.g. PE/PL in function local statics.
     void clear() {
         for (auto& r: recorders_) r.clear();
-        name_index_.clear();
-        region_names_.clear();
     }
 };
 

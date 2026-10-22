@@ -1,5 +1,3 @@
-#include <fstream>
-#include <iomanip>
 #include <iostream>
 #include <algorithm>
 #include <array>
@@ -15,7 +13,6 @@
 #include <arbor/cable_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
-#include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
@@ -38,13 +35,9 @@ using arb::cell_lid_type;
 using arb::cell_size_type;
 using arb::cell_kind;
 using arb::time_type;
-using arb::cable_probe_membrane_voltage;
 
 using namespace arborio::literals;
 namespace U = arb::units;
-
-// Writes voltage trace as a json file.
-void write_trace_json(std::string fname, const arb::trace_data<double>& trace);
 
 // Generate a cell.
 arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params);
@@ -88,8 +81,26 @@ struct ring_recipe: public arb::recipe {
             const auto group = gid/s;
             const auto group_start = s*group;
             const auto group_end = std::min(group_start+s, num_cells_);
+            // ring connection
             cell_gid_type src = gid==group_start ? group_end-1: gid-1;
             cons.push_back({{src, "d"}, {"p"}, event_weight_, min_delay_*U::ms});
+            // Random weight=0 connections
+            // Used to pick source cell for a connection.
+            std::uniform_int_distribution<cell_gid_type> dist(0, num_cells_-2);
+            // Used to pick delay for a connection.
+            std::uniform_real_distribution<float> delay_dist(0, 2*min_delay_);
+            auto src_gen = std::mt19937(gid);
+            for (unsigned ix = 1; ix < ncons; ++ix) {
+                // Make a connection with weight 0.
+                // The source is randomly picked, with no self connections.
+                auto src = dist(src_gen);
+                if (src==gid) ++src;
+                const float delay = min_delay_+delay_dist(src_gen);
+                cons.push_back(arb::cell_connection({src, "d"},
+                                                    {"s", arb::lid_selection_policy::round_robin},
+                                                    0.f,
+                                                    delay*U::ms));
+            }
         }
         return cons;
     }
@@ -108,6 +119,24 @@ struct ring_recipe: public arb::recipe {
             const auto group_end = std::min(group_start+s, num_cells_);
             cell_gid_type src = gid==group_start? group_end-1: gid-1;
             cons.push_back({{src, 0}, {"p"}, event_weight_, min_delay_*U::ms});
+            // Random weight=0 connections
+            // Used to pick source cell for a connection.
+            std::uniform_int_distribution<cell_gid_type> dist(0, num_cells_-2);
+            // Used to pick delay for a connection.
+            std::uniform_real_distribution<float> delay_dist(0, 2*min_delay_);
+            auto src_gen = std::mt19937(gid);
+            for (unsigned ix = 1; ix < ncons; ++ix) {
+                // Make a connection with weight 0.
+                // The source is randomly picked, with no self connections.
+                auto src = dist(src_gen);
+                if (src==gid) ++src;
+                const float delay = min_delay_+delay_dist(src_gen);
+                cons.push_back(arb::raw_cell_connection({src, 0},
+                                                        {"s", arb::lid_selection_policy::round_robin},
+                                                        0.f,
+                                                        delay*U::ms));
+            }
+
         }
         return cons;
     }
@@ -119,12 +148,6 @@ struct ring_recipe: public arb::recipe {
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         if (gid%params_.ring_size == 0) return {arb::explicit_generator_from_milliseconds({"p"}, event_weight_, std::vector{1.0})};
         return {};
-    }
-
-    std::vector<arb::probe_info> get_probes(cell_gid_type gid) const override {
-        // Measure at the soma.
-        arb::mlocation loc{0, 0.0};
-        return {{cable_probe_membrane_voltage{loc}, "Um"}};
     }
 
     cell_size_type num_cells_;
@@ -224,7 +247,6 @@ int main(int argc, char** argv) {
         // Construct the model.
         arb::simulation sim(recipe, ctx, decomp);
 
-        // Set up the probe that will measure voltage in the cell.
         meters.checkpoint("model-init", ctx);
 
         // Run the simulation.
@@ -253,25 +275,6 @@ int main(int argc, char** argv) {
     }
 
     return 0;
-}
-
-void write_trace_json(std::string fname, const arb::trace_data<double>& trace) {
-    nlohmann::json json;
-    json["name"] = "ring demo";
-    json["units"] = "mV";
-    json["cell"] = "0.0";
-    json["probe"] = "0";
-
-    auto& jt = json["data"]["time"];
-    auto& jy = json["data"]["voltage"];
-
-    for (const auto& sample: trace) {
-        jt.push_back(sample.t);
-        jy.push_back(sample.v);
-    }
-
-    std::ofstream file(fname);
-    file << std::setw(1) << json << "\n";
 }
 
 // Helper used to interpolate in branch_cell.
@@ -406,9 +409,7 @@ arb::cable_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& param
     decor.place(arb::mlocation{1, 0}, arb::synapse{"expsyn"}, "p");
 
     // Add additional synapses that will not be connected to anything.
-    if (params.synapses>1) {
-        decor.place(syns, arb::synapse{"expsyn"}, "s");
-    }
+    if (params.synapses>1) decor.place(syns, arb::synapse{"expsyn"}, "s");
 
     // Make a CV between every sample in the sample tree.
     return {arb::morphology(tree), decor, {}, arb::cv_policy_every_segment()};

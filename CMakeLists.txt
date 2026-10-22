@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.31.0)
 include(CMakeDependentOption)
 include(CheckIPOSupported)
 
+
 # Usually we don't want to hear those
 set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON CACHE INTERNAL "" FORCE)
 
@@ -31,6 +32,18 @@ enable_language(CXX)
 include(GNUInstallDirs)
 include(CheckCXXCompilerFlag)
 
+if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  find_package(llvm)
+  message("INITIAL LLVM Patch ${LLVM_LIBRARY_DIR}") 
+  # Homebrew deploys libc++ along with the llvm package. We must point to it
+  # otherwise clang will use the header files of the package and link to
+  # system libc++. See llvm/llvm-project#155531 and Homebrew/homebrew-core#235411
+  link_directories(${LLVM_LIBRARY_DIR}/c++)
+  include_directories(SYSTEM ${LLVM_LIBRARY_DIR}/../include/c++)
+  add_compile_options(-I${LLVM_LIBRARY_DIR}/../include/c++)
+endif()
+
+
 # Effectively adds '-fpic' flag to CXX_FLAGS. Needed for dynamic catalogues.
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -57,7 +70,6 @@ mark_as_advanced(FORCE ARBDEV_COLOR)
 #----------------------------------------------------------
 # Configure-time build options for Arbor:
 #----------------------------------------------------------
-
 # Specify target architecture.
 if (NOT DEFINED ARB_DEFAULT_ARCH)
   check_cxx_compiler_flag("-march=native" CXX_HAS_NATIVE)
@@ -331,7 +343,7 @@ endif()
 
 CPMFindPackage(NAME pugixml
                GITHUB_REPOSITORY zeux/pugixml
-               VERSION 1.15
+               VERSION 1.16
                DOWNLOAD_ONLY YES)
 add_library(ext-pugixml INTERFACE)
 if(pugixml_ADDED)
@@ -345,8 +357,8 @@ install(TARGETS ext-pugixml EXPORT arbor-targets)
 
 CPMFindPackage(NAME fmt
               GITHUB_REPOSITORY fmtlib/fmt
-              VERSION 12.1.0
-              GIT_TAG 12.1.0)
+              VERSION 12.2.0
+              GIT_TAG 12.2.0)
 
 add_library(ext-gtest INTERFACE)
 add_library(ext-bench INTERFACE)
@@ -392,7 +404,7 @@ list(APPEND arbor_export_dependencies units)
 
 CPMFindPackage(NAME unordered_dense
                GITHUB_REPOSITORY martinus/unordered_dense
-               VERSION 4.5.0
+               VERSION 5.3.1
                SYSTEM YES
                EXCLUDE_FROM_ALL YES)
 

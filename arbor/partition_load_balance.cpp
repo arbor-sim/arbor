@@ -29,7 +29,7 @@ struct gid_range {
 };
 
 // a (stepped) range contains all gids lo <= gid < hi that are multiples of the step
-bool contains_gid(const gid_range& gids, cell_gid_type gid) { return (gid >= gids.beg) && (gid < gids.end) && (gid % gids.dlt == 0); }
+bool contains_gid(const gid_range& gids, cell_gid_type gid) { return (gid >= gids.beg) && (gid < gids.end) && ((gid - gids.beg) % gids.dlt == 0); }
 
 // Build global GJ connectivity table such that
 // * table[gid] is the set of all gids connected to gid via a GJ

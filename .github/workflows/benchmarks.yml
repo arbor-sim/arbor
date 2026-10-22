@@ -8,12 +8,12 @@ on:
 jobs:
   build:
     name: "Benchmarks"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
     env:
-        CC:  gcc-12
-        CXX: g++-12
+        CC:  gcc-14
+        CXX: g++-14
     steps:
       - name: Get build dependencies
         run: |
@@ -37,7 +37,7 @@ jobs:
           VECTOR_EXTENSIONS=${HAS_AVX512F}${HAS_AVX2}${HAS_FMA}${HAS_AVX}
           echo "VECTOR_EXTENSIONS=$VECTOR_EXTENSIONS" >> $GITHUB_ENV
       - name: Setup ccache
-        uses: hendrikmuhs/ccache-action@v1.2
+        uses: hendrikmuhs/ccache-action@v1.2.24
         with:
           key: benchmarks-${{ env.CXX }}-${{ env.VECTOR_EXTENSIONS }}
       - name: Build arbor

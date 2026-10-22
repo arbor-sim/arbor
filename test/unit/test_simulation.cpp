@@ -7,6 +7,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
+#include <arbor/event_generator.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/lif_cell.hpp>
 #include <arbor/recipe.hpp>
@@ -76,7 +77,7 @@ TEST(simulation, null_builder) {
     }
 }
 
-TEST(simulation, spike_global_callback) {
+TEST(simulation, spike_local_callback) {
     constexpr unsigned n = 5;
     double t_max = 10.;
 
@@ -175,7 +176,7 @@ TEST(simulation, restart) {
     simulation sim(rec, ctx, decomp);
 
     std::vector<spike> collected;
-    sim.set_global_spike_callback([&](const std::vector<spike>& spikes) {
+    sim.set_local_spike_callback([&](const std::vector<spike>& spikes) {
         collected.insert(collected.end(), spikes.begin(), spikes.end());
     });
 
@@ -205,4 +206,36 @@ TEST(simulation, restart) {
             EXPECT_DOUBLE_EQ(expected_spikes[i].time, collected[i].time);
         }
     }
+}
+
+// Two LIF cells: cell 0 fires once, and its connection to cell 1 is below the
+// threshold. If update() duplicated the connection, its events would add up
+// and make cell 1 fire as well.
+struct sub_threshold_pair: public recipe {
+    cell_size_type num_cells() const override { return 2; }
+    cell_kind get_cell_kind(cell_gid_type) const override { return cell_kind::lif; }
+    util::unique_any get_cell_description(cell_gid_type) const override {
+        return lif_cell{.source="src", .target="tgt"};
+    }
+    std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
+        if (gid != 1) return {};
+        // 150 pA ms on 20 pF raise the potential by 7.5 mV, below the threshold of 10 mV.
+        return {cell_connection({0, "src"}, {"tgt"}, 150.f, 1*U::ms)};
+    }
+    std::vector<event_generator> event_generators(cell_gid_type gid) const override {
+        if (gid != 0) return {};
+        return {explicit_generator_from_milliseconds({"tgt"}, 500.f, std::vector<double>{1.0})};
+    }
+};
+
+TEST(simulation, update_does_not_duplicate_connections) {
+    auto rec = sub_threshold_pair();
+    auto sim = simulation(rec);
+    sim.update(rec);
+    sim.update(rec);
+    std::vector<spike> spikes;
+    sim.set_local_spike_callback([&](const std::vector<spike>& s) { spikes.insert(spikes.end(), s.begin(), s.end()); });
+    sim.run(5*U::ms, 0.025*U::ms);
+    ASSERT_EQ(1u, spikes.size());
+    EXPECT_EQ(0u, spikes[0].source.gid);
 }

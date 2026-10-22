@@ -41,7 +41,7 @@ if __name__ == "__main__":
         rec = recipe(n_cell=4)
         ctx = A.context(mpi=group)
         sim = A.simulation(rec, context=ctx)
-        sim.record(A.spike_recording.all)
+        sim.record(A.spike_recording.local)
         sim.run(T * U.ms, dt_arb * U.ms)
 
         rates = np.zeros(int(T / dt_com))

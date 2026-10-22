@@ -48,11 +48,11 @@ This type collects all information independent of the backend.
 
     unique ID, currently ignored
 
-  .. c:member:: const char*               name
+  .. c:member:: const char* name
 
     (catalogue-level) unique name
 
-  .. c:member:: arb_mechanism_kind        kind
+  .. c:member:: arb_mechanism_kind kind
 
     one of:
 
@@ -85,6 +85,13 @@ This type collects all information independent of the backend.
   .. c:member:: arb_size_type             n_parameters
   .. c:member:: arb_ion_info*             ions
   .. c:member:: arb_size_type             n_ions
+
+where
+
+.. c:type:: unsigned arb_size_type
+.. c:type:: int arb_index_type
+.. c:type:: double arb_value_type
+.. c:type:: float arb_weight_type                        
 
 Tables
 ''''''
@@ -407,7 +414,7 @@ below with some metadata about the backend.
 
     instance of the mechanism
 
-  .. c:member::  arb_float_type  weight
+  .. c:member::  arb_weight_type weight
 
     connection weight
 

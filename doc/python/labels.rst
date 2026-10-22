@@ -134,8 +134,8 @@ of both the ``dend`` and ``apic`` regions.
     # equivalent to (join (tag 3) (tag 4))
     d['tree'] = '(join (region "dend") (region "apic"))'
 
-The order which labels are defined in does not matter, so an :ref:``expression <labels-expressions>` can refer to a
-label that has not yet been defined:
+The order which labels are defined in does not matter, so an :ref:`expression
+<labels-expressions>` can refer to a label that has not yet been defined:
 
 .. code-block:: python
 

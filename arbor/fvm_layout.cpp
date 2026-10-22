@@ -664,7 +664,6 @@ ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& 
 }
 
 // Axial current as linear combination of membrane voltages at reference points in adjacent CVs.
-
 ARB_ARBOR_API fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, arb_size_type cell_idx, const mlocation& site) {
     auto& embedding = cell.embedding();
     fvm_voltage_interpolant vi;
@@ -1143,6 +1142,7 @@ auto make_mechanism_config(const mechanism_info& info,
     }
     fvm_mechanism_config result;
     result.kind = expected;
+    result.has_post_event = info.post_events;
     return result;
 }
 
@@ -1503,6 +1503,7 @@ make_point_mechanism_config(const std::unordered_map<std::string, mlocation_map<
              });
 
         auto config = make_mechanism_config(info, arb_mechanism_kind_point);
+
         // Do coalesce?
         if (!info.random_variables.size() && info.linear && data.coalesce) {
             for (auto& [k, _v]: parameters) {

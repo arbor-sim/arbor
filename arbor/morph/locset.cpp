@@ -24,29 +24,20 @@ namespace ls {
 
 // Throw on invalid mlocation.
 void assert_valid(const mlocation& x) {
-    if (!test_invariants(x)) {
-        throw invalid_mlocation(x);
-    }
+    if (!test_invariants(x)) throw invalid_mlocation(x);
 }
+
+bool operator==(const locset_tag&, const locset_tag&) { return false; }
 
 // Empty locset.
-
 struct nil_: locset_tag {};
 
-ARB_ARBOR_API locset nil() {
-    return locset{nil_{}};
-}
-
-mlocation_list thingify_(const nil_& x, const mprovider&) {
-    return {};
-}
-
-std::ostream& operator<<(std::ostream& o, const nil_& x) {
-    return o << "(locset-nil)";
-}
+ARB_ARBOR_API locset nil() { return locset{nil_{}}; }
+mlocation_list thingify_(const nil_& x, const mprovider&) { return {}; }
+std::ostream& operator<<(std::ostream& o, const nil_& x) { return o << "(locset-nil)"; }
+bool operator==(const nil_&, const nil_&) { return true; }
 
 // An explicit location.
-
 struct location_: locset_tag {
     explicit location_(mlocation loc): loc(loc) {}
     mlocation loc;
@@ -66,20 +57,16 @@ mlocation_list thingify_(const location_& x, const mprovider& p) {
     return {x.loc};
 }
 
-std::ostream& operator<<(std::ostream& o, const location_& x) {
-    return o << "(location " << x.loc.branch << " " << x.loc.pos << ")";
-}
+std::ostream& operator<<(std::ostream& o, const location_& x) { return o << "(location " << x.loc.branch << " " << x.loc.pos << ")"; }
+bool operator==(const location_& lhs, const location_& rhs) { return lhs.loc == rhs.loc; }
 
 // Wrap mlocation_list (not part of public API).
-
 struct location_list_: locset_tag {
     explicit location_list_(mlocation_list ll): ll(std::move(ll)) {}
     mlocation_list ll;
 };
 
-locset location_list(mlocation_list ll) {
-    return locset{location_list_{std::move(ll)}};
-}
+locset location_list(mlocation_list ll) { return locset{location_list_{std::move(ll)}}; }
 
 mlocation_list thingify_(const location_list_& x, const mprovider& p) {
     auto n_branch = p.morphology().num_branches();
@@ -97,25 +84,29 @@ std::ostream& operator<<(std::ostream& o, const location_list_& x) {
     return o << ')';
 }
 
-// Set of terminal points (most distal points).
+bool operator==(const location_list_& lhs, const location_list_& rhs) {
+    if (lhs.ll.size() != rhs.ll.size()) return false;
+    for (size_t ix = 0; ix < lhs.ll.size(); ++ix) {
+        if (lhs.ll[ix] != rhs.ll[ix]) return false;
+    }
+    return true;
+}
 
+// Set of terminal points (most distal points).
 struct terminal_: locset_tag {};
 
-ARB_ARBOR_API locset terminal() {
-    return locset{terminal_{}};
-}
+ARB_ARBOR_API locset terminal() { return locset{terminal_{}}; }
 
 mlocation_list thingify_(const terminal_&, const mprovider& p) {
     mlocation_list locs;
-    util::assign(locs, util::transform_view(p.morphology().terminal_branches(),
-        [](msize_t bid) { return mlocation{bid, 1.}; }));
-
+    util::assign(locs,
+                 util::transform_view(p.morphology().terminal_branches(),
+                                      [](msize_t bid) { return mlocation{bid, 1.}; }));
     return locs;
 }
 
-std::ostream& operator<<(std::ostream& o, const terminal_& x) {
-    return o << "(terminal)";
-}
+std::ostream& operator<<(std::ostream& o, const terminal_& x) { return o << "(terminal)"; }
+bool operator==(const terminal_& lhs, const terminal_& rhs) { return true; }
 
 // Translate locations in locset distance μm in the proximal direction
 struct proximal_translate_: locset_tag {
@@ -123,6 +114,10 @@ struct proximal_translate_: locset_tag {
     locset start;
     double distance;
 };
+
+bool operator==(const proximal_translate_& lhs, const proximal_translate_& rhs) {
+    return (lhs.start == rhs.start) && (lhs.distance == rhs.distance);
+}
 
 mlocation_list thingify_(const proximal_translate_& dt, const mprovider& p) {
     const auto& m = p.morphology();
@@ -162,13 +157,8 @@ mlocation_list thingify_(const proximal_translate_& dt, const mprovider& p) {
     return L;
 }
 
-ARB_ARBOR_API locset proximal_translate(locset ls, double distance) {
-    return locset(proximal_translate_{std::move(ls), distance});
-}
-
-std::ostream& operator<<(std::ostream& o, const proximal_translate_& l) {
-    return o << "(proximal-translate " << l.start << " " << l.distance << ")";
-}
+ARB_ARBOR_API locset proximal_translate(locset ls, double distance) { return locset(proximal_translate_{std::move(ls), distance}); }
+std::ostream& operator<<(std::ostream& o, const proximal_translate_& l) { return o << "(proximal-translate " << l.start << " " << l.distance << ")"; }
 
 // Translate locations in locset distance μm in the distal direction
 struct distal_translate_: locset_tag {
@@ -177,9 +167,11 @@ struct distal_translate_: locset_tag {
     double distance;
 };
 
-ARB_ARBOR_API locset distal_translate(locset ls, double distance) {
-    return locset(distal_translate_{std::move(ls), distance});
+bool operator==(const distal_translate_& lhs, const distal_translate_& rhs) {
+    return (lhs.start == rhs.start) && (lhs.distance == rhs.distance);
 }
+
+ARB_ARBOR_API locset distal_translate(locset ls, double distance) { return locset(distal_translate_{std::move(ls), distance}); }
 
 mlocation_list thingify_(const distal_translate_& dt, const mprovider& p) {
     const auto& m = p.morphology();
@@ -245,42 +237,24 @@ mlocation_list thingify_(const distal_translate_& dt, const mprovider& p) {
     return L;
 }
 
-std::ostream& operator<<(std::ostream& o, const distal_translate_& l) {
-    return o << "(distal-translate " << l.start << " " << l.distance << ")";
-}
+std::ostream& operator<<(std::ostream& o, const distal_translate_& l) { return o << "(distal-translate " << l.start << " " << l.distance << ")"; }
 
 // Root location (most proximal point).
-
 struct root_: locset_tag {};
 
-ARB_ARBOR_API locset root() {
-    return locset{root_{}};
-}
+ARB_ARBOR_API locset root() { return locset{root_{}}; }
+mlocation_list thingify_(const root_&, const mprovider& p) { return {mlocation{0, 0.}}; }
+std::ostream& operator<<(std::ostream& o, const root_& x) { return o << "(root)"; }
+bool operator==(const root_& lhs, const root_& rhs) { return true; }
 
-mlocation_list thingify_(const root_&, const mprovider& p) {
-    return {mlocation{0, 0.}};
-}
-
-std::ostream& operator<<(std::ostream& o, const root_& x) {
-    return o << "(root)";
-}
 
 // Locations that mark interface between segments.
-
 struct segments_: locset_tag {};
 
-ARB_ARBOR_API locset segment_boundaries() {
-    return locset{segments_{}};
-}
-
-mlocation_list thingify_(const segments_&, const mprovider& p) {
-    return p.embedding().segment_ends();
-}
-
-std::ostream& operator<<(std::ostream& o, const segments_& x) {
-    return o << "(segment-boundaries)";
-}
-
+ARB_ARBOR_API locset segment_boundaries() { return locset{segments_{}}; }
+mlocation_list thingify_(const segments_&, const mprovider& p) { return p.embedding().segment_ends(); }
+std::ostream& operator<<(std::ostream& o, const segments_& x) { return o << "(segment-boundaries)"; }
+bool operator==(const segments_& lhs, const segments_& rhs) { return true; }
 
 // Proportional location on every branch.
 
@@ -289,43 +263,32 @@ struct on_branches_: locset_tag {
     double pos;
 };
 
-ARB_ARBOR_API locset on_branches(double pos) {
-    return locset{on_branches_{pos}};
-}
+ARB_ARBOR_API locset on_branches(double pos) { return locset{on_branches_{pos}}; }
 
 mlocation_list thingify_(const on_branches_& ob, const mprovider& p) {
     msize_t n_branch = p.morphology().num_branches();
 
     mlocation_list locs;
     locs.reserve(n_branch);
-    for (msize_t b = 0; b<n_branch; ++b) {
+    for (msize_t b = 0; b < n_branch; ++b) {
         locs.push_back({b, ob.pos});
     }
     return locs;
 }
 
-std::ostream& operator<<(std::ostream& o, const on_branches_& x) {
-    return o << "(on_branches " << x.pos << ")";
-}
+std::ostream& operator<<(std::ostream& o, const on_branches_& x) { return o << "(on_branches " << x.pos << ")"; }
+bool operator==(const on_branches_& lhs, const on_branches_& rhs) { return lhs.pos == rhs.pos; }
 
 // Named locset.
-
 struct named_: locset_tag {
     explicit named_(std::string name): name(std::move(name)) {}
     std::string name;
 };
 
-ARB_ARBOR_API locset named(std::string name) {
-    return locset(named_{std::move(name)});
-}
-
-mlocation_list thingify_(const named_& n, const mprovider& p) {
-    return p.locset(n.name);
-}
-
-std::ostream& operator<<(std::ostream& o, const named_& x) {
-    return o << "(locset \"" << x.name << "\")";
-}
+ARB_ARBOR_API locset named(std::string name) { return locset(named_{std::move(name)}); }
+mlocation_list thingify_(const named_& n, const mprovider& p) { return p.locset(n.name); }
+std::ostream& operator<<(std::ostream& o, const named_& x) { return o << "(locset \"" << x.name << "\")"; }
+bool operator==(const named_& lhs, const named_& rhs) { return lhs.name == rhs.name; }
 
 // Most distal points of a region
 
@@ -334,9 +297,9 @@ struct most_distal_: locset_tag {
     region reg;
 };
 
-ARB_ARBOR_API locset most_distal(region reg) {
-    return locset(most_distal_{std::move(reg)});
-}
+bool operator==(const most_distal_& lhs, const most_distal_& rhs) { return lhs.reg == rhs.reg; }
+
+ARB_ARBOR_API locset most_distal(region reg) { return locset(most_distal_{std::move(reg)}); }
 
 mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
     // Make a list of the distal ends of each cable segment.
@@ -347,20 +310,15 @@ mlocation_list thingify_(const most_distal_& n, const mprovider& p) {
     return maxset(p.morphology(), L);
 }
 
-std::ostream& operator<<(std::ostream& o, const most_distal_& x) {
-    return o << "(distal " << x.reg << ")";
-}
+std::ostream& operator<<(std::ostream& o, const most_distal_& x) { return o << "(distal " << x.reg << ")"; }
 
 // Most proximal points of a region
-
 struct most_proximal_: locset_tag {
     explicit most_proximal_(region reg): reg(std::move(reg)) {}
     region reg;
 };
 
-ARB_ARBOR_API locset most_proximal(region reg) {
-    return locset(most_proximal_{std::move(reg)});
-}
+ARB_ARBOR_API locset most_proximal(region reg) { return locset(most_proximal_{std::move(reg)}); }
 
 mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
     // Make a list of the proximal ends of each cable segment.
@@ -372,29 +330,24 @@ mlocation_list thingify_(const most_proximal_& n, const mprovider& p) {
     return minset(p.morphology(), L);
 }
 
-std::ostream& operator<<(std::ostream& o, const most_proximal_& x) {
-    return o << "(proximal " << x.reg << ")";
-}
+bool operator==(const most_proximal_& lhs, const most_proximal_& rhs) { return lhs.reg == rhs.reg; }
+std::ostream& operator<<(std::ostream& o, const most_proximal_& x) { return o << "(proximal " << x.reg << ")"; }
 
 // Boundary points of a region.
 //
 // The boundary points of a region R are defined as the most proximal
 // and most distal locations in the components of R.
-
 struct boundary_: locset_tag {
     explicit boundary_(region reg): reg(std::move(reg)) {}
     region reg;
 };
 
-ARB_ARBOR_API locset boundary(region reg) {
-    return locset(boundary_(std::move(reg)));
-};
+ARB_ARBOR_API locset boundary(region reg) { return locset(boundary_(std::move(reg))); };
 
 mlocation_list thingify_(const boundary_& n, const mprovider& p) {
     std::vector<mextent> comps = components(p.morphology(), thingify(n.reg, p));
 
     mlocation_list L;
-
     for (const mextent& comp: comps) {
         arb_assert(!comp.empty());
         arb_assert(thingify_(most_proximal_{region{comp}}, p).size()==1u);
@@ -408,9 +361,8 @@ mlocation_list thingify_(const boundary_& n, const mprovider& p) {
     return support(std::move(L));
 }
 
-std::ostream& operator<<(std::ostream& o, const boundary_& x) {
-    return o << "(boundary " << x.reg << ")";
-}
+std::ostream& operator<<(std::ostream& o, const boundary_& x) { return o << "(boundary " << x.reg << ")"; }
+bool operator==(const boundary_& lhs, const boundary_& rhs) { return lhs.reg == rhs.reg; }
 
 // Completed boundary points of a region.
 //
@@ -422,15 +374,12 @@ struct cboundary_: locset_tag {
     region reg;
 };
 
-ARB_ARBOR_API locset cboundary(region reg) {
-    return locset(cboundary_(std::move(reg)));
-};
+ARB_ARBOR_API locset cboundary(region reg) { return locset(cboundary_(std::move(reg))); };
 
 mlocation_list thingify_(const cboundary_& n, const mprovider& p) {
     std::vector<mextent> comps = components(p.morphology(), thingify(n.reg, p));
 
     mlocation_list L;
-
     for (const mextent& comp: comps) {
         mextent ccomp = thingify(reg::complete(comp), p);
 
@@ -449,12 +398,10 @@ mlocation_list thingify_(const cboundary_& n, const mprovider& p) {
     return support(std::move(L));
 }
 
-std::ostream& operator<<(std::ostream& o, const cboundary_& x) {
-    return o << "(cboundary " << x.reg << ")";
-}
+std::ostream& operator<<(std::ostream& o, const cboundary_& x) { return o << "(cboundary " << x.reg << ")"; }
+bool operator==(const cboundary_& lhs, const cboundary_& rhs) { return lhs.reg == rhs.reg; }
 
 // Proportional on components of a region.
-
 struct on_components_: locset_tag {
     explicit on_components_(double relpos, region reg):
         relpos(relpos), reg(std::move(reg)) {}
@@ -462,14 +409,14 @@ struct on_components_: locset_tag {
     region reg;
 };
 
-ARB_ARBOR_API locset on_components(double relpos, region reg) {
-    return locset(on_components_(relpos, std::move(reg)));
+ARB_ARBOR_API locset on_components(double relpos, region reg) { return locset(on_components_(relpos, std::move(reg))); }
+
+bool operator==(const on_components_& lhs, const on_components_& rhs) {
+    return (lhs.reg == rhs.reg) && (lhs.relpos == rhs.relpos);
 }
 
 mlocation_list thingify_(const on_components_& n, const mprovider& p) {
-    if (n.relpos<0 || n.relpos>1) {
-        return {};
-    }
+    if (n.relpos<0 || n.relpos>1) return {};
 
     std::vector<mextent> comps = components(p.morphology(), thingify(n.reg, p));
     std::vector<mlocation> L;
@@ -525,9 +472,7 @@ mlocation_list thingify_(const on_components_& n, const mprovider& p) {
     return L;
 }
 
-std::ostream& operator<<(std::ostream& o, const on_components_& x) {
-    return o << "(on-components " << x.relpos << " " << x.reg << ")";
-}
+std::ostream& operator<<(std::ostream& o, const on_components_& x) { return o << "(on-components " << x.relpos << " " << x.reg << ")"; }
 
 // Uniform locset.
 
@@ -540,6 +485,10 @@ struct uniform_: locset_tag {
     unsigned right;
     uint64_t seed;
 };
+
+bool operator==(const uniform_& lhs, const uniform_& rhs) {
+    return (lhs.reg == rhs.reg) && (lhs.left == rhs.left) && (lhs.right == rhs.right) && (lhs.seed == rhs.seed);
+}
 
 ARB_ARBOR_API locset uniform(arb::region reg, unsigned left, unsigned right, uint64_t seed) {
     return locset(uniform_{std::move(reg), left, right, seed});
@@ -588,92 +537,70 @@ mlocation_list thingify_(const uniform_& u, const mprovider& p) {
     return L;
 }
 
-std::ostream& operator<<(std::ostream& o, const uniform_& u) {
-    return o << "(uniform " << u.reg << " " << u.left << " " << u.right << " " << u.seed << ")";
-}
+std::ostream& operator<<(std::ostream& o, const uniform_& u) { return o << "(uniform " << u.reg << " " << u.left << " " << u.right << " " << u.seed << ")"; }
 
 // Intersection of two point sets.
-
 struct land: locset_tag {
     locset lhs;
     locset rhs;
     land(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mlocation_list thingify_(const land& P, const mprovider& p) {
-    return intersection(thingify(P.lhs, p), thingify(P.rhs, p));
-}
+mlocation_list thingify_(const land& P, const mprovider& p) { return intersection(thingify(P.lhs, p), thingify(P.rhs, p)); }
+std::ostream& operator<<(std::ostream& o, const land& x) { return o << "(intersect " << x.lhs << " " << x.rhs << ")"; }
+bool operator==(const land& lhs, const land& rhs) { return (lhs.lhs == rhs.lhs) && (lhs.rhs == rhs.rhs); }
 
-std::ostream& operator<<(std::ostream& o, const land& x) {
-    return o << "(intersect " << x.lhs << " " << x.rhs << ")";
-}
 
 // Union of two point sets.
-
 struct lor: locset_tag {
     locset lhs;
     locset rhs;
     lor(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mlocation_list thingify_(const lor& P, const mprovider& p) {
-    return join(thingify(P.lhs, p), thingify(P.rhs, p));
-}
-
-std::ostream& operator<<(std::ostream& o, const lor& x) {
-    return o << "(join " << x.lhs << " " << x.rhs << ")";
-}
+mlocation_list thingify_(const lor& P, const mprovider& p) { return join(thingify(P.lhs, p), thingify(P.rhs, p)); }
+std::ostream& operator<<(std::ostream& o, const lor& x) { return o << "(join " << x.lhs << " " << x.rhs << ")"; }
+bool operator==(const lor& lhs, const lor& rhs) { return (lhs.lhs == rhs.lhs) && (lhs.rhs == rhs.rhs); }
 
 // Sum of two point sets.
-
 struct lsum: locset_tag {
     locset lhs;
     locset rhs;
     lsum(locset lhs, locset rhs): lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
-mlocation_list thingify_(const lsum& P, const mprovider& p) {
-    return sum(thingify(P.lhs, p), thingify(P.rhs, p));
-}
-
-std::ostream& operator<<(std::ostream& o, const lsum& x) {
-    return o << "(sum " << x.lhs << " " << x.rhs << ")";
-}
+mlocation_list thingify_(const lsum& P, const mprovider& p) { return sum(thingify(P.lhs, p), thingify(P.rhs, p)); }
+std::ostream& operator<<(std::ostream& o, const lsum& x) { return o << "(sum " << x.lhs << " " << x.rhs << ")"; }
+bool operator==(const lsum& lhs, const lsum& rhs) { return (lhs.lhs == rhs.lhs) && (lhs.rhs == rhs.rhs); }
 
 // Support of point set.
-
 struct lsup_: locset_tag {
     locset arg;
     lsup_(locset arg): arg(std::move(arg)) {}
 };
 
-ARB_ARBOR_API locset support(locset arg) {
-    return locset{lsup_{std::move(arg)}};
-}
+ARB_ARBOR_API locset support(locset arg) { return locset{lsup_{std::move(arg)}}; }
+mlocation_list thingify_(const lsup_& P, const mprovider& p) { return support(thingify(P.arg, p)); };
+std::ostream& operator<<(std::ostream& o, const lsup_& x) { return o << "(support " << x.arg << ")"; }
+bool operator==(const lsup_& lhs, const lsup_& rhs) { return lhs.arg == rhs.arg; }
 
-mlocation_list thingify_(const lsup_& P, const mprovider& p) {
-    return support(thingify(P.arg, p));
-};
-
-std::ostream& operator<<(std::ostream& o, const lsup_& x) {
-    return o << "(support " << x.arg << ")";
-}
 
 // Restrict a locset on to a region: returns all locations in the locset that
 // are also in the region.
-
 struct lrestrict_: locset_tag {
     explicit lrestrict_(const locset& l, const region& r): ls{l}, reg{r} {}
     locset ls;
     region reg;
 };
 
+bool operator==(const lrestrict_& lhs, const lrestrict_& rhs) {
+    return (lhs.ls == rhs.ls) && (lhs.reg == rhs.reg);
+}
+
 mlocation_list thingify_(const lrestrict_& P, const mprovider& p) {
     mlocation_list L;
-
     auto cables = thingify(P.reg, p).cables();
     auto ends = util::transform_view(cables, [](const auto& c){return mlocation{c.branch, c.dist_pos};});
-
     for (auto l: thingify(P.ls, p)) {
         auto it = std::lower_bound(ends.begin(), ends.end(), l);
         if (it==ends.end()) continue;
@@ -682,48 +609,25 @@ mlocation_list thingify_(const lrestrict_& P, const mprovider& p) {
             L.push_back(l);
         }
     }
-
     return L;
 }
 
-ARB_ARBOR_API locset restrict_to(locset ls, region reg) {
-    return locset{lrestrict_{std::move(ls), std::move(reg)}};
-}
-
-std::ostream& operator<<(std::ostream& o, const lrestrict_& x) {
-    return o << "(restrict-to " << x.ls << " " << x.reg << ")";
-}
+ARB_ARBOR_API locset restrict_to(locset ls, region reg) { return locset{lrestrict_{std::move(ls), std::move(reg)}}; }
+std::ostream& operator<<(std::ostream& o, const lrestrict_& x) { return o << "(restrict-to " << x.ls << " " << x.reg << ")"; }
 
 } // namespace ls
 
 // The intersect and join operations in the arb:: namespace with locset so that
 // ADL allows for construction of expressions with locsets without having
 // to namespace qualify the intersect/join.
-
-locset intersect(locset lhs, locset rhs) {
-    return locset(ls::land(std::move(lhs), std::move(rhs)));
-}
-
-ARB_ARBOR_API locset join(locset lhs, locset rhs) {
-    return locset(ls::lor(std::move(lhs), std::move(rhs)));
-}
-
-ARB_ARBOR_API locset sum(locset lhs, locset rhs) {
-    return locset(ls::lsum(std::move(lhs), std::move(rhs)));
-}
+ARB_ARBOR_API locset intersect(locset lhs, locset rhs) { return locset(ls::land(std::move(lhs), std::move(rhs))); }
+ARB_ARBOR_API locset join(locset lhs, locset rhs) { return locset(ls::lor(std::move(lhs), std::move(rhs))); }
+ARB_ARBOR_API locset sum(locset lhs, locset rhs) { return locset(ls::lsum(std::move(lhs), std::move(rhs))); }
 
 // Implicit constructors.
 
-locset::locset() {
-    *this = ls::nil();
-}
-
-locset::locset(mlocation loc) {
-    *this = ls::location(loc.branch, loc.pos);
-}
-
-locset::locset(mlocation_list ll) {
-    *this = ls::location_list(std::move(ll));
-}
+locset::locset() { *this = ls::nil(); }
+locset::locset(mlocation loc) { *this = ls::location(loc.branch, loc.pos); }
+locset::locset(mlocation_list ll) { *this = ls::location_list(std::move(ll)); }
 
 } // namespace arb

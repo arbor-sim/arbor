@@ -2,10 +2,14 @@
 
 Schedules
 =========
-
-Generate sorted time points.
-
 .. cpp:namespace:: arb
+
+Generate sorted time points. Times are given as
+
+.. cpp:type:: time_type = double
+.. cpp:var::  time_type terminal_time
+              
+    Time infinitely far in the future.
 
 .. cpp:class:: schedule
 
@@ -35,6 +39,14 @@ Generate sorted time points.
 
     Poisson point process with rate ``rate``. The underlying Mersenne Twister pRNG is seeded with ``seed``
 
+For seeding PRNGs we use
+
+.. cpp:type:: seed_type = std::uint64_t
+
+which has a predefined value for use as a fallback
+
+.. cpp:var:: seed_type default_seed
+
 Event Generators
 ================
 
@@ -42,7 +54,7 @@ Wrapper class around schedules to generate spikes based on the internal schedule
 with a given target and weight.
 
 .. cpp:namespace:: arb
-
+                   
 .. cpp:class:: event_generator
 
     Opaque wrapper around a schedule.
@@ -52,11 +64,11 @@ with a given target and weight.
         Create generator targetting the local object ``target``, sending events
         on schedule ``sched`` with weight ``weight``.
 
-    .. cpp:member:: void reset()
+    .. cpp:function:: void reset()
 
         Reset internal event sequence
 
-    .. cpp:member:: event_seq events(time_type t0, time_type t1)
+    .. cpp:function:: event_seq events(time_type t0, time_type t1)
 
         Return events in ``[t0, t1)``
 
@@ -77,3 +89,9 @@ with a given target and weight.
 .. cpp:function:: template<typename S> event_generator explicit_generator_from_milliseconds(cell_local_label_type target, float weight, const S& s)
 
     Generate events from a predefined sorted event sequence given in units of ``[ms]``
+
+Events are returned as
+
+.. cpp:type:: event_seq
+
+    Range of events represented as two pointers.

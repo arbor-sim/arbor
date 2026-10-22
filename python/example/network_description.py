@@ -151,7 +151,7 @@ recipe = random_ring_recipe(ncells)
 sim = A.simulation(recipe)
 
 # (13) Set spike generators to record
-sim.record(A.spike_recording.all)
+sim.record(A.spike_recording.local)
 
 # (14) Attach a sampler to the voltage probe on cell 0. Sample rate of 10 sample every ms.
 handles = [
