@@ -227,7 +227,7 @@ void communicator::update_connections(const recipe& rec,
     PE(gids);
     src_ranks_.reset();
     src_ranks_.num_domains = num_domains_;
-    src_ranks_.clear();
+
     auto srcs_by_rank = ctx_->distributed->all_to_all_gids_domains(gids_domains);
     const auto& part = srcs_by_rank.partition();
     const auto& srcs = srcs_by_rank.values();
