@@ -17,14 +17,14 @@ namespace arb {
 
 template <typename Event>
 struct event_stream_base {
-    using event_type = Event;
+    using event_type      = Event;
     using event_data_type = decltype(event_data(std::declval<Event>()));
 
-protected: // members
+protected:
     std::vector<event_data_type> ev_data_;
     std::vector<std::size_t> ev_spans_ = {0};
-    std::size_t index_ = 0;
-    event_data_type* base_ptr_ = nullptr;
+    std::size_t index_                 = 0;
+    event_data_type* base_ptr_         = nullptr;
 
 public:
     event_stream_base() = default;
@@ -92,7 +92,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
                            const std::vector<std::size_t>& divs,
                            const timestep_range& steps,
                            std::vector<EventStream>& streams) {
-        PE(eventstreaminitialize);
+        PE(eventstream);
         arb_assert(lanes.size() < divs.size());
         // reset streams and allocate sufficient space for temporaries
         for (auto& stream: streams) {
@@ -104,6 +104,7 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
         // That allows for sorting event spans individually.
         auto cell_evnt_idx = std::vector(lanes.size(), cell_size_type(0));
         for (auto step: util::count_along(steps)) {
+            PE(deal);
             const auto& [t_lo, t_hi] = steps[step];
             for (auto cell_idx: util::count_along(lanes)) {
                 auto div = divs[cell_idx];
@@ -117,11 +118,12 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
                     const auto& handle = handles[div + evnt.target];
                     auto& stream = streams[handle.mech_id];
                     stream.ev_data_.emplace_back(event_data_type{handle.mech_index, evnt.weight});
-                    stream.ev_spans_[step + 1]++;
+                    ++stream.ev_spans_[step + 1];
                 }
                 // remember the next event to process for cell `idx`
                 cell_evnt_idx[cell_idx] = evnt_idx;
             }
+            PL(deal);
             // sort step bucket and update right partition
             PE(sort);
             for (auto& stream: streams) {
@@ -131,7 +133,8 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
                 std::sort(stream.ev_data_.begin() + stream.ev_spans_[step],
                           stream.ev_data_.begin() + stream.ev_spans_[step + 1],
                           [](const auto& a, const auto& b) {
-                              return std::tie(a.mech_index, a.weight) < std::tie(b.mech_index, b.weight);
+                              if (a.mech_index == b.mech_index) return a.weight < b.weight;
+                              return a.mech_index < b.mech_index;
                           });
             }
             PL(sort);
@@ -139,11 +142,11 @@ struct spike_event_stream_base: event_stream_base<deliverable_event> {
         PE(init);
         for (auto& stream: streams) static_cast<spike_event_stream_base&>(stream).init();
         PL(init);
-        PL(eventstreaminitialize);
+        PL(eventstream);
     }
 };
 
-struct sample_event_stream_base : event_stream_base<sample_event> {
+struct sample_event_stream_base: event_stream_base<sample_event> {
     friend void initialize(const std::vector<std::vector<sample_event>>& staged,
                            sample_event_stream_base& stream) {
         // clear previous data
@@ -153,7 +156,7 @@ struct sample_event_stream_base : event_stream_base<sample_event> {
         if (!staged.size()) return;
 
         // return if there are no events
-        auto num_events = util::sum_by(staged, [] (const auto& v) {return v.size();});
+        auto num_events = util::sum_by(staged, [](const auto& v) { return v.size(); });
         if (!num_events) return;
 
         // allocate space for spans and data
@@ -161,7 +164,7 @@ struct sample_event_stream_base : event_stream_base<sample_event> {
         stream.ev_data_.reserve(num_events);
 
         // add event data and spans
-        for (const auto& v : staged) {
+        for (const auto& v: staged) {
             for (const auto& ev: v) stream.ev_data_.push_back(ev.raw);
             stream.ev_spans_.push_back(stream.ev_data_.size());
         }

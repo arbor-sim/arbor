@@ -444,49 +444,50 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     // Enqueue task: build event_lanes for next epoch from pending events, event-generator events for the
     // next epoch, and with any unprocessed events from the current event_lanes.
     auto enqueue = [this](epoch next) {
-        foreach_cell(
-            [&](cell_size_type i) {
-                PE(enqueue);
-                // NOTE Despite the superficial optics, we need to sort by the
-                // full key here and _not_ purely by time. With different
-                // parallel distributions, the ordering of events with the same
-                // time may change. Consider synapses like this
-                //
-                // NET_RECEIVE (weight) {
-                //   if (state < threshold) { state = state + weight }
-                // }
-                //
-                // DERIVATIVE dState { state' = -tau }
-                //
-                // and we'd end with different behaviours when events with
-                // different weights occur at the same time. We also cannot
-                // collapse events as with LIF cells by summing weights as this
-                // disturbs dynamics in a different way, eg when
-                //
-                // NET_RECEIVE (weight) { state = state + 42 }
-                //
-                // or
-                //
-                // NET_RECEIVE (weight) { state = state + weight^2 }
-                //
-                // ie synapses are not linear in weight
-                PE(sort);
-                ska_sort(pending_events_[i].begin(), pending_events_[i].end(),
-                         [](const auto& o) { return std::tie(o.time, o.target, o.weight); });
-                PL(sort);
+        foreach_cell([&](cell_size_type ix) {
+            PE(enqueue);
+            auto& pending = pending_events_[ix];
+            // NOTE Despite the superficial optics, we need to sort by the full
+            // key here and _not_ purely by time. With different parallel
+            // distributions, the ordering of events with the same time may
+            // change. Consider synapses like this
+            //
+            // NET_RECEIVE (weight) {
+            //   if (state < threshold) { state = state + weight }
+            // }
+            //
+            // DERIVATIVE dState { state' = -tau }
+            //
+            // and we'd end with different behaviours when events with different
+            // weights occur at the same time. We also cannot collapse events as
+            // with LIF cells by summing weights as this disturbs dynamics in a
+            // different way, eg when
+            //
+            // NET_RECEIVE (weight) { state = state + 42 }
+            //
+            // or
+            //
+            // NET_RECEIVE (weight) { state = state + weight^2 }
+            //
+            // ie synapses are not linear in weight
+            PE(sort);
+            auto scratch = pse_vector(pending.size());
+            ska_sort(pending.begin(), pending.end(),
+                     [](const spike_event& o) { return std::make_tuple(o.time, o.target, o.weight); });
+            PL(sort);
 
-                PE(merge_cell_events);
-                merge_cell_events(next.t0, next.t1,                                      // time range [from, to)
-                                  util::range_pointer_view(event_lanes(next.id - 1)[i]), // last epoch's events
-                                  util::range_pointer_view(pending_events_[i]),          // current epoch's
-                                  event_generators_[i],
-                                  event_lanes(next.id)[i]);                              // out: merged events
-                PL(merge_cell_events);
-                PE(clear);
-                pending_events_[i].clear();
-                PL(clear);
-                PL(enqueue);
-            });
+            PE(merge_cell_events);
+            merge_cell_events(next.t0, next.t1,                                       // time range [from, to)
+                              util::range_pointer_view(event_lanes(next.id - 1)[ix]), // last epoch's events
+                              util::range_pointer_view(pending),                      // current epoch's
+                              event_generators_[ix],                                  // inputs for this cell
+                              event_lanes(next.id)[ix]);                              // out: merged events
+            PL(merge_cell_events);
+            PE(clear);
+            pending.clear();
+            PL(clear);
+            PL(enqueue);
+        });
     };
 
     epoch prev = epoch_;
