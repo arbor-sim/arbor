@@ -57,7 +57,7 @@ ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_pp_mechanisms_p
 ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_de_mechanisms_ptr, &fvm_cell::density_mechanisms_)
 
 
-const mechanism_ptr& find_mechanism(const std::string& name, fvm_cell& cell) {
+mechanism* find_mechanism(const std::string& name, fvm_cell& cell) {
     auto& pp = cell.*private_pp_mechanisms_ptr;
     auto it = std::find_if(pp.begin(),
                            pp.end(),
@@ -69,7 +69,7 @@ const mechanism_ptr& find_mechanism(const std::string& name, fvm_cell& cell) {
                           [&](mechanism_ptr& m){return m->internal_name()==name;});
     }
     if (it == de.end()) throw std::runtime_error("Couldn't find mechanism with name " + name);
-    return *it;
+    return it->get();
 }
 
 class recipe_expsyn_1_branch: public recipe {
