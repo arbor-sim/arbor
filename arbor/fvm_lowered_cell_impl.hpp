@@ -179,9 +179,10 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
         PL(set_dt);
 
         // Update any required reversal potentials based on ionic concentrations
-        PE(revpotupdate)
+
+        PE(revpot);
         for (auto& m: revpot_mechanisms_) m->update_current();
-        PL(revpotupdate)
+        PL(revpot);
 
         PE(zero);
         state_->zero_currents();
@@ -227,11 +228,11 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
         PL(rng)
 
         // Integrate mechanism state
-        PE(stateupdate)
+        PE(state)
         for (auto& m: density_mechanisms_)  m->update_state();
         for (auto& m: point_mechanisms_)    m->update_state();
         for (auto& m: junction_mechanisms_) m->update_state();
-        PL(stateupdate)
+        PL(state)
 
         // Update ion concentrations.
         PE(ionupdate);
