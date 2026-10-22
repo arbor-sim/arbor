@@ -4,6 +4,8 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <chrono>
+#include <thread>
 
 #include <arbor/context.hpp>
 #include <arbor/profile/profiler.hpp>
@@ -16,6 +18,7 @@ namespace {
 void profiled_work() {
     PE(test_outer);
     PE(test_inner);
+    std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(1.0));
     PL(test_inner);
     PL(test_outer);
 }
