@@ -278,6 +278,44 @@ time_type communicator::min_delay() {
     return res;
 }
 
+gathered_vector<spike>
+generate_all_to_all_vector(const std::vector<spike>& spikes,
+                           const std::unordered_map<cell_member_type, std::vector<cell_size_type>>& src_ranks,
+                           std::size_t num_domains) {
+
+    using count_type = gathered_vector<spike>::count_type;
+    // count outgoing spikes per rank
+    std::vector<count_type> offsets(num_domains + 1, 0);
+    for (const auto& spk: spikes) {
+        auto ranks = src_ranks.find(spk.source);
+        if (ranks != src_ranks.end()) {
+            for (auto rank: ranks->second) {
+                ++offsets[rank + 1];
+            }
+        }
+    }
+
+    // make partition so we can sort the spikes into bins
+    std::partial_sum(offsets.begin(), offsets.end(),
+                     offsets.begin());
+    auto size = offsets.back();
+
+    // we have the sizes per rank to send to, so deal spikes into bins.
+    std::vector<spike> spikes_per_rank(size);
+    auto rank_indices = offsets;
+    for (const auto& spk: spikes) {
+        auto ranks = src_ranks.find(spk.source);
+        if (ranks != src_ranks.end()) {
+            for (auto rank: ranks->second) {
+                auto& index = rank_indices[rank];
+                spikes_per_rank[index] = spk;
+                ++index;
+            }
+        }
+    }
+    return {std::move(spikes_per_rank), std::move(offsets)};
+}
+
 communicator::spikes
 communicator::exchange(std::vector<spike>& local_spikes) {
     PE(exchange);
@@ -291,16 +329,17 @@ communicator::exchange(std::vector<spike>& local_spikes) {
     num_spikes_ += ctx_->distributed->sum(local_spikes.size());
     PL(sum_spikes);
 
+    auto a2a_vector = src_ranks_.generate_all_to_all_vector(local_spikes);
+
     PE(all2all);
     // global all-to-all to gather a local copy of the global spike list on each node.
-    auto global_spikes = ctx_->distributed->all_to_all_spikes(local_spikes, src_ranks_);
+    auto global_spikes = ctx_->distributed->all_to_all_spikes(a2a_vector);
     PL(all2all);
 
     // Get remote spikes
     PE(remote);
-    if (remote_spike_filter_) {
-        std::erase_if(local_spikes,[this] (const auto& s) { return !remote_spike_filter_(s); });
-    }
+    if (remote_spike_filter_) std::erase_if(local_spikes,
+                                            [this](const auto& s) { return !remote_spike_filter_(s); });
     auto remote_spikes = ctx_->distributed->remote_gather_spikes(local_spikes);
     PL(remote);
 

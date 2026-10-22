@@ -323,10 +323,10 @@ profile_node make_profile_tree(const profile& p) {
         node->count = (node->count == profile_node::npos) ? p.counts[ix] : node->count + p.counts[ix];
     }
     if(tree.children.size() != 1) throw std::invalid_argument("More than one root timer");
-    tree = tree.children[0];
-    sort_profile_tree(tree);
-    remove_zero_time_nodes(tree);
-    return tree;
+    auto root = std::move(tree.children.front());
+    sort_profile_tree(root);
+    remove_zero_time_nodes(root);
+    return root;
 }
 
 const std::vector<std::string>& profiler::regions() const { return region_names_; }
