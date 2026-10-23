@@ -57,7 +57,7 @@ ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_pp_mechanisms_p
 ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_de_mechanisms_ptr, &fvm_cell::density_mechanisms_)
 
 
-const mechanism_ptr& find_mechanism(const std::string& name, fvm_cell& cell) {
+mechanism* find_mechanism(const std::string& name, fvm_cell& cell) {
     auto& pp = cell.*private_pp_mechanisms_ptr;
     auto it = std::find_if(pp.begin(),
                            pp.end(),
@@ -69,7 +69,7 @@ const mechanism_ptr& find_mechanism(const std::string& name, fvm_cell& cell) {
                           [&](mechanism_ptr& m){return m->internal_name()==name;});
     }
     if (it == de.end()) throw std::runtime_error("Couldn't find mechanism with name " + name);
-    return *it;
+    return it->get();
 }
 
 class recipe_expsyn_1_branch: public recipe {
@@ -285,33 +285,29 @@ public:
 };
 
 void expsyn_1_branch_current(benchmark::State& state) {
-    const unsigned ncomp = state.range(0);
+    const unsigned ncomp    = state.range(0);
     const unsigned nsynapse = state.range(1);
     recipe_expsyn_1_branch rec_expsyn_1_branch(ncomp, nsynapse);
 
     fvm_cell cell((execution_context()));
     cell.initialize({0}, rec_expsyn_1_branch);
 
-    auto& m = find_mechanism("expsyn", cell);
+    const auto& m = find_mechanism("expsyn", cell);
 
-    while (state.KeepRunning()) {
-        m->update_current();
-    }
+    while (state.KeepRunning()) m->update_current();
 }
 
 void expsyn_1_branch_state(benchmark::State& state) {
-    const unsigned ncomp = state.range(0);
+    const unsigned ncomp    = state.range(0);
     const unsigned nsynapse = state.range(1);
     recipe_expsyn_1_branch rec_expsyn_1_branch(ncomp, nsynapse);
 
     fvm_cell cell((execution_context()));
     cell.initialize({0}, rec_expsyn_1_branch);
 
-    auto& m = find_mechanism("expsyn", cell);
+    const auto& m = find_mechanism("expsyn", cell);
 
-    while (state.KeepRunning()) {
-        m->update_state();
-    }
+    while (state.KeepRunning()) m->update_state();
 }
 
 void pas_1_branch_current(benchmark::State& state) {
@@ -321,11 +317,9 @@ void pas_1_branch_current(benchmark::State& state) {
     fvm_cell cell((execution_context()));
     cell.initialize({0}, rec_pas_1_branch);
 
-    auto& m = find_mechanism("pas", cell);
+    const auto& m = find_mechanism("pas", cell);
 
-    while (state.KeepRunning()) {
-        m->update_current();
-    }
+    while (state.KeepRunning()) m->update_current();
 }
 
 void pas_3_branches_current(benchmark::State& state) {
@@ -335,11 +329,9 @@ void pas_3_branches_current(benchmark::State& state) {
     fvm_cell cell((execution_context()));
     cell.initialize({0}, rec_pas_3_branches);
 
-    auto& m = find_mechanism("pas", cell);
+    const auto& m = find_mechanism("pas", cell);
 
-    while (state.KeepRunning()) {
-        m->update_current();
-    }
+    while (state.KeepRunning()) m->update_current();
 }
 
 void hh_1_branch_state(benchmark::State& state) {
@@ -349,11 +341,9 @@ void hh_1_branch_state(benchmark::State& state) {
     fvm_cell cell((execution_context()));
     cell.initialize({0}, rec_hh_1_branch);
 
-    auto& m = find_mechanism("hh", cell);
+    const auto& m = find_mechanism("hh", cell);
 
-    while (state.KeepRunning()) {
-        m->update_state();
-    }
+    while (state.KeepRunning()) m->update_state();
 }
 
 void hh_1_branch_current(benchmark::State& state) {
@@ -363,11 +353,9 @@ void hh_1_branch_current(benchmark::State& state) {
     fvm_cell cell((execution_context()));
     cell.initialize({0}, rec_hh_1_branch);
 
-    auto& m = find_mechanism("hh", cell);
+    const auto& m = find_mechanism("hh", cell);
 
-    while (state.KeepRunning()) {
-        m->update_current();
-    }
+    while (state.KeepRunning()) m->update_current();
 }
 
 void hh_3_branches_state(benchmark::State& state) {
@@ -377,11 +365,9 @@ void hh_3_branches_state(benchmark::State& state) {
     fvm_cell cell((execution_context()));
     cell.initialize({0}, rec_hh_3_branches);
 
-    auto& m = find_mechanism("hh", cell);
+    const auto& m = find_mechanism("hh", cell);
 
-    while (state.KeepRunning()) {
-        m->update_state();
-    }
+    while (state.KeepRunning()) m->update_state();
 }
 
 void hh_3_branches_current(benchmark::State& state) {
@@ -391,11 +377,9 @@ void hh_3_branches_current(benchmark::State& state) {
     fvm_cell cell((execution_context()));
     cell.initialize({0}, rec_hh_3_branches);
 
-    auto& m = find_mechanism("hh", cell);
+    const auto& m = find_mechanism("hh", cell);
 
-    while (state.KeepRunning()) {
-        m->update_current();
-    }
+    while (state.KeepRunning()) m->update_current();
 }
 
 void run_custom_arguments(::benchmark::Benchmark* b) {
@@ -408,6 +392,7 @@ void run_exp_custom_arguments(::benchmark::Benchmark* b) {
         b->Args({ncomps, ncomps*10});
     }
 }
+
 BENCHMARK(expsyn_1_branch_current)->Apply(run_exp_custom_arguments);
 BENCHMARK(expsyn_1_branch_state)->Apply(run_exp_custom_arguments);
 BENCHMARK(pas_1_branch_current)->Apply(run_custom_arguments);

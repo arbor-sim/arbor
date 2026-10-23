@@ -323,10 +323,10 @@ profile_node make_profile_tree(const profile& p) {
         node->count = (node->count == profile_node::npos) ? p.counts[ix] : node->count + p.counts[ix];
     }
     if(tree.children.size() != 1) throw std::invalid_argument("More than one root timer");
-    tree = tree.children[0];
-    sort_profile_tree(tree);
-    remove_zero_time_nodes(tree);
-    return tree;
+    auto root = std::move(tree.children.front());
+    sort_profile_tree(root);
+    remove_zero_time_nodes(root);
+    return root;
 }
 
 const std::vector<std::string>& profiler::regions() const { return region_names_; }
@@ -467,10 +467,10 @@ ARB_ARBOR_API void task_stopped(const timer_stack& timer_stack) {}
 timer_stack empty_timer_stack{};
 ARB_ARBOR_API const timer_stack& get_current_timer_stack() { return empty_timer_stack; }
 ARB_ARBOR_API profile profiler_summary();
-ARB_ARBOR_API profile profiler_summary() {return profile();}
+ARB_ARBOR_API profile profiler_summary() { return profile(); }
 ARB_ARBOR_API region_id_type profiler_region_id(const std::string&) {return 0;}
 ARB_ARBOR_API std::ostream& operator<<(std::ostream& o, const profile&) { return o; }
-ARB_ARBOR_API std::ostream& profiler_print_summary(std::ostream& os, double limit) { return os; }
+ARB_ARBOR_API std::ostream& print_profiler_summary(std::ostream& os, double limit) { return os; }
 #endif // ARB_HAVE_PROFILING
 
 } // namespace profile

@@ -391,22 +391,27 @@ namespace {
             //   {1, 3} -> {2, 1}
             //   {1, 3} -> {2, 0}
             //   {1, 3} -> {2, 2}
+            //
+            // We also tag
+            // - the weight as <connection offset> * 10        + 0.1*tgid
+            // - the delay  as <connection offset> * 10 + 1.0  + 0.1*sgid
+            // to ensure proper dispatch.
             std::vector<cell_connection> cons;
             using pol = lid_selection_policy;
             if (gid%3 != 1) {
                 for (auto sid: util::make_span(0, ncells_)) {
                     if (sid%3 == 1) {
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
-                        cons.push_back({{sid, "detectors_0", pol::round_robin}, {"synapses_1", pol::assert_univalent}, 1.0, 1.0*U::ms});
-                        cons.push_back({{sid, "detectors_1", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
-                        cons.push_back({{sid, "detectors_1", pol::round_robin}, {"synapses_0", pol::round_robin},      1.0, 1.0*U::ms});
-                        cons.push_back({{sid, "detectors_1", pol::assert_univalent}, {"synapses_1", pol::round_robin}, 1.0, 1.0*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin},      {"synapses_0", pol::round_robin},       100.0f + float(gid), ( 110.0 + sid)*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin},      {"synapses_0", pol::round_robin},       200.0f + float(gid), ( 210.0 + sid)*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin},      {"synapses_0", pol::round_robin},       300.0f + float(gid), ( 310.0 + sid)*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin},      {"synapses_0", pol::round_robin},       400.0f + float(gid), ( 410.0 + sid)*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin},      {"synapses_0", pol::round_robin},       500.0f + float(gid), ( 510.0 + sid)*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin},      {"synapses_0", pol::round_robin},       600.0f + float(gid), ( 610.0 + sid)*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin},      {"synapses_0", pol::round_robin},       700.0f + float(gid), ( 710.0 + sid)*U::ms});
+                        cons.push_back({{sid, "detectors_0", pol::round_robin},      {"synapses_1", pol::assert_univalent},  800.0f + float(gid), ( 810.0 + sid)*U::ms});
+                        cons.push_back({{sid, "detectors_1", pol::round_robin},      {"synapses_0", pol::round_robin},       900.0f + float(gid), ( 910.0 + sid)*U::ms});
+                        cons.push_back({{sid, "detectors_1", pol::round_robin},      {"synapses_0", pol::round_robin},      1000.0f + float(gid), (1010.0 + sid)*U::ms});
+                        cons.push_back({{sid, "detectors_1", pol::assert_univalent}, {"synapses_1", pol::round_robin},      1100.0f + float(gid), (1110.0 + sid)*U::ms});
                     }
                 }
             }
@@ -444,11 +449,14 @@ test_ring(const domain_decomposition_ptr D, communicator& C, F&& f) {
     std::reverse(local_spikes.begin(), local_spikes.end());
 
     // gather the global set of spikes
+    auto old_n_spike = C.num_spikes();
     auto spikes = C.exchange(local_spikes);
-    if (C.num_local_spikes()!=g_context->distributed->sum(local_spikes.size())) {
-        return ::testing::AssertionFailure() << "the number of gathered spikes "
-            << spikes.from_local.size() << " doesn't match the expected "
-            << g_context->distributed->sum(local_spikes.size());
+    auto new_n_spike = C.num_spikes();
+    auto recv_n_spike = new_n_spike - old_n_spike;
+    auto expc_n_spike = g_context->distributed->sum(local_spikes.size());
+    if (recv_n_spike != expc_n_spike) {
+        return ::testing::AssertionFailure() << "the number of gathered spikes " << recv_n_spike
+                                             << " doesn't match the expected " << expc_n_spike;
     }
 
     // generate the events
@@ -642,8 +650,6 @@ TEST(communicator, all2all)
     for (auto i: util::make_span(0, n_global)) {
         for (auto j: util::make_span(0, n_local)) {
             auto idx = i*n_local + j;
-            EXPECT_EQ(i, connections.srcs[idx].gid);
-            EXPECT_EQ(0u, connections.srcs[idx].index);
             EXPECT_EQ(i, connections.dests[idx]);
             EXPECT_LT(connections.idx_on_domain[idx], n_local);
         }
@@ -685,23 +691,76 @@ TEST(communicator, mini_network)
     auto C = communicator(R, D, g_context);
     C.update_connections(R, D, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}));
 
-    // sort connections by source then target
-    auto srcs = C.connections().srcs;
-    auto dsts = C.connections().dests;
-    // util::sort(connections);
+    // There's three cells per rank; cells with gid%3 == 1 are senders, the
+    // others are receivers.
+    // The following connections are formed; used to test out lid resolutions:
+    // 7 from detectors_0 (round-robin) to synapses_0 (round-robin)
+    // 1 from detectors_0 (round-robin) to synapses_1 (univalent)
+    // 2 from detectors_1 (round-robin) to synapses_0 (round-robin)
+    // 1 from detectors_1 (univalent)   to synapses_1 (round-robin)
+    // These Should generate the following {src_gid, src_lid} -> {tgt_gid, tgt_lid} mappings (unsorted; 1 rank with 3 cells total):
+    // cell 1 - > cell 0:
+    //   {1, 0} -> {0, 0}
+    //   {1, 1} -> {0, 1}
+    //   {1, 2} -> {0, 0}
+    //   {1, 0} -> {0, 1}
+    //   {1, 1} -> {0, 0}
+    //   {1, 2} -> {0, 1}
+    //   {1, 0} -> {0, 0}
+    //   {1, 1} -> {0, 2}
+    //   {1, 3} -> {0, 1}
+    //   {1, 3} -> {0, 0}
+    //   {1, 3} -> {0, 2}
 
-    // Expect one set of 22 connections from every rank: these have been sorted.
-    std::vector<cell_lid_type> ex_source_lids =  {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3};
-    std::vector<std::vector<cell_lid_type>> ex_target_lids = {{0, 0, 1, 0, 0, 1, 0, 1, 2, 0, 1, 2, 0, 1, 0, 1, 0, 1, 2, 0, 1, 2},
-                                                              {0, 1, 1, 0, 1, 1, 0, 1, 2, 0, 1, 2, 0, 1, 0, 1, 0, 1, 2, 0, 1, 2}};
+    // cell 1 - > cell 2:
+    //   {1, 0} -> {2, 0}
+    //   {1, 1} -> {2, 1}
+    //   {1, 2} -> {2, 0}
+    //   {1, 0} -> {2, 1}
+    //   {1, 1} -> {2, 0}
+    //   {1, 2} -> {2, 1}
+    //   {1, 0} -> {2, 0}
+    //   {1, 1} -> {2, 2}
+    //   {1, 3} -> {2, 1}
+    //   {1, 3} -> {2, 0}
+    //   {1, 3} -> {2, 2}
+    //
+    // We also tag
+    // - the weight as <connection offset> * 100       + tgid
+    // - the delay  as <connection offset> * 100 + 10  + sgid
+    // to ensure proper dispatch.
 
-    for (auto i: util::make_span(0, N)) {
-        std::vector<cell_gid_type> ex_source_gids(22u, i*3 + 1);
-        for (unsigned j = 0; j < 22u; ++j) {
-            auto idx = i*22 + j;
-            EXPECT_EQ(ex_source_gids[j], srcs[idx].gid);
-            EXPECT_EQ(ex_source_lids[j], srcs[idx].index);
-            // EXPECT_EQ(ex_target_lids[i%2][j], dsts[idx]);
+    auto M = C.connections();
+    
+    // Expect one set of 22 connections from every rank
+    EXPECT_EQ(22*arb::num_ranks(g_context), M.size());
+    EXPECT_EQ(arb::num_ranks(g_context), M.first_occurence.size());
+
+    // Walk the different ranks, note that all ranks are basically copies of the
+    // others and thus the expected results are identical. Also within an
+    // equal-source range connections are not necessarily sorted, hence the set
+    // construction. By checking for equal size first and then that one set is
+    // fully in the other, equality is implied.
+    for (cell_size_type rank = 0; rank < arb::num_ranks(g_context); ++rank) {
+        const auto& a_kvs = M.first_occurence[rank];
+        cell_gid_type src = 1 + 3*rank;       // source gid on this rank
+        float shift = 3*arb::rank(g_context); // target gid on this MPI rank
+        auto expected = std::unordered_map<cell_member_type, std::set<std::pair<float, time_type>>>{
+                {{src, 0}, {{ 100.0 + shift,  110.0 + src}, { 102.0 + shift,  110.0 + src}, { 400.0 + shift,  410.0 + src}, { 402.0 + shift,  410.0 + src}, { 700.0 + shift,  710.0 + src}, { 702.0 + shift,  710.0 + src}}},
+                {{src, 1}, {{ 200.0 + shift,  210.0 + src}, { 202.0 + shift,  210.0 + src}, { 500.0 + shift,  510.0 + src}, { 502.0 + shift,  510.0 + src}, { 800.0 + shift,  810.0 + src}, { 802.0 + shift,  810.0 + src}}},
+                {{src, 2}, {{ 300.0 + shift,  310.0 + src}, { 302.0 + shift,  310.0 + src}, { 600.0 + shift,  610.0 + src}, { 602.0 + shift,  610.0 + src}}},
+                {{src, 3}, {{ 900.0 + shift,  910.0 + src}, { 902.0 + shift,  910.0 + src}, {1000.0 + shift, 1010.0 + src}, {1002.0 + shift, 1010.0 + src}, {1100.0 + shift, 1110.0 + src}, {1102.0 + shift, 1110.0 + src}}},
+        };
+
+        for (const auto& [ek, evs]: expected) {  // expected
+            auto e_key = std::bit_cast<std::uint64_t>(ek);
+            EXPECT_TRUE(a_kvs.contains(e_key));
+            const auto& [a_lo, a_hi] = a_kvs.at(e_key);
+            EXPECT_EQ(a_hi - a_lo, evs.size());
+            for (auto idx = a_lo; idx < a_hi; ++idx) {
+                auto a_val = std::make_pair(M.weights[idx], M.delays[idx]);
+                EXPECT_TRUE(evs.contains(a_val));
+            }
         }
     }
 }
