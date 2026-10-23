@@ -1,6 +1,5 @@
 #include <vector>
 #include <numeric>
-#include <queue>
 
 #include <arbor/common_types.hpp>
 
@@ -50,7 +49,7 @@ static inline void sift_down_heap(std::vector<T>& heap, size_t len, auto&& comp=
     heap[ix] = std::move(node);
 }
 
-void ARB_ARBOR_API queue_merge_events(std::vector<event_span>& sources, pse_vector& out) {
+void ARB_ARBOR_API pqueue_merge_events(std::vector<event_span>& sources, pse_vector& out) {
     // Min heap tracking the minimum element from each span
     using kv_type = std::pair<spike_event, int>;
     std::vector<kv_type> heap;
@@ -92,7 +91,7 @@ void ARB_ARBOR_API merge_events(std::vector<event_span>& sources, pse_vector &ou
         linear_merge_events(sources, out);
     }
     else {
-        queue_merge_events(sources, out);
+        pqueue_merge_events(sources, out);
     }
 }
 
