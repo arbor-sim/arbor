@@ -9,11 +9,12 @@
 #include <arbor/recipe.hpp>
 #include <arbor/spike.hpp>
 
+#include "source_rank_map.hpp"
 #include "communication/gathered_vector.hpp"
-#include "connection.hpp"
 #include "epoch.hpp"
 #include "execution_context.hpp"
 #include "util/partition.hpp"
+#include "connection_list.hpp"
 
 namespace arb {
 
@@ -27,7 +28,6 @@ namespace arb {
 // Once all connections have been specified, the construct() method can be used
 // to build the data structures required for efficient spike communication and
 // event generation.
-
 class ARB_ARBOR_API communicator {
 public:
 
@@ -68,8 +68,9 @@ public:
 
     /// Returns the total number of global spikes over the duration of the simulation
     std::uint64_t num_spikes() const;
-    void set_num_spikes(std::uint64_t n);
+    /// Returns the total number of spikes on this rank over the duration of the simulation
     std::uint64_t num_local_spikes() const;
+    void set_num_spikes(std::uint64_t n);
 
     cell_size_type num_local_cells() const;
 
@@ -78,8 +79,8 @@ public:
     // used for commmunicate to coupled simulations
     void remote_ctrl_send_continue(const epoch&);
     void remote_ctrl_send_done();
-    
-    
+
+
     void update_connections(const recipe& rec,
                             const domain_decomposition_ptr dom_dec,
                             const label_resolution_map& source_resolution_map,
@@ -87,53 +88,7 @@ public:
 
     void set_remote_spike_filter(const spike_predicate&);
 
-    // TODO: This is public for now.
-    struct connection_list {
-        std::vector<cell_size_type> idx_on_domain;
-        std::vector<cell_member_type> srcs;
-        std::vector<cell_lid_type> dests;
-        std::vector<float> weights;
-        std::vector<float> delays;
-
-        void make(std::vector<connection>& cons) {
-            for (const auto& con: cons) {
-                idx_on_domain.push_back(con.index_on_domain);
-                srcs.push_back(con.source);
-                dests.push_back(con.target);
-                weights.push_back(con.weight);
-                delays.push_back(con.delay);
-            }
-        }
-
-        void make(std::vector<std::vector<connection>>& conss) {
-            for (auto& cons: conss) {
-                make(cons);
-                // NOTE: For memory capacity reasons, we destroy
-                //       the sub-vectors here, once we are done.
-                cons = {};
-            }
-        }
-
-        void reserve(std::size_t n) {
-            idx_on_domain.reserve(n);
-            srcs.reserve(n);
-            dests.reserve(n);
-            weights.reserve(n);
-            delays.reserve(n);
-        }
-
-        void clear() {
-            idx_on_domain.clear();
-            srcs.clear();
-            dests.clear();
-            weights.clear();
-            delays.clear();
-        }
-
-        size_t size() const { return srcs.size(); }
-    };
-
-    const connection_list& connections() const;
+    const connections_list& connections() const;
 
 private:
     cell_size_type num_total_cells_ = 0;
@@ -142,23 +97,20 @@ private:
     cell_size_type num_domains_ = 0;
     spike_predicate remote_spike_filter_;
 
-    // partition of connections over the domains of the sources' ids.
-    std::vector<cell_size_type> connection_part_;
     std::vector<cell_size_type> index_divisions_;
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
 
     // Arbor internal connections
-    connection_list connections_;
+    connections_list connections_;
 
     // sources with connections to other ranks
-    std::unordered_map<cell_member_type, std::vector<cell_size_type>> src_ranks_;
+    sources_to_target_ranks src_ranks_;
 
     // Connections from external simulators into Arbor.
     // Currently we have no partitions/indices/acceleration structures
-    connection_list ext_connections_;
+    connections_list ext_connections_;
     std::uint64_t num_spikes_ = 0u;
     std::uint64_t num_local_spikes_ = 0u;
-    std::uint64_t num_local_events_ = 0u;
     context ctx_;
 };
 

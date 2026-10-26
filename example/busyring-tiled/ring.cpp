@@ -266,7 +266,7 @@ int main(int argc, char** argv) {
                       << report << '\n';
         }
 #ifdef ARB_PROFILE_ENABLED
-        if (root) arb::profile::print_profiler_summary(std::cout, 0);
+        if (root) arb::profile::print_profiler_summary(std::cout, 1.0);
 #endif
     }
     catch (std::exception& e) {

@@ -52,7 +52,7 @@ void task_test(benchmark::State& state) {
     }
 }
 
-void us_per_task(benchmark::internal::Benchmark *b) {
+void us_per_task(::benchmark::Benchmark *b) {
     for (auto us_per_task: {10, 100, 250, 500, 1000, 10000}) {
         b->Args({us_per_task});
     }
