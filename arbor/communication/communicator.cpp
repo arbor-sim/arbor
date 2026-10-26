@@ -26,12 +26,17 @@
 
 namespace arb {
 
-communicator::communicator(const recipe& rec, const domain_decomposition_ptr dom_dec, context ctx):
+communicator::communicator(const recipe& rec,
+                           const domain_decomposition_ptr dom_dec,
+                           context ctx,
+                           const std::optional<neighborhood_spike_exchange>& exchange_options):
     num_total_cells_{rec.num_cells()},
     num_local_cells_{dom_dec->num_local_cells()},
     num_local_groups_{dom_dec->num_groups()},
     num_domains_{(cell_size_type)ctx->distributed->size()},
-    ctx_(std::move(ctx)) {}
+    ctx_(std::move(ctx)) {
+    if (exchange_options) router_ = std::make_unique<neighborhood_router>(*exchange_options, ctx_->distributed);
+}
 
 constexpr inline
 bool is_external(cell_gid_type c) {
@@ -323,14 +328,7 @@ generate_all_to_all_vector(const std::vector<spike>& spikes,
     return {std::move(spikes_per_rank), std::move(offsets)};
 }
 
-communicator::spikes
-communicator::exchange(std::vector<spike>& local_spikes) {
-    PE(exchange);
-    PE(sort);
-    // sort the spikes in ascending order of source gid
-    util::sort_by(local_spikes, [](spike s){return s.source;});
-    PL(sort);
-
+gathered_vector<spike> communicator::exchange_all_to_all(const std::vector<spike>& local_spikes) {
     PE(sum_spikes);
     num_local_spikes_ = ctx_->distributed->sum(local_spikes.size());
     num_spikes_ += num_local_spikes_;
@@ -340,9 +338,55 @@ communicator::exchange(std::vector<spike>& local_spikes) {
     auto spikes_per_rank = generate_all_to_all_vector(local_spikes, src_ranks_, num_domains_);
     PL(generate);
     PE(all2all);
-    // global all-to-all to gather a local copy of the global spike list on each node.
+    // global all-to-all to send each spike to the ranks with connections from its source.
     auto global_spikes = ctx_->distributed->all_to_all_spikes(spikes_per_rank);
     PL(all2all);
+    return global_spikes;
+}
+
+gathered_vector<spike> communicator::exchange_neighborhoods(const std::vector<spike>& local_spikes,
+                                                            std::optional<std::ptrdiff_t> epoch_id) {
+    PE(neighborhoods);
+    auto spikes = router_->exchange(local_spikes, epoch_id);
+    PL(neighborhoods);
+
+    // Counting needs a global reduction, so only count when all spikes have been exchanged.
+    PE(sum_spikes);
+    num_uncounted_spikes_ += local_spikes.size();
+    if (!epoch_id) {
+        num_local_spikes_ = ctx_->distributed->sum(num_uncounted_spikes_);
+        num_spikes_ += num_local_spikes_;
+        num_uncounted_spikes_ = 0;
+    }
+    PL(sum_spikes);
+    return spikes;
+}
+
+void communicator::schedule_exchange(time_type interval) {
+    if (!router_) return;
+    // minimum delay of the connections from each source domain
+    std::vector<time_type> min_delays(num_domains_, std::numeric_limits<time_type>::infinity());
+    for (auto dom: util::make_span(num_domains_)) {
+        for (auto idx: util::make_span(connection_part_[dom], connection_part_[dom+1])) {
+            min_delays[dom] = std::min<time_type>(min_delays[dom], connections_.delays[idx]);
+        }
+    }
+    router_->update(min_delays, src_ranks_, interval);
+}
+
+std::vector<spike_exchange_level> communicator::exchange_levels() const {
+    return router_ ? router_->levels() : std::vector<spike_exchange_level>{};
+}
+
+communicator::spikes
+communicator::exchange(std::vector<spike>& local_spikes, std::optional<std::ptrdiff_t> epoch_id) {
+    PE(exchange);
+    PE(sort);
+    // sort the spikes in ascending order of source gid
+    util::sort_by(local_spikes, [](spike s){return s.source;});
+    PL(sort);
+
+    auto global_spikes = router_ ? exchange_neighborhoods(local_spikes, epoch_id) : exchange_all_to_all(local_spikes);
 
     // Get remote spikes
     PE(remote);
@@ -421,7 +465,9 @@ const communicator::connection_list& communicator::connections() const { return 
 
 void communicator::reset() {
     num_spikes_ = 0;
+    num_uncounted_spikes_ = 0;
     num_local_events_ = 0;
+    if (router_) router_->clear();
 }
 
 } // namespace arb

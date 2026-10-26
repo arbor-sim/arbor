@@ -1,4 +1,6 @@
 #include <memory>
+#include <optional>
+#include <sstream>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -7,6 +9,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/simulation.hpp>
+#include <arbor/spike_exchange.hpp>
 
 #include "context.hpp"
 #include "error.hpp"
@@ -58,11 +61,16 @@ class simulation_shim {
     std::unordered_map<arb::sampler_association_handle, sampler_callback> sampler_map_;
 
 public:
-    simulation_shim(std::shared_ptr<recipe>& rec, const context_shim& ctx, const arb::domain_decomposition_ptr decomp, std::uint64_t seed, pyarb_global_ptr global_ptr):
+    simulation_shim(std::shared_ptr<recipe>& rec,
+                    const context_shim& ctx,
+                    const arb::domain_decomposition_ptr decomp,
+                    std::uint64_t seed,
+                    const std::optional<arb::neighborhood_spike_exchange>& spike_exchange,
+                    pyarb_global_ptr global_ptr):
         global_ptr_(global_ptr)
     {
         try {
-            sim_.reset(new arb::simulation(recipe_shim(rec), ctx.context, decomp, seed));
+            sim_.reset(new arb::simulation(recipe_shim(rec), ctx.context, decomp, seed, spike_exchange));
         }
         catch (...) {
             py_reset_and_throw();
@@ -119,6 +127,10 @@ public:
     arb::time_type run(const arb::units::quantity& tfinal, const arb::units::quantity& dt) {
         return sim_->run(tfinal, dt);
     }
+
+    arb::time_type max_epoch_length() { return sim_->max_epoch_length(); }
+
+    std::vector<arb::spike_exchange_level> spike_exchange_levels() const { return sim_->spike_exchange_levels(); }
 
     void record(spike_recording policy) {
         auto spike_recorder = [this](const std::vector<arb::spike>& spikes) {
@@ -201,6 +213,59 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
        .value("off", spike_recording::off)
        .value("local", spike_recording::local);
 
+    py::class_<arb::neighborhood_spike_exchange> spike_exchange(m, "neighborhood_spike_exchange",
+        "Delay-aware spike exchange via MPI neighbourhood collectives.\n"
+        "The ranks this rank receives spikes from are split into levels: the rank itself,\n"
+        "one level per neighbourhood, exchanged with a sparse MPI neighbourhood all-gather,\n"
+        "and all remaining ranks, exchanged with a global all-to-all. Each level is only\n"
+        "exchanged as often as the minimum delay of its connections permits.");
+    spike_exchange
+        .def(py::init([](std::vector<std::vector<int>> neighborhoods, bool automatic) {
+                 return arb::neighborhood_spike_exchange{std::move(neighborhoods), automatic};
+             }),
+             "neighborhoods"_a=std::vector<std::vector<int>>{},
+             py::kw_only(),
+             "automatic"_a=false,
+             "Construct from the ranks this rank receives spikes from, grouped into levels,\n"
+             "innermost first. A rank listed in more than one level belongs to the first; the\n"
+             "calling rank is ignored. Every rank must pass the same number of levels.\n"
+             "With automatic=True, arbor chooses the levels from the connection delays instead.")
+        .def_readwrite("neighborhoods", &arb::neighborhood_spike_exchange::neighborhoods,
+             "The ranks this rank receives spikes from, grouped into levels, innermost first.")
+        .def_readwrite("automatic", &arb::neighborhood_spike_exchange::automatic,
+             "Choose the levels from the connection delays: source ranks are grouped by the\n"
+             "class of the exchange period their minimum delay allows (1, 2-3, 4-7, ...), and\n"
+             "the slowest class is exchanged with a global all-to-all.")
+        .def("__repr__", [](const arb::neighborhood_spike_exchange& e) {
+                 std::stringstream ss;
+                 if (e.automatic) return std::string("<arbor.neighborhood_spike_exchange: automatic>");
+                 ss << "<arbor.neighborhood_spike_exchange: neighborhoods [";
+                 for (std::size_t l = 0; l < e.neighborhoods.size(); ++l) {
+                     ss << (l? ", [": "[");
+                     for (std::size_t i = 0; i < e.neighborhoods[l].size(); ++i) ss << (i? ", ": "") << e.neighborhoods[l][i];
+                     ss << "]";
+                 }
+                 ss << "]>";
+                 return ss.str();
+             })
+        .def("__str__", [](const arb::neighborhood_spike_exchange& e) { return py::repr(py::cast(e)); });
+
+    py::class_<arb::spike_exchange_level> spike_exchange_level(m, "spike_exchange_level",
+        "A level of the neighbourhood spike exchange, as seen by the calling rank.");
+    spike_exchange_level
+        .def_readonly("ranks", &arb::spike_exchange_level::ranks,
+             "Ranks this rank receives spikes from in this level, in ascending order.")
+        .def_readonly("period", &arb::spike_exchange_level::period,
+             "Exchanged every `period` epochs; 0 if no connections use this level.")
+        .def_readonly("far", &arb::spike_exchange_level::far,
+             "Exchanged with the global all-to-all instead of a neighbourhood all-gather.")
+        .def("__repr__", [](const arb::spike_exchange_level& l) {
+                 std::stringstream ss;
+                 ss << "<arbor.spike_exchange_level: " << (l.far? "far, ": "") << l.ranks.size() << " ranks, period " << l.period << ">";
+                 return ss.str();
+             })
+        .def("__str__", [](const arb::spike_exchange_level& l) { return py::repr(py::cast(l)); });
+
     // Simulation
     py::class_<simulation_shim> simulation(m, "simulation",
         "The executable form of a model.\n"
@@ -212,11 +277,12 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
                  [global_ptr](std::shared_ptr<recipe>& rec,
                               std::optional<std::shared_ptr<context_shim>> ctx_,
                               std::optional<arb::domain_decomposition_ptr> decomp,
-                              std::uint64_t seed) {
+                              std::uint64_t seed,
+                              std::optional<arb::neighborhood_spike_exchange> spike_exchange) {
                      try {
                          auto ctx = ctx_.value_or(std::make_shared<context_shim>(make_context_shim()));
                          auto dec = decomp.value_or(arb::partition_load_balance(recipe_shim(rec), ctx->context));
-                         return new simulation_shim(rec, *ctx, dec, seed, global_ptr);
+                         return new simulation_shim(rec, *ctx, dec, seed, spike_exchange, global_ptr);
                      }
                      catch (...) {
                          py_reset_and_throw();
@@ -229,9 +295,11 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
              "context"_a=py::none(),
              "domains"_a=py::none(),
              "seed"_a=0u,
+             "spike_exchange"_a=py::none(),
              "Initialize the model described by a recipe, with cells and network distributed\n"
              "according to the domain decomposition and computational resources described by a\n"
-             "context. Initialize PRNG using seed")
+             "context. Initialize PRNG using seed. Exchange spikes via MPI neighbourhood\n"
+             "collectives if spike_exchange is given, see neighborhood_spike_exchange.")
         .def("set_remote_spike_filter",
              &simulation_shim::set_remote_spike_filter,
              "pred"_a,
@@ -260,6 +328,12 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
             py::call_guard<py::gil_scoped_release>(),
             "Run the simulation from current simulation time to tfinal [ms], with maximum time step size dt [ms].",
             "tfinal"_a, py::arg_v("dt", 0.025*arb::units::ms, "0.025*arbor.units.ms"))
+        .def("max_epoch_length", &simulation_shim::max_epoch_length,
+            py::call_guard<py::gil_scoped_release>(),
+            "Maximum epoch length [ms], half the minimum delay of the network. Collective: all ranks must call it.")
+        .def("spike_exchange_levels", &simulation_shim::spike_exchange_levels,
+            "The levels of the neighbourhood spike exchange of this rank, neighbourhoods first,\n"
+            "far ranks last; empty for the default exchange. Periods are in epochs of max_epoch_length().")
         .def("record", &simulation_shim::record,
             "Disable or enable local or global spike recording.")
         .def("spikes", &simulation_shim::spikes,

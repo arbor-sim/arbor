@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <optional>
 #include <unordered_set>
 
 #include <arbor/export.hpp>
@@ -15,6 +16,7 @@
 #include <arbor/sampling.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
+#include <arbor/spike_exchange.hpp>
 #include <arbor/util/handle_set.hpp>
 #include <arbor/serdes.hpp>
 
@@ -32,7 +34,8 @@ class simulation_builder;
 struct ARB_ARBOR_API simulation {
     simulation(const recipe& rec, context ctx,
                const domain_decomposition_ptr decomp,
-               arb_seed_type seed = 0);
+               arb_seed_type seed = 0,
+               const std::optional<neighborhood_spike_exchange>& spike_exchange = {});
 
     simulation(const recipe& rec,
                context ctx = make_context(),
@@ -73,6 +76,11 @@ struct ARB_ARBOR_API simulation {
     std::vector<probe_metadata> get_probe_metadata(const cell_address_type& probeset_id) const;
 
     std::size_t num_spikes() const;
+
+    // The levels of the neighbourhood spike exchange of this rank, neighbourhoods
+    // first, far ranks last; empty for the default exchange. Periods are in
+    // epochs of max_epoch_length().
+    std::vector<spike_exchange_level> spike_exchange_levels() const;
 
     // Register a callback that will perform a export of the rank local
     // spike vector.
@@ -127,6 +135,13 @@ public:
         return *this;
     }
 
+    // Exchange spikes with MPI neighbourhood collectives instead of a global
+    // all-to-all; see neighborhood_spike_exchange.
+    simulation_builder& set_spike_exchange(neighborhood_spike_exchange spike_exchange) {
+        spike_exchange_ = std::move(spike_exchange);
+        return *this;
+    }
+
     operator simulation() const { return build(); }
 
     std::unique_ptr<simulation> make_unique() const {
@@ -147,7 +162,7 @@ private:
     }
 
     simulation build(context ctx, const domain_decomposition_ptr decomp) const {
-        return simulation(rec_, ctx, decomp, seed_);
+        return simulation(rec_, ctx, decomp, seed_, spike_exchange_);
     }
 
 private:
@@ -155,6 +170,7 @@ private:
     context ctx_;
     balancer_function balancer_;
     arb_seed_type seed_ = 0u;
+    std::optional<neighborhood_spike_exchange> spike_exchange_;
 };
 
 // An epoch callback function that prints out a text progress bar.

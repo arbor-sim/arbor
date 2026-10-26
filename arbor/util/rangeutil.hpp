@@ -202,30 +202,22 @@ Value sum(const Seq& seq, Value base = Value{}) {
 
 // Accumulate by projection `proj`
 
-template <
-    typename Seq,
-    typename Proj,
-    typename Value = typename transform_iterator<typename sequence_traits<const Seq&>::const_iterator, Proj>::value_type
->
+template <typename Seq,
+          typename Proj,
+          typename Value=typename transform_iterator<typename sequence_traits<const Seq&>::const_iterator, Proj>::value_type>
 Value sum_by(const Seq& seq, const Proj& proj, Value base = Value{}) {
-    auto canon = canonical_view(transform_view(seq, proj));
-    return std::accumulate(canon.begin(), canon.end(), base);
+    return sum(transform_view(seq, proj), base);
 }
 
 // Maximum element by projection `proj`
 // - returns an iterator `i` into supplied sequence which has the maximum
 //   value of `proj(*i)`.
-
 template <typename Seq, typename Proj>
-typename sequence_traits<Seq&&>::iterator
-max_element_by(Seq&& seq, const Proj& proj) {
+typename sequence_traits<Seq&&>::iterator max_element_by(Seq&& seq, const Proj& proj) {
     using value_type = typename sequence_traits<Seq&&>::value_type;
-    auto canon = canonical_view(seq);
-
+    auto canon       = canonical_view(seq);
     return std::max_element(canon.begin(), canon.end(),
-        [&proj](const value_type& a, const value_type& b) {
-            return proj(a) < proj(b);
-        });
+                            [&proj](const value_type& a, const value_type& b) { return proj(a) < proj(b); });
 }
 
 // Maximum value.

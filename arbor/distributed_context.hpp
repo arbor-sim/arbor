@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <cstring>
+#include <vector>
 
 #include <arbor/export.hpp>
 #include <arbor/context.hpp>
@@ -63,6 +64,22 @@ struct distributed_request {
     std::unique_ptr<distributed_request_interface> impl;
 };
 
+// A fixed, sparse communication pattern between ranks, in which the calling
+// rank receives from `sources()` and sends to `destinations()`. Creating and
+// using a neighbourhood are collective operations over all ranks.
+struct distributed_neighborhood {
+    // Ranks we receive from; partitions of gathered results follow this order.
+    virtual const std::vector<int>& sources() const = 0;
+    // Ranks that receive from us.
+    virtual const std::vector<int>& destinations() const = 0;
+    // Send local_spikes to all destinations and receive from all sources.
+    virtual gathered_vector<spike> gather_spikes(const std::vector<spike>& local_spikes) const = 0;
+
+    virtual ~distributed_neighborhood() = default;
+};
+
+using distributed_neighborhood_ptr = std::unique_ptr<distributed_neighborhood>;
+
 // Defines the concept/interface for a distributed communication context.
 //
 // Uses value-semantic type erasure to define the interface, so that
@@ -103,6 +120,11 @@ public:
 
     gathered_vector<cell_gid_type> gather_gids(const gid_vector& local_gids) const {
         return impl_->gather_gids(local_gids);
+    }
+
+    // Collective: every rank must call this, naming the ranks it receives from.
+    distributed_neighborhood_ptr make_neighborhood(const std::vector<int>& sources) const {
+        return impl_->make_neighborhood(sources);
     }
 
     gathered_vector<cell_member_type> all_to_all_gids_domains(const std::vector<std::vector<cell_member_type>>& local_spikes) const {
@@ -173,6 +195,8 @@ private:
         remote_gather_spikes(const spike_vector& local_spikes) const = 0;
         virtual gathered_vector<cell_gid_type>
         gather_gids(const gid_vector& local_gids) const = 0;
+        virtual distributed_neighborhood_ptr
+        make_neighborhood(const std::vector<int>& sources) const = 0;
         virtual gathered_vector<cell_member_type>
         all_to_all_gids_domains(const std::vector<std::vector<cell_member_type>>& local_spikes) const = 0;
         virtual cell_label_range
@@ -220,6 +244,10 @@ private:
         gathered_vector<cell_gid_type>
         gather_gids(const gid_vector& local_gids) const override {
             return wrapped.gather_gids(local_gids);
+        }
+        distributed_neighborhood_ptr
+        make_neighborhood(const std::vector<int>& sources) const override {
+            return wrapped.make_neighborhood(sources);
         }
         gathered_vector<cell_member_type>
         all_to_all_gids_domains(const std::vector<std::vector<cell_member_type>>& gids_domains) const override {
@@ -298,6 +326,23 @@ struct local_context {
                 std::vector<cell_gid_type>(local_gids),
                 {0u, static_cast<count_type>(local_gids.size())}
         );
+    }
+    distributed_neighborhood_ptr make_neighborhood(const std::vector<int>& sources) const {
+        struct local_neighborhood: distributed_neighborhood {
+            std::vector<int> ranks;
+            explicit local_neighborhood(std::vector<int> r): ranks(std::move(r)) {}
+            const std::vector<int>& sources() const override { return ranks; }
+            const std::vector<int>& destinations() const override { return ranks; }
+            gathered_vector<spike> gather_spikes(const std::vector<spike>& local_spikes) const override {
+                using count_type = typename gathered_vector<spike>::count_type;
+                if (ranks.empty()) return {{}, {0u}};
+                return {std::vector<spike>(local_spikes), {0u, static_cast<count_type>(local_spikes.size())}};
+            }
+        };
+        for (auto src: sources) {
+            if (src != 0) throw arbor_internal_error("make_neighborhood: source rank must be 0 for local context.");
+        }
+        return std::make_unique<local_neighborhood>(sources.empty() ? std::vector<int>{} : std::vector<int>{0});
     }
     gathered_vector<cell_member_type> all_to_all_gids_domains(const std::vector<std::vector<cell_member_type>>& gids_domains) const {
         using count_type = typename gathered_vector<cell_member_type>::count_type;
