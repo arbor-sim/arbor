@@ -79,7 +79,7 @@ void gpu_write_mechanism_field(const arb::mechanism* m, const std::string& key, 
     memory::gpu_memcpy_d2h(&p, p_ptr, sizeof(p));
 
     std::size_t n = std::min(values.size(), std::size_t(m->ppack_.width));
-    memory::gpu_memcpy_h2d(const_cast<arb_value_type*>(values.data()), p, sizeof(arb_value_type)*n);
+    memory::gpu_memcpy_h2d(p, values.data(), sizeof(arb_value_type)*n);
 }
 
 std::vector<arb_index_type> gpu_mechanism_ion_index(const mechanism* m, const std::string& ion) {

@@ -108,6 +108,8 @@ mark_as_advanced(FORCE ARB_MODCC)
 option(ARB_BACKTRACE "Enable stacktraces on assertion and exceptions (requires Boost)." OFF)
 mark_as_advanced(FORCE ARB_BACKTRACE)
 
+option(ARB_DETERMINISTIC_GPU "Use fixed-order GPU mechanism and matrix accumulation" OFF)
+
 # Specify GPU build type
 
 set(ARB_GPU "none" CACHE STRING "GPU backend and compiler configuration")
@@ -204,6 +206,10 @@ if(ARB_WITH_NVCC OR ARB_WITH_CUDA_CLANG OR ARB_WITH_HIP_CLANG)
     set(ARB_WITH_GPU TRUE)
 endif()
 
+if(ARB_DETERMINISTIC_GPU AND NOT ARB_WITH_GPU)
+    message(FATAL_ERROR "ARB_DETERMINISTIC_GPU requires a GPU backend")
+endif()
+
 # Build paths.
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -265,6 +271,9 @@ install(TARGETS arborio-private-deps EXPORT arbor-targets)
 # users of the arbor library (e.g. mpi) that will become part
 # of arbor's PUBLIC interface.
 add_library(arbor-public-deps INTERFACE)
+if(ARB_DETERMINISTIC_GPU)
+    target_compile_definitions(arbor-public-deps INTERFACE ARB_DETERMINISTIC_GPU)
+endif()
 install(TARGETS arbor-public-deps EXPORT arbor-targets)
 if(ARB_GPU STREQUAL "cuda")
   target_link_libraries(arbor-public-deps INTERFACE CUDA::cudart)
@@ -628,6 +637,9 @@ endif()
 set(ARB_MODCC_FLAGS)
 if(ARB_VECTORIZE)
     list(APPEND ARB_MODCC_FLAGS "--simd")
+endif()
+if(ARB_DETERMINISTIC_GPU)
+    list(APPEND ARB_MODCC_FLAGS "--deterministic-gpu")
 endif()
 
 # Random number creation

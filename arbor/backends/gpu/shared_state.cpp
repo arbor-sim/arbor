@@ -268,6 +268,29 @@ unsigned shared_state::instantiate(mechanism& m,
     // If there are no sites (is this ever meaningful?) there is nothing more to do.
     if (width==0) return id;
 
+#ifdef ARB_DETERMINISTIC_GPU
+    if (m.kind()==arb_mechanism_kind_point || m.kind()==arb_mechanism_kind_gap_junction) {
+        // Total current/conductance plus current and three concentrations per ion.
+        store.accumulators_ = array((2 + 4*std::size_t(m.mech_.n_ions))*width);
+        m.ppack_.accumulators = store.accumulators_.data();
+        std::vector<arb_index_type> divisions;
+        for (std::size_t i = 0; i<width; ++i) {
+            if (!i || pos_data.cv[i]!=pos_data.cv[i-1]) divisions.push_back(i);
+        }
+        m.ppack_.n_accumulator_runs = divisions.size();
+        divisions.push_back(width);
+        m.ppack_.accumulator_group_width = 1;
+        for (std::size_t i = 1; i<divisions.size(); ++i) {
+            while (m.ppack_.accumulator_group_width<128 &&
+                   std::size_t(divisions[i]-divisions[i-1])>4*m.ppack_.accumulator_group_width) {
+                m.ppack_.accumulator_group_width *= 2;
+            }
+        }
+        store.accumulator_divisions_ = memory::on_gpu(divisions);
+        m.ppack_.accumulator_divisions = store.accumulator_divisions_.data();
+    }
+#endif
+
     // Allocate and initialize state and parameter vectors with default values.
     {
         // Allocate bulk storage

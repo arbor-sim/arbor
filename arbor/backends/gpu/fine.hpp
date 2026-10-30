@@ -8,6 +8,7 @@
 namespace arb {
 namespace gpu {
 
+inline constexpr unsigned max_branches_per_matrix_level = 128;
 
 // Helper type for branch meta data in setup phase of fine grained
 // matrix storage+solver.

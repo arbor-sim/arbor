@@ -408,6 +408,20 @@ Arbor is built for all supported AMD GPUs and the available GPU will be used at 
     as well as Mi50 and Mi60 AMD GPUs.
 
 
+Deterministic GPU accumulation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Set ``-DARB_DETERMINISTIC_GPU=ON`` when configuring Arbor to use fixed-order
+accumulation in generated GPU point/junction mechanisms and the fine matrix
+solver. The default is ``OFF``, retaining atomic accumulation.
+
+The option can increase memory use and runtime. Rebuild mechanism catalogues
+against the same Arbor installation and setting. Catalogue builds using
+Arbor's exported CMake configuration inherit the required flags.
+
+This setting does not guarantee whole-program or cross-device determinism:
+other accumulation paths, including event handlers, retain their behavior.
+
 .. _install-python:
 
 Python frontend
