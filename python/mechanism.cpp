@@ -16,23 +16,18 @@
 namespace pyarb {
 
 void apply_derive(arb::mechanism_catalogue& m,
-            const std::string& name,
-            const std::string& parent,
-            const std::unordered_map<std::string, double>& globals,
-            const std::unordered_map<std::string, std::string>& ions)
-{
+                  const std::string& name,
+                  const std::string& parent,
+                  const std::unordered_map<std::string, double>& globals,
+                  const std::unordered_map<std::string, std::string>& ions) {
     if (globals.empty() && ions.empty()) {
         m.derive(name, parent);
         return;
     }
-    std::vector<std::pair<std::string, double>> G;
-    for (auto& g: globals) {
-        G.push_back({g.first, g.second});
-    }
-    std::vector<std::pair<std::string, std::string>> I;
-    for (auto& i: ions) {
-        I.push_back({i.first, i.second});
-    }
+    arb::flat_map<std::string, double> G;
+    for (auto& [k, v]: globals) G.emplace_back(k, v);
+    arb::flat_map<std::string, std::string> I;
+    for (auto& [k, v]: ions) I.emplace_back(k, v);
     m.derive(name, parent, G, I);
 }
 

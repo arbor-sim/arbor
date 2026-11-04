@@ -3,18 +3,19 @@
 Cable cell mechanisms
 =====================
 
-Mechanisms describe biophysical processes such as ion channels, synapses, and gap-junctions.
-Mechanisms are assigned to regions and locations on a cell morphology
-through the process of :ref:`decoration <cablecell-decoration>`.
-Mechanisms are described using a dialect of the :ref:`NMODL <formatnmodl>` domain
-specific language that is similarly used in `NEURON <https://neuron.yale.edu/neuron/>`_.
+Mechanisms describe biophysical processes such as ion channels, synapses, and
+gap-junctions. Mechanisms are assigned to regions and locations on a cell
+morphology through the process of :ref:`decoration <cablecell-decoration>`.
+Mechanisms are described using a dialect of the :ref:`NMODL <formatnmodl>`
+domain specific language that is similarly used in `NEURON
+<https://neuron.yale.edu/neuron/>`_.
 
-Arbor supports mechanism descriptions using the NMODL language through our ``modcc``
-compiler. ``modcc`` supports many of NMODL's features, but there are a few
-additional :ref:`guidelines <formatnmodl>`.
-for users who wish to compile their own mechanisms for Arbor. Out-of-tree mechanism
-building is available in Arbor (See: :ref:`mechanisms_dynamic`). We also have built-in
-mechanisms, which are organized in *mechanism catalogues*.
+Arbor supports mechanism descriptions using the NMODL language through our
+``modcc`` compiler. ``modcc`` supports many of NMODL's features, but there are a
+few additional :ref:`guidelines <formatnmodl>`. for users who wish to compile
+their own mechanisms for Arbor. Out-of-tree mechanism building is available in
+Arbor (See: :ref:`mechanisms_dynamic`). We also have built-in mechanisms, which
+are organized in *mechanism catalogues*.
 
 Mechanism catalogues
 --------------------
@@ -26,73 +27,84 @@ A *mechanism catalogue* is a collection of mechanisms that maintains:
    global parameters, ion bindings, and implementations.
 3. A map for looking up a concrete mechanism implementation on a target hardware back end.
 
-Derived mechanisms will always have a different name to the mechanism from which they are derived.
-This name is given explicitly when the derivation is constructed, or implicitly when a mechanism
-is :ref:`requested <mechanisms-name-note>` with a name of the form ``"mech/param=value,..."``.
-In this instance, if a mechanism of that name does not already exist in the catalogue, it will be
-implicitly derived from an existing mechanism ``"mech"`` with global parameters and ion bindings
-set according to the assignments following the slash. If the mechanism ``"mech"`` depends upon
-only a single ion, the name of that ion can be omitted in the assignments:
-``"mech/oldion=newion"`` and ``"mech/newion"`` are equivalent derivations.
+Derived mechanisms will always have a different name to the mechanism from which
+they are derived. This name is given explicitly when the derivation is
+constructed, or implicitly when a mechanism is :ref:`requested
+<mechanisms-name-note>` with a name of the form ``"mech/param=value,..."``. In
+this instance, if a mechanism of that name does not already exist in the
+catalogue, it will be implicitly derived from an existing mechanism ``"mech"``
+with global parameters and ion bindings set according to the assignments
+following the slash. If the mechanism ``"mech"`` depends upon only a single ion,
+the name of that ion can be omitted in the assignments: ``"mech/oldion=newion"``
+and ``"mech/newion"`` are equivalent derivations.
 
 
-Catalogues provide an interface for querying mechanism metadata, which includes the following information:
+Catalogues provide an interface for querying mechanism metadata, which includes
+the following information:
 
 * Global parameter names, units, and default values.
 * Range parameter names, units, and default values.
 * State variable names, units, and default values.
-* Ion dependencies: for each ion used by the mechanism, information on whether the mechanism writes
-  to its internal or external concentration or to its reversal potential value, and whether it reads
-  or asserts the ionic charge.
+* Ion dependencies: for each ion used by the mechanism, information on whether
+  the mechanism writes to its internal or external concentration or to its
+  reversal potential value, and whether it reads or asserts the ionic charge.
 
-Arbor provides a default catalogue of mechanisms as well as two other catalogues containing the sets of common mechanisms
-used by the `Allen Institute <https://alleninstitute.org/>`_ and the `Blue Brain Project <https://portal.bluebrain.epfl.ch/>`_.
-(Find the NMODL descriptions of the `default mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/default>`_,
-the `Allen institute mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/allen>`_ and
-the `BBP mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/bbp>`_ at the provided links.)
+Arbor provides a default catalogue of mechanisms as well as two other catalogues
+containing the sets of common mechanisms used by the `Allen Institute
+<https://alleninstitute.org/>`_ and the `Blue Brain Project
+<https://portal.bluebrain.epfl.ch/>`_. (Find the NMODL descriptions of the
+`default mechanisms
+<https://github.com/arbor-sim/arbor/tree/master/mechanisms/default>`_, the
+`Allen institute mechanisms
+<https://github.com/arbor-sim/arbor/tree/master/mechanisms/allen>`_ and the `BBP
+mechanisms <https://github.com/arbor-sim/arbor/tree/master/mechanisms/bbp>`_ at
+the provided links.)
 
 .. _mechanisms_builtins:
 
 Built-in Catalogues
 '''''''''''''''''''
 
-Arbor comes with a number of built-in catalogues. The sources (in :ref:`formatnmodl` format)
-are located in the ``mechanisms`` `subdirectory of the Arbor source <https://github.com/arbor-sim/arbor/tree/master/mechanisms>`_.
-You may need to consult these source files to learn about the parameters and features of the mechanism.
+Arbor comes with a number of built-in catalogues. The sources (in
+:ref:`formatnmodl` format) are located in the ``mechanisms`` `subdirectory of
+the Arbor source <https://github.com/arbor-sim/arbor/tree/master/mechanisms>`_.
+You may need to consult these source files to learn about the parameters and
+features of the mechanism.
 
 The ``default_catalogue`` comes with the following mechanisms:
 
-* *pas*: Leaky current (:ref:`density mechanism <mechanisms-density>`).
-* *hh*: Classic Hodgkin-Huxley dynamics (:ref:`density mechanism
+- ``pas``: Leaky current (:ref:`density mechanism <mechanisms-density>`).
+- ``hh``: Classic Hodgkin-Huxley dynamics (:ref:`density mechanism
   <mechanisms-density>`).
-* *expsyn*: Synapse with discontinuous change in conductance at an event
+- ``expsyn``: Synapse with discontinuous change in conductance at an event
   followed by an exponential decay (:ref:`point mechanism <mechanisms-point>`).
-* *exp2syn*: Bi-exponential conductance synapse described by two time constants:
+- ``exp2syn``: Bi-exponential conductance synapse described by two time constants:
   rise and decay (:ref:`point mechanism <mechanisms-point>`).
-* *gj*: Linear gap-junction mechanism with constant conductance (:ref:`junction mechanism <mechanisms-junction>`).
+- ``gj``: Linear gap-junction mechanism with constant conductance (:ref:`junction mechanism <mechanisms-junction>`).
 
-These mechanisms are the same as those available in NEURON. Arbor-specific mechanisms in the default catalogue are:
+These mechanisms are the same as those available in NEURON. Arbor-specific
+mechanisms in the default catalogue are:
 
-* *nernst*: Calculate reversal potential for an ionic species using the Nernst
-  equation (:ref:`reversal potential mechanism <mechanisms-revpot>`). **NB**
-  This is not meant to be used directly
-* *inject*: Inject (signalling) ions, e.g. Ca++ (:ref:`point mechanism
+- ``nernst``: Calculate reversal potential for an ionic species using the Nernst
+  equation (:ref:`reversal potential mechanism <mechanisms-revpot>`).
+  **NB** This is not meant to be used directly, rather attach it to an ion species using ``set_ion``.
+- ``inject``: Inject (signalling) ions, e.g. Ca++ (:ref:`point mechanism
   <mechanisms-point>`).
-* *decay*: Exponential decay of ions (:ref:`density mechanism
+- ``decay``: Exponential decay of ions (:ref:`density mechanism
   <mechanisms-density>`).
-* *expsyn_cur*: Exponential current-based synapse (:ref:`point mechanism
+- ``expsyn_cur``: Exponential current-based synapse (:ref:`point mechanism
   <mechanisms-point>`).
-* *expsyn_stdp*: Exponential synapse with online STDP (:ref:`point mechanism
+- ``expsyn_stdp``: Exponential synapse with online STDP (:ref:`point mechanism
   <mechanisms-point>`).
-* *kamt*: K-A current for Mitral Cells (Wang et al. 1996) (:ref:`density mechanism
+- ``kamt``: K-A current for Mitral Cells (Wang et al. 1996) (:ref:`density mechanism
   <mechanisms-density>`).
-* *kdrmt*: K-DR current for Mitral Cells (Wang et al. 1996) (:ref:`density mechanism
+- ``kdrmt``: K-DR current for Mitral Cells (Wang et al. 1996) (:ref:`density mechanism
   <mechanisms-density>`).
-* *nax*: Na current for axon. No slow inact. (M.Migliore Jul. 1997) (:ref:`density mechanism
+- ``nax``: Na current for axon. No slow inact. (M.Migliore Jul. 1997) (:ref:`density mechanism
   <mechanisms-density>`).
-* *v_clamp*: Writing directly to the membrane voltage. Breaks the cable model, so use it with caution 
+- ``v_clamp``: Writing directly to the membrane voltage. Breaks the cable model, so use it with caution
   (:ref:`See NMODL documentation <formatnmodl_voltageproc>`).
-* *v_limit*: Limit directly the membrane voltage. Breaks the cable model, so use it with caution 
+- ``v_limit``: Limit directly the membrane voltage. Breaks the cable model, so use it with caution
   (:ref:`See NMODL documentation <formatnmodl_voltageproc>`).
 
 Two catalogues are provided that collect mechanisms associated with specific projects and model databases:
@@ -162,32 +174,41 @@ Parameters
 ''''''''''
 
 Mechanism behaviour can be tuned using parameters and ion channel dependencies,
-as defined in the NMODL description.
-Parameters and ion species are set initially before a simulation starts, and remain
-unchanged thereafter for the duration of the simulation.
-There are two types of parameters that can be set by users:
+as defined in the NMODL description. Parameters and ion species are set
+initially before a simulation starts, and remain unchanged thereafter for the
+duration of the simulation. There are two types of parameters that can be set by
+users:
 
-* *Global* parameters are a single scalar value that is the same everywhere a mechanism is defined.
+* *Global* parameters are a single scalar value that is the same everywhere a
+  mechanism is defined.
 * *Range* parameters can vary spatially.
 
-Every mechanism is applied to a cell via a *mechanism description*, a
-``(name, range_parameters)`` tuple, where ``name`` is a string,
-and ``range_parameters`` is an optional dictionary of key-value pairs
-that specifies values for range parameters.
-For example, consider a mechanism that models passive leaky dynamics with
-the following parameters:
+Every mechanism is applied to a cell via a *mechanism description*, a ``(name,
+range_parameters)`` tuple, where ``name`` is a string, and ``range_parameters``
+is an optional dictionary of key-value pairs that specifies values for range
+parameters. For example, consider a mechanism that models passive leaky dynamics
+with the following parameters:
 
 * *Name*: ``"pas"``.
-* *Global parameter*: reversal potential ``e``, default -70 mV.
-* *Range parameter*: conductance ``g``, default 0.001 S⋅cm⁻².
+* *Global parameter*: reversal potential ``e``, default ``-70 mV``.
+* *Range parameter*: conductance ``g``, default 0.``001 S⋅cm⁻²``.
 
-The following example mechanism descriptions for our passive mechanism show that parameters and
-ion species dependencies only need to be specified when they differ from their defaults:
+The following example mechanism descriptions for our passive mechanism show that
+parameters and ion species dependencies only need to be specified when they
+differ from their defaults:
 
-* ``("pas")``: the passive mechanism with default parameters.
-* ``("pas/e=-80")``: derive a new passive mechanism with a non-default value for the global parameter.
-* ``("pas", {"g": 0.005})``: passive mechanism with a new a non-default range parameter value.
-* ``("pas/e=-80", {"g": 0.005})``: derive a new passive mechanism that overrides both
+* ``density("pas")``: the passive mechanism with default parameters.
+* ``density("pas/e=-80")``: derive a new passive mechanism with a non-default value for the global parameter.
+* ``density("pas", {{"g": 0.005}})``: passive mechanism with a new a non-default range parameter value.
+* ``density("pas/e=-80", {{"g": 0.005}})``: derive a new passive mechanism that overrides both
+* ``density("pas", {{"e", -80}, {"g": 0.005}})``: for convenience evaluates to the same as before.
+
+Arbor does not allow two identical density mechanism to cover the same region on
+a neuron; in this case an ``overpainting`` error will be raised. This does *not*
+occur if two distinct derivations are used, e.g. ``pas/e=23`` and ``pas/e=42``
+are considered different mechanisms. This holds true even if automatic
+derivations are used, e.g. ``density("pas", {{"e", -80}})`` will be distinct from
+``density("pas")`` but clash with ``density("pas/e=-80")``.
 
 Similarly to global parameters, ion species can be renamed in the mechanism name.
 This allows the use of generic mechanisms that can be adapted to a specific species
@@ -201,10 +222,12 @@ shorthand ``("nernst/ca")`` can be used unambiguously.
 .. _mechanisms-name-note:
 
 .. note::
-    Global parameter values and ionic dependencies are the same for each instance of
-    a mechanism; changing these requires the derivation of a new mechanism, implicitly or explicitly.
-    For this reason, new global parameter values and ion renaming are part of the name of
-    the new mechanism, or a mechanism with a new unique name must be defined.
+
+   Global parameter values and ionic dependencies are the same for each instance
+    of a mechanism; changing these requires the derivation of a new mechanism,
+    implicitly or explicitly. For this reason, new global parameter values and
+    ion renaming are part of the name of the new mechanism, or a mechanism with
+    a new unique name must be defined.
 
 
 Mechanism types

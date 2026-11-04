@@ -12,11 +12,15 @@
 #include <iosfwd>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 #include <arbor/util/hash_def.hpp>
 #include <arbor/export.hpp>
 
 namespace arb {
+
+template<typename K, typename V>
+using flat_map = std::vector<std::pair<K, V>>;
 
 // Internal hashes use this 64bit id
 using hash_type = std::size_t;

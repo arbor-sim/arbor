@@ -122,7 +122,7 @@ void lif_cell_group::advance_cell(time_type tfinal,
                        std::unordered_map<cell_address_type,
                                           lif_samples>> sampled;
     // samples to process
-    std::vector<std::pair<time_type, sampler_association_handle>> samples;
+    flat_map<time_type, sampler_association_handle> samples;
     if (!samplers_.empty()) {
         auto tlast = last_time_sampled_[lid];
         std::lock_guard<std::mutex> guard(sampler_mex_);

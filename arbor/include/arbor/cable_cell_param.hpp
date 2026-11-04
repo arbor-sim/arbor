@@ -265,14 +265,30 @@ struct ARB_SYMBOL_VISIBLE mechanism_desc {
     }
     mechanism_desc(const char* name, std::unordered_map<std::string, double> param):
         name_(name) {
+        if (name_.empty()) throw cable_cell_error("mechanism_desc: null name");
         for (const auto& [k, v]: param) set(k, v);
     }
-    mechanism_desc(const char* name, std::vector<std::pair<std::string, double>> param):
-        name_(name), param_(std::move(param)) {}
+    mechanism_desc(const char* name, flat_map<std::string, double> param):
+        name_(name), param_(std::move(param)) {
+        if (name_.empty()) throw cable_cell_error("mechanism_desc: null name");
+    }
+    mechanism_desc(std::string name, std::unordered_map<std::string, double> param):
+        name_(std::move(name)) {
+        if (name_.empty()) throw cable_cell_error("mechanism_desc: null name");
+        for (const auto& [k, v]: param) set(k, v);
+    }
+    mechanism_desc(std::string name, flat_map<std::string, double> param):
+        name_(std::move(name)), param_(std::move(param)) {
+        if (name_.empty()) throw cable_cell_error("mechanism_desc: null name");
+    }
 
     mechanism_desc() = default;
     mechanism_desc(const mechanism_desc&) = default;
     mechanism_desc(mechanism_desc&&) = default;
+    // disable construction from 0
+    mechanism_desc(std::nullptr_t) = delete;
+    mechanism_desc(int) = delete;
+
 
     mechanism_desc& operator=(const mechanism_desc&) = default;
     mechanism_desc& operator=(mechanism_desc&&) = default;
@@ -309,49 +325,59 @@ struct ARB_SYMBOL_VISIBLE mechanism_desc {
 
 private:
     std::string name_;
-    std::vector<std::pair<std::string, double>> param_;
+    flat_map<std::string, double> param_;
 };
 
 
 // Tagged mechanism types for dispatching decor::place() and decor::paint() calls
 struct ARB_SYMBOL_VISIBLE junction {
     mechanism_desc mech;
-    explicit junction(mechanism_desc m): mech(std::move(m)) {}
-    explicit junction(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+    explicit junction(mechanism_desc m) : mech(std::move(m)) {}
+    explicit junction(mechanism_desc m, const std::unordered_map<std::string, double>& params)
+        : mech(std::move(m)) {
         for (const auto& [param, value]: params) mech.set(param, value);
     }
-    junction(const char* m, std::vector<std::pair<std::string, double>> params):
-        mech(m, std::move(params)) {}
+    junction(const char* m, flat_map<std::string, double> params) : mech(m, std::move(params)) {}
+    junction(std::string m, flat_map<std::string, double> params)
+        : mech(std::move(m), std::move(params)) {}
 };
 
 struct ARB_SYMBOL_VISIBLE synapse {
     mechanism_desc mech;
-    explicit synapse(mechanism_desc m): mech(std::move(m)) {}
-    explicit synapse(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+    explicit synapse(mechanism_desc m) : mech(std::move(m)) {}
+    explicit synapse(mechanism_desc m, const std::unordered_map<std::string, double>& params)
+        : mech(std::move(m)) {
         for (const auto& [param, value]: params) mech.set(param, value);
     }
-    synapse(const char* m, std::vector<std::pair<std::string, double>> params):
-        mech(m, std::move(params)) {}
+    synapse(const char* m, flat_map<std::string, double> params) : mech(m, std::move(params)) {}
+    synapse(std::string m, flat_map<std::string, double> params)
+        : mech(std::move(m), std::move(params)) {}
 };
 
 struct ARB_SYMBOL_VISIBLE density {
     mechanism_desc mech;
-    explicit density(mechanism_desc m): mech(std::move(m)) {}
-    explicit density(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+    explicit density(mechanism_desc m) : mech(std::move(m)) {}
+    explicit density(mechanism_desc m, const std::unordered_map<std::string, double>& params)
+        : mech(std::move(m)) {
         for (const auto& [param, value]: params) mech.set(param, value);
     }
-    density(const char* m, std::vector<std::pair<std::string, double>> params):
-        mech(m, std::move(params)) {}
+    density(const char* m, flat_map<std::string, double> params) : mech(m, std::move(params)) {}
+    density(std::string m, flat_map<std::string, double> params)
+        : mech(std::move(m), std::move(params)) {}
 };
 
 struct ARB_SYMBOL_VISIBLE voltage_process {
     mechanism_desc mech;
-    explicit voltage_process(mechanism_desc m): mech(std::move(m)) {}
-    explicit voltage_process(mechanism_desc m, const std::unordered_map<std::string, double>& params): mech(std::move(m)) {
+    explicit voltage_process(mechanism_desc m) : mech(std::move(m)) {}
+    explicit voltage_process(mechanism_desc m,
+                             const std::unordered_map<std::string, double>& params)
+        : mech(std::move(m)) {
         for (const auto& [param, value]: params) mech.set(param, value);
     }
-    voltage_process(const char* m, std::vector<std::pair<std::string, double>> params):
-        mech(m, std::move(params)) {}
+    voltage_process(const char* m, flat_map<std::string, double> params)
+        : mech(m, std::move(params)) {}
+    voltage_process(std::string m, flat_map<std::string, double> params)
+        : mech(std::move(m), std::move(params)) {}
 };
 
 struct ARB_SYMBOL_VISIBLE ion_reversal_potential_method {
