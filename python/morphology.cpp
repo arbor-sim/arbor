@@ -149,23 +149,33 @@ void register_morphology(py::module& m) {
                 return iso.apply(p);
             },
             "Apply isometry to mpoint argument.")
-        .def("__call__", [](arb::isometry& iso, py::tuple t) {
-                int len = py::len(t);
-                if (len<3) throw std::runtime_error("tuple length < 3");
+        .def("__call__",
+             [](arb::isometry& iso, py::tuple t) {
+                 int len = py::len(t);
+                 if (len<3) throw std::runtime_error("tuple length < 3");
 
-                arb::mpoint p{t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>(), 0.};
+                 arb::mpoint p{t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>(), 0.};
+                 p = iso.apply(p);
+
+                 py::tuple result(len);
+                 result[0] = p.x;
+                 result[1] = p.y;
+                 result[2] = p.z;
+                 for (int i = 3; i<len; ++i) result[i] = t[i];
+                 return result;
+             },
+        "Apply isometry to first three components of tuple argument.")
+        .def("__call__", [](const arb::isometry& iso, double x, double y, double z) {
+                arb::mpoint p{x, y, z, 0.};
                 p = iso.apply(p);
-
-                py::tuple result(len);
+                py::tuple result(3);
                 result[0] = p.x;
                 result[1] = p.y;
                 result[2] = p.z;
-                for (int i = 3; i<len; ++i) {
-                    result[i] = t[i];
-                }
                 return result;
             },
             "Apply isometry to first three components of tuple argument.")
+
         .def(py::self*py::self)
         .def_static("translate",
             [](double x, double y, double z) { return arb::isometry::translate(x, y, z); },
@@ -225,7 +235,8 @@ void register_morphology(py::module& m) {
 
     // locset
     locset
-        .def(py::init([](std::string& r) { return arborio::parse_locset_expression(r).unwrap(); }))
+        .def(py::init([](const std::string& r) { return arborio::parse_locset_expression(r).unwrap(); }))
+        .def(py::init([](arb::mlocation& r) { return arb::ls::location(r.branch, r.pos); }))
         .def("__str__", [](const arb::locset& s) { return util::pprintf("<arbor.locset: {}>", s);} )
         .def("__repr__", [](const arb::locset& s) { return util::pprintf("{}", s);} )
         ;
