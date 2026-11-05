@@ -48,6 +48,8 @@ void register_morphology(py::module& m) {
     py::class_<arb::mextent> extent(m, "extent", "A potentially empty region on a morphology.");
     py::class_<arb::mpoint> mpoint(m, "mpoint");
     py::class_<arb::mcable> cable(m, "cable");
+    py::class_<arb::locset> locset(m, "locset", "Opaque locset expression");
+    py::class_<arb::region> region(m, "region", "Opaque region expression");
     py::class_<arb::isometry> isometry(m, "isometry");
     py::class_<arb::place_pwlin> place(m, "place_pwlin");
     py::class_<arb::segment_tree> segment_tree(m, "segment_tree");
@@ -220,6 +222,19 @@ void register_morphology(py::module& m) {
             },
             "Find the location on the morphology that is closest to a 3d point. "
             "Returns the location and its distance from the point.");
+
+    // locset
+    locset
+        .def(py::init([](std::string& r) { return arborio::parse_locset_expression(r).unwrap(); }))
+        .def("__str__", [](const arb::locset& s) { return util::pprintf("<arbor.locset: {}>", s);} )
+        .def("__repr__", [](const arb::locset& s) { return util::pprintf("{}", s);} )
+        ;
+
+    region
+        .def(py::init([](std::string& r) { return arborio::parse_region_expression(r).unwrap(); }))
+        .def("__str__", [](const arb::region& s) { return util::pprintf("<arbor.region: {}>", s);} )
+        .def("__repr__", [](const arb::region& s) { return util::pprintf("{}", s);} )
+        ;
 
     // arb::mprovider
     prov
