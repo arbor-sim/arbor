@@ -68,7 +68,8 @@ struct threshold_watcher {
         // A more robust approach might be needed to avoid overflows.
         stack_(100*size(), context.gpu) {
         crossings_.reserve(stack_.capacity());
-        // reset() needs to be called before this is ready for use
+        // reset(v) needs to be called before this is ready for use
+        // but we don't have values for `v` yet
     }
 
     /// Remove all stored crossings that were detected in previous calls to test()
