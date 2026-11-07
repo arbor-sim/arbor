@@ -22,24 +22,22 @@ namespace kernel {
 ///     values     : values at t_prev
 ///     thresholds : threshold values to watch for crossings
 __global__
-void test_thresholds_impl(
-    int size,
-    arb_value_type t_after,
-    arb_value_type t_before,
-    const arb_index_type* __restrict__ const src_to_spike,
-    arb_value_type* __restrict__ const time_since_spike,
-    stack_storage<threshold_crossing>& stack,
-    arb_index_type* __restrict__ const is_crossed,
-    arb_value_type* __restrict__ const prev_values,
-    const arb_index_type* __restrict__ const cv_index,
-    const arb_value_type* __restrict__ const values,
-    const arb_value_type* __restrict__ const thresholds,
-    bool record_time_since_spike)
-{
+void test_thresholds_impl(int size,
+                          arb_value_type t_after,
+                          arb_value_type t_before,
+                          const arb_index_type* __restrict__ const src_to_spike,
+                          arb_value_type* __restrict__ const time_since_spike,
+                          stack_storage<threshold_crossing>& stack,
+                          arb_index_type* __restrict__ const is_crossed,
+                          arb_value_type* __restrict__ const prev_values,
+                          const arb_index_type* __restrict__ const cv_index,
+                          const arb_value_type* __restrict__ const values,
+                          const arb_value_type* __restrict__ const thresholds,
+                          bool record_time_since_spike) {
     int i = threadIdx.x + blockIdx.x*blockDim.x;
 
     bool crossed = false;
-    float crossing_time;
+    arb_value_type crossing_time;
 
     if (i<size) {
         // Test for threshold crossing
