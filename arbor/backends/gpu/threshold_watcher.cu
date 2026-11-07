@@ -42,7 +42,7 @@ void test_thresholds_impl(int size,
     if (ix < size) {
         // Test for threshold crossing
         const auto cv     = cv_index[ix];
-        const auto v_prev = prev_values[cv];
+        const auto v_prev = prev_values[ix];
         const auto v      = values[cv];
         const auto thresh = thresholds[ix];
         arb_index_type spike_idx = 0;
@@ -71,7 +71,7 @@ void test_thresholds_impl(int size,
             is_crossed[ix] = 0;
         }
 
-        prev_values[cv] = v;
+        prev_values[ix] = v;
     }
 
     if (crossed) push_back(stack, {arb_size_type(i), crossing_time});
@@ -82,9 +82,14 @@ void reset_crossed_impl(int size,
                         arb_index_type* __restrict__ const is_crossed,
                         const arb_index_type* __restrict__ const cv_index,
                         const arb_value_type* __restrict__ const values,
-                        const arb_value_type* __restrict__ const thresholds) {
+                        const arb_value_type* __restrict__ const thresholds,
+                        arb_value_type* __restrict__  prev_values) {
     int ix = threadIdx.x + blockIdx.x*blockDim.x;
-    if (ix < size) is_crossed[ix] = values[cv_index[ix]] >= thresholds[ix];
+    if (ix < size) {
+        auto cv = cv_index[ix];
+        is_crossed[ix] = values[cv] >= thresholds[ix];
+        prev_values[ix] = values[cv];
+    }
 }
 
 } // namespace kernel
@@ -109,9 +114,10 @@ void reset_crossed_impl(int size,
                         arb_index_type* is_crossed,
                         const arb_index_type* cv_index,
                         const arb_value_type* values,
-                        const arb_value_type* thresholds) {
+                        const arb_value_type* thresholds,
+                        arb_value_type* prev_values) {
     launch_1d(size, 128, kernel::reset_crossed_impl,
-              size, is_crossed, cv_index, values, thresholds);
+              size, is_crossed, cv_index, values, thresholds, prev_values);
 }
 
 } // namespace gpu
