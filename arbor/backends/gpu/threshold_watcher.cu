@@ -74,7 +74,7 @@ void test_thresholds_impl(int size,
         prev_values[ix] = v;
     }
 
-    if (crossed) push_back(stack, {arb_size_type(i), crossing_time});
+    if (crossed) push_back(stack, {arb_size_type(ix), crossing_time});
 }
 
 __global__
