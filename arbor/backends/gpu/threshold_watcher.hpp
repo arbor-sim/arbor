@@ -82,7 +82,7 @@ struct threshold_watcher {
     /// Assume that the values in values_ have been set correctly before
     /// calling, because the values are used to determine the initial state
     void reset(const array& values) {
-        if (size() > 0) return;
+        if (size() == 0) return;
         values_ = values.data();
         memory::copy(values, v_prev_);
         clear_crossings();
