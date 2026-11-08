@@ -84,7 +84,6 @@ struct threshold_watcher {
     void reset(const array& values) {
         if (size() == 0) return;
         values_ = values.data();
-        memory::copy(values, v_prev_);
         clear_crossings();
         reset_crossed_impl((int)size(), is_crossed_.data(), cv_index_.data(), values_, thresholds_.data(), v_prev_.data());
     }
