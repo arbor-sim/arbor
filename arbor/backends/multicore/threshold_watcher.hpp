@@ -33,7 +33,7 @@ public:
         cv_index_(cv_index),
         is_crossed_(n_detectors_),
         thresholds_(thresholds),
-        v_prev_(num_cv)
+        v_prev_(cv_index.size())
     {
         arb_assert(n_detectors_==thresholds.size());
         // reset() needs to be called before this is ready for use
@@ -41,19 +41,18 @@ public:
 
     /// Remove all stored crossings that were detected in previous calls
     /// to the test() member function.
-    void clear_crossings() {
-        crossings_.clear();
-    }
+    void clear_crossings() { crossings_.clear(); }
 
     /// Reset state machine for each detector.
     /// Assume that the values in values_ have been set correctly before
     /// calling, because the values are used to determine the initial state
     void reset(const array& values) {
         values_ = values.data();
-        std::copy(values.begin(), values.end(), v_prev_.begin());
         clear_crossings();
-        for (arb_size_type i = 0; i<n_detectors_; ++i) {
-            is_crossed_[i] = values_[cv_index_[i]]>=thresholds_[i];
+        for (arb_size_type ix = 0; ix < n_detectors_; ++ix) {
+            auto cv        = cv_index_[ix];
+            v_prev_[ix]     = values_[cv];
+            is_crossed_[ix] = values_[cv] >= thresholds_[ix];
         }
     }
 
@@ -67,46 +66,43 @@ public:
         arb_assert(values_!=nullptr);
 
         // Reset all spike times to -1.0 indicating no spike has been recorded on the detector
-        for (arb_size_type i = 0; i<n_detectors_; ++i) {
-            auto cv     = cv_index_[i];
-            auto v_prev = v_prev_[cv];
-            auto v      = values_[cv];
-            auto thresh = thresholds_[i];
+        for (arb_size_type ix = 0; ix < n_detectors_; ++ix) {
+            auto cv                  = cv_index_[ix];
+            auto v_prev              = v_prev_[ix];
+            auto v                   = values_[cv];
+            auto thresh              = thresholds_[ix];
             arb_index_type spike_idx = 0;
 
             if (!time_since_spike.empty()) {
-                spike_idx = src_to_spike_[i];
+                spike_idx                   = src_to_spike_[ix];
                 time_since_spike[spike_idx] = -1.0;
             }
 
-            if (!is_crossed_[i]) {
-                if (v>=thresh) {
+            if (!is_crossed_[ix]) {
+                if (v >= thresh) {
                     // The threshold has been passed, so estimate the time using
                     // linear interpolation.
                     auto pos = (thresh - v_prev)/(v - v_prev);
                     auto crossing_time = math::lerp(t_before, t_after, pos);
-                    crossings_.push_back({i, crossing_time});
+                    crossings_.push_back({ix, crossing_time});
 
                     if (!time_since_spike.empty()) {
                         time_since_spike[spike_idx] = t_after - crossing_time;
                     }
 
-                    is_crossed_[i] = true;
+                    is_crossed_[ix] = true;
                 }
-            }
-            else {
+            } else {
                 if (v<thresh) {
-                    is_crossed_[i] = false;
+                    is_crossed_[ix] = false;
                 }
             }
 
-            v_prev_[cv] = v;
+            v_prev_[ix] = v;
         }
     }
 
-    bool is_crossed(arb_size_type i) const {
-        return is_crossed_[i];
-    }
+    bool is_crossed(arb_size_type i) const { return is_crossed_[i]; }
 
     /// The number of threshold values that are monitored.
     std::size_t size() const {

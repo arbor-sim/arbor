@@ -104,9 +104,8 @@ struct threshold_watcher {
     /// crossed since current time t, and the last time the test was
     /// performed.
     void test(array& time_since_spike, const arb_value_type& t_before, const arb_value_type& t_after) {
-        arb_assert(values_);
-
         if (size() <= 0) return;
+        arb_assert(values_);
         test_thresholds_impl((int)size(),
                              t_after, t_before,
                              src_to_spike_, time_since_spike.data(),
