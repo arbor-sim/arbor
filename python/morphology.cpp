@@ -236,7 +236,7 @@ void register_morphology(py::module& m) {
     // locset
     locset
         .def(py::init([](const std::string& r) { return arborio::parse_locset_expression(r).unwrap(); }))
-        .def(py::init([](arb::mlocation& r) { return arb::ls::location(r.branch, r.pos); }))
+        .def(py::init([](const arb::mlocation& r) { return arb::ls::location(r.branch, r.pos); }))
         .def("__str__", [](const arb::locset& s) { return util::pprintf("<arbor.locset: {}>", s);} )
         .def("__repr__", [](const arb::locset& s) { return util::pprintf("{}", s);} )
         ;
