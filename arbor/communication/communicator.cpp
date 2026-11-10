@@ -21,6 +21,8 @@
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
+#include "util/skasort.hpp"
+
 
 #include "communication/communicator.hpp"
 
@@ -226,7 +228,8 @@ void communicator::update_connections(const recipe& rec,
     arb::threading::parallel_for::apply(0, gids_domains.size(), ctx_->thread_pool.get(),
                                         [&](int i) {
                                           auto& domain_gids = gids_domains[i];
-                                          std::sort(domain_gids.begin(), domain_gids.end());
+                                          ska_sort(domain_gids.begin(), domain_gids.end(),
+                                                   [](const cell_member_type& c) { return std::make_tuple(c.gid, c.index); });
                                           domain_gids.erase(
                                               std::unique(domain_gids.begin(), domain_gids.end()),
                                               domain_gids.end()
@@ -253,7 +256,8 @@ void communicator::update_connections(const recipe& rec,
     // parallelized trivially.
     PE(sort_local);
     threading::parallel_for::apply(0, num_domains_, ctx_->thread_pool.get(),
-                                   [&](auto i) { util::sort(connections_by_src_domain[i]); });
+                                   [&](auto i) { ska_sort(connections_by_src_domain[i].begin(), connections_by_src_domain[i].end(),
+                                                          [](const connection& c) { return std::make_tuple(c.source.gid, c.source.index); }); });
     PL(sort_local);
 
     PE(partition);
