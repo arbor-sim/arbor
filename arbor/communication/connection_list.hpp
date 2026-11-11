@@ -1,0 +1,69 @@
+#pragma once
+
+#include <arbor/common_types.hpp>
+
+#include <ankerl/unordered_dense.h>
+
+#include "util/rangeutil.hpp"
+#include "connection.hpp"
+
+namespace arb {
+struct connections_list {
+    size_t size_ = 0;
+    std::vector<cell_size_type> idx_on_domain;
+    std::vector<cell_lid_type> dests;
+    std::vector<float> weights;
+    std::vector<float> min_weights;
+    std::vector<float> delays;
+    // for each domain, map sources to ranges of connctions.
+    std::vector<ankerl::unordered_dense::map<std::uint64_t, std::pair<std::size_t, std::size_t>>> first_occurence;
+
+    void make(std::vector<connection>& cons) {
+        arb_assert(util::is_sorted(cons));
+        first_occurence.emplace_back();
+        auto& lut = first_occurence.back();
+        auto min_weight = std::numeric_limits<float>::max();
+        for (const auto& con: cons) {
+            auto key = std::bit_cast<std::uint64_t>(con.source);
+            if (!lut.contains(key)) lut.emplace(key, std::make_pair(size_, size_));
+            lut[key].second += 1;
+            idx_on_domain.push_back(con.index_on_domain);
+            dests.push_back(con.target);
+            if (con.weight < min_weight) min_weight = con.weight;
+            weights.push_back(con.weight);
+            delays.push_back(con.delay);
+            ++size_;
+        }
+        min_weights.push_back(min_weight);
+    }
+
+    void make(std::vector<std::vector<connection>>& conss) {
+        for (auto& cons: conss) {
+            make(cons);
+            // NOTE: For memory capacity reasons, we destroy
+            //       the sub-vectors here, once we are done.
+            cons = {};
+        }
+    }
+
+    void reserve(std::size_t n) {
+        idx_on_domain.reserve(n);
+        dests.reserve(n);
+        weights.reserve(n);
+        delays.reserve(n);
+    }
+
+    void clear() {
+        idx_on_domain.clear();
+        dests.clear();
+        weights.clear();
+        min_weights.clear();
+        delays.clear();
+        size_ = 0;
+    }
+
+    float min_weight_on(cell_size_type lid) const { return min_weights[lid]; }
+
+    size_t size() const { return size_; }
+};
+}
