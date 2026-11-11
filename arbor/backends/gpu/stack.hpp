@@ -53,7 +53,7 @@ private:
 
         host_storage_.capacity = n;
         host_storage_.stores = 0u;
-        host_storage_.data = n>0u ? allocator<value_type>().allocate(n): nullptr;
+        host_storage_.data = (n > 0u) ? allocator<value_type>().allocate(n) : nullptr;
 
         device_storage_ = allocator<storage_type>().allocate(1);
         memory::gpu_memcpy_h2d(device_storage_, &host_storage_, sizeof(storage_type));
@@ -78,9 +78,7 @@ public:
         return *this;
     }
 
-    stack(stack&& other) {
-        *this = std::move(other);
-    }
+    stack(stack&& other) { *this = std::move(other); }
 
     explicit stack(unsigned capacity, const gpu_context_handle& gpu_ctx): gpu_context_(gpu_ctx) {
         create_storage(capacity);
@@ -114,24 +112,16 @@ public:
     // The information returned by the calls below may be out of sync with the
     // version on the GPU if the GPU storage has been modified since the last
     // call to update_host().
-    storage_type get_storage_copy() const {
-        return host_storage_;
-    }
+    storage_type get_storage_copy() const { return host_storage_; }
 
-    const std::vector<value_type>& data() const {
-        return data_;
-    }
+    const std::vector<value_type>& data() const { return data_; }
 
     // The number of items that have been pushed back on the stack.
     // This may exceed capacity, which indicates that the caller attempted
     // to push back more values than there was space to store.
-    unsigned pushes() const {
-        return host_storage_.stores;
-    }
+    unsigned pushes() const { return host_storage_.stores; }
 
-    bool overflow() const {
-        return host_storage_.stores>host_storage_.capacity;
-    }
+    bool overflow() const { return host_storage_.stores >= host_storage_.capacity; }
 
     // The number of values stored in the stack.
     unsigned size() const {
@@ -145,18 +135,14 @@ public:
 
     // This returns a non-const reference to the unerlying device storage so
     // that it can be passed to GPU kernels that need to modify the stack.
-    storage_type& storage() {
-        return *device_storage_;
-    }
+    storage_type& storage() { return *device_storage_; }
 
     const value_type& operator[](unsigned i) const {
         arb_assert(i<size());
         return data_[i];
     }
 
-    const value_type* begin() const {
-        return data_.data();
-    }
+    const value_type* begin() const { return data_.data(); }
 
     const value_type* end() const {
         // Take care of the case where size>capacity.

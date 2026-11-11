@@ -19,32 +19,43 @@
 namespace arb {
 namespace gpu {
 
-// CUDA implementation entry point:
+// TODO: allocate enough space for 100 spikes per watch. A more robust approach
+// might be needed to avoid overflows. For now, we just bail if we exceed this
+// number.
+constexpr size_t max_spikes_per_dt = 100;
 
-void test_thresholds_impl(
-    int size,
-    arb_value_type t_after,
-    arb_value_type t_before,
-    const arb_index_type* src_to_spike,
-    arb_value_type* time_since_spike,
-    stack_storage<threshold_crossing>& stack,
-    arb_index_type* is_crossed,
-    arb_value_type* prev_values,
-    const arb_index_type* cv_index,
-    const arb_value_type* values,
-    const arb_value_type* thresholds,
-    bool record);
+// CUDA implementation entry points:
 
-void reset_crossed_impl(
-    int size,
-    arb_index_type* is_crossed,
-    const arb_index_type* cv_index,
-    const arb_value_type* values,
-    const arb_value_type* thresholds);
+void test_thresholds_record_impl(int size,
+                                 arb_value_type t_after,
+                                 arb_value_type t_before,
+                                 const arb_index_type* src_to_spike,
+                                 arb_value_type* time_since_spike,
+                                 stack_storage<threshold_crossing>& stack,
+                                 arb_index_type* is_crossed,
+                                 arb_value_type* prev_values,
+                                 const arb_index_type* cv_index,
+                                 const arb_value_type* values,
+                                 const arb_value_type* thresholds);
+
+void test_thresholds_impl(int size,
+                          arb_value_type t_after,
+                          arb_value_type t_before,
+                          stack_storage<threshold_crossing>& stack,
+                          arb_index_type* is_crossed,
+                          arb_value_type* prev_values,
+                          const arb_index_type* cv_index,
+                          const arb_value_type* values,
+                          const arb_value_type* thresholds);
+
+void reset_crossed_impl(int size,
+                        arb_index_type* is_crossed,
+                        const arb_index_type* cv_index,
+                        const arb_value_type* values,
+                        const arb_value_type* thresholds);
 
 
-class threshold_watcher {
-public:
+struct threshold_watcher {
     using stack_type = stack<threshold_crossing>;
 
     threshold_watcher() = default;
@@ -70,9 +81,7 @@ public:
         is_crossed_(n_detectors_),
         thresholds_(memory::make_const_view(thresholds)),
         v_prev_(num_cv),
-        // TODO: allocates enough space for 10 spikes per watch.
-        // A more robust approach might be needed to avoid overflows.
-        stack_(100*size(), context.gpu)
+        stack_(max_spikes_per_dt*size(), context.gpu)
     {
         crossings_.reserve(stack_.capacity());
         // reset() needs to be called before this is ready for use
@@ -91,22 +100,17 @@ public:
         values_ = values.data();
         memory::copy(values, v_prev_);
         clear_crossings();
-        if (size()>0) {
-            reset_crossed_impl((int)size(), is_crossed_.data(), cv_index_.data(), values_, thresholds_.data());
-        }
+        if (size() == 0) return;
+        reset_crossed_impl((int)size(), is_crossed_.data(), cv_index_.data(), values_, thresholds_.data());
     }
 
     // Testing-only interface.
-    bool is_crossed(int i) const {
-        return is_crossed_[i];
-    }
+    bool is_crossed(int i) const { return is_crossed_[i]; }
 
     const std::vector<threshold_crossing>& crossings() const {
         stack_.update_host();
 
-        if (stack_.overflow()) {
-            throw arbor_internal_error("gpu/threshold_watcher: gpu spike buffer overflow");
-        }
+        if (stack_.overflow()) throw arbor_internal_error("gpu/threshold_watcher: gpu spike buffer overflow");
 
         crossings_.clear();
         crossings_.insert(crossings_.end(), stack_.begin(), stack_.end());
@@ -119,26 +123,28 @@ public:
     /// performed.
     void test(array& time_since_spike, const arb_value_type& t_before, const arb_value_type& t_after) {
         arb_assert(values_);
-
-        if (size()>0) {
-            test_thresholds_impl(
-                (int)size(),
-                t_after, t_before,
-                src_to_spike_, time_since_spike.data(),
-                stack_.storage(),
-                is_crossed_.data(), v_prev_.data(),
-                cv_index_.data(), values_, thresholds_.data(),
-                !time_since_spike.empty());
-
-            // Check that the number of spikes has not exceeded capacity.
-            arb_assert(!stack_.overflow());
+        if (size() == 0) return;
+        if (!time_since_spike.empty()) {
+            test_thresholds_record_impl((int)size(),
+                                        t_after, t_before,
+                                        src_to_spike_, time_since_spike.data(),
+                                        stack_.storage(),
+                                        is_crossed_.data(), v_prev_.data(),
+                                        cv_index_.data(), values_, thresholds_.data());
         }
+        else {
+            test_thresholds_impl((int)size(),
+                                 t_after, t_before,
+                                 stack_.storage(),
+                                 is_crossed_.data(), v_prev_.data(),
+                                 cv_index_.data(), values_, thresholds_.data());
+        }
+        // Check that the number of spikes has not exceeded capacity.
+        if (stack_.overflow()) throw arbor_internal_error("gpu/threshold_watcher: gpu spike buffer overflow");
     }
 
     /// the number of threshold values that are being monitored
-    std::size_t size() const {
-        return cv_index_.size();
-    }
+    std::size_t size() const { return cv_index_.size(); }
 
 private:
     // Non-owning pointers

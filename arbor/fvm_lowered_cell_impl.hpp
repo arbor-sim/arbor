@@ -165,16 +165,24 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
     PL(setup);
 
     // loop over timesteps
-    for (const auto& ts : dts) {
+    PE(steps);
+    for (const auto& ts: dts) {
+        PE(get_dt);
         state_->update_time_to(ts);
         arb_assert(state_->time == ts.t_begin());
+        PL(get_dt);
 
         // Update integration step time information visible to mechanisms.
+        PE(set_dt);
         const auto dt = state_->dt;
         forall_mechanisms([dt](auto& m) { m->set_dt(dt); });
+        PL(set_dt);
 
         // Update any required reversal potentials based on ionic concentrations
+
+        PE(revpot);
         for (auto& m: revpot_mechanisms_) m->update_current();
+        PL(revpot);
 
         PE(zero);
         state_->zero_currents();
@@ -182,13 +190,17 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
 
         // Deliver events and accumulate mechanism current contributions.
         // Mark all events due before (but not including) the end of this time step (state_->time_to) for delivery
+        PE(deliverevents)
         state_->mark_events();
         for (auto& m: point_mechanisms_) state_->deliver_events(*m);
+        PL(deliverevents)
 
         // Now we are free to update currents.
+        PE(currentupdate)
         for (auto& m: density_mechanisms_)  m->update_current();
         for (auto& m: point_mechanisms_)    m->update_current();
         for (auto& m: junction_mechanisms_) m->update_current();
+        PL(currentupdate)
 
         // Add stimulus current contributions.
         // NOTE: performed after dt, time_to calculation, in case we want to
@@ -208,15 +220,19 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
         PL(cable);
 
         // advance PRNG states.
+        PE(rng);
         for (auto& m: density_mechanisms_)  state_->update_prng_state(*m);
         for (auto& m: point_mechanisms_)    state_->update_prng_state(*m);
         for (auto& m: voltage_mechanisms_)  state_->update_prng_state(*m);
         for (auto& m: junction_mechanisms_) state_->update_prng_state(*m);
+        PL(rng)
 
         // Integrate mechanism state
+        PE(state)
         for (auto& m: density_mechanisms_)  m->update_state();
         for (auto& m: point_mechanisms_)    m->update_state();
         for (auto& m: junction_mechanisms_) m->update_state();
+        PL(state)
 
         // Update ion concentrations.
         PE(ionupdate);
@@ -225,8 +241,10 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
 
         // voltage mechs run now; after the cable_solver, but before the
         // threshold test
+        PE(v_process);
         for (auto& m: voltage_mechanisms_) m->update_current();
         for (auto& m: voltage_mechanisms_) m->update_state();
+        PL(v_process);
 
         // Update time and test for spike threshold crossings.
         PE(threshold);
@@ -238,17 +256,19 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(const timestep_
         PL(post);
 
         // Advance epoch
+        PE(next_epoch);
         state_->next_time_step();
+        PL(next_epoch);
 
         // Check for non-physical solutions:
-        if (check_voltage_mV_) {
-            PE(physicalcheck);
-            assert_voltage_bounded(check_voltage_mV_.value());
-            PL(physicalcheck);
-        }
+        PE(physicalcheck);
+        if (check_voltage_mV_) assert_voltage_bounded(check_voltage_mV_.value());
+        PL(physicalcheck);
     }
+    PL(steps);
+    auto res = state_->get_integration_result();
     PL(integrate);
-    return state_->get_integration_result();
+    return res;
 }
 
 template <typename Backend>

@@ -141,7 +141,7 @@ mark_as_advanced(ARB_CAT_VERBOSE)
 
 option(ARB_WITH_MPI "build with MPI support" OFF)
 
-option(ARB_WITH_PROFILING "enable Tracy profiling" OFF)
+option(ARB_WITH_PROFILING "enable profiling" OFF)
 cmake_dependent_option(ARB_WITH_STACK_PROFILING "enable stack collection in profiling" OFF "ARB_WITH_PROFILING" OFF)
 cmake_dependent_option(ARB_WITH_MEMORY_PROFILING "enable memory in profiling" OFF "ARB_WITH_PROFILING" OFF)
 mark_as_advanced(FORCE ARB_WITH_STACK_PROFILING ARB_WITH_MEMORY_PROFILING)

@@ -20,7 +20,7 @@ struct basic_spike {
     basic_spike(id_type s, time_type t):
         source(std::move(s)), time(t)
     {}
-    auto operator<=>(const basic_spike&) const = default;
+    auto operator<=>(const basic_spike&) const noexcept = default;
     ARB_SERDES_ENABLE(basic_spike<I>, source, time);
 };
 
