@@ -200,6 +200,51 @@ class empty_recipe(A.recipe):
     pass
 
 
+class ring_distance_recipe(A.recipe):
+    """
+    Recipe fixture with LIF cells, cells_per_rank on each of num_ranks ranks,
+    connected across ranks. Delays grow with the distance between the ranks of
+    source and target on a ring and are not multiples of the epoch length.
+    Weights are below threshold, so cells fire on coincident input only, which
+    makes spike trains sensitive to late, missing, or duplicated events.
+    """
+
+    def __init__(self, num_ranks, cells_per_rank=8):
+        super().__init__()
+        self.num_ranks = num_ranks
+        self.cells_per_rank = cells_per_rank
+
+    def num_cells(self):
+        return self.num_ranks * self.cells_per_rank
+
+    def cell_kind(self, gid):
+        return A.cell_kind.lif
+
+    def cell_description(self, gid):
+        return A.lif_cell("src", "tgt")
+
+    def delay(self, src, tgt):
+        a, b = src // self.cells_per_rank, tgt // self.cells_per_rank
+        d = abs(a - b)
+        return 1.0 + 1.3 * min(d, self.num_ranks - d)
+
+    def connections_on(self, gid):
+        n = self.num_cells()
+        rank = gid // self.cells_per_rank
+        sources = [rank * self.cells_per_rank + (gid + 1) % self.cells_per_rank]
+        sources += [(gid * 7 + k * (self.cells_per_rank + 3)) % n for k in range(1, 4)]
+        return [
+            A.connection((src, "src"), "tgt", 120, self.delay(src, gid) * U.ms)
+            for src in sources
+        ]
+
+    def event_generators(self, gid):
+        if gid % self.cells_per_rank:
+            return []
+        sched = A.regular_schedule((gid % 3) * U.ms, 7 * U.ms)
+        return [A.event_generator("tgt", 250, sched)]
+
+
 class art_spiker_recipe(A.recipe):
     """
     Recipe fixture with 3 artificial spiking cells and one cable cell.

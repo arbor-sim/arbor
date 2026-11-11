@@ -56,6 +56,8 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
     * a :py:class:`~arbor.domain_decomposition` that describes how the cells in the model are assigned to hardware resources;
     * a :py:class:`~arbor.context` which is used to execute the simulation.
     * a non-negative :py:class:`int` in order to seed the pseudo random number generator (optional)
+    * a :py:class:`~arbor.neighborhood_spike_exchange` to exchange spikes with MPI neighbourhood
+      collectives (optional)
 
     Simulations provide an interface for executing and interacting with the model:
 
@@ -66,12 +68,14 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
 
     **Constructor:**
 
-    .. function:: simulation(recipe, domain_decomposition, context, seed)
+    .. function:: simulation(recipe, domain_decomposition, context, seed, spike_exchange=None)
 
         Initialize the model described by a :py:class:`~arbor.recipe`, with cells and network
         distributed according to :py:class:`~arbor.domain_decomposition`, computational resources
         described by :py:class:`~arbor.context` and with a seed value for generating reproducible
-        random numbers (optional, default value: `0`).
+        random numbers (optional, default value: `0`). If ``spike_exchange`` is given, spikes are
+        exchanged as described by :py:class:`~arbor.neighborhood_spike_exchange` instead of with a
+        global all-to-all after every epoch.
 
         When constructed with a single argument, a :py:class:`~arbor.recipe`, a local context is
         automatically created with :py:func:`~arbor.env.default_allocation()`.
@@ -84,6 +88,17 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
         :py:func:`~arbor.recipe.connections_on` The recipe must differ **only**
         in the return value of its :py:func:`~arbor.recipe.connections_on` when compared to
         the original recipe used to construct the simulation object.
+
+    .. function:: spike_exchange_levels()
+
+        The levels of the neighbourhood spike exchange on this rank as a list of
+        :py:class:`spike_exchange_level`, neighbourhoods first, far ranks last. Empty for the
+        default exchange. Periods are in epochs of :py:func:`max_epoch_length`.
+
+    .. function:: max_epoch_length()
+
+        The maximum epoch length [ms], half the minimum delay of the network. This is a
+        collective operation: all ranks must call it.
 
     .. function:: reset()
 
@@ -210,6 +225,82 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
          implications as Arbor will collate all spikes on all ranks. Prefer
          ``local`` unless you are absolutely required otherwise and willing to
          pay the cost.
+
+.. class:: neighborhood_spike_exchange
+
+    Delay-aware spike exchange via MPI neighbourhood collectives.
+
+    By default, spikes are exchanged between all ranks with a global all-to-all after every
+    epoch, where an epoch is half the minimum delay of the whole network. With this option,
+    the ranks a rank receives spikes from are split into levels:
+
+    * the rank itself, which is handled without communication,
+    * one level per neighbourhood, exchanged with a sparse MPI neighbourhood all-gather,
+    * all remaining (far) ranks, exchanged with a global all-to-all.
+
+    Spikes are buffered per level, and each level is only exchanged as often as the minimum
+    delay of the connections from it allows. All buffers are flushed at the end of each
+    :py:func:`simulation.run`. See the C++ documentation for details.
+
+    .. function:: neighborhood_spike_exchange(neighborhoods=[], *, automatic=False)
+
+        Construct from the ranks this rank receives spikes from, grouped into levels,
+        innermost first, or let arbor choose the levels with ``automatic=True``.
+
+    .. attribute:: neighborhoods
+
+        The ranks this rank receives spikes from, as a list of lists of ranks, innermost level
+        first. A rank listed in more than one level belongs to the first; the calling rank is
+        ignored. All ranks must pass the same number of levels.
+
+    .. attribute:: automatic
+
+        If ``True``, ``neighborhoods`` must be empty and arbor chooses the levels from the
+        connection delays: each rank this rank receives from goes into a class by the
+        exchange period its minimum connection delay allows (1, 2–3, 4–7, … epochs). The
+        slowest class over all ranks becomes the far level and all others neighbourhoods.
+        All ranks must set this alike.
+
+    .. container:: example-code
+
+        .. code-block:: python
+
+            import arbor as A
+
+            A.mpi_init()
+            ctx = A.context(mpi=A.mpi_comm())
+            n, r = ctx.ranks, ctx.rank
+            # Receive from the neighbouring ranks on a ring, then from the next but one.
+            exchange = A.neighborhood_spike_exchange(
+                [[(r - 1) % n, (r + 1) % n], [(r - 2) % n, (r + 2) % n]]
+            )
+            sim = A.simulation(recipe, ctx, spike_exchange=exchange)
+
+            # Or let arbor choose the levels from the connection delays.
+            sim = A.simulation(
+                recipe, ctx, spike_exchange=A.neighborhood_spike_exchange(automatic=True)
+            )
+
+    The levels in use on a rank are returned by :py:func:`simulation.spike_exchange_levels`.
+    A complete example with several levels, which prints them, is
+    ``python/example/neighborhood_spike_exchange.py``.
+
+.. class:: spike_exchange_level
+
+    A level of the neighbourhood spike exchange, as seen by the calling rank.
+
+    .. attribute:: ranks
+
+        The ranks this rank receives spikes from in this level, in ascending order.
+
+    .. attribute:: period
+
+        The level is exchanged every ``period`` epochs; 0 if no connections use it.
+
+    .. attribute:: far
+
+        Whether the level is exchanged with the global all-to-all instead of a neighbourhood
+        all-gather; only the last level is.
 
 Recording spikes
 ----------------

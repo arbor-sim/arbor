@@ -493,13 +493,13 @@ TEST(range, sum) {
 
 TEST(range, sum_by) {
     std::string words[] = { "fish", "cakes", "!" };
-    auto prepend_ = [](const std::string& x) { return "_"+x; };
+    auto prepend_ = [](const std::string& x) { return "_"s + x; };
 
     auto result = util::sum_by(words, prepend_);
-    EXPECT_EQ("_fish_cakes_!", result);
+    EXPECT_EQ("_fish_cakes_!"s, result);
 
     result = util::sum_by(words, prepend_, "tasty"s);
-    EXPECT_EQ("tasty_fish_cakes_!", result);
+    EXPECT_EQ("tasty_fish_cakes_!"s, result);
 
     auto count = util::sum_by(words, [](const std::string &x) { return x.size(); });
     EXPECT_EQ(10u, count);

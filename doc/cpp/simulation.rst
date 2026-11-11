@@ -52,6 +52,71 @@ default values if not specified. In order to simplify the construction of a simu
                 .add_decompostion(decomp)    // optionally add a decompostion
                 .add_seed(42);               // optionally add a seed value
 
+Neighbourhood spike exchange
+----------------------------
+
+By default, spikes are exchanged between all ranks with a global all-to-all after every
+epoch, where an epoch is half the minimum delay of the whole network. If connections
+between distant ranks have longer delays than those between neighbouring ranks, MPI
+neighbourhood collectives can make this cheaper. Each rank names the ranks it receives
+spikes from, grouped into levels. Arbor then splits the senders of each rank into
+
+* the rank itself, which is handled without communication,
+* one level per neighbourhood, exchanged with a sparse neighbourhood all-gather,
+* all remaining (far) ranks, exchanged with a global all-to-all.
+
+Spikes are buffered per level, and each level is only exchanged as often as the minimum
+delay of the connections from it allows. All buffers are flushed at the end of each
+:cpp:func:`simulation::run`.
+
+.. container:: example-code
+
+    .. code-block:: cpp
+
+        // Receive from the neighbouring ranks on a ring of n ranks, then from the next but one.
+        auto ring = [&](int offset) { return (rank + offset + n) % n; };
+        arb::neighborhood_spike_exchange exchange;
+        exchange.neighborhoods = {{ring(-1), ring(1)}, {ring(-2), ring(2)}};
+
+        arb::simulation sim = arb::simulation::create(recipe)
+            .set_context(context)
+            .set_spike_exchange(exchange);
+
+A rank listed in more than one level belongs to the first, and the calling rank itself is
+ignored, so nested levels are fine. All ranks must pass the same number of levels. With
+no levels at all, only the far ranks remain, which still saves collectives if delays
+between ranks exceed the minimum delay.
+
+Within a neighbourhood, spikes are exchanged with ``MPI_Neighbor_allgatherv``, which sends
+every spike with targets in the neighbourhood to all of its ranks. The example in
+``example/neighborhood`` compares this with the default exchange.
+
+Instead of listing the levels, arbor can choose them from the connection delays:
+
+.. container:: example-code
+
+    .. code-block:: cpp
+
+        arb::simulation sim = arb::simulation::create(recipe)
+            .set_context(context)
+            .set_spike_exchange({.automatic = true});
+
+Every rank puts each rank it receives from into a class by the exchange period that the
+minimum delay of their connections allows: periods of 1, 2–3, 4–7, 8–15 epochs, and so
+on. With *K* the slowest class over all ranks, classes 0 to *K*-1 become neighbourhoods
+and class *K* the far level. Each level is then exchanged at most twice as often as its
+own delays require. If all delays are equal, all ranks end up as far ranks, which is the
+default exchange. The levels are chosen anew whenever the connections change, i.e. on
+construction and on :cpp:func:`simulation::update`.
+
+:cpp:func:`simulation::spike_exchange_levels` returns the levels in use on the calling rank,
+given or automatic: for each level the ranks it receives from, the exchange period in epochs
+of :cpp:func:`simulation::max_epoch_length`, and whether it is the far level. The example in
+``example/neighborhood`` prints them.
+
+In a dry run, pass the levels of rank 0. Since every rank holds a copy of rank 0's tile
+shifted by its rank, the levels of rank r are taken to be those of rank 0 shifted by r.
+
 Class documentation
 -------------------
 
@@ -71,6 +136,8 @@ Class documentation
                 cells in the model are assigned to hardware resources;
             *   an :cpp:class:`arb::context` which is used to execute the simulation.
             *   a :cpp:class:`std::uint64_t` in order to seed the pseudo random number generator (optional)
+            *   a :cpp:class:`arb::neighborhood_spike_exchange` to exchange spikes with MPI
+                neighbourhood collectives (optional, see above)
         * **Experimental inputs** that can change between model runs, such
           as external spike trains.
 
