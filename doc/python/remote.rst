@@ -64,7 +64,7 @@ Spike Exchange
 
     .. attribute:: time
 
-        Time at which the occured.
+        Time at which the event occurred.
 
 .. function:: gather_spikes(spikes, comm)
 
