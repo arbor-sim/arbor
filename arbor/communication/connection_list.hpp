@@ -12,7 +12,6 @@ struct connections_list {
     size_t size_ = 0;
     std::vector<cell_size_type> idx_on_domain;
     std::vector<cell_lid_type> dests;
-    std::vector<cell_member_type> srcs;
     std::vector<float> weights;
     std::vector<float> min_weights;
     std::vector<float> delays;
@@ -30,7 +29,6 @@ struct connections_list {
             lut[key].second += 1;
             idx_on_domain.push_back(con.index_on_domain);
             dests.push_back(con.target);
-            srcs.push_back(con.source);
             if (con.weight < min_weight) min_weight = con.weight;
             weights.push_back(con.weight);
             delays.push_back(con.delay);
@@ -56,7 +54,6 @@ struct connections_list {
     }
 
     void clear() {
-        srcs.clear();
         idx_on_domain.clear();
         dests.clear();
         weights.clear();
