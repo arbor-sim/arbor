@@ -17,14 +17,12 @@ public:
     threshold_watcher() = default;
     threshold_watcher(const execution_context& ctx) {}
 
-    threshold_watcher(const arb_size_type num_cv,
-                      const arb_index_type* src_to_spike,
+    threshold_watcher(const arb_index_type* src_to_spike,
                       const fvm_detector_info& info):
-        threshold_watcher{num_cv, src_to_spike, info.cv, info.threshold, info.ctx}
+        threshold_watcher{src_to_spike, info.cv, info.threshold, info.ctx}
     {}
 
-    threshold_watcher(const arb_size_type num_cv,
-                      const arb_index_type* src_to_spike,
+    threshold_watcher(const arb_index_type* src_to_spike,
                       const std::vector<arb_index_type>& cv_index,
                       const std::vector<arb_value_type>& thresholds,
                       const execution_context& context):
