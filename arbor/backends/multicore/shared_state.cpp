@@ -210,7 +210,7 @@ shared_state::shared_state(task_system_handle,    // ignored in mc backend
     time_since_spike(n_cell*n_detector, pad(alignment)),
     src_to_spike(src_to_spike_.begin(), src_to_spike_.end(), pad(alignment)),
     cbprng_seed(cbprng_seed_),
-    watcher{n_cv_, src_to_spike.data(), detector_info}
+    watcher{src_to_spike.data(), detector_info}
 {
     if (cv_to_cell_vec.size()) {
         std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
