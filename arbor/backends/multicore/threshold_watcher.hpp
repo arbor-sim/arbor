@@ -63,40 +63,54 @@ public:
         if (cv_index_.empty() || n_detectors_ == 0) return;
         arb_assert(values_!=nullptr);
 
-        // Reset all spike times to -1.0 indicating no spike has been recorded on the detector
-        for (arb_size_type ix = 0; ix < n_detectors_; ++ix) {
-            auto cv                  = cv_index_[ix];
-            auto v_prev              = v_prev_[ix];
-            auto v                   = values_[cv];
-            auto thresh              = thresholds_[ix];
-            arb_index_type spike_idx = 0;
+        // record time since spike?
+        if (!time_since_spike.empty()) {
+            for (arb_size_type ix = 0; ix < n_detectors_; ++ix) {
+                auto cv        = cv_index_[ix];
+                auto v_prev    = v_prev_[ix];
+                auto v         = values_[cv];
+                auto thresh    = thresholds_[ix];
+                auto spike_idx = src_to_spike_[ix];
 
-            if (!time_since_spike.empty()) {
-                spike_idx                   = src_to_spike_[ix];
+                // Reset all spike times to -1.0 indicating no spike has been
+                // recorded on the detector
                 time_since_spike[spike_idx] = -1.0;
-            }
 
-            if (!is_crossed_[ix]) {
-                if (v >= thresh) {
-                    // The threshold has been passed, so estimate the time using
-                    // linear interpolation.
-                    auto pos = (thresh - v_prev)/(v - v_prev);
-                    auto crossing_time = math::lerp(t_before, t_after, pos);
-                    crossings_.push_back({ix, crossing_time});
-
-                    if (!time_since_spike.empty()) {
+                if (!is_crossed_[ix]) {
+                    if (v >= thresh) {
+                        // The threshold has been passed, so estimate the time
+                        // using linear interpolation.
+                        auto pos           = (thresh - v_prev) / (v - v_prev);
+                        auto crossing_time = math::lerp(t_before, t_after, pos);
+                        crossings_.emplace_back(ix, crossing_time);
                         time_since_spike[spike_idx] = t_after - crossing_time;
+                        is_crossed_[ix] = true;
                     }
-
-                    is_crossed_[ix] = true;
+                } else {
+                    if (v < thresh) is_crossed_[ix] = false;
                 }
-            } else {
-                if (v<thresh) {
-                    is_crossed_[ix] = false;
-                }
+                v_prev_[ix] = v;
             }
-
-            v_prev_[ix] = v;
+        } else {
+            for (arb_size_type ix = 0; ix < n_detectors_; ++ix) {
+                auto cv     = cv_index_[ix];
+                auto v_prev = v_prev_[ix];
+                auto v      = values_[cv];
+                auto thresh = thresholds_[ix];
+                if (!is_crossed_[ix]) {
+                    if (v >= thresh) {
+                        // The threshold has been passed, so estimate the time
+                        // using linear interpolation.
+                        auto pos           = (thresh - v_prev) / (v - v_prev);
+                        auto crossing_time = math::lerp(t_before, t_after, pos);
+                        crossings_.emplace_back(ix, crossing_time);
+                        is_crossed_[ix] = true;
+                    }
+                } else {
+                    if (v < thresh) is_crossed_[ix] = false;
+                }
+                v_prev_[ix] = v;
+            }
         }
     }
 

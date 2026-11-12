@@ -71,12 +71,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     list expected;
 
     // create the watch
-    backend::threshold_watcher watch(
-            values.size(),
-            src_to_spike.data(),
-            index,
-            thresh,
-            context);
+    backend::threshold_watcher watch(src_to_spike.data(), index, thresh, context);
 
     watch.reset(values);
 
@@ -244,12 +239,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher_shared_cv) {
     iarray src_to_spike(src_to_spike_vec.size());
     memory::copy(src_to_spike_vec, src_to_spike);
 
-    backend::threshold_watcher watch(
-            values.size(),
-            src_to_spike.data(),
-            index,
-            thresh,
-            context);
+    backend::threshold_watcher watch(src_to_spike.data(), index, thresh, context);
 
     watch.reset(values);
     EXPECT_FALSE(watch.is_crossed(0));
