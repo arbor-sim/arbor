@@ -130,12 +130,8 @@ jobs:
       - if: ${{ contains(matrix.config.os, 'ubuntu') }}
         name: Check vector extensions
         run: |
-          HAS_AVX512F=$([[ $(lscpu | grep "avx512f" | wc -l) -eq 1 ]] && echo "_avx512f" || echo "")
-          HAS_AVX2=$([[ $(lscpu | grep "avx2" | wc -l) -eq 1 ]] && echo "_avx2" || echo "")
-          HAS_FMA=$([[ $(lscpu | grep "fma" | wc -l) -eq 1 ]] && echo "_fma" || echo "")
-          HAS_AVX=$([[ $(lscpu | grep "avx" | wc -l) -eq 1 ]] && echo "_avx" || echo "")
-          VECTOR_EXTENSIONS=${HAS_AVX512F}${HAS_AVX2}${HAS_FMA}${HAS_AVX}
-          echo "VECTOR_EXTENSIONS=$VECTOR_EXTENSIONS" >> $GITHUB_ENV
+          CPU_FEATURES=$(grep -m1 '^flags' /proc/cpuinfo | md5sum | cut -c1-12)
+          echo "VECTOR_EXTENSIONS=$CPU_FEATURES" >> $GITHUB_ENV
       - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1.2.24
         with:
