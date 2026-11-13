@@ -9,7 +9,6 @@
 #include <arbor/math.hpp>
 
 #include "util/piecewise.hpp"
-#include "util/rangeutil.hpp"
 #include "util/ratelem.hpp"
 #include "util/span.hpp"
 
@@ -205,19 +204,19 @@ std::pair<std::vector<mlocation>, double> place_pwlin::all_closest(double x, dou
 
     // loop over each branch
     for (msize_t bid: util::count_along(data_->segment_index)) {
-        const auto b = data_->segment_index[bid];
+        const auto branch = data_->segment_index[bid];
         // loop over the segments in the branch
-        for (auto s: b) {
-            const auto& seg = data_->segments[s.value];
+        for (auto sidx: branch) {
+            const auto& seg = data_->segments[sidx.value];
 
             // v and w are the proximal and distal ends of the segment.
             const p3d v = seg.prox;
             const p3d w = seg.dist;
-            const p3d vw = w-v;
+            const p3d vw = w - v;
             const double wvs = dot(vw, vw);
             if (wvs==0.) { // zero length segment is a special case
                 const double distance = norm(p-v);
-                mlocation loc{bid, s.lower_bound()};
+                mlocation loc{bid, sidx.lower_bound()};
                 if (distance<mind) {
                     mind = distance;
                     locs = {loc};
@@ -237,7 +236,7 @@ std::pair<std::vector<mlocation>, double> place_pwlin::all_closest(double x, dou
                     t<=0.? norm(p-v):
                     t>=1.? norm(p-w):
                            norm(p-(v + t*vw));
-                mlocation loc{bid, math::lerp(s.lower_bound(), s.upper_bound(), t)};
+                mlocation loc{bid, math::lerp(sidx.lower_bound(), sidx.upper_bound(), t)};
                 if (distance<mind) {
                     locs = {loc};
                     mind = distance;
