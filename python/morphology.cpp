@@ -236,13 +236,17 @@ void register_morphology(py::module& m) {
     // locset
     locset
         .def(py::init([](const std::string& r) { return arborio::parse_locset_expression(r).unwrap(); }))
-        .def(py::init([](const arb::mlocation& r) { return arb::ls::location(r.branch, r.pos); }))
+        .def(py::init([](const arb::mlocation& r) { return arb::locset(r); }))
+        .def(py::init([](const arb::mlocation_list& r) { return arb::locset(r); }))
         .def("__str__", [](const arb::locset& s) { return util::pprintf("<arbor.locset: {}>", s);} )
         .def("__repr__", [](const arb::locset& s) { return util::pprintf("{}", s);} )
         ;
 
     region
-        .def(py::init([](std::string& r) { return arborio::parse_region_expression(r).unwrap(); }))
+        .def(py::init([](const std::string& r) { return arborio::parse_region_expression(r).unwrap(); }))
+        .def(py::init([](const arb::mextent& r) { return arb::region(r); }))
+        .def(py::init([](const arb::mcable& r) { return arb::region(r); }))
+        .def(py::init([](const arb::mcable_list& r) { return arb::region(r); }))
         .def("__str__", [](const arb::region& s) { return util::pprintf("<arbor.region: {}>", s);} )
         .def("__repr__", [](const arb::region& s) { return util::pprintf("{}", s);} )
         ;
