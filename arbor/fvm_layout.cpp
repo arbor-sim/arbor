@@ -406,7 +406,7 @@ fvm_cv_discretize(const cable_cell& cell,
         }
 
         if (!cv_cables.empty() && (D.face_conductance[i] < 0.0 || !std::isfinite(D.face_conductance[i]))) {
-            throw make_cc_error("Negative/Vanishing resistance on non-trivial cable {}",  cv_cables.front());
+            throw make_cc_error("Illegal resistance on non-trivial cable {}; possibly unset.",  cv_cables.front());
         }
 
         D.cv_area[i] = 0;
@@ -432,8 +432,8 @@ fvm_cv_discretize(const cable_cell& cell,
 
             // Do sanity checks excluding trivial CVs
             if (area > 0.0) {
-                if (temperature <  0.0) throw make_cc_error("Negative temperature [Kelvin] on non-trivial cable {}",  cable);
-                if (capacitance <= 0.0) throw make_cc_error("Vanishing/Negative capacitance on non-trivial cable {}", cable);
+                if (temperature <= 0.0) throw make_cc_error("Illegal temperature [Kelvin] on non-trivial cable {}; possibly unset.",  cable);
+                if (capacitance <= 0.0) throw make_cc_error("Illegal capacitance on non-trivial cable {}; possibly unset.", cable);
             }
 
             D.cv_area[i]                 += area;
@@ -467,7 +467,7 @@ fvm_cv_discretize(const cable_cell& cell,
 
     }
 
-    if (total_area == 0.0 && n_cv > 0) throw cable_cell_error("Vacuous cell with finite CVs.");
+    if (total_area == 0.0 && n_cv > 0) throw make_cc_error("Vacuous cell with finite CVs.");
 
     D.diffusive_ions = std::move(diffusive_ions);
     return D;

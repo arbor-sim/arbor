@@ -154,7 +154,7 @@ struct ARB_SYMBOL_VISIBLE temperature {
         value(U::unit_of(m, unit, "Temperature")),
         scale{scale}
     {
-        if (value < 0.0) throw std::domain_error("temperature [Kelvin] must be positive.");
+        if (value <= 0.0) throw std::domain_error("Temperature [Kelvin] must be positive.");
     }
 };
 
@@ -197,7 +197,9 @@ struct ARB_SYMBOL_VISIBLE init_int_concentration {
         ion{ion},
         value(U::unit_of(m, unit, "Concentration")),
         scale{scale}
-    {}
+    {
+        if (value <= 0.0) throw std::domain_error("Concentration must be positive.");
+    }
 };
 
 struct ARB_SYMBOL_VISIBLE ion_diffusivity {
@@ -227,7 +229,9 @@ struct ARB_SYMBOL_VISIBLE init_ext_concentration {
         ion{ion},
         value(U::unit_of(m, unit, "Concentration")),
         scale{scale}
-    {}
+    {
+        if (value <= 0.0) throw std::domain_error("Concentration must be positive.");
+    }
 };
 
 struct ARB_SYMBOL_VISIBLE init_reversal_potential {

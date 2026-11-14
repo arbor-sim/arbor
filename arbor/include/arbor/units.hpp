@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdexcept>
+
 #include <units/units.hpp>
 
 namespace arb::units {
