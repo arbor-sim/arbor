@@ -1,4 +1,6 @@
+#include <cmath>
 #include <limits>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -1984,6 +1986,183 @@ TEST(fvm_layout, inhomogeneous_parameters) {
     {
         auto decor = arb::decor{};
         EXPECT_THROW(decor.set_default(membrane_capacitance{23.0*U::F*U::m.pow(-2), iexpr::diameter()}), arb::cable_cell_error);
+    }
+}
+
+namespace {
+
+// Parameters for the discretization-level checks. A multi-CV policy is required
+// for anything involving axial resistance: the face conductance of a CV is only
+// computed against its parent, so a single-CV cell cannot reach that check at all.
+cable_cell_parameter_set validation_params() {
+    cable_cell_parameter_set p;
+    p.init_membrane_potential = -65;
+    p.temperature_K = 300;
+    p.axial_resistivity = 35.4;
+    p.membrane_capacitance = 0.01;
+    p.discretization = cv_policy_fixed_per_branch(4);
+    return p;
+}
+
+// Soma plus one dendrite, no decorations: every parameter comes from the
+// globals handed to fvm_cv_discretize, so each check can be driven by one knob.
+cable_cell validation_cell(double dendrite_radius = 0.5) {
+    segment_tree tree;
+    auto p = tree.append(mnpos, {0, 0, 0, 5}, {0, 0, 10, 5}, 1);
+    tree.append(p, {0, 0, 10, dendrite_radius}, {0, 0, 110, dendrite_radius}, 3);
+    return cable_cell{morphology{tree}, decor{}};
+}
+
+// As above, with one painting covering the whole cell.
+cable_cell painted_cell(paintable item) {
+    segment_tree tree;
+    auto p = tree.append(mnpos, {0, 0, 0, 5}, {0, 0, 10, 5}, 1);
+    tree.append(p, {0, 0, 10, 0.5}, {0, 0, 110, 0.5}, 3);
+    return cable_cell{morphology{tree}, decor{}.paint("(all)"_reg, item)};
+}
+
+// A cell that has CVs but no membrane area anywhere.
+cable_cell point_cell() {
+    segment_tree tree;
+    tree.append(mnpos, {0, 0, 0, 5}, {0, 0, 0, 5}, 1);
+    return cable_cell{morphology{tree}, decor{}};
+}
+
+// The same parameters under the default cv policy. A point cell only reaches the
+// vacuous-cell check under a policy that leaves it a single CV: face conductances
+// are not computed for the root CV, so nothing can fire before the area check.
+cable_cell_parameter_set single_cv_params() {
+    auto p = validation_params();
+    p.discretization = std::nullopt;
+    return p;
+}
+
+// Call `f` and require a cable_cell_error whose message mentions `expect`.
+// The message is what tells the four new checks apart; any cable_cell_error
+// would satisfy a test that only looked at the type.
+template <typename F>
+void expect_cc_error(const F& f, const char* expect) {
+    try {
+        f();
+    }
+    catch (const cable_cell_error& e) {
+        std::string msg{e.what()};
+        EXPECT_NE(std::string::npos, msg.find(expect)) << "expected \"" << expect << "\" in: " << msg;
+        return;
+    }
+    catch (const std::exception& e) {
+        ADD_FAILURE() << "expected cable_cell_error, got another type: " << e.what();
+        return;
+    }
+    ADD_FAILURE() << "expected cable_cell_error mentioning \"" << expect << "\"; nothing thrown";
+}
+
+} // namespace
+
+TEST(fvm_layout, parameter_checks_at_discretization) {
+    auto params = validation_params();
+
+    // A capacitance or temperature made illegal by the painted scale is caught
+    // here rather than in the constructor: the constructor only sees the value,
+    // the scale is evaluated per cable.
+    for (double scale: {-1.0, 0.0}) {
+        SCOPED_TRACE(scale);
+        auto cell = painted_cell(membrane_capacitance{0.01*U::F/U::m2, scale});
+        expect_cc_error([&]{ fvm_cv_discretize(cell, params); }, "capacitance");
+    }
+
+    // 300 K with a negative scale integrates to below zero.
+    {
+        auto cell = painted_cell(temperature{300*U::Kelvin, -1.0});
+        expect_cc_error([&]{ fvm_cv_discretize(cell, params); }, "temperature");
+    }
+
+    // Axial resistivity: a negative scale gives a negative face conductance and
+    // a zero scale an infinite one. Neither is a NaN, both are illegal.
+    for (double scale: {-1.0, 0.0}) {
+        SCOPED_TRACE(scale);
+        auto cell = painted_cell(axial_resistivity{35.4*U::Ohm*U::cm, scale});
+        expect_cc_error([&]{ fvm_cv_discretize(cell, params); }, "resistance");
+    }
+
+    // A zero-radius dendrite: the resistance integral over the span degenerates,
+    // leaving a face conductance that is not finite. This is the check that
+    // rejects SWC models carrying r=0 samples (FAFB-style reconstructions).
+    {
+        auto cell = validation_cell(0.0);
+        expect_cc_error([&]{ fvm_cv_discretize(cell, params); }, "resistance");
+    }
+
+    // A zero-length branch that carries a fork fails the same way, on the fork.
+    {
+        segment_tree tree;
+        auto p = tree.append(mnpos, {0, 0, 0, 5}, {0, 0, 10, 5}, 1);
+        tree.append(p, {0, 0, 10, 1}, {0, 0, 20, 1}, 3);
+        tree.append(p, {0, 0, 10, 1}, {0, 0, 10, 1}, 3);
+        auto cell = cable_cell{morphology{tree}, decor{}};
+        expect_cc_error([&]{ fvm_cv_discretize(cell, params); }, "resistance");
+    }
+
+    // CVs but no membrane area anywhere in the cell.
+    {
+        auto cell = point_cell();
+        expect_cc_error([&]{ fvm_cv_discretize(cell, single_cv_params()); }, "Vacuous cell");
+    }
+
+    // The same cell under a finer policy is split into zero-length CVs, so the
+    // resistance check fires first. Worth pinning: it is why a model with r=0 or
+    // zero-length samples is reported as a resistance problem, not as vacuous.
+    {
+        auto cell = point_cell();
+        expect_cc_error([&]{ fvm_cv_discretize(cell, params); }, "resistance");
+    }
+
+    // The multi-cell entry point discretizes cells in parallel; the error has to
+    // propagate out of that region rather than reach std::terminate. Which of
+    // several bad cells reports first is not deterministic, so only one is bad.
+    {
+        std::vector<cable_cell> cells{validation_cell(), point_cell()};
+        expect_cc_error([&]{ fvm_cv_discretize(cells, single_cv_params()); }, "Vacuous cell");
+    }
+}
+
+TEST(fvm_layout, degenerate_cv_geometry_is_accepted) {
+    auto params = validation_params();
+
+    // Zero-area CVs are legal and ubiquitous: an interior fork is one under the
+    // default policy, and its capacitance integral is exactly zero. The per-cable
+    // checks are gated on area > 0 so that they stay off these CVs.
+    for (auto& [name, morph]: common_morphology::test_morphologies) {
+        SCOPED_TRACE(name);
+        auto cell = cable_cell{morph, decor{}};
+        auto D = fvm_cv_discretize(cell, params);
+        EXPECT_EQ(D.size(), D.cv_area.size());
+    }
+
+    {
+        auto cell = cable_cell{common_morphology::m_reg_b6, decor{}};
+        auto D = fvm_cv_discretize(cell, params);
+        unsigned zero_area = 0;
+        for (auto a: D.cv_area) { if (a == 0) ++zero_area; }
+        EXPECT_LT(0u, zero_area) << "expected zero-area fork CVs in m_reg_b6";
+    }
+
+    // Small is not the same as zero: a 1 nm dendrite is finite and stays legal.
+    {
+        auto thin = validation_cell(1e-3);
+        EXPECT_NO_THROW(fvm_cv_discretize(thin, params));
+    }
+
+    // No CVs at all is not a vacuous cell; the check requires n_cv > 0.
+    {
+        auto empty = cable_cell{common_morphology::m_empty, decor{}};
+        EXPECT_NO_THROW(fvm_cv_discretize(empty, params));
+    }
+
+    // A diameter-scaled capacitance is the legitimate use of this machinery.
+    {
+        auto scaled = painted_cell(membrane_capacitance{0.01*U::F/U::m2, iexpr::diameter()});
+        EXPECT_NO_THROW(fvm_cv_discretize(scaled, params));
     }
 }
 
