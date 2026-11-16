@@ -2,9 +2,6 @@
 
 // 'Place' morphology in 3-d by applying an isometry to
 // sample points and interpolating linearly.
-
-#include <cmath>
-#include <limits>
 #include <utility>
 
 #include <arbor/export.hpp>

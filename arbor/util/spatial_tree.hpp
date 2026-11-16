@@ -17,8 +17,7 @@ namespace arb {
 // An immutable spatial data structure for storing and iterating over data in "DIM" dimensional
 // space. If DIM = 1 it's a binary tree, if DIM = 2 it's a quad tree and so on.
 template <typename T, std::size_t DIM>
-class spatial_tree {
-public:
+struct spatial_tree {
     static_assert(DIM >= 1, "Dimension of tree must be at least 1.");
 
     using value_type = T;
@@ -33,20 +32,18 @@ public:
     // target size, it is recursively split into up to 2^DIM nodes until reaching the maximum depth.
     // The "location" function type must have signature (const T&) -> point_type.
     spatial_tree(std::size_t max_depth,
-        std::size_t leaf_size_target,
-        leaf_data data,
-        location_func_type location):
-        size_(data.size()),
-        data_(std::move(data)),
-        location_(location) {
-        auto &leaf_d = std::get<leaf_data>(data_);
+                 std::size_t leaf_size_target,
+                 leaf_data data,
+                 location_func_type location)
+        : size_(data.size()), data_(std::move(data)), location_(location) {
+        auto& leaf_d = std::get<leaf_data>(data_);
         if (leaf_d.empty()) return;
 
         min_.fill(std::numeric_limits<double>::max());
         max_.fill(std::numeric_limits<double>::lowest());
 
-        for (const auto &d: leaf_d) {
-            const auto p = location(d);
+        for (const auto& d: leaf_d) {
+            const auto p = location_(d);
             for (std::size_t i = 0; i < DIM; ++i) {
                 if (p[i] < min_[i]) min_[i] = p[i];
                 if (p[i] > max_[i]) max_[i] = p[i];
@@ -54,7 +51,9 @@ public:
         }
 
         point_type mid;
-        for (std::size_t i = 0; i < DIM; ++i) { mid[i] = (max_[i] - min_[i]) / 2.0 + min_[i]; }
+        for (std::size_t i = 0; i < DIM; ++i) {
+            mid[i] = (max_[i] - min_[i]) / 2.0 + min_[i];
+        }
 
         if (max_depth > 1 && leaf_d.size() > leaf_size_target) {
             constexpr auto divisor = math::pow<std::size_t, std::size_t>(2, DIM);
@@ -78,8 +77,9 @@ public:
 
             // move data into new sub-nodes if not empty
             for (auto &l_d: new_leaf_data) {
-                if (l_d.size())
+                if (l_d.size()) {
                     new_nodes.emplace_back(max_depth - 1, leaf_size_target, std::move(l_d), location);
+                }
             }
 
             // replace current data_ with new sub-nodes
@@ -123,57 +123,55 @@ public:
         util::visit_variant(
             data_,
             [&](const node_data &data) {
-                for (const auto &node: data) { node.for_each(func); }
+                for (const auto &node: data) node.for_each(func);
             },
             [&](const leaf_data &data) {
-                for (const auto &d: data) { func(d); }
+                for (const auto &d: data) func(d);
             });
     }
 
     // Iterate over all points within the given bounding box recursively.
     // func must have signature `void func(const T&)`.
     template <typename F>
-    inline void bounding_box_for_each(const point_type &box_min,
-        const point_type &box_max,
-        const F &func) const {
-        auto all_smaller_eq = [](const point_type &lhs, const point_type &rhs) {
+    inline void bounding_box_for_each(const point_type& box_min,
+                                      const point_type& box_max,
+                                      const F& func) const {
+        auto all_smaller_eq = [](const point_type& lhs, const point_type& rhs) {
             bool result = true;
-            for (std::size_t i = 0; i < DIM; ++i) { result &= lhs[i] <= rhs[i]; }
+            for (std::size_t i = 0; i < DIM; ++i) result &= lhs[i] <= rhs[i];
             return result;
         };
 
         util::visit_variant(
             data_,
-            [&](const node_data &data) {
+            [&](const node_data& data) {
                 if (all_smaller_eq(box_min, min_) && all_smaller_eq(max_, box_max)) {
                     // sub-nodes fully inside box -> call without further boundary
                     // checks
-                    for (const auto &node: data) { node.template for_each<F>(func); }
-                }
-                else {
+                    for (const auto& node: data) node.template for_each<F>(func);
+                } else {
                     // sub-nodes partially overlap bounding box
-                    for (const auto &node: data) {
+                    for (const auto& node: data) {
                         if (all_smaller_eq(node.min_, box_max) &&
-                            all_smaller_eq(box_min, node.max_))
+                            all_smaller_eq(box_min, node.max_)) {
                             node.template bounding_box_for_each<F>(box_min, box_max, func);
+                        }
                     }
                 }
             },
-            [&](const leaf_data &data) {
+            [&](const leaf_data& data) {
                 if (all_smaller_eq(box_min, min_) && all_smaller_eq(max_, box_max)) {
                     // sub-nodes fully inside box -> call without further boundary
                     // checks
-                    for (const auto &d: data) { func(d); }
-                }
-                else {
+                    for (const auto& d: data) func(d);
+                } else {
                     // sub-nodes partially overlap bounding box
-                    for (const auto &d: data) {
+                    for (const auto& d: data) {
                         const auto p = location_(d);
-                        if (all_smaller_eq(p, box_max) && all_smaller_eq(box_min, p)) { func(d); }
+                        if (all_smaller_eq(p, box_max) && all_smaller_eq(box_min, p)) func(d);
                     }
                 }
             });
-
     }
 
     inline std::size_t size() const noexcept { return size_; }
