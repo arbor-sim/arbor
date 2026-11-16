@@ -20,23 +20,12 @@ struct ARB_SYMBOL_VISIBLE api_error_type {
     cudaError_t value;
     api_error_type(cudaError_t e): value(e) {}
 
-    operator bool() const {
-        return value==cudaSuccess;
-    }
+    operator bool() const { return value == cudaSuccess; }
 
-    bool is_invalid_device() const {
-        return value == cudaErrorInvalidDevice;
-    }
+    bool is_invalid_device() const { return value == cudaErrorInvalidDevice; }
 
-    std::string name() const {
-        std::string s = cudaGetErrorName(value);
-        return s;
-    }
-
-    std::string description() const {
-        std::string s = cudaGetErrorString(value);
-        return s;
-    }
+    std::string name() const { return std::string{cudaGetErrorName(value)}; }
+    std::string description() const { return std::string{cudaGetErrorString(value)}; }
 };
 
 inline api_error_type get_last_error() { return cudaGetLastError(); }
