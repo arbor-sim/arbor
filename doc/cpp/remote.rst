@@ -67,7 +67,7 @@ Spike Exchange
 
      .. cpp:member:: double time
 
-        Time at which the event occured.
+        Time at which the event occurred.
 
  .. function:: std::vector<arb_spike> gather_spikes(const std::vector<arb_spike>& spikes, MPI_Comm comm)
 
