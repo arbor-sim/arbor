@@ -25,8 +25,6 @@ __global__
 void test_thresholds_impl(int size,
                           arb_value_type t_after,
                           arb_value_type t_before,
-                          const arb_index_type* __restrict__ const src_to_spike,
-                          arb_value_type* __restrict__ const time_since_spike,
                           stack_storage<threshold_crossing>& stack,
                           arb_index_type* __restrict__ const is_crossed,
                           arb_value_type* __restrict__ const prev_values,
@@ -137,7 +135,7 @@ void test_thresholds_impl(int size,
     }
     else {
         launch_1d(size, 128, kernel::test_thresholds_impl,
-                  size, t_after, t_before, src_to_spike, time_since_spike, stack, is_crossed, prev_values, cv_index, values, thresholds);
+                  size, t_after, t_before, stack, is_crossed, prev_values, cv_index, values, thresholds);
     }
 }
 
