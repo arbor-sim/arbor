@@ -44,7 +44,7 @@ inline api_error_type get_last_error() { return cudaGetLastError(); }
 inline api_error_type device_synchronize() { return cudaDeviceSynchronize(); }
 
 inline void profile_push(const char* str) { nvtxRangePushA(str); }
-inline void profile_pop() { nvtxRangePopA(); }
+inline void profile_pop() { nvtxRangePop(); }
 
 constexpr auto gpuMemcpyDeviceToHost = cudaMemcpyDeviceToHost;
 constexpr auto gpuMemcpyHostToDevice = cudaMemcpyHostToDevice;
