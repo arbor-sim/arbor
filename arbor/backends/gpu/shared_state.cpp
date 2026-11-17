@@ -191,7 +191,7 @@ shared_state::shared_state(task_system_handle tp,
     src_to_spike(make_const_view(src_to_spike_)),
     cbprng_seed(cbprng_seed_),
     sample_events(),
-    watcher{n_cv_, src_to_spike.data(), detector_info}
+    watcher{src_to_spike.data(), detector_info}
 {
     memory::fill(time_since_spike, -1.0);
     add_scalar(temperature_degC.size(), temperature_degC.data(), -273.15);
@@ -207,7 +207,7 @@ void shared_state::update_prng_state(mechanism& m) {
 unsigned shared_state::instantiate(mechanism& m,
                                    const mechanism_overrides& overrides,
                                    const mechanism_layout& pos_data,
-                                   const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
+                                   const flat_map<std::string, std::vector<arb_value_type>>& params) {
     assert(m.iface_.backend == arb_backend_kind_gpu);
     using util::make_range;
     using util::make_span;

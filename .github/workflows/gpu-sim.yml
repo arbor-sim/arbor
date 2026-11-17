@@ -1,0 +1,90 @@
+name: CUDA on simulated H100
+
+# Optional, non-required check. The hosted runners have no GPU, so this builds
+# Arbor with the CUDA backend and runs the unit tests on a simulated NVIDIA H100
+# (https://github.com/pantheongpu/pantheonsim). A simulator cannot reproduce
+# hardware-specific behavior or timing, so it complements the GPU test run on
+# real hardware (`bors try`, see doc/contrib/pr.rst) and does not replace it.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ master ]
+    paths:
+      - "arbor/**"
+      - "arborenv/**"
+      - "mechanisms/**"
+      - "modcc/**"
+      - "test/unit/**"
+      - "cmake/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/gpu-sim.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: CUDA 13.0 unit tests on simulated H100
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+    - name: Set up the simulated GPU and CUDA toolkit
+      uses: pantheongpu/setup-pantheonsim@ca87fe3143b29166822b923d6050945c5179408c # v0.1.5
+      with:
+        gpu: nvidia/h100
+        cuda-toolkit: "13.0"
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends ninja-build ccache libhwloc-dev
+
+    - name: Restore ccache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ccache
+        key: ccache-gpu-sim-${{ github.sha }}
+        restore-keys: |
+          ccache-gpu-sim-
+
+    # The simulator JIT-compiles PTX and does not run SASS, so device code is
+    # built as PTX only (90-virtual), and it needs a shared CUDA runtime.
+    # --expt-relaxed-constexpr is needed because the generated mechanism
+    # kernels call a constexpr host fma() from device code, which nvcc 13.0
+    # rejects otherwise.
+    - name: Configure
+      run: |
+        cmake -S . -B build -GNinja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache \
+              -DARB_GPU=cuda \
+              -DCMAKE_CUDA_ARCHITECTURES=90-virtual \
+              -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared \
+              -DCMAKE_CUDA_FLAGS=--expt-relaxed-constexpr \
+              -DCUDAToolkit_ROOT=/usr/local/cuda-13.0 \
+              -DARB_WITH_PYTHON=OFF \
+              -DARB_WITH_MPI=OFF
+
+    - name: Build unit tests
+      run: |
+        ccache -z
+        cmake --build build --target unit -j3
+        ccache -s
+
+    # probe.gpu_ion_density is skipped: the test replaces the ion state arrays
+    # after the mechanisms were initialised, so the init kernel reads freed
+    # device memory, which the simulator reports as a use-after-free (real
+    # hardware does not trap on it).
+    - name: Test
+      run: |
+        vgpu run build/bin/unit --gtest_filter=-probe.gpu_ion_density

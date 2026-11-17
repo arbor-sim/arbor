@@ -22,7 +22,6 @@
 
 #include "multicore_common.hpp"
 #include "shared_state.hpp"
-#include "fvm.hpp"
 
 namespace arb {
 namespace multicore {
@@ -210,7 +209,7 @@ shared_state::shared_state(task_system_handle,    // ignored in mc backend
     time_since_spike(n_cell*n_detector, pad(alignment)),
     src_to_spike(src_to_spike_.begin(), src_to_spike_.end(), pad(alignment)),
     cbprng_seed(cbprng_seed_),
-    watcher{n_cv_, src_to_spike.data(), detector_info}
+    watcher{src_to_spike.data(), detector_info}
 {
     if (cv_to_cell_vec.size()) {
         std::copy(cv_to_cell_vec.begin(), cv_to_cell_vec.end(), cv_to_cell.begin());
@@ -364,7 +363,7 @@ void shared_state::update_prng_state(mechanism& m) {
 unsigned shared_state::instantiate(arb::mechanism& m,
                                    const mechanism_overrides& overrides,
                                    const mechanism_layout& pos_data,
-                                   const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
+                                   const flat_map<std::string, std::vector<arb_value_type>>& params) {
     // Mechanism indices and data require:
     // * an alignment that is a multiple of the mechansim data_alignment();
     // * a size which is a multiple of partition_width() for SIMD access.

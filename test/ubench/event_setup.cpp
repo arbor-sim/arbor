@@ -23,7 +23,7 @@
 
 using namespace arb;
 
-std::vector<std::pair<cell_gid_type, spike_event>> generate_inputs(size_t ncells, size_t ev_per_cell) {
+flat_map<cell_gid_type, spike_event> generate_inputs(size_t ncells, size_t ev_per_cell) {
     std::vector<std::pair<cell_gid_type, spike_event>> input_events;
     std::default_random_engine engine;
     std::uniform_int_distribution<cell_gid_type>(0u, ncells);

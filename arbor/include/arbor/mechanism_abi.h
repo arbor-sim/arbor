@@ -22,7 +22,7 @@ extern "C" {
 #define ARB_MECH_ABI_VERSION_MAJOR 0
 #define ARB_MECH_ABI_VERSION_MINOR 7
 #define ARB_MECH_ABI_VERSION_PATCH 0
-#define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000L * 10000L) + (ARB_MECH_ABI_VERSION_MAJOR * 10000L) + ARB_MECH_ABI_VERSION_PATCH)
+#define ARB_MECH_ABI_VERSION ((ARB_MECH_ABI_VERSION_MAJOR * 10000L * 10000L) + (ARB_MECH_ABI_VERSION_MINOR * 10000L) + ARB_MECH_ABI_VERSION_PATCH)
 
 typedef const char* arb_mechanism_fingerprint;
 
@@ -42,11 +42,11 @@ typedef uint32_t arb_backend_kind;
 
 inline const char* arb_mechanism_kind_str(const arb_mechanism_kind& mech) {
     switch (mech) {
-        case arb_mechanism_kind_density: return "density mechanism kind";
-        case arb_mechanism_kind_point:   return "point mechanism kind";
-        case arb_mechanism_kind_reversal_potential: return "reversal potential mechanism kind";
-        case arb_mechanism_kind_gap_junction: return "gap junction mechanism kind";
-        case arb_mechanism_kind_voltage: return "voltage mechanism kind";
+        case arb_mechanism_kind_density: return "density";
+        case arb_mechanism_kind_point:   return "point";
+        case arb_mechanism_kind_reversal_potential: return "reversal potential";
+        case arb_mechanism_kind_gap_junction: return "gap junction";
+        case arb_mechanism_kind_voltage: return "voltage";
         default: return "unknown mechanism kind";
     }
 }
