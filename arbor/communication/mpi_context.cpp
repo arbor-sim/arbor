@@ -6,6 +6,7 @@
 #endif
 
 #include <memory>
+#include <tuple>
 #include <string>
 #include <vector>
 
@@ -19,6 +20,34 @@
 #include "affinity.hpp"
 
 namespace arb {
+
+// Neighbourhood backed by a distributed graph communicator, which it owns.
+struct mpi_neighborhood: distributed_neighborhood {
+    MPI_Comm comm_ = MPI_COMM_NULL;
+    std::vector<int> sources_;
+    std::vector<int> destinations_;
+
+    mpi_neighborhood(const std::vector<int>& sources, MPI_Comm parent):
+        comm_(mpi::dist_graph_create_from_sources(sources, parent)) {
+        std::tie(sources_, destinations_) = mpi::dist_graph_neighbors(comm_);
+    }
+
+    mpi_neighborhood(const mpi_neighborhood&) = delete;
+    mpi_neighborhood& operator=(const mpi_neighborhood&) = delete;
+
+    ~mpi_neighborhood() override {
+        int finalized = 0;
+        MPI_Finalized(&finalized);
+        if (!finalized && comm_ != MPI_COMM_NULL) MPI_Comm_free(&comm_);
+    }
+
+    const std::vector<int>& sources() const override { return sources_; }
+    const std::vector<int>& destinations() const override { return destinations_; }
+
+    gathered_vector<spike> gather_spikes(const std::vector<spike>& local_spikes) const override {
+        return mpi::neighbor_gather_all_with_partition(local_spikes, comm_);
+    }
+};
 
 // Throws arb::mpi::mpi_error if MPI calls fail.
 struct mpi_context_impl {
@@ -62,6 +91,10 @@ struct mpi_context_impl {
     gathered_vector<cell_member_type>
     all_to_all_gids_domains(const std::vector<std::vector<cell_member_type>>& gids_domains) const {
         return mpi::all_to_all_with_partition(gids_domains, comm_);
+    }
+
+    distributed_neighborhood_ptr make_neighborhood(const std::vector<int>& sources) const {
+        return std::make_unique<mpi_neighborhood>(sources, comm_);
     }
 
     cell_label_range gather_cell_label_range(const cell_label_range& local_ranges) const {
@@ -218,6 +251,10 @@ struct remote_context_impl {
     gathered_vector<cell_member_type>
     all_to_all_gids_domains(const std::vector<std::vector<cell_member_type>>& gids_domains) const {
         return mpi_.all_to_all_gids_domains(gids_domains);
+    }
+
+    distributed_neighborhood_ptr make_neighborhood(const std::vector<int>& sources) const {
+        return mpi_.make_neighborhood(sources);
     }
 
     distributed_request send_recv_nonblocking(std::size_t recv_count,

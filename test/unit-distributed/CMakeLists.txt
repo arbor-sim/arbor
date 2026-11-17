@@ -2,6 +2,7 @@ set(unit-distributed_sources
     distributed_listener.cpp
     test_domain_decomposition.cpp
     test_communicator.cpp
+    test_spike_exchange.cpp
     test_mpi.cpp
     test_distributed_for_each.cpp
     test_network_generation.cpp
@@ -16,6 +17,8 @@ target_compile_options(unit-local PRIVATE ${ARB_CXX_FLAGS_TARGET_FULL})
 target_compile_definitions(unit-local PRIVATE TEST_LOCAL)
 target_link_libraries(unit-local PRIVATE gtest gtest_main arbor arborenv arborio arbor-sup arbor-private-headers ext-tinyopt)
 target_include_directories(unit-local PRIVATE $<BUILD_INTERFACE:${unordered_dense_SOURCE_DIR}/include>)
+# Export symbols, so that the backtraces of the test watchdog show function names.
+set_target_properties(unit-local PROPERTIES ENABLE_EXPORTS ON)
 
 if(ARB_WITH_MPI)
     add_executable(unit-mpi EXCLUDE_FROM_ALL ${unit-distributed_sources})
@@ -25,4 +28,5 @@ if(ARB_WITH_MPI)
     target_compile_options(unit-mpi PRIVATE ${ARB_CXX_FLAGS_TARGET_FULL})
     target_compile_definitions(unit-mpi PRIVATE TEST_MPI)
     target_link_libraries(unit-mpi PRIVATE gtest gtest_main arbor arborenv arborio arbor-sup arbor-private-headers ext-tinyopt)
+    set_target_properties(unit-mpi PROPERTIES ENABLE_EXPORTS ON)
 endif()

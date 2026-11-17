@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstddef>
 #include <limits>
+#include <utility>
 
 #include <mpi.h>
 
@@ -251,6 +252,83 @@ gathered_vector<T> gather_all_with_partition(const std::vector<T>& values, MPI_C
         std::move(buffer),
         std::vector<count_type>(displs.begin(), displs.end())
     );
+}
+
+/// Gather a vector from each in-neighbour of the distributed graph communicator comm
+/// Partitions follow the order of in-neighbours given by MPI_Dist_graph_neighbors.
+template <typename T>
+gathered_vector<T> neighbor_gather_all_with_partition(const std::vector<T>& values, MPI_Comm comm) {
+    using gathered_type = gathered_vector<T>;
+    using count_type = typename gathered_vector<T>::count_type;
+    using traits = mpi_traits<T>;
+
+    int num_sources = 0, num_destinations = 0, weighted = 0;
+    MPI_OR_THROW(MPI_Dist_graph_neighbors_count, comm, &num_sources, &num_destinations, &weighted);
+
+    int send_count = values.size()*traits::count();
+    std::vector<int> counts(num_sources), displs;
+    MPI_OR_THROW(MPI_Neighbor_allgather,
+                 &send_count,   1, MPI_INT, // send buffer
+                 counts.data(), 1, MPI_INT, // receive buffer
+                 comm);
+    util::make_partition(displs, counts);
+
+    std::vector<T> buffer(displs.back()/traits::count());
+    MPI_OR_THROW(MPI_Neighbor_allgatherv,
+                 // const_cast required for MPI implementations that don't use const* in their interfaces
+                 const_cast<T*>(values.data()), send_count, traits::mpi_type(),   // send buffer
+                 buffer.data(), counts.data(), displs.data(), traits::mpi_type(), // receive buffer
+                 comm);
+
+    for (auto& d: displs) {
+        d /= traits::count();
+    }
+
+    return gathered_type(
+        std::move(buffer),
+        std::vector<count_type>(displs.begin(), displs.end())
+    );
+}
+
+/// Create a distributed graph communicator in which the calling rank receives from sources.
+/// Ranks are not reordered, i.e. they are the same as in comm. Collective over comm.
+/// Sources must not contain duplicates.
+inline MPI_Comm dist_graph_create_from_sources(const std::vector<int>& sources, MPI_Comm comm) {
+    // Every rank learns which ranks receive from it with an all-to-all of flags,
+    // then passes both directions to MPI_Dist_graph_create_adjacent. We avoid
+    // MPI_Dist_graph_create as it deadlocks with OpenMPI 5.0.10
+    const int size = mpi::size(comm);
+    std::vector<int> sends_to_me(size, 0), receives_from_me(size, 0);
+    for (auto s: sources) sends_to_me[s] = 1;
+    MPI_OR_THROW(MPI_Alltoall,
+                 sends_to_me.data(),      1, MPI_INT,
+                 receives_from_me.data(), 1, MPI_INT,
+                 comm);
+    std::vector<int> destinations;
+    for (int r = 0; r < size; ++r) {
+        if (receives_from_me[r]) destinations.push_back(r);
+    }
+
+    MPI_Comm graph = MPI_COMM_NULL;
+    MPI_OR_THROW(MPI_Dist_graph_create_adjacent,
+                 comm,
+                 int(sources.size()), sources.data(), MPI_UNWEIGHTED,
+                 int(destinations.size()), destinations.data(), MPI_UNWEIGHTED,
+                 MPI_INFO_NULL, /*reorder*/ 0, &graph);
+    return graph;
+}
+
+/// Ranks that the calling rank receives from and sends to in the distributed graph communicator comm.
+/// This order is the one used by neighbourhood collectives.
+inline std::pair<std::vector<int>, std::vector<int>> dist_graph_neighbors(MPI_Comm comm) {
+    int num_sources = 0, num_destinations = 0, weighted = 0;
+    MPI_OR_THROW(MPI_Dist_graph_neighbors_count, comm, &num_sources, &num_destinations, &weighted);
+    std::vector<int> sources(num_sources), destinations(num_destinations);
+    MPI_OR_THROW(MPI_Dist_graph_neighbors,
+                 comm,
+                 num_sources, sources.data(), MPI_UNWEIGHTED,
+                 num_destinations, destinations.data(), MPI_UNWEIGHTED);
+    return {std::move(sources), std::move(destinations)};
 }
 
 template <typename T>

@@ -1,3 +1,4 @@
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -13,6 +14,40 @@ namespace arb {
 // cells, with gids shifted by r tiles, modulo the number of cells (see
 // symmetric_recipe). By this symmetry, whatever rank r sends to rank 0 is what
 // rank 0 sends to rank -r, shifted by r tiles.
+
+// Rank r receives from sources + r, so rank 0 sends to -sources.
+struct dry_run_neighborhood: distributed_neighborhood {
+    using count_type = typename gathered_vector<spike>::count_type;
+
+    unsigned num_cells_per_tile_;
+    std::vector<int> sources_;
+    std::vector<int> destinations_;
+
+    dry_run_neighborhood(unsigned num_ranks, unsigned num_cells_per_tile, const std::vector<int>& sources):
+        num_cells_per_tile_(num_cells_per_tile), sources_(sources) {
+        for (auto s: sources_) destinations_.push_back(s? num_ranks - s: 0);
+    }
+
+    const std::vector<int>& sources() const override { return sources_; }
+    const std::vector<int>& destinations() const override { return destinations_; }
+
+    // Every source sends a copy of our spikes, shifted to its tile.
+    gathered_vector<spike> gather_spikes(const std::vector<spike>& local_spikes) const override {
+        std::vector<spike> gathered_spikes;
+        gathered_spikes.reserve(local_spikes.size()*sources_.size());
+        std::vector<count_type> partition{0};
+        for (auto s: sources_) {
+            for (auto spike: local_spikes) {
+                // The sources are rank 0's cells, so this stays below the number of cells.
+                spike.source.gid += s*num_cells_per_tile_;
+                gathered_spikes.push_back(spike);
+            }
+            partition.push_back(gathered_spikes.size());
+        }
+        return gathered_vector<spike>(std::move(gathered_spikes), std::move(partition));
+    }
+};
+
 struct dry_run_context_impl {
     using count_type = typename gathered_vector<spike>::count_type;
 
@@ -96,6 +131,11 @@ struct dry_run_context_impl {
         return gathered_vector<cell_gid_type>(std::move(gathered_gids), std::move(partition));
     }
 
+    distributed_neighborhood_ptr make_neighborhood(const std::vector<int>& sources) const {
+        return std::make_unique<dry_run_neighborhood>(num_ranks_, num_cells_per_tile_, sources);
+    }
+
+    // Rank r needs from rank 0 what rank 0 needs from rank -r.
     gathered_vector<cell_member_type>
     all_to_all_gids_domains(const std::vector<std::vector<cell_member_type>>& gids_domains) const {
         using count_type = gathered_vector<cell_member_type>::count_type;

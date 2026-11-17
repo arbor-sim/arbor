@@ -41,3 +41,4 @@ runpyex diffusion.py
 runpyex plasticity.py
 runpyex v-clamp.py
 runpyex calcium_stdp.py
+runpyex neighborhood_spike_exchange.py # runs on a single rank without MPI
