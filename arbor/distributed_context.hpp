@@ -180,6 +180,10 @@ public:
         return impl_->name();
     }
 
+    // Collective: whether value is true on all / any ranks.
+    bool all(bool value) const { return min(int(value)); }
+    bool any(bool value) const { return max(int(value)); }
+
     void remote_ctrl_send_continue(const epoch& e) const { return impl_->remote_ctrl_send_continue(e); }
     void remote_ctrl_send_done() const { return impl_->remote_ctrl_send_done(); }
 

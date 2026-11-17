@@ -20,9 +20,10 @@ def neighborhood_shapes(rank, num_ranks):
     return {
         "none": [],
         # Nested: the next {-1, +1}, then the next {-2, ..., +2}.
+        # On small rings, the offsets reach the same rank; a level must not list it twice.
         "nested": [
-            [ring(rank, -1, num_ranks), ring(rank, 1, num_ranks)],
-            [ring(rank, d, num_ranks) for d in (-2, -1, 1, 2)],
+            sorted({ring(rank, d, num_ranks) for d in (-1, 1)}),
+            sorted({ring(rank, d, num_ranks) for d in (-2, -1, 1, 2)}),
         ],
         # Asymmetric: we receive from our successor, but it does not receive from us.
         "successor": [[ring(rank, 1, num_ranks)]],
@@ -43,25 +44,26 @@ def run(context, spike_exchange=None):
 
 class TestSpikeExchange(unittest.TestCase):
     def test_options(self):
-        self.assertEqual([], A.neighborhood_spike_exchange().neighborhoods)
-
         ex = A.neighborhood_spike_exchange([[1, 2], [3]])
         self.assertEqual([[1, 2], [3]], ex.neighborhoods)
+        self.assertFalse(ex.is_off)
+        self.assertFalse(ex.is_automatic)
         self.assertEqual(
             "<arbor.neighborhood_spike_exchange: neighborhoods [[1, 2], [3]]>", repr(ex)
         )
 
-        ex.neighborhoods = [[4]]
-        self.assertEqual([[4]], ex.neighborhoods)
-
         ex = A.neighborhood_spike_exchange(neighborhoods=[[5]])
         self.assertEqual([[5]], ex.neighborhoods)
-        self.assertFalse(ex.automatic)
 
-        ex = A.neighborhood_spike_exchange(automatic=True)
-        self.assertTrue(ex.automatic)
+        ex = A.neighborhood_spike_exchange.automatic()
+        self.assertTrue(ex.is_automatic)
         self.assertEqual([], ex.neighborhoods)
         self.assertEqual("<arbor.neighborhood_spike_exchange: automatic>", repr(ex))
+
+        ex = A.neighborhood_spike_exchange.off()
+        self.assertTrue(ex.is_off)
+        self.assertEqual([], ex.neighborhoods)
+        self.assertEqual("<arbor.neighborhood_spike_exchange: off>", repr(ex))
 
     # The local spikes of every rank must be the same as with the default exchange.
     @fixtures.context()
@@ -74,7 +76,7 @@ class TestSpikeExchange(unittest.TestCase):
                 result = run(context, A.neighborhood_spike_exchange(levels))
                 self.assertEqual(expected, result)
         with self.subTest(neighborhoods="automatic"):
-            result = run(context, A.neighborhood_spike_exchange(automatic=True))
+            result = run(context, A.neighborhood_spike_exchange.automatic())
             self.assertEqual(expected, result)
 
     @fixtures.context()
@@ -89,7 +91,7 @@ class TestSpikeExchange(unittest.TestCase):
 
         shapes = neighborhood_shapes(context.rank, context.ranks)
         options = [A.neighborhood_spike_exchange(levels) for levels in shapes.values()]
-        options.append(A.neighborhood_spike_exchange(automatic=True))
+        options.append(A.neighborhood_spike_exchange.automatic())
         for ex in options:
             with self.subTest(spike_exchange=repr(ex)):
                 sim = A.simulation(rec, context, dd, spike_exchange=ex)
@@ -109,4 +111,4 @@ class TestSpikeExchange(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             run(context, A.neighborhood_spike_exchange([[context.ranks]]))
         with self.assertRaises(RuntimeError):
-            run(context, A.neighborhood_spike_exchange([[0]], automatic=True))
+            run(context, A.neighborhood_spike_exchange([[0, 0]]))

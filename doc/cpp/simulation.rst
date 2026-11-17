@@ -55,19 +55,10 @@ default values if not specified. In order to simplify the construction of a simu
 Neighbourhood spike exchange
 ----------------------------
 
-By default, spikes are exchanged between all ranks with a global all-to-all after every
-epoch, where an epoch is half the minimum delay of the whole network. If connections
-between distant ranks have longer delays than those between neighbouring ranks, MPI
-neighbourhood collectives can make this cheaper. Each rank names the ranks it receives
-spikes from, grouped into levels. Arbor then splits the senders of each rank into
-
-* the rank itself, which is handled without communication,
-* one level per neighbourhood, exchanged with a sparse neighbourhood all-gather,
-* all remaining (far) ranks, exchanged with a global all-to-all.
-
-Spikes are buffered per level, and each level is only exchanged as often as the minimum
-delay of the connections from it allows. All buffers are flushed at the end of each
-:cpp:func:`simulation::run`.
+By default, spikes are exchanged between all ranks after every epoch. For spatially
+structured networks, the :ref:`neighbourhood spike exchange <modelspikeexchange>` is often
+much cheaper. It is chosen with a :cpp:class:`neighborhood_spike_exchange`, from which
+each rank lists the ranks it receives spikes from, grouped into neighbourhoods:
 
 .. container:: example-code
 
@@ -75,23 +66,13 @@ delay of the connections from it allows. All buffers are flushed at the end of e
 
         // Receive from the neighbouring ranks on a ring of n ranks, then from the next but one.
         auto ring = [&](int offset) { return (rank + offset + n) % n; };
-        arb::neighborhood_spike_exchange exchange;
-        exchange.neighborhoods = {{ring(-1), ring(1)}, {ring(-2), ring(2)}};
+        arb::neighborhood_spike_exchange exchange{{{ring(-1), ring(1)}, {ring(-2), ring(2)}}};
 
         arb::simulation sim = arb::simulation::create(recipe)
             .set_context(context)
             .set_spike_exchange(exchange);
 
-A rank listed in more than one level belongs to the first, and the calling rank itself is
-ignored, so nested levels are fine. All ranks must pass the same number of levels. With
-no levels at all, only the far ranks remain, which still saves collectives if delays
-between ranks exceed the minimum delay.
-
-Within a neighbourhood, spikes are exchanged with ``MPI_Neighbor_allgatherv``, which sends
-every spike with targets in the neighbourhood to all of its ranks. The example in
-``example/neighborhood`` compares this with the default exchange.
-
-Instead of listing the levels, arbor can choose them from the connection delays:
+or which lets arbor choose the levels from the connection delays:
 
 .. container:: example-code
 
@@ -99,23 +80,66 @@ Instead of listing the levels, arbor can choose them from the connection delays:
 
         arb::simulation sim = arb::simulation::create(recipe)
             .set_context(context)
-            .set_spike_exchange({.automatic = true});
+            .set_spike_exchange(arb::neighborhood_spike_exchange::automatic());
 
-Every rank puts each rank it receives from into a class by the exchange period that the
-minimum delay of their connections allows: periods of 1, 2–3, 4–7, 8–15 epochs, and so
-on. With *K* the slowest class over all ranks, classes 0 to *K*-1 become neighbourhoods
-and class *K* the far level. Each level is then exchanged at most twice as often as its
-own delays require. If all delays are equal, all ranks end up as far ranks, which is the
-default exchange. The levels are chosen anew whenever the connections change, i.e. on
-construction and on :cpp:func:`simulation::update`.
+All ranks must choose the same kind of exchange. Within a neighbourhood, spikes are
+exchanged with ``MPI_Neighbor_allgatherv``, which sends every spike with targets in the
+neighbourhood to all of its ranks.
 
-:cpp:func:`simulation::spike_exchange_levels` returns the levels in use on the calling rank,
-given or automatic: for each level the ranks it receives from, the exchange period in epochs
-of :cpp:func:`simulation::max_epoch_length`, and whether it is the far level. The example in
-``example/neighborhood`` prints them.
+:cpp:func:`simulation::spike_exchange_levels` returns the levels in use on the calling
+rank, given or automatic, as a :cpp:class:`spike_exchange_level` each. The example in
+``example/neighborhood`` prints them and compares the exchanges.
 
-In a dry run, pass the levels of rank 0. Since every rank holds a copy of rank 0's tile
-shifted by its rank, the levels of rank r are taken to be those of rank 0 shifted by r.
+.. cpp:namespace:: arb
+
+.. cpp:class:: neighborhood_spike_exchange
+
+    How to exchange spikes between ranks; see :ref:`modelspikeexchange`.
+
+    .. cpp:function:: explicit neighborhood_spike_exchange(std::vector<std::vector<int>> neighborhoods)
+
+        The ranks this rank receives spikes from, grouped into neighbourhoods, innermost
+        first. No rank may be listed twice in one neighbourhood; a rank listed in several
+        belongs to the first. The calling rank is ignored. All ranks must pass the same
+        number of neighbourhoods.
+
+    .. cpp:function:: static neighborhood_spike_exchange off()
+
+        The default exchange after every epoch.
+
+    .. cpp:function:: static neighborhood_spike_exchange automatic()
+
+        Choose the levels from the connection delays.
+
+    .. cpp:function:: bool is_off() const
+
+    .. cpp:function:: bool is_automatic() const
+
+    .. cpp:function:: const std::vector<std::vector<int>>& neighborhoods() const
+
+        The given neighbourhoods; empty if off or automatic.
+
+.. cpp:class:: spike_exchange_level
+
+    A level of the neighbourhood spike exchange, as seen by the calling rank.
+
+    .. cpp:member:: std::vector<int> ranks
+
+        The ranks this rank receives spikes from in this level, in ascending order.
+
+    .. cpp:member:: std::size_t period
+
+        The level is exchanged every ``period`` epochs of
+        :cpp:func:`simulation::max_epoch_length`; 0 if no connections use it.
+
+    .. cpp:member:: time_type min_delay
+
+        The minimum delay [ms] of the connections in this level over all ranks, from which
+        the period follows; infinity if there are none.
+
+    .. cpp:member:: bool far
+
+        Whether this is the far level, exchanged globally instead of within a neighbourhood.
 
 Class documentation
 -------------------

@@ -139,7 +139,7 @@ arb::neighborhood_spike_exchange ring_neighborhoods(unsigned rank, unsigned num_
         auto g = group_of(rank, r, num_ranks, widths);
         if (g >= 1 && g <= widths.size()) levels[g - 1].push_back(r);
     }
-    return {levels};
+    return arb::neighborhood_spike_exchange{levels};
 }
 
 struct result {
@@ -153,7 +153,7 @@ struct result {
     std::string profile;
 };
 
-result simulate(const arb::recipe& rec, arb::context ctx, const std::optional<arb::neighborhood_spike_exchange>& exchange, const options& opt) {
+result simulate(const arb::recipe& rec, arb::context ctx, const arb::neighborhood_spike_exchange& exchange, const options& opt) {
     using clock = std::chrono::steady_clock;
     auto seconds = [](clock::duration d) { return std::chrono::duration<double>(d).count(); };
 
@@ -162,9 +162,7 @@ result simulate(const arb::recipe& rec, arb::context ctx, const std::optional<ar
     arb::profile::profiler_clear();
 #endif
     auto t0 = clock::now();
-    auto sim = arb::simulation::create(rec).set_context(ctx);
-    if (exchange) sim.set_spike_exchange(*exchange);
-    auto simulation = sim.make_unique();
+    auto simulation = arb::simulation::create(rec).set_context(ctx).set_spike_exchange(exchange).make_unique();
     auto t1 = clock::now();
     simulation->run(opt.tfinal*U::ms, opt.dt*U::ms);
     auto t2 = clock::now();
@@ -246,15 +244,15 @@ int main(int argc, char** argv) {
         describe("own rank:  ", 0, 1);
         std::size_t num_near = 1;
         for (std::size_t l = 0; l < opt->widths.size(); ++l) {
-            describe("level " + std::to_string(l + 1) + ":   ", l + 1, exchange.neighborhoods[l].size());
-            num_near += exchange.neighborhoods[l].size();
+            describe("level " + std::to_string(l + 1) + ":   ", l + 1, exchange.neighborhoods()[l].size());
+            num_near += exchange.neighborhoods()[l].size();
         }
         describe("far:       ", opt->widths.size() + 1, num_ranks - num_near);
         std::cout << "\n";
 
-        auto global = simulate(rec, ctx, {}, *opt);
+        auto global = simulate(rec, ctx, arb::neighborhood_spike_exchange::off(), *opt);
         auto neighborhood = simulate(rec, ctx, exchange, *opt);
-        auto automatic = simulate(rec, ctx, arb::neighborhood_spike_exchange{.automatic = true}, *opt);
+        auto automatic = simulate(rec, ctx, arb::neighborhood_spike_exchange::automatic(), *opt);
 
         print_levels("given levels of rank 0", neighborhood);
         print_levels("automatic levels of rank 0", automatic);

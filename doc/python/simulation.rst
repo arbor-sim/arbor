@@ -57,7 +57,7 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
     * a :py:class:`~arbor.context` which is used to execute the simulation.
     * a non-negative :py:class:`int` in order to seed the pseudo random number generator (optional)
     * a :py:class:`~arbor.neighborhood_spike_exchange` to exchange spikes with MPI neighbourhood
-      collectives (optional)
+      collectives (optional, see :ref:`modelspikeexchange`)
 
     Simulations provide an interface for executing and interacting with the model:
 
@@ -74,8 +74,8 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
         distributed according to :py:class:`~arbor.domain_decomposition`, computational resources
         described by :py:class:`~arbor.context` and with a seed value for generating reproducible
         random numbers (optional, default value: `0`). If ``spike_exchange`` is given, spikes are
-        exchanged as described by :py:class:`~arbor.neighborhood_spike_exchange` instead of with a
-        global all-to-all after every epoch.
+        exchanged as described by :py:class:`~arbor.neighborhood_spike_exchange` instead of
+        after every epoch.
 
         When constructed with a single argument, a :py:class:`~arbor.recipe`, a local context is
         automatically created with :py:func:`~arbor.env.default_allocation()`.
@@ -93,7 +93,7 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
 
         The levels of the neighbourhood spike exchange on this rank as a list of
         :py:class:`spike_exchange_level`, neighbourhoods first, far ranks last. Empty for the
-        default exchange. Periods are in epochs of :py:func:`max_epoch_length`.
+        default exchange.
 
     .. function:: max_epoch_length()
 
@@ -228,38 +228,33 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
 
 .. class:: neighborhood_spike_exchange
 
-    Delay-aware spike exchange via MPI neighbourhood collectives.
+    How to exchange spikes between ranks: by default after every epoch, or delay-aware with
+    MPI neighbourhood collectives, which is often much cheaper for spatially structured
+    networks. See :ref:`modelspikeexchange` for how it works. All ranks must choose the same
+    kind of exchange.
 
-    By default, spikes are exchanged between all ranks with a global all-to-all after every
-    epoch, where an epoch is half the minimum delay of the whole network. With this option,
-    the ranks a rank receives spikes from are split into levels:
+    .. function:: neighborhood_spike_exchange(neighborhoods)
 
-    * the rank itself, which is handled without communication,
-    * one level per neighbourhood, exchanged with a sparse MPI neighbourhood all-gather,
-    * all remaining (far) ranks, exchanged with a global all-to-all.
+        The ranks this rank receives spikes from, as a list of neighbourhoods, each a list of
+        ranks, innermost first. No rank may be listed twice in one neighbourhood; a rank listed
+        in several belongs to the first. The calling rank is ignored. All ranks must pass the
+        same number of neighbourhoods.
 
-    Spikes are buffered per level, and each level is only exchanged as often as the minimum
-    delay of the connections from it allows. All buffers are flushed at the end of each
-    :py:func:`simulation.run`. See the C++ documentation for details.
+    .. staticmethod:: off()
 
-    .. function:: neighborhood_spike_exchange(neighborhoods=[], *, automatic=False)
+        The default exchange after every epoch.
 
-        Construct from the ranks this rank receives spikes from, grouped into levels,
-        innermost first, or let arbor choose the levels with ``automatic=True``.
+    .. staticmethod:: automatic()
+
+        Let arbor choose the levels from the connection delays.
 
     .. attribute:: neighborhoods
 
-        The ranks this rank receives spikes from, as a list of lists of ranks, innermost level
-        first. A rank listed in more than one level belongs to the first; the calling rank is
-        ignored. All ranks must pass the same number of levels.
+        The given neighbourhoods; empty if off or automatic.
 
-    .. attribute:: automatic
+    .. attribute:: is_off
 
-        If ``True``, ``neighborhoods`` must be empty and arbor chooses the levels from the
-        connection delays: each rank this rank receives from goes into a class by the
-        exchange period its minimum connection delay allows (1, 2–3, 4–7, … epochs). The
-        slowest class over all ranks becomes the far level and all others neighbourhoods.
-        All ranks must set this alike.
+    .. attribute:: is_automatic
 
     .. container:: example-code
 
@@ -278,7 +273,7 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
 
             # Or let arbor choose the levels from the connection delays.
             sim = A.simulation(
-                recipe, ctx, spike_exchange=A.neighborhood_spike_exchange(automatic=True)
+                recipe, ctx, spike_exchange=A.neighborhood_spike_exchange.automatic()
             )
 
     The levels in use on a rank are returned by :py:func:`simulation.spike_exchange_levels`.
@@ -295,12 +290,18 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
 
     .. attribute:: period
 
-        The level is exchanged every ``period`` epochs; 0 if no connections use it.
+        The level is exchanged every ``period`` epochs of :py:func:`simulation.max_epoch_length`;
+        0 if no connections use it.
+
+    .. attribute:: min_delay
+
+        The minimum delay [ms] of the connections in this level over all ranks, from which the
+        period follows; infinity if there are none.
 
     .. attribute:: far
 
-        Whether the level is exchanged with the global all-to-all instead of a neighbourhood
-        all-gather; only the last level is.
+        Whether this is the far level, exchanged globally instead of within a neighbourhood;
+        only the last level is.
 
 Recording spikes
 ----------------

@@ -74,7 +74,7 @@ struct simulation_state {
                      const domain_decomposition_ptr decomp,
                      context ctx,
                      arb_seed_type seed,
-                     const std::optional<neighborhood_spike_exchange>& spike_exchange);
+                     const neighborhood_spike_exchange& spike_exchange);
 
     void update(const recipe& rec);
 
@@ -226,7 +226,7 @@ simulation_state::simulation_state(const recipe& rec,
                                    const domain_decomposition_ptr decomp,
                                    context ctx,
                                    arb_seed_type seed,
-                                   const std::optional<neighborhood_spike_exchange>& spike_exchange):
+                                   const neighborhood_spike_exchange& spike_exchange):
     ctx_{ctx},
     ddc_{decomp},
     task_system_(ctx_->thread_pool),
@@ -590,7 +590,7 @@ simulation::simulation(const recipe& rec,
                        context ctx,
                        const domain_decomposition_ptr decomp,
                        arb_seed_type seed,
-                       const std::optional<neighborhood_spike_exchange>& spike_exchange) {
+                       const neighborhood_spike_exchange& spike_exchange) {
     impl_.reset(new simulation_state(rec, decomp, ctx, seed, spike_exchange));
 }
 

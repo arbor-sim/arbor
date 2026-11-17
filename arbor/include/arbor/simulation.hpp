@@ -3,7 +3,6 @@
 #include <memory>
 #include <vector>
 #include <functional>
-#include <optional>
 #include <unordered_set>
 
 #include <arbor/export.hpp>
@@ -35,7 +34,7 @@ struct ARB_ARBOR_API simulation {
     simulation(const recipe& rec, context ctx,
                const domain_decomposition_ptr decomp,
                arb_seed_type seed = 0,
-               const std::optional<neighborhood_spike_exchange>& spike_exchange = {});
+               const neighborhood_spike_exchange& spike_exchange = neighborhood_spike_exchange::off());
 
     simulation(const recipe& rec,
                context ctx = make_context(),
@@ -135,8 +134,8 @@ public:
         return *this;
     }
 
-    // Exchange spikes with MPI neighbourhood collectives instead of a global
-    // all-to-all; see neighborhood_spike_exchange.
+    // Exchange spikes delay-aware with MPI neighbourhood collectives; see
+    // neighborhood_spike_exchange.
     simulation_builder& set_spike_exchange(neighborhood_spike_exchange spike_exchange) {
         spike_exchange_ = std::move(spike_exchange);
         return *this;
@@ -170,7 +169,7 @@ private:
     context ctx_;
     balancer_function balancer_;
     arb_seed_type seed_ = 0u;
-    std::optional<neighborhood_spike_exchange> spike_exchange_;
+    neighborhood_spike_exchange spike_exchange_ = neighborhood_spike_exchange::off();
 };
 
 // An epoch callback function that prints out a text progress bar.

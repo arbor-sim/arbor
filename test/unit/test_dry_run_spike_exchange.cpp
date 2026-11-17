@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <memory>
-#include <optional>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -63,7 +62,7 @@ public:
 
 int ring(int offset) { return (offset + int(tiles))%tiles; }
 
-std::vector<spike> run(context ctx, const std::optional<neighborhood_spike_exchange>& exchange, std::size_t* num_spikes = nullptr) {
+std::vector<spike> run(context ctx, const neighborhood_spike_exchange& exchange, std::size_t* num_spikes = nullptr) {
     auto rec = symmetric_recipe(std::make_unique<lif_tile>());
     auto sim = simulation(rec, ctx, partition_load_balance(rec, ctx), 0, exchange);
     std::vector<spike> spikes;
@@ -78,7 +77,7 @@ std::vector<spike> run(context ctx, const std::optional<neighborhood_spike_excha
 
 // Spikes of the first tile when simulating all tiles on a single rank.
 std::vector<spike> reference_spikes(std::size_t* num_spikes) {
-    auto spikes = run(make_context(), {}, num_spikes);
+    auto spikes = run(make_context(), neighborhood_spike_exchange::off(), num_spikes);
     spikes.erase(std::remove_if(spikes.begin(), spikes.end(),
                                 [](const spike& s) { return s.source.gid >= cells_per_tile; }),
                  spikes.end());
@@ -95,7 +94,7 @@ TEST(dry_run_spike_exchange, all_to_all) {
     auto expected = reference_spikes(&expected_num_spikes);
     ASSERT_GT(expected.size(), 0u);
 
-    EXPECT_EQ(expected, run(dry_run_context(), {}, &num_spikes));
+    EXPECT_EQ(expected, run(dry_run_context(), neighborhood_spike_exchange::off(), &num_spikes));
     EXPECT_EQ(expected_num_spikes, num_spikes);
 }
 
@@ -120,7 +119,7 @@ TEST(dry_run_spike_exchange, neighborhoods) {
     {
         SCOPED_TRACE("automatic");
         std::size_t num_spikes = 0;
-        EXPECT_EQ(expected, run(dry_run_context(), neighborhood_spike_exchange{.automatic = true}, &num_spikes));
+        EXPECT_EQ(expected, run(dry_run_context(), neighborhood_spike_exchange::automatic(), &num_spikes));
         EXPECT_EQ(expected_num_spikes, num_spikes);
     }
 }

@@ -232,7 +232,7 @@ def main():
 
     default = simulate(recipe, context, args)
     given = simulate(recipe, context, args, exchange)
-    automatic = A.neighborhood_spike_exchange(automatic=True)
+    automatic = A.neighborhood_spike_exchange.automatic()
     auto = simulate(recipe, context, args, automatic)
 
     log(describe_levels("given levels of rank 0", given))

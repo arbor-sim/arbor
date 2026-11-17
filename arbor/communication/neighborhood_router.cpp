@@ -44,42 +44,38 @@ unsigned period_class(std::size_t period) {
     return c;
 }
 
-namespace {
-// Throw on all ranks if any rank fails a check, so that no rank is left
-// waiting in a collective.
-void check_on_all_ranks(const distributed_context& dist, bool ok, const std::string& what) {
-    if (!dist.min(int(ok))) throw arbor_exception("neighborhood_spike_exchange: " + what);
-}
-} // namespace
-
 neighborhood_router::neighborhood_router(const neighborhood_spike_exchange& options,
                                          distributed_context_handle dist):
     dist_(std::move(dist)),
-    automatic_(options.automatic),
+    automatic_(options.is_automatic()),
     rank_(dist_->id()),
     num_domains_(dist_->size())
 {
-    check_on_all_ranks(*dist_,
-                       dist_->min(int(automatic_)) == dist_->max(int(automatic_)),
-                       "all ranks must choose automatic levels alike.");
-    if (automatic_) {
-        check_on_all_ranks(*dist_, options.neighborhoods.empty(),
-                           "neighborhoods must be empty with automatic levels.");
-        // Until the connections are known, all other ranks are far ranks.
-        set_levels({});
-        return;
+    arb_assert(!options.is_off());
+    // The checks are local, but every rank must throw if any rank fails one,
+    // so that no rank is left waiting in a collective.
+    bool valid = true;
+    for (const auto& neighborhood: options.neighborhoods()) {
+        auto ranks = neighborhood;
+        util::sort(ranks);
+        valid &= std::adjacent_find(ranks.begin(), ranks.end()) == ranks.end();
+        valid &= ranks.empty() || (ranks.front() >= 0 && ranks.back() < num_domains_);
     }
-
-    const int num_neighborhoods = options.neighborhoods.size();
-    check_on_all_ranks(*dist_,
-                       dist_->min(num_neighborhoods) == dist_->max(num_neighborhoods),
-                       "all ranks must pass the same number of neighborhoods.");
-    bool ranks_valid = true;
-    for (const auto& neighborhood: options.neighborhoods) {
-        for (auto r: neighborhood) ranks_valid &= r >= 0 && r < num_domains_;
+    // All ranks must agree on the kind of exchange: automatic levels count as
+    // -1 neighbourhoods, and a rank that failed a local check sends the lowest
+    // value, so two reductions cover all checks.
+    constexpr int invalid = std::numeric_limits<int>::min();
+    const int kind = !valid? invalid: automatic_? -1: int(options.neighborhoods().size());
+    const int min_kind = dist_->min(kind);
+    if (min_kind == invalid) {
+        throw arbor_exception("neighborhood_spike_exchange: rank out of range or listed twice in a neighborhood.");
     }
-    check_on_all_ranks(*dist_, ranks_valid, "rank out of range.");
-    set_levels(options.neighborhoods);
+    if (min_kind != dist_->max(kind)) {
+        throw arbor_exception("neighborhood_spike_exchange: all ranks must choose automatic levels alike "
+                              "and pass the same number of neighborhoods.");
+    }
+    // With automatic levels, all other ranks are far ranks until the connections are known.
+    set_levels(options.neighborhoods());
 }
 
 void neighborhood_router::set_levels(const std::vector<std::vector<int>>& neighborhoods) {
@@ -97,23 +93,20 @@ void neighborhood_router::set_levels(const std::vector<std::vector<int>>& neighb
             recv_level_[r] = l;
             sources[l].push_back(r);
         }
+        util::sort(sources[l]);
     }
 
     // Making a neighbourhood is collective and expensive, so keep those whose
     // ranks are unchanged; all ranks must agree on which ones to make anew.
-    auto same_ranks = [](std::vector<int> a, std::vector<int> b) {
-        std::sort(a.begin(), a.end());
-        std::sort(b.begin(), b.end());
-        return a == b;
-    };
     std::vector<level> levels(num_neighborhoods + 1);
     for (int l = 0; l < num_neighborhoods; ++l) {
-        bool same = l < num_old_neighborhoods && same_ranks(levels_[l].neighbors->sources(), sources[l]);
-        if (dist_->min(int(same))) {
+        bool same = l < num_old_neighborhoods && levels_[l].ranks == sources[l];
+        levels[l].ranks = std::move(sources[l]);
+        if (dist_->all(same)) {
             levels[l].neighbors = std::move(levels_[l].neighbors);
         }
         else {
-            levels[l].neighbors = dist_->make_neighborhood(sources[l]);
+            levels[l].neighbors = dist_->make_neighborhood(levels[l].ranks);
             ++num_neighborhoods_made_;
         }
     }
@@ -144,7 +137,8 @@ neighborhood_router::automatic_levels(const std::vector<time_type>& min_delays, 
     max_class = dist_->max(max_class);
     std::vector<std::vector<int>> neighborhoods(std::max(max_class, 0));
     for (int d = 0; d < num_domains_; ++d) {
-        if (classes[d] >= 0 && classes[d] < max_class) neighborhoods[classes[d]].push_back(d);
+        auto klass = classes[d];
+        if (klass >= 0 && klass < max_class) neighborhoods[klass].push_back(d);
     }
     return neighborhoods;
 }
@@ -164,6 +158,7 @@ void neighborhood_router::update(const std::vector<time_type>& min_delays,
     }
     for (std::size_t l = 0; l < levels_.size(); ++l) {
         auto delay = dist_->min(level_delays[l]);
+        levels_[l].min_delay = delay;
         levels_[l].period = std::isfinite(delay) ? exchange_period(delay, interval) : 0;
     }
 
@@ -256,7 +251,8 @@ neighborhood_router::exchange(const std::vector<spike>& local_spikes, std::optio
 
 gathered_vector<spike>
 neighborhood_router::bin_by_far_rank(const std::vector<spike>& spikes) const {
-    // Counting sort, which keeps the spikes in each bin sorted by source.
+    // Stable partition by far destination rank, copying each spike into the bin
+    // of every far rank it is sent to; the bins stay sorted by source.
     using count_type = gathered_vector<spike>::count_type;
     auto for_each_bin = [&](const spike& spk, auto&& f) {
         for (auto d: routes_.at(spk.source).ranks) {
@@ -275,11 +271,9 @@ neighborhood_router::bin_by_far_rank(const std::vector<spike>& spikes) const {
 std::vector<spike_exchange_level> neighborhood_router::levels() const {
     std::vector<spike_exchange_level> result;
     for (int l = 0; l < far_level(); ++l) {
-        auto ranks = levels_[l].neighbors->sources();
-        std::sort(ranks.begin(), ranks.end());
-        result.push_back({std::move(ranks), levels_[l].period, false});
+        result.push_back({levels_[l].ranks, levels_[l].period, levels_[l].min_delay, false});
     }
-    spike_exchange_level far{{}, levels_.back().period, true};
+    spike_exchange_level far{{}, levels_.back().period, levels_.back().min_delay, true};
     for (int d = 0; d < num_domains_; ++d) {
         if (recv_level_[d] == far_level()) far.ranks.push_back(d);
     }

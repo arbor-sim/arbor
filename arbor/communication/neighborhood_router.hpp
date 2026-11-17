@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <limits>
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -76,7 +77,11 @@ private:
     struct level {
         // Null for the far level.
         distributed_neighborhood_ptr neighbors;
+        // Ranks we receive from in ascending order; empty for the far level.
+        std::vector<int> ranks;
         std::size_t period = 0;
+        // Global minimum delay of the connections in this level.
+        time_type min_delay = std::numeric_limits<time_type>::infinity();
         // Spikes held back, one run sorted by source per epoch, starting at the offsets in runs.
         std::vector<spike> pending;
         std::vector<std::size_t> runs;
@@ -98,7 +103,7 @@ private:
     // the far level. Existing neighbourhoods are kept if their ranks are unchanged
     // on all ranks.
     void set_levels(const std::vector<std::vector<int>>& neighborhoods);
-    // Neighbourhoods by period class; see neighborhood_spike_exchange::automatic.
+    // Neighbourhoods by period class; see neighborhood_spike_exchange::automatic().
     std::vector<std::vector<int>> automatic_levels(const std::vector<time_type>& min_delays, time_type interval) const;
     // Sort spikes into bins, one per far rank they are sent to.
     gathered_vector<spike> bin_by_far_rank(const std::vector<spike>& spikes) const;

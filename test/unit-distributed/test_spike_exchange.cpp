@@ -5,7 +5,6 @@
 #include <cmath>
 #include <limits>
 #include <map>
-#include <optional>
 #include <random>
 #include <set>
 #include <tuple>
@@ -82,9 +81,16 @@ int ring_rank(int rank, int offset, int num_ranks) {
 
 // Neighbourhoods of each rank on a ring: nested, the next {-1, +1}, then the next {-2, ..., +2}.
 std::vector<std::vector<int>> nested_rings(int rank, int num_ranks) {
-    return {{ring_rank(rank, -1, num_ranks), ring_rank(rank, 1, num_ranks)},
-            {ring_rank(rank, -2, num_ranks), ring_rank(rank, -1, num_ranks),
-             ring_rank(rank,  1, num_ranks), ring_rank(rank,  2, num_ranks)}};
+    std::vector<std::vector<int>> levels = {
+        {ring_rank(rank, -1, num_ranks), ring_rank(rank, 1, num_ranks)},
+        {ring_rank(rank, -2, num_ranks), ring_rank(rank, -1, num_ranks),
+         ring_rank(rank,  1, num_ranks), ring_rank(rank,  2, num_ranks)}};
+    // On small rings, the offsets reach the same rank; a level must not list it twice.
+    for (auto& level: levels) {
+        std::sort(level.begin(), level.end());
+        level.erase(std::unique(level.begin(), level.end()), level.end());
+    }
+    return levels;
 }
 
 // Asymmetric neighbourhood: we receive from our successor, but it does not receive from us.
@@ -104,7 +110,7 @@ struct run_result {
 };
 
 // Simulate until each time in stops in turn, and gather all spikes from all ranks.
-run_result run(const std::optional<neighborhood_spike_exchange>& spike_exchange, const std::vector<double>& stops) {
+run_result run(const neighborhood_spike_exchange& spike_exchange, const std::vector<double>& stops) {
     auto num_ranks = g_context->distributed->size();
     auto rec = distance_recipe(num_ranks, cells_per_rank);
     auto sim = simulation(rec, g_context, partition_load_balance(rec, g_context), 0, spike_exchange);
@@ -151,8 +157,8 @@ void expect_valid_levels(const std::vector<spike_exchange_level>& levels, int ra
 // All neighbourhood shapes, and automatic levels.
 std::vector<std::pair<std::string, neighborhood_spike_exchange>> exchange_options(int rank, int num_ranks) {
     std::vector<std::pair<std::string, neighborhood_spike_exchange>> options;
-    for (const auto& [name, shape]: neighborhood_shapes()) options.push_back({name, {shape(rank, num_ranks)}});
-    options.push_back({"automatic", {.automatic = true}});
+    for (const auto& [name, shape]: neighborhood_shapes()) options.push_back({name, neighborhood_spike_exchange{shape(rank, num_ranks)}});
+    options.push_back({"automatic", neighborhood_spike_exchange::automatic()});
     return options;
 }
 
@@ -180,7 +186,7 @@ TEST(spike_exchange, same_spikes_as_all_to_all) {
     const int rank = g_context->distributed->id();
     const int num_ranks = g_context->distributed->size();
     const std::vector<double> stops = {50};
-    const auto expected = run({}, stops);
+    const auto expected = run(neighborhood_spike_exchange::off(), stops);
     ASSERT_GT(expected.spikes.size(), 0u);
     ASSERT_EQ(expected.spikes.size(), expected.num_spikes);
 
@@ -197,7 +203,7 @@ TEST(spike_exchange, same_spikes_over_several_runs) {
     const int num_ranks = g_context->distributed->size();
     // The stops are not multiples of the epoch length; the buffered spikes must be flushed at each.
     const std::vector<double> stops = {3.3, 10, 10.1, 31.7, 50};
-    const auto expected = run({}, stops);
+    const auto expected = run(neighborhood_spike_exchange::off(), stops);
     ASSERT_GT(expected.spikes.size(), 0u);
 
     for (const auto& [name, options]: exchange_options(rank, num_ranks)) {
@@ -219,11 +225,17 @@ TEST(spike_exchange, invalid_options) {
         auto levels = std::vector<std::vector<int>>(g_context->distributed->id() == 0 ? 1 : 2);
         EXPECT_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{levels}), arbor_exception);
         // All ranks must agree on automatic levels.
-        auto automatic = neighborhood_spike_exchange{.automatic = g_context->distributed->id() == 0};
+        auto automatic = g_context->distributed->id() == 0
+            ? neighborhood_spike_exchange::automatic()
+            : neighborhood_spike_exchange{{}};
         EXPECT_THROW(simulation(rec, g_context, decomp, 0, automatic), arbor_exception);
+        // A rank must not be listed twice in a level, even if only one rank does so.
+        auto twice = std::vector<std::vector<int>>{{1}};
+        if (g_context->distributed->id() == 0) twice[0].push_back(1);
+        EXPECT_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{twice}), arbor_exception);
     }
-    // Automatic levels and explicit neighbourhoods exclude each other.
-    EXPECT_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{{{0}}, true}), arbor_exception);
+    // A rank listed in more than one level is fine: it belongs to the first.
+    EXPECT_NO_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{{{0}, {0}}}));
 }
 
 // Exchanged in epoch e, spikes become events in epoch e+2. Check that held back
@@ -302,7 +314,7 @@ TEST(spike_exchange, communicator_holds_back_spikes) {
         comm.schedule_exchange(interval);
 
         // Expected periods: from the global minimum delay of the connections per level.
-        auto num_levels = options.neighborhoods.size() + 1;
+        auto num_levels = options.neighborhoods().size() + 1;
         auto level_of = [&](int receiver, int source) {
             auto levels = shape(receiver, num_ranks);
             for (std::size_t l = 0; l < levels.size(); ++l) {
@@ -323,6 +335,9 @@ TEST(spike_exchange, communicator_holds_back_spikes) {
         std::vector<std::size_t> expected_periods;
         for (auto d: min_delays) expected_periods.push_back(std::isfinite(d)? exchange_period(d, interval): 0);
         EXPECT_EQ(expected_periods, periods_of(comm.exchange_levels()));
+        std::vector<double> level_delays;
+        for (const auto& l: comm.exchange_levels()) level_delays.push_back(l.min_delay);
+        EXPECT_EQ(min_delays, level_delays);
         expect_valid_levels(comm.exchange_levels(), rank, num_ranks);
 
         // Every cell fires once. No connection between ranks is short enough to
@@ -374,7 +389,7 @@ TEST(spike_exchange, automatic_levels) {
     lif_cell_group group(gids, rec, local_sources, local_targets);
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, gids});
 
-    auto comm = communicator(rec, decomp, g_context, neighborhood_spike_exchange{.automatic = true});
+    auto comm = communicator(rec, decomp, g_context, neighborhood_spike_exchange::automatic());
     comm.update_connections(rec, decomp, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}));
     comm.schedule_exchange(interval);
 
@@ -475,8 +490,8 @@ TEST(spike_exchange, simulation_levels) {
         auto sim = simulation(rec, g_context, decomp, 0, options);
         auto levels = sim.spike_exchange_levels();
         expect_valid_levels(levels, rank, num_ranks);
-        if (!options.automatic) {
-            EXPECT_EQ(options.neighborhoods.size() + 1, levels.size());
+        if (!options.is_automatic()) {
+            EXPECT_EQ(options.neighborhoods().size() + 1, levels.size());
         }
     }
 }
@@ -504,7 +519,7 @@ TEST(spike_exchange, automatic_reuses_neighborhoods) {
         return ranks;
     };
 
-    neighborhood_router router({.automatic = true}, g_context->distributed);
+    neighborhood_router router(neighborhood_spike_exchange::automatic(), g_context->distributed);
     router.update(ring_delays(1.3), {}, interval);
     auto before = neighborhood_ranks(router.levels());
     auto made = router.num_neighborhoods_made();
@@ -534,7 +549,7 @@ TEST(spike_exchange, same_spikes_after_update) {
     auto first = distance_recipe(num_ranks, cells_per_rank, 1.3);
     auto second = distance_recipe(num_ranks, cells_per_rank, 2.9);
 
-    auto run = [&](const std::optional<neighborhood_spike_exchange>& spike_exchange) {
+    auto run = [&](const neighborhood_spike_exchange& spike_exchange) {
         auto sim = simulation(first, g_context, partition_load_balance(first, g_context), 0, spike_exchange);
         std::vector<spike> local;
         sim.set_local_spike_callback([&](const std::vector<spike>& s) { local.insert(local.end(), s.begin(), s.end()); });
@@ -548,7 +563,7 @@ TEST(spike_exchange, same_spikes_after_update) {
         return local;
     };
 
-    auto expected = run({});
+    auto expected = run(neighborhood_spike_exchange::off());
     ASSERT_GT(expected.size(), 0u);
-    EXPECT_EQ(expected, run(neighborhood_spike_exchange{.automatic = true}));
+    EXPECT_EQ(expected, run(neighborhood_spike_exchange::automatic()));
 }
