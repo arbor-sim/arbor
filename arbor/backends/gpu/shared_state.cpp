@@ -191,7 +191,7 @@ shared_state::shared_state(task_system_handle tp,
     src_to_spike(make_const_view(src_to_spike_)),
     cbprng_seed(cbprng_seed_),
     sample_events(),
-    watcher{n_cv_, src_to_spike.data(), detector_info}
+    watcher{src_to_spike.data(), detector_info}
 {
     memory::fill(time_since_spike, -1.0);
     add_scalar(temperature_degC.size(), temperature_degC.data(), -273.15);
