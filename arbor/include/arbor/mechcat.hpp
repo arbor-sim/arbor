@@ -3,7 +3,6 @@
 #include <filesystem>
 #include <memory>
 #include <string>
-#include <exception>
 #include <vector>
 
 #include <arbor/export.hpp>
@@ -69,8 +68,8 @@ public:
     // with a sequence of overrides for global scalar parameter settings
     // and a set of ion renamings.
     void derive(const std::string& name, const std::string& parent,
-                const std::vector<std::pair<std::string, double>>& global_params,
-                const std::vector<std::pair<std::string, std::string>>& ion_remap = {});
+                const flat_map<std::string, double>& global_params,
+                const flat_map<std::string, std::string>& ion_remap = {});
 
     void derive(const std::string& name, const std::string& parent);
 

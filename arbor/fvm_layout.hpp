@@ -102,17 +102,11 @@ struct ARB_ARBOR_API cv_geometry: public cell_cv_data_impl {
         return cv_parent.size();
     }
 
-    bool empty() const {
-        return size()==0;
-    }
+    bool empty() const { return size() == 0; }
 
-    size_type n_cell() const {
-        return cell_cv_divs.empty()? 0: cell_cv_divs.size()-1;
-    }
+    size_type n_cell() const { return cell_cv_divs.empty() ? 0 : cell_cv_divs.size() - 1; }
 
-    size_type n_branch(size_type cell_idx) const {
-        return branch_cv_map.at(cell_idx).size();
-    }
+    size_type n_branch(size_type cell_idx) const { return branch_cv_map.at(cell_idx).size(); }
 
     size_type location_cv(size_type cell_idx, const mlocation& loc, cv_prefer::type prefer) const;
 
@@ -149,7 +143,7 @@ struct fvm_diffusion_info {
 };
 
 struct fvm_cv_discretization {
-    using size_type = arb_size_type;
+    using size_type  = arb_size_type;
     using index_type = arb_index_type;
     using value_type = arb_value_type;
 
@@ -160,28 +154,29 @@ struct fvm_cv_discretization {
     size_type n_cell() const { return geometry.n_cell(); }
 
     // Following members have one element per CV.
-    std::vector<value_type> face_conductance; // [µS]
-    std::vector<value_type> cv_area;          // [µm²]
-    std::vector<value_type> cv_volume;        // [µm3]//
-    std::vector<value_type> cv_capacitance;   // [pF]
+    std::vector<value_type> face_conductance;        // [µS]
+    std::vector<value_type> cv_area;                 // [µm²]
+    std::vector<value_type> cv_volume;               // [µm3]
+    std::vector<value_type> cv_capacitance;          // [pF]
     std::vector<value_type> init_membrane_potential; // [mV]
-    std::vector<value_type> temperature_K;    // [K]
-    std::vector<value_type> diam_um;          // [µm]
-
+    std::vector<value_type> temperature_K;           // [K]
+    std::vector<value_type> diam_um;                 // [µm]
     // For each cell, one piece-wise constant value per branch.
     std::vector<std::vector<pw_constant_fn>> axial_resistivity; // [Ω·cm]
-
     // For each diffusive ion species, their properties
     std::unordered_map<std::string, fvm_diffusion_info> diffusive_ions;
 };
 
 // Combine two fvm_cv_geometry groups in-place.
 // (Returns reference to first argument.)
-ARB_ARBOR_API fvm_cv_discretization& append(fvm_cv_discretization&, const fvm_cv_discretization&);
+ARB_ARBOR_API fvm_cv_discretization&
+append(fvm_cv_discretization&, const fvm_cv_discretization&);
 
 // Construct fvm_cv_discretization from one or more cells.
-ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global_dflt);
-ARB_ARBOR_API fvm_cv_discretization fvm_cv_discretize(const std::vector<cable_cell>& cells, const cable_cell_parameter_set& global_defaults, const arb::execution_context& ctx={});
+ARB_ARBOR_API fvm_cv_discretization
+fvm_cv_discretize(const cable_cell& cell, const cable_cell_parameter_set& global_dflt);
+ARB_ARBOR_API fvm_cv_discretization
+fvm_cv_discretize(const std::vector<cable_cell>& cells, const cable_cell_parameter_set& global_defaults, const arb::execution_context& ctx={});
 
 
 // Interpolant data for voltage, axial current probes.
@@ -195,10 +190,12 @@ struct fvm_voltage_interpolant {
 };
 
 // Interpolated membrane voltage.
-ARB_ARBOR_API fvm_voltage_interpolant fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, arb_size_type cell_idx, const mlocation& site);
+ARB_ARBOR_API fvm_voltage_interpolant
+fvm_interpolate_voltage(const cable_cell& cell, const fvm_cv_discretization& D, arb_size_type cell_idx, const mlocation& site);
 
 // Axial current as linear combiantion of voltages.
-ARB_ARBOR_API fvm_voltage_interpolant fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, arb_size_type cell_idx, const mlocation& site);
+ARB_ARBOR_API fvm_voltage_interpolant
+fvm_axial_current(const cable_cell& cell, const fvm_cv_discretization& D, arb_size_type cell_idx, const mlocation& site);
 
 
 // Post-discretization data for point and density mechanism instantiation.
@@ -232,7 +229,7 @@ struct fvm_mechanism_config {
     std::vector<value_type> local_weight;
 
     // (Non-global) parameters and parameter values across the mechanism instance.
-    std::vector<std::pair<std::string, std::vector<value_type>>> param_values;
+    flat_map<std::string, std::vector<value_type>> param_values;
 };
 
 // Post-discretization data for ion channel state.
@@ -290,17 +287,17 @@ struct fvm_stimulus_config {
 };
 
 // Maps gj {gid, lid} locations on a cell to their CV indices.
-ARB_ARBOR_API std::unordered_map<cell_member_type, arb_size_type> fvm_build_gap_junction_cv_map(
-    const std::vector<cable_cell>& cells,
-    const std::vector<cell_gid_type>& gids,
-    const fvm_cv_discretization& D);
+ARB_ARBOR_API std::unordered_map<cell_member_type, arb_size_type>
+fvm_build_gap_junction_cv_map(const std::vector<cable_cell>& cells,
+                              const std::vector<cell_gid_type>& gids,
+                              const fvm_cv_discretization& D);
 
 // Resolves gj_connections into {gid, lid} pairs, then to CV indices and a weight.
-ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>> fvm_resolve_gj_connections(
-    const std::vector<cell_gid_type>& gids,
-    const cell_label_range& gj_data,
-    const std::unordered_map<cell_member_type, arb_size_type>& gj_cv,
-    const recipe& rec);
+ARB_ARBOR_API std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>>
+fvm_resolve_gj_connections(const std::vector<cell_gid_type>& gids,
+                           const cell_label_range& gj_data,
+                           const std::unordered_map<cell_member_type, arb_size_type>& gj_cv,
+                           const recipe& rec);
 
 struct fvm_mechanism_data {
     // Mechanism config, indexed by mechanism name.
@@ -322,12 +319,12 @@ struct fvm_mechanism_data {
     bool post_events = false;
 };
 
-ARB_ARBOR_API fvm_mechanism_data fvm_build_mechanism_data(
-    const cable_cell_global_properties& gprop,
-    const std::vector<cable_cell>& cells,
-    const std::vector<cell_gid_type>& gids,
-    const std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>>& gj_conns,
-    const fvm_cv_discretization& D,
-    const arb::execution_context& ctx={});
+ARB_ARBOR_API fvm_mechanism_data
+fvm_build_mechanism_data(const cable_cell_global_properties& gprop,
+                         const std::vector<cable_cell>& cells,
+                         const std::vector<cell_gid_type>& gids,
+                         const std::unordered_map<cell_gid_type, std::vector<fvm_gap_junction>>& gj_conns,
+                         const fvm_cv_discretization& D,
+                         const arb::execution_context& ctx = {});
 
 } // namespace arb

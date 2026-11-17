@@ -110,7 +110,7 @@ dictionary of parameter/value settings.
 
 .. cpp:class:: mechanism_desc
 
-    .. cpp:function:: mechanism_desc(std::string name, std::vector<std::pair<std::string, double>> param = {})
+    .. cpp:function:: mechanism_desc(std::string name, flat_map<std::string, double> param = {})
 
         Construct from a name and an optional parameter list. Allows for
         implicit conversion.

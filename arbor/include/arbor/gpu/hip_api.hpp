@@ -37,18 +37,21 @@ struct ARB_SYMBOL_VISIBLE api_error_type {
     }
 };
 
-inline api_error_type get_last_error() {
-    return hipGetLastError();
-}
+inline api_error_type get_last_error() { return hipGetLastError(); }
+inline api_error_type device_synchronize() { return hipDeviceSynchronize(); }
 
-inline api_error_type device_synchronize() {
-    return hipDeviceSynchronize();
-}
+// TODO these are empty, for now, until we can test this
+inline void profile_push(const char* str) {}
+inline void profile_pop() {}
+
 
 constexpr auto gpuMemcpyDeviceToHost = hipMemcpyDeviceToHost;
 constexpr auto gpuMemcpyHostToDevice = hipMemcpyHostToDevice;
 constexpr auto gpuMemcpyDeviceToDevice = hipMemcpyDeviceToDevice;
 constexpr auto gpuHostRegisterPortable = hipHostRegisterPortable;
+
+inline void profile_push(const char* str) { nvtxRangePushA(str); }
+inline void profile_pop() { nvtxRangePopA(); }
 
 template <typename... ARGS>
 inline api_error_type get_device_properties(ARGS&&... args) {

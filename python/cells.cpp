@@ -913,7 +913,7 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::density(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::density(name, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::density(mech, params);}))
-        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::density(mech, params);}))
+        .def(py::init([](const char* mech, const arb::flat_map<std::string, double>& params) {return arb::density(mech, params);}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::density(name, util::dict_to_map<double>(parms));}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::density(mech, util::dict_to_map<double>(params));}))
         .def("__getitem__", [](arb::density& syn, const std::string& k) {return syn.mech.get(k); })
@@ -927,7 +927,7 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::voltage_process(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(name, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::voltage_process(mech, params);}))
-        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::voltage_process(mech, params);}))
+        .def(py::init([](const char* mech, const arb::flat_map<std::string, double>& params) {return arb::voltage_process(mech, params);}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::voltage_process(mech, util::dict_to_map<double>(params));}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::voltage_process(name, util::dict_to_map<double>(parms));}))
         .def("__getitem__", [](arb::voltage_process& syn, const std::string& k) {return syn.mech.get(k); })
@@ -977,7 +977,7 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::synapse(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::synapse(name, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::synapse(mech, params);}))
-        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::synapse(mech, params);}))
+        .def(py::init([](const char* mech, const arb::flat_map<std::string, double>& params) {return arb::synapse(mech, params);}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::synapse(name, util::dict_to_map<double>(parms));}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::synapse(mech, util::dict_to_map<double>(params));}))
         .def("__getitem__", [](arb::synapse& syn, const std::string& k) {return syn.mech.get(k); })
@@ -991,7 +991,7 @@ void register_cells(py::module& m) {
         .def(py::init([](arb::mechanism_desc mech) {return arb::junction(mech);}))
         .def(py::init([](const std::string& name, const std::unordered_map<std::string, double>& params) {return arb::junction(name, params);}))
         .def(py::init([](const std::string& name, py::kwargs parms) {return arb::junction(name, util::dict_to_map<double>(parms));}))
-        .def(py::init([](const char* mech, std::vector<std::pair<std::string, double>> params) {return arb::junction(mech, params);}))
+        .def(py::init([](const char* mech, const arb::flat_map<std::string, double>& params) {return arb::junction(mech, params);}))
         .def(py::init([](arb::mechanism_desc mech, const std::unordered_map<std::string, double>& params) {return arb::junction(mech, params);}))
         .def(py::init([](arb::mechanism_desc mech, py::kwargs params) {return arb::junction(mech, util::dict_to_map<double>(params));}))
         .def("__getitem__", [](arb::junction& syn, const std::string& k) {return syn.mech.get(k); })
@@ -1001,52 +1001,57 @@ void register_cells(py::module& m) {
         .def("__str__", [](const arb::junction& j){return "<arbor.junction " + mechanism_desc_str(j.mech) + ">";});
 
     i_clamp
-        .def(py::init(
-                [](const U::quantity& ts,
-                   const U::quantity& dur,
-                   const U::quantity& cur,
-                   const U::quantity& frequency,
-                   const U::quantity& phase) {
-                    return arb::i_clamp::box(ts, dur, cur, frequency, phase);
-                }),
-             "tstart"_a, "duration"_a, "current"_a,
-             py::kw_only(), py::arg_v("frequency", 0*U::kHz, "0.0*arbor.units.kHz"), py::arg_v("phase", 0*U::rad, "0.0*arbor.units.rad"),
-             "Construct finite duration current clamp, constant amplitude")
-        .def(py::init(
-                [](const U::quantity& cur,
-                   const U::quantity& frequency,
-                   const U::quantity& phase) {
-                    return arb::i_clamp{cur, frequency, phase};
-                }),
+        .def(py::init([](const U::quantity& ts,
+                         const U::quantity& dur,
+                         const U::quantity& cur,
+                         const U::quantity& frequency,
+                         const U::quantity& phase) { return arb::i_clamp::box(ts, dur, cur, frequency, phase); }),
+             "tstart"_a,
+             "duration"_a,
              "current"_a,
-             py::kw_only(), py::arg_v("frequency", 0*U::kHz, "0.0*arbor.units.kHz"), py::arg_v("phase", 0*U::rad, "0.0*arbor.units.rad"),
+             py::kw_only(),
+             py::arg_v("frequency", 0 * U::kHz, "0.0*arbor.units.kHz"),
+             py::arg_v("phase", 0 * U::rad, "0.0*arbor.units.rad"),
+             "Construct finite duration current clamp, constant amplitude")
+        .def(py::init([](const U::quantity& cur, const U::quantity& frequency, const U::quantity& phase) {
+                 return arb::i_clamp{cur, frequency, phase};
+             }),
+             "current"_a,
+             py::kw_only(),
+             py::arg_v("frequency", 0 * U::kHz, "0.0*arbor.units.kHz"),
+             py::arg_v("phase", 0 * U::rad, "0.0*arbor.units.rad"),
              "Construct constant amplitude current clamp")
-        .def(py::init(
-                [](std::vector<std::pair<const U::quantity&, const U::quantity&>> envl,
-                   const U::quantity& frequency,
-                   const U::quantity& phase) {
-                    std::vector<arb::i_clamp::envelope_point> env;
-                    for (const auto& [t, a]: envl) env.push_back({t, a});
-                    return arb::i_clamp{env, frequency, phase};
-                }),
+        .def(py::init([](arb::flat_map<const U::quantity&, const U::quantity&> envl,
+                         const U::quantity& frequency,
+                         const U::quantity& phase) {
+                 std::vector<arb::i_clamp::envelope_point> env;
+                 for (const auto& [t, a]: envl)
+                     env.push_back({t, a});
+                 return arb::i_clamp{env, frequency, phase};
+             }),
              "envelope"_a,
-             py::kw_only(), py::arg_v("frequency", 0*U::kHz, "0.0*arbor.units.kHz"), py::arg_v("phase", 0*U::rad, "0.0*arbor.units.rad"),
-             "Construct current clamp according to (time, amplitude) linear envelope")
-        .def_property_readonly("envelope",
-                [](const arb::i_clamp& obj) {
-                    std::vector<std::pair<double, double>> envl;
-                    for (const auto& p: obj.envelope) {
-                        envl.push_back({p.t, p.amplitude});
-                    }
-                    return envl;
-                },
-                "List of (time [ms], amplitude [nA]) points comprising the piecewise linear envelope")
+             py::kw_only(),
+             py::arg_v("frequency", 0 * U::kHz, "0.0*arbor.units.kHz"),
+             py::arg_v("phase", 0 * U::rad, "0.0*arbor.units.rad"),
+             "Construct current clamp according to (time, amplitude) linear "
+             "envelope")
+        .def_property_readonly(
+            "envelope",
+            [](const arb::i_clamp& obj) {
+                arb::flat_map<double, double> envl;
+                for (const auto& p: obj.envelope) {
+                    envl.push_back({p.t, p.amplitude});
+                }
+                return envl;
+            },
+            "List of (time [ms], amplitude [nA]) points comprising the "
+            "piecewise linear envelope")
         .def_readonly("frequency", &arb::i_clamp::frequency, "Oscillation frequency (kHz), zero implies DC stimulus.")
         .def_readonly("phase", &arb::i_clamp::phase, "Oscillation initial phase (rad)")
-        .def("__repr__", [](const arb::i_clamp& c) {
-            return util::pprintf("<arbor.i_clamp: frequency {} kHz>", c.frequency);})
-        .def("__str__", [](const arb::i_clamp& c) {
-            return util::pprintf("<arbor.i_clamp: frequency {} kHz>", c.frequency);});
+        .def("__repr__",
+             [](const arb::i_clamp& c) { return util::pprintf("<arbor.i_clamp: frequency {} kHz>", c.frequency); })
+        .def("__str__",
+             [](const arb::i_clamp& c) { return util::pprintf("<arbor.i_clamp: frequency {} kHz>", c.frequency); });
 
     detector
         .def(py::init(
@@ -1269,131 +1274,277 @@ void register_cells(py::module& m) {
             "Return a view of all defaults.")
         // Paint mechanisms.
         .def("paint",
-            [](arb::decor& dec, const char* region, const arb::density& mechanism) {
-                return dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
-            },
-            "region"_a, "mechanism"_a,
-            "Associate a density mechanism with a region.")
+             [](arb::decor& dec, const char* region, const arb::density& mechanism) -> auto& {
+                 return dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
+             },
+             py::return_value_policy::reference_internal,
+             "region"_a, "mechanism"_a,
+             "Associate a density mechanism with a region.")
         .def("paint",
-            [](arb::decor& dec, const char* region, const arb::voltage_process& mechanism) {
-                return dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
-            },
-            "region"_a, "mechanism"_a,
-            "Associate a voltage process mechanism with a region.")
+             [](arb::decor& dec, const char* region, const arb::voltage_process& mechanism) -> auto& {
+                 return dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
+             },
+             py::return_value_policy::reference_internal,
+             "region"_a, "mechanism"_a,
+             "Associate a voltage process mechanism with a region.")
         .def("paint",
-            [](arb::decor& dec, const char* region, const arb::scaled_mechanism<arb::density>& mechanism) {
-                dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
-            },
-            "region"_a, "mechanism"_a,
-            "Associate a scaled density mechanism with a region.")
+             [](arb::decor& dec, const char* region, const arb::scaled_mechanism<arb::density>& mechanism) -> auto& {
+                 return dec.paint(arborio::parse_region_expression(region).unwrap(), mechanism);
+             },
+             py::return_value_policy::reference_internal,
+             "region"_a, "mechanism"_a,
+             "Associate a scaled density mechanism with a region.")
         // Paint membrane/static properties.
         .def("paint",
-            [](arb::decor& dec,
-               const char* region,
-               optional<paintable_arg<arb::init_membrane_potential>> Vm,
-               optional<paintable_arg<arb::membrane_capacitance>> cm,
-               optional<paintable_arg<arb::axial_resistivity>> rL,
-               optional<paintable_arg<arb::temperature>> TK) {
-                auto reg = arborio::parse_region_expression(region).unwrap();
-                if (Vm) dec.paint(reg, to_paintable(*Vm));
-                if (cm) dec.paint(reg, to_paintable(*cm));
-                if (rL) dec.paint(reg, to_paintable(*rL));
-                if (TK) dec.paint(reg, to_paintable(*TK));
-                return dec;
-            },
-            "region"_a, py::kw_only(), "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
-            "Set cable properties on a region.\n"
-             "Set global default values for cable and cell properties.\n"
-             " * Vm:    initial membrane voltage [mV].\n"
-             " * cm:    membrane capacitance [F/m²].\n"
-             " * rL:    axial resistivity [Ω·cm].\n"
-             " * tempK: temperature [Kelvin].\n"
-             "Each value can be given as a plain quantity, a tuple of (quantity, 'scale') where scale is an iexpr, or a wrapper object.")
+             [](arb::decor& dec,
+                const char* region,
+                optional<paintable_arg<arb::init_membrane_potential>> Vm,
+                optional<paintable_arg<arb::membrane_capacitance>> cm,
+                optional<paintable_arg<arb::axial_resistivity>> rL,
+                optional<paintable_arg<arb::temperature>> TK) -> auto& {
+                 auto reg = arborio::parse_region_expression(region).unwrap();
+                 if (Vm) dec.paint(reg, to_paintable(*Vm));
+                 if (cm) dec.paint(reg, to_paintable(*cm));
+                 if (rL) dec.paint(reg, to_paintable(*rL));
+                 if (TK) dec.paint(reg, to_paintable(*TK));
+                 return dec;
+             },
+             py::return_value_policy::reference_internal,
+             "region"_a, py::kw_only(), "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
+             "Set cable properties on a region.\n"
+              "Set global default values for cable and cell properties.\n"
+              " * Vm:    initial membrane voltage [mV].\n"
+              " * cm:    membrane capacitance [F/m²].\n"
+              " * rL:    axial resistivity [Ω·cm].\n"
+              " * tempK: temperature [Kelvin].\n"
+              "Each value can be given as a plain quantity, a tuple of (quantity, 'scale') where scale is an iexpr, or a wrapper object.")
         // Paint ion species initial conditions on a region.
         .def("paint",
-            [](arb::decor& dec, const char* region, const char* name,
-               optional<arb::init_int_concentration> int_con,
-               optional<arb::init_ext_concentration> ext_con,
-               optional<arb::init_reversal_potential> rev_pot,
-               optional<arb::ion_diffusivity> diff) {
-                auto r = arborio::parse_region_expression(region).unwrap();
-                if (int_con) dec.paint(r, *int_con);
-                if (ext_con) dec.paint(r, *ext_con);
-                if (rev_pot) dec.paint(r, *rev_pot);
-                if (diff)    dec.paint(r, *diff);
-                return dec;
-            },
-            "region"_a, py::kw_only(), "ion"_a, "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "diff"_a=py::none(),
-            "Set ion species properties conditions on a region.\n"
-             " * int_con: initial internal concentration [mM].\n"
-             " * ext_con: initial external concentration [mM].\n"
-             " * rev_pot: reversal potential [mV].\n"
-             " * method:  mechanism for calculating reversal potential.\n"
-             " * diff:   diffusivity [m^2/s].\n"
-             "Each value can be given as a plain quantity or a tuple of (quantity, 'scale') where scale is an iexpr.\n")
+             [](arb::decor& dec, const char* region, const char* name,
+                optional<arb::init_int_concentration> int_con,
+                optional<arb::init_ext_concentration> ext_con,
+                optional<arb::init_reversal_potential> rev_pot,
+                optional<arb::ion_diffusivity> diff) -> auto& {
+                 auto r = arborio::parse_region_expression(region).unwrap();
+                 if (int_con) dec.paint(r, *int_con);
+                 if (ext_con) dec.paint(r, *ext_con);
+                 if (rev_pot) dec.paint(r, *rev_pot);
+                 if (diff)    dec.paint(r, *diff);
+                 return dec;
+             },
+             py::return_value_policy::reference_internal,
+             "region"_a, py::kw_only(), "ion"_a, "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "diff"_a=py::none(),
+             "Set ion species properties conditions on a region.\n"
+              " * int_con: initial internal concentration [mM].\n"
+              " * ext_con: initial external concentration [mM].\n"
+              " * rev_pot: reversal potential [mV].\n"
+              " * method:  mechanism for calculating reversal potential.\n"
+              " * diff:   diffusivity [m^2/s].\n"
+              "Each value can be given as a plain quantity or a tuple of (quantity, 'scale') where scale is an iexpr.\n")
         .def("paint",
-            [](arb::decor& dec, const char* region, const char* name,
-               optional<ion_arg> int_con, optional<ion_arg> ext_con,
-               optional<ion_arg> rev_pot, optional<ion_arg> diff) {
-                auto r = arborio::parse_region_expression(region).unwrap();
-                if (int_con) {
-                    const auto& [v, s] = value_and_scale(*int_con);
-                    dec.paint(r, arb::init_int_concentration{name, v, s});
-                }
-                if (ext_con) {
-                    const auto& [v, s] = value_and_scale(*ext_con);
-                    dec.paint(r, arb::init_ext_concentration{name, v, s});
-                }
-                if (rev_pot) {
-                    const auto& [v, s] = value_and_scale(*rev_pot);
-                    dec.paint(r, arb::init_reversal_potential{name, v, s});
-                }
-                if (diff) {
-                    const auto& [v, s] = value_and_scale(*diff);
-                    dec.paint(r, arb::ion_diffusivity{name, v, s});
-                }
-                return dec;
-            },
-            "region"_a, py::kw_only(), "ion"_a, "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "diff"_a=py::none(),
-            "Set ion species properties conditions on a region.\n"
-             " * int_con: initial internal concentration [mM].\n"
-             " * ext_con: initial external concentration [mM].\n"
-             " * rev_pot: reversal potential [mV].\n"
-             " * method:  mechanism for calculating reversal potential.\n"
-             " * diff:   diffusivity [m^2/s].\n"
-             "Each value can be given as a plain quantity or a tuple of (quantity, 'scale') where scale is an iexpr.\n")
+             [](arb::decor& dec, const char* region, const char* name,
+                optional<ion_arg> int_con, optional<ion_arg> ext_con,
+                optional<ion_arg> rev_pot, optional<ion_arg> diff) -> auto& {
+                 auto r = arborio::parse_region_expression(region).unwrap();
+                 if (int_con) {
+                     const auto& [v, s] = value_and_scale(*int_con);
+                     dec.paint(r, arb::init_int_concentration{name, v, s});
+                 }
+                 if (ext_con) {
+                     const auto& [v, s] = value_and_scale(*ext_con);
+                     dec.paint(r, arb::init_ext_concentration{name, v, s});
+                 }
+                 if (rev_pot) {
+                     const auto& [v, s] = value_and_scale(*rev_pot);
+                     dec.paint(r, arb::init_reversal_potential{name, v, s});
+                 }
+                 if (diff) {
+                     const auto& [v, s] = value_and_scale(*diff);
+                     dec.paint(r, arb::ion_diffusivity{name, v, s});
+                 }
+                 return dec;
+             },
+             py::return_value_policy::reference_internal,
+             "region"_a, py::kw_only(), "ion"_a, "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "diff"_a=py::none(),
+             "Set ion species properties conditions on a region.\n"
+              " * int_con: initial internal concentration [mM].\n"
+              " * ext_con: initial external concentration [mM].\n"
+              " * rev_pot: reversal potential [mV].\n"
+              " * method:  mechanism for calculating reversal potential.\n"
+              " * diff:   diffusivity [m^2/s].\n"
+              "Each value can be given as a plain quantity or a tuple of (quantity, 'scale') where scale is an iexpr.\n")
+        // overloads for raw regions
+        .def("paint",
+             [](arb::decor& dec, const arb::region& region, const arb::density& mechanism) -> auto& {
+                 return dec.paint(region, mechanism);
+             },
+             py::return_value_policy::reference_internal,
+             "region"_a, "mechanism"_a,
+             "Associate a density mechanism with a region.")
+        .def("paint",
+             [](arb::decor& dec, const arb::region& region, const arb::voltage_process& mechanism) -> auto& {
+                 return dec.paint(region, mechanism);
+             },
+             py::return_value_policy::reference_internal,
+             "region"_a, "mechanism"_a,
+             "Associate a voltage process mechanism with a region.")
+        .def("paint",
+             [](arb::decor& dec, const arb::region& region, const arb::scaled_mechanism<arb::density>& mechanism) -> auto& {
+                 return dec.paint(region, mechanism);
+             },
+             py::return_value_policy::reference_internal,
+             "region"_a, "mechanism"_a,
+             "Associate a scaled density mechanism with a region.")
+        // Paint membrane/static properties.
+        .def("paint",
+             [](arb::decor& dec,
+                const arb::region& region,
+                optional<paintable_arg<arb::init_membrane_potential>> Vm,
+                optional<paintable_arg<arb::membrane_capacitance>> cm,
+                optional<paintable_arg<arb::axial_resistivity>> rL,
+                optional<paintable_arg<arb::temperature>> TK) -> auto& {
+                 if (Vm) dec.paint(region, to_paintable(*Vm));
+                 if (cm) dec.paint(region, to_paintable(*cm));
+                 if (rL) dec.paint(region, to_paintable(*rL));
+                 if (TK) dec.paint(region, to_paintable(*TK));
+                 return dec;
+             },
+             py::return_value_policy::reference_internal,
+             "region"_a, py::kw_only(), "Vm"_a=py::none(), "cm"_a=py::none(), "rL"_a=py::none(), "tempK"_a=py::none(),
+             "Set cable properties on a region.\n"
+              "Set global default values for cable and cell properties.\n"
+              " * Vm:    initial membrane voltage [mV].\n"
+              " * cm:    membrane capacitance [F/m²].\n"
+              " * rL:    axial resistivity [Ω·cm].\n"
+              " * tempK: temperature [Kelvin].\n"
+              "Each value can be given as a plain quantity, a tuple of (quantity, 'scale') where scale is an iexpr, or a wrapper object.")
+        // Paint ion species initial conditions on a region.
+        .def("paint",
+             [](arb::decor& dec, const arb::region& region, const char* name,
+                optional<arb::init_int_concentration> int_con,
+                optional<arb::init_ext_concentration> ext_con,
+                optional<arb::init_reversal_potential> rev_pot,
+                optional<arb::ion_diffusivity> diff) -> auto& {
+                 if (int_con) dec.paint(region, *int_con);
+                 if (ext_con) dec.paint(region, *ext_con);
+                 if (rev_pot) dec.paint(region, *rev_pot);
+                 if (diff)    dec.paint(region, *diff);
+                 return dec;
+             },
+             py::return_value_policy::reference_internal,
+             "region"_a, py::kw_only(), "ion"_a, "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "diff"_a=py::none(),
+             "Set ion species properties conditions on a region.\n"
+              " * int_con: initial internal concentration [mM].\n"
+              " * ext_con: initial external concentration [mM].\n"
+              " * rev_pot: reversal potential [mV].\n"
+              " * method:  mechanism for calculating reversal potential.\n"
+              " * diff:   diffusivity [m^2/s].\n"
+              "Each value can be given as a plain quantity or a tuple of (quantity, 'scale') where scale is an iexpr.\n")
+        .def("paint",
+             [](arb::decor& dec, const arb::region& region, const char* name,
+                optional<ion_arg> int_con, optional<ion_arg> ext_con,
+                optional<ion_arg> rev_pot, optional<ion_arg> diff) -> auto& {
+                 if (int_con) {
+                     const auto& [v, s] = value_and_scale(*int_con);
+                     dec.paint(region, arb::init_int_concentration{name, v, s});
+                 }
+                 if (ext_con) {
+                     const auto& [v, s] = value_and_scale(*ext_con);
+                     dec.paint(region, arb::init_ext_concentration{name, v, s});
+                 }
+                 if (rev_pot) {
+                     const auto& [v, s] = value_and_scale(*rev_pot);
+                     dec.paint(region, arb::init_reversal_potential{name, v, s});
+                 }
+                 if (diff) {
+                     const auto& [v, s] = value_and_scale(*diff);
+                     dec.paint(region, arb::ion_diffusivity{name, v, s});
+                 }
+                 return dec;
+             },
+             py::return_value_policy::reference_internal,
+             "region"_a, py::kw_only(), "ion"_a, "int_con"_a=py::none(), "ext_con"_a=py::none(), "rev_pot"_a=py::none(), "diff"_a=py::none(),
+             "Set ion species properties conditions on a region.\n"
+              " * int_con: initial internal concentration [mM].\n"
+              " * ext_con: initial external concentration [mM].\n"
+              " * rev_pot: reversal potential [mV].\n"
+              " * method:  mechanism for calculating reversal potential.\n"
+              " * diff:   diffusivity [m^2/s].\n"
+              "Each value can be given as a plain quantity or a tuple of (quantity, 'scale') where scale is an iexpr.\n")
+
         // Place synapses
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::synapse& mechanism, const char* label_name) {
-                return dec.place(arborio::parse_locset_expression(locset).unwrap(), mechanism, label_name);
-            },
-            "locations"_a, "synapse"_a, "label"_a,
-            "Place one instance of 'synapse' on each location in 'locations'."
-            "The group of synapses has the label 'label', used for forming connections between cells.")
+             [](arb::decor& dec, const char* locset, const arb::synapse& mechanism, const char* label_name)  -> auto& {
+                 return dec.place(arborio::parse_locset_expression(locset).unwrap(), mechanism, label_name);
+             },
+             py::return_value_policy::reference_internal,
+             "locations"_a, "synapse"_a, "label"_a,
+             "Place one instance of 'synapse' on each location in 'locations'."
+             "The group of synapses has the label 'label', used for forming connections between cells.")
         // Place gap junctions.
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::junction& mechanism, const char* label_name) {
-                return dec.place(arborio::parse_locset_expression(locset).unwrap(), mechanism, label_name);
-            },
-            "locations"_a, "junction"_a, "label"_a,
-            "Place one instance of 'junction' on each location in 'locations'."
-            "The group of junctions has the label 'label', used for forming gap-junction connections between cells.")
+             [](arb::decor& dec, const char* locset, const arb::junction& mechanism, const char* label_name)  -> auto& {
+                 return dec.place(arborio::parse_locset_expression(locset).unwrap(), mechanism, label_name);
+             },
+             py::return_value_policy::reference_internal,
+             "locations"_a, "junction"_a, "label"_a,
+             "Place one instance of 'junction' on each location in 'locations'."
+             "The group of junctions has the label 'label', used for forming gap-junction connections between cells.")
         // Place current clamp stimulus.
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::i_clamp& stim) {
-                return dec.place(arborio::parse_locset_expression(locset).unwrap(), stim);
-            },
-            "locations"_a, "i_clamp"_a,
-            "Add a current stimulus at each location in locations."
-            "The group of current stimuli has the label 'label'.")
+             [](arb::decor& dec, const char* locset, const arb::i_clamp& stim) -> auto& {
+                 return dec.place(arborio::parse_locset_expression(locset).unwrap(), stim);
+             },
+             py::return_value_policy::reference_internal,
+             "locations"_a, "i_clamp"_a,
+             "Add a current stimulus at each location in locations."
+             "The group of current stimuli has the label 'label'.")
         // Place spike detector.
         .def("place",
-            [](arb::decor& dec, const char* locset, const arb::threshold_detector& d, const char* label_name) {
-                return dec.place(arborio::parse_locset_expression(locset).unwrap(), d, label_name);
-            },
-            "locations"_a, "detector"_a, "label"_a,
-            "Add a voltage spike detector at each location in locations."
-            "The group of spike detectors has the label 'label', used for forming connections between cells.");
+             [](arb::decor& dec, const char* locset, const arb::threshold_detector& d, const char* label_name) -> auto& {
+                 return dec.place(arborio::parse_locset_expression(locset).unwrap(), d, label_name);
+             },
+             py::return_value_policy::reference_internal,
+             "locations"_a, "detector"_a, "label"_a,
+             "Add a voltage spike detector at each location in locations."
+                 "The group of spike detectors has the label 'label', used for forming connections between cells.")
+        // overloads for raw locsets
+        .def("place",
+             [](arb::decor& dec, const arb::locset& locset, const arb::synapse& mechanism, const char* label_name)  -> auto& {
+                 return dec.place(locset, mechanism, label_name);
+             },
+             py::return_value_policy::reference_internal,
+             "locations"_a, "synapse"_a, "label"_a,
+             "Place one instance of 'synapse' on each location in 'locations'."
+             "The group of synapses has the label 'label', used for forming connections between cells.")
+        // Place gap junctions.
+        .def("place",
+             [](arb::decor& dec, const arb::locset& locset, const arb::junction& mechanism, const char* label_name)  -> auto& {
+                 return dec.place(locset, mechanism, label_name);
+             },
+             py::return_value_policy::reference_internal,
+             "locations"_a, "junction"_a, "label"_a,
+             "Place one instance of 'junction' on each location in 'locations'."
+             "The group of junctions has the label 'label', used for forming gap-junction connections between cells.")
+        // Place current clamp stimulus.
+        .def("place",
+             [](arb::decor& dec, const arb::locset& locset, const arb::i_clamp& stim) -> auto& {
+                 return dec.place(locset, stim);
+             },
+             py::return_value_policy::reference_internal,
+             "locations"_a, "i_clamp"_a,
+             "Add a current stimulus at each location in locations."
+             "The group of current stimuli has the label 'label'.")
+        // Place spike detector.
+        .def("place",
+             [](arb::decor& dec, const arb::locset& locset, const arb::threshold_detector& d, const char* label_name) -> auto& {
+                 return dec.place(locset, d, label_name);
+             },
+             py::return_value_policy::reference_internal,
+             "locations"_a, "detector"_a, "label"_a,
+             "Add a voltage spike detector at each location in locations."
+             "The group of spike detectors has the label 'label', used for forming connections between cells.");
+
     cable_cell
         .def(py::init(
             [](const arb::morphology& m, const arb::decor& d, const std::optional<::pyarb::label_dict>& l, const std::optional<arb::cv_policy>& p) {
