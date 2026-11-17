@@ -14,7 +14,6 @@
 #include "util/dylib.hpp"
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
-#include "util/span.hpp"
 #include "util/strprintf.hpp"
 
 /* Notes on implementation:
@@ -268,8 +267,8 @@ struct catalogue_state {
     // Construct derived mechanism based on existing parent mechanism and overrides.
     hopefully<derivation> derive(
         const std::string& name, const std::string& parent,
-        const std::vector<std::pair<std::string, double>>& global_params,
-        const std::vector<std::pair<std::string, std::string>>& ion_remap_vec) const
+        const flat_map<std::string, double>& global_params,
+        const flat_map<std::string, std::string>& ion_remap_vec) const
     {
         if (defined(name)) {
             return unexpected_exception_ptr(duplicate_mechanism(name));
@@ -368,8 +367,8 @@ struct catalogue_state {
         bool single_ion = info->ions.size()==1u;
         auto is_ion = [&info](const std::string& name) -> bool { return info->ions.count(name); };
 
-        std::vector<std::pair<std::string, double>> global_params;
-        std::vector<std::pair<std::string, std::string>> ion_remap;
+        flat_map<std::string, double> global_params;
+        flat_map<std::string, std::string> ion_remap;
 
         while (!suffix.empty()) {
             std::string assign;
@@ -567,10 +566,10 @@ const mechanism_fingerprint& mechanism_catalogue::fingerprint(const std::string&
     return *value(state_->fingerprint_ptr(name));
 }
 
-void mechanism_catalogue::derive(const std::string& name, const std::string& parent,
-    const std::vector<std::pair<std::string, double>>& global_params,
-    const std::vector<std::pair<std::string, std::string>>& ion_remap_vec)
-{
+void mechanism_catalogue::derive(const std::string& name,
+                                 const std::string& parent,
+                                 const flat_map<std::string, double>& global_params,
+                                 const flat_map<std::string, std::string>& ion_remap_vec) {
     state_->bind(name, value(state_->derive(name, parent, global_params, ion_remap_vec)));
 }
 

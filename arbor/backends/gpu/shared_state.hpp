@@ -213,7 +213,7 @@ struct ARB_ARBOR_API shared_state: shared_state_base<shared_state, array, ion_st
     unsigned instantiate(mechanism&,
                          const mechanism_overrides&,
                          const mechanism_layout&,
-                         const std::vector<std::pair<std::string, std::vector<arb_value_type>>>&);
+                         const flat_map<std::string, std::vector<arb_value_type>>&);
 
     void update_prng_state(mechanism&);
 

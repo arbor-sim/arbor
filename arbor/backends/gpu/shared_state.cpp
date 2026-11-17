@@ -207,7 +207,7 @@ void shared_state::update_prng_state(mechanism& m) {
 unsigned shared_state::instantiate(mechanism& m,
                                    const mechanism_overrides& overrides,
                                    const mechanism_layout& pos_data,
-                                   const std::vector<std::pair<std::string, std::vector<arb_value_type>>>& params) {
+                                   const flat_map<std::string, std::vector<arb_value_type>>& params) {
     assert(m.iface_.backend == arb_backend_kind_gpu);
     using util::make_range;
     using util::make_span;
