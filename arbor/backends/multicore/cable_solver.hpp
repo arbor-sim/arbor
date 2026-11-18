@@ -47,7 +47,7 @@ namespace {
             auto lo = s_[idx];
             auto hi = s_[idx + 1];
             if (lo >= hi) continue;
-            if (d_[lo] == 0) continue;
+            arb_assert(d_[lo] != 0);
             // Solve system
             // backward sweep
             for(int i = hi - 1; i > lo; --i) {
@@ -61,7 +61,7 @@ namespace {
             auto lo = s_[idx];
             auto hi = s_[idx + 1];
             if (lo >= hi) continue;
-            if (d_[lo] == 0) continue;
+            arb_assert(d_[lo] != 0);
             // solve root
             r_[lo] /= d_[lo];
             // forward sweep
@@ -116,7 +116,7 @@ struct cable_solver {
                 const auto gij = cond[i];
                 u[i] = -gij;
                 invariant_d[i] += gij;
-                if (auto pi= p[i]; pi != -1) invariant_d[pi] += gij;
+                if (auto pi = p[i]; pi != -1) invariant_d[pi] += gij;
             }
         }
     }
@@ -153,21 +153,22 @@ struct cable_solver {
 
         const auto cell_cv_part = util::partition_view(cell_cv_divs);
         for (const auto& [first, last]: cell_cv_part) {
-            if (first < last && d_[first] != 0) {  // skip vacuous cells
-                // backward sweep
-                for(int i = last - 1; i > first; --i) {
-                    const auto factor = u_[i] / d_[i];
-                    const auto pi = p_[i];
-                    d_[pi] -= factor * u_[i];
-                    r_[pi] -= factor * r_[i];
-                }
-                // solve root
-                r_[first] /= d_[first];
-                // forward sweep
-                for(int i = first + 1; i < last; ++i) {
-                    r_[i] -= u_[i] * r_[p_[i]];
-                    r_[i] /= d_[i];
-                }
+            // skip vacuous cells
+            if (first >= last) continue;
+            arb_assert(d[first] != 0);
+            // backward sweep
+            for(int i = last - 1; i > first; --i) {
+                const auto factor = u_[i] / d_[i];
+                const auto pi = p_[i];
+                d_[pi] -= factor * u_[i];
+                r_[pi] -= factor * r_[i];
+            }
+            // solve root
+            r_[first] /= d_[first];
+            // forward sweep
+            for(int i = first + 1; i < last; ++i) {
+                r_[i] -= u_[i] * r_[p_[i]];
+                r_[i] /= d_[i];
             }
         }
     }
