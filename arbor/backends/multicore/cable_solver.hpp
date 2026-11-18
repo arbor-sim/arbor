@@ -116,7 +116,7 @@ struct cable_solver {
                 const auto gij = cond[i];
                 u[i] = -gij;
                 invariant_d[i] += gij;
-                if (auto pi= p[i]; pi != -1) invariant_d[pi] += gij;
+                if (auto pi = p[i]; pi != -1) invariant_d[pi] += gij;
             }
         }
     }

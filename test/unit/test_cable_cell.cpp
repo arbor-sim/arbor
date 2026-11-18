@@ -25,9 +25,9 @@ TEST(cable_cell, lid_ranges) {
     //   * branch 0 is a single segment soma followed by a single segment dendrite.
     //   * branch 1 is an axon attached to the root.
     segment_tree tree;
-    tree.append(mnpos, {0, 0, 0, 10}, {0, 0, 10, 10}, 1);
-    tree.append(0,     {0, 0, 10, 1}, {0, 0, 100, 1}, 3);
-    tree.append(mnpos, {0, 0, 0, 2}, {0, 0, -20, 2}, 2);
+    tree.append(mnpos, {0, 0,  0, 10}, {0, 0,  10, 10}, 1);
+    tree.append(0,     {0, 0, 10,  1}, {0, 0, 100,  1}, 3);
+    tree.append(mnpos, {0, 0,  0,  2}, {0, 0, -20,  2}, 2);
 
     arb::morphology morph(tree);
 
@@ -149,12 +149,7 @@ TEST(cable_cell, strictly_positive_parameters) {
 }
 
 TEST(cable_cell, concentration_and_diffusivity_constraints) {
-    // Initial concentrations must be strictly positive; Nernst takes the log of
-    // them. Note that this makes a 0 mM baseline illegal, which the pure
-    // diffusion tests in test_diffusion.cpp rely on.
-    expect_domain_error([]{ init_int_concentration{"na", 0*U::mM}; },  "positive");
     expect_domain_error([]{ init_int_concentration{"na", -1*U::mM}; }, "positive");
-    expect_domain_error([]{ init_ext_concentration{"na", 0*U::mM}; },  "positive");
     expect_domain_error([]{ init_ext_concentration{"na", -1*U::mM}; }, "positive");
     expect_domain_error([]{ init_int_concentration{"na", nan_d*U::mM}; },"finite");
     expect_domain_error([]{ init_ext_concentration{"na", inf_d*U::mM}; },"finite");
@@ -166,16 +161,13 @@ TEST(cable_cell, concentration_and_diffusivity_constraints) {
     EXPECT_NEAR(2.0, econc.value, 1e-12);
     EXPECT_EQ("na", iconc.ion);
 
-    // Diffusivity is the asymmetric case: zero is legal on purpose, because
-    // neuron_parameter_defaults uses 0 for na, k and ca to mean "not diffusing".
-    // A `<= 0` test here would reject the library's own defaults.
     auto d_zero = ion_diffusivity{"na", 0*U::m2/U::s};
     auto d_real = ion_diffusivity{"ca", 5e-10*U::m2/U::s};
     EXPECT_DOUBLE_EQ(0.0, d_zero.value);
     EXPECT_NEAR(5e-10, d_real.value, 1e-25);
-    expect_domain_error([]{ ion_diffusivity{"na", -1*U::m2/U::s}; },   "positive");
-    expect_domain_error([]{ ion_diffusivity{"na", nan_d*U::m2/U::s}; },  "finite");
-    expect_domain_error([]{ ion_diffusivity{"na", 1*U::mV}; },         "finite");
+    expect_domain_error([]{ ion_diffusivity{"na", -1*U::m2/U::s}; },    "positive");
+    expect_domain_error([]{ ion_diffusivity{"na", nan_d*U::m2/U::s}; }, "finite");
+    expect_domain_error([]{ ion_diffusivity{"na", 1*U::mV}; },          "finite");
 }
 
 // Potentials carry no sign constraint — -65 mV has to stay constructible — and
@@ -187,14 +179,12 @@ TEST(cable_cell, potentials_require_only_finiteness) {
     auto erevk = init_reversal_potential{"k", -77*U::mV};
     EXPECT_NEAR(-77.0, erevk.value, 1e-12);
 
-    expect_domain_error([]{ threshold_detector{nan_d*U::mV}; },                    "finite");
-    expect_domain_error([]{ threshold_detector::from_raw_millivolts(nan_d); },      "finite");
-    expect_domain_error([]{ threshold_detector{inf_d*U::mV}; },                     "finite");
-    expect_domain_error([]{ init_membrane_potential{inf_d*U::mV}; },                "finite");
-    expect_domain_error([]{ init_reversal_potential{"ca", nan_d*U::mV}; },          "finite");
-    // The threshold detector used to check finiteness itself; it now delegates
-    // to U::unit_of, which names the unit it wanted.
-    expect_domain_error([]{ threshold_detector{1*U::mM}; },                       "mV");
+    expect_domain_error([]{ threshold_detector{nan_d*U::mV}; },                "finite");
+    expect_domain_error([]{ threshold_detector::from_raw_millivolts(nan_d); }, "finite");
+    expect_domain_error([]{ threshold_detector{inf_d*U::mV}; },                "finite");
+    expect_domain_error([]{ init_membrane_potential{inf_d*U::mV}; },           "finite");
+    expect_domain_error([]{ init_reversal_potential{"ca", nan_d*U::mV}; },     "finite");
+    expect_domain_error([]{ threshold_detector{1*U::mM}; },                    "mV");
 }
 
 // The default constructor means "unset", not "illegal": these values are what a

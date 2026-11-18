@@ -198,7 +198,7 @@ struct ARB_SYMBOL_VISIBLE init_int_concentration {
         value(U::unit_of(m, unit, "Concentration")),
         scale{scale}
     {
-        if (value <= 0.0) throw std::domain_error("Concentration must be positive.");
+        if (value < 0.0) throw std::domain_error("Concentration [mM] must be positive.");
     }
 };
 

@@ -262,10 +262,16 @@ fvm_cv_discretize(const cable_cell& cell,
     D.temperature_K.resize(n_cv);
     D.diam_um.resize(n_cv);
 
-    double dflt_resistivity = *(dflt.axial_resistivity       | global_dflt.axial_resistivity);
-    double dflt_capacitance = *(dflt.membrane_capacitance    | global_dflt.membrane_capacitance);
-    double dflt_potential   = *(dflt.init_membrane_potential | global_dflt.init_membrane_potential);
-    double dflt_temperature = *(dflt.temperature_K           | global_dflt.temperature_K);
+    auto get_default = [](const auto& d, const auto& g, const auto& l) {
+        auto val = (d | g).value_or(std::nan(""));
+        if (std::isfinite(val)) return val;
+        throw make_cc_error("{} must have usable a default value.", l);
+    };
+
+    double dflt_resistivity = get_default(dflt.axial_resistivity,        global_dflt.axial_resistivity,       "Resistivity");
+    double dflt_capacitance = get_default(dflt.membrane_capacitance,     global_dflt.membrane_capacitance,    "Capacitance");
+    double dflt_potential   = get_default(dflt.init_membrane_potential,  global_dflt.init_membrane_potential, "Membrane potential");
+    double dflt_temperature = get_default(dflt.temperature_K,            global_dflt.temperature_K,           "Temperature");
 
     const auto& resistivity   = cell.axial_resistivities();
     const auto& capacitance   = cell.membrane_capacitances();
