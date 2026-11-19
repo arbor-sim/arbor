@@ -12,7 +12,9 @@
 #include "visitor.hpp"
 
 // normalize row iff system is larger than this
-constexpr int normalization_limit = 5;
+constexpr int nonlinear_normalization_limit =  5;
+constexpr int linear_normalization_limit    =  5;
+constexpr int sparse_normalization_limit    = 15;
 
 // Cnexp solver visitor implementation.
 
@@ -487,7 +489,7 @@ void SparseSolverVisitor::finalize() {
         }
 
         // If size of system > limit normalize the row updates
-        if (system_.size() > normalization_limit) {
+        if (system_.size() > sparse_normalization_limit) {
             auto norm_term = system_.generate_normalizing_term(block_scope_, row);
             auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
 
@@ -726,7 +728,7 @@ void LinearSolverVisitor::finalize() {
         }
 
         // If size of system > limit normalize the row updates
-        if (system_.size() > normalization_limit) {
+        if (system_.size() > linear_normalization_limit) {
             auto norm_term = system_.generate_normalizing_term(block_scope_, row);
             auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
 
@@ -949,7 +951,7 @@ void SparseNonlinearSolverVisitor::finalize() {
         }
 
         // If size of system > limit normalize the row updates
-        if (system_.size() > normalization_limit) {
+        if (system_.size() > nonlinear_normalization_limit) {
             auto norm_term = system_.generate_normalizing_term(block_scope_, row);
             auto norm_assigns = system_.generate_normalizing_assignments(norm_term.id->clone(), row);
 
