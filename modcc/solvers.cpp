@@ -79,8 +79,8 @@ void CnexpSolverVisitor::visit(AssignmentExpression *e) {
         // s' = a*s becomes s = s*exp(a*dt); use a_ as a local variable for the
         // coefficient.
         auto a_ = append_local(coef, "a_", statements_);
-        auto s_update = fmt::format("{} = {}*exp_pade_11({}*dt)",
-                                    s, s, a_);
+        auto s_update = fmt::format("{} = {}*(2 + {}*dt)/(2 - {}*dt)",
+                                     s,    s,      a_,          a_);
         statements_.push_back(Parser{s_update}.parse_line_expression());
         return;
     }
@@ -100,28 +100,29 @@ void CnexpSolverVisitor::visit(AssignmentExpression *e) {
         // straight to simplified update: s = b + (s-b)*exp(-dt/a).
 
         // Check for 'gating' case:
-        if (rhs->is_binary() && rhs->is_binary()->op()==tok::divide) {
-            auto denom = rhs->is_binary()->rhs();
+        if (auto bin = rhs->is_binary(); bin && bin->op() == tok::divide) {
+            auto denom = bin->rhs();
             if (involves_identifier(denom, s)) goto not_gating;
-            auto numer = rhs->is_binary()->lhs();
+            auto numer = bin->lhs();
             auto res   = linear_test(numer, {s});
             if (expr_value(res.coef[s]) != -1) goto not_gating;
 
             auto a_ = append_local(denom,        "a_", statements_);
             auto b_ = append_local(res.constant, "b_", statements_);
-            auto s_update = fmt::format("{} = {} + ({} - {})*exp_pade_11(-dt/{})",
-                                        s, b_, s, b_, a_);
+
+            auto s_update = fmt::format("{} = ({}*(2*{} - dt) + 2*{}*dt) / (2*{} + dt)",
+                                         s,    s,    a_,          b_,         a_);
             statements_.push_back(Parser{s_update}.parse_line_expression());
             return;
         }
-
+// Actually the 'default case'
 not_gating:
         auto a_ = append_local(coef,       "a_", statements_);
         auto b_ = append_local(r.constant, "b_", statements_);
         // Pade folded and simplified; this removes the b/a division which was
         // mentioned as problematic above and keeps only the one from Pade.
         auto s_update = fmt::format("{} = ({}*(2 + {}*dt) + 2*{}*dt)/(2 - {}*dt)",
-                                    s, s, a_, b_, a_);
+                                     s,    s,      a_,        b_,         a_);
         statements_.push_back(Parser{s_update}.parse_line_expression());
         return;
     }
