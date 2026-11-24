@@ -453,6 +453,8 @@ TEST(spike_exchange, automatic_levels) {
 // Merging sorted runs must give the same as a stable sort of the whole buffer.
 TEST(spike_exchange, merge_sorted_runs) {
     std::mt19937 rng(42);
+    // Reused across calls, as in the router.
+    std::vector<spike> buffer;
     for (unsigned num_runs: {0u, 1u, 2u, 3u, 7u, 38u}) {
         std::vector<spike> spikes;
         std::vector<std::size_t> runs;
@@ -466,7 +468,7 @@ TEST(spike_exchange, merge_sorted_runs) {
         }
         auto expected = spikes;
         std::stable_sort(expected.begin(), expected.end(), [](const spike& a, const spike& b) { return a.source < b.source; });
-        merge_sorted_runs(spikes, runs);
+        merge_sorted_runs(spikes, runs, buffer);
         EXPECT_EQ(expected, spikes) << num_runs << " runs";
     }
 }

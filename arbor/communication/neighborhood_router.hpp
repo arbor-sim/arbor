@@ -31,7 +31,8 @@ ARB_ARBOR_API unsigned period_class(std::size_t period);
 // Sort spikes by source, given that they consist of runs that are already
 // sorted by source, starting at the given offsets. Merges the runs pairwise in
 // log2(runs) passes, which keeps spikes from the same source in run order.
-ARB_ARBOR_API void merge_sorted_runs(std::vector<spike>& spikes, std::vector<std::size_t> runs);
+// The buffer is scratch space; it may be swapped with spikes.
+ARB_ARBOR_API void merge_sorted_runs(std::vector<spike>& spikes, std::vector<std::size_t> runs, std::vector<spike>& buffer);
 
 // Implements neighborhood_spike_exchange.
 //
@@ -85,6 +86,8 @@ private:
         // Spikes held back, one run sorted by source per epoch, starting at the offsets in runs.
         std::vector<spike> pending;
         std::vector<std::size_t> runs;
+        // Scratch space for merging the runs, kept to reuse its allocation.
+        std::vector<spike> merge_buffer;
 
         void clear() {
             pending.clear();

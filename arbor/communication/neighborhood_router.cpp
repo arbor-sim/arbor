@@ -21,18 +21,28 @@ std::size_t exchange_period(time_type delay, time_type interval) {
     return ratio > 2 ? std::size_t(ratio) - 1 : 1;
 }
 
-void merge_sorted_runs(std::vector<spike>& spikes, std::vector<std::size_t> runs) {
+void merge_sorted_runs(std::vector<spike>& spikes, std::vector<std::size_t> runs, std::vector<spike>& buffer) {
     auto by_source = [](const spike& a, const spike& b) { return a.source < b.source; };
     // Boundaries of the runs; merge neighbouring pairs until a single run is left.
+    // Each pass merges from spikes into buffer, then swaps the two; std::merge is
+    // faster than std::inplace_merge, see ubench/merge_sorted_runs.
     runs.push_back(spikes.size());
+    buffer.resize(spikes.size());
     while (runs.size() > 2) {
         std::vector<std::size_t> merged{runs.front()};
-        for (std::size_t i = 0; i + 2 < runs.size(); i += 2) {
-            std::inplace_merge(spikes.begin() + runs[i], spikes.begin() + runs[i + 1], spikes.begin() + runs[i + 2], by_source);
+        std::size_t i = 0;
+        for (; i + 2 < runs.size(); i += 2) {
+            std::merge(spikes.begin() + runs[i], spikes.begin() + runs[i + 1],
+                       spikes.begin() + runs[i + 1], spikes.begin() + runs[i + 2],
+                       buffer.begin() + runs[i], by_source);
             merged.push_back(runs[i + 2]);
         }
         // With an odd number of runs, the last one is merged in the next pass.
-        if (runs.size() % 2 == 0) merged.push_back(runs.back());
+        if (i + 1 < runs.size()) {
+            std::copy(spikes.begin() + runs[i], spikes.begin() + runs[i + 1], buffer.begin() + runs[i]);
+            merged.push_back(runs[i + 1]);
+        }
+        std::swap(spikes, buffer);
         runs = std::move(merged);
     }
 }
@@ -218,7 +228,7 @@ neighborhood_router::exchange(const std::vector<spike>& local_spikes, std::optio
         }
 
         PE(merge);
-        merge_sorted_runs(lvl.pending, lvl.runs);
+        merge_sorted_runs(lvl.pending, lvl.runs, lvl.merge_buffer);
         PL(merge);
         if (lvl.neighbors) {
             PE(neighborhood);
