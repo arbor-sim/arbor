@@ -84,7 +84,8 @@ or which lets arbor choose the levels from the connection delays:
 
 All ranks must choose the same kind of exchange. Within a neighbourhood, spikes are
 exchanged with ``MPI_Neighbor_allgatherv``, which sends every spike with targets in the
-neighbourhood to all of its ranks.
+neighbourhood to all of its ranks; see the :ref:`developer documentation
+<neighborhood_exchange>` for details.
 
 :cpp:func:`simulation::spike_exchange_levels` returns the levels in use on the calling
 rank, given or automatic, as a :cpp:class:`spike_exchange_level` each. The example in

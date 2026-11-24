@@ -222,6 +222,106 @@ The ``from_remote`` vector contains spikes received from external
 simulators when co-simulation is enabled. These spikes are handled
 separately from the internal MPI spike exchange.
 
+.. _neighborhood_exchange:
+
+Neighbourhood Spike Exchange
+============================
+
+With a :ref:`neighbourhood spike exchange <modelspikeexchange>`, ``communicator::exchange``
+hands the local spikes to a ``neighborhood_router`` instead of exchanging them with
+``MPI_Alltoallv`` right away. The router returns the same ``gathered_vector`` partitioned by
+source rank, so everything after the exchange, including ``make_event_queues``, is unchanged.
+
+Levels
+------
+
+Each rank splits the ranks it receives spikes from into levels:
+
+* itself, which needs no communication,
+* one level per neighbourhood, each with its own MPI communicator,
+* the far level with all remaining ranks.
+
+Each source rank is in exactly one level of each receiver: a rank listed in several
+neighbourhoods belongs to the first. So every spike arrives exactly once and no
+deduplication is needed. Levels need not be symmetric: rank A may receive from B in a
+neighbourhood while B receives from A in the far level. The router therefore keeps two
+tables per rank, the level in which it receives from each rank (``recv_level_``), and the
+level in which it sends to each rank (``send_level_``), which follows from the destinations
+of the neighbourhood communicators.
+
+Exchange Periods
+----------------
+
+Level :math:`L` is exchanged every :math:`p_L` epochs, with
+
+.. math::
+
+    p_L = \max\left(1, \left\lfloor \frac{D_L}{\Delta} \right\rfloor - 1\right),
+
+where :math:`\Delta` is the epoch length and :math:`D_L` the minimum delay of the
+connections in the level over all ranks (``exchange_period``). A spike from epoch
+:math:`e` is exchanged after epoch :math:`e + p_L - 1` at the latest, and becomes an event in
+epoch :math:`e + p_L + 1`, which starts at most :math:`(p_L + 1)\Delta` after the spike. Since
+:math:`(p_L + 1)\Delta \le D_L`, the event is on time. The ratio is reduced by a relative
+:math:`10^{-6}` before rounding down, because delays are stored as ``float``. Using the global
+minimum delay makes all ranks call the collective of a level in the same epochs.
+
+The periods are computed in ``neighborhood_router::update``, which ``communicator::schedule_exchange``
+calls whenever the connections change. ``update`` also builds a route for each local source:
+the levels its spikes are sent in, and the ranks with connections from it.
+
+Buffering and Exchange
+----------------------
+
+``neighborhood_router::exchange`` is called once per epoch with that epoch's local spikes,
+sorted by source. It appends the spikes of each source to the pending buffer of every level
+in its route. The buffer of a level is thus a sequence of runs, one per epoch, each sorted by
+source. When a level is due, its runs are merged pairwise (``merge_sorted_runs``) and the
+buffer is sent:
+
+* a neighbourhood with ``MPI_Neighbor_allgatherv``, which sends every buffered spike to all
+  ranks of the neighbourhood;
+* the far level with the ``MPI_Alltoallv`` exchange described above. The spikes are binned
+  by the far ranks with connections from their source, and each bin stays sorted by source.
+
+The spikes received in all levels, plus the local ones, are then copied into one
+``gathered_vector`` partitioned by source rank.
+
+The last exchange of each ``simulation::run`` is called without an epoch, and flushes all
+levels. The global spike count needs a reduction, so it is only updated then.
+
+Neighbourhood Communicators
+---------------------------
+
+``distributed_context::make_neighborhood`` creates a ``distributed_neighborhood`` from the
+ranks the calling rank receives from. It is collective. The MPI implementation creates an
+``MPI_Dist_graph`` communicator. Each rank only knows its sources, so the destinations are
+first found with an ``MPI_Alltoall`` of flags, followed by ``MPI_Dist_graph_create_adjacent``.
+``MPI_Dist_graph_create``, which takes only the sources, would avoid the extra collective, but
+it hangs with Open MPI 5.0.10. The local and dry-run contexts provide their own implementations.
+
+Creating a communicator is expensive. When the levels are recomputed, a neighbourhood is kept
+if its ranks are unchanged on all ranks, which needs one reduction per neighbourhood.
+
+Automatic Levels
+----------------
+
+With automatic levels, ``update`` first chooses the neighbourhoods from the minimum delay of
+the connections from each rank. Every source rank gets the class
+:math:`\lfloor \log_2 p \rfloor` of the period :math:`p` its delay allows. With :math:`K` the
+largest class over all ranks, classes :math:`0` to :math:`K - 1` become neighbourhoods, and
+class :math:`K` the far level.
+
+Validation
+----------
+
+All ranks must make the same sequence of collective calls, so all must choose the same kind of
+exchange and the same number of neighbourhoods. The router checks this on construction, and
+also checks locally that all ranks are in range and that no rank is listed twice in a
+neighbourhood. If one rank threw alone, the others would wait in the next collective, so a
+rank that failed a local check sends ``INT_MIN`` in place of its number of neighbourhoods
+(automatic counts as -1), and a ``min`` and a ``max`` reduction decide for all ranks together.
+
 .. _event_distribution:
 
 Distribution of Events to Targets

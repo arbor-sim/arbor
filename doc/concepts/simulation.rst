@@ -69,7 +69,8 @@ with uniform delays, the neighbourhood exchange brings no benefit.
 
 The method and its performance are described in `Scalable Spike Transmission in
 Large-Scale Brain Network Simulations <https://doi.org/10.1109/ipdps65963.2026.00034>`_
-(IPDPS 2026).
+(IPDPS 2026). How spikes are exchanged internally, by default and with neighbourhoods, is
+described in the :ref:`developer documentation <communication>`.
 
 The levels can be given by the user or chosen by arbor:
 
