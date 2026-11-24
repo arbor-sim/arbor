@@ -106,7 +106,7 @@ TEST(dry_run_spike_exchange, neighborhoods) {
     // Levels of rank 0; the other ranks' levels are the same, shifted by their rank.
     const std::vector<std::pair<std::string, std::vector<std::vector<int>>>> shapes = {
         {"none",      {}},
-        {"nested",    {{ring(-1), ring(1)}, {ring(-2), ring(-1), ring(1), ring(2)}}},
+        {"rings",     {{ring(-1), ring(1)}, {ring(-2), ring(2)}}},
         {"successor", {{ring(1)}}},
         {"everyone",  {{0, 1, 2, 3, 4, 5, 6}}},
     };

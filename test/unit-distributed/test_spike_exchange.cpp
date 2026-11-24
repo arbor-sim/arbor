@@ -79,16 +79,14 @@ int ring_rank(int rank, int offset, int num_ranks) {
     return ((rank + offset)%num_ranks + num_ranks)%num_ranks;
 }
 
-// Neighbourhoods of each rank on a ring: nested, the next {-1, +1}, then the next {-2, ..., +2}.
-std::vector<std::vector<int>> nested_rings(int rank, int num_ranks) {
-    std::vector<std::vector<int>> levels = {
-        {ring_rank(rank, -1, num_ranks), ring_rank(rank, 1, num_ranks)},
-        {ring_rank(rank, -2, num_ranks), ring_rank(rank, -1, num_ranks),
-         ring_rank(rank,  1, num_ranks), ring_rank(rank,  2, num_ranks)}};
-    // On small rings, the offsets reach the same rank; a level must not list it twice.
-    for (auto& level: levels) {
-        std::sort(level.begin(), level.end());
-        level.erase(std::unique(level.begin(), level.end()), level.end());
+// Neighbourhoods of each rank on a ring: the next {-1, +1}, then the next but one {-2, +2}.
+std::vector<std::vector<int>> rings(int rank, int num_ranks) {
+    // On small rings, the offsets reach the same rank, which must be listed only once.
+    std::vector<std::vector<int>> levels(2);
+    std::set<int> listed;
+    for (int offset: {-1, 1, -2, 2}) {
+        auto r = ring_rank(rank, offset, num_ranks);
+        if (listed.insert(r).second) levels[std::abs(offset) - 1].push_back(r);
     }
     return levels;
 }
@@ -129,7 +127,7 @@ using neighborhood_fn = std::vector<std::vector<int>>(*)(int, int);
 
 std::vector<std::pair<std::string, neighborhood_fn>> neighborhood_shapes() {
     return {{"none",      [](int, int) { return std::vector<std::vector<int>>{}; }},
-            {"nested",    nested_rings},
+            {"rings",     rings},
             {"successor", successor},
             {"everyone",  everyone}};
 }
@@ -229,13 +227,20 @@ TEST(spike_exchange, invalid_options) {
             ? neighborhood_spike_exchange::automatic()
             : neighborhood_spike_exchange{{}};
         EXPECT_THROW(simulation(rec, g_context, decomp, 0, automatic), arbor_exception);
-        // A rank must not be listed twice in a level, even if only one rank does so.
-        auto twice = std::vector<std::vector<int>>{{1}};
-        if (g_context->distributed->id() == 0) twice[0].push_back(1);
-        EXPECT_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{twice}), arbor_exception);
+        // A rank must not be listed twice, in the same level or in different ones,
+        // even if only one rank does so.
+        auto same_level = std::vector<std::vector<int>>{{1}, {}};
+        auto other_level = std::vector<std::vector<int>>{{1}, {}};
+        if (g_context->distributed->id() == 0) {
+            same_level[0].push_back(1);
+            other_level[1].push_back(1);
+        }
+        EXPECT_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{same_level}), arbor_exception);
+        EXPECT_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{other_level}), arbor_exception);
     }
-    // A rank listed in more than one level is fine: it belongs to the first.
-    EXPECT_NO_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{{{0}, {0}}}));
+    // The calling rank is ignored, so it may be listed in several levels.
+    const int rank = g_context->distributed->id();
+    EXPECT_NO_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{{{rank}, {rank}}}));
 }
 
 // Exchanged in epoch e, spikes become events in epoch e+2. Check that held back

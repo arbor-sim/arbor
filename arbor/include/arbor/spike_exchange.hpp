@@ -35,9 +35,8 @@ public:
     neighborhood_spike_exchange() = delete;
 
     // Ranks this rank receives spikes from, grouped into levels, innermost
-    // first. A rank must not be listed twice in the same level. A rank listed
-    // in more than one level belongs to the first, so nested levels, where each
-    // level repeats the previous one, are fine. The calling rank is ignored.
+    // first. The levels must be disjoint: no rank may be listed more than once,
+    // in the same level or in different ones. The calling rank is ignored.
     //
     // Without any levels, all other ranks are far ranks: only the delay-aware
     // buffering is used, which still saves collectives if the delays between

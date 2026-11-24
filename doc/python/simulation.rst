@@ -236,9 +236,9 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
     .. function:: neighborhood_spike_exchange(neighborhoods)
 
         The ranks this rank receives spikes from, as a list of neighbourhoods, each a list of
-        ranks, innermost first. No rank may be listed twice in one neighbourhood; a rank listed
-        in several belongs to the first. The calling rank is ignored. All ranks must pass the
-        same number of neighbourhoods.
+        ranks, innermost first. The neighbourhoods must be disjoint: no rank may be listed more
+        than once. The calling rank is ignored. All ranks must pass the same number of
+        neighbourhoods.
 
     .. staticmethod:: off()
 

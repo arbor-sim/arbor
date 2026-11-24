@@ -223,9 +223,8 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
         .def(py::init<std::vector<std::vector<int>>>(),
              "neighborhoods"_a,
              "Construct from the ranks this rank receives spikes from, grouped into levels,\n"
-             "innermost first. A rank must not be listed twice in a level; a rank listed in\n"
-             "more than one level belongs to the first. The calling rank is ignored. Every\n"
-             "rank must pass the same number of levels.")
+             "innermost first. The levels must be disjoint: no rank may be listed more than\n"
+             "once. The calling rank is ignored. Every rank must pass the same number of levels.")
         .def_static("off", &arb::neighborhood_spike_exchange::off,
              "The default exchange after every epoch.")
         .def_static("automatic", &arb::neighborhood_spike_exchange::automatic,

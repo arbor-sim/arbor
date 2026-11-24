@@ -76,10 +76,9 @@ The levels can be given by the user or chosen by arbor:
 
 Given levels
     Each rank lists the ranks it receives spikes from, grouped into neighbourhoods,
-    innermost first. All ranks must list the same number of neighbourhoods, and no rank
-    may appear twice in the same neighbourhood. A rank may appear in several
-    neighbourhoods; it then belongs to the first of them. This allows nested levels, where
-    each level repeats the ranks of the previous one. The calling rank itself is ignored.
+    innermost first. All ranks must list the same number of neighbourhoods, and the
+    neighbourhoods must be disjoint: no rank may appear more than once. The calling rank
+    itself is ignored.
     All ranks not listed are far ranks. Even without any neighbourhoods, buffering the far
     spikes saves global exchanges if the delays between ranks exceed the minimum delay.
 

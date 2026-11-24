@@ -100,9 +100,8 @@ rank, given or automatic, as a :cpp:class:`spike_exchange_level` each. The examp
     .. cpp:function:: explicit neighborhood_spike_exchange(std::vector<std::vector<int>> neighborhoods)
 
         The ranks this rank receives spikes from, grouped into neighbourhoods, innermost
-        first. No rank may be listed twice in one neighbourhood; a rank listed in several
-        belongs to the first. The calling rank is ignored. All ranks must pass the same
-        number of neighbourhoods.
+        first. The neighbourhoods must be disjoint: no rank may be listed more than once. The
+        calling rank is ignored. All ranks must pass the same number of neighbourhoods.
 
     .. cpp:function:: static neighborhood_spike_exchange off()
 

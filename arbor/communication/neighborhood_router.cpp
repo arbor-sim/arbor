@@ -54,12 +54,15 @@ neighborhood_router::neighborhood_router(const neighborhood_spike_exchange& opti
     arb_assert(!options.is_off());
     // The checks are local, but every rank must throw if any rank fails one,
     // so that no rank is left waiting in a collective.
+    // Every rank must be in range and in at most one neighbourhood; the
+    // calling rank is ignored.
     bool valid = true;
+    std::vector<char> listed(num_domains_, 0);
     for (const auto& neighborhood: options.neighborhoods()) {
-        auto ranks = neighborhood;
-        util::sort(ranks);
-        valid &= std::adjacent_find(ranks.begin(), ranks.end()) == ranks.end();
-        valid &= ranks.empty() || (ranks.front() >= 0 && ranks.back() < num_domains_);
+        for (auto r: neighborhood) {
+            if (r < 0 || r >= num_domains_) valid = false;
+            else if (r != rank_) valid &= !std::exchange(listed[r], 1);
+        }
     }
     // All ranks must agree on the kind of exchange: automatic levels count as
     // -1 neighbourhoods, and a rank that failed a local check sends the lowest
@@ -68,7 +71,7 @@ neighborhood_router::neighborhood_router(const neighborhood_spike_exchange& opti
     const int kind = !valid? invalid: automatic_? -1: int(options.neighborhoods().size());
     const int min_kind = dist_->min(kind);
     if (min_kind == invalid) {
-        throw arbor_exception("neighborhood_spike_exchange: rank out of range or listed twice in a neighborhood.");
+        throw arbor_exception("neighborhood_spike_exchange: rank out of range or listed more than once.");
     }
     if (min_kind != dist_->max(kind)) {
         throw arbor_exception("neighborhood_spike_exchange: all ranks must choose automatic levels alike "
@@ -82,7 +85,8 @@ void neighborhood_router::set_levels(const std::vector<std::vector<int>>& neighb
     const int num_neighborhoods = neighborhoods.size();
     const int num_old_neighborhoods = levels_.empty()? 0: levels_.size() - 1;
 
-    // Assign every other rank to the first neighbourhood that lists it, or the far level.
+    // Assign every other rank to the neighbourhood that lists it, or the far
+    // level. The neighbourhoods are disjoint, apart from the calling rank.
     const int far = num_neighborhoods;
     recv_level_.assign(num_domains_, far);
     recv_level_[rank_] = self_level;

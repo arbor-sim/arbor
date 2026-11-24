@@ -16,15 +16,22 @@ def ring(rank, offset, num_ranks):
     return (rank + offset) % num_ranks
 
 
+def rings(rank, num_ranks):
+    # On small rings, the offsets reach the same rank, which must be listed only once.
+    levels, listed = [[], []], set()
+    for offset in (-1, 1, -2, 2):
+        r = ring(rank, offset, num_ranks)
+        if r not in listed:
+            listed.add(r)
+            levels[abs(offset) - 1].append(r)
+    return levels
+
+
 def neighborhood_shapes(rank, num_ranks):
     return {
         "none": [],
-        # Nested: the next {-1, +1}, then the next {-2, ..., +2}.
-        # On small rings, the offsets reach the same rank; a level must not list it twice.
-        "nested": [
-            sorted({ring(rank, d, num_ranks) for d in (-1, 1)}),
-            sorted({ring(rank, d, num_ranks) for d in (-2, -1, 1, 2)}),
-        ],
+        # The next {-1, +1}, then the next but one {-2, +2}.
+        "rings": rings(rank, num_ranks),
         # Asymmetric: we receive from our successor, but it does not receive from us.
         "successor": [[ring(rank, 1, num_ranks)]],
         "everyone": [list(range(num_ranks))],
@@ -110,5 +117,9 @@ class TestSpikeExchange(unittest.TestCase):
         # Checked on all ranks, so that all of them raise.
         with self.assertRaises(RuntimeError):
             run(context, A.neighborhood_spike_exchange([[context.ranks]]))
-        with self.assertRaises(RuntimeError):
-            run(context, A.neighborhood_spike_exchange([[0, 0]]))
+        if context.ranks > 1:
+            # A rank must not be listed twice, in the same level or in different ones.
+            with self.assertRaises(RuntimeError):
+                run(context, A.neighborhood_spike_exchange([[1, 1]]))
+            with self.assertRaises(RuntimeError):
+                run(context, A.neighborhood_spike_exchange([[1], [1]]))

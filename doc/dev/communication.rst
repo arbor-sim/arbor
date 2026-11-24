@@ -241,9 +241,8 @@ Each rank splits the ranks it receives spikes from into levels:
 * one level per neighbourhood, each with its own MPI communicator,
 * the far level with all remaining ranks.
 
-Each source rank is in exactly one level of each receiver: a rank listed in several
-neighbourhoods belongs to the first. So every spike arrives exactly once and no
-deduplication is needed. Levels need not be symmetric: rank A may receive from B in a
+Each source rank is in exactly one level of each receiver, since the neighbourhoods must
+be disjoint. So every spike arrives exactly once and no deduplication is needed. Levels need not be symmetric: rank A may receive from B in a
 neighbourhood while B receives from A in the far level. The router therefore keeps two
 tables per rank, the level in which it receives from each rank (``recv_level_``), and the
 level in which it sends to each rank (``send_level_``), which follows from the destinations
@@ -317,8 +316,8 @@ Validation
 
 All ranks must make the same sequence of collective calls, so all must choose the same kind of
 exchange and the same number of neighbourhoods. The router checks this on construction, and
-also checks locally that all ranks are in range and that no rank is listed twice in a
-neighbourhood. If one rank threw alone, the others would wait in the next collective, so a
+also checks locally that all ranks are in range and that no rank is listed more than once,
+so that the neighbourhoods are disjoint. If one rank threw alone, the others would wait in the next collective, so a
 rank that failed a local check sends ``INT_MIN`` in place of its number of neighbourhoods
 (automatic counts as -1), and a ``min`` and a ``max`` reduction decide for all ranks together.
 
