@@ -2,14 +2,25 @@
 
 #include <arbor/profile/profiler.hpp>
 
-#ifdef ARB_GPU_ENABLED
-#include <arbor/gpu/gpu_api.hpp>
-#else
-namespace arb::gpu {
-inline void profile_push(const char* str) {}
-inline void profile_pop() {}
-}
+#ifdef ARB_HAVE_NVTX
+#include <nvtx3/nvToolsExt.h>
 #endif
+
+namespace arb::gpu {
+// With NVTX, the profiler regions also show up as ranges in NVIDIA's tools
+// (Nsight Systems). NVTX is header-only and only used if found by CMake.
+inline void profile_push(const char* str) {
+#ifdef ARB_HAVE_NVTX
+    nvtxRangePushA(str);
+#endif
+}
+
+inline void profile_pop() {
+#ifdef ARB_HAVE_NVTX
+    nvtxRangePop();
+#endif
+}
+}
 
 #ifdef ARB_HAVE_PROFILING
 

@@ -5,8 +5,6 @@
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
 
-#include <nvtx3/nvToolsExt.h>
-
 #include <arbor/export.hpp>
 
 namespace arb {
@@ -31,9 +29,6 @@ struct ARB_SYMBOL_VISIBLE api_error_type {
 inline api_error_type get_last_error() { return cudaGetLastError(); }
 
 inline api_error_type device_synchronize() { return cudaDeviceSynchronize(); }
-
-inline void profile_push(const char* str) { nvtxRangePushA(str); }
-inline void profile_pop() { nvtxRangePop(); }
 
 constexpr auto gpuMemcpyDeviceToHost = cudaMemcpyDeviceToHost;
 constexpr auto gpuMemcpyHostToDevice = cudaMemcpyHostToDevice;
