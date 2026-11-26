@@ -21,6 +21,7 @@ described above, or chosen by arbor from the connection delays. All runs must
 produce the same spikes.
 
 Run with MPI, e.g. `mpirun -n 16 python neighborhood_spike_exchange.py`.
+Without MPI, only the default exchange runs, on a single rank.
 """
 
 import argparse
@@ -118,7 +119,8 @@ class result:
 
 def make_context(spike_exchange):
     """A context on all ranks; the spike exchange is a property of the context."""
-    return A.context(mpi=A.mpi_comm(), spike_exchange=spike_exchange)
+    mpi = A.mpi_comm() if A.config()["mpi"] else None
+    return A.context(mpi=mpi, spike_exchange=spike_exchange)
 
 
 def simulate(recipe, context, args):
@@ -206,10 +208,10 @@ def parse_args():
 
 def main():
     args = parse_args()
-    if not A.config()["mpi"]:
-        raise SystemExit("This example needs arbor built with MPI.")
-
-    A.mpi_init()
+    # The neighbourhood exchange needs MPI; without it, only the default runs.
+    has_mpi = A.config()["mpi"]
+    if has_mpi:
+        A.mpi_init()
     context = make_context(A.neighborhood_spike_exchange.off())
     rank, num_ranks = context.rank, context.ranks
 
@@ -234,36 +236,30 @@ def main():
         log(line)
     log()
 
-    default = simulate(recipe, context, args)
-    given = simulate(recipe, make_context(exchange), args)
-    automatic = A.neighborhood_spike_exchange.automatic()
-    auto = simulate(recipe, make_context(automatic), args)
-
-    log(describe_levels("given levels of rank 0", given))
-    log(describe_levels("automatic levels of rank 0", auto))
+    results = [("all-to-all", simulate(recipe, context, args))]
+    if has_mpi:
+        given = simulate(recipe, make_context(exchange), args)
+        automatic = A.neighborhood_spike_exchange.automatic()
+        auto = simulate(recipe, make_context(automatic), args)
+        results += [("neighborhood", given), ("automatic", auto)]
+        log(describe_levels("given levels of rank 0", given))
+        log(describe_levels("automatic levels of rank 0", auto))
+    else:
+        log("without MPI, only the default exchange runs")
     log()
-    for name, r in [
-        ("all-to-all:", default),
-        ("neighborhood:", given),
-        ("automatic:", auto),
-    ]:
+    for name, r in results:
         log(
-            f"{name:13} {len(r.spikes)} local spikes, init {r.init:.3f} s, run {r.run:.3f} s"
+            f"{name + ':':13} {len(r.spikes)} local spikes, init {r.init:.3f} s, run {r.run:.3f} s"
         )
 
     # Each rank checks its own spikes.
-    if default.spikes != given.spikes or default.spikes != auto.spikes:
+    if any(r.spikes != results[0][1].spikes for _, r in results):
         raise RuntimeError(
             f"rank {rank}: the exchange methods produced different spikes"
         )
 
     if A.config()["profiling"]:
-        variants = [
-            ("all-to-all", default),
-            ("neighborhood", given),
-            ("automatic", auto),
-        ]
-        for name, r in variants:
+        for name, r in results:
             log(
                 f"\nprofile of rank 0, {name}, regions above {args.profile_threshold:g}%:"
             )
@@ -271,7 +267,8 @@ def main():
     else:
         log("\nfor profiler times, build arbor with -DARB_WITH_PROFILING=ON")
 
-    A.mpi_finalize()
+    if has_mpi:
+        A.mpi_finalize()
 
 
 if __name__ == "__main__":
