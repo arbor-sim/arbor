@@ -62,9 +62,9 @@ public:
 
 int ring(int offset) { return (offset + int(tiles))%tiles; }
 
-std::vector<spike> run(context ctx, const neighborhood_spike_exchange& exchange, std::size_t* num_spikes = nullptr) {
+std::vector<spike> run(context ctx, std::size_t* num_spikes = nullptr) {
     auto rec = symmetric_recipe(std::make_unique<lif_tile>());
-    auto sim = simulation(rec, ctx, partition_load_balance(rec, ctx), 0, exchange);
+    auto sim = simulation(rec, ctx, partition_load_balance(rec, ctx));
     std::vector<spike> spikes;
     sim.set_local_spike_callback([&](const std::vector<spike>& s) { spikes.insert(spikes.end(), s.begin(), s.end()); });
     sim.run(30*U::ms, 0.025*U::ms);
@@ -77,15 +77,15 @@ std::vector<spike> run(context ctx, const neighborhood_spike_exchange& exchange,
 
 // Spikes of the first tile when simulating all tiles on a single rank.
 std::vector<spike> reference_spikes(std::size_t* num_spikes) {
-    auto spikes = run(make_context(), neighborhood_spike_exchange::off(), num_spikes);
+    auto spikes = run(make_context(), num_spikes);
     spikes.erase(std::remove_if(spikes.begin(), spikes.end(),
                                 [](const spike& s) { return s.source.gid >= cells_per_tile; }),
                  spikes.end());
     return spikes;
 }
 
-context dry_run_context() {
-    return make_context(proc_allocation{}, dry_run_info(tiles, cells_per_tile));
+context dry_run_context(const neighborhood_spike_exchange& exchange = neighborhood_spike_exchange::off()) {
+    return make_context(proc_allocation{}, dry_run_info(tiles, cells_per_tile), exchange);
 }
 } // namespace
 
@@ -94,7 +94,7 @@ TEST(dry_run_spike_exchange, all_to_all) {
     auto expected = reference_spikes(&expected_num_spikes);
     ASSERT_GT(expected.size(), 0u);
 
-    EXPECT_EQ(expected, run(dry_run_context(), neighborhood_spike_exchange::off(), &num_spikes));
+    EXPECT_EQ(expected, run(dry_run_context(), &num_spikes));
     EXPECT_EQ(expected_num_spikes, num_spikes);
 }
 
@@ -113,13 +113,21 @@ TEST(dry_run_spike_exchange, neighborhoods) {
     for (const auto& [name, levels]: shapes) {
         SCOPED_TRACE(name);
         std::size_t num_spikes = 0;
-        EXPECT_EQ(expected, run(dry_run_context(), neighborhood_spike_exchange{levels}, &num_spikes));
+        EXPECT_EQ(expected, run(dry_run_context(neighborhood_spike_exchange{levels}), &num_spikes));
         EXPECT_EQ(expected_num_spikes, num_spikes);
     }
     {
         SCOPED_TRACE("automatic");
         std::size_t num_spikes = 0;
-        EXPECT_EQ(expected, run(dry_run_context(), neighborhood_spike_exchange::automatic(), &num_spikes));
+        EXPECT_EQ(expected, run(dry_run_context(neighborhood_spike_exchange::automatic()), &num_spikes));
         EXPECT_EQ(expected_num_spikes, num_spikes);
     }
+}
+
+// The context keeps the spike exchange it was made with.
+TEST(dry_run_spike_exchange, context) {
+    EXPECT_TRUE(spike_exchange(make_context()).is_off());
+    EXPECT_TRUE(spike_exchange(make_context(proc_allocation{}, neighborhood_spike_exchange::automatic())).is_automatic());
+    auto ctx = dry_run_context(neighborhood_spike_exchange{{{1}, {2, 3}}});
+    EXPECT_EQ((std::vector<std::vector<int>>{{1}, {2, 3}}), spike_exchange(ctx).neighborhoods());
 }

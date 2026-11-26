@@ -22,6 +22,8 @@ struct ARB_ARBOR_API execution_context {
     distributed_context_handle distributed;
     task_system_handle thread_pool;
     gpu_context_handle gpu;
+    // How simulations on this context exchange spikes between ranks.
+    neighborhood_spike_exchange spike_exchange = neighborhood_spike_exchange::off();
 
     execution_context(const proc_allocation& resources = proc_allocation{1,gpu_nil_id});
 

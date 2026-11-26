@@ -9,7 +9,8 @@
 
 namespace arb {
 
-// Delay-aware spike exchange via MPI neighbourhood collectives.
+// Delay-aware spike exchange via MPI neighbourhood collectives, set for all
+// simulations on a context with make_context.
 //
 // By default, all spikes are exchanged after every epoch, where an epoch is
 // half the minimum delay of the whole network. With this option, the ranks that
@@ -29,7 +30,7 @@ namespace arb {
 // is exact after run returns.
 //
 // Every rank must pass the same kind of exchange: off, automatic, or the same
-// number of neighbourhoods.
+// number of neighbourhoods. This is checked when a simulation is built.
 class neighborhood_spike_exchange {
 public:
     neighborhood_spike_exchange() = delete;

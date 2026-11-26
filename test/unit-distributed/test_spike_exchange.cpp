@@ -18,6 +18,7 @@
 
 #include "communication/communicator.hpp"
 #include "communication/neighborhood_router.hpp"
+#include "execution_context.hpp"
 #include "lif_cell_group.hpp"
 #include "util/span.hpp"
 
@@ -102,6 +103,13 @@ std::vector<std::vector<int>> everyone(int, int num_ranks) {
     return {all};
 }
 
+// A context sharing the resources of g_context, with the given spike exchange.
+context with_exchange(const neighborhood_spike_exchange& spike_exchange) {
+    auto ctx = std::make_shared<execution_context>(*g_context);
+    ctx->spike_exchange = spike_exchange;
+    return ctx;
+}
+
 struct run_result {
     std::vector<spike> spikes;
     std::size_t num_spikes;
@@ -111,7 +119,8 @@ struct run_result {
 run_result run(const neighborhood_spike_exchange& spike_exchange, const std::vector<double>& stops) {
     auto num_ranks = g_context->distributed->size();
     auto rec = distance_recipe(num_ranks, cells_per_rank);
-    auto sim = simulation(rec, g_context, partition_load_balance(rec, g_context), 0, spike_exchange);
+    auto ctx = with_exchange(spike_exchange);
+    auto sim = simulation(rec, ctx, partition_load_balance(rec, ctx));
 
     std::vector<spike> local;
     sim.set_local_spike_callback([&](const std::vector<spike>& s) { local.insert(local.end(), s.begin(), s.end()); });
@@ -216,17 +225,17 @@ TEST(spike_exchange, invalid_options) {
     const int num_ranks = g_context->distributed->size();
     auto rec = distance_recipe(num_ranks, cells_per_rank);
     auto decomp = partition_load_balance(rec, g_context);
-    EXPECT_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{{{num_ranks}}}), arbor_exception);
-    EXPECT_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{{{-1}}}), arbor_exception);
+    EXPECT_THROW(simulation(rec, with_exchange(neighborhood_spike_exchange{{{num_ranks}}}), decomp), arbor_exception);
+    EXPECT_THROW(simulation(rec, with_exchange(neighborhood_spike_exchange{{{-1}}}), decomp), arbor_exception);
     if (num_ranks > 1) {
         // All ranks must agree on the number of levels.
         auto levels = std::vector<std::vector<int>>(g_context->distributed->id() == 0 ? 1 : 2);
-        EXPECT_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{levels}), arbor_exception);
+        EXPECT_THROW(simulation(rec, with_exchange(neighborhood_spike_exchange{levels}), decomp), arbor_exception);
         // All ranks must agree on automatic levels.
         auto automatic = g_context->distributed->id() == 0
             ? neighborhood_spike_exchange::automatic()
             : neighborhood_spike_exchange{{}};
-        EXPECT_THROW(simulation(rec, g_context, decomp, 0, automatic), arbor_exception);
+        EXPECT_THROW(simulation(rec, with_exchange(automatic), decomp), arbor_exception);
         // A rank must not be listed twice, in the same level or in different ones,
         // even if only one rank does so.
         auto same_level = std::vector<std::vector<int>>{{1}, {}};
@@ -235,12 +244,12 @@ TEST(spike_exchange, invalid_options) {
             same_level[0].push_back(1);
             other_level[1].push_back(1);
         }
-        EXPECT_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{same_level}), arbor_exception);
-        EXPECT_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{other_level}), arbor_exception);
+        EXPECT_THROW(simulation(rec, with_exchange(neighborhood_spike_exchange{same_level}), decomp), arbor_exception);
+        EXPECT_THROW(simulation(rec, with_exchange(neighborhood_spike_exchange{other_level}), decomp), arbor_exception);
     }
     // The calling rank is ignored, so it may be listed in several levels.
     const int rank = g_context->distributed->id();
-    EXPECT_NO_THROW(simulation(rec, g_context, decomp, 0, neighborhood_spike_exchange{{{rank}, {rank}}}));
+    EXPECT_NO_THROW(simulation(rec, with_exchange(neighborhood_spike_exchange{{{rank}, {rank}}}), decomp));
 }
 
 // Exchanged in epoch e, spikes become events in epoch e+2. Check that held back
@@ -270,7 +279,7 @@ TEST(spike_exchange, communicator_delivers_in_time) {
 
     for (const auto& [name, options]: exchange_options(rank, num_ranks)) {
         SCOPED_TRACE(name);
-        auto comm = communicator(rec, decomp, g_context, options);
+        auto comm = communicator(rec, decomp, with_exchange(options));
         comm.update_connections(rec, decomp, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}));
         comm.schedule_exchange(interval);
 
@@ -314,7 +323,7 @@ TEST(spike_exchange, communicator_holds_back_spikes) {
     for (const auto& [name, shape]: neighborhood_shapes()) {
         SCOPED_TRACE(name);
         auto options = neighborhood_spike_exchange{shape(rank, num_ranks)};
-        auto comm = communicator(rec, decomp, g_context, options);
+        auto comm = communicator(rec, decomp, with_exchange(options));
         comm.update_connections(rec, decomp, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}));
         comm.schedule_exchange(interval);
 
@@ -394,7 +403,7 @@ TEST(spike_exchange, automatic_levels) {
     lif_cell_group group(gids, rec, local_sources, local_targets);
     auto global_sources = g_context->distributed->gather_cell_labels_and_gids({local_sources, gids});
 
-    auto comm = communicator(rec, decomp, g_context, neighborhood_spike_exchange::automatic());
+    auto comm = communicator(rec, decomp, with_exchange(neighborhood_spike_exchange::automatic()));
     comm.update_connections(rec, decomp, label_resolution_map(global_sources), label_resolution_map({local_targets, gids}));
     comm.schedule_exchange(interval);
 
@@ -494,7 +503,7 @@ TEST(spike_exchange, simulation_levels) {
 
     for (const auto& [name, options]: exchange_options(rank, num_ranks)) {
         SCOPED_TRACE(name);
-        auto sim = simulation(rec, g_context, decomp, 0, options);
+        auto sim = simulation(rec, with_exchange(options), decomp);
         auto levels = sim.spike_exchange_levels();
         expect_valid_levels(levels, rank, num_ranks);
         if (!options.is_automatic()) {
@@ -557,7 +566,8 @@ TEST(spike_exchange, same_spikes_after_update) {
     auto second = distance_recipe(num_ranks, cells_per_rank, 2.9);
 
     auto run = [&](const neighborhood_spike_exchange& spike_exchange) {
-        auto sim = simulation(first, g_context, partition_load_balance(first, g_context), 0, spike_exchange);
+        auto ctx = with_exchange(spike_exchange);
+        auto sim = simulation(first, ctx, partition_load_balance(first, ctx));
         std::vector<spike> local;
         sim.set_local_spike_callback([&](const std::vector<spike>& s) { local.insert(local.end(), s.begin(), s.end()); });
         sim.run(20*U::ms, 0.025*U::ms);

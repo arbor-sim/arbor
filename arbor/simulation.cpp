@@ -73,8 +73,7 @@ struct simulation_state {
     simulation_state(const recipe& rec,
                      const domain_decomposition_ptr decomp,
                      context ctx,
-                     arb_seed_type seed,
-                     const neighborhood_spike_exchange& spike_exchange);
+                     arb_seed_type seed);
 
     void update(const recipe& rec);
 
@@ -225,12 +224,11 @@ private:
 simulation_state::simulation_state(const recipe& rec,
                                    const domain_decomposition_ptr decomp,
                                    context ctx,
-                                   arb_seed_type seed,
-                                   const neighborhood_spike_exchange& spike_exchange):
+                                   arb_seed_type seed):
     ctx_{ctx},
     ddc_{decomp},
     task_system_(ctx_->thread_pool),
-    communicator_{rec, ddc_, ctx_, spike_exchange},
+    communicator_{rec, ddc_, ctx_},
     local_spikes_({thread_private_spike_store(ctx_->thread_pool),
                    thread_private_spike_store(ctx_->thread_pool)}) {
     PE(arbor);
@@ -589,9 +587,8 @@ simulation_builder simulation::create(recipe const & rec) { return {rec}; };
 simulation::simulation(const recipe& rec,
                        context ctx,
                        const domain_decomposition_ptr decomp,
-                       arb_seed_type seed,
-                       const neighborhood_spike_exchange& spike_exchange) {
-    impl_.reset(new simulation_state(rec, decomp, ctx, seed, spike_exchange));
+                       arb_seed_type seed) {
+    impl_.reset(new simulation_state(rec, decomp, ctx, seed));
 }
 
 void simulation::reset() {

@@ -38,10 +38,15 @@ def neighborhood_shapes(rank, num_ranks):
     }
 
 
-def run(context, spike_exchange=None):
+def exchange_context(spike_exchange):
+    """A context like the fixture's, with the given spike exchange."""
+    return A.context(mpi=fixtures.get_mpi_comm_world(), spike_exchange=spike_exchange)
+
+
+def run(context):
     rec = fixtures.ring_distance_recipe(context.ranks)
     dd = A.partition_load_balance(rec, context)
-    sim = A.simulation(rec, context, dd, spike_exchange=spike_exchange)
+    sim = A.simulation(rec, context, dd)
     sim.record(A.spike_recording.local)
     # Stops are not multiples of the epoch length; held back spikes must be flushed at each.
     for t in [3.3, 10, 31.7, 50]:
@@ -72,6 +77,15 @@ class TestSpikeExchange(unittest.TestCase):
         self.assertEqual([], ex.neighborhoods)
         self.assertEqual("<arbor.neighborhood_spike_exchange: off>", repr(ex))
 
+    # The context keeps the spike exchange it was made with; off by default.
+    @fixtures.context()
+    def test_context(self, context):
+        self.assertTrue(context.spike_exchange.is_off)
+        ctx = exchange_context(A.neighborhood_spike_exchange.automatic())
+        self.assertTrue(ctx.spike_exchange.is_automatic)
+        ctx = exchange_context(A.neighborhood_spike_exchange([[0], [1]]))
+        self.assertEqual([[0], [1]], ctx.spike_exchange.neighborhoods)
+
     # The local spikes of every rank must be the same as with the default exchange.
     @fixtures.context()
     def test_same_spikes(self, context):
@@ -80,10 +94,10 @@ class TestSpikeExchange(unittest.TestCase):
         shapes = neighborhood_shapes(context.rank, context.ranks)
         for name, levels in shapes.items():
             with self.subTest(neighborhoods=name):
-                result = run(context, A.neighborhood_spike_exchange(levels))
+                result = run(exchange_context(A.neighborhood_spike_exchange(levels)))
                 self.assertEqual(expected, result)
         with self.subTest(neighborhoods="automatic"):
-            result = run(context, A.neighborhood_spike_exchange.automatic())
+            result = run(exchange_context(A.neighborhood_spike_exchange.automatic()))
             self.assertEqual(expected, result)
 
     @fixtures.context()
@@ -101,7 +115,7 @@ class TestSpikeExchange(unittest.TestCase):
         options.append(A.neighborhood_spike_exchange.automatic())
         for ex in options:
             with self.subTest(spike_exchange=repr(ex)):
-                sim = A.simulation(rec, context, dd, spike_exchange=ex)
+                sim = A.simulation(rec, exchange_context(ex), dd)
                 levels = sim.spike_exchange_levels()
                 # Neighbourhoods, then the far level.
                 self.assertEqual(
@@ -116,10 +130,10 @@ class TestSpikeExchange(unittest.TestCase):
     def test_invalid_options(self, context):
         # Checked on all ranks, so that all of them raise.
         with self.assertRaises(RuntimeError):
-            run(context, A.neighborhood_spike_exchange([[context.ranks]]))
+            run(exchange_context(A.neighborhood_spike_exchange([[context.ranks]])))
         if context.ranks > 1:
             # A rank must not be listed twice, in the same level or in different ones.
             with self.assertRaises(RuntimeError):
-                run(context, A.neighborhood_spike_exchange([[1, 1]]))
+                run(exchange_context(A.neighborhood_spike_exchange([[1, 1]])))
             with self.assertRaises(RuntimeError):
-                run(context, A.neighborhood_spike_exchange([[1], [1]]))
+                run(exchange_context(A.neighborhood_spike_exchange([[1], [1]])))

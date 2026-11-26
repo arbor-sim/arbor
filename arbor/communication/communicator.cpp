@@ -30,14 +30,13 @@ namespace arb {
 
 communicator::communicator(const recipe& rec,
                            const domain_decomposition_ptr dom_dec,
-                           context ctx,
-                           const neighborhood_spike_exchange& exchange_options):
+                           context ctx):
     num_total_cells_{rec.num_cells()},
     num_local_cells_{dom_dec->num_local_cells()},
     num_local_groups_{dom_dec->num_groups()},
     num_domains_{(cell_size_type)ctx->distributed->size()},
     ctx_(std::move(ctx)) {
-    if (!exchange_options.is_off()) router_ = std::make_unique<neighborhood_router>(exchange_options, ctx_->distributed);
+    if (!ctx_->spike_exchange.is_off()) router_ = std::make_unique<neighborhood_router>(ctx_->spike_exchange, ctx_->distributed);
 }
 
 constexpr inline

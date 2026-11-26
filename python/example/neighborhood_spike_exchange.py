@@ -116,13 +116,21 @@ class result:
         self.epoch = sim.max_epoch_length()
 
 
-def simulate(recipe, context, args, spike_exchange=None):
+def make_context(spike_exchange=None):
+    """A context on all ranks; the spike exchange is a property of the context."""
+    mpi = A.mpi_comm() if A.config()["mpi"] else None
+    return A.context(mpi=mpi, spike_exchange=spike_exchange)
+
+
+def simulate(recipe, context, args):
     profiling = A.config()["profiling"]
     if profiling:
-        # Profile this simulation only, from construction to the end of the run.
+        # Profile this simulation only, from construction to the end of the
+        # run, on the threads of its context.
+        A.profiler_initialize(context)
         A.profiler_clear()
     t0 = time.perf_counter()
-    sim = A.simulation(recipe, context, spike_exchange=spike_exchange)
+    sim = A.simulation(recipe, context)
     sim.record(A.spike_recording.local)
     t1 = time.perf_counter()
     sim.run(args.tfinal * U.ms, args.dt * U.ms)
@@ -202,12 +210,8 @@ def main():
 
     if A.config()["mpi"]:
         A.mpi_init()
-        context = A.context(mpi=A.mpi_comm())
-    else:
-        context = A.context()
+    context = make_context()
     rank, num_ranks = context.rank, context.ranks
-    if A.config()["profiling"]:
-        A.profiler_initialize(context)
 
     def log(*msg):
         if rank == 0:
@@ -231,9 +235,9 @@ def main():
     log()
 
     default = simulate(recipe, context, args)
-    given = simulate(recipe, context, args, exchange)
+    given = simulate(recipe, make_context(exchange), args)
     automatic = A.neighborhood_spike_exchange.automatic()
-    auto = simulate(recipe, context, args, automatic)
+    auto = simulate(recipe, make_context(automatic), args)
 
     log(describe_levels("given levels of rank 0", given))
     log(describe_levels("automatic levels of rank 0", auto))

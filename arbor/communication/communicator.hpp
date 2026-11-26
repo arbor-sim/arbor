@@ -42,11 +42,10 @@ public:
 
     communicator() = default;
 
-    /// Unless the neighbourhood exchange is on, all spikes are exchanged every epoch via a global all-to-all.
+    /// Unless the context enables the neighbourhood exchange, all spikes are exchanged every epoch via a global all-to-all.
     explicit communicator(const recipe& rec,
                           const domain_decomposition_ptr dom_dec,
-                          context ctx,
-                          const neighborhood_spike_exchange& exchange_options = neighborhood_spike_exchange::off());
+                          context ctx);
 
     /// The range of event queues that belong to cells in group i.
     std::pair<cell_size_type, cell_size_type> group_queue_range(cell_size_type i);

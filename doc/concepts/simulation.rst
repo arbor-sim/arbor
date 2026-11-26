@@ -72,7 +72,9 @@ Large-Scale Brain Network Simulations <https://doi.org/10.1109/ipdps65963.2026.0
 (IPDPS 2026). How spikes are exchanged internally, by default and with neighbourhoods, is
 described in the :ref:`developer documentation <communication>`.
 
-The levels can be given by the user or chosen by arbor:
+The exchange is chosen when the :ref:`execution context <modelcontext>` is created and
+applies to all simulations on that context. The levels can be given by the user or chosen
+by arbor:
 
 Given levels
     Each rank lists the ranks it receives spikes from, grouped into neighbourhoods,

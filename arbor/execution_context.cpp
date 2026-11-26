@@ -20,8 +20,15 @@ execution_context::execution_context(const proc_allocation& resources):
                            : std::make_shared<gpu_context>())
 {}
 
-ARB_ARBOR_API context make_context(const proc_allocation& p) {
-    return std::make_shared<execution_context>(p);
+namespace {
+context with_spike_exchange(std::shared_ptr<execution_context> ctx, const neighborhood_spike_exchange& spike_exchange) {
+    ctx->spike_exchange = spike_exchange;
+    return ctx;
+}
+} // namespace
+
+ARB_ARBOR_API context make_context(const proc_allocation& p, const neighborhood_spike_exchange& spike_exchange) {
+    return with_spike_exchange(std::make_shared<execution_context>(p), spike_exchange);
 }
 
 #ifdef ARB_HAVE_MPI
@@ -43,13 +50,15 @@ execution_context::execution_context(const proc_allocation& resources, MPI_Comm 
 {}
 
 template <>
-ARB_ARBOR_API context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm comm) {
-    return std::make_shared<execution_context>(p, comm);
+ARB_ARBOR_API context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm comm,
+                                             const neighborhood_spike_exchange& spike_exchange) {
+    return with_spike_exchange(std::make_shared<execution_context>(p, comm), spike_exchange);
 }
 
 template <>
-ARB_ARBOR_API context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm comm, MPI_Comm remote) {
-    return std::make_shared<execution_context>(p, comm, remote);
+ARB_ARBOR_API context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm comm, MPI_Comm remote,
+                                             const neighborhood_spike_exchange& spike_exchange) {
+    return with_spike_exchange(std::make_shared<execution_context>(p, comm, remote), spike_exchange);
 }
 
 #endif
@@ -64,8 +73,9 @@ execution_context::execution_context(
 {}
 
 template <>
-ARB_ARBOR_API context make_context(const proc_allocation& p, dry_run_info d) {
-    return std::make_shared<execution_context>(p, d);
+ARB_ARBOR_API context make_context(const proc_allocation& p, dry_run_info d,
+                                   const neighborhood_spike_exchange& spike_exchange) {
+    return with_spike_exchange(std::make_shared<execution_context>(p, d), spike_exchange);
 }
 
 ARB_ARBOR_API std::string distribution_type(context ctx) {
@@ -86,6 +96,10 @@ ARB_ARBOR_API unsigned num_ranks(context ctx) {
 
 ARB_ARBOR_API unsigned rank(context ctx) {
     return ctx->distributed->id();
+}
+
+ARB_ARBOR_API neighborhood_spike_exchange spike_exchange(context ctx) {
+    return ctx->spike_exchange;
 }
 
 ARB_ARBOR_API bool has_mpi(context ctx) {

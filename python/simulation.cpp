@@ -65,12 +65,11 @@ public:
                     const context_shim& ctx,
                     const arb::domain_decomposition_ptr decomp,
                     std::uint64_t seed,
-                    const arb::neighborhood_spike_exchange& spike_exchange,
                     pyarb_global_ptr global_ptr):
         global_ptr_(global_ptr)
     {
         try {
-            sim_.reset(new arb::simulation(recipe_shim(rec), ctx.context, decomp, seed, spike_exchange));
+            sim_.reset(new arb::simulation(recipe_shim(rec), ctx.context, decomp, seed));
         }
         catch (...) {
             py_reset_and_throw();
@@ -213,44 +212,6 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
        .value("off", spike_recording::off)
        .value("local", spike_recording::local);
 
-    py::class_<arb::neighborhood_spike_exchange> spike_exchange(m, "neighborhood_spike_exchange",
-        "Delay-aware spike exchange via MPI neighbourhood collectives.\n"
-        "The ranks this rank receives spikes from are split into levels: the rank itself,\n"
-        "one level per neighbourhood, exchanged with a sparse MPI neighbourhood all-gather,\n"
-        "and all remaining ranks, exchanged with a global collective. Each level is only\n"
-        "exchanged as often as the minimum delay of its connections permits.");
-    spike_exchange
-        .def(py::init<std::vector<std::vector<int>>>(),
-             "neighborhoods"_a,
-             "Construct from the ranks this rank receives spikes from, grouped into levels,\n"
-             "innermost first. The levels must be disjoint: no rank may be listed more than\n"
-             "once. The calling rank is ignored. Every rank must pass the same number of levels.")
-        .def_static("off", &arb::neighborhood_spike_exchange::off,
-             "The default exchange after every epoch.")
-        .def_static("automatic", &arb::neighborhood_spike_exchange::automatic,
-             "Choose the levels from the connection delays: source ranks are grouped by the\n"
-             "class of the exchange period their minimum delay allows (1, 2-3, 4-7, ...), and\n"
-             "the slowest class is exchanged with a global collective.")
-        .def_property_readonly("neighborhoods", &arb::neighborhood_spike_exchange::neighborhoods,
-             "The given neighbourhoods, innermost first; empty if off or automatic.")
-        .def_property_readonly("is_off", &arb::neighborhood_spike_exchange::is_off)
-        .def_property_readonly("is_automatic", &arb::neighborhood_spike_exchange::is_automatic)
-        .def("__repr__", [](const arb::neighborhood_spike_exchange& e) {
-                 if (e.is_off()) return std::string("<arbor.neighborhood_spike_exchange: off>");
-                 if (e.is_automatic()) return std::string("<arbor.neighborhood_spike_exchange: automatic>");
-                 std::stringstream ss;
-                 const auto& neighborhoods = e.neighborhoods();
-                 ss << "<arbor.neighborhood_spike_exchange: neighborhoods [";
-                 for (std::size_t l = 0; l < neighborhoods.size(); ++l) {
-                     ss << (l? ", [": "[");
-                     for (std::size_t i = 0; i < neighborhoods[l].size(); ++i) ss << (i? ", ": "") << neighborhoods[l][i];
-                     ss << "]";
-                 }
-                 ss << "]>";
-                 return ss.str();
-             })
-        .def("__str__", [](const arb::neighborhood_spike_exchange& e) { return py::repr(py::cast(e)); });
-
     py::class_<arb::spike_exchange_level> spike_exchange_level(m, "spike_exchange_level",
         "A level of the neighbourhood spike exchange, as seen by the calling rank.");
     spike_exchange_level
@@ -281,13 +242,11 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
                  [global_ptr](std::shared_ptr<recipe>& rec,
                               std::optional<std::shared_ptr<context_shim>> ctx_,
                               std::optional<arb::domain_decomposition_ptr> decomp,
-                              std::uint64_t seed,
-                              std::optional<arb::neighborhood_spike_exchange> spike_exchange) {
+                              std::uint64_t seed) {
                      try {
                          auto ctx = ctx_.value_or(std::make_shared<context_shim>(make_context_shim()));
                          auto dec = decomp.value_or(arb::partition_load_balance(recipe_shim(rec), ctx->context));
-                         auto exchange = spike_exchange.value_or(arb::neighborhood_spike_exchange::off());
-                         return new simulation_shim(rec, *ctx, dec, seed, exchange, global_ptr);
+                         return new simulation_shim(rec, *ctx, dec, seed, global_ptr);
                      }
                      catch (...) {
                          py_reset_and_throw();
@@ -300,11 +259,9 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
              "context"_a=py::none(),
              "domains"_a=py::none(),
              "seed"_a=0u,
-             "spike_exchange"_a=py::none(),
              "Initialize the model described by a recipe, with cells and network distributed\n"
              "according to the domain decomposition and computational resources described by a\n"
-             "context. Initialize PRNG using seed. Exchange spikes via MPI neighbourhood\n"
-             "collectives if spike_exchange is given and not off, see neighborhood_spike_exchange.")
+             "context. Initialize PRNG using seed.")
         .def("set_remote_spike_filter",
              &simulation_shim::set_remote_spike_filter,
              "pred"_a,

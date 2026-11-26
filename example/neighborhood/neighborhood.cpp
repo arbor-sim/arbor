@@ -153,16 +153,18 @@ struct result {
     std::string profile;
 };
 
-result simulate(const arb::recipe& rec, arb::context ctx, const arb::neighborhood_spike_exchange& exchange, const options& opt) {
+result simulate(const arb::recipe& rec, arb::context ctx, const options& opt) {
     using clock = std::chrono::steady_clock;
     auto seconds = [](clock::duration d) { return std::chrono::duration<double>(d).count(); };
 
 #ifdef ARB_PROFILE_ENABLED
-    // Profile this simulation only, from construction to the end of the run.
+    // Profile this simulation only, from construction to the end of the run,
+    // on the threads of its context.
+    arb::profile::profiler_initialize(ctx);
     arb::profile::profiler_clear();
 #endif
     auto t0 = clock::now();
-    auto simulation = arb::simulation::create(rec).set_context(ctx).set_spike_exchange(exchange).make_unique();
+    auto simulation = arb::simulation::create(rec).set_context(ctx).make_unique();
     auto t1 = clock::now();
     simulation->run(opt.tfinal*U::ms, opt.dt*U::ms);
     auto t2 = clock::now();
@@ -207,23 +209,21 @@ int main(int argc, char** argv) {
         auto opt = parse_options(argc, argv);
         if (!opt) return 0;
 
-        arb::context ctx;
-        if (opt->dry_run_ranks) {
-            ctx = arb::make_context({}, arb::dry_run_info(opt->dry_run_ranks, opt->cells_per_rank));
-        }
-        else {
+        // The spike exchange is a property of the context, so each variant gets its own.
+        auto make_context = [&](const arb::neighborhood_spike_exchange& exchange) {
+            if (opt->dry_run_ranks) {
+                return arb::make_context({}, arb::dry_run_info(opt->dry_run_ranks, opt->cells_per_rank), exchange);
+            }
 #ifdef ARB_MPI_ENABLED
-            ctx = arb::make_context({}, MPI_COMM_WORLD);
+            return arb::make_context({}, MPI_COMM_WORLD, exchange);
 #else
-            ctx = arb::make_context();
+            return arb::make_context({}, exchange);
 #endif
-        }
+        };
+        auto ctx = make_context(arb::neighborhood_spike_exchange::off());
         unsigned rank = arb::rank(ctx);
         unsigned num_ranks = arb::num_ranks(ctx);
         std::cout << sup::mask_stream(rank == 0);
-#ifdef ARB_PROFILE_ENABLED
-        arb::profile::profiler_initialize(ctx);
-#endif
 
         auto rec = arb::symmetric_recipe(std::make_unique<ring_tile>(*opt, num_ranks));
         // In a dry run, rank 0's neighbourhoods are shifted to every other rank.
@@ -250,9 +250,9 @@ int main(int argc, char** argv) {
         describe("far:       ", opt->widths.size() + 1, num_ranks - num_near);
         std::cout << "\n";
 
-        auto global = simulate(rec, ctx, arb::neighborhood_spike_exchange::off(), *opt);
-        auto neighborhood = simulate(rec, ctx, exchange, *opt);
-        auto automatic = simulate(rec, ctx, arb::neighborhood_spike_exchange::automatic(), *opt);
+        auto global = simulate(rec, ctx, *opt);
+        auto neighborhood = simulate(rec, make_context(exchange), *opt);
+        auto automatic = simulate(rec, make_context(arb::neighborhood_spike_exchange::automatic()), *opt);
 
         print_levels("given levels of rank 0", neighborhood);
         print_levels("automatic levels of rank 0", automatic);

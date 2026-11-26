@@ -56,8 +56,6 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
     * a :py:class:`~arbor.domain_decomposition` that describes how the cells in the model are assigned to hardware resources;
     * a :py:class:`~arbor.context` which is used to execute the simulation.
     * a non-negative :py:class:`int` in order to seed the pseudo random number generator (optional)
-    * a :py:class:`~arbor.neighborhood_spike_exchange` to exchange spikes with MPI neighbourhood
-      collectives (optional, see :ref:`modelspikeexchange`)
 
     Simulations provide an interface for executing and interacting with the model:
 
@@ -68,14 +66,13 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
 
     **Constructor:**
 
-    .. function:: simulation(recipe, domain_decomposition, context, seed, spike_exchange=None)
+    .. function:: simulation(recipe, domain_decomposition, context, seed)
 
         Initialize the model described by a :py:class:`~arbor.recipe`, with cells and network
         distributed according to :py:class:`~arbor.domain_decomposition`, computational resources
         described by :py:class:`~arbor.context` and with a seed value for generating reproducible
-        random numbers (optional, default value: `0`). If ``spike_exchange`` is given, spikes are
-        exchanged as described by :py:class:`~arbor.neighborhood_spike_exchange` instead of
-        after every epoch.
+        random numbers (optional, default value: `0`). Spikes are exchanged between ranks as
+        set by the ``spike_exchange`` of the :py:class:`~arbor.context`.
 
         When constructed with a single argument, a :py:class:`~arbor.recipe`, a local context is
         automatically created with :py:func:`~arbor.env.default_allocation()`.
@@ -230,7 +227,8 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
 
     How to exchange spikes between ranks: by default after every epoch, or delay-aware with
     MPI neighbourhood collectives, which is often much cheaper for spatially structured
-    networks. See :ref:`modelspikeexchange` for how it works. All ranks must choose the same
+    networks. See :ref:`modelspikeexchange` for how it works. It is set for all simulations on
+    a :py:class:`context` with its ``spike_exchange`` argument. All ranks must choose the same
     kind of exchange.
 
     .. function:: neighborhood_spike_exchange(neighborhoods)
@@ -263,18 +261,18 @@ simulation is built using this :py:class:`~arbor.domain_decomposition`.
             import arbor as A
 
             A.mpi_init()
-            ctx = A.context(mpi=A.mpi_comm())
-            n, r = ctx.ranks, ctx.rank
+            comm = A.mpi_comm()
+            default = A.context(mpi=comm)
+            n, r = default.ranks, default.rank
             # Receive from the neighbouring ranks on a ring, then from the next but one.
             exchange = A.neighborhood_spike_exchange(
                 [[(r - 1) % n, (r + 1) % n], [(r - 2) % n, (r + 2) % n]]
             )
-            sim = A.simulation(recipe, ctx, spike_exchange=exchange)
+            ctx = A.context(mpi=comm, spike_exchange=exchange)
+            sim = A.simulation(recipe, ctx)
 
             # Or let arbor choose the levels from the connection delays.
-            sim = A.simulation(
-                recipe, ctx, spike_exchange=A.neighborhood_spike_exchange.automatic()
-            )
+            ctx = A.context(mpi=comm, spike_exchange=A.neighborhood_spike_exchange.automatic())
 
     The levels in use on a rank are returned by :py:func:`simulation.spike_exchange_levels`.
     A complete example with several levels, which prints them, is

@@ -57,8 +57,10 @@ Neighbourhood spike exchange
 
 By default, spikes are exchanged between all ranks after every epoch. For spatially
 structured networks, the :ref:`neighbourhood spike exchange <modelspikeexchange>` is often
-much cheaper. It is chosen with a :cpp:class:`neighborhood_spike_exchange`, from which
-each rank lists the ranks it receives spikes from, grouped into neighbourhoods:
+much cheaper. It is a property of the :cpp:class:`context`, chosen when the context
+is made with a :cpp:class:`neighborhood_spike_exchange`, and applies to all simulations on
+that context. Each rank either lists the ranks it receives spikes from, grouped into
+neighbourhoods:
 
 .. container:: example-code
 
@@ -68,9 +70,8 @@ each rank lists the ranks it receives spikes from, grouped into neighbourhoods:
         auto ring = [&](int offset) { return (rank + offset + n) % n; };
         arb::neighborhood_spike_exchange exchange{{{ring(-1), ring(1)}, {ring(-2), ring(2)}}};
 
-        arb::simulation sim = arb::simulation::create(recipe)
-            .set_context(context)
-            .set_spike_exchange(exchange);
+        auto context = arb::make_context(resources, MPI_COMM_WORLD, exchange);
+        arb::simulation sim = arb::simulation::create(recipe).set_context(context);
 
 or which lets arbor choose the levels from the connection delays:
 
@@ -78,11 +79,11 @@ or which lets arbor choose the levels from the connection delays:
 
     .. code-block:: cpp
 
-        arb::simulation sim = arb::simulation::create(recipe)
-            .set_context(context)
-            .set_spike_exchange(arb::neighborhood_spike_exchange::automatic());
+        auto context = arb::make_context(resources, MPI_COMM_WORLD,
+                                         arb::neighborhood_spike_exchange::automatic());
 
-All ranks must choose the same kind of exchange. Within a neighbourhood, spikes are
+All ranks must choose the same kind of exchange; this is checked when a simulation is
+built. Within a neighbourhood, spikes are
 exchanged with ``MPI_Neighbor_allgatherv``, which sends every spike with targets in the
 neighbourhood to all of its ranks; see the :ref:`developer documentation
 <neighborhood_exchange>` for details.
@@ -160,8 +161,6 @@ Class documentation
                 cells in the model are assigned to hardware resources;
             *   an :cpp:class:`arb::context` which is used to execute the simulation.
             *   a :cpp:class:`std::uint64_t` in order to seed the pseudo random number generator (optional)
-            *   a :cpp:class:`arb::neighborhood_spike_exchange` to exchange spikes with MPI
-                neighbourhood collectives (optional, see above)
         * **Experimental inputs** that can change between model runs, such
           as external spike trains.
 
