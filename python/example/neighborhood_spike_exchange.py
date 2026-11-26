@@ -116,7 +116,7 @@ class result:
         self.epoch = sim.max_epoch_length()
 
 
-def make_context(spike_exchange=A.neighborhood_spike_exchange.off()):
+def make_context(spike_exchange):
     """A context on all ranks; the spike exchange is a property of the context."""
     return A.context(mpi=A.mpi_comm(), spike_exchange=spike_exchange)
 
@@ -210,7 +210,7 @@ def main():
         raise SystemExit("This example needs arbor built with MPI.")
 
     A.mpi_init()
-    context = make_context()
+    context = make_context(A.neighborhood_spike_exchange.off())
     rank, num_ranks = context.rank, context.ranks
 
     def log(*msg):
