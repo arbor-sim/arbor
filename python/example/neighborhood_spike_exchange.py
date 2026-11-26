@@ -116,10 +116,9 @@ class result:
         self.epoch = sim.max_epoch_length()
 
 
-def make_context(spike_exchange=None):
+def make_context(spike_exchange=A.neighborhood_spike_exchange.off()):
     """A context on all ranks; the spike exchange is a property of the context."""
-    mpi = A.mpi_comm() if A.config()["mpi"] else None
-    return A.context(mpi=mpi, spike_exchange=spike_exchange)
+    return A.context(mpi=A.mpi_comm(), spike_exchange=spike_exchange)
 
 
 def simulate(recipe, context, args):
@@ -207,9 +206,10 @@ def parse_args():
 
 def main():
     args = parse_args()
+    if not A.config()["mpi"]:
+        raise SystemExit("This example needs arbor built with MPI.")
 
-    if A.config()["mpi"]:
-        A.mpi_init()
+    A.mpi_init()
     context = make_context()
     rank, num_ranks = context.rank, context.ranks
 
@@ -271,8 +271,7 @@ def main():
     else:
         log("\nfor profiler times, build arbor with -DARB_WITH_PROFILING=ON")
 
-    if A.config()["mpi"]:
-        A.mpi_finalize()
+    A.mpi_finalize()
 
 
 if __name__ == "__main__":

@@ -65,13 +65,12 @@ ARB_ARBOR_API void make_remote_connection(context, Comm);
 
 // Helpers for creating contexts. These are implemented in the back end.
 //
-// spike_exchange sets how simulations on the context exchange spikes between
-// ranks; see neighborhood_spike_exchange. By default, all spikes are exchanged
-// globally after every epoch.
+// For distributed contexts, spike_exchange sets how simulations on the context
+// exchange spikes between ranks; see neighborhood_spike_exchange. By default,
+// all spikes are exchanged globally after every epoch.
 
 // Non-distributed context using the requested resources.
-ARB_ARBOR_API context make_context(const proc_allocation& resources = proc_allocation{},
-                                   const neighborhood_spike_exchange& spike_exchange = neighborhood_spike_exchange::off());
+ARB_ARBOR_API context make_context(const proc_allocation& resources = proc_allocation{});
 
 // Distributed context that uses MPI communicator comm, and local resources
 // described by resources. Or dry run context that uses dry_run_info.

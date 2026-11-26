@@ -217,7 +217,10 @@ int main(int argc, char** argv) {
 #ifdef ARB_MPI_ENABLED
             return arb::make_context({}, MPI_COMM_WORLD, exchange);
 #else
-            return arb::make_context({}, exchange);
+            if (!exchange.is_off()) {
+                throw std::runtime_error("the neighbourhood exchange needs MPI; without it, emulate ranks with --dry-run");
+            }
+            return arb::make_context();
 #endif
         };
         auto ctx = make_context(arb::neighborhood_spike_exchange::off());

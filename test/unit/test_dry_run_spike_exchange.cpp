@@ -127,7 +127,8 @@ TEST(dry_run_spike_exchange, neighborhoods) {
 // The context keeps the spike exchange it was made with.
 TEST(dry_run_spike_exchange, context) {
     EXPECT_TRUE(spike_exchange(make_context()).is_off());
-    EXPECT_TRUE(spike_exchange(make_context(proc_allocation{}, neighborhood_spike_exchange::automatic())).is_automatic());
+    EXPECT_TRUE(spike_exchange(dry_run_context()).is_off());
+    EXPECT_TRUE(spike_exchange(dry_run_context(neighborhood_spike_exchange::automatic())).is_automatic());
     auto ctx = dry_run_context(neighborhood_spike_exchange{{{1}, {2, 3}}});
     EXPECT_EQ((std::vector<std::vector<int>>{{1}, {2, 3}}), spike_exchange(ctx).neighborhoods());
 }

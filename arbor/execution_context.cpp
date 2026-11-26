@@ -27,8 +27,8 @@ context with_spike_exchange(std::shared_ptr<execution_context> ctx, const neighb
 }
 } // namespace
 
-ARB_ARBOR_API context make_context(const proc_allocation& p, const neighborhood_spike_exchange& spike_exchange) {
-    return with_spike_exchange(std::make_shared<execution_context>(p), spike_exchange);
+ARB_ARBOR_API context make_context(const proc_allocation& p) {
+    return std::make_shared<execution_context>(p);
 }
 
 #ifdef ARB_HAVE_MPI

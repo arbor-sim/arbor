@@ -66,8 +66,7 @@ void proc_allocation_shim::set_num_threads(unsigned threads) {
 
 // generators
 context_shim make_context_shim(proc_allocation_shim alloc, pybind11::object mpi, pybind11::object inter,
-                               std::optional<arb::neighborhood_spike_exchange> spike_exchange_) {
-    const auto spike_exchange = spike_exchange_.value_or(arb::neighborhood_spike_exchange::off());
+                               const arb::neighborhood_spike_exchange& spike_exchange) {
 #ifndef ARB_GPU_ENABLED
     if (alloc.has_gpu()) {
         throw pyarb_error("Attempt to set an GPU communicator but Arbor is not configured with GPU support.");
@@ -104,7 +103,10 @@ context_shim make_context_shim(proc_allocation_shim alloc, pybind11::object mpi,
         }
     }
 #endif
-    return context_shim{arb::make_context(alloc.proc_allocation, spike_exchange)};
+    if (!spike_exchange.is_off()) {
+        throw pyarb_error("spike_exchange requires an MPI communicator.");
+    }
+    return context_shim{arb::make_context(alloc.proc_allocation)};
 }
 
 context_shim make_context_shim() {
@@ -192,7 +194,7 @@ void register_contexts(pybind11::module& m) {
              "Construct a local context with proc_allocation = env.default_allocation().\n")
         .def(pybind11::init(
                  [](unsigned threads, pybind11::object gpu, pybind11::object mpi, pybind11::object inter, bool bind_p, bool bind_t,
-                    std::optional<arb::neighborhood_spike_exchange> spike_exchange){
+                    const arb::neighborhood_spike_exchange& spike_exchange){
                      return make_context_shim(proc_allocation_shim(threads, gpu, bind_p, bind_t), mpi, inter, spike_exchange);
                  }),
              pybind11::kw_only(),
@@ -202,7 +204,7 @@ void register_contexts(pybind11::module& m) {
              "inter"_a=pybind11::none(),
              "bind_procs"_a=false,
              "bind_threads"_a=false,
-             "spike_exchange"_a=pybind11::none(),
+             "spike_exchange"_a=arb::neighborhood_spike_exchange::off(),
              "Construct a context with arguments:\n"
              "  threads: The number of threads available locally for execution. Must be set to 1 at minimum. 1 by default.\n"
              "  gpu_id:  The identifier of the GPU to use, None by default. Only available if arbor.__config__['gpu']!=\"none\".\n"
@@ -211,23 +213,25 @@ void register_contexts(pybind11::module& m) {
              "  bind_procs:   Create process binding mask.\n"
              "  bind_threads: Create thread binding mask.\n"
              "  spike_exchange: How simulations exchange spikes between ranks, see neighborhood_spike_exchange.\n"
-             "                  None by default, which exchanges all spikes globally after every epoch.")
+             "                  neighborhood_spike_exchange.off() by default, which exchanges all spikes globally after every epoch;\n"
+             "                  any other value requires mpi.")
         .def(pybind11::init(
                  [](proc_allocation_shim alloc, pybind11::object mpi, pybind11::object inter,
-                    std::optional<arb::neighborhood_spike_exchange> spike_exchange) {
+                    const arb::neighborhood_spike_exchange& spike_exchange) {
                      return make_context_shim(alloc, mpi, inter, spike_exchange);
                  }),
              "alloc"_a,
              pybind11::kw_only(),
              "mpi"_a=pybind11::none(),
              "inter"_a=pybind11::none(),
-             "spike_exchange"_a=pybind11::none(),
+             "spike_exchange"_a=arb::neighborhood_spike_exchange::off(),
              "Construct a context with arguments:\n"
              "  alloc:   The computational resources to be used for the simulation.\n"
              "  mpi:     The MPI communicator, None by default. Only available if arbor.__config__['mpi']==True.\n"
              "  inter:   An MPI intercommunicator used to connect to external simulations, None by default. Only available if arbor.__config__['mpi']==True.\n"
              "  spike_exchange: How simulations exchange spikes between ranks, see neighborhood_spike_exchange.\n"
-             "                  None by default, which exchanges all spikes globally after every epoch.\n")
+             "                  neighborhood_spike_exchange.off() by default, which exchanges all spikes globally after every epoch;\n"
+             "                  any other value requires mpi.\n")
         .def_property_readonly("has_mpi", [](const context_shim& ctx){return arb::has_mpi(ctx.context);},
                                "Whether the context uses MPI for distributed communication.")
         .def_property_readonly("has_gpu", [](const context_shim& ctx){return arb::has_gpu(ctx.context);},

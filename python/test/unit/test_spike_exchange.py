@@ -11,6 +11,9 @@ from .. import fixtures
 tests for neighbourhood spike exchange; these use all MPI ranks if run with MPI
 """
 
+# The exchange is set on distributed contexts only.
+requires_mpi = unittest.skipUnless(A.config()["mpi"], "MPI required")
+
 
 def ring(rank, offset, num_ranks):
     return (rank + offset) % num_ranks
@@ -77,7 +80,15 @@ class TestSpikeExchange(unittest.TestCase):
         self.assertEqual([], ex.neighborhoods)
         self.assertEqual("<arbor.neighborhood_spike_exchange: off>", repr(ex))
 
+    @unittest.skipIf(A.config()["mpi"], "without MPI only")
+    def test_requires_mpi(self):
+        self.assertTrue(A.context().spike_exchange.is_off)
+        A.context(spike_exchange=A.neighborhood_spike_exchange.off())
+        with self.assertRaises(RuntimeError):
+            A.context(spike_exchange=A.neighborhood_spike_exchange.automatic())
+
     # The context keeps the spike exchange it was made with; off by default.
+    @requires_mpi
     @fixtures.context()
     def test_context(self, context):
         self.assertTrue(context.spike_exchange.is_off)
@@ -87,6 +98,7 @@ class TestSpikeExchange(unittest.TestCase):
         self.assertEqual([[0], [1]], ctx.spike_exchange.neighborhoods)
 
     # The local spikes of every rank must be the same as with the default exchange.
+    @requires_mpi
     @fixtures.context()
     def test_same_spikes(self, context):
         expected = run(context)
@@ -100,6 +112,7 @@ class TestSpikeExchange(unittest.TestCase):
             result = run(exchange_context(A.neighborhood_spike_exchange.automatic()))
             self.assertEqual(expected, result)
 
+    @requires_mpi
     @fixtures.context()
     def test_levels(self, context):
         rec = fixtures.ring_distance_recipe(context.ranks)
@@ -126,6 +139,7 @@ class TestSpikeExchange(unittest.TestCase):
                 others = [r for r in range(context.ranks) if r != context.rank]
                 self.assertEqual(others, ranks)
 
+    @requires_mpi
     @fixtures.context()
     def test_invalid_options(self, context):
         # Checked on all ranks, so that all of them raise.

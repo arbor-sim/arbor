@@ -191,7 +191,7 @@ The Python wrapper provides an API for:
         When constructed without arguments, an undistributed context is automatically created
         using :py:func:`~arbor.env.default_allocation()`.
 
-    .. method:: context(threads=threads, gpu_id=gpu_id, mpi=mpi_comm, inter=mpi_comm, spike_exchange=None)
+    .. method:: context(threads=threads, gpu_id=gpu_id, mpi=mpi_comm, inter=mpi_comm, spike_exchange=neighborhood_spike_exchange.off())
         :noindex:
         
         Create a context.
@@ -215,11 +215,12 @@ The Python wrapper provides an API for:
         :type mpi: :py:class:`arbor.mpi_comm` or None.
         :param spike_exchange:
             How simulations on this context exchange spikes between ranks, see
-            :ref:`modelspikeexchange`. ``None`` by default, which exchanges all spikes
-            globally after every epoch.
-        :type spike_exchange: :py:class:`arbor.neighborhood_spike_exchange` or None.
+            :ref:`modelspikeexchange`. :py:meth:`neighborhood_spike_exchange.off` by default,
+            which exchanges all spikes globally after every epoch. Any other value can only
+            be set together with ``mpi``.
+        :type spike_exchange: :py:class:`arbor.neighborhood_spike_exchange`
 
-    .. function:: context(alloc, mpi=mpi_comm, inter=mpi_comm, spike_exchange=None)
+    .. function:: context(alloc, mpi=mpi_comm, inter=mpi_comm, spike_exchange=neighborhood_spike_exchange.off())
         :noindex:
 
         Create a context.
@@ -239,9 +240,10 @@ The Python wrapper provides an API for:
         :type mpi: :py:class:`arbor.mpi_comm` or None.
         :param spike_exchange:
             How simulations on this context exchange spikes between ranks, see
-            :ref:`modelspikeexchange`. ``None`` by default, which exchanges all spikes
-            globally after every epoch.
-        :type spike_exchange: :py:class:`arbor.neighborhood_spike_exchange` or None.
+            :ref:`modelspikeexchange`. :py:meth:`neighborhood_spike_exchange.off` by default,
+            which exchanges all spikes globally after every epoch. Any other value can only
+            be set together with ``mpi``.
+        :type spike_exchange: :py:class:`arbor.neighborhood_spike_exchange`
 
 
     Contexts can be queried for information about which features a context has enabled,

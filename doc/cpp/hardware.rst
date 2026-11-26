@@ -323,11 +323,11 @@ Arbor contexts are created by calling :cpp:func:`make_context`, which returns an
 context. There are versions of :cpp:func:`make_context` for creating contexts
 with and without distributed computation with MPI.
 
-All versions take an optional :cpp:class:`neighborhood_spike_exchange` as their last
-argument, which sets how simulations on the context exchange spikes between ranks; see
+The distributed versions take an optional :cpp:class:`neighborhood_spike_exchange` as their
+last argument, which sets how simulations on the context exchange spikes between ranks; see
 :ref:`modelspikeexchange`. By default, all spikes are exchanged globally after every epoch.
 
-.. cpp:function:: context make_context(proc_allocation alloc=proc_allocation(), const neighborhood_spike_exchange& spike_exchange=neighborhood_spike_exchange::off())
+.. cpp:function:: context make_context(proc_allocation alloc=proc_allocation())
 
     Create a local :cpp:class:`context`, with no distributed/MPI, that uses
     local resources described by :cpp:any:`alloc`. By default it will create a
