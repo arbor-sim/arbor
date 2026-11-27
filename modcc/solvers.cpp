@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <fmt/format.h>
+
 #include "expression.hpp"
 #include "parser.hpp"
 #include "solvers.hpp"
@@ -57,32 +59,33 @@ void CnexpSolverVisitor::visit(AssignmentExpression *e) {
         return;
     }
 
+    auto append_local = [&scope](auto&& from, const auto& pfx, auto& stmnts) -> std::string {
+        auto local = make_unique_local_assign(scope, from, pfx);
+        stmnts.push_back(std::move(local.local_decl));
+        stmnts.push_back(std::move(local.assignment));
+        return local.id->is_identifier()->spelling();
+    };
+
     Expression* coef = r.coef[s].get();
     if (!coef || is_zero(coef)) {
         // s' = b becomes s = s + b*dt; use b_ as a local variable for
         // the constant term b.
-        auto local_b_term = make_unique_local_assign(scope, r.constant.get(), "b_");
-        statements_.push_back(std::move(local_b_term.local_decl));
-        statements_.push_back(std::move(local_b_term.assignment));
-        auto b_ = local_b_term.id->is_identifier()->spelling();
-
-        std::string s_update = pprintf("% = %+%*dt", s, s, b_);
+        auto b_ = append_local(r.constant, "b_", statements_);
+        auto s_update = fmt::format("{} = {} + {}*dt", s, s, b_);
         statements_.push_back(Parser{s_update}.parse_line_expression());
         return;
     }
     else if (r.is_homogeneous) {
         // s' = a*s becomes s = s*exp(a*dt); use a_ as a local variable for the
         // coefficient.
-        auto local_a_term = make_unique_local_assign(scope, coef, "a_");
-        auto s_update = pprintf("% = %*exp_pade_11(%*dt)",
-                                s, s, local_a_term.id->is_identifier()->spelling());
-        statements_.push_back(std::move(local_a_term.local_decl));
-        statements_.push_back(std::move(local_a_term.assignment));
+        auto a_ = append_local(coef, "a_", statements_);
+        auto s_update = fmt::format("{} = {}*(2 + {}*dt)/(2 - {}*dt)",
+                                     s,    s,      a_,          a_);
         statements_.push_back(Parser{s_update}.parse_line_expression());
         return;
     }
     else {
-        // s' = a*s + b becomes s = -b/a + (s+b/a)*exp(a*dt); use
+        // s' = a*s + b becomes s = -b/a + (s + b/a)*exp(a*dt); use
         // a_ as a local variable for the coefficient and ba_ for the
         // quotient.
         //
@@ -97,47 +100,29 @@ void CnexpSolverVisitor::visit(AssignmentExpression *e) {
         // straight to simplified update: s = b + (s-b)*exp(-dt/a).
 
         // Check for 'gating' case:
-        if (rhs->is_binary() && rhs->is_binary()->op()==tok::divide) {
-            auto denom = rhs->is_binary()->rhs();
-            if (involves_identifier(denom, s)) {
-                goto not_gating;
-            }
-            auto numer = rhs->is_binary()->lhs();
-            linear_test_result r = linear_test(numer, {s});
-            if (expr_value(r.coef[s]) != -1) {
-                goto not_gating;
-            }
+        if (auto bin = rhs->is_binary(); bin && bin->op() == tok::divide) {
+            auto denom = bin->rhs();
+            if (involves_identifier(denom, s)) goto not_gating;
+            auto numer = bin->lhs();
+            auto res   = linear_test(numer, {s});
+            if (expr_value(res.coef[s]) != -1) goto not_gating;
 
-            auto local_a_term = make_unique_local_assign(scope, denom, "a_");
-            auto a_ = local_a_term.id->is_identifier()->spelling();
-            auto local_b_term = make_unique_local_assign(scope, r.constant, "b_");
-            auto b_ = local_b_term.id->is_identifier()->spelling();
+            auto a_ = append_local(denom,        "a_", statements_);
+            auto b_ = append_local(res.constant, "b_", statements_);
 
-            statements_.push_back(std::move(local_a_term.local_decl));
-            statements_.push_back(std::move(local_a_term.assignment));
-            statements_.push_back(std::move(local_b_term.local_decl));
-            statements_.push_back(std::move(local_b_term.assignment));
-
-            std::string s_update = pprintf("% = %+(%-%)*exp_pade_11(-dt/%)", s, b_, s, b_, a_);
+            auto s_update = fmt::format("{} = ({}*(2*{} - dt) + 2*{}*dt) / (2*{} + dt)",
+                                         s,    s,    a_,          b_,         a_);
             statements_.push_back(Parser{s_update}.parse_line_expression());
             return;
         }
-
+// Actually the 'default case'
 not_gating:
-        auto local_a_term = make_unique_local_assign(scope, coef, "a_");
-        auto a_ = local_a_term.id->is_identifier()->spelling();
-
-        auto ba_expr = make_expression<DivBinaryExpression>(loc,
-                           r.constant->clone(), local_a_term.id->clone());
-        auto local_ba_term = make_unique_local_assign(scope, ba_expr, "ba_");
-        auto ba_ = local_ba_term.id->is_identifier()->spelling();
-
-        statements_.push_back(std::move(local_a_term.local_decl));
-        statements_.push_back(std::move(local_a_term.assignment));
-        statements_.push_back(std::move(local_ba_term.local_decl));
-        statements_.push_back(std::move(local_ba_term.assignment));
-
-        std::string s_update = pprintf("% = -%+(%+%)*exp_pade_11(%*dt)", s, ba_, s, ba_, a_);
+        auto a_ = append_local(coef,       "a_", statements_);
+        auto b_ = append_local(r.constant, "b_", statements_);
+        // Pade folded and simplified; this removes the b/a division which was
+        // mentioned as problematic above and keeps only the one from Pade.
+        auto s_update = fmt::format("{} = ({}*(2 + {}*dt) + 2*{}*dt)/(2 - {}*dt)",
+                                     s,    s,      a_,        b_,         a_);
         statements_.push_back(Parser{s_update}.parse_line_expression());
         return;
     }
