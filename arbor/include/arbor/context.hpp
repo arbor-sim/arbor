@@ -3,6 +3,7 @@
 #include <memory>
 
 #include <arbor/export.hpp>
+#include <arbor/spike_exchange.hpp>
 
 namespace arb {
 
@@ -63,6 +64,10 @@ template<typename Comm>
 ARB_ARBOR_API void make_remote_connection(context, Comm);
 
 // Helpers for creating contexts. These are implemented in the back end.
+//
+// For distributed contexts, spike_exchange sets how simulations on the context
+// exchange spikes between ranks; see neighborhood_spike_exchange. By default,
+// all spikes are exchanged globally after every epoch.
 
 // Non-distributed context using the requested resources.
 ARB_ARBOR_API context make_context(const proc_allocation& resources = proc_allocation{});
@@ -70,10 +75,12 @@ ARB_ARBOR_API context make_context(const proc_allocation& resources = proc_alloc
 // Distributed context that uses MPI communicator comm, and local resources
 // described by resources. Or dry run context that uses dry_run_info.
 template <typename Comm>
-ARB_ARBOR_API context make_context(const proc_allocation& resources, Comm comm);
+ARB_ARBOR_API context make_context(const proc_allocation& resources, Comm comm,
+                                   const neighborhood_spike_exchange& spike_exchange = neighborhood_spike_exchange::off());
 
 template <typename Comm>
-ARB_ARBOR_API context make_context(const proc_allocation& resources, Comm comm, Comm remote);
+ARB_ARBOR_API context make_context(const proc_allocation& resources, Comm comm, Comm remote,
+                                   const neighborhood_spike_exchange& spike_exchange = neighborhood_spike_exchange::off());
 
 // Queries for properties of execution resources in a context.
 
@@ -83,5 +90,6 @@ ARB_ARBOR_API unsigned num_threads(context);
 ARB_ARBOR_API bool has_mpi(context);
 ARB_ARBOR_API unsigned num_ranks(context);
 ARB_ARBOR_API unsigned rank(context);
+ARB_ARBOR_API neighborhood_spike_exchange spike_exchange(context);
 
 }

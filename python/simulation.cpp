@@ -1,4 +1,6 @@
 #include <memory>
+#include <optional>
+#include <sstream>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -7,6 +9,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/simulation.hpp>
+#include <arbor/spike_exchange.hpp>
 
 #include "context.hpp"
 #include "error.hpp"
@@ -58,7 +61,11 @@ class simulation_shim {
     std::unordered_map<arb::sampler_association_handle, sampler_callback> sampler_map_;
 
 public:
-    simulation_shim(std::shared_ptr<recipe>& rec, const context_shim& ctx, const arb::domain_decomposition_ptr decomp, std::uint64_t seed, pyarb_global_ptr global_ptr):
+    simulation_shim(std::shared_ptr<recipe>& rec,
+                    const context_shim& ctx,
+                    const arb::domain_decomposition_ptr decomp,
+                    std::uint64_t seed,
+                    pyarb_global_ptr global_ptr):
         global_ptr_(global_ptr)
     {
         try {
@@ -119,6 +126,10 @@ public:
     arb::time_type run(const arb::units::quantity& tfinal, const arb::units::quantity& dt) {
         return sim_->run(tfinal, dt);
     }
+
+    arb::time_type max_epoch_length() { return sim_->max_epoch_length(); }
+
+    std::vector<arb::spike_exchange_level> spike_exchange_levels() const { return sim_->spike_exchange_levels(); }
 
     void record(spike_recording policy) {
         auto spike_recorder = [this](const std::vector<arb::spike>& spikes) {
@@ -201,6 +212,25 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
        .value("off", spike_recording::off)
        .value("local", spike_recording::local);
 
+    py::class_<arb::spike_exchange_level> spike_exchange_level(m, "spike_exchange_level",
+        "A level of the neighbourhood spike exchange, as seen by the calling rank.");
+    spike_exchange_level
+        .def_readonly("ranks", &arb::spike_exchange_level::ranks,
+             "Ranks this rank receives spikes from in this level, in ascending order.")
+        .def_readonly("period", &arb::spike_exchange_level::period,
+             "Exchanged every `period` epochs; 0 if no connections use this level.")
+        .def_readonly("min_delay", &arb::spike_exchange_level::min_delay,
+             "Minimum delay [ms] of the connections in this level over all ranks, from which\n"
+             "the period follows; infinity if there are none.")
+        .def_readonly("far", &arb::spike_exchange_level::far,
+             "Exchanged with the global collective instead of a neighbourhood all-gather.")
+        .def("__repr__", [](const arb::spike_exchange_level& l) {
+                 std::stringstream ss;
+                 ss << "<arbor.spike_exchange_level: " << (l.far? "far, ": "") << l.ranks.size() << " ranks, period " << l.period << ", min delay " << l.min_delay << " ms>";
+                 return ss.str();
+             })
+        .def("__str__", [](const arb::spike_exchange_level& l) { return py::repr(py::cast(l)); });
+
     // Simulation
     py::class_<simulation_shim> simulation(m, "simulation",
         "The executable form of a model.\n"
@@ -231,7 +261,7 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
              "seed"_a=0u,
              "Initialize the model described by a recipe, with cells and network distributed\n"
              "according to the domain decomposition and computational resources described by a\n"
-             "context. Initialize PRNG using seed")
+             "context. Initialize PRNG using seed.")
         .def("set_remote_spike_filter",
              &simulation_shim::set_remote_spike_filter,
              "pred"_a,
@@ -260,6 +290,12 @@ void register_simulation(py::module& m, pyarb_global_ptr global_ptr) {
             py::call_guard<py::gil_scoped_release>(),
             "Run the simulation from current simulation time to tfinal [ms], with maximum time step size dt [ms].",
             "tfinal"_a, py::arg_v("dt", 0.025*arb::units::ms, "0.025*arbor.units.ms"))
+        .def("max_epoch_length", &simulation_shim::max_epoch_length,
+            py::call_guard<py::gil_scoped_release>(),
+            "Maximum epoch length [ms], half the minimum delay of the network. Collective: all ranks must call it.")
+        .def("spike_exchange_levels", &simulation_shim::spike_exchange_levels,
+            "The levels of the neighbourhood spike exchange of this rank, neighbourhoods first,\n"
+            "far ranks last; empty for the default exchange. Periods are in epochs of max_epoch_length().")
         .def("record", &simulation_shim::record,
             "Disable or enable local or global spike recording.")
         .def("spikes", &simulation_shim::spikes,

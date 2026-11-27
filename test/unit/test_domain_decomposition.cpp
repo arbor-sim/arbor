@@ -161,6 +161,7 @@ struct dummy_context {
     std::vector<spike> remote_gather_spikes(const std::vector<spike>&) const { throw unimplemented{__FUNCTION__}; }
     gathered_vector<spike> all_to_all_spikes(const gathered_vector<spike>& local_spikes) const { throw unimplemented{__FUNCTION__}; }
     gathered_vector<cell_gid_type> gather_gids(const std::vector<cell_gid_type>& local_gids) const { throw unimplemented{__FUNCTION__}; }
+    distributed_neighborhood_ptr make_neighborhood(const std::vector<int>&) const { throw unimplemented{__FUNCTION__}; }
     gathered_vector<cell_member_type> all_to_all_gids_domains(const std::vector<std::vector<cell_member_type>> gids_domains) const { throw unimplemented{__FUNCTION__};}
     void remote_ctrl_send_continue(const epoch&) const {}
     void remote_ctrl_send_done() const {}

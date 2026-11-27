@@ -15,6 +15,7 @@
 #include <arbor/sampling.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
+#include <arbor/spike_exchange.hpp>
 #include <arbor/util/handle_set.hpp>
 #include <arbor/serdes.hpp>
 
@@ -73,6 +74,11 @@ struct ARB_ARBOR_API simulation {
     std::vector<probe_metadata> get_probe_metadata(const cell_address_type& probeset_id) const;
 
     std::size_t num_spikes() const;
+
+    // The levels of the neighbourhood spike exchange of this rank, neighbourhoods
+    // first, far ranks last; empty for the default exchange. Periods are in
+    // epochs of max_epoch_length().
+    std::vector<spike_exchange_level> spike_exchange_levels() const;
 
     // Register a callback that will perform a export of the rank local
     // spike vector.

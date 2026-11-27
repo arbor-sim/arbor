@@ -320,8 +320,12 @@ The core Arbor library *libarbor* provides an API for:
     Arbor interfaces for domain decomposition and simulation.
 
 Arbor contexts are created by calling :cpp:func:`make_context`, which returns an initialized
-context. There are two versions of :cpp:func:`make_context`, for creating contexts
-with and without distributed computation with MPI, respectively.
+context. There are versions of :cpp:func:`make_context` for creating contexts
+with and without distributed computation with MPI.
+
+The distributed versions take an optional :cpp:class:`neighborhood_spike_exchange` as their
+last argument, which sets how simulations on the context exchange spikes between ranks; see
+:ref:`modelspikeexchange`. By default, all spikes are exchanged globally after every epoch.
 
 .. cpp:function:: context make_context(proc_allocation alloc=proc_allocation())
 
@@ -329,13 +333,13 @@ with and without distributed computation with MPI, respectively.
     local resources described by :cpp:any:`alloc`. By default it will create a
     context with :cpp:func:`arbenv::thread_concurrency` threads and no GPU.
 
-.. cpp:function:: context make_context(proc_allocation alloc, MPI_Comm comm)
+.. cpp:function:: context make_context(proc_allocation alloc, MPI_Comm comm, const neighborhood_spike_exchange& spike_exchange=neighborhood_spike_exchange::off())
 
     Create a distributed :cpp:class:`context`.
     A context that uses the local resources described by :cpp:any:`alloc`, and
     uses the MPI communicator :cpp:var:`comm` for distributed calculation.
 
-.. cpp:function:: context make_context(proc_allocation alloc, MPI_Comm comm, MPI_Comm inter)
+.. cpp:function:: context make_context(proc_allocation alloc, MPI_Comm comm, MPI_Comm inter, const neighborhood_spike_exchange& spike_exchange=neighborhood_spike_exchange::off())
 
     A second MPI communicator :cpp:var:`inter` can be supplied cross-simulator interaction.
     See :ref:`interconnectivitycross`.
@@ -366,6 +370,10 @@ whether it has a GPU, how many threads are in its thread pool, using helper func
    Query the rank of the calling rank. If the context has an MPI
    communicator, the return value is equivalent to ``MPI_Comm_rank``.
    If the communicator has no MPI, returns 0.
+
+.. cpp:function:: neighborhood_spike_exchange spike_exchange(const context&)
+
+   Query how simulations on the context exchange spikes between ranks.
 
 Here are some simple examples of how to create a :cpp:class:`arb::context` using
 :cpp:func:`make_context`.

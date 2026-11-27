@@ -1,0 +1,153 @@
+# -*- coding: utf-8 -*-
+#
+# test_spike_exchange.py
+
+import unittest
+import arbor as A
+from arbor import units as U
+from .. import fixtures
+
+"""
+tests for neighbourhood spike exchange; these use all MPI ranks if run with MPI
+"""
+
+# The exchange is set on distributed contexts only.
+requires_mpi = unittest.skipUnless(A.config()["mpi"], "MPI required")
+
+
+def ring(rank, offset, num_ranks):
+    return (rank + offset) % num_ranks
+
+
+def rings(rank, num_ranks):
+    # On small rings, the offsets reach the same rank, which must be listed only once.
+    levels, listed = [[], []], set()
+    for offset in (-1, 1, -2, 2):
+        r = ring(rank, offset, num_ranks)
+        if r not in listed:
+            listed.add(r)
+            levels[abs(offset) - 1].append(r)
+    return levels
+
+
+def neighborhood_shapes(rank, num_ranks):
+    return {
+        "none": [],
+        # The next {-1, +1}, then the next but one {-2, +2}.
+        "rings": rings(rank, num_ranks),
+        # Asymmetric: we receive from our successor, but it does not receive from us.
+        "successor": [[ring(rank, 1, num_ranks)]],
+        "everyone": [list(range(num_ranks))],
+    }
+
+
+def exchange_context(spike_exchange):
+    """A context like the fixture's, with the given spike exchange."""
+    return A.context(mpi=fixtures.get_mpi_comm_world(), spike_exchange=spike_exchange)
+
+
+def run(context):
+    rec = fixtures.ring_distance_recipe(context.ranks)
+    dd = A.partition_load_balance(rec, context)
+    sim = A.simulation(rec, context, dd)
+    sim.record(A.spike_recording.local)
+    # Stops are not multiples of the epoch length; held back spikes must be flushed at each.
+    for t in [3.3, 10, 31.7, 50]:
+        sim.run(t * U.ms, 0.025 * U.ms)
+    return sim.spikes().tolist()
+
+
+class TestSpikeExchange(unittest.TestCase):
+    def test_options(self):
+        ex = A.neighborhood_spike_exchange([[1, 2], [3]])
+        self.assertEqual([[1, 2], [3]], ex.neighborhoods)
+        self.assertFalse(ex.is_off)
+        self.assertFalse(ex.is_automatic)
+        self.assertEqual(
+            "<arbor.neighborhood_spike_exchange: neighborhoods [[1, 2], [3]]>", repr(ex)
+        )
+
+        ex = A.neighborhood_spike_exchange(neighborhoods=[[5]])
+        self.assertEqual([[5]], ex.neighborhoods)
+
+        ex = A.neighborhood_spike_exchange.automatic()
+        self.assertTrue(ex.is_automatic)
+        self.assertEqual([], ex.neighborhoods)
+        self.assertEqual("<arbor.neighborhood_spike_exchange: automatic>", repr(ex))
+
+        ex = A.neighborhood_spike_exchange.off()
+        self.assertTrue(ex.is_off)
+        self.assertEqual([], ex.neighborhoods)
+        self.assertEqual("<arbor.neighborhood_spike_exchange: off>", repr(ex))
+
+    @unittest.skipIf(A.config()["mpi"], "without MPI only")
+    def test_requires_mpi(self):
+        self.assertTrue(A.context().spike_exchange.is_off)
+        A.context(spike_exchange=A.neighborhood_spike_exchange.off())
+        with self.assertRaises(RuntimeError):
+            A.context(spike_exchange=A.neighborhood_spike_exchange.automatic())
+
+    # The context keeps the spike exchange it was made with; off by default.
+    @requires_mpi
+    @fixtures.context()
+    def test_context(self, context):
+        self.assertTrue(context.spike_exchange.is_off)
+        ctx = exchange_context(A.neighborhood_spike_exchange.automatic())
+        self.assertTrue(ctx.spike_exchange.is_automatic)
+        ctx = exchange_context(A.neighborhood_spike_exchange([[0], [1]]))
+        self.assertEqual([[0], [1]], ctx.spike_exchange.neighborhoods)
+
+    # The local spikes of every rank must be the same as with the default exchange.
+    @requires_mpi
+    @fixtures.context()
+    def test_same_spikes(self, context):
+        expected = run(context)
+        self.assertGreater(len(expected), 0)
+        shapes = neighborhood_shapes(context.rank, context.ranks)
+        for name, levels in shapes.items():
+            with self.subTest(neighborhoods=name):
+                result = run(exchange_context(A.neighborhood_spike_exchange(levels)))
+                self.assertEqual(expected, result)
+        with self.subTest(neighborhoods="automatic"):
+            result = run(exchange_context(A.neighborhood_spike_exchange.automatic()))
+            self.assertEqual(expected, result)
+
+    @requires_mpi
+    @fixtures.context()
+    def test_levels(self, context):
+        rec = fixtures.ring_distance_recipe(context.ranks)
+        dd = A.partition_load_balance(rec, context)
+
+        sim = A.simulation(rec, context, dd)
+        self.assertEqual([], sim.spike_exchange_levels())
+        # The shortest delay is 1 ms.
+        self.assertAlmostEqual(0.5, sim.max_epoch_length())
+
+        shapes = neighborhood_shapes(context.rank, context.ranks)
+        options = [A.neighborhood_spike_exchange(levels) for levels in shapes.values()]
+        options.append(A.neighborhood_spike_exchange.automatic())
+        for ex in options:
+            with self.subTest(spike_exchange=repr(ex)):
+                sim = A.simulation(rec, exchange_context(ex), dd)
+                levels = sim.spike_exchange_levels()
+                # Neighbourhoods, then the far level.
+                self.assertEqual(
+                    [False] * (len(levels) - 1) + [True], [lvl.far for lvl in levels]
+                )
+                # Every other rank is in exactly one level.
+                ranks = sorted(r for lvl in levels for r in lvl.ranks)
+                others = [r for r in range(context.ranks) if r != context.rank]
+                self.assertEqual(others, ranks)
+
+    @requires_mpi
+    @fixtures.context()
+    def test_invalid_options(self, context):
+        # Checked on all ranks, so that all of them raise.
+        with self.assertRaises(RuntimeError):
+            run(exchange_context(A.neighborhood_spike_exchange([[context.ranks]])))
+        if context.ranks > 1:
+            # A rank must not be listed twice, in the same level or in different ones.
+            with self.assertRaises(RuntimeError):
+                run(exchange_context(A.neighborhood_spike_exchange([[1, 1]])))
+            with self.assertRaises(RuntimeError):
+                run(exchange_context(A.neighborhood_spike_exchange([[1], [1]])))
