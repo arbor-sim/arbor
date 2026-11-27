@@ -39,13 +39,42 @@ Decorations are described by a **decor** object in Arbor. It provides facilities
    Python this requires the use of continuation lines ``\`` or wrapping the whole
    expression into parentheses.
 
+Physical quantities
+-------------------
+
+As noted in the discussion of :ref:`quantities and units <units>`, parameters
+assigned to cable cells must have the correct unit, be a finite number
+(excluding `nan` or `inf`), or the simulation construction step will raise a
+runtime error. Further, a subset of quantities is subject to additional
+constraints. These do not, on their own, guarantee a numerically correct
+simulation, but Arbor does not impose limits towards the physiologically
+sensible value ranges (coarse ranges are given below).
+
+.. csv-table:: Constraints and units of parameters
+   :widths: 15, 20, 10, 15
+
+   **quantity**, **unit**, **constraints**, **typical values**
+   Temperature :math:`T`, Kelvin, :math:`T \geq 0`, :math:`270-310 K`
+   Concentration :math:`X`, Molar, :math:`X > 0` ``*``, :math:`0.001-600 mM`
+   Capacitance :math:`c`, Farad per unit area, :math:`c > 0`, :math:`0.005-0.02 F/m^2`
+   Resistivity :math:`r`, Ohm :math:`\times` unit length, :math:`r > 0`, :math:`30–200 \Omega\cdot cm`
+   Diffusivity :math:`d`, unit area per unit time, :math:`d \geq 0`, :math:`10^{-11}-10^{-9}m^2/s`
+   Potential :math:`U`, Volt, --, :math:`-100-60mV`
+   Charge :math:`Z`, fundamental charge, :math:`Z \in \mathbb{N}`, :math:`-2-+2`
+
+In particular, extremely low conductivities/capacitances less than the order of
+:math:`10^{-300}` can lead to instability in the solver.
+
+``*`` If for example the Nernst mechanism is used concentrations must be
+strictly positive, we do allow this edgecase, though.
+
 .. _cablecell-paint:
 
 Painted dynamics
 ----------------
 
-Painted dynamics are applied to a subset of the surface or volume of cells.
-They can be specified at three different levels:
+Painted dynamics are applied to a subset of the surface or volume of cells. They
+can be specified at three different levels:
 
 * *globally*: a global default for all cells in a model.
 * *per-cell*: override the global defaults for a specific cell.

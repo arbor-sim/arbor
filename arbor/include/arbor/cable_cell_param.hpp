@@ -121,9 +121,9 @@ struct ARB_SYMBOL_VISIBLE i_clamp {
 
 // Threshold detector description.
 struct ARB_SYMBOL_VISIBLE threshold_detector {
-    threshold_detector(const U::quantity& m): threshold(m.value_as(U::mV)) {
-        if (!std::isfinite(threshold)) throw std::domain_error{"Threshold must be finite and in [mV]."};
-    }
+    threshold_detector(const U::quantity& m):
+        threshold(U::unit_of(m, U::mV, "Threshold"))
+    {}
     static threshold_detector from_raw_millivolts(double v) { return {v*U::mV}; }
     double threshold; // [mV]
 };
@@ -153,7 +153,9 @@ struct ARB_SYMBOL_VISIBLE temperature {
     temperature(const U::quantity& m, iexpr scale=1):
         value(U::unit_of(m, unit, "Temperature")),
         scale{scale}
-    {}
+    {
+        if (value <= 0.0) throw std::domain_error("Temperature [Kelvin] must be positive.");
+    }
 };
 
 struct ARB_SYMBOL_VISIBLE axial_resistivity {
@@ -165,7 +167,9 @@ struct ARB_SYMBOL_VISIBLE axial_resistivity {
     axial_resistivity(const U::quantity& m, iexpr scale=1):
         value(U::unit_of(m, unit, "Resistivity")),
         scale{scale}
-    {}
+    {
+        if (value <= 0.0) throw std::domain_error("Resistivity [Ω·cm] must be strictly positive.");
+    }
 };
 
 struct ARB_SYMBOL_VISIBLE membrane_capacitance {
@@ -177,7 +181,9 @@ struct ARB_SYMBOL_VISIBLE membrane_capacitance {
     membrane_capacitance(const U::quantity& m, iexpr scale=1):
         value(U::unit_of(m, unit, "Capacitance")),
         scale{scale}
-    {}
+    {
+        if (value <= 0.0) throw std::domain_error("Capacitance [F/m²] must be strictly positive.");
+    }
 };
 
 struct ARB_SYMBOL_VISIBLE init_int_concentration {
@@ -191,7 +197,9 @@ struct ARB_SYMBOL_VISIBLE init_int_concentration {
         ion{ion},
         value(U::unit_of(m, unit, "Concentration")),
         scale{scale}
-    {}
+    {
+        if (value < 0.0) throw std::domain_error("Concentration [mM] must be positive.");
+    }
 };
 
 struct ARB_SYMBOL_VISIBLE ion_diffusivity {
@@ -205,7 +213,9 @@ struct ARB_SYMBOL_VISIBLE ion_diffusivity {
         ion{ion},
         value(U::unit_of(m, unit, "Diffusivity")),
         scale{scale}
-    {}
+    {
+        if (value < 0.0) throw std::domain_error("Diffusivity [m²/s] must be positive.");
+    }
 };
 
 struct ARB_SYMBOL_VISIBLE init_ext_concentration {
@@ -219,7 +229,9 @@ struct ARB_SYMBOL_VISIBLE init_ext_concentration {
         ion{ion},
         value(U::unit_of(m, unit, "Concentration")),
         scale{scale}
-    {}
+    {
+        if (value <= 0.0) throw std::domain_error("Concentration must be positive.");
+    }
 };
 
 struct ARB_SYMBOL_VISIBLE init_reversal_potential {

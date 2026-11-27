@@ -93,35 +93,25 @@ void solve_matrix_fine(
             const unsigned len = lvl_lengths[tid];
             unsigned pos = lvl_meta.matrix_data_index + tid;
 
-            // Zero diagonal term implies dt==0; just leave rhs (for whole matrix)
-            // alone in that case.
-
-            // Each cell has a different `dt`, because we choose time step size
-            // according to when the next event is arriving at a cell. So, some
-            // cells require more time steps than others, but we have to solve
-            // all the matrices at the same time. When a cell finishes, we put a
-            // `0` on the diagonal to mark that it should not be solved for.
-            if (d[pos]!=0) {
-                // each branch perform substitution
-                for (unsigned i=0; i<len-1; ++i) {
-                    const unsigned next_pos = pos + width;
-                    const auto d_next = d[next_pos];
-                    const auto rhs_next = rhs[next_pos];
-                    const T factor = -u[pos]/d[pos];
-                    d[next_pos] = fma(factor, u[pos], d_next);
-                    rhs[next_pos] = fma(factor, rhs[pos], rhs_next);
-                    pos = next_pos;
-                }
-                // Update d and rhs at the parent node of this branch.
-                // A parent may have more than one contributing to it, so we use
-                // atomic updates to avoid races conditions.
-                const unsigned parent_index = next_lvl_meta.matrix_data_index;
-                const unsigned p = parent_index + lvl_parents[tid];
-
-                const T factor = -u[pos] / d[pos];
-                gpu_atomic_add(d + p, factor*u[pos]);
-                gpu_atomic_add(rhs + p, factor*rhs[pos]);
+            // each branch perform substitution
+            for (unsigned i=0; i<len-1; ++i) {
+                const unsigned next_pos = pos + width;
+                const auto d_next = d[next_pos];
+                const auto rhs_next = rhs[next_pos];
+                const T factor = -u[pos]/d[pos];
+                d[next_pos] = fma(factor, u[pos], d_next);
+                rhs[next_pos] = fma(factor, rhs[pos], rhs_next);
+                pos = next_pos;
             }
+            // Update d and rhs at the parent node of this branch.
+            // A parent may have more than one contributing to it, so we use
+            // atomic updates to avoid races conditions.
+            const unsigned parent_index = next_lvl_meta.matrix_data_index;
+            const unsigned p = parent_index + lvl_parents[tid];
+
+            const T factor = -u[pos] / d[pos];
+            gpu_atomic_add(d + p, factor*u[pos]);
+            gpu_atomic_add(rhs + p, factor*rhs[pos]);
         }
         __syncthreads();
     }
@@ -138,29 +128,27 @@ void solve_matrix_fine(
             const unsigned len = lvl_lengths[tid];
             unsigned pos = last_lvl_meta.matrix_data_index + tid;
 
-            if (d[pos]!=0) {
-                // backward
-                for (unsigned i=0; i<len-1; ++i) {
-                    const unsigned next_pos = pos + width;
-                    const T factor = -u[pos] / d[pos];
-                    const auto rhs_next = rhs[next_pos];
-                    const auto d_next = d[next_pos];
-                    d[next_pos]   = fma(factor, u[pos], d_next);
-                    rhs[next_pos] = fma(factor, rhs[pos], rhs_next);
-                    pos = next_pos;
-                }
+            // backward
+            for (unsigned i=0; i<len-1; ++i) {
+                const unsigned next_pos = pos + width;
+                const T factor = -u[pos] / d[pos];
+                const auto rhs_next = rhs[next_pos];
+                const auto d_next = d[next_pos];
+                d[next_pos]   = fma(factor, u[pos], d_next);
+                rhs[next_pos] = fma(factor, rhs[pos], rhs_next);
+                pos = next_pos;
+            }
 
-                auto rhsp = rhs[pos] / d[pos];
+            auto rhsp = rhs[pos] / d[pos];
+            rhs[pos] = rhsp;
+            pos -= width;
+
+            // forward
+            for (unsigned i=0; i<len-1; ++i) {
+                rhsp = rhs[pos] - u[pos]*rhsp;
+                rhsp /= d[pos];
                 rhs[pos] = rhsp;
                 pos -= width;
-
-                // forward
-                for (unsigned i=0; i<len-1; ++i) {
-                    rhsp = rhs[pos] - u[pos]*rhsp;
-                    rhsp /= d[pos];
-                    rhs[pos] = rhsp;
-                    pos -= width;
-                }
             }
         }
     }
@@ -188,17 +176,15 @@ void solve_matrix_fine(
             const unsigned len = lvl_lengths[tid];
             unsigned pos = lvl_meta.matrix_data_index + (len-1)*width + tid;
 
-            if (d[pos]!=0) {
-                // Load the rhs value for the parent node of this branch.
-                const unsigned p = parent_index + lvl_parents[tid];
-                T rhsp = rhs[p];
-                // each branch perform substitution
-                for (unsigned i=0; i<len; ++i) {
-                    rhsp = rhs[pos] - u[pos]*rhsp;
-                    rhsp /= d[pos];
-                    rhs[pos] = rhsp;
-                    pos -= width;
-                }
+            // Load the rhs value for the parent node of this branch.
+            const unsigned p = parent_index + lvl_parents[tid];
+            T rhsp = rhs[p];
+            // each branch perform substitution
+            for (unsigned i=0; i<len; ++i) {
+                rhsp = rhs[pos] - u[pos]*rhsp;
+                rhsp /= d[pos];
+                rhs[pos] = rhsp;
+                pos -= width;
             }
         }
     }

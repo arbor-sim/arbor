@@ -158,7 +158,6 @@ TEST(diffusion, errors) {
     {
         // Cannot R/W Xd w/o setting diffusivity
         auto rec = linear{30, 3, 1}.add_decay();
-
         ASSERT_THROW((void)run_cell(rec, {}), illegal_diffusive_mechanism);
     }
     {
@@ -168,13 +167,13 @@ TEST(diffusion, errors) {
     }
     {
         // No negative diffusivity
-        auto rec = linear{30, 3, 1}.set_diffusivity(-42.0, "(all)"_reg);
-        ASSERT_THROW((void)run_cell(rec, {}), cable_cell_error);
+        ASSERT_THROW(linear(30, 3, 1).set_diffusivity(-42.0, "(all)"_reg),
+                     std::domain_error);
     }
     {
         // No negative diffusivity
-        auto rec = linear{30, 3, 1}.set_diffusivity(-42.0);
-        ASSERT_THROW((void)run_cell(rec, {}), cable_cell_error);
+        ASSERT_THROW(linear(30, 3, 1).set_diffusivity(-42.0),
+                     std::domain_error);
     }
 }
 
