@@ -502,6 +502,17 @@ target_compile_options(arborio-private-deps INTERFACE ${ARB_CXX_FLAGS_TARGET_FUL
 
 if(ARB_WITH_PROFILING)
     target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_PROFILING)
+    # Mark profiler regions as NVTX ranges for NVIDIA's tools, if the
+    # header-only NVTX library ships with the CUDA toolkit.
+    if(ARB_GPU STREQUAL "cuda" OR ARB_GPU STREQUAL "cuda-clang")
+        find_path(ARB_NVTX_INCLUDE_DIR nvtx3/nvToolsExt.h HINTS ${CUDAToolkit_INCLUDE_DIRS})
+        if(ARB_NVTX_INCLUDE_DIR)
+            target_include_directories(arbor-private-deps INTERFACE $<BUILD_INTERFACE:${ARB_NVTX_INCLUDE_DIR}>)
+            target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_NVTX)
+        else()
+            message(WARNING "NVTX headers not found in the CUDA toolkit; profiling without NVTX ranges.")
+        endif()
+    endif()
 endif()
 if(ARB_WITH_ASSERTIONS)
     target_compile_definitions(arbor-config-defs INTERFACE ARB_HAVE_ASSERTIONS)
